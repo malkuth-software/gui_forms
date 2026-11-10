@@ -5777,7 +5777,7 @@
     {
       "name": "gf_diagnostics_table",
       "kind": "table",
-      "size": 16,
+      "size": 32,
       "align": 8,
       "fields": [
         {
@@ -5819,6 +5819,38 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "set_invalidation_overlay",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "enabled",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "invalidation_overlay",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "enabled",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },

@@ -73,6 +73,38 @@ namespace {
 constexpr wchar_t window_class_name[] = L"GUIForms.Window.v1";
 constexpr UINT_PTR scheduler_timer = 1;
 constexpr UINT_PTR modal_live_surface_timer = 2;
+// The invalidation overlay's fade (invalidation_overlay.hpp): while outlines
+// show, the overlay is presented again at this period, from the raster,
+// without a paint; the timer stops with the last outline.
+constexpr UINT_PTR invalidation_overlay_timer = 3;
+constexpr UINT invalidation_overlay_period_milliseconds = 33;
+
+// Copies `area` (device pixels, inside the frame) of a top-down 32-bit BGRA
+// frame to `target`; false when GDI refuses. The frame is borrowed.
+bool present_bgra_area(HDC target, const std::byte* pixels, std::size_t row_bytes, int width, int height,
+                       const RECT& area) noexcept {
+    if (target == nullptr || pixels == nullptr || width <= 0 || height <= 0 || row_bytes % 4U != 0U) return false;
+    const int left = std::clamp<int>(area.left, 0, width);
+    const int top = std::clamp<int>(area.top, 0, height);
+    const int right = std::clamp<int>(area.right, left, width);
+    const int bottom = std::clamp<int>(area.bottom, top, height);
+    if (right == left || bottom == top) return true;
+    BITMAPINFO info{};
+    info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    info.bmiHeader.biWidth = static_cast<LONG>(row_bytes / 4U);
+    info.bmiHeader.biHeight = -height;
+    info.bmiHeader.biPlanes = 1;
+    info.bmiHeader.biBitCount = 32;
+    info.bmiHeader.biCompression = BI_RGB;
+    const int columns = right - left;
+    const int rows = bottom - top;
+    // GDI measures a top-down source's y from its bottom row.
+    const int source_y = height - bottom;
+    const int copied = StretchDIBits(target, left, top, columns, rows, left, source_y, columns, rows, pixels, &info,
+                                     DIB_RGB_COLORS, SRCCOPY);
+    const bool presented = copied != 0 && copied != static_cast<int>(GDI_ERROR);
+    return presented;
+}
 constexpr UINT live_surface_period_milliseconds = 16;
 // The live frame clock's cadence when the display's composition timing is
 // unavailable: 60 Hz, in milliseconds per thousand frames.
@@ -1047,9 +1079,9 @@ public:
     }
     [[nodiscard]] bool bundled_fonts_ready() const noexcept { return bundled_fonts_ready_; }
 
-private:
-    // The pixels a capture reads: the committed front (transactional), else
-    // the painter's last frame.
+public:
+    // The pixels a capture and the invalidation overlay read: the committed
+    // front (transactional), else the painter's last frame.
     struct PresentedPixels final {
         const std::byte* pixels{};
         std::size_t row_bytes{};
@@ -1072,6 +1104,8 @@ private:
 #endif
         return result;
     }
+
+private:
 
 #if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
     // Copies the painter's ended frame into a new DIB candidate (the
@@ -1655,6 +1689,10 @@ public:
                 GetUpdateRect(hwnd_, nullptr, FALSE) != FALSE;
             return 0;
         case WM_TIMER:
+            if (wparam == invalidation_overlay_timer) {
+                present_invalidation_overlay();
+                return 0;
+            }
             if (wparam == modal_live_surface_timer) {
                 // Do not enter retained polling/layout from the native modal
                 // loop. Sample and present only the newest live generation,
@@ -1776,6 +1814,81 @@ public:
                ",\"retained_deferred\":" +
                    std::to_string(live_sequence_retained_deferred_) +
                "}}";
+    }
+
+    // The invalidation overlay at present time (invalidation_overlay.hpp):
+    // the areas the overlay draws on now and drew on last are copied from
+    // the presented frame into a scratch frame, the outlines are composited
+    // there, and those areas reach the window from it. The raster is never
+    // drawn on, so the overlay damages nothing and a faded outline leaves
+    // the raster's pixels behind. Off, with nothing left drawn, this is one
+    // relaxed load and a size test.
+    void present_invalidation_overlay() {
+        if (hwnd_ == nullptr || !model_) return;
+        InvalidationOverlay* const overlay = (*model_).invalidation_overlay();
+        if (overlay == nullptr && overlay_drawn_.empty()) {
+            disarm_invalidation_overlay_timer();
+            return;
+        }
+        const WindowsRaster::PresentedPixels source = raster_.presented_pixels();
+        if (source.pixels == nullptr || source.width <= 0 || source.height <= 0) return;
+        const std::uint32_t width = static_cast<std::uint32_t>(source.width);
+        const std::uint32_t height = static_cast<std::uint32_t>(source.height);
+        const InvalidationClock::time_point now = InvalidationClock::now();
+        overlay_regions_.clear();
+        if (overlay != nullptr) {
+            (*overlay).expire(now);
+            (*overlay).fill_regions(scale_, width, height, overlay_regions_);
+        }
+        overlay_present_.assign(overlay_regions_.begin(), overlay_regions_.end());
+        overlay_present_.insert(overlay_present_.end(), overlay_drawn_.begin(), overlay_drawn_.end());
+        if (overlay_present_.empty()) {
+            disarm_invalidation_overlay_timer();
+            return;
+        }
+        const std::size_t frame_bytes = source.row_bytes * static_cast<std::size_t>(height);
+        if (overlay_scratch_.size() != frame_bytes) overlay_scratch_.assign(frame_bytes, std::byte{0});
+        InvalidationOverlayTarget target{};
+        target.pixels = std::span<std::byte>(overlay_scratch_);
+        target.width = width;
+        target.height = height;
+        target.row_bytes = source.row_bytes;
+        HDC dc = GetDC(hwnd_);
+        if (dc == nullptr) return;
+        for (const DevicePixelRect& region : overlay_present_) {
+            const std::int32_t left = std::clamp<std::int32_t>(region.left, 0, source.width);
+            const std::int32_t right = std::clamp<std::int32_t>(region.right, left, source.width);
+            const std::int32_t top = std::clamp<std::int32_t>(region.top, 0, source.height);
+            const std::int32_t bottom = std::clamp<std::int32_t>(region.bottom, top, source.height);
+            if (right == left || bottom == top) continue;
+            const std::size_t row_offset = static_cast<std::size_t>(left) * 4U;
+            const std::size_t row_length = static_cast<std::size_t>(right - left) * 4U;
+            for (std::int32_t y = top; y < bottom; ++y) {
+                const std::size_t offset = static_cast<std::size_t>(y) * source.row_bytes + row_offset;
+                std::memcpy(overlay_scratch_.data() + offset, source.pixels + offset, row_length);
+            }
+            const DevicePixelRect clipped{left, top, right, bottom};
+            if (overlay != nullptr) (*overlay).compose(target, scale_, now, clipped);
+            const RECT area{left, top, right, bottom};
+            static_cast<void>(present_bgra_area(dc, overlay_scratch_.data(), source.row_bytes, source.width,
+                                                source.height, area));
+        }
+        ReleaseDC(hwnd_, dc);
+        overlay_drawn_.assign(overlay_regions_.begin(), overlay_regions_.end());
+        if (overlay != nullptr && !(*overlay).empty()) {
+            if (!overlay_timer_armed_) {
+                SetTimer(hwnd_, invalidation_overlay_timer, invalidation_overlay_period_milliseconds, nullptr);
+                overlay_timer_armed_ = true;
+            }
+        } else {
+            disarm_invalidation_overlay_timer();
+        }
+    }
+
+    void disarm_invalidation_overlay_timer() noexcept {
+        if (!overlay_timer_armed_) return;
+        overlay_timer_armed_ = false;
+        if (hwnd_ != nullptr) KillTimer(hwnd_, invalidation_overlay_timer);
     }
 
     void present_pending_frame() {
@@ -2252,6 +2365,7 @@ private:
                 ++live_updates_failed_;
                 continue;
             }
+            (*model_).note_live_surface_presented(update, region);
             screen.add(region);
             const std::uint64_t pixels = device_pixels(device_rect(region));
             composed_live_pixels_[source] += pixels;
@@ -2305,6 +2419,7 @@ private:
             }
         }
         ReleaseDC(hwnd_, target);
+        present_invalidation_overlay();
         if (expose_whole && presented) expose_whole_raster_ = false;
         copied.copy_nanoseconds = static_cast<std::uint64_t>(
             std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -2404,6 +2519,7 @@ private:
                 std::chrono::steady_clock::now();
             if (raster_.present_live_surface(target, update)) {
                 ++live_updates_presented_;
+                (*model_).note_live_surface_presented(update, update.clip);
                 PresentedArea copied;
                 copied.device_pixels = device_pixels(device_rect(update.clip));
                 copied.rectangles = copied.device_pixels != 0U ? 1U : 0U;
@@ -2419,6 +2535,7 @@ private:
             }
         }
         ReleaseDC(hwnd_, target);
+        present_invalidation_overlay();
 #else
         present_live_frame_sequence(updates);
 #endif
@@ -2511,6 +2628,7 @@ private:
             recovery_expose_pending_ = true;
             InvalidateRect(hwnd_, nullptr, FALSE);
         }
+        present_invalidation_overlay();
         collect_damage();
 #else
         // After a resize the raster is current outside the pending damage, so
@@ -2575,6 +2693,7 @@ private:
             pending_damage_.clear();
             complete_frame_capture_if_due(paint_state.rcPaint);
         }
+        present_invalidation_overlay();
         collect_damage();
 #endif
     }
@@ -3097,6 +3216,14 @@ private:
     // A taken presentation region that was never presented: the next tick
     // copies whole clips.
     bool live_region_lost_{};
+    // The invalidation overlay's present-time storage, reused: the scratch
+    // frame it composites in (allocated on its first use), the areas it
+    // draws on now, those it drew on last, and both together.
+    std::vector<std::byte> overlay_scratch_;
+    std::vector<DevicePixelRect> overlay_regions_;
+    std::vector<DevicePixelRect> overlay_drawn_;
+    std::vector<DevicePixelRect> overlay_present_;
+    bool overlay_timer_armed_{};
     // The last compositor state report's generation; 0 before the first.
     CompositorGeneration compositor_generation_{};
 #if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)

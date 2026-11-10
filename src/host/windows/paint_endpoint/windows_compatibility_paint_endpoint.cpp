@@ -113,7 +113,11 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         owner_thread = GetCurrentThreadId();
         width = std::max<std::uint32_t>(1U, requested_width);
         height = std::max<std::uint32_t>(1U, requested_height);
-        surface = LiveSurface::create({width, height});
+        LiveSurfaceDescription description{};
+        description.width = width;
+        description.height = height;
+        description.origin = LiveSurfaceOrigin::compatibility_paint;
+        surface = LiveSurface::create(description);
         if (!surface || !create_backing(width, height)) return false;
         compatibility_handle = allocate_compatibility_handle();
         if (compatibility_handle == 0U) return false;

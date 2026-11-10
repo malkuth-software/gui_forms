@@ -269,8 +269,10 @@ void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool wid
         if (band_.reserved > 0.0 && band_.corners.shape == WindowCornerShape::rounded) {
             reach = std::max(reach, band_.corners.radius);
         }
+        const DamageCauseScope cause(*this, InvalidationCause::layout, root_.get());
         add_resize_strip_damage(old_bounds, new_bounds, reach);
     } else {
+        const DamageCauseScope cause(*this, InvalidationCause::layout, root_.get());
         add_damage_all_planes(old_bounds);
         add_damage_all_planes(new_bounds);
     }

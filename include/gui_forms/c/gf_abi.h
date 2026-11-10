@@ -1685,6 +1685,23 @@ typedef struct gf_diagnostics_table {
      */
     gf_status (GF_CALL* shadow_frames)(gf_shadow_frame* frames, uint64_t capacity, uint64_t* required,
                                        gf_shadow_stack_info* info);
+    /*
+     * The invalidation overlay (since 1.1), a debugging mode: every area a
+     * window presents again is outlined for 300 ms, in a style naming its
+     * cause (red: a control's invalidation; orange: layout; blue: a host
+     * expose; green: a scroll copy; magenta: a live surface; cyan: external
+     * content through a compatibility paint endpoint), with a legend. The
+     * host composites it at present time, so it causes no damage of its
+     * own. set_invalidation_overlay sets the process switch (enabled 0 or
+     * 1), which every window without a setting of its own follows from its
+     * next damage; it starts as the environment variable
+     * GUI_FORMS_DEBUG_INVALIDATION asks (set, not empty and not "0").
+     * invalidation_overlay reads it into enabled. Any thread.
+     * GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null
+     * output.
+     */
+    gf_status (GF_CALL* set_invalidation_overlay)(uint32_t enabled);
+    gf_status (GF_CALL* invalidation_overlay)(uint32_t* enabled);
 } gf_diagnostics_table;
 
 /*

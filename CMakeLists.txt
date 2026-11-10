@@ -326,6 +326,7 @@ add_library(gui_forms_core STATIC
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp
     src/core/diagnostics/shadow_frames/shadow_frames.cpp
+    src/core/diagnostics/invalidation_overlay/invalidation_overlay.cpp
     src/core/metrics/metrics/metrics.cpp
     src/core/metrics/snapshot/metrics_snapshot.cpp
     src/core/visual_inspection/snapshot/visual_inspection_snapshot.cpp
@@ -3062,6 +3063,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_damage_clip_tests tests/damage_clip_tests.cpp)
     target_link_libraries(gui_forms_damage_clip_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_damage_clip_tests COMMAND gui_forms_damage_clip_tests)
+    add_executable(gui_forms_invalidation_overlay_tests tests/invalidation_overlay_tests.cpp)
+    target_link_libraries(gui_forms_invalidation_overlay_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_invalidation_overlay_tests COMMAND gui_forms_invalidation_overlay_tests)
 
     add_executable(gui_forms_control_table_tests tests/control_table_tests.cpp)
     target_link_libraries(gui_forms_control_table_tests PRIVATE gui_forms_controls)

@@ -220,6 +220,16 @@ void GalleryContext::precise_updates_clicked(GalleryContext& context, const Rule
     context.synchronize("gallery.checkbox");
 }
 
+// The Gallery window's own invalidation overlay setting, so the switch
+// shows this window's redraws whatever the process switch says.
+void GalleryContext::invalidation_overlay_clicked(GalleryContext& context, const RuleFiring&)
+{
+    if (context.window == nullptr) return;
+    GalleryWindow& gallery = *context.window;
+    const bool shown = (*gallery.gallery_diagnostics_invalidation).checked.read();
+    gallery.set_invalidation_overlay(shown);
+}
+
 void GalleryContext::classic_relief_clicked(GalleryContext& context, const RuleFiring&)
 {
     context.model.classic_relief.set(true);
@@ -334,6 +344,7 @@ void GalleryContext::attach(GalleryWindow& gallery_window)
     Button& diagnostics = *gallery.gallery_command_diagnostics;
     Button& apply = *pages.gallery_default_button;
     CheckBox& precise = *pages.gallery_checkbox;
+    CheckBox& invalidation = *gallery.gallery_diagnostics_invalidation;
     RadioButton& classic = *pages.gallery_radio_classic;
     RadioButton& quiet = *pages.gallery_radio_quiet;
     CheckBox& three_state = *pages.gallery_checkbox_indeterminate;
@@ -348,6 +359,8 @@ void GalleryContext::attach(GalleryWindow& gallery_window)
     arm(rules, trigger::interaction(text_input, text_input.text_changed()), *this, &GalleryContext::text_changed);
     arm(rules, trigger::interaction(apply, apply.clicked()), *this, &GalleryContext::apply_clicked);
     arm(rules, trigger::interaction(precise, precise.clicked()), *this, &GalleryContext::precise_updates_clicked);
+    arm(rules, trigger::interaction(invalidation, invalidation.clicked()), *this,
+        &GalleryContext::invalidation_overlay_clicked);
     arm(rules, trigger::interaction(classic, classic.clicked()), *this, &GalleryContext::classic_relief_clicked);
     arm(rules, trigger::interaction(quiet, quiet.clicked()), *this, &GalleryContext::quiet_relief_clicked);
     arm(rules, trigger::interaction(three_state, three_state.clicked()), *this,

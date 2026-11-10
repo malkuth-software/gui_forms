@@ -673,6 +673,10 @@ Types
 
    .. cpp:function:: gf_status shadow_frames(gf_shadow_frame* frames, uint64_t capacity, uint64_t* required, gf_shadow_stack_info* info) const noexcept
 
+   .. cpp:function:: gf_status invalidation_overlay(uint32_t* enabled) const noexcept
+
+   .. cpp:function:: gf_status set_invalidation_overlay(uint32_t enabled) const noexcept
+
 .. cpp:namespace:: gui_forms::abi
 
 .. cpp:class:: DispatchTable
@@ -1904,6 +1908,10 @@ Types
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*shadow_frames)(gf_shadow_frame* frames, uint64_t capacity, uint64_t* required, gf_shadow_stack_info* info)
+
+   .. cpp:member:: gf_status (*set_invalidation_overlay)(uint32_t enabled)
+
+   .. cpp:member:: gf_status (*invalidation_overlay)(uint32_t* enabled)
 
    .. cpp:member:: uint32_t struct_size
 

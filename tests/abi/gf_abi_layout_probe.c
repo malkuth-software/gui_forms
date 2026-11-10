@@ -403,10 +403,12 @@ GF_LAYOUT_ASSERT(offsetof(gf_shadow_stack_info, struct_size) == 0, "gf_shadow_st
 GF_LAYOUT_ASSERT(offsetof(gf_shadow_stack_info, depth) == 4, "gf_shadow_stack_info.depth offset");
 GF_LAYOUT_ASSERT(offsetof(gf_shadow_stack_info, pushed) == 8, "gf_shadow_stack_info.pushed offset");
 GF_LAYOUT_ASSERT(offsetof(gf_shadow_stack_info, dropped) == 16, "gf_shadow_stack_info.dropped offset");
-GF_LAYOUT_ASSERT(sizeof(gf_diagnostics_table) == 16, "gf_diagnostics_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_diagnostics_table) == 32, "gf_diagnostics_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, struct_size) == 0, "gf_diagnostics_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, abi_minor) == 4, "gf_diagnostics_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, shadow_frames) == 8, "gf_diagnostics_table.shadow_frames offset");
+GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, set_invalidation_overlay) == 16, "gf_diagnostics_table.set_invalidation_overlay offset");
+GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, invalidation_overlay) == 24, "gf_diagnostics_table.invalidation_overlay offset");
 GF_LAYOUT_ASSERT(sizeof(gf_layout_transaction) == 32, "gf_layout_transaction size");
 GF_LAYOUT_ASSERT(offsetof(gf_layout_transaction, struct_size) == 0, "gf_layout_transaction.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_layout_transaction, suspend_depth) == 4, "gf_layout_transaction.suspend_depth offset");
