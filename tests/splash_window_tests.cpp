@@ -510,6 +510,42 @@ void opaque_transient_windows_hold_the_face_alone() {
             "an opaque menu window holds the panel alone, with no room for a shadow");
 }
 
+// A host that offers translucent popups but refuses each one its alpha
+// (Wine's DWM): the tooltip's window and the menu's are the face alone, so
+// no clear pixel around the face paints opaque (the giant pale slab, owner
+// 2026-11-09 and 2026-11-10).
+void refused_popup_alpha_sizes_to_the_face() {
+    const Rect translucent_tip = tool_tip_window(true);
+    const Rect translucent_menu = menu_window(true);
+    Desk desk;
+    (*desk.application).simulate_compositor_state(compositing_desktop());
+    (*desk.application).refuse_popup_alpha();
+    desk.windowing().set_transient_windows_translucent(true);
+    require((*desk.model).popup_windows_translucent(), "before a popup opened, the prediction says translucent");
+    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    const std::optional<HostWindowId> splash = desk.splash();
+    require(splash.has_value() && desk.windowing().native_visible(*splash), "the tooltip has its own window");
+    const std::optional<Rect> content = desk.windowing().native_content(*splash);
+    require(content.has_value(), "the tooltip's window is placed");
+    require(!(*desk.model).popup_windows_translucent(), "a refused popup turns the shadow off");
+    require((*content).width < translucent_tip.width && (*content).height < translucent_tip.height,
+            "the tooltip's window is its face alone, with no room for a shadow");
+    (*desk.model).hide_tool_tip();
+    MenuCommands commands;
+    ContextMenu menu("desk.menu");
+    menu.set_items(menu_items(commands));
+    menu.show(desk.anchor, Point{40.0, 40.0}, MenuOpenMode::keyboard);
+    std::optional<Rect> menu_content{};
+    const std::vector<HostWindowId> order = desk.windowing().z_order();
+    for (const HostWindowId id : order) {
+        if (id != desk.main.id() && desk.windowing().native_visible(id)) menu_content = desk.windowing().native_content(id);
+    }
+    require(menu.is_open() && menu_content.has_value(), "the menu's Popup window is placed");
+    require((*menu_content).width < translucent_menu.width && (*menu_content).height < translucent_menu.height,
+            "the menu's window is its panel alone, with no room for a shadow");
+    menu.close();
+}
+
 void splashscreen_shows_and_hands_over() {
     const std::shared_ptr<host::HeadlessSplashscreenRecord> record = std::make_shared<host::HeadlessSplashscreenRecord>();
     SplashscreenOptions options{};
@@ -565,6 +601,7 @@ int main() {
         auto_complete_list_shows_in_a_popup();
         error_message_shows_in_the_splash_window();
         opaque_transient_windows_hold_the_face_alone();
+        refused_popup_alpha_sizes_to_the_face();
         splashscreen_shows_and_hands_over();
     } catch (const std::exception& error) {
         std::cerr << "splash window test failed: " << error.what() << '\n';

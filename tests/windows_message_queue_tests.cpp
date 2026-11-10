@@ -40,9 +40,11 @@ struct QueueCategories final {
 bool read_categories(void* const context, MSG& message,
                      const UINT first, const UINT last, const UINT flags) {
     QueueCategories& queue = *static_cast<QueueCategories*>(context);
-    require((flags & PM_REMOVE) != 0U, "reference queue requires removal");
+    const bool removing = (flags & PM_REMOVE) != 0U;
     const bool hardware_only = (flags & PM_QS_INPUT) != 0U;
-    for (std::size_t category = hardware_only ? 1U : 0U; category < 2U; ++category) {
+    const bool posted_only = (flags & PM_QS_POSTMESSAGE) != 0U;
+    const std::size_t last_category = posted_only ? 1U : 2U;
+    for (std::size_t category = hardware_only ? 1U : 0U; category < last_category; ++category) {
         for (QueueEntry& entry : queue.entries) {
             const bool in_range = (first == 0U && last == 0U) ||
                 (entry.message >= first && entry.message <= last);
@@ -50,7 +52,7 @@ bool read_categories(void* const context, MSG& message,
                 message = {};
                 message.message = entry.message;
                 message.wParam = entry.value;
-                entry.consumed = true;
+                if (removing) entry.consumed = true;
                 return true;
             }
         }
@@ -80,6 +82,54 @@ void test_translated_character_order() {
     require(gui_forms::host::detail::take_window_message_with_reader(
                 message, true, read_categories, &outside_range), "input-category fallback available");
     require(message.message == WM_INPUT, "input outside the key/mouse range is not starved");
+}
+
+// A press on each frame part and the caption, then the release over the
+// client: the press is taken before the release, so DefWindowProc's size or
+// move loop sees its release (owner, 2026-11-10: a resize that took a second
+// click). The same order holds for the main window and every owned window:
+// the queue is the thread's.
+void test_frame_press_precedes_release() {
+    const std::array<WPARAM, 9> parts{{HTCAPTION, HTLEFT, HTRIGHT, HTTOP, HTTOPLEFT, HTTOPRIGHT, HTBOTTOM,
+                                       HTBOTTOMLEFT, HTBOTTOMRIGHT}};
+    for (const WPARAM part : parts) {
+        QueueCategories queue{};
+        queue.entries[0] = {WM_APP + 0x42U, 1U, false, false};
+        queue.entries[1] = {WM_NCLBUTTONDOWN, part, true, false};
+        queue.entries[2] = {WM_MOUSEMOVE, 0U, true, false};
+        queue.entries[3] = {WM_LBUTTONUP, 0U, true, false};
+        MSG message{};
+        require(gui_forms::host::detail::take_window_message_with_reader(message, true, read_categories, &queue),
+                "the frame press is available");
+        require(message.message == WM_NCLBUTTONDOWN && message.wParam == part,
+                "a frame press is taken before the later release over the client");
+        require(gui_forms::host::detail::take_window_message_with_reader(message, true, read_categories, &queue) &&
+                    message.message == WM_MOUSEMOVE,
+                "then the motion");
+        require(gui_forms::host::detail::take_window_message_with_reader(message, true, read_categories, &queue) &&
+                    message.message == WM_LBUTTONUP,
+                "then the one release that ends the drag");
+        require(gui_forms::host::detail::frame_press_may_drag(part, true),
+                "a frame press with the button down drags");
+        require(!gui_forms::host::detail::frame_press_may_drag(part, false),
+                "a frame press whose button is already up starts no loop that would wait for a second click");
+    }
+    require(gui_forms::host::detail::frame_press_may_drag(HTCLOSE, false) &&
+                gui_forms::host::detail::frame_press_may_drag(HTMINBUTTON, false) &&
+                gui_forms::host::detail::frame_press_may_drag(HTSYSMENU, false),
+            "a press on the system buttons is always passed on");
+    QueueCategories typed{};
+    typed.entries[0] = {WM_CHAR, 'a', false, false};
+    typed.entries[1] = {WM_NCLBUTTONDOWN, HTTOP, true, false};
+    typed.entries[2] = {WM_LBUTTONUP, 0U, true, false};
+    typed.entries[3] = {WM_APP + 0x42U, 1U, false, false};
+    MSG message{};
+    require(gui_forms::host::detail::take_window_message_with_reader(message, true, read_categories, &typed) &&
+                message.message == WM_CHAR,
+            "a translated character still comes first");
+    require(gui_forms::host::detail::take_window_message_with_reader(message, true, read_categories, &typed) &&
+                message.message == WM_NCLBUTTONDOWN,
+            "then the frame press, before the release");
 }
 
 void test_queue() {
@@ -120,6 +170,7 @@ void test_queue() {
 int main() {
     try {
         test_translated_character_order();
+        test_frame_press_precedes_release();
         test_queue();
         std::cout << "Windows queue fixtures passed; physical device delivery requires native dogfood\n";
         return EXIT_SUCCESS;

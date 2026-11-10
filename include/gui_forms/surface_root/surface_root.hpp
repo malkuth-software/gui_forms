@@ -644,6 +644,12 @@ public:
     [[nodiscard]] Event<bool>& active_changed() noexcept {
         return active_changed_;
     }
+    // Raised when the host reports that the native window moved on the
+    // screen or began a native move or size loop: what is placed against
+    // the window from outside it (a menu's Popup windows) closes. Host
+    // only: report_frame_moved. UI thread.
+    [[nodiscard]] Event<>& frame_moved() noexcept { return frame_moved_; }
+    void report_frame_moved();
     // Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/
     // PLAN.md §2). Declares, before a host attaches, that this window may
     // be presented non-opaque (owner decision T5-Q4);
@@ -2123,6 +2129,7 @@ private:
     ColourScheme host_colour_scheme_{ColourScheme::light};
     Event<const Theme&> theme_changed_;
     Event<bool> active_changed_;
+    Event<> frame_moved_;
     bool active_{true};
     StableIdMap stable_ids_;
     Control::WeakPtr focused_;

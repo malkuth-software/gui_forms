@@ -67,7 +67,8 @@ public:
     [[nodiscard]] Event<>& closed() noexcept { return (*record_).closed(); }
 
 private:
-    TransientWindow(std::shared_ptr<NativePopupRecord> record, Control::Ptr root) noexcept;
+    TransientWindow(std::shared_ptr<NativePopupRecord> record, Control::Ptr root,
+                    std::weak_ptr<ApplicationWindowState> owner) noexcept;
     // Takes the content out of the root, leaving the window as it is.
     void detach_content() noexcept;
 
@@ -75,6 +76,9 @@ private:
     // The model's root (owned by the model; kept to add and remove content).
     Control::Ptr root_;
     Control::Ptr content_{};
+    // The owner window's run state, to note what the window was granted
+    // (note_popup_backdrop).
+    std::weak_ptr<ApplicationWindowState> owner_{};
     bool shown_{};
 };
 

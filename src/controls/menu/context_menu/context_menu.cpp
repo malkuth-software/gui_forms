@@ -261,6 +261,9 @@ struct ContextMenu::Impl final {
             : Control(std::move(id)),
               reveal_(*this, MotionCurve::timed(reveal_duration, MotionEasing::smoothstep), 1.0) {
             set_paint_plane(PaintPlane::overlay);
+            // The shadow round the panel takes no input: the host passes a
+            // point there to the window beneath.
+            hit_test_transparent = true;
             reveal_.set_listener(MotionListener::bind<PopupFrame, &PopupFrame::on_reveal>(*this));
         }
 
@@ -666,6 +669,8 @@ struct ContextMenu::Impl final {
                 owner, Delegate<std::size_t>::bind<Impl, &Impl::on_popup_closed>(*this));
             owner_active = (*window).active_changed().subscribe(
                 owner, Delegate<bool>::bind<Impl, &Impl::on_owner_active>(*this));
+            owner_moved = (*window).frame_moved().subscribe(
+                owner, Delegate<>::bind<Impl, &Impl::on_owner_moved>(*this));
             static_cast<void>(focus_row(0U, preferred));
         } else {
             focus_scope = (*window).begin_focus_scope(layer, preferred);
@@ -677,6 +682,7 @@ struct ContextMenu::Impl final {
     void close() noexcept {
         if (closing) return;
         closing = true;
+        ++close_count;
         if (window && focus_scope) {
             try {
                 static_cast<void>((*window).end_focus_scope(focus_scope));
@@ -704,10 +710,18 @@ struct ContextMenu::Impl final {
         }
         focus_scope = {};
         overlay_revocation.disconnect();
+        ++close_count;
         hide_popups();
         const bool changed = open;
         reset_visual_state();
         if (changed && owner.is_alive()) owner.open_changed_.emit(false);
+    }
+
+    // Whether the row at `depth` and `index` still exists and the menu has
+    // not closed since `closes` was read.
+    [[nodiscard]] bool row_still_shown(std::size_t depth, std::size_t index, std::uint64_t closes) const noexcept {
+        const bool shown = close_count == closes && depth < panels.size() && index < panels[depth].rows.size();
+        return shown;
     }
 
     // The owner's Popup window of a shown panel closed (the host destroyed
@@ -719,6 +733,10 @@ struct ContextMenu::Impl final {
     void on_owner_active(bool active) {
         if (!active) close();
     }
+
+    // The owner moved under its Popup windows: they no longer sit by the
+    // rows that opened them, so the whole chain closes.
+    void on_owner_moved() { close(); }
 
     // Hides every Popup window the menu shows, deepest first, and empties
     // their frames.
@@ -732,6 +750,7 @@ struct ContextMenu::Impl final {
         }
         popup_closed.disconnect();
         owner_active.disconnect();
+        owner_moved.disconnect();
     }
 
     // The window that hosts the panel at `depth`: its Popup window's model
@@ -782,6 +801,8 @@ struct ContextMenu::Impl final {
             frame = make_control<PopupFrame>(
                 StableId(owner.stable_id_ + ".popup.frame." + std::to_string(depth)));
         }
+        // The window first, so the shadow follows what it was granted.
+        static_cast<void>((*window).prepare_popup_window(depth));
         (*state.panel).set_shadow((*window).popup_windows_translucent());
         const Insets outsets = (*state.panel).visual_outsets();
         (*frame).hold(state.panel, Rect{outsets.left, outsets.top, face.width, face.height});
@@ -857,7 +878,10 @@ struct ContextMenu::Impl final {
                     double requested_x, double requested_y,
                     std::optional<std::size_t> parent_index) {
         if (!layer || !window || depth >= maximum_menu_depth) return;
+        const std::uint64_t closes = close_count;
         remove_panels_from(depth);
+        // `items` lies in the snapshot, which a close destroys.
+        if (close_count != closes || panels.size() != depth) return;
         const Rect area = placement_area(Point{requested_x, requested_y});
         const double area_right = area.x + area.width;
         const double area_bottom = area.y + area.height;
@@ -908,7 +932,11 @@ struct ContextMenu::Impl final {
         layout_rows(depth);
         // A panel clamped above where it was asked for opens upward.
         const bool upward = y < requested_y;
-        if (!popup_mode || !present_in_popup(depth, placed, face, upward)) {
+        const bool presented = popup_mode && present_in_popup(depth, placed, face, upward);
+        // Showing the Popup window may have closed the menu, destroying
+        // `placed`.
+        if (close_count != closes || panels.size() != depth + 1U) return;
+        if (!presented) {
             // Placed against the work area but refused a Popup (the host
             // refused, or the depth is past the menu slots): back inside
             // the owner's client, where the layer shows it.
@@ -941,12 +969,16 @@ struct ContextMenu::Impl final {
 
     void remove_panels_from(std::size_t depth) {
         while (panels.size() > depth) {
-            const std::shared_ptr<MenuPanel> panel = panels.back().panel;
-            if (panels.back().in_popup) {
-                if (window) (*window).hide_popup_window(panels.size() - 1U);
-                if (panels.back().frame) (*panels.back().frame).release();
-            }
+            // Out of the list first: hiding the window may run code that
+            // reads the panels (or closes the menu and empties them).
+            const std::size_t slot = panels.size() - 1U;
+            PanelState removed = std::move(panels.back());
             panels.pop_back();
+            if (removed.in_popup) {
+                if (window) (*window).hide_popup_window(slot);
+                if (removed.frame) (*removed.frame).release();
+            }
+            const std::shared_ptr<MenuPanel>& panel = removed.panel;
             if (layer && panel && (*panel).parent().get() == layer.get()) {
                 static_cast<void>((*layer).remove_child((*panel).runtime_id()));
             }
@@ -1013,9 +1045,11 @@ struct ContextMenu::Impl final {
         for (std::size_t current = 0; current < panels[depth].rows.size(); ++current) {
             (*panels[depth].rows[current]).set_hot(current == index);
         }
+        const std::uint64_t closes = close_count;
         if (window && (*panels[depth].rows[index]).focusable.read()) {
             static_cast<void>(focus_row(depth, panels[depth].rows[index]));
         }
+        if (!row_still_shown(depth, index, closes)) return;
         const MenuSnapshot& item = (*panels[depth].items)[index];
         if (item.kind == MenuItemKind::submenu) {
             open_submenu(depth, index, false);
@@ -1046,8 +1080,10 @@ struct ContextMenu::Impl final {
             const bool flips = right_x + child_width + 4.0 > area.x + area.width;
             const double x = flips ? parent.x - child_width + 3.0 : right_x;
             panels[depth].child_source_index = index;
+            const std::uint64_t closes = close_count;
             // Its first row level with the row that opened it.
             open_panel(depth + 1U, item.children, x, row.y - menu_border, index);
+            if (!row_still_shown(depth, index, closes)) return;
             panels[depth].child_source_index = index;
             (*panels[depth].rows[index]).submenu_changed();
         }
@@ -1215,8 +1251,17 @@ struct ContextMenu::Impl final {
     std::array<std::shared_ptr<PopupFrame>, maximum_menu_depth> frames{};
     SubscriptionToken popup_closed;
     SubscriptionToken owner_active;
+    SubscriptionToken owner_moved;
     bool open{};
     bool closing{};
+    // Counts closes. Showing a Popup window, focusing a row or hiding a
+    // window can run code that closes the menu (an owner deactivated, a
+    // focus handler, a host that closed a slot); a caller that held a depth
+    // and an index across such a call compares this counter before it uses
+    // them again, since close() destroys every panel, row and the snapshot
+    // the rows refer to (owner, 2026-11-10: the use after free in
+    // open_submenu, gdb2 to gdb4).
+    std::uint64_t close_count{};
     std::function<bool(int)> root_navigation_handler;
     std::function<bool(const PointerEvent&)> outside_pointer_handler;
 };

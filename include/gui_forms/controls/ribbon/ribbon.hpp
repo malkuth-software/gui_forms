@@ -970,8 +970,10 @@ private:
     // and Backstage.
     [[nodiscard]] bool file_area_open() const noexcept;
     bool show_application_overlay(MenuOpenMode mode);
+    void close_application_submenus() noexcept;
     void close_application_overlay() noexcept;
     void on_application_overlay_revoked();
+    void on_application_owner_moved();
     // Opens `item`'s children in the ribbon's menu beside `row` (the row's
     // bounds in `panel`'s coordinates), with the keyboard on the first row
     // when `keyboard`; false when the item has no children or the ribbon
@@ -1065,6 +1067,8 @@ private:
     OverlayToken application_overlay_token_{};
     FocusScopeId application_scope_{};
     SubscriptionToken application_overlay_revoked_{};
+    // The owner window's frame_moved while the application menu shows.
+    SubscriptionToken application_owner_moved_{};
     bool application_overlay_open_{};
     SubscriptionToken backstage_close_{};
     OverlayToken backstage_token_{};

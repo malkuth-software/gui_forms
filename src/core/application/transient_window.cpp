@@ -33,12 +33,16 @@ std::string_view transient_id_segment(const HostTransientKind kind) noexcept {
 }
 } // namespace
 
-TransientWindow::TransientWindow(std::shared_ptr<NativePopupRecord> record, Control::Ptr root) noexcept
-    : record_(std::move(record)), root_(std::move(root)) {}
+TransientWindow::TransientWindow(std::shared_ptr<NativePopupRecord> record, Control::Ptr root,
+                                 std::weak_ptr<ApplicationWindowState> owner) noexcept
+    : record_(std::move(record)), root_(std::move(root)), owner_(std::move(owner)) {}
 
 std::unique_ptr<TransientWindow> TransientWindow::open(const TransientWindowOpening& opening) {
     if (native_popup_refusal(opening.owner, opening.kind) != NativePopupRefusal::none) return nullptr;
     const Control::Ptr root = make_control<Control>(StableId(transient_id_segment(opening.kind)));
+    // Only what the window shows takes input; its empty rest (the shadow
+    // round a face) passes points to the window beneath.
+    (*root).hit_test_transparent = true;
     NativePopupOpening popup{};
     popup.owner = opening.owner;
     popup.serial = opening.serial;
@@ -53,7 +57,8 @@ std::unique_ptr<TransientWindow> TransientWindow::open(const TransientWindowOpen
     popup.resources = opening.resources;
     std::shared_ptr<NativePopupRecord> record = open_native_popup_window(popup);
     if (!record) return nullptr;
-    std::unique_ptr<TransientWindow> window(new TransientWindow(std::move(record), root));
+    if (const Window* const model = (*record).model()) note_popup_backdrop(opening.owner, *model);
+    std::unique_ptr<TransientWindow> window(new TransientWindow(std::move(record), root, opening.owner));
     return std::move(window);
 }
 
@@ -109,6 +114,7 @@ bool TransientWindow::show(const Control::Ptr& content, const Rect desktop) {
         return false;
     }
     shown_ = true;
+    if (const Window* const model = (*record_).model()) note_popup_backdrop(owner_, *model);
     return true;
 }
 

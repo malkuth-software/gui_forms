@@ -46,6 +46,12 @@ bool PopupStandby::show(const std::size_t slot, const Control::Ptr& content, con
     return shown;
 }
 
+bool PopupStandby::prepare(const std::size_t slot) {
+    if (slot >= slots_.size()) return false;
+    const bool open = slot_window(slot) != nullptr;
+    return open;
+}
+
 bool PopupStandby::move(const std::size_t slot, const Rect bounds) {
     if (slot >= slots_.size() || !slots_[slot].window) return false;
     const std::optional<Rect> desktop = desktop_placement(owner_.application_window_, bounds, monitors_);
@@ -103,6 +109,13 @@ bool Window::show_popup_window(const std::size_t slot, const Control::Ptr& conte
     if (slot >= maximum_popup_windows) throw std::out_of_range("GUI.Forms popup window slot is out of range");
     const bool shown = popup_standby().show(slot, content, bounds);
     return shown;
+}
+
+bool Window::prepare_popup_window(const std::size_t slot) {
+    require_root_thread("popup window");
+    if (slot >= maximum_popup_windows) throw std::out_of_range("GUI.Forms popup window slot is out of range");
+    const bool prepared = popup_standby().prepare(slot);
+    return prepared;
 }
 
 bool Window::move_popup_window(const std::size_t slot, const Rect bounds) {

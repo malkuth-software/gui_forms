@@ -49,9 +49,11 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstdlib>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <deque>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -109,6 +111,40 @@ bool present_bgra_area(HDC target, const std::byte* pixels, std::size_t row_byte
     const bool presented = copied != 0 && copied != static_cast<int>(GDI_ERROR);
     return presented;
 }
+
+// Retries automation commands deferred while the UI thread was inside a
+// dispatch or a native size/move loop (WindowsHostState::automation).
+constexpr UINT_PTR automation_retry_timer = 4;
+constexpr UINT automation_retry_milliseconds = 10;
+// At most this many automation commands wait per window; more are refused.
+constexpr std::size_t maximum_deferred_automation = 64U;
+
+// How deep the UI thread is in host dispatches into a model, across every
+// window of the thread: an automation command arriving through WM_COPYDATA
+// while one runs (sent by another process, it is delivered whenever the
+// thread waits in a send or a nested pump) would run model code inside
+// model code, menus and popups half opened. Such commands wait until the
+// count is back to zero. A modal loop entered by a dispatch sets the count
+// aside for its length (ModalDispatchDepth): the modal window is meant to
+// take input there.
+thread_local std::uint32_t host_dispatch_depth = 0U;
+
+// Counts one host dispatch for its length.
+struct HostDispatchScope final {
+    HostDispatchScope() noexcept { ++host_dispatch_depth; }
+    ~HostDispatchScope() { --host_dispatch_depth; }
+    HostDispatchScope(const HostDispatchScope&) = delete;
+    HostDispatchScope& operator=(const HostDispatchScope&) = delete;
+};
+
+// Sets the dispatch count aside for a modal loop's length.
+struct ModalDispatchDepth final {
+    std::uint32_t saved{host_dispatch_depth};
+    ModalDispatchDepth() noexcept { host_dispatch_depth = 0U; }
+    ~ModalDispatchDepth() { host_dispatch_depth = saved; }
+    ModalDispatchDepth(const ModalDispatchDepth&) = delete;
+    ModalDispatchDepth& operator=(const ModalDispatchDepth&) = delete;
+};
 constexpr UINT live_surface_period_milliseconds = 16;
 // The live frame clock's cadence when the display's composition timing is
 // unavailable: 60 Hz, in milliseconds per thousand frames.
@@ -1556,6 +1592,35 @@ public:
     [[nodiscard]] WindowsRaster::PresentedView presented_view() const noexcept { return raster_.presented_view(); }
     // Defined in windows_application_run.inc.
     void report_frame_to_run();
+    // Whether the screen point in `lparam` (WM_NCHITTEST) lies in a content
+    // surface's margin: inside the client, where the model hits no control
+    // but its root.
+    [[nodiscard]] bool popup_margin_at(LPARAM lparam) noexcept {
+        if (!model_ || !(*model_).content_surface_declared()) return false;
+        POINT point{static_cast<LONG>(static_cast<short>(LOWORD(lparam))),
+                    static_cast<LONG>(static_cast<short>(HIWORD(lparam)))};
+        if (!ScreenToClient(hwnd_, &point)) return false;
+        const Point logical{point.x / scale_, point.y / scale_};
+        try {
+            const Control::Ptr hit = (*model_).hit_test(logical);
+            const bool margin = !hit || hit.get() == (*model_).root().get();
+            return margin;
+        } catch (...) {
+            return false;
+        }
+    }
+    // WM_MOVE: tells the model the window moved when its client origin on
+    // the screen changed (not for a Popup or Splash window, which nothing
+    // is placed against).
+    void report_moved_to_model(LPARAM lparam) {
+        if (passive_popup_ || splash_ || model_ == nullptr) return;
+        const POINT origin{static_cast<LONG>(static_cast<short>(LOWORD(lparam))),
+                           static_cast<LONG>(static_cast<short>(HIWORD(lparam)))};
+        const bool first = !last_client_origin_.has_value();
+        const bool moved = !first && ((*last_client_origin_).x != origin.x || (*last_client_origin_).y != origin.y);
+        last_client_origin_ = origin;
+        if (moved) (*model_).report_frame_moved();
+    }
     void retire_from_run() noexcept;
     void report_application_active_to_run(bool active);
     void hidden_on_close_to_run() noexcept;
@@ -1652,7 +1717,10 @@ public:
             report_frame_to_run();
             report_window_state();
             return 0;
-        case WM_MOVE: report_frame_to_run(); return 0;
+        case WM_MOVE:
+            report_frame_to_run();
+            report_moved_to_model(lparam);
+            return 0;
         case WM_DPICHANGED: dpi_changed(wparam, lparam); return 0;
         case WM_ACTIVATE:
             if (LOWORD(wparam) == WA_INACTIVE) { services_.revoke_cursor_interaction(); }
@@ -1664,10 +1732,25 @@ public:
             }
             dispatch(HostActivationEvent{LOWORD(wparam) != WA_INACTIVE});
             collect_damage(); return 0;
+        case WM_NCLBUTTONDOWN: {
+            // A press on the frame or caption whose button is already up
+            // (dispatched behind a long frame) starts no move or size loop:
+            // that loop would wait for a second click to end.
+            const int primary = GetSystemMetrics(SM_SWAPBUTTON) != 0 ? VK_RBUTTON : VK_LBUTTON;
+            const bool primary_down = (GetAsyncKeyState(primary) & 0x8000) != 0;
+            if (!detail::frame_press_may_drag(wparam, primary_down)) return 0;
+            break;
+        }
         case WM_NCHITTEST:
             // A Splash is never hit: the message goes to the window beneath
             // it on this thread (its owner, for a tooltip).
             if (splash_) return HTTRANSPARENT;
+            // A Popup window drawing its own content (a menu panel, a list)
+            // is larger than its face by the shadow around it; the shadow
+            // takes no input, so a point there reaches the window beneath
+            // (the owner) as if the Popup were not there (owner,
+            // 2026-11-10: the dead margin round a menu).
+            if (passive_popup_ && popup_margin_at(lparam)) return HTTRANSPARENT;
             break;
         case WM_MOUSEACTIVATE:
             if (trace_win32_input()) {
@@ -1738,6 +1821,9 @@ public:
             // message (coarse, and only sent when the queue is empty) is the
             // fallback when that wait cannot be made.
             in_size_move_ = true;
+            // A native move or size loop starts: menus placed against the
+            // window close before it moves under them.
+            if (!passive_popup_ && !splash_ && model_ != nullptr) (*model_).report_frame_moved();
             if ((*model_).has_live_surface_presentations() && !start_modal_live_clock()) {
                 SetTimer(hwnd_, modal_live_surface_timer,
                          live_surface_period_milliseconds, nullptr);
@@ -1766,11 +1852,13 @@ public:
             live_frame_due_ = false;
             if (live_clock_armed_) SetThreadpoolWait(modal_live_clock_, live_frame_clock_, nullptr);
             return 0;
-        case managed_dispatch_message:
+        case managed_dispatch_message: {
+            const HostDispatchScope scope;
             static_cast<void>((*model_).drain_posted_work());
             if (options_.dispatch_pending) options_.dispatch_pending();
             collect_damage();
             return 0;
+        }
         case render_dispatch_message:
             // Gather damage in this asynchronous turn, but let the outer host
             // loop drain its bounded message batch before presenting. A
@@ -1784,6 +1872,10 @@ public:
         case WM_TIMER:
             if (wparam == invalidation_overlay_timer) {
                 present_invalidation_overlay();
+                return 0;
+            }
+            if (wparam == automation_retry_timer) {
+                run_deferred_automation();
                 return 0;
             }
             if (wparam == modal_live_surface_timer) {
@@ -1816,10 +1908,15 @@ public:
             }
             break;
         case WM_MOUSEMOVE: pointer(message, PointerAction::move, wparam, lparam); return 0;
+        // A passive popup (a menu panel, a list) never takes the native
+        // focus: SetFocus would activate it and deactivate its owner, whose
+        // open menu then closes under the press.
         case WM_LBUTTONDOWN: case WM_RBUTTONDOWN: case WM_MBUTTONDOWN:
-            SetFocus(hwnd_); pointer(message, PointerAction::down, wparam, lparam); return 0;
+            if (!passive_popup_ && !splash_) SetFocus(hwnd_);
+            pointer(message, PointerAction::down, wparam, lparam); return 0;
         case WM_LBUTTONDBLCLK: case WM_RBUTTONDBLCLK: case WM_MBUTTONDBLCLK:
-            SetFocus(hwnd_); pointer(message, PointerAction::down, wparam, lparam); return 0;
+            if (!passive_popup_ && !splash_) SetFocus(hwnd_);
+            pointer(message, PointerAction::down, wparam, lparam); return 0;
         case WM_LBUTTONUP: case WM_MBUTTONUP:
             pointer(message, PointerAction::up, wparam, lparam); return 0;
         case WM_RBUTTONUP:
@@ -2083,6 +2180,7 @@ private:
         event.sequence = next_sequence_++;
         event.timestamp_nanoseconds = now_nanoseconds();
         event.payload = std::move(payload);
+        const HostDispatchScope scope;
         return session_.dispatch(std::move(event));
     }
 
@@ -3178,6 +3276,43 @@ private:
         constexpr std::string_view prefix = "GUI.Forms.Automation/1 ";
         if (!command.starts_with(prefix)) return FALSE;
         command.erase(0, prefix.size());
+        // A command that feeds the model waits while the thread is inside a
+        // dispatch or a native size/move loop, and runs, in arrival order,
+        // once neither holds: whichever of an input and a command arrives
+        // first, each runs whole before the other starts. It is accepted
+        // (TRUE) when deferred; its own result is printed when it runs.
+        const bool reads_only = command == "snapshot" || command == "capture" ||
+                                command.starts_with("capture ") || command.starts_with("capture-composite ") ||
+                                command == "close";
+        if (!reads_only && (automation_busy() || !deferred_automation_.empty())) {
+            if (deferred_automation_.size() >= maximum_deferred_automation) return FALSE;
+            deferred_automation_.push_back(std::move(command));
+            SetTimer(hwnd_, automation_retry_timer, automation_retry_milliseconds, nullptr);
+            return TRUE;
+        }
+        return automation_command(command);
+    }
+
+    [[nodiscard]] bool automation_busy() const noexcept {
+        const bool busy = host_dispatch_depth != 0U || in_size_move_;
+        return busy;
+    }
+
+    // Runs the deferred automation commands, oldest first, while the thread
+    // is free; the timer stops once none wait.
+    void run_deferred_automation() {
+        while (!deferred_automation_.empty() && !automation_busy() && hwnd_ != nullptr) {
+            const std::string command = std::move(deferred_automation_.front());
+            deferred_automation_.pop_front();
+            static_cast<void>(automation_command(command));
+        }
+        if (deferred_automation_.empty() && hwnd_ != nullptr) KillTimer(hwnd_, automation_retry_timer);
+    }
+
+    // Model code run by a command counts as a dispatch: a command sent
+    // while it runs waits for it.
+    LRESULT automation_command(const std::string& command) {
+        const HostDispatchScope scope;
         if (command == "snapshot") {
             const DispatcherSnapshot dispatcher = (*model_).dispatcher_snapshot();
             std::fprintf(
@@ -3605,6 +3740,12 @@ private:
     HostWindowId window_id_{};
     // mark_passive_popup: never activated by a click.
     bool passive_popup_{};
+    // Automation commands waiting for the thread to leave a dispatch or a
+    // size/move loop, oldest first (at most maximum_deferred_automation).
+    std::deque<std::string> deferred_automation_{};
+    // The client origin on the screen at the last WM_MOVE, for
+    // report_moved_to_model.
+    std::optional<POINT> last_client_origin_{};
     // mark_splash: transparent to the pointer.
     bool splash_{};
     // The reason WM_DESTROY reports: user for every native close, application

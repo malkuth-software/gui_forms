@@ -608,6 +608,11 @@ void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     theme_changed_.emit(*emitted);
 }
 
+void SurfaceRoot::report_frame_moved() {
+    require_root_thread("frame report");
+    frame_moved_.emit();
+}
+
 void SurfaceRoot::set_active(bool active) {
     require_root_thread("activation mutation");
     if (active_ == active) return;

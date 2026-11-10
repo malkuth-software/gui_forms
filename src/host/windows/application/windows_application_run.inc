@@ -703,6 +703,9 @@ bool WindowsApplicationRun::turn(MSG& quit_message, const bool outermost) {
 HostServiceStatus WindowsApplicationRun::run_modal_impl(HostWindowId window) {
     WindowsRunSlot* modal = slot(window);
     if (modal == nullptr) return {HostServiceError::after_shutdown};
+    // The modal window takes input, automation included, though the loop
+    // runs inside the dispatch that opened it.
+    const ModalDispatchDepth modal_depth;
     const HWND modal_native = (*(*modal).state).native_window();
     // Every other enabled window of the run is disabled, except windows
     // owned (at any depth) by the modal one. The list is fixed here: a

@@ -116,6 +116,14 @@ struct NativePopupOpening final {
 [[nodiscard]] bool native_popup_translucent(const std::weak_ptr<ApplicationWindowState>& owner,
                                             const SurfaceRoot& model) noexcept;
 
+// Records what `popup`, a popup or Splash window of `owner`'s run, was
+// granted once its host has reported the compositor to it: a clear backdrop
+// or opaque. native_popup_translucent answers false while the last such
+// window was refused its alpha, so content casts no shadow into a window
+// that would paint its clear pixels opaque (the giant pale tooltip and menu
+// slabs, owner 2026-11-09). Nothing before the first report.
+void note_popup_backdrop(const std::weak_ptr<ApplicationWindowState>& owner, const SurfaceRoot& popup) noexcept;
+
 // `bounds` in the owner's client area as a desktop rectangle in logical
 // units, moved the least distance that keeps it inside the work area of
 // the monitor under its origin. None when the owner is not a ready window
