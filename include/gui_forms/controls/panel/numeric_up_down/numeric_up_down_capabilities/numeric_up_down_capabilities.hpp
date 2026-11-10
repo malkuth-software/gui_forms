@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
+#include "gui_forms/controls/label/label_capabilities/label_capabilities.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -114,6 +115,32 @@ struct NumericUpDownButtonWidthCapability {
     }
 };
 
+// Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+template <typename Declaring>
+struct NumericUpDownThousandsSeparatorCapability {
+    PropertyCell<bool, NumericUpDownThousandsSeparatorCapability<Declaring>> thousands_separator{false};
+
+    static void assign(NumericUpDownThousandsSeparatorCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.thousands_separator), incoming);
+        if (!capability.thousands_separator.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.thousands_separator));
+    }
+};
+
+// Where the editor's text sits (TextAlign): near, center or far.
+template <typename Declaring>
+struct NumericUpDownTextAlignmentCapability {
+    PropertyCell<HorizontalAlignment, NumericUpDownTextAlignmentCapability<Declaring>> text_alignment{HorizontalAlignment::near};
+
+    static void assign(NumericUpDownTextAlignmentCapability& capability, HorizontalAlignment incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.text_alignment), incoming);
+        if (!capability.text_alignment.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.text_alignment));
+    }
+};
+
 // Every NumericUpDown capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>,
@@ -122,6 +149,8 @@ struct NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring
                                    public NumericUpDownIncrementCapability<Declaring>,
                                    public NumericUpDownDecimalPlacesCapability<Declaring>,
                                    public NumericUpDownHexadecimalCapability<Declaring>,
-                                   public NumericUpDownButtonWidthCapability<Declaring> {};
+                                   public NumericUpDownButtonWidthCapability<Declaring>,
+                                   public NumericUpDownThousandsSeparatorCapability<Declaring>,
+                                   public NumericUpDownTextAlignmentCapability<Declaring> {};
 
 } // namespace gui_forms

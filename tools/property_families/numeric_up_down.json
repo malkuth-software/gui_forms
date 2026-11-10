@@ -7,7 +7,9 @@
   "capabilities_header": "include/gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp",
   "base": "Panel",
   "shared": [],
-  "includes": [],
+  "includes": [
+    "gui_forms/controls/label/label_capabilities/label_capabilities.hpp"
+  ],
   "properties": [
     {
       "name": "value",
@@ -225,6 +227,75 @@
         "}"
       ],
       "sample": "24.0"
+    },
+    {
+      "name": "thousands_separator",
+      "capability": "NumericUpDownThousandsSeparator",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.",
+      "getter": "thousands_separator",
+      "setter": "set_thousands_separator",
+      "clear": null,
+      "field": "thousands_separator_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "hand",
+      "hand": [
+        "written shows the value again"
+      ],
+      "effects": null,
+      "sample": "true",
+      "table": {
+        "kind": "boolean",
+        "category": "Data",
+        "description": "Whether the editor groups digits in threes.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      }
+    },
+    {
+      "name": "text_alignment",
+      "capability": "NumericUpDownTextAlignment",
+      "value": "HorizontalAlignment",
+      "initial": "HorizontalAlignment::near",
+      "comment": "Where the editor's text sits (TextAlign): near, center or far.",
+      "getter": "text_alignment",
+      "setter": "set_text_alignment",
+      "clear": null,
+      "field": "text_alignment_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses an unknown alignment; written passes it to the editor"
+      ],
+      "effects": null,
+      "sample": "HorizontalAlignment::far",
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "Where the editor's text sits.",
+        "default": null,
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "numeric_text_alignment_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "traits": "hand"
     }
   ],
   "not_properties": [

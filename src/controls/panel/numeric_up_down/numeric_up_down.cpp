@@ -16,6 +16,45 @@
 #include <utility>
 
 namespace gui_forms {
+namespace {
+
+// text_alignment's schema: HorizontalAlignment's values (Label's names).
+std::shared_ptr<const PropertyEnumDescriptor> numeric_text_alignment_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "horizontal_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
+    return value;
+}
+
+// Groups the integer digits of a fixed-point decimal in threes with commas:
+// "-1234567.50" becomes "-1,234,567.50". digits is the formatted number.
+std::string group_thousands(const std::string& digits) {
+    const std::size_t sign = !digits.empty() && digits.front() == '-' ? 1U : 0U;
+    const std::size_t point = digits.find('.');
+    const std::size_t integer_end = point == std::string::npos ? digits.size() : point;
+    const std::size_t integer_length = integer_end - sign;
+    std::string grouped;
+    grouped.reserve(digits.size() + integer_length / 3U);
+    grouped.append(digits, 0U, sign);
+    for (std::size_t index = 0U; index < integer_length; ++index) {
+        if (index != 0U && (integer_length - index) % 3U == 0U) grouped.push_back(',');
+        grouped.push_back(digits[sign + index]);
+    }
+    grouped.append(digits, integer_end, std::string::npos);
+    return grouped;
+}
+
+// The typed text without group commas, for parsing a decimal.
+std::string without_commas(std::string_view text) {
+    std::string plain;
+    plain.reserve(text.size());
+    for (const char character : text) {
+        if (character != ',') plain.push_back(character);
+    }
+    return plain;
+}
+
+} // namespace
 
 NumericUpDown::NumericUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
@@ -44,6 +83,7 @@ void NumericUpDown::initialize_control_tree() {
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
     (*editor_).border_style = BorderStyle::none;
     spinner_ = make_control<SpinButtons>(StableId(prefix + ".spinner"));
+    (*editor_).text_alignment = text_alignment.read();
     add_child(editor_);
     add_child(spinner_);
     const std::weak_ptr<NumericUpDown> weak =
@@ -141,6 +181,7 @@ std::string NumericUpDown::formatted_value() const {
         stream << std::uppercase << std::hex << static_cast<std::int64_t>(std::llround(value.read()));
     } else {
         stream << std::fixed << std::setprecision(decimal_places.read()) << value.read();
+        if (thousands_separator.read()) return group_thousands(stream.str());
     }
     return stream.str();
 }
@@ -155,15 +196,17 @@ void NumericUpDown::synchronize_editor() {
 void NumericUpDown::commit_editor_text() {
     if (!editor_ || (*editor_).text.read().empty()) return;
     try {
+        // Group commas are accepted whether or not the editor shows them.
+        const std::string typed = hexadecimal.read() ? std::string((*editor_).text.read())
+                                                     : without_commas((*editor_).text.read());
         std::size_t consumed{};
         double parsed{};
         if (hexadecimal.read()) {
-            parsed = static_cast<double>(std::stoll(std::string((*editor_).text.read()),
-                                                    &consumed, 16));
+            parsed = static_cast<double>(std::stoll(typed, &consumed, 16));
         } else {
-            parsed = std::stod(std::string((*editor_).text.read()), &consumed);
+            parsed = std::stod(typed, &consumed);
         }
-        if (consumed == (*editor_).text.read().size() && std::isfinite(parsed) &&
+        if (consumed == typed.size() && std::isfinite(parsed) &&
             parsed >= minimum.read() && parsed <= maximum.read() && parsed != value.read()) {
             // The user's text stays as typed: the write does not reformat it.
             committing_ = true;
@@ -491,10 +534,48 @@ const PropertyDescriptor& describe_numeric_up_down_decimal_places() {
     return descriptor;
 }
 
+PropertyDescriptor numeric_up_down_thousands_separator_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "thousands_separator";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Data";
+    descriptor.description = "Whether the editor groups digits in threes.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_numeric_up_down_thousands_separator() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        numeric_up_down_thousands_separator_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor numeric_up_down_text_alignment_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "text_alignment";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "Where the editor's text sits.";
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = numeric_text_alignment_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_numeric_up_down_text_alignment() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        numeric_up_down_text_alignment_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 const std::array<PropertyEntry, NumericUpDown::numeric_up_down_property_count>& NumericUpDown::numeric_up_down_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 5U> own{{
+    static constexpr std::array<PropertyEntry, 7U> own{{
         {"value", &describe_numeric_up_down_value,
          &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::value), &NumericUpDown::value>,
          &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::value), &NumericUpDown::value>,
@@ -520,6 +601,16 @@ const std::array<PropertyEntry, NumericUpDown::numeric_up_down_property_count>& 
          &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::decimal_places), &NumericUpDown::decimal_places>,
          nullptr, nullptr, nullptr,
          nullptr},
+        {"thousands_separator", &describe_numeric_up_down_thousands_separator,
+         &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::thousands_separator), &NumericUpDown::thousands_separator>,
+         &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::thousands_separator), &NumericUpDown::thousands_separator>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"text_alignment", &describe_numeric_up_down_text_alignment,
+         &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::text_alignment), &NumericUpDown::text_alignment>,
+         &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::text_alignment), &NumericUpDown::text_alignment>,
+         nullptr, nullptr, nullptr,
+         nullptr},
     }};
     static_assert(property_names_distinct(own), "NumericUpDown's property table names a property twice");
     static const std::array<PropertyEntry, numeric_up_down_property_count> entries =
@@ -530,6 +621,27 @@ const std::array<PropertyEntry, NumericUpDown::numeric_up_down_property_count>& 
 std::span<const PropertyEntry> NumericUpDown::property_table() const noexcept {
     const std::array<PropertyEntry, numeric_up_down_property_count>& entries = numeric_up_down_property_entries();
     return std::span<const PropertyEntry>(entries);
+}
+
+void NumericUpDown::prepare_write(const decltype(thousands_separator)&, bool&) {
+    require_mutable();
+}
+
+void NumericUpDown::written(const decltype(thousands_separator)&) {
+    synchronize_editor();
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void NumericUpDown::prepare_write(const decltype(text_alignment)&, HorizontalAlignment& incoming) {
+    require_mutable();
+    if (incoming > HorizontalAlignment::far) {
+        throw std::invalid_argument("NumericUpDown text alignment is unknown");
+    }
+}
+
+void NumericUpDown::written(const decltype(text_alignment)&) {
+    if (editor_) (*editor_).text_alignment = text_alignment.read();
+    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void NumericUpDown::on_value_changed() {

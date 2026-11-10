@@ -11,7 +11,8 @@
   ],
   "includes": [
     "gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp",
-    "gui_forms/types.hpp"
+    "gui_forms/types.hpp",
+    "gui_forms/controls/label/label_capabilities/label_capabilities.hpp"
   ],
   "properties": [
     {
@@ -410,6 +411,27 @@
         "written ends any completion; defined in text_box_auto_complete.cpp"
       ],
       "effects": null
+    },
+    {
+      "name": "text_alignment",
+      "capability": "TextBoxTextAlignment",
+      "value": "HorizontalAlignment",
+      "initial": "HorizontalAlignment::near",
+      "comment": "Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.",
+      "getter": "text_alignment",
+      "setter": "set_text_alignment",
+      "clear": null,
+      "field": "text_alignment_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "generated",
+      "effects": "Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (incoming > HorizontalAlignment::far) throw std::invalid_argument(\"TextBox text alignment is unknown\");"
+      ],
+      "sample": "HorizontalAlignment::far",
+      "table": null
     }
   ],
   "not_properties": [

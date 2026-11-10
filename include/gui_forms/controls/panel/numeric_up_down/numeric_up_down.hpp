@@ -93,7 +93,7 @@ private:
     // property_codemod begin NumericUpDown (tools/property_families/numeric_up_down.json; generated, do not edit)
 public:
     // NumericUpDown's property table: Panel's entries, then its own.
-    static constexpr std::size_t numeric_up_down_property_count = Panel::panel_property_count + 5U;
+    static constexpr std::size_t numeric_up_down_property_count = Panel::panel_property_count + 7U;
     [[nodiscard]] static const std::array<PropertyEntry, numeric_up_down_property_count>& numeric_up_down_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
@@ -111,6 +111,8 @@ private:
     friend struct NumericUpDownDecimalPlacesCapability<NumericUpDown>;
     friend struct NumericUpDownHexadecimalCapability<NumericUpDown>;
     friend struct NumericUpDownButtonWidthCapability<NumericUpDown>;
+    friend struct NumericUpDownThousandsSeparatorCapability<NumericUpDown>;
+    friend struct NumericUpDownTextAlignmentCapability<NumericUpDown>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(value)& cell, double& incoming);
     void written(const decltype(value)& cell);
@@ -126,6 +128,10 @@ private:
     void written(const decltype(hexadecimal)& cell);
     void prepare_write(const decltype(button_width)& cell, double& incoming);
     void written(const decltype(button_width)& cell);
+    void prepare_write(const decltype(thousands_separator)& cell, bool& incoming);
+    void written(const decltype(thousands_separator)& cell);
+    void prepare_write(const decltype(text_alignment)& cell, HorizontalAlignment& incoming);
+    void written(const decltype(text_alignment)& cell);
     // property_codemod end NumericUpDown
 };
 
