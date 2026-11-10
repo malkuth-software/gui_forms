@@ -444,7 +444,9 @@ constexpr std::string_view light_sheet = R"css(/* gui-forms: the default theme's
    Colour roles of design language 5.4 in Plan Paint's palette
    (malkuth-software/plan-paint at 5e28a5e, src/forms/ribbon.cpp) and the
    rules for parts the engine paints. Controls painting from their family's
-   recipe draw the theme's floor (gui_forms_theme_definition). */
+   recipe draw the theme's floor (gui_forms_theme_definition). The signal
+   group (design language 5.4: signal, success, pending and invalid) is
+   the warm coral and its siblings deepened to text contrast on paper. */
 
 :root {
   ink-on-paper: #1b2733 on #ffffff;
@@ -456,6 +458,10 @@ constexpr std::string_view light_sheet = R"css(/* gui-forms: the default theme's
   selection-ink-on-selection: #1b2733 on #cfe2fa;
   ink-on-gold: #153765 on #ffcf66;
   on-accent-on-accent: #ffffff on #2f69be;
+  signal-on-paper: #b4413c on #ffffff;
+  success-on-paper: #2e7d4f on #ffffff;
+  pending-ink-on-tint: #6d5200 on #fff4d6;
+  invalid-ink-on-tint: #9b1c1c on #fde4e1;
   disabled-ink-on-chrome: #627997 on #becfe4;
   disabled-ink-on-paper: #627997 on #ffffff;
   command-link-ink-on-paper: #19528b on #ffffff;

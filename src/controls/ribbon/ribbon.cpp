@@ -314,6 +314,10 @@ void validate_command(const RibbonCommandSpec& command, std::unordered_set<std::
         (command.size != RibbonCommandSize::small || command.image.value == 0U || hosted(command.kind))) {
         throw std::invalid_argument("Ribbon icon-only commands must be small and have an image");
     }
+    if (text_only(command.kind) && (command.command || command.image.value != 0U || !command.show_label ||
+                                    command.text.empty())) {
+        throw std::invalid_argument("Ribbon labels are text only: no Command or image, and their text shown");
+    }
     if (command.kind != RibbonCommandKind::combo_box && !command.choices.empty()) {
         throw std::invalid_argument("Ribbon choices belong to combo box commands only");
     }
@@ -404,6 +408,9 @@ Ribbon::PreparedTabs Ribbon::prepare_tabs(const std::vector<RibbonTabSpec>& tabs
                 if (command.gallery) ++group_galleries;
             }
             if (group_galleries > 1U) throw std::invalid_argument("Ribbon group holds more than one gallery");
+            if (!group.commands.empty() && group.commands.front().beside_previous) {
+                throw std::invalid_argument("A Ribbon group's first command has no command to stand beside");
+            }
             prepared.layouts[tab_index].push_back(prepare_group_layouts(group));
         }
         validate_reduction_order(tab, prepared.layouts[tab_index]);
@@ -1045,6 +1052,13 @@ Ribbon::CommandParts Ribbon::command_parts(const Layout& placed, CommandAddress 
         if (spec.kind == RibbonCommandKind::color_picker) parts.command_color_picker = control;
         return parts;
     }
+    if (text_only(spec.kind)) {
+        // A label is its text alone, inset as a small command's label is.
+        const double inset = icon_gap * scale * 2.0;
+        const Rect label{bounds.x + inset, bounds.y, std::max(0.0, bounds.width - inset), bounds.height};
+        parts.command_label = PartGeometry::from_bounds(Rect::intersection(label, visible));
+        return parts;
+    }
     const RibbonGroupLayout& group_layout =
         layouts_[*selected_tab_][address.group][placed.group_layouts[address.group]];
     const bool large = layout_command_size(group_layout, spec, address.command) == RibbonCommandSize::large;
@@ -1434,8 +1448,14 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 // part.text views the label: it lives here until the paint.
                 const std::string label = command_text(spec);
                 part.text = label;
+                part.key = PartKey{"command_label", spec.stable_id, {}};
                 paint_part(painter, *this, part);
                 part.text = {};
+                part.key.reset();
+            }
+            if (text_only(spec.kind) && command_part.command_label.present) {
+                paint_label_command(painter, part, spec, command_part, command_states(address));
+                continue;
             }
             if (hosted(spec.kind) || !command_part.command_face.present) continue;
             const std::string_view command_id = spec.stable_id;
@@ -1499,6 +1519,23 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
     part.key.reset();
 }
 
+// A label command: its text in the command_label part, at the start of its
+// row, in its state (disabled with the ribbon).
+void Ribbon::paint_label_command(Painter& painter, PartPaint& part, const RibbonCommandSpec& spec,
+                                 const CommandParts& command_part, AnatomyStateSet states) const {
+    part.family = ControlVisualRole::menu_item;
+    part.role = PartRole::label;
+    part.states = states;
+    part.bounds = command_part.command_label.bounds;
+    // Kept alive while the part borrows it.
+    const std::string label = command_text(spec);
+    part.text = label;
+    part.alignment = PartTextAlignment::start;
+    part.key = PartKey{"command_label", spec.stable_id, {}};
+    paint_part(painter, *this, part);
+    part.text = {};
+}
+
 void Ribbon::overlay_paint(Painter& painter, Rect panel) const {
     if (!selected_tab_ || !overlay_group_) return;
     const Layout placed = overlay_layout(panel);
@@ -1550,6 +1587,8 @@ Ribbon::Hit Ribbon::hit_test(const Layout& placed, Point local) const {
         }
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {
             if (!placed.commands[group][command].contains(local)) continue;
+            // A label is not a target: the pointer passes to the plane.
+            if (text_only(groups[group].commands[command].kind)) return hit;
             const CommandAddress address{group, command};
             const CommandParts command_part = command_parts(placed, address);
             hit.kind = Hit::Kind::command;
@@ -1595,7 +1634,7 @@ void Ribbon::click_tab(std::size_t tab) {
 // run from a group overlay closes it, as a menu closes.
 void Ribbon::click_command(CommandAddress address) {
     const RibbonCommandSpec* const found = selected_command(address);
-    if (found == nullptr || hosted((*found).kind) || !command_enabled(*found)) return;
+    if (found == nullptr || hosted((*found).kind) || text_only((*found).kind) || !command_enabled(*found)) return;
     // A copy: running the command, or a handler of its events, may replace
     // the tabs and so the record `found` points into.
     const RibbonCommandSpec spec = *found;
@@ -1815,7 +1854,7 @@ std::vector<Ribbon::Stop> Ribbon::stops_for(const Layout& placed) const {
         }
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {
             const RibbonCommandSpec& spec = groups[group].commands[command];
-            if (hosted(spec.kind) || !command_visible(spec)) continue;
+            if (hosted(spec.kind) || text_only(spec.kind) || !command_visible(spec)) continue;
             result.push_back(Stop{StopKind::command, 0U, CommandAddress{group, command}});
         }
         if (groups[group].dialog_launcher) result.push_back(Stop{StopKind::launcher, group, {}});
@@ -1836,7 +1875,7 @@ std::vector<Ribbon::Stop> Ribbon::overlay_stops() const {
     const RibbonGroupSpec& spec = tabs_[*selected_tab_].groups[group];
     for (std::size_t command = 0; command < spec.commands.size(); ++command) {
         const RibbonCommandSpec& item = spec.commands[command];
-        if (hosted(item.kind) || !command_visible(item)) continue;
+        if (hosted(item.kind) || text_only(item.kind) || !command_visible(item)) continue;
         result.push_back(Stop{StopKind::command, 0U, CommandAddress{group, command}});
     }
     if (spec.dialog_launcher) result.push_back(Stop{StopKind::launcher, group, {}});
@@ -2040,7 +2079,8 @@ bool Ribbon::mnemonic_matches(char32_t character) const noexcept {
     if (minimized.read() || plane_hidden_ || !selected_tab_) return false;
     for (const RibbonGroupSpec& group : tabs_[*selected_tab_].groups) {
         for (const RibbonCommandSpec& command : group.commands) {
-            if (!hosted(command.kind) && is_mnemonic(character, authored_text(command))) return true;
+            if (hosted(command.kind) || text_only(command.kind)) continue;
+            if (is_mnemonic(character, authored_text(command))) return true;
         }
     }
     return false;
@@ -2064,7 +2104,8 @@ bool Ribbon::process_mnemonic_self(char32_t character) {
     for (std::size_t group = 0; group < groups.size(); ++group) {
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {
             const RibbonCommandSpec& spec = groups[group].commands[command];
-            if (hosted(spec.kind) || !is_mnemonic(character, authored_text(spec))) continue;
+            if (hosted(spec.kind) || text_only(spec.kind)) continue;
+            if (!is_mnemonic(character, authored_text(spec))) continue;
             click_command(CommandAddress{group, command});
             return true;
         }
@@ -2361,13 +2402,26 @@ void Ribbon::append_group_node(SemanticNode& parent, const Layout& placed, std::
     // the overlay).
     std::size_t set_size = 0U;
     for (std::size_t command = 0; command < spec.commands.size(); ++command) {
-        if (!hosted(spec.commands[command].kind) && !placed.commands[group][command].empty()) ++set_size;
+        const RibbonCommandKind kind = spec.commands[command].kind;
+        if (!hosted(kind) && !text_only(kind) && !placed.commands[group][command].empty()) ++set_size;
     }
     std::size_t position = 0U;
     for (std::size_t command = 0; command < spec.commands.size(); ++command) {
         const RibbonCommandSpec& item = spec.commands[command];
         const Rect bounds = Rect::intersection(placed.commands[group][command], visible);
         if (hosted(item.kind) || placed.commands[group][command].empty()) continue;
+        if (text_only(item.kind)) {
+            // A label: static text in the group, neither focusable nor
+            // actionable, outside the commands' set.
+            SemanticNode text{};
+            text.stable_id = node_identity(ribbon_id, "command", item.stable_id);
+            text.role = SemanticRole::static_text;
+            text.name = command_text(item);
+            text.bounds = to_window(absolute, bounds);
+            text.states = base;
+            group_node.children.push_back(std::move(text));
+            continue;
+        }
         ++position;
         const CommandAddress address{group, command};
         const Stop stop{StopKind::command, 0U, address};
@@ -2579,6 +2633,8 @@ bool Ribbon::on_semantic_child_action(std::string_view id, SemanticAction action
     if (!command_id.empty()) {
         const std::optional<CommandAddress> address = find_command(command_id);
         if (!address || minimized.read() || plane_hidden_) return false;
+        const RibbonCommandSpec* const target = selected_command(*address);
+        if (target == nullptr || text_only((*target).kind)) return false;
         if (action == SemanticAction::press) {
             click_command(*address);
             return true;
