@@ -60,7 +60,7 @@ void SurfaceRoot::show_tool_tip(const Control::Ptr& target, std::optional<std::c
     if (!target || !(*target).is_alive() || (*target).attached_surface_root() != this) {
         throw std::invalid_argument("GUI.Forms tooltip target must be a live control attached to its Window");
     }
-    if ((*target).tool_tip_text.read().empty()) {
+    if (!tool_tip_text_shows((*target).tool_tip_text.read())) {
         throw std::invalid_argument("GUI.Forms tooltip target has no tooltip text");
     }
     if (duration && (*duration).count() < 0) {
@@ -76,7 +76,7 @@ std::uint64_t SurfaceRoot::request_tool_tip(const Control::Ptr& owner, ToolTipRe
     if (!owner || !(*owner).is_alive() || (*owner).attached_surface_root() != this) {
         throw std::invalid_argument("GUI.Forms tooltip request owner must be a live control attached to its root");
     }
-    if (request.text.empty() || !validate_utf8(request.text).valid()) {
+    if (!tool_tip_text_shows(request.text) || !validate_utf8(request.text).valid()) {
         throw std::invalid_argument("GUI.Forms tooltip request text must be non-empty valid UTF-8");
     }
     if (!finite_rect(request.anchor)) {

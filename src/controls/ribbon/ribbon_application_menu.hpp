@@ -3,6 +3,7 @@
 #include "gui_forms/controls/ribbon/ribbon.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -12,15 +13,38 @@ namespace gui_forms {
 // decisions 3, 23), shown while the ribbon has recent items: the
 // application menu's commands down the left and the recent items, under
 // their caption, down the right, on a panel below the File tab that casts
-// the overlay shadow. Private to the ribbon, which owns it, opens it as a
-// overlay covering the window client (a press outside the panel closes it, as
-// does Escape) and closes it before it goes; `ribbon` observes the owner and
-// is cleared by detach().
+// the overlay shadow. A submenu row opens its items in the ribbon's menu
+// (a ContextMenu, in the owner's Popup windows) beside the row. Private to
+// the ribbon, which owns it, opens it as an overlay covering the window
+// client (a press outside the panel closes it, as does Escape) and closes
+// it before it goes; `ribbon` observes the owner and is cleared by
+// detach().
+//
+// Where the run has Popup windows the panel is a separate instance lifted
+// into the owner's picker Popup (PopupLift; owner, 2026-11-08: Part S), so
+// that it may reach past the owner's edges, and the overlay instance is a
+// catcher that paints nothing, takes the outside presses and holds the
+// focus scope while the Popup has the keys.
 class RibbonApplicationMenu final : public Control {
 public:
-    RibbonApplicationMenu(StableId stable_id, Ribbon& ribbon);
+    enum class Mode : std::uint8_t {
+        // The panel at its origin inside a client-sized overlay.
+        whole,
+        // The client-sized overlay of a lifted panel: no panel, no rows.
+        catcher,
+        // The lifted panel itself, at 0,0 in its Popup.
+        panel,
+    };
+
+    RibbonApplicationMenu(StableId stable_id, Ribbon& ribbon, Mode mode = Mode::whole);
 
     void detach() noexcept { ribbon_ = nullptr; }
+    void set_mode(Mode mode);
+    [[nodiscard]] Mode mode() const noexcept { return mode_; }
+    // The panel's size for the ribbon's items now, in logical units.
+    [[nodiscard]] Size panel_size() const;
+    // Drops the row whose submenu showed (the ribbon's menu closed).
+    void submenu_closed();
     // Places the panel's top-left corner, in window coordinates.
     void set_origin(Point origin);
     // Puts the keyboard on the first row (keyboard opening) or nowhere.
@@ -60,6 +84,9 @@ public:
 
 private:
     [[nodiscard]] bool ribbon_alive() const noexcept;
+    // Whether the ribbon's menu shows a submenu of this panel's.
+    [[nodiscard]] bool submenu_open() const noexcept;
+    void open_submenu(std::size_t row, bool keyboard);
     [[nodiscard]] bool row_enabled(const Row& row) const;
     [[nodiscard]] std::string row_text(const Row& row) const;
     [[nodiscard]] std::optional<std::size_t> row_at(const Layout& placed, Point local) const;
@@ -68,7 +95,10 @@ private:
     void switch_pane();
 
     Ribbon* ribbon_{};
+    Mode mode_{Mode::whole};
     Point origin_{};
+    // The row, as an index into layout().rows, whose submenu shows.
+    std::optional<std::size_t> submenu_row_{};
     std::optional<std::size_t> hot_row_{};
     std::optional<std::size_t> focus_row_{};
 };

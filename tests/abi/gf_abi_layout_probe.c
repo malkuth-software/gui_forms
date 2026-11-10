@@ -490,7 +490,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_anchored_overlay_options, width) == 8, "gf_anchored
 GF_LAYOUT_ASSERT(offsetof(gf_anchored_overlay_options, height) == 16, "gf_anchored_overlay_options.height offset");
 GF_LAYOUT_ASSERT(offsetof(gf_anchored_overlay_options, gap) == 24, "gf_anchored_overlay_options.gap offset");
 GF_LAYOUT_ASSERT(offsetof(gf_anchored_overlay_options, events) == 32, "gf_anchored_overlay_options.events offset");
-GF_LAYOUT_ASSERT(sizeof(gf_overlays_table) == 64, "gf_overlays_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_overlays_table) == 80, "gf_overlays_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_overlays_table, struct_size) == 0, "gf_overlays_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_overlays_table, abi_minor) == 4, "gf_overlays_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_overlays_table, open_overlay) == 8, "gf_overlays_table.open_overlay offset");
@@ -500,6 +500,8 @@ GF_LAYOUT_ASSERT(offsetof(gf_overlays_table, show_tool_tip) == 32, "gf_overlays_
 GF_LAYOUT_ASSERT(offsetof(gf_overlays_table, hide_tool_tip) == 40, "gf_overlays_table.hide_tool_tip offset");
 GF_LAYOUT_ASSERT(offsetof(gf_overlays_table, open_anchored) == 48, "gf_overlays_table.open_anchored offset");
 GF_LAYOUT_ASSERT(offsetof(gf_overlays_table, close_anchored) == 56, "gf_overlays_table.close_anchored offset");
+GF_LAYOUT_ASSERT(offsetof(gf_overlays_table, set_tool_tips_shown) == 64, "gf_overlays_table.set_tool_tips_shown offset");
+GF_LAYOUT_ASSERT(offsetof(gf_overlays_table, tool_tips_shown) == 72, "gf_overlays_table.tool_tips_shown offset");
 GF_LAYOUT_ASSERT(sizeof(gf_property_grid_table) == 48, "gf_property_grid_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_property_grid_table, struct_size) == 0, "gf_property_grid_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_property_grid_table, abi_minor) == 4, "gf_property_grid_table.abi_minor offset");

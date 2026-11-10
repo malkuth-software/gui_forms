@@ -47,6 +47,8 @@ public:
     void items_changed(const Control& control) override;
     // The parent's settings decide; nothing here.
     void settings_changed() override;
+    // The parent's scopes decide; nothing here.
+    void scope_changed() override {}
     void cover(RuntimeId control, std::string_view item_id, bool covered) override;
     // Revokes the program request, then asks for `target`'s tooltip.
     void show_program(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) override;

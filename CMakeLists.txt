@@ -2110,10 +2110,14 @@ if(GUI_FORMS_BUILD_GALLERY)
 
         # The Gallery under Application::run, so menus open in Popup
         # windows (tools/menu_probe.py drives it).
+        # Application::run is built in (not the shared application
+        # library), since the Gallery model links the static controls.
         add_executable(gui_forms_menu_probe_windows
             src/host/windows/menu_probe_main.cpp
             src/runtime/application/application.cpp
         )
+        target_compile_definitions(gui_forms_menu_probe_windows PRIVATE
+            GUI_FORMS_APPLICATION_WINDOWS=1 GUI_FORMS_APPLICATION_SKIA=1)
         target_link_libraries(gui_forms_menu_probe_windows PRIVATE
             gui_forms_gallery_model
             gui_forms_host_windows

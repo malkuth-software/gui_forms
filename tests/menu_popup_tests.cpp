@@ -18,11 +18,16 @@
 // - A panel is as wide as its rows need, shortcut column included.
 // - The keyboard drives the Popups: Down, Right opens the submenu's Popup,
 //   Left closes it, Escape closes the menu and hides every Popup.
+// - The ribbon's two-pane application menu shows its panel in the picker
+//   Popup, and its submenu rows open their items in a menu Popup beside
+//   the row; a submenu command runs with the application menu's event and
+//   closes both.
 #include "gui_forms/application.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
+#include "gui_forms/controls/ribbon/ribbon.hpp"
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/host.hpp"
@@ -77,6 +82,7 @@ struct Desk final {
     ApplicationWindowHandle main{};
     Window* model{};
     std::shared_ptr<MenuStrip> strip{};
+    std::shared_ptr<Ribbon> ribbon{};
     std::unique_ptr<host::HeadlessApplication> application{};
 
     explicit Desk(const bool compositing) {
@@ -87,6 +93,14 @@ struct Desk final {
         strip = make_control<MenuStrip>(StableId("strip"));
         (*strip).set_requested_bounds(Rect{0.0, 0.0, 800.0, 26.0});
         (*root).add_child(strip);
+        ribbon = make_control<Ribbon>(StableId("ribbon"));
+        RibbonTabSpec home{.stable_id = "ribbon.home", .text = "&Home"};
+        RibbonGroupSpec group{.stable_id = "ribbon.document", .caption = "Document"};
+        group.commands.push_back({.stable_id = "ribbon.new", .command = std::make_shared<Command>("new", "New")});
+        home.groups.push_back(std::move(group));
+        (*ribbon).set_tabs({std::move(home)});
+        (*ribbon).set_requested_bounds(Rect{0.0, 30.0, 800.0, 140.0});
+        (*root).add_child(ribbon);
         primary.model = std::make_unique<Window>(root, Size{800.0, 600.0});
         primary.options.title = "main";
         primary.options.initial_size = {800.0, 600.0};
@@ -169,18 +183,6 @@ std::shared_ptr<Control> panel_of(Window& owner, const std::size_t depth) {
 // 28-unit rows, a 9-unit separator and the panel's two 2-unit borders.
 constexpr double file_panel_height = 4.0 * 28.0 + 9.0 + 4.0;
 
-// The first top-level item's bounds, read through the public item-geometry
-// seam: its focus part is the item's whole rectangle.
-Rect first_item_bounds(const MenuStrip& strip) {
-    const ItemSystemDeclaration& system = strip.anatomy().item_systems.front();
-    std::vector<PartGeometry> geometry(system.parts.size());
-    strip.fill_realized_item_geometry(0U, geometry);
-    for (std::size_t index = 0U; index < system.parts.size(); ++index) {
-        if (system.parts[index].name == "menu_focus") return geometry[index].bounds;
-    }
-    return {};
-}
-
 void a_translucent_popup_is_the_face_plus_its_shadow() {
     Desk desk(true);
     Commands commands;
@@ -200,12 +202,13 @@ void a_translucent_popup_is_the_face_plus_its_shadow() {
     require(near((*window).height, file_panel_height + outsets.top + outsets.bottom),
             "the window is as tall as the face plus the shadow's outsets");
     require(near((*panel).requested_bounds().x, outsets.left), "the face sits inside the shadow's outsets");
-    // Hung from the File item's lower left corner (its bounds' bottom less
-    // one unit, as MenuStrip opens it), through the owner's client origin.
-    const std::vector<Rect> items{first_item_bounds(*desk.strip)};
+    // Hung from the File item's lower left corner (the strip's left edge;
+    // its bottom less one unit, as MenuStrip opens it), through the owner's
+    // client origin.
+    const Rect strip = (*desk.strip).absolute_bounds();
     const Rect client = desk.client();
-    require(near((*window).x + outsets.left, client.x + items[0].x), "the face's left edge is the item's");
-    require(near((*window).y + outsets.top, client.y + items[0].y + items[0].height - 1.0),
+    require(near((*window).x + outsets.left, client.x + strip.x), "the face's left edge is the item's");
+    require(near((*window).y + outsets.top, client.y + strip.y + strip.height - 1.0),
             "the face's top edge is the item's bottom");
     Window* const popup = (*desk.model).popup_window_model(0U);
     require((*popup).client_size() == Size{(*window).width, (*window).height}, "the model is the window's size");
@@ -229,8 +232,8 @@ void an_opaque_popup_is_the_face_alone() {
         require(near((*window).width, (*panel).requested_bounds().width) && near((*window).height, file_panel_height),
                 "an opaque Popup window holds the face alone, with no room for a shadow");
         const Rect client = desk.client();
-        const std::vector<Rect> items{first_item_bounds(*desk.strip)};
-        require(near((*window).x, client.x + items[0].x), "the face's left edge is still the item's");
+        const Rect strip = (*desk.strip).absolute_bounds();
+        require(near((*window).x, client.x + strip.x), "the face's left edge is still the item's");
         (*desk.strip).close();
     }
     // High contrast withdraws the transparent backdrop.
@@ -339,6 +342,60 @@ void the_keyboard_drives_submenu_popups() {
     require(desk.popups().empty() && !(*desk.strip).is_open(), "every Popup window hides");
 }
 
+struct RecordInvoked final {
+    std::vector<std::string>* items{};
+    void operator()(const MenuItemInvocation& invocation) const { (*items).push_back(invocation.item_id); }
+};
+
+void the_two_pane_menu_lifts_and_opens_submenus() {
+    Desk desk(true);
+    Commands commands;
+    std::vector<MenuItemSpec> background;
+    background.emplace_back("file.background.tile", MenuItemKind::command, commands.tile);
+    background.emplace_back("file.background.fill", MenuItemKind::command, commands.fill);
+    std::vector<MenuItemSpec> file;
+    file.emplace_back("file.open", MenuItemKind::command, commands.open);
+    file.emplace_back("file.rule", MenuItemKind::separator);
+    file.emplace_back("file.background", MenuItemKind::submenu, std::shared_ptr<Command>{}, "Background",
+                      std::move(background));
+    file.emplace_back("file.quit", MenuItemKind::command, commands.quit);
+    (*desk.ribbon).set_application_menu(std::move(file));
+    (*desk.ribbon).set_recent_items({{"recent.report", "Report.png", "C:\\Pictures"}});
+    (*desk.model).perform_layout();
+    std::vector<std::string> invoked;
+    SubscriptionToken recorded = (*desk.ribbon).application_menu_item_invoked().subscribe(RecordInvoked{&invoked});
+    require((*desk.ribbon).show_application_menu(MenuOpenMode::keyboard), "the two-pane menu opens");
+    require(desk.popups().size() == 1U, "its panel shows in the picker Popup");
+    const Control::Ptr catcher = (*desk.ribbon).application_menu_overlay();
+    require(catcher != nullptr && !(*catcher).semantic_descriptor().exposed,
+            "the overlay left in the owner is the panel's catcher");
+    const std::optional<Rect> panel_window = desk.windowing().native_content(desk.popups()[0]);
+    const Rect file_tab = (*desk.ribbon).parts().application_button.bounds;
+    const Rect ribbon = (*desk.ribbon).absolute_bounds();
+    const Rect client = desk.client();
+    require(panel_window.has_value() && (*panel_window).y + 0.5 >= client.y + ribbon.y + file_tab.y + file_tab.height -
+                                                                       overlay_shadow_outsets(*catcher).top - 20.0,
+            "the panel hangs below the File tab");
+    // Open is focused; Down skips the rule to Background; Right opens it.
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down moves to the submenu row");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), "Right opens the submenu");
+    require(desk.popups().size() == 2U, "the submenu shows in a menu Popup beside the panel");
+    const std::optional<Rect> submenu_window = desk.windowing().native_content(desk.popups()[1]);
+    require(submenu_window.has_value() && (*submenu_window).x > (*panel_window).x + 100.0,
+            "the submenu opens right of its row");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)), "Escape closes the submenu");
+    require(desk.popups().size() == 1U && (*desk.ribbon).menu_open(), "the panel stays open");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), "Right opens the submenu again");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::enter)), "Enter runs its first command");
+    require(invoked.size() == 1U && invoked[0] == "file.background.tile",
+            "the submenu's command runs with the application menu's event");
+    require(!(*desk.ribbon).menu_open() && desk.popups().empty(), "and both menus close");
+    require((*desk.ribbon).show_application_menu(MenuOpenMode::keyboard), "the menu opens again");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)), "Escape closes it");
+    require(!(*desk.ribbon).menu_open() && desk.popups().empty(), "and hides its Popup");
+    recorded.disconnect();
+}
+
 } // namespace
 
 int main() {
@@ -349,6 +406,7 @@ int main() {
         rows_take_the_designed_hover();
         panels_fit_their_rows();
         the_keyboard_drives_submenu_popups();
+        the_two_pane_menu_lifts_and_opens_submenus();
     } catch (const std::exception& error) {
         std::cerr << "menu popup tests failed: " << error.what() << '\n';
         return 1;

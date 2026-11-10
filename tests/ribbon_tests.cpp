@@ -282,6 +282,65 @@ void state_repaints_only_its_command() {
             "an enabled change repaints only its command");
 }
 
+// Each damaged rectangle lies within `part` (with a small outset) or below
+// it, where the menu shows (a drop-down opens below its command); nothing
+// else of the ribbon, its tab row and its other commands, repaints.
+bool damage_only_part_or_below(const DamageRegion& damage, Rect part) {
+    constexpr double slack = 3.0;
+    constexpr double shadow = 12.0;
+    for (const Rect& rectangle : damage.rectangles()) {
+        const bool in_part = rectangle.x >= part.x - slack && rectangle.y >= part.y - slack &&
+                             rectangle.x + rectangle.width <= part.x + part.width + slack &&
+                             rectangle.y + rectangle.height <= part.y + part.height + slack;
+        const bool below = rectangle.y >= part.y + part.height - shadow;
+        if (!in_part && !below) return false;
+    }
+    return true;
+}
+
+// Owner, 2026-11-09: opening the menu under Paste repainted the whole ribbon.
+// Opening and closing a drop-down, and the hover and press changes that come
+// with them, repaint only the invoking command; the menu is its own surface.
+void menus_repaint_only_their_command() {
+    const Commands commands;
+    std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+    // Tall enough that the menus open below their commands.
+    Window window(ribbon, {900.0, 400.0});
+    window.perform_layout();
+    const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
+    const Ribbon::CommandItem paste = *find_command(items, "paste");
+    const Rect arrow = paste.parts.command_arrow.bounds;
+    const Rect part = Rect::united(paste.parts.command_face.bounds, arrow);
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, centre(arrow)}));
+    window.perform_layout();
+    static_cast<void>(window.take_damage());
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(arrow)}));
+    window.perform_layout();
+    require((*ribbon).menu_open(), "the split's arrow opens its menu");
+    const DamageRegion opened = window.take_damage();
+    require(!opened.empty() && damage_only_part_or_below(opened, part),
+            "opening a drop-down repaints its command and the menu, not the ribbon");
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, centre(arrow)}));
+    window.perform_layout();
+    static_cast<void>(window.take_damage());
+    (*ribbon).close_menus();
+    window.perform_layout();
+    const DamageRegion closed = window.take_damage();
+    require(!closed.empty() && damage_only_part_or_below(closed, part),
+            "closing it repaints its command and where the menu was, not the ribbon");
+    const std::vector<Ribbon::CommandItem> closed_items = (*ribbon).realized_commands();
+    const Rect table = command_named(closed_items, "table").parts.command_face.bounds;
+    static_cast<void>(window.take_damage());
+    require((*ribbon).show_drop_down("table"), "a drop-down opens from the program");
+    window.perform_layout();
+    const DamageRegion table_opened = window.take_damage();
+    (*ribbon).close_menus();
+    window.perform_layout();
+    const DamageRegion table_closed = window.take_damage();
+    require(damage_only_part_or_below(table_opened, table) && damage_only_part_or_below(table_closed, table),
+            "the same for a plain drop-down opened by the program");
+}
+
 void minimize_by_tab_click() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
@@ -606,6 +665,7 @@ int main() {
     one_command_path();
     tab_navigation();
     state_repaints_only_its_command();
+    menus_repaint_only_their_command();
     minimize_by_tab_click();
     hosted_controls();
     menus_and_launchers();

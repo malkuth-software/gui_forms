@@ -1307,6 +1307,7 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
     change.depth = depth;
     change.opened = true;
     focus_scope_changed_.emit(change);
+    if (tool_tips_) (*tool_tips_).scope_changed();
 
     bool remains_active = false;
     for (const FocusScopeState& candidate : focus_scopes_) {

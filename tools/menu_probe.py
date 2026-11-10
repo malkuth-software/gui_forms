@@ -124,21 +124,21 @@ def main():
     def step(name, commands):
         nonlocal failures
         accepted = all(send(window, command) for command in commands)
-        time.sleep(0.6)
+        time.sleep(1.5)
         path = os.path.abspath(prefix + '_' + name + '.png')
         saved = send(window, 'capture-composite ' + path)
         report = composite_line(lines)
-        windows = [] if report is None else [w['client'] for w in report['windows']]
+        windows = [] if report is None else [w['client'] + w['pixels'] for w in report['windows']]
         ok = accepted and saved
         failures += 0 if ok else 1
         print(name, 'ok' if ok else 'FAILED', windows)
 
     step('closed', [])
     step('file', ['click-at %s 18 10' % MENU])
-    step('submenu', ['key %s %d down' % (MENU, KEY_DOWN), 'key %s %d down' % (MENU, KEY_DOWN),
-                     'key %s %d down' % (MENU, KEY_DOWN), 'key %s %d down' % (MENU, KEY_RIGHT)])
-    step('context', ['key %s %d down' % (MENU, KEY_ESCAPE), 'key %s %d down' % (MENU, KEY_ESCAPE),
-                     'activate gallery.commands.context.open'])
+    step('submenu', ['key-focused %d' % KEY_DOWN, 'key-focused %d' % KEY_DOWN,
+                     'key-focused %d' % KEY_RIGHT, 'key-focused %d' % KEY_DOWN])
+    step('context', ['key-focused %d' % KEY_ESCAPE, 'key-focused %d' % KEY_ESCAPE, 'key-focused %d' % KEY_ESCAPE,
+                     'activate gallery.commands.context.open', 'key-focused %d' % KEY_DOWN])
     send(window, 'close')
     try:
         process.wait(timeout=10)

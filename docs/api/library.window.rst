@@ -2907,3 +2907,11 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::chrono::milliseconds default_toast_duration
 
    How long a toast stays unless the call says otherwise. Value: ``{5000}``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
+
+.. cpp:function:: bool tool_tip_text_shows(std::string_view text) noexcept
+
+   Whether tooltip text shows (owner, 2026-11-09): text that is empty or holds only white space (ASCII spaces, tabs and line breaks, no-break space U+00A0 and ideographic space U+3000) never shows, whoever asks: the pointer, keyboard focus, show_tool_tip or a request.

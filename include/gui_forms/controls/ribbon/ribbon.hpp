@@ -14,6 +14,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp"
 
 #include <cstddef>
@@ -928,6 +929,13 @@ private:
     void launch(std::size_t group);
     void scroll_groups(bool forward);
     void set_hot(const Hit& hit);
+    // Repaints only the part whose look changed (a command, a tab, the File
+    // tab, a group for its launcher or overflow button, a scroll button), in
+    // the plane and, for its group, the open group overlay. Hover, press,
+    // focus and a menu opening or closing change one part, never the whole
+    // ribbon (owner, 2026-11-09).
+    void repaint_part(Hit::Kind kind, std::size_t index, CommandAddress command);
+    void repaint_stop(const std::optional<Stop>& stop);
     void set_stop(std::optional<Stop> stop);
     void activate_stop(const Stop& stop);
     void press(const Hit& hit, PointerEvent& event);
@@ -959,6 +967,11 @@ private:
     bool show_application_overlay(MenuOpenMode mode);
     void close_application_overlay() noexcept;
     void on_application_overlay_revoked();
+    // Opens `item`'s children in the ribbon's menu beside `row` (the row's
+    // bounds in `panel`'s coordinates), with the keyboard on the first row
+    // when `keyboard`; false when the item has no children or the ribbon
+    // has no window.
+    bool open_application_submenu(const MenuItemSpec& item, const Control& panel, Rect row, bool keyboard);
     void place_backstage();
     void on_backstage_close_requested();
     void on_backstage_revoked();
@@ -1034,6 +1047,16 @@ private:
     // The file area: recent items, the two-pane menu while open, Backstage.
     std::vector<RibbonRecentItem> recent_items_{};
     std::shared_ptr<RibbonApplicationMenu> application_overlay_{};
+    // The panel lifted into the owner's picker Popup while the two-pane
+    // menu shows there (application_overlay_ is then its catcher); kept,
+    // detached, between shows. `application_face_` is the lifted panel's
+    // bounds in the owner's client coordinates.
+    std::shared_ptr<RibbonApplicationMenu> application_panel_{};
+    PopupLift application_lift_{};
+    Rect application_face_{};
+    // A submenu item of the two-pane menu ran its command: the menu closes
+    // once the ribbon's menu has.
+    bool application_submenu_invoked_{};
     OverlayToken application_overlay_token_{};
     FocusScopeId application_scope_{};
     SubscriptionToken application_overlay_revoked_{};

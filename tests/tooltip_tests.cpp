@@ -434,6 +434,49 @@ void test_window_and_program_switches() {
     require(!fixture.window.tool_tip_visible(), "hide closes it");
 }
 
+// Owner rules, 2026-11-09: blank tooltip text never shows, whoever asks;
+// and while a menu or another contained surface is open (an active focus
+// scope), the controls beneath it, its invoker among them, show no tooltip
+// from the pointer.
+void test_blank_text_and_open_scopes() {
+    require(!tool_tip_text_shows("") && !tool_tip_text_shows(" \t\r\n") &&
+                !tool_tip_text_shows("\xC2\xA0\xE3\x80\x80") && tool_tip_text_shows(" Help "),
+            "only text with something but white space shows");
+    Fixture fixture;
+    ToolTipSettings settings = fixture.window.tool_tip_settings();
+    settings.initial_delay = 1ms;
+    fixture.window.set_tool_tip_settings(settings);
+    (*fixture.button).tool_tip_text = " \t\xC2\xA0";
+    fixture.window.show_tool_tip(fixture.button, 0ms);
+    require(!fixture.window.tool_tip_visible(), "blank text does not show even when the program asks");
+    hover(fixture.window, {60.0, 60.0});
+    run_due(fixture.window);
+    require(!fixture.window.tool_tip_visible(), "nor when the pointer rests on it");
+    (*fixture.button).tool_tip_text = "Main menu";
+    hover(fixture.window, {390.0, 210.0});
+    hover(fixture.window, {60.0, 60.0});
+    const FocusScopeId scope = fixture.window.begin_focus_scope(fixture.other, fixture.other);
+    run_due(fixture.window);
+    require(!fixture.window.tool_tip_visible(), "a wait beneath a scope that opens does not show");
+    hover(fixture.window, {390.0, 210.0});
+    hover(fixture.window, {60.0, 60.0});
+    run_due(fixture.window);
+    require(!fixture.window.tool_tip_visible(), "the invoker beneath an open menu shows no tooltip");
+    require(fixture.window.end_focus_scope(scope), "the menu closes");
+    hover(fixture.window, {390.0, 210.0});
+    hover(fixture.window, {60.0, 60.0});
+    run_due(fixture.window);
+    require(fixture.window.tool_tip_visible(), "once it has closed, the tooltip shows again");
+    fixture.window.hide_tool_tip();
+    hover(fixture.window, {390.0, 210.0});
+    hover(fixture.window, {60.0, 60.0});
+    run_due(fixture.window);
+    require(fixture.window.tool_tip_visible(), "a tooltip that shows");
+    const FocusScopeId later = fixture.window.begin_focus_scope(fixture.other, fixture.other);
+    require(!fixture.window.tool_tip_visible(), "closes when a menu opens over its control");
+    require(fixture.window.end_focus_scope(later), "the later menu closes");
+}
+
 void test_press_hides_and_text_changes_follow() {
     Fixture fixture;
     ToolTipSettings settings = fixture.window.tool_tip_settings();
@@ -676,6 +719,7 @@ int main() {
         test_show_always_supports_a_disabled_visible_owner();
         test_maximum_width_is_bounded_and_shapes_overlay();
         test_window_and_program_switches();
+        test_blank_text_and_open_scopes();
         test_press_hides_and_text_changes_follow();
         test_strip_item_tooltips();
         test_tab_header_tooltips();

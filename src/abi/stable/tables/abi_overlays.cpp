@@ -3,6 +3,9 @@
 
 #include "abi_control_entry.hpp"
 #include "abi_tables.hpp"
+#include "../windows/abi_window_handle.hpp"
+
+#include "gui_forms/application.hpp"
 
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
@@ -13,6 +16,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -28,6 +32,8 @@ constexpr SlotIdentity show_tool_tip_slot{GF_TABLE_OVERLAYS, 3U};
 constexpr SlotIdentity hide_tool_tip_slot{GF_TABLE_OVERLAYS, 4U};
 constexpr SlotIdentity open_anchored_slot{GF_TABLE_OVERLAYS, 5U};
 constexpr SlotIdentity close_anchored_slot{GF_TABLE_OVERLAYS, 6U};
+constexpr SlotIdentity set_tool_tips_shown_slot{GF_TABLE_OVERLAYS, 7U};
+constexpr SlotIdentity tool_tips_shown_slot{GF_TABLE_OVERLAYS, 8U};
 
 // The open overlays, by the overlay's identity. Owned here and used on the UI
 // thread only. A token the window has closed (its owner left the window,
@@ -427,6 +433,98 @@ gf_status GF_CALL overlays_close_anchored(gf_object content) noexcept {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Tooltip switches (since 1.1): a window's, or the program's.
+
+// The live window `object` names, through its handle; null with a status
+// when it is not a window or has closed.
+gf_status find_tool_tips_window(gf_object object, SlotIdentity slot, Window*& window) {
+    Component::Ptr component;
+    const gf_status found = registry().find_component(object, slot, component);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(component);
+    if (handle == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, slot, "the object is not a window");
+    }
+    Window* const held = (*handle).window();
+    if (!(*handle).is_alive() || held == nullptr) {
+        return fail(GF_STATUS_DISPOSED, slot, "the window has been disposed or has closed");
+    }
+    window = held;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL overlays_set_tool_tips_shown(gf_object window, gf_tool_tips_setting setting) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(set_tool_tips_shown_slot.table_id, set_tool_tips_shown_slot.slot_index);
+        const gf_status entered = registry().enter_ui(set_tool_tips_shown_slot, false);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        if (setting != GF_TOOL_TIPS_FOLLOW && setting != GF_TOOL_TIPS_SHOWN && setting != GF_TOOL_TIPS_HIDDEN) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, set_tool_tips_shown_slot, "unknown tooltip setting");
+        }
+        if (window == 0U) {
+            if (setting == GF_TOOL_TIPS_FOLLOW) {
+                return fail(GF_STATUS_INVALID_ARGUMENT, set_tool_tips_shown_slot,
+                            "the program's switch is shown or hidden");
+            }
+            Application* const application = Application::current();
+            if (application == nullptr) {
+                return fail(GF_STATUS_INVALID_STATE, set_tool_tips_shown_slot, "no application is current");
+            }
+            (*application).set_tool_tips_shown(setting == GF_TOOL_TIPS_SHOWN);
+            return GF_STATUS_OK;
+        }
+        Window* target = nullptr;
+        const gf_status found = find_tool_tips_window(window, set_tool_tips_shown_slot, target);
+        if (found != GF_STATUS_OK) {
+            return found;
+        }
+        std::optional<bool> shown{};
+        if (setting != GF_TOOL_TIPS_FOLLOW) shown = setting == GF_TOOL_TIPS_SHOWN;
+        (*target).set_tool_tips_shown(shown);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(set_tool_tips_shown_slot);
+    }
+}
+
+gf_status GF_CALL overlays_tool_tips_shown(gf_object window, std::uint32_t* shown,
+                                           gf_tool_tips_setting* setting) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(tool_tips_shown_slot.table_id, tool_tips_shown_slot.slot_index);
+        if (shown == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, tool_tips_shown_slot, "tool_tips_shown needs an output");
+        }
+        const gf_status entered = registry().enter_ui(tool_tips_shown_slot, false);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        if (window == 0U) {
+            const Application* const application = Application::current();
+            *shown = application == nullptr || (*application).tool_tips_shown() ? 1U : 0U;
+            if (setting != nullptr) *setting = GF_TOOL_TIPS_FOLLOW;
+            return GF_STATUS_OK;
+        }
+        Window* target = nullptr;
+        const gf_status found = find_tool_tips_window(window, tool_tips_shown_slot, target);
+        if (found != GF_STATUS_OK) {
+            return found;
+        }
+        *shown = (*target).tool_tips_shown() ? 1U : 0U;
+        if (setting != nullptr) {
+            const std::optional<bool> own = (*target).tool_tips_shown_setting();
+            *setting = !own.has_value() ? GF_TOOL_TIPS_FOLLOW : (*own ? GF_TOOL_TIPS_SHOWN : GF_TOOL_TIPS_HIDDEN);
+        }
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(tool_tips_shown_slot);
+    }
+}
+
 constexpr gf_overlays_table table{
     .struct_size = sizeof(gf_overlays_table),
     .abi_minor = GF_ABI_MINOR,
@@ -437,6 +535,8 @@ constexpr gf_overlays_table table{
     .hide_tool_tip = &overlays_hide_tool_tip,
     .open_anchored = &overlays_open_anchored,
     .close_anchored = &overlays_close_anchored,
+    .set_tool_tips_shown = &overlays_set_tool_tips_shown,
+    .tool_tips_shown = &overlays_tool_tips_shown,
 };
 
 } // namespace

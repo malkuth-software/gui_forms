@@ -268,6 +268,26 @@ static void overlays(gf_kit* kit) {
     gf_kit_status(kit, (*kit).overlays.hide_tool_tip(tips), GF_STATUS_OK, "hide it");
     gf_kit_status(kit, (*kit).overlays.hide_tool_tip(owner), GF_STATUS_WRONG_HANDLE_KIND,
                   "a button is not a tool_tip");
+    /* The tooltip switches (since 1.1): the window's own, then the program's. */
+    uint32_t shown = 2u;
+    gf_tool_tips_setting setting = 9u;
+    gf_kit_status(kit, (*kit).overlays.tool_tips_shown(window, &shown, &setting), GF_STATUS_OK, "read the switch");
+    gf_kit_check(kit, shown == 1u && setting == GF_TOOL_TIPS_FOLLOW, "a window follows the program, shown");
+    gf_kit_status(kit, (*kit).overlays.set_tool_tips_shown(window, GF_TOOL_TIPS_HIDDEN), GF_STATUS_OK,
+                  "turn the window's tooltips off");
+    gf_kit_status(kit, (*kit).overlays.tool_tips_shown(window, &shown, &setting), GF_STATUS_OK, "read it again");
+    gf_kit_check(kit, shown == 0u && setting == GF_TOOL_TIPS_HIDDEN, "the window's tooltips are off");
+    gf_kit_status(kit, (*kit).overlays.set_tool_tips_shown(window, GF_TOOL_TIPS_FOLLOW), GF_STATUS_OK,
+                  "follow the program again");
+    gf_kit_status(kit, (*kit).overlays.set_tool_tips_shown(window, 7u), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown setting is refused");
+    gf_kit_status(kit, (*kit).overlays.set_tool_tips_shown(owner, GF_TOOL_TIPS_SHOWN), GF_STATUS_WRONG_HANDLE_KIND,
+                  "a button has no tooltip switch");
+    gf_kit_status(kit, (*kit).overlays.set_tool_tips_shown(0u, GF_TOOL_TIPS_FOLLOW), GF_STATUS_INVALID_ARGUMENT,
+                  "the program's switch does not follow");
+    gf_kit_status(kit, (*kit).overlays.tool_tips_shown(0u, &shown, NULL), GF_STATUS_OK, "read the program's switch");
+    gf_kit_status(kit, (*kit).overlays.tool_tips_shown(window, NULL, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "the switch needs an output");
     gf_kit_status(kit, (*kit).objects.release(tips), GF_STATUS_OK, "release the tool_tip");
     gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the window");
     gf_kit_status(kit, (*kit).objects.release(overlay), GF_STATUS_OK, "release the overlay");

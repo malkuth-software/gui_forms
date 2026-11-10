@@ -759,7 +759,7 @@ public unsafe struct gf_anchored_overlay_options
     public gf_callback* events;
 }
 
-/// <summary>gf_overlays_table (table, 64 bytes).</summary>
+/// <summary>gf_overlays_table (table, 80 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_overlays_table
 {
@@ -772,6 +772,8 @@ public unsafe struct gf_overlays_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> hide_tool_tip;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_anchored_overlay_options*, gf_status> open_anchored;
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> close_anchored;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_tool_tips_setting, gf_status> set_tool_tips_shown;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_tool_tips_setting*, gf_status> tool_tips_shown;
 }
 
 /// <summary>gf_property_grid_table (table, 48 bytes).</summary>
