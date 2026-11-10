@@ -62,6 +62,9 @@ struct ProgramOptions final {
     std::string page;
     std::string backdrop;
     std::string theme;
+    // --scheme light|dark: the window's colour-scheme override; empty
+    // follows the host's setting.
+    std::string scheme;
 };
 
 inline void print_program_usage(const char* program) {
@@ -123,7 +126,8 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
         }
         const bool wants_value = argument == "--capture" || argument == "--size" ||
                                  argument == "--scale" || argument == "--page" ||
-                                 argument == "--backdrop" || argument == "--theme";
+                                 argument == "--backdrop" || argument == "--theme" ||
+                                 argument == "--scheme";
         if (!wants_value) {
             print_program_usage(program);
             return std::nullopt;
@@ -157,6 +161,12 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                 return std::nullopt;
             }
             options.theme = std::string(value);
+        } else if (argument == "--scheme") {
+            if (value != "light" && value != "dark") {
+                print_program_usage(program);
+                return std::nullopt;
+            }
+            options.scheme = std::string(value);
         } else if (argument == "--size") {
             Size size{};
             if (!detail::parse_size(value, size)) {

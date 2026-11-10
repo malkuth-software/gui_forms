@@ -33,6 +33,12 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "unknown Gallery page: %s\n", (*program).page.c_str());
         return 2;
     }
+    if (!(*program).scheme.empty()) {
+        gui_forms::PresentationOverrides overrides{};
+        overrides.colour_scheme =
+            (*program).scheme == "dark" ? gui_forms::ColourScheme::dark : gui_forms::ColourScheme::light;
+        (*window).set_presentation_overrides(overrides);
+    }
     const std::shared_ptr<gui_forms::demo::SmokeTest> smoke =
         gui_forms::demo::arm_smoke_test(*program, options, *window);
     return gui_forms::demo::smoke_test_result(
