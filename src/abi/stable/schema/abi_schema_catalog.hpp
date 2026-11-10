@@ -47,6 +47,9 @@
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
+#include "gui_forms/controls/help/help_book/help_book.hpp"
+#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
+#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 #include "gui_forms/controls/label/label.hpp"
@@ -136,7 +139,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 125> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 128> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -258,6 +261,9 @@ inline constexpr std::array<SchemaCatalogEntry, 125> schema_catalog{{
     {"image_list", "ImageList", &describe_type<ImageList>, &create_type<ImageList>, &is_exact_type<ImageList>},
     {"error_provider", "ErrorProvider", &describe_type<ErrorProvider>, &create_type<ErrorProvider>, &is_exact_type<ErrorProvider>},
     {"help_provider", "HelpProvider", &describe_type<HelpProvider>, &create_type<HelpProvider>, &is_exact_type<HelpProvider>},
+    {"help_book", "HelpBook", &describe_type<HelpBook>, &create_type<HelpBook>, &is_exact_type<HelpBook>},
+    {"help_book_viewer", "HelpBookViewer", &describe_type<HelpBookViewer>, &create_type<HelpBookViewer>, &is_exact_type<HelpBookViewer>},
+    {"help_book_system", "HelpBookSystem", &describe_type<HelpBookSystem>, &create_type<HelpBookSystem>, &is_exact_type<HelpBookSystem>},
     {"semantic_feedback", "SemanticFeedback", &describe_type<SemanticFeedback>, &create_type<SemanticFeedback>, &is_exact_type<SemanticFeedback>},
     {"binding", "Binding", &describe_type<Binding>, &create_type<Binding>, &is_exact_type<Binding>},
     {"binding_source", "BindingSource", &describe_type<BindingSource>, &create_type<BindingSource>, &is_exact_type<BindingSource>},

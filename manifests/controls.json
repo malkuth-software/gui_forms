@@ -1341,6 +1341,39 @@
       "doc": "api/generated/gui_forms.HelpProvider.rst"
     },
     {
+      "id": "help_book",
+      "type": "HelpBook",
+      "header": "gui_forms/controls/help/help_book/help_book.hpp",
+      "category": "Information display",
+      "purpose": "Paper pane showing one help page: title, markdown body with callouts and collapsible sections, topic, popup and external links, keyboard link stops, and a print layout.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "help-book",
+      "doc": "api/generated/gui_forms.HelpBook.rst"
+    },
+    {
+      "id": "help_book_viewer",
+      "type": "HelpBookViewer",
+      "header": "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp",
+      "category": "Information display",
+      "purpose": "Three-pane help viewer: toolbar, Contents, Index, Search and Bookmarks tabs and a HelpBook, with history and contents sync, over one compiled helpbook section.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "help-book",
+      "doc": "api/generated/gui_forms.HelpBookViewer.rst"
+    },
+    {
+      "id": "help_book_system",
+      "type": "HelpBookSystem",
+      "header": "gui_forms/controls/help/help_book_system/help_book_system.hpp",
+      "category": "Components",
+      "purpose": "The program's help: catalog of help fields, helpbook compile, F1 walking up to the window page, What's This, window cards, paper popups and the help window; external links go to the program.",
+      "winforms": "Help",
+      "status": "provisional",
+      "gallery_page": "help-book",
+      "doc": "api/generated/gui_forms.HelpBookSystem.rst"
+    },
+    {
       "id": "semantic_feedback",
       "type": "SemanticFeedback",
       "header": "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp",

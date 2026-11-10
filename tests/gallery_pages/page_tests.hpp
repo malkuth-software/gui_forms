@@ -51,5 +51,6 @@ void test_control_spectrum(gui_forms::Window& window);
 void test_input_and_rules(gui_forms::Window& window);
 void test_theme_settings(gui_forms::Window& window);
 void test_spinners_and_rings(gui_forms::Window& window);
+void test_help_book(gui_forms::Window& window);
 
 } // namespace gallery_pages_tests

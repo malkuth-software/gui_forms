@@ -193,6 +193,12 @@ void describe_type<GalleryCommand>(SchemaSample& sample) {
     describe_command_extension<GalleryCommand>(sample);
 }
 
+// The help system: made from its default options.
+template <>
+void describe_type<HelpBookSystem>(SchemaSample& sample) {
+    describe_free_component<HelpBookSystem>(sample);
+}
+
 template <>
 void describe_type<HelpProvider>(SchemaSample& sample) {
     describe_window_component<HelpProvider>(sample);

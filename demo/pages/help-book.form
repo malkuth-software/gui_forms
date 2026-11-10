@@ -1,0 +1,37 @@
+/* The Gallery's help-book page (help system H1 to H8): a HelpBookViewer
+   embedded in the page, showing a small helpbook compiled from the page's
+   own built-in help fields, and a paper popup beside it.
+   gui_forms_add_form() compiles this document into help-book_form.hpp at
+   build time.
+
+   gallery.help-book.document is a declared boundary only: the page moves
+   its children into the shell's page body (a 1000 x 660 design surface).
+   The viewer and the popup paper are made by the page
+   (src/controls/gallery/pages/help-book.cpp) inside the two host panels. */
+scaled-panel gallery.help-book.document {
+  design-size: 1000 660;
+
+  label gallery.help-book.heading {
+    text: "HELP BOOK";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.help-book.lead {
+    text: "Help written on the program's own records: contents, index, search and bookmarks, with F1 and What's This.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+  panel gallery.help-book.viewer-host {
+    accessible-name: "Help viewer";
+    bounds: 24 88 640 556;
+  }
+  panel gallery.help-book.popup-host {
+    accessible-name: "Paper popup";
+    bounds: 684 88 292 300;
+  }
+  label gallery.help-book.status {
+    text: "Topic links open in the viewer; other links are offered to the program.";
+    classes: "muted" "body";
+    bounds: 684 400 292 48;
+  }
+}

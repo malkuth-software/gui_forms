@@ -309,6 +309,11 @@ add_library(gui_forms_core STATIC
     src/core/surface_material/presets/material_presets.cpp
     src/core/surface_material/types/surface_material_types.cpp
     src/core/text/markdown/markdown.cpp
+    src/core/help/help_records/help_records.cpp
+    src/core/help/help_contents/help_contents.cpp
+    src/core/help/helpbook_section/helpbook_section.cpp
+    src/core/help/help_search/help_search.cpp
+    src/core/help/help_page/help_page.cpp
     src/core/text/markdown/rtf_conversion.cpp
     src/core/text/text_store/text_store.cpp
     src/core/text/prepared/prepared_storage.cpp
@@ -932,6 +937,10 @@ add_library(gui_forms_controls STATIC
     src/controls/guidance/error_glyph/error_glyph.cpp
     src/controls/guidance/error_provider/error_provider.cpp
     src/controls/guidance/help_provider/help_provider.cpp
+    src/controls/help/help_book/help_book.cpp
+    src/controls/help/help_book_viewer/help_book_viewer.cpp
+    src/controls/help/help_book_system/help_book_system.cpp
+    src/controls/help/help_print/help_print.cpp
     src/controls/panel/material_panel/material_panel.cpp
     src/controls/range_control/range_control_rendering.cpp
     src/controls/range_control/progress_bar/progress_bar_effects.cpp
@@ -1624,6 +1633,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/input-and-rules.cpp
         src/controls/gallery/pages/theme-settings.cpp
         src/controls/gallery/pages/spinners-and-rings.cpp
+        src/controls/gallery/pages/help-book.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -1706,6 +1716,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS ThemeSettingsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/spinners-and-rings.form
         CLASS SpinnersAndRingsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/help-book.form
+        CLASS HelpBookPageDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
         CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/retained-layout-panels.form
@@ -1738,7 +1750,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/semantic-feedback.form demo/pages/control-spectrum.form
             demo/pages/notices-and-badges.form
             demo/pages/input-and-rules.form demo/pages/theme-settings.form
-            demo/pages/spinners-and-rings.form
+            demo/pages/spinners-and-rings.form demo/pages/help-book.form
             demo/pages/retained-layout-panels.form demo/pages/responsive-layouts.form
             demo/pages/css-layout-panels.form
             demo/pages/checked-collections.form demo/pages/choices-and-sections.form
@@ -3243,6 +3255,14 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_document_view_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_document_view_tests COMMAND gui_forms_document_view_tests)
 
+    add_executable(gui_forms_help_system_core_tests tests/help_system_core_tests.cpp)
+    target_link_libraries(gui_forms_help_system_core_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_help_system_core_tests COMMAND gui_forms_help_system_core_tests)
+    add_executable(gui_forms_helpbook_section_fuzz_tests fuzz/helpbook_section_fuzz.cpp)
+    target_link_libraries(gui_forms_helpbook_section_fuzz_tests PRIVATE gui_forms_core)
+    target_compile_definitions(gui_forms_helpbook_section_fuzz_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
+    add_test(NAME gui_forms_helpbook_section_fuzz_tests COMMAND gui_forms_helpbook_section_fuzz_tests)
+
     add_executable(gui_forms_xml_tests tests/xml_tests.cpp)
     target_link_libraries(gui_forms_xml_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_xml_tests COMMAND gui_forms_xml_tests)
@@ -3780,6 +3800,9 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_binding_navigator_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_binding_navigator_tests COMMAND gui_forms_binding_navigator_tests)
 
+    add_executable(gui_forms_help_system_tests tests/help_system_tests.cpp)
+    target_link_libraries(gui_forms_help_system_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_help_system_tests COMMAND gui_forms_help_system_tests)
     add_executable(gui_forms_font_dialog_tests tests/font_dialog_tests.cpp)
     target_link_libraries(gui_forms_font_dialog_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_font_dialog_tests COMMAND gui_forms_font_dialog_tests)
@@ -4346,6 +4369,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/input-and-rules_tests.cpp
             tests/gallery_pages/theme-settings_tests.cpp
             tests/gallery_pages/spinners-and-rings_tests.cpp
+            tests/gallery_pages/help-book_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )

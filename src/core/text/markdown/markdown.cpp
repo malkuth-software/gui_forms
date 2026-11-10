@@ -38,6 +38,7 @@ void MarkdownDocument::clear() noexcept {
     blocks.clear();
     spans.clear();
     links.clear();
+    images.clear();
 }
 
 MarkdownParseResult::MarkdownParseResult(std::variant<Parsed, Failed> state) noexcept : state_(state) {}
@@ -146,6 +147,7 @@ struct Piece final {
     Utf8Range source{};
     MarkdownSpanStyle style{};
     std::optional<std::size_t> link{};
+    std::optional<std::size_t> image{};
 };
 
 // A character of literal text that may be dialect markup: an unescaped
@@ -333,6 +335,8 @@ struct MarkdownParser final {
     std::vector<ListState> lists{};
     std::optional<PendingItem> pending_item{};
     std::vector<std::size_t> open_links{};
+    // The images whose alternative text is being read, innermost last.
+    std::vector<std::size_t> open_images{};
     std::size_t quotes{};
     std::size_t strong{};
     std::size_t emphasis{};
@@ -427,6 +431,7 @@ struct MarkdownParser final {
         piece.source = range;
         piece.style = current_style();
         if (!open_links.empty()) piece.link = open_links.back();
+        if (!open_images.empty()) piece.image = open_images.back();
         joined_bytes += piece.text.size();
         pieces.push_back(std::move(piece));
         cursor = std::max(cursor, range.end.value());
@@ -592,7 +597,8 @@ struct MarkdownParser final {
         if (spans.size() > block_first) {
             MarkdownSpan& last = spans.back();
             const bool continues = last.kind == MarkdownSpanKind::text && piece.kind == MarkdownSpanKind::text &&
-                                   last.style == style && last.link == piece.link && last.source.end == range.start;
+                                   last.style == style && last.link == piece.link && last.image == piece.image &&
+                                   last.source.end == range.start;
             if (continues) {
                 if (text.size() > (*limits).text_bytes - text_bytes) return stop(MarkdownParseError::limit_exceeded);
                 last.text.append(text);
@@ -609,6 +615,7 @@ struct MarkdownParser final {
         span.source = range;
         span.style = style;
         span.link = piece.link;
+        span.image = piece.image;
         spans.push_back(std::move(span));
         text_bytes += text.size();
         return true;
@@ -791,15 +798,28 @@ struct MarkdownParser final {
             const MD_SPAN_A_DETAIL& link = *static_cast<const MD_SPAN_A_DETAIL*>(detail);
             MarkdownLink entry{};
             if (!attribute_text(link.href, entry.target)) return false;
-            if (entry.target.size() > (*limits).text_bytes - text_bytes) return stop(MarkdownParseError::limit_exceeded);
-            text_bytes += entry.target.size();
+            if (!attribute_text(link.title, entry.title)) return false;
+            const std::size_t link_bytes = entry.target.size() + entry.title.size();
+            if (link_bytes > (*limits).text_bytes - text_bytes) return stop(MarkdownParseError::limit_exceeded);
+            text_bytes += link_bytes;
             open_links.push_back((*document).links.size());
             (*document).links.push_back(std::move(entry));
             return true;
         }
-        case MD_SPAN_IMG:
-            // An image is its alternative text, which MD4C passes as text.
+        case MD_SPAN_IMG: {
+            // An image is its alternative text, which MD4C passes as text;
+            // its source and title are recorded, never opened.
+            const MD_SPAN_IMG_DETAIL& image = *static_cast<const MD_SPAN_IMG_DETAIL*>(detail);
+            MarkdownImage entry{};
+            if (!attribute_text(image.src, entry.source)) return false;
+            if (!attribute_text(image.title, entry.title)) return false;
+            const std::size_t image_bytes = entry.source.size() + entry.title.size();
+            if (image_bytes > (*limits).text_bytes - text_bytes) return stop(MarkdownParseError::limit_exceeded);
+            text_bytes += image_bytes;
+            open_images.push_back((*document).images.size());
+            (*document).images.push_back(std::move(entry));
             return true;
+        }
         case MD_SPAN_INS:
         case MD_SPAN_U:
         case MD_SPAN_LATEXMATH:
@@ -834,6 +854,8 @@ struct MarkdownParser final {
             if (!open_links.empty()) open_links.pop_back();
             return true;
         case MD_SPAN_IMG:
+            if (!open_images.empty()) open_images.pop_back();
+            return true;
         case MD_SPAN_INS:
         case MD_SPAN_U:
         case MD_SPAN_LATEXMATH:

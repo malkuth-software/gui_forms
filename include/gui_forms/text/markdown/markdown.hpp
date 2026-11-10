@@ -85,12 +85,25 @@ struct MarkdownSpan final {
     // The link the span is the text of: an index into
     // MarkdownDocument::links.
     std::optional<std::size_t> link{};
+    // The image the span is the alternative text of: an index into
+    // MarkdownDocument::images.
+    std::optional<std::size_t> image{};
 };
 
 // A link's destination, decoded. Every link of the source has its own
 // entry, in source order.
 struct MarkdownLink final {
     std::string target{};
+    // The link title (`[text](target "title")`), decoded; empty without one.
+    std::string title{};
+};
+
+// An image's source and title, decoded. Every image of the source has its
+// own entry, in source order; its spans are its alternative text. Parsing
+// records the source only and never opens it.
+struct MarkdownImage final {
+    std::string source{};
+    std::string title{};
 };
 
 // A block and the spans it holds.
@@ -129,14 +142,15 @@ public:
     std::vector<MarkdownBlock> blocks{};
     std::vector<MarkdownSpan> spans{};
     std::vector<MarkdownLink> links{};
+    std::vector<MarkdownImage> images{};
 
     // Ends every element's lifetime; capacity remains.
     void clear() noexcept;
 };
 
 // Bounds on one parse. source_bytes bounds the input; blocks and spans
-// bound the tables; text_bytes bounds the span texts and link targets
-// together.
+// bound the tables; text_bytes bounds the span texts, link targets and
+// titles, and image sources and titles together.
 struct MarkdownLimits final {
     std::size_t source_bytes = 16U * 1024U * 1024U;
     std::size_t blocks = 100000U;
