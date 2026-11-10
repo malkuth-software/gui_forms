@@ -536,7 +536,8 @@ void hovering_a_submenu_row_away_and_back_reopens_it() {
         require((*desk.model).popup_window_model(1U) != nullptr &&
                     (*(*desk.model).popup_window_model(1U)).find("strip.menu.overlay.row.file.background.tile") != nullptr,
                 label + "the submenu shows its rows");
-        hover_row(*desk.model, 0U, "file.quit");
+        // Save, above: the panel may still be revealing, its last row clipped.
+        hover_row(*desk.model, 0U, "file.save");
         require(desk.popups().size() == 1U && (*desk.strip).is_open(), label + "the next row closes the submenu");
         if (cycle == 0U) windows_after_first = desk.windowing().window_count();
         require(desk.windowing().window_count() == windows_after_first, label + "no window is left behind");

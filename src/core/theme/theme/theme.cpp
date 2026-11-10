@@ -1271,8 +1271,14 @@ Insets box_shadow_visual_outsets(std::span<const MaterialShadow> shadows) noexce
     Insets result{};
     for (const MaterialShadow& shadow : shadows) {
         if (shadow.inset) continue;
+        // A CSS blur radius is two standard deviations (the renderer blurs
+        // with sigma = radius / 2); the engine's shadow raster draws 3.5 of
+        // them (overlay_shadow_primitive.hpp), where what is left is under
+        // 0.03% of the shadow's colour, and the reach is as far as it draws
+        // (owner, 2026-11-10: a Popup or tooltip window is its face and its
+        // real shadow, not a margin of six deviations round it).
         const double extent = std::max(0.0, shadow.spread) +
-                              shadow.blur_radius * 3.0;
+                              shadow.blur_radius * 1.75;
         result.left = std::max(result.left,
                                std::max(0.0, extent - shadow.offset.x));
         result.top = std::max(result.top,

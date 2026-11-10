@@ -126,6 +126,8 @@ protected:
 
 private:
     friend class MenuStrip;
+    // The ribbon closes its two-pane menu on its submenu's outside press.
+    friend class Ribbon;
     struct Impl;
 
     void set_root_navigation_handler(std::function<bool(int)> handler);

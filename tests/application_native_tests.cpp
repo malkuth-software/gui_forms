@@ -793,12 +793,27 @@ private:
     bool first_{};
 };
 
+// The first command is sent from a thread timer once the run pumps (the
+// ready callback runs while the window is still being made, before it
+// answers messages). One fixture runs at a time; the timer reads it here.
+AutomationOrder* automation_order = nullptr;
+
+void CALLBACK send_first_command(HWND, UINT, UINT_PTR timer, DWORD) {
+    KillTimer(nullptr, timer);
+    if (automation_order == nullptr) return;
+    if (send_automation("activate native.automation.first") == FALSE) {
+        (*automation_order).events.push_back("refused");
+        static_cast<void>((*automation_order).handle.request_close());
+    }
+}
+
 struct AutomationReady final {
     AutomationOrder* order{};
     void operator()(Window&, ApplicationWindowHandle handle) const {
         (*order).handle = handle;
-        if (send_automation("activate native.automation.first") == FALSE) {
-            (*order).events.push_back("refused");
+        automation_order = order;
+        if (SetTimer(nullptr, 0, 1, send_first_command) == 0) {
+            (*order).events.push_back("no-timer");
             static_cast<void>(handle.request_close());
         }
     }
@@ -824,6 +839,7 @@ void check_automation_interleaving() {
     const ApplicationResult result =
         test_application().run(std::make_unique<Window>(root, Size{200.0, 120.0}), std::move(options));
     static_cast<void>(_putenv_s("GUI_FORMS_WINDOWS_AUTOMATION", ""));
+    automation_order = nullptr;
     if (result.callback_exception) std::rethrow_exception(result.callback_exception);
     require(result.accepted(), "automation fixture failed");
     std::string seen;

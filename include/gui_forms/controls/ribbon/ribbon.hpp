@@ -1061,8 +1061,9 @@ private:
     std::shared_ptr<RibbonApplicationMenu> application_panel_{};
     PopupLift application_lift_{};
     Rect application_face_{};
-    // A submenu item of the two-pane menu ran its command: the menu closes
-    // once the ribbon's menu has.
+    // A submenu item of the two-pane menu ran its command, or a press away
+    // from the submenu dismissed it: the menu closes once the ribbon's
+    // menu has.
     bool application_submenu_invoked_{};
     OverlayToken application_overlay_token_{};
     FocusScopeId application_scope_{};
