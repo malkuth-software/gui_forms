@@ -7,6 +7,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/display.hpp"
 #include "gui_forms/dispatcher.hpp"
+#include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/engine/part_table/engine_part_table.hpp"
 #include "gui_forms/live_surface/wake_connection/live_surface_wake_connection.hpp"
@@ -560,6 +561,28 @@ public:
     // them; chunks the replay had to rebuild are marked for the next real
     // paint. On the UI thread (std::logic_error elsewhere).
     [[nodiscard]] std::optional<WindowCapture> capture_window(const WindowCaptureOptions& options = {});
+
+    // The invalidation overlay (owner request 2026-11-09; see
+    // invalidation_overlay.hpp). The window's own setting: on, off, or none
+    // to follow the process switch (set_invalidation_overlay_default, read
+    // from GUI_FORMS_DEBUG_INVALIDATION at first). Turning it off drops
+    // the outlines; turning it on records from the next damage. Neither
+    // damages the window. UI thread.
+    void set_invalidation_overlay(std::optional<bool> enabled);
+    [[nodiscard]] std::optional<bool> invalidation_overlay_setting() const noexcept {
+        return invalidation_overlay_setting_;
+    }
+    // Whether the overlay is on now, after the process switch's last
+    // change. UI thread.
+    [[nodiscard]] bool invalidation_overlay_enabled() noexcept;
+    // The window's outlines while the overlay is on, for its host to
+    // composite at present time (InvalidationOverlay::compose); null while
+    // it is off. Valid until the overlay is turned off. UI thread.
+    [[nodiscard]] InvalidationOverlay* invalidation_overlay() noexcept;
+    // Records an area the host presented without a paint of the window's
+    // (a live frame, external content), with its cause and source, while
+    // the overlay is on; nothing while it is off. UI thread.
+    void record_presented_area(Rect bounds, InvalidationCause cause, std::string_view source);
     // Removes a snapshot's image as remove_image does: every window sharing
     // the registry retires its retained paint, so no chunk replays the dead
     // image. False, changing nothing, for an image that is not there.
@@ -2227,6 +2250,52 @@ private:
     // damage nothing, until its arrange descent ends.
     bool scroll_copies_supported_{};
     std::vector<ScrollCopy> scroll_copies_;
+
+    // The invalidation overlay (set_invalidation_overlay). While it is on,
+    // each damage rectangle the window records is noted with the cause in
+    // force (damage_cause_, set by a DamageCauseScope around the damage) and
+    // the control that caused it, until a paint attributes the rectangles
+    // it painted to them (attribute_painted_damage); a painted rectangle no
+    // damage asked for is the host's expose.
+    struct InvalidationCauseRecord final {
+        Rect bounds{};
+        InvalidationCause cause{InvalidationCause::control};
+        std::string source{};
+        // Presented whole whatever is painted: a scroll copy's moved area.
+        bool presented_whole{};
+    };
+    static constexpr std::size_t maximum_invalidation_causes = 256U;
+    class DamageCauseScope final {
+    public:
+        DamageCauseScope(SurfaceRoot& root, InvalidationCause cause, const Control* source) noexcept
+            : root_(&root), cause_(root.damage_cause_), source_(root.damage_source_) {
+            root.damage_cause_ = cause;
+            root.damage_source_ = source;
+        }
+        ~DamageCauseScope() {
+            (*root_).damage_cause_ = cause_;
+            (*root_).damage_source_ = source_;
+        }
+        DamageCauseScope(const DamageCauseScope&) = delete;
+        DamageCauseScope& operator=(const DamageCauseScope&) = delete;
+
+    private:
+        SurfaceRoot* root_;
+        InvalidationCause cause_;
+        const Control* source_;
+    };
+    // Follows a change of the process switch: one relaxed load when there
+    // is none.
+    void sync_invalidation_overlay();
+    void note_damage_cause(Rect damage, bool presented_whole);
+    void attribute_painted_damage(std::span<const Rect> painted);
+    std::unique_ptr<InvalidationOverlay> invalidation_overlay_{};
+    std::optional<bool> invalidation_overlay_setting_{};
+    std::uint64_t invalidation_overlay_generation_{};
+    std::vector<InvalidationCauseRecord> invalidation_causes_{};
+    InvalidationCause damage_cause_{InvalidationCause::control};
+    // Borrowed for the scope that set it; the damage reads only its id.
+    const Control* damage_source_{};
     const Control* scroll_translating_{};
     Point scroll_translation_{};
     // Whether `control`'s current recorded paint draws nothing (a layer

@@ -23,6 +23,12 @@ inline constexpr std::size_t default_live_surface_buffer_count = 3U;
 inline constexpr std::size_t minimum_live_surface_buffer_count = 2U;
 inline constexpr std::size_t maximum_live_surface_buffer_count = 8U;
 
+// Who produces a surface's frames, for diagnostics (the invalidation
+// overlay names a frame's presentation by it): a program's producer or a
+// sub-surface, or a compatibility paint endpoint presenting external
+// double-buffered content (child-window or GDI drawing).
+enum class LiveSurfaceOrigin : std::uint8_t { producer, compatibility_paint };
+
 struct LiveSurfaceDescription final {
     std::uint32_t width{};
     std::uint32_t height{};
@@ -34,6 +40,7 @@ struct LiveSurfaceDescription final {
     // The producer promises every pixel has alpha 255; the presenter may copy
     // instead of blend, and need not paint what lies under it.
     bool opaque{};
+    LiveSurfaceOrigin origin{LiveSurfaceOrigin::producer};
 };
 
 struct LiveSurfaceSnapshot final {

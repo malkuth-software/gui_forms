@@ -143,6 +143,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: gui_forms
+          # A pull request's merge commit and its base (HEAD^1), for the change selection.
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
       # template_harness beside gui_forms, at the commit gui_forms/harness.lock
       # pins; the gui_forms/tools paths below forward to it
       # (docs/building/template-harness.md).
@@ -235,6 +237,10 @@ jobs:
           echo "CCACHE_DIR=$cache_dir" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$cache_base" >> "$GITHUB_ENV"
           echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
+          # The test programs share precompiled headers
+          # (cmake/TestPrecompiledHeader.cmake): ccache caches a compile that
+          # reads one only with these two relaxations.
+          echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
           echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
           # Before the cache is restored: tools/ci_cache.py evict keeps the
           # entries used after this moment.
@@ -321,8 +327,15 @@ jobs:
           tar -xf .ci/tested-objects/gui-programs-objects-${{ matrix.platform }}.tar
           rm -rf .ci/tested-objects
       # --- build, as tools/ci_build.py configures it, plus the programs ------------
-      # The CPU renderer (stx_skia/) and the text stack come from the pinned stx
-      # checkout that configuring fetches (cmake/Stx.cmake, stx.lock).
+      # The CPU renderer (stx_skia) and the text stack come from the stx package
+      # (cmake/Stx.cmake), restored from the cache the platform's native job
+      # keeps under the same key, and built while configuring only when no
+      # entry matches.
+      - uses: actions/cache/restore@v4
+        id: stx-package
+        with:
+          path: .ci/stx-package
+          key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       - name: Configure the programs
         run: |
           renderer="-DGUI_FORMS_ENABLE_SKIA=ON"
@@ -335,27 +348,59 @@ jobs:
             -DGUI_FORMS_ENABLE_LINUX_HOST=$([ "${{ matrix.host }}" = LINUX ] && echo ON || echo OFF) \
             -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON $renderer \
             -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_BUILD_AUDIO=ON -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
-            -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD=ON
+            -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD=ON \
+            -DGUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package"
+      # A pull request builds only what the tests it runs need: the tests its
+      # native job did not pass (tools/native_tests.py select), through
+      # tools/pr_build_targets.py, and no program, bundle or package no test
+      # runs. It packages and launches nothing (below); the merge group and
+      # main build, package and launch everything.
       - name: Build the programs and tests
         id: compile
+        env:
+          PULL_REQUEST: ${{ inputs.from_native && github.event_name == 'pull_request' }}
         run: |
           ccache --zero-stats
           # The entries present before compiling; the archive step below keeps the rest.
           mkdir -p .ccache
           find .ccache -type f | LC_ALL=C sort > "$RUNNER_TEMP/ccache-before.txt"
-          cmake --build "$BUILD_DIR" --parallel 4
+          if [ "$PULL_REQUEST" != true ]; then
+            cmake --build "$BUILD_DIR" --parallel 4
+            exit 0
+          fi
+          selection=$(python gui_forms/tools/native_tests.py select --manifest .ci/native-manifest.json --build-dir "$BUILD_DIR")
+          case "$selection" in
+            NONE) echo "The native job passed every test of this build; nothing to build"; echo NONE > "$RUNNER_TEMP/pattern.txt"; exit 0 ;;
+            ALL) pattern="" ;;
+            *) pattern="$selection" ;;
+          esac
+          # The pull request's merge commit: its first parent is the base.
+          python gui_forms/tools/pr_build_targets.py --build-dir "$BUILD_DIR" --tests "$pattern" \
+            --changed-from HEAD^1 --pattern-out "$RUNNER_TEMP/pattern.txt" > "$RUNNER_TEMP/targets.txt"
+          echo "A pull request: building $(wc -l < "$RUNNER_TEMP/targets.txt") outputs the tests run, not every program"
+          if [ -s "$RUNNER_TEMP/targets.txt" ]; then
+            xargs cmake --build "$BUILD_DIR" --parallel 4 --target < "$RUNNER_TEMP/targets.txt"
+          fi
       - name: Report cache statistics
         if: always()
         run: ccache --show-stats --verbose
+      # Where the build's time went (tools/ninja_phases.py): evidence, never a gate.
+      - name: Report the build's phases
+        if: always()
+        run: python gui_forms/tools/ninja_phases.py "$BUILD_DIR" --title "programs-${{ matrix.platform }} build" --out "$GITHUB_STEP_SUMMARY"
       - name: Test
         if: steps.tested.outputs.reused != 'true'
         env:
           GUI_FORMS_FONT_DIR: ${{ github.workspace }}/gui_forms/assets/fonts
           NARROW: ${{ inputs.from_native && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
+          PULL_REQUEST: ${{ inputs.from_native && github.event_name == 'pull_request' }}
         run: |
           mkdir -p dist
           selection=ALL
-          if [ "$NARROW" = true ]; then
+          if [ "$PULL_REQUEST" = true ]; then
+            # The tests the build step chose: not passed by the native job, and affected by the change.
+            selection=$(cat "$RUNNER_TEMP/pattern.txt")
+          elif [ "$NARROW" = true ]; then
             selection=$(python gui_forms/tools/native_tests.py select --manifest .ci/native-manifest.json --build-dir "$BUILD_DIR")
           fi
           set -- --test-dir "$BUILD_DIR" --output-on-failure --timeout 120 --output-junit "$PWD/dist/ctest-${{ matrix.platform }}.xml"
@@ -424,8 +469,16 @@ jobs:
         with:
           path: .ccache
           key: ${{ steps.objects.outputs.cache-primary-key }}
+      # A package this job built (no native job's entry matched), after the
+      # tests passed; merge groups save nothing.
+      - uses: actions/cache/save@v4
+        if: success() && github.event_name != 'merge_group' && steps.stx-package.outputs.cache-hit != 'true' && hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''
+        with:
+          path: .ci/stx-package
+          key: ${{ steps.stx-package.outputs.cache-primary-key }}
       # --- package, then install and launch what was packaged -----------------------
       - name: Package the programs
+        if: ${{ !(inputs.from_native && github.event_name == 'pull_request') }}
         run: |
           extra=""
           if [ "$RUNNER_OS" = macOS ]; then extra="--runtime $GUI_FORMS_LLVM_RUNTIME"; fi
@@ -433,6 +486,7 @@ jobs:
           python gui_forms/tools/package_programs.py --platform "${{ matrix.platform }}" --build-dir "$BUILD_DIR" \
             --version "$RELEASE_VERSION" --out dist --revision "${{ github.sha }}" $extra
       - name: Install and launch the packaged programs
+        if: ${{ !(inputs.from_native && github.event_name == 'pull_request') }}
         run: |
           if [ "$RUNNER_OS" = Linux ]; then
             xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" python gui_forms/tools/smoke_package.py --platform "${{ matrix.platform }}" --dist dist --build-dir "$BUILD_DIR" --install
@@ -445,7 +499,7 @@ jobs:
       # published its platform's build-<sha> compiler cache before the release
       # this SDK joins, so the manifest names that release (--compiler-cache).
       - name: Package the source SDK
-        if: matrix.platform == 'linux-x64'
+        if: matrix.platform == 'linux-x64' && !(inputs.from_native && github.event_name == 'pull_request')
         env:
           COMPILER_CACHE: ${{ inputs.from_native && github.event_name == 'push' && github.ref == 'refs/heads/main' && '--compiler-cache' || '' }}
         run: |
@@ -454,6 +508,7 @@ jobs:
           python gui_forms/tools/package_sdk.py --version "$RELEASE_VERSION" --revision "${{ github.sha }}" --out dist \
             --checkout "stx=$BUILD_DIR/_deps/gui_forms_stx-src" --checkout "miniaudio=$miniaudio" --fetch-missing $COMPILER_CACHE
       - uses: actions/upload-artifact@v4
+        if: ${{ !(inputs.from_native && github.event_name == 'pull_request') }}
         with:
           name: gui-forms-programs-${{ matrix.platform }}
           path: |

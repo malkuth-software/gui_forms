@@ -5,6 +5,7 @@
 
 #include "../failure/abi_failure.hpp"
 
+#include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <array>
@@ -17,6 +18,8 @@ namespace gui_forms::abi1 {
 namespace {
 
 constexpr SlotIdentity shadow_frames_slot{GF_TABLE_DIAGNOSTICS, 0U};
+constexpr SlotIdentity set_invalidation_overlay_slot{GF_TABLE_DIAGNOSTICS, 1U};
+constexpr SlotIdentity invalidation_overlay_slot{GF_TABLE_DIAGNOSTICS, 2U};
 
 // The 1.0 sizes: the fixed frame stride and the state record.
 constexpr std::size_t shadow_frame_size_1_0 = 112U;
@@ -87,10 +90,30 @@ gf_status GF_CALL diagnostics_shadow_frames(gf_shadow_frame* frames, std::uint64
     return GF_STATUS_OK;
 }
 
+// The process switch (set_invalidation_overlay_default): any thread, no
+// frame of its own.
+gf_status GF_CALL diagnostics_set_invalidation_overlay(std::uint32_t enabled) noexcept {
+    if (enabled > 1U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_invalidation_overlay_slot, "enabled must be 0 or 1");
+    }
+    set_invalidation_overlay_default(enabled == 1U);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL diagnostics_invalidation_overlay(std::uint32_t* enabled) noexcept {
+    if (enabled == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, invalidation_overlay_slot, "invalidation_overlay needs an output");
+    }
+    *enabled = invalidation_overlay_default() ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
 constexpr gf_diagnostics_table table{
     .struct_size = sizeof(gf_diagnostics_table),
     .abi_minor = GF_ABI_MINOR,
     .shadow_frames = &diagnostics_shadow_frames,
+    .set_invalidation_overlay = &diagnostics_set_invalidation_overlay,
+    .invalidation_overlay = &diagnostics_invalidation_overlay,
 };
 
 } // namespace

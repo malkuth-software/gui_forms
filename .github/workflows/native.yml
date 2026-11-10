@@ -44,11 +44,13 @@ permissions:
   actions: read
 concurrency:
   # The daily schedule has its own group, so it and a push to main never
-  # cancel each other. A newer push to a branch cancels the branch's older
-  # run, but a push to main waits for the previous main run: that run
-  # publishes its release and leaves the receipts a tag carries.
+  # cancel each other. A newer push to a pull request cancels its older run,
+  # and a newer push to main cancels the older main run: the newer run
+  # validates, publishes and leaves the receipts for the newer tree, so the
+  # older one would only hold runners. A closed pull request's run is
+  # cancelled by cancel-closed-pull-requests.yml, which joins this group.
   group: gui-forms-${{ github.event_name == 'schedule' && 'daily' || github.head_ref || github.ref_name }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: true
 jobs:
   house-style:
     runs-on: ubuntu-24.04
@@ -125,6 +127,7 @@ jobs:
           python3 -B ../template_harness/harness/check_house_style.py include src demo tests examples tools file_manager_demoboard fuzz
           python3 -B -m unittest discover -s tools -p test_ci_build.py
           python3 -B -m unittest discover -s tools -p test_ci_docs_only.py
+          python3 -B -m unittest discover -s tools -p test_ninja_phases.py
           python3 -B -m unittest discover -s tools -p test_engine_gate.py
           python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
           python3 -B -m unittest discover -s tools/layout_oracle -p test_layout_oracle.py
@@ -273,6 +276,10 @@ jobs:
           echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$PWD" >> "$GITHUB_ENV"
           echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
+          # The test programs share precompiled headers
+          # (cmake/TestPrecompiledHeader.cmake): ccache caches a compile that
+          # reads one only with these two relaxations.
+          echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
           echo "CCACHE_MAXSIZE=1G" >> "$GITHUB_ENV"
           # Before the cache is restored: tools/ci_cache.py evict keeps the
           # entries used after this moment.
@@ -478,14 +485,17 @@ jobs:
   # T2's gate evidence (E11): every native job's engine gate manifest, compared
   # across hosts. Fails on any reference-image hash that differs between hosts,
   # any idle counter above zero, or any host without a manifest (a job that
-  # reused a validation carries that run's manifest). The filled record is the
+  # reused a validation carries that run's manifest). A host without evidence
+  # (its job cancelled, failed or never given a runner) is reported apart from
+  # a cross-host difference, and still fails: the gate runs whatever the
+  # native jobs' results, so it never reads as skipped. The filled record is the
   # t2-engine-gate-record artifact (notes:results/2026-10-22-t2-engine-gate/).
   # A documentation-only pull request built nothing to compare, so the gate
   # passes without comparing.
   engine-gate:
     needs: [changes, native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64]
     if: >-
-      always() && !contains(needs.*.result, 'cancelled')
+      !cancelled()
       && (needs.changes.outputs.docs_only == 'true' || !contains(needs.*.result, 'skipped'))
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -506,6 +516,9 @@ jobs:
           python3 -B tools/engine_gate.py compare --evidence .ci/evidence --out .ci/engine-gate
           --commit "${{ github.sha }}"
           --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          --job-results "$NEEDS"
+        env:
+          NEEDS: ${{ toJSON(needs) }}
       - name: Show the record
         if: always() && needs.changes.outputs.docs_only != 'true'
         run: |

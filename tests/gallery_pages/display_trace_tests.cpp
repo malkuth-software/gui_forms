@@ -548,6 +548,9 @@ struct PageDigest final {
 // The dialogs page's native-popup toggle (gallery.host.task-dialog.native)
 // is one control more in the window, which states-and-diagnostics' live
 // control count follows. Recorded again: states-and-diagnostics.
+// The diagnostics panel's invalidation overlay check box
+// (gallery.diagnostics.invalidation) is one control more in the window:
+// states-and-diagnostics' live control count follows, recorded again.
 //
 // responsive-layouts became a form document (FD6.3): its four track tiles
 // name their faces by class, so the Gallery theme paints them as parts
@@ -571,7 +574,7 @@ constexpr std::array<PageDigest, 36> expected_digests{{
     {"ranges-and-progress", 0x1d52b34dce2b5b52ULL},
     {"containers-and-focus", 0x9534f6ff910b45adULL},
     {"animation-laboratory", 0x85a58efad63d2d1eULL},
-    {"states-and-diagnostics", 0x53c0508337f05c6aULL},
+    {"states-and-diagnostics", 0xe18d8e9827f81261ULL},
     {"text-and-input", 0xf1508da0c4b20d7cULL},
     {"collections-and-overlays", 0x773acf08b1bac3b5ULL},
     {"values-and-spinners", 0xf53e1d2d519990dbULL},

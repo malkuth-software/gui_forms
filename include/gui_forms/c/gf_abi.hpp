@@ -1038,6 +1038,22 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status set_invalidation_overlay(uint32_t enabled) const noexcept {
+        if (table_.struct_size < 24u || table_.set_invalidation_overlay == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_invalidation_overlay(enabled);
+        return called;
+    }
+
+    [[nodiscard]] gf_status invalidation_overlay(uint32_t* enabled) const noexcept {
+        if (table_.struct_size < 32u || table_.invalidation_overlay == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.invalidation_overlay(enabled);
+        return called;
+    }
+
 private:
     gf_diagnostics_table table_;
 };

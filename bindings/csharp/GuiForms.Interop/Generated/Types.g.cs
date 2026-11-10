@@ -632,13 +632,15 @@ public unsafe struct gf_shadow_stack_info
     public ulong dropped;
 }
 
-/// <summary>gf_diagnostics_table (table, 16 bytes).</summary>
+/// <summary>gf_diagnostics_table (table, 32 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_diagnostics_table
 {
     public uint struct_size;
     public uint abi_minor;
     public delegate* unmanaged[Cdecl]<gf_shadow_frame*, ulong, ulong*, gf_shadow_stack_info*, gf_status> shadow_frames;
+    public delegate* unmanaged[Cdecl]<uint, gf_status> set_invalidation_overlay;
+    public delegate* unmanaged[Cdecl]<uint*, gf_status> invalidation_overlay;
 }
 
 /// <summary>gf_layout_transaction (extensible, 32 bytes).</summary>

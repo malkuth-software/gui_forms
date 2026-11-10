@@ -113,6 +113,12 @@ public:
 
     [[nodiscard]] bool queue_live_surface_presentation(
         const Control::Ptr& control, std::shared_ptr<LiveSurface> surface);
+    // A host presented `presented` (window logical units) of `presentation`'s
+    // frame: recorded for the invalidation overlay while it is on, as a live
+    // surface's presentation, or external content's for a compatibility
+    // paint endpoint's surface, named for the surface's control. Nothing
+    // while the overlay is off. UI thread.
+    void note_live_surface_presented(const LiveSurfacePresentation& presentation, Rect presented);
     // Content pairing (stage S2, design note section 6): the surface
     // registered for `control` must next show a frame published with a
     // content tag of at least `content_tag`. Until one is published, the next

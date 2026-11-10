@@ -349,6 +349,8 @@ def git_revision(explicit: str | None) -> str:
 # The stx libraries' notices ($STX/<package>/...) come from the stx checkout the build
 # consumed (stx.lock; cmake/Stx.cmake), never from this tree, which holds no stx sources.
 STX_PREFIX: str = "$STX"
+# The cache variables naming the stx package a build linked (cmake/Stx.cmake).
+STX_PACKAGE_VARIABLES: tuple[str, ...] = ("GUI_FORMS_STX_PREFIX", "GUI_FORMS_STX_PACKAGE_DIR")
 STX_LOCK_PATH: Path = ROOT / "stx.lock"
 STX_OVERRIDE_VARIABLE: str = "FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX"
 
@@ -358,17 +360,42 @@ def _is_stx_checkout(directory: Path) -> bool:
     return marker.is_file()
 
 
-def _cached_stx_override(build_dir: Path) -> Path | None:
-    """The local stx checkout a build was configured with (CMakeCache.txt), or None."""
+def _cached_value(build_dir: Path, variable: str) -> str:
+    """A cache variable's value in a build's CMakeCache.txt, or "" when it is absent or empty."""
     cache: Path = build_dir / "CMakeCache.txt"
     if not cache.is_file():
-        return None
+        return ""
     line: str
     for line in cache.read_text(encoding="utf-8", errors="replace").splitlines():
-        if line.startswith(STX_OVERRIDE_VARIABLE + ":"):
+        if line.startswith(variable + ":"):
             value: str = line.split("=", 1)[1].strip()
-            if value:
-                return Path(value)
+            return value
+    return ""
+
+
+def _cached_stx_override(build_dir: Path) -> Path | None:
+    """The local stx checkout a build was configured with (CMakeCache.txt), or None."""
+    value: str = _cached_value(build_dir, STX_OVERRIDE_VARIABLE)
+    if value:
+        return Path(value)
+    return None
+
+
+def _cached_stx_package_notices(build_dir: Path) -> Path | None:
+    """The licence files of the stx package a build linked, at their stx source paths, or None.
+
+    The package (cmake/stx_package/) installs them at build/share/stx_text/notices
+    of the directory GUI_FORMS_STX_PREFIX or GUI_FORMS_STX_PACKAGE_DIR names; a
+    build that reused its package fetched no stx checkout to read them from.
+    """
+    variable: str
+    for variable in STX_PACKAGE_VARIABLES:
+        value: str = _cached_value(build_dir, variable)
+        if not value:
+            continue
+        notices: Path = Path(value) / "build" / "share" / "stx_text" / "notices"
+        if notices.is_dir():
+            return notices
     return None
 
 
@@ -387,11 +414,13 @@ def stx_source_directory(build_dir: Path | None, explicit: Path | None) -> Path 
 
     In order: `explicit` (--stx-source), the GUI_FORMS_STX_SOURCE_DIR variable,
     then for the build directory and its toolkit/ subdirectory the local
-    checkout the build was configured with (FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX)
-    and the checkout cmake/Stx.cmake fetched (_deps/gui_forms_stx-src). The
-    fetched checkout must be at stx.lock's commit; a named checkout is the
-    caller's choice and is not compared. A named directory that is not an stx
-    checkout raises.
+    checkout the build was configured with (FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX),
+    the checkout cmake/Stx.cmake fetched (_deps/gui_forms_stx-src) and, when
+    the build reused its stx package and fetched nothing, the package's copy of
+    the licence files at their stx paths (not a checkout, but every $STX notice
+    resolves in it). The fetched checkout must be at stx.lock's commit; a named
+    checkout is the caller's choice and is not compared. A named directory
+    that is not an stx checkout raises.
     """
     named: list[Path] = []
     if explicit is not None:
@@ -420,6 +449,10 @@ def stx_source_directory(build_dir: Path | None, explicit: Path | None) -> Path 
         if head != pinned:
             raise RuntimeError(f"the stx checkout {candidate} is at {head}, not stx.lock's {pinned}")
         return candidate
+    for build in builds:
+        notices: Path | None = _cached_stx_package_notices(build)
+        if notices is not None:
+            return notices
     return None
 
 

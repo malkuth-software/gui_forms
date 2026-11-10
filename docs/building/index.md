@@ -9,7 +9,7 @@ All commands run from the repository root.
 
 First follow [Installation](../user/install.md#configure-build-install) to configure for
 your platform. Linux requires an enabled X11 host; the CPU renderer,
-`stx_skia/` from the pinned stx checkout, builds with the tree on every platform.
+`stx_skia` from the stx package (below), is linked on every platform.
 Then:
 
 ```sh
@@ -45,14 +45,19 @@ probes. They are not installed.
 
 ## Third-party dependencies
 
-Dependencies are pinned. This repository carries no third-party sources:
-configuring fetches the stx repository at the commit `stx.lock` names
-(`cmake/Stx.cmake`; `FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX` names a local
-checkout instead). It holds:
+Dependencies are pinned. This repository carries no third-party sources: they
+come from the stx repository at the commit `stx.lock` names, built once into
+the stx package (`cmake/Stx.cmake`, `cmake/stx_package/`), which the build
+links and never compiles. Configuring builds the package into
+`<build>/stx-package` (or `GUI_FORMS_STX_PACKAGE_DIR`) when none is there or
+its stamp (the stx commit, the recipe, the compilers, flags and choices)
+differs, and reuses it otherwise; `GUI_FORMS_STX_PREFIX` links a package built
+elsewhere as is, and `FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX` names a local stx
+checkout, whose edits each build brings into the package. The package holds:
 
 | stx path | Contents |
 |---|---|
-| `stx_skia/` | the CPU renderer, a pruned CPU Skia derivative, built with the tree |
+| `stx_skia/` | the CPU renderer, a pruned CPU Skia derivative, with its contract tests in stx's own CI |
 | `third_party/harfbuzz/`, `third_party/freetype/` | HarfBuzz (without `test/` and `perf/`) and FreeType |
 | `third_party/libunibreak/` | libunibreak (UAX #14 line breaking) |
 | `third_party/md4c/`, `third_party/sheenbidi/`, `third_party/unicode/` | MD4C, SheenBidi and the Unicode data |

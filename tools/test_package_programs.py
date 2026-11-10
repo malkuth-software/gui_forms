@@ -88,6 +88,20 @@ class ManifestTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "not an stx checkout"):
                 pp.stx_source_directory(None, build)
 
+    def test_stx_notices_resolve_from_a_reused_package(self) -> None:
+        with mock.patch.dict(pp.os.environ), tempfile.TemporaryDirectory() as temporary:
+            pp.os.environ.pop("GUI_FORMS_STX_SOURCE_DIR", None)
+            build = Path(temporary) / "build"
+            build.mkdir()
+            package = Path(temporary) / "stx-package"
+            (build / "CMakeCache.txt").write_text(
+                "GUI_FORMS_STX_PREFIX:PATH=\nGUI_FORMS_STX_PACKAGE_DIR:PATH=" + str(package) + "\n",
+                encoding="utf-8")
+            self.assertIsNone(pp.stx_source_directory(build, None))
+            notices = package / "build" / "share" / "stx_text" / "notices"
+            notices.mkdir(parents=True)
+            self.assertEqual(pp.stx_source_directory(build, None), notices)
+
     def test_windows_runtime_imports_are_recognised(self) -> None:
         for name in ("libgcc_s_seh-1.dll", "libstdc++-6.dll", "LIBSTDC++-6.DLL", "libc++.dll", "libunwind.dll",
                      "libwinpthread-1.dll", "libgomp-1.dll"):

@@ -213,6 +213,70 @@ class InstallOnlyTests(unittest.TestCase):
         self.assertEqual(self.toolkit_tests(self.commands_of(True)), [])
         self.assertEqual(len(self.toolkit_tests(self.commands_of(False))), 1)
 
+    def test_a_pull_request_runs_the_affected_tests_and_the_smoke_set(self) -> None:
+        listing: dict = {'tests': [{'name': 'gui_forms_engine_gate_tests'}, {'name': 'gui_forms_threading_tests'},
+                                   {'name': 'gui_forms_text_tests'}, {'name': 'gui_forms_tab_tests'}]}
+        affected: dict = {'tests': [{'name': 'gui_forms_text_tests'}]}
+        chosen: dict
+        with mock.patch.object(ci_build, 'changed_tests_listing', return_value=affected):
+            chosen = ci_build.pull_request_listing(listing, ['src/core/text/x.cpp'])
+        names: list[str] = []
+        test: dict
+        for test in chosen['tests']:
+            names.append(test['name'])
+        self.assertEqual(names, ['gui_forms_engine_gate_tests', 'gui_forms_threading_tests', 'gui_forms_text_tests'])
+        # A path every test reads, and no change selection at all, keep the whole suite.
+        with mock.patch.object(ci_build, 'changed_tests_listing', return_value=None):
+            self.assertEqual(ci_build.pull_request_listing(listing, ['CMakeLists.txt']), listing)
+        self.assertEqual(ci_build.pull_request_listing(listing, None), listing)
+
+    def test_a_pull_request_may_narrow_by_change_but_not_by_pattern(self) -> None:
+        with mock.patch.object(sys, 'argv', ['ci_build.py', '--test-targets-only', '--tests', 'x']), \
+                mock.patch('sys.stderr'):
+            with self.assertRaises(SystemExit):
+                ci_build.main()
+        with mock.patch.object(sys, 'argv', ['ci_build.py', '--test-targets-only', '--changed-from', 'HEAD^1']), \
+                mock.patch.object(ci_build, 'build_toolkit') as build:
+            ci_build.main()
+        self.assertEqual(build.call_args.args[10], 'HEAD^1')
+        self.assertTrue(build.call_args.args[12])
+
+    def test_a_pull_request_builds_the_tests_targets_and_installs_nothing(self) -> None:
+        commands: list[list[str]] = []
+
+        def record(*arguments: object, **keywords: object) -> None:
+            commands.append([str(argument) for argument in arguments])
+
+        with tempfile.TemporaryDirectory() as scratch:
+            build: Path = Path(scratch)
+            toolkit: Path = build / 'gui-forms'
+            listing: dict = {'tests': [
+                {'name': 'a', 'command': [str(toolkit / 'a_tests'), str(toolkit / '_deps/x-src/corpus')]},
+                {'name': 'b', 'command': ['cmake', '-DLIBRARY=' + str(toolkit / 'libabi.so'), '-P', 'x.cmake']},
+                {'name': 'c', 'command': [str(toolkit / 'probe_runner'), str(toolkit / 'probe.app')]}]}
+            outputs: dict[str, str] = {'a_tests': 'CXX_EXECUTABLE_LINKER__a_tests_',
+                                       'gallery': 'CXX_EXECUTABLE_LINKER__gallery_',
+                                       'libabi.so': 'CXX_SHARED_LIBRARY_LINKER__abi_',
+                                       'libplugin.so': 'CXX_MODULE_LIBRARY_LINKER__plugin_',
+                                       'probe_runner': 'CXX_EXECUTABLE_LINKER__probe_runner_',
+                                       'probe.app/Contents/MacOS/probe': 'CXX_EXECUTABLE_LINKER__probe_',
+                                       'package': 'phony'}
+            with mock.patch.object(ci_build, 'run', side_effect=record), \
+                    mock.patch.object(ci_build, 'configure_tree'), \
+                    mock.patch.object(ci_build, 'prepare_host'), \
+                    mock.patch.object(ci_build, 'test_listing', return_value=listing), \
+                    mock.patch.object(ci_build, 'ninja_outputs', return_value=outputs):
+                ci_build.build_toolkit('linux', build, build / 'sdk', 1, test_targets_only=True)
+        self.assertIn(['cmake', '--build', str(toolkit), '--parallel', '1', '--target',
+                       'a_tests', 'libabi.so', 'libplugin.so', 'probe.app/Contents/MacOS/probe', 'probe_runner'],
+                      commands)
+        self.assertEqual(len(self.toolkit_tests(commands)), 1)
+        self.assertIn('--output-junit', self.toolkit_tests(commands)[0])
+        command: list[str]
+        for command in commands:
+            self.assertNotIn('--install', command)
+            self.assertNotIn('gallery', command)
+
     def test_install_only_takes_no_narrowing(self) -> None:
         option: list[str]
         for option in (['--sanitize'], ['--tests', 'x'], ['--skip-labels', 'y']):

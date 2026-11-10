@@ -24,6 +24,7 @@ retained-tree
 update-scopes-and-dirtiness
 layout
 painting-and-damage
+debugging
 text-engine
 properties
 forms

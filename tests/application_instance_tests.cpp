@@ -47,6 +47,20 @@ void test_create_and_refusals() {
     require(!second && second.error == ApplicationCreateError::already_exists &&
                 Application::current() == created.application.get(),
             "a second application is refused, changing nothing");
+    // The invalidation overlay switch: the process switch every window
+    // without its own setting follows, until it changes or the program ends.
+    Application& application = *created.application;
+    const bool overlay_before = application.invalidation_overlay();
+    application.set_invalidation_overlay(true);
+    std::shared_ptr<Panel> overlay_root = make_control<Panel>(StableId("instance.overlay"));
+    Window overlay_window(overlay_root, {80.0, 60.0});
+    require(application.invalidation_overlay() && invalidation_overlay_default() &&
+                overlay_window.invalidation_overlay_enabled(),
+            "the application's overlay switch reaches its windows");
+    application.set_invalidation_overlay(false);
+    require(!application.invalidation_overlay() && !overlay_window.invalidation_overlay_enabled(),
+            "the application's overlay switch turns off");
+    application.set_invalidation_overlay(overlay_before);
     created.application.reset();
     require(Application::current() == nullptr, "destroying the application ends its time as current");
 

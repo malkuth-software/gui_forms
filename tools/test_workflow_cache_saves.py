@@ -14,7 +14,8 @@ does):
 - a cache save step has no status function other than success(): no
   always(), !cancelled(), cancelled() or failure() (a condition without a
   status function means success());
-- an object (.ccache) or dependency (third_party) save comes after every
+- an object (.ccache), dependency (third_party) or stx package
+  (.ci/stx-package) save comes after every
   test step of its job (a step named "Test..." or "Build and test...");
 - the cache-prune job runs only when none of the jobs it follows failed.
 """
@@ -30,7 +31,7 @@ CACHE_SAVE: re.Pattern[str] = re.compile(r"uses:\s*actions/cache/save@")
 STEP_IF: re.Pattern[str] = re.compile(r"^\s{8}if:\s*(.*)$", re.MULTILINE)
 STATUS_FUNCTIONS: re.Pattern[str] = re.compile(r"\b(always|cancelled|failure)\(\)")
 TEST_STEP: re.Pattern[str] = re.compile(r"^\s*- name:\s*(Test\b|Build and test\b)")
-GUARDED_PATHS: tuple[str, ...] = (".ccache", "third_party/")
+GUARDED_PATHS: tuple[str, ...] = (".ccache", "third_party/", ".ci/stx-package")
 
 
 def jobs(workflow: str) -> list[str]:

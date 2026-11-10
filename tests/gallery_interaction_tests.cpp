@@ -14,7 +14,7 @@
 namespace {
 
 // The stable IDs of demo/gallery.form's command strip, own pages and diagnostics.
-constexpr std::array<std::string_view, 37> gallery_form_ids{
+constexpr std::array<std::string_view, 38> gallery_form_ids{
     "gallery.command-strip", "gallery.command.reset", "gallery.command.diagnostics",
     "gallery.command.status-badge", "gallery.command.status", "gallery.backplane",
     "gallery.basics-group", "gallery.intro", "gallery.text-input", "gallery.default-button",
@@ -25,7 +25,8 @@ constexpr std::array<std::string_view, 37> gallery_form_ids{
     "gallery.collection", "gallery.instrument-group", "gallery.instrument", "gallery.diagnostics",
     "gallery.diagnostics.about", "gallery.diagnostics.renderer", "gallery.diagnostics.controls",
     "gallery.diagnostics.layout", "gallery.diagnostics.paint", "gallery.diagnostics.input",
-    "gallery.diagnostics.flush", "gallery.diagnostics.present", "gallery.diagnostics.font"};
+    "gallery.diagnostics.flush", "gallery.diagnostics.present", "gallery.diagnostics.font",
+    "gallery.diagnostics.invalidation"};
 
 void expect(bool condition, std::string_view message)
 {
