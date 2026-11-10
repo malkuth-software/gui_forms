@@ -24,8 +24,8 @@ struct BackgroundWorkerTarget final {
 // starts and never changes them. The work writes `result`, `error` and
 // `cancelled` on the worker thread before it posts the completion; the UI
 // thread reads them only in that completion, after the dispatcher's mutex has
-// ordered the two. `abandoned` is the one field both threads touch while the
-// run is live.
+// ordered the two. `abandoned` and `stopping` are the fields both threads
+// touch while the run is live.
 struct BackgroundWorkerRun final {
     std::weak_ptr<BackgroundWorkerRun> self{};
     std::weak_ptr<BackgroundWorkerTarget> target{};
@@ -39,6 +39,12 @@ struct BackgroundWorkerRun final {
     // Set by the worker thread when the dispatcher refused the completion
     // (its window shut down): the run then ends without an event.
     std::atomic<bool> abandoned{false};
+    // Set by the UI thread before it joins the worker thread (disposal, the
+    // destructor, the next run). The worker then posts nothing more: a
+    // completion waiting for room in a full queue would otherwise wait for
+    // ever on a UI thread that is blocked in the join and cannot drain it,
+    // and anything posted would be dropped, its owner gone.
+    std::atomic<bool> stopping{false};
 };
 
 // A posted callback: a progress report, or the completion when `progress`
@@ -62,11 +68,13 @@ struct BackgroundWorkerDelivery final {
 namespace {
 
 // Posts a callback from the worker thread. Returns false when the
-// dispatcher no longer accepts work. A full queue is waited out, one
-// millisecond at a time, only when `wait_for_room` is set: a completion must
-// arrive, a progress report may be dropped.
+// dispatcher no longer accepts work or the UI thread is stopping the run. A
+// full queue is waited out, one millisecond at a time, only when
+// `wait_for_room` is set: a completion must arrive, a progress report may be
+// dropped. The wait ends when the UI thread starts stopping the run.
 bool post_from_worker(const BackgroundWorkerRun& run, BackgroundWorkerDelivery delivery, bool wait_for_room) {
     for (;;) {
+        if (run.stopping.load(std::memory_order_acquire)) return false;
         try {
             DispatchOperation operation = post_dispatch(run.dispatcher, {}, false,
                                                         std::function<void()>(delivery));
@@ -254,6 +262,9 @@ void BackgroundWorker::deliver_completion(const std::shared_ptr<Run>& run) {
 }
 
 void BackgroundWorker::stop_run() noexcept {
+    // Mark the run before the join, so a worker waiting for room to post its
+    // completion gives up instead of waiting on this blocked thread.
+    if (run_) (*run_).stopping.store(true, std::memory_order_release);
     if (worker_) {
         (*worker_).request_cancel();
         try {
