@@ -76,6 +76,7 @@ public:
     // Raised once per closing, after the callout has left the overlay. The
     // callout may be shown again from the handler.
     [[nodiscard]] Event<CalloutCloseReason>& closed() noexcept { return closed_; }
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     // Raised when the action button is clicked, before the callout closes.
     [[nodiscard]] Event<>& action_clicked() noexcept { return action_clicked_; }
 

@@ -737,4 +737,19 @@ void LookupComboBox::written(const decltype(max_drop_down_rows)&) {
 
 // property_codemod end LookupComboBox
 
+namespace {
+
+// The events LookupComboBox adds to those of Control, in declaration order.
+constexpr std::array<InteractionDeclaration, 2> lookup_combo_box_interactions{{
+    {.name = "selected_key_changed", .payload = "std::string", .mutable_payload = false},
+    {.name = "drop_down_changed", .payload = "bool", .mutable_payload = false},
+}};
+
+} // namespace
+
+void LookupComboBox::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Control::append_interactions(interactions);
+    interactions.insert(interactions.end(), lookup_combo_box_interactions.begin(), lookup_combo_box_interactions.end());
+}
+
 } // namespace gui_forms

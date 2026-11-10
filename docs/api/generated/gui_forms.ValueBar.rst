@@ -279,6 +279,8 @@ gui_forms::ValueBar
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
+   .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
+
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
 
    .. cpp:function:: Size measure(Size available) override

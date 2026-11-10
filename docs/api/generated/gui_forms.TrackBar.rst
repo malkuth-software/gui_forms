@@ -48,6 +48,9 @@ gui_forms::TrackBar
          colour up to the thumb. :cpp:enumerator:`TrackBarVisualStyle::compact <gui_forms::TrackBarVisualStyle::compact>` draws the filled
          track with a smaller thumb and no tick marks.
 
+      **thumb_extent** : ``double``
+         The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact). Finite and between 0 and 64, else std::invalid_argument.
+
       **value_span_bounds** : ``Rect``, read-only
          Public part geometry in local coordinates (stage T1). The value maps linearly across value_span_bounds(): minimum at its left (horizontal) or bottom (vertical) edge. track_bounds() is the painted groove, which shares the value span's extent along the axis.
 
@@ -205,6 +208,10 @@ gui_forms::TrackBar
       colour up to the thumb. :cpp:enumerator:`TrackBarVisualStyle::compact <gui_forms::TrackBarVisualStyle::compact>` draws the filled
       track with a smaller thumb and no tick marks.
 
+   .. cpp:member:: double thumb_extent
+
+      The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact). Finite and between 0 and 64, else std::invalid_argument.
+
    .. cpp:function:: Rect value_span_bounds() const noexcept
 
       Public part geometry in local coordinates (stage T1). The value maps linearly across value_span_bounds(): minimum at its left (horizontal) or bottom (vertical) edge. track_bounds() is the painted groove, which shares the value span's extent along the axis.
@@ -259,4 +266,4 @@ gui_forms::TrackBar
 
    .. cpp:member:: constexpr std::size_t track_bar_property_count
 
-      TrackBar's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 2U``.
+      TrackBar's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 3U``.

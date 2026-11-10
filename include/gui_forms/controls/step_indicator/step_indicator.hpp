@@ -42,6 +42,7 @@ public:
 
     // Raised with a completed step's index when it is pressed.
     [[nodiscard]] Event<std::size_t>& step_clicked() noexcept { return step_clicked_; }
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] Event<std::uint32_t>& current_step_changed() noexcept { return current_step_changed_; }
 
     [[nodiscard]] Size measure(Size available) override;

@@ -164,6 +164,7 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
 # with the dialogs.
 AREA_TO_CATEGORY: dict[str, str] = {
     "components": "Dialogs and overlays",
+    "help": "Information display",
     "inspection": "Value setting",
     "instrument": "Value setting",
     "metrics": "Diagnostics",
@@ -175,6 +176,8 @@ AREA_TO_CATEGORY: dict[str, str] = {
 # itself); remove an entry once the directory's control is registered.
 DIRECTORY_TO_CATEGORY: dict[str, str] = {
     "include/gui_forms/controls/node_canvas": "Drawing",
+    # The help system's support headers (printing) sit beside its controls.
+    "include/gui_forms/controls/help": "Information display",
 }
 
 CATEGORY_DESCRIPTIONS: dict[str, str] = {

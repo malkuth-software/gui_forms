@@ -270,4 +270,19 @@ void ModalLayer::written(const decltype(close_on_escape)&) {
 
 // property_codemod end ModalLayer
 
+namespace {
+
+// The events ModalLayer adds to those of Control, in declaration order.
+constexpr std::array<InteractionDeclaration, 2> modal_layer_interactions{{
+    {.name = "closing", .payload = "ModalLayerClosingEvent", .mutable_payload = true},
+    {.name = "closed", .payload = "DialogResult", .mutable_payload = false},
+}};
+
+} // namespace
+
+void ModalLayer::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Control::append_interactions(interactions);
+    interactions.insert(interactions.end(), modal_layer_interactions.begin(), modal_layer_interactions.end());
+}
+
 } // namespace gui_forms

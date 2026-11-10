@@ -187,6 +187,7 @@ public:
 
     [[nodiscard]] HelpBookSystemSnapshot snapshot() const noexcept;
     [[nodiscard]] Event<HelpLinkActivation&>& external_link() noexcept { return external_link_; }
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] Event<HelpPrintRequest&>& print_requested() noexcept { return print_requested_; }
     [[nodiscard]] Event<const std::vector<std::string>&>& bookmarks_changed() noexcept { return bookmarks_changed_; }
     void set_bookmarks(std::vector<std::string> stable_ids);

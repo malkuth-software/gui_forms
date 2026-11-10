@@ -61,6 +61,7 @@ public:
     [[nodiscard]] std::optional<DialogResult> result() const noexcept { return result_; }
 
     [[nodiscard]] Event<ModalLayerClosingEvent&>& closing() noexcept { return closing_; }
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] Event<DialogResult>& closed() noexcept { return closed_; }
 
     [[nodiscard]] Size measure(Size available) override;

@@ -55,6 +55,7 @@ public:
 
     // Raised after `text` changes, with the new reading.
     [[nodiscard]] Event<const std::string&>& text_changed() noexcept { return text_changed_; }
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
 
     // The cells shown now, left to right, padded with blank cells on the
     // left to digit_count digits; read from text and digit_count each call.

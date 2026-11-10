@@ -1,8 +1,12 @@
 #include "support.hpp"
 
+#include "gui_forms/controls/callout/callout.hpp"
+#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
 #include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
+#include "gui_forms/controls/modal_layer/modal_layer.hpp"
 #include "gui_forms/controls/plots/plot_view/plot_view.hpp"
 #include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
+#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -18,13 +22,17 @@ namespace {
 // T1). The coverage test fails when this list and the Gallery disagree in
 // either direction, so a control that gains an anatomy must leave the list
 // in the same change. The T1 gate is this list empty.
-constexpr std::array<std::string_view, 0> anatomy_pending{
+constexpr std::array<std::string_view, 2> anatomy_pending{
+    // New in the final controls and the help system without an anatomy of
+    // their own yet (they paint as the panel they derive from).
+    "wizard_page",
+    "help_book_viewer",
 };
 
 // Registry entries that are not controls: nonvisual components and the
 // LiveSurface service type. They have no parts; a component that shows
 // something (a context menu, a tool tip) does so through an internal control.
-constexpr std::array<std::string_view, 27> nonvisual_entries{
+constexpr std::array<std::string_view, 30> nonvisual_entries{
     "command",
     "gallery_command",
     "font_command",
@@ -54,6 +62,13 @@ constexpr std::array<std::string_view, 27> nonvisual_entries{
     "plot_axis_item",
     "plot_series_item",
     "plot_annotation_item",
+    // Components: the About box shows through its TaskDialog, and the help
+    // system through its viewer.
+    "about_dialog",
+    "help_book_system",
+    // The gauges' shared base: LinearGauge and RadialGauge declare the
+    // anatomies of what it draws.
+    "gauge_base",
 };
 
 // True when every state a part publishes is one its declaration lists.
@@ -317,6 +332,19 @@ void test_anatomy_coverage() {
     inspect_control(*plot_view, seen_ids);
     inspect_control(*value_bar, seen_ids);
     inspected += 3U;
+    // Controls that the Gallery shows only inside another or on demand: a
+    // wizard's pages, a callout, an in-window modal layer and the help viewer.
+    const std::shared_ptr<WizardPage> wizard_page =
+        make_control<WizardPage>(StableId("anatomy.coverage.wizard-page"));
+    const std::shared_ptr<Callout> callout = make_control<Callout>(StableId("anatomy.coverage.callout"));
+    const std::shared_ptr<ModalLayer> modal_layer = make_control<ModalLayer>(StableId("anatomy.coverage.modal-layer"));
+    const std::shared_ptr<HelpBookViewer> help_viewer =
+        make_control<HelpBookViewer>(StableId("anatomy.coverage.help-viewer"));
+    inspect_control(*wizard_page, seen_ids);
+    inspect_control(*callout, seen_ids);
+    inspect_control(*modal_layer, seen_ids);
+    inspect_control(*help_viewer, seen_ids);
+    inspected += 4U;
 
     std::string unexpected_gaps;
     std::string stale_pending;

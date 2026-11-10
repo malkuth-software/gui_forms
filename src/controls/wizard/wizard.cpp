@@ -589,4 +589,21 @@ std::span<const PropertyEntry> Wizard::property_table() const noexcept {
 
 // property_codemod end Wizard
 
+namespace {
+
+// The events Wizard adds to those of Control, in declaration order.
+constexpr std::array<InteractionDeclaration, 4> wizard_interactions{{
+    {.name = "page_changing", .payload = "WizardPageChangingEvent", .mutable_payload = true},
+    {.name = "page_changed", .payload = "std::uint32_t", .mutable_payload = false},
+    {.name = "finished", .payload = "", .mutable_payload = false},
+    {.name = "cancelled", .payload = "", .mutable_payload = false},
+}};
+
+} // namespace
+
+void Wizard::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Control::append_interactions(interactions);
+    interactions.insert(interactions.end(), wizard_interactions.begin(), wizard_interactions.end());
+}
+
 } // namespace gui_forms

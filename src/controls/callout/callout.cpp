@@ -679,4 +679,19 @@ void Callout::written(const decltype(prefers_above)&) {
 
 // property_codemod end Callout
 
+namespace {
+
+// The events Callout adds to those of Control, in declaration order.
+constexpr std::array<InteractionDeclaration, 2> callout_interactions{{
+    {.name = "closed", .payload = "CalloutCloseReason", .mutable_payload = false},
+    {.name = "action_clicked", .payload = "", .mutable_payload = false},
+}};
+
+} // namespace
+
+void Callout::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Control::append_interactions(interactions);
+    interactions.insert(interactions.end(), callout_interactions.begin(), callout_interactions.end());
+}
+
 } // namespace gui_forms

@@ -92,6 +92,7 @@ public:
     [[nodiscard]] std::optional<std::size_t> highlighted() const noexcept { return highlighted_; }
 
     [[nodiscard]] Event<const std::string&>& selected_key_changed() noexcept { return selected_key_changed_; }
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] Event<bool>& drop_down_changed() noexcept { return drop_down_changed_; }
 
     [[nodiscard]] Size measure(Size available) override;

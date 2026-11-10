@@ -37,6 +37,8 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
      - A scrolling list of named settings in collapsible groups, each with a value and an optional editor.
    * - :cpp:class:`InstrumentRack <gui_forms::InstrumentRack>`
      - A wrapping row of compact editing modules, each with an enable switch, a few fields and a status line.
+   * - :cpp:class:`Dial <gui_forms::Dial>`
+     - Rotary knob from the instruments package: a RangeControl value set by turning, dragging or the TrackBar keys over a 270-degree scale, a slider to assistive technology.
 
 .. toctree::
    :hidden:
@@ -54,6 +56,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
    generated/gui_forms.PropertyGrid
    generated/gui_forms.PropertyList
    generated/gui_forms.InstrumentRack
+   generated/gui_forms.Dial
 
 Related types
 -------------
@@ -90,6 +93,14 @@ Related types
      - The width of the colour swatch before the text, 12 to 96 (std::invalid_argument otherwise).
    * - :cpp:class:`ColorValueEditorValueCapability <gui_forms::ColorValueEditorValueCapability>`
      - The edited colour; a view, since committing the text moves it and an equal write still restores the text and the normal status.
+   * - :cpp:class:`Dial::Parts <gui_forms::Dial::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`DialCapabilities <gui_forms::DialCapabilities>`
+     - Every Dial capability, in the order the declaring class takes them.
+   * - :cpp:class:`DialShowArcCapability <gui_forms::DialShowArcCapability>`
+     - Whether the scale lights the arc from the minimum to the value.
+   * - :cpp:class:`DialTickFrequencyCapability <gui_forms::DialTickFrequencyCapability>`
+     - Distance in value units between scale marks; zero draws none.
    * - :cpp:class:`DomainUpDown::Parts <gui_forms::DomainUpDown::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`DomainUpDown::States <gui_forms::DomainUpDown::States>`
@@ -164,6 +175,10 @@ Related types
      - The lowest value (Minimum).
    * - :cpp:class:`NumericUpDownScrubCapability <gui_forms::NumericUpDownScrubCapability>`
      - Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected.
+   * - :cpp:class:`NumericUpDownTextAlignmentCapability <gui_forms::NumericUpDownTextAlignmentCapability>`
+     - Where the editor's text sits (TextAlign): near, center or far.
+   * - :cpp:class:`NumericUpDownThousandsSeparatorCapability <gui_forms::NumericUpDownThousandsSeparatorCapability>`
+     - Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way.
    * - :cpp:class:`NumericUpDownValueCapability <gui_forms::NumericUpDownValueCapability>`
      - The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range.
    * - :cpp:class:`PropertyConversionContext <gui_forms::PropertyConversionContext>`
@@ -276,6 +291,8 @@ Related types
      - Every TrackBar capability, in the order the declaring class takes them.
    * - :cpp:class:`TrackBarShowTicksCapability <gui_forms::TrackBarShowTicksCapability>`
      - Whether the tick marks draw.
+   * - :cpp:class:`TrackBarThumbExtentCapability <gui_forms::TrackBarThumbExtentCapability>`
+     - The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact).
    * - :cpp:class:`TrackBarTickFrequencyCapability <gui_forms::TrackBarTickFrequencyCapability>`
      - Distance in value units between tick marks; positive and finite, else std::invalid_argument.
    * - :cpp:class:`TrackBarVisualStyleChoiceCapability <gui_forms::TrackBarVisualStyleChoiceCapability>`
@@ -588,6 +605,81 @@ Related types
    .. cpp:function:: static Color read(const ColorValueEditorValueCapability& capability)
 
    .. cpp:member:: PropertyView<Color, ColorValueEditorValueCapability<Declaring>> value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Dial::Parts final
+
+   ``#include <gui_forms/controls/instruments/dial/dial.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). The arcs publish the square their circle is inscribed in, the needle the square inside the knob it turns in; ``value_arc`` is absent without show_arc or at the minimum.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry track
+
+   .. cpp:member:: PartGeometry value_arc
+
+   .. cpp:member:: PartGeometry graticule
+
+   .. cpp:member:: PartGeometry thumb
+
+   .. cpp:member:: PartGeometry needle
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DialCapabilities : public DialTickFrequencyCapability<Declaring>, public DialShowArcCapability<Declaring>
+
+   ``#include <gui_forms/controls/instruments/dial/dial_capabilities/dial_capabilities.hpp>``
+
+   Every Dial capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double tick_frequency
+
+      Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.
+
+   .. cpp:member:: bool show_arc
+
+      Whether the scale lights the arc from the minimum to the value.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DialShowArcCapability
+
+   ``#include <gui_forms/controls/instruments/dial/dial_capabilities/dial_capabilities.hpp>``
+
+   Whether the scale lights the arc from the minimum to the value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DialShowArcCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DialShowArcCapability<Declaring>> show_arc
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DialTickFrequencyCapability
+
+   ``#include <gui_forms/controls/instruments/dial/dial_capabilities/dial_capabilities.hpp>``
+
+   Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DialTickFrequencyCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, DialTickFrequencyCapability<Declaring>> tick_frequency
+
+      Default: ``{10.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1189,7 +1281,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>, public NumericUpDownMinimumCapability<Declaring>, public NumericUpDownMaximumCapability<Declaring>, public NumericUpDownIncrementCapability<Declaring>, public NumericUpDownDecimalPlacesCapability<Declaring>, public NumericUpDownHexadecimalCapability<Declaring>, public NumericUpDownButtonWidthCapability<Declaring>, public NumericUpDownScrubCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>, public NumericUpDownMinimumCapability<Declaring>, public NumericUpDownMaximumCapability<Declaring>, public NumericUpDownIncrementCapability<Declaring>, public NumericUpDownDecimalPlacesCapability<Declaring>, public NumericUpDownHexadecimalCapability<Declaring>, public NumericUpDownButtonWidthCapability<Declaring>, public NumericUpDownScrubCapability<Declaring>, public NumericUpDownThousandsSeparatorCapability<Declaring>, public NumericUpDownTextAlignmentCapability<Declaring>
 
    ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
 
@@ -1229,6 +1321,14 @@ Related types
    .. cpp:member:: bool scrub
 
       Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
+
+   .. cpp:member:: bool thousands_separator
+
+      Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+
+   .. cpp:member:: HorizontalAlignment text_alignment
+
+      Where the editor's text sits (TextAlign): near, center or far.
 
 .. cpp:namespace:: gui_forms
 
@@ -1325,6 +1425,40 @@ Related types
    .. cpp:function:: static void assign(NumericUpDownScrubCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, NumericUpDownScrubCapability<Declaring>> scrub
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownTextAlignmentCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   Where the editor's text sits (TextAlign): near, center or far.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownTextAlignmentCapability& capability, HorizontalAlignment incoming)
+
+   .. cpp:member:: PropertyCell<HorizontalAlignment, NumericUpDownTextAlignmentCapability<Declaring>> text_alignment
+
+      Default: ``{HorizontalAlignment::near}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownThousandsSeparatorCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownThousandsSeparatorCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, NumericUpDownThousandsSeparatorCapability<Declaring>> thousands_separator
 
       Default: ``{false}``.
 
@@ -2399,7 +2533,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> TrackBarCapabilities : public TrackBarTickFrequencyCapability<Declaring>, public TrackBarShowTicksCapability<Declaring>, public TrackBarVisualStyleChoiceCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> TrackBarCapabilities : public TrackBarTickFrequencyCapability<Declaring>, public TrackBarShowTicksCapability<Declaring>, public TrackBarVisualStyleChoiceCapability<Declaring>, public TrackBarThumbExtentCapability<Declaring>
 
    ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
 
@@ -2420,6 +2554,10 @@ Related types
 
       How the rail and thumb draw: classic ticks, a filled rail or a compact rail.
 
+   .. cpp:member:: double thumb_extent
+
+      The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact). Finite and between 0 and 64, else std::invalid_argument.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Declaring> TrackBarShowTicksCapability
@@ -2436,6 +2574,23 @@ Related types
    .. cpp:member:: PropertyCell<bool, TrackBarShowTicksCapability<Declaring>> show_ticks
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TrackBarThumbExtentCapability
+
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
+
+   The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact). Finite and between 0 and 64, else std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TrackBarThumbExtentCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, TrackBarThumbExtentCapability<Declaring>> thumb_extent
+
+      Default: ``{0.0}``.
 
 .. cpp:namespace:: gui_forms
 

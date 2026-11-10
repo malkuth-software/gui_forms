@@ -484,4 +484,18 @@ void SevenSegmentDisplay::written(const decltype(ghost_segments)&) {
 
 // property_codemod end SevenSegmentDisplay
 
+namespace {
+
+// The events SevenSegmentDisplay adds to those of Control, in declaration order.
+constexpr std::array<InteractionDeclaration, 1> seven_segment_display_interactions{{
+    {.name = "text_changed", .payload = "std::string", .mutable_payload = false},
+}};
+
+} // namespace
+
+void SevenSegmentDisplay::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Control::append_interactions(interactions);
+    interactions.insert(interactions.end(), seven_segment_display_interactions.begin(), seven_segment_display_interactions.end());
+}
+
 } // namespace gui_forms

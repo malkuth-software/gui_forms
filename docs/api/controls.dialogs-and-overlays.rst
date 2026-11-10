@@ -19,6 +19,12 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
      - A message dialog of pages: heading, text, icon, buttons, choices, details and progress.
    * - :cpp:class:`ThreadExceptionDialog <gui_forms::ThreadExceptionDialog>`
      - The dialog for an exception the application did not handle.
+   * - :cpp:class:`Callout <gui_forms::Callout>`
+     - Non-modal teaching callout at a target control: a card with a beak pointing at the target, a title, wrapped text, a close mark and an optional action, placed below or above the target in an overlay, with optional light dismiss.
+   * - :cpp:class:`ModalLayer <gui_forms::ModalLayer>`
+     - In-window modal layer: any control shown centred over a scrim dimming its owner's window, taking every press outside it and holding focus, closed with a DialogResult through a cancellable closing.
+   * - :cpp:class:`AboutDialog <gui_forms::AboutDialog>`
+     - An application's About box: a TaskDialog preset with the information icon, the product and version, description and copyright, credits behind an expander, and OK.
    * - :cpp:class:`FolderBrowserDialog <gui_forms::FolderBrowserDialog>`
      - The host's dialog for choosing a folder.
    * - :cpp:class:`ColorDialog <gui_forms::ColorDialog>`
@@ -37,6 +43,9 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
    generated/gui_forms.FontDialog
    generated/gui_forms.TaskDialog
    generated/gui_forms.ThreadExceptionDialog
+   generated/gui_forms.Callout
+   generated/gui_forms.ModalLayer
+   generated/gui_forms.AboutDialog
    generated/gui_forms.FolderBrowserDialog
    generated/gui_forms.ColorDialog
    generated/gui_forms.ToolTip
@@ -50,6 +59,8 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`AboutInfo <gui_forms::AboutInfo>`
+     - What an AboutDialog shows.
    * - :cpp:class:`AnchoredOverlayLayerCapabilities <gui_forms::AnchoredOverlayLayerCapabilities>`
      - Every AnchoredOverlayLayer capability, in the order the declaring class takes them.
    * - :cpp:class:`AnchoredOverlayLayerDismissOnClickAwayCapability <gui_forms::AnchoredOverlayLayerDismissOnClickAwayCapability>`
@@ -64,6 +75,20 @@ Related types
      - AnchoredOverlayPlacementResult is the exact output of placement resolution: client-relative bounds plus whether the overlay moved above its anchor or had either dimension clamped.
    * - :cpp:class:`BundledFontFace <gui_forms::BundledFontFace>`
      - One face GUI.Forms bundles for a FontRole, as every host registers it: its family name, what the role is for, and whether it has italic faces.
+   * - :cpp:class:`Callout::Parts <gui_forms::Callout::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`CalloutActionTextCapability <gui_forms::CalloutActionTextCapability>`
+     - The action button's text; empty for no action button.
+   * - :cpp:class:`CalloutCapabilities <gui_forms::CalloutCapabilities>`
+     - Every Callout capability, in the order the declaring class takes them.
+   * - :cpp:class:`CalloutLightDismissCapability <gui_forms::CalloutLightDismissCapability>`
+     - Whether a press anywhere outside the callout closes it; without it, presses outside reach the window and only the close mark, Escape or the action close it.
+   * - :cpp:class:`CalloutPrefersAboveCapability <gui_forms::CalloutPrefersAboveCapability>`
+     - Whether the callout opens above its target rather than below; it moves to the other side when the preferred one has no room.
+   * - :cpp:class:`CalloutTextCapability <gui_forms::CalloutTextCapability>`
+     - The explanation under the title, wrapped to the callout's width.
+   * - :cpp:class:`CalloutTitleCapability <gui_forms::CalloutTitleCapability>`
+     - The bold first line; empty for none.
    * - :cpp:class:`ColorDialogAllowAlphaCapability <gui_forms::ColorDialogAllowAlphaCapability>`
      - Whether the user may choose a translucent color.
    * - :cpp:class:`ColorDialogCapabilities <gui_forms::ColorDialogCapabilities>`
@@ -104,6 +129,14 @@ Related types
      - The arguments of Windows Forms' MessageBox.Show: the message, the caption in the title bar, the buttons, the icon, the default button and the options.
    * - :cpp:class:`MessageBoxResult <gui_forms::MessageBoxResult>`
      - What show_message_box returns: either the box closed, with the chosen button, or it was not shown, with the reason.
+   * - :cpp:class:`ModalLayer::Parts <gui_forms::ModalLayer::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`ModalLayerCapabilities <gui_forms::ModalLayerCapabilities>`
+     - Every ModalLayer capability, in the order the declaring class takes them.
+   * - :cpp:class:`ModalLayerCloseOnEscapeCapability <gui_forms::ModalLayerCloseOnEscapeCapability>`
+     - Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
+   * - :cpp:class:`ModalLayerClosingEvent <gui_forms::ModalLayerClosingEvent>`
+     - The argument of ModalLayer::closing: the result the layer would close with, and whether a handler refuses the closing.
    * - :cpp:class:`RibbonToolTipAutoPopDelayCapability <gui_forms::RibbonToolTipAutoPopDelayCapability>`
      - How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves.
    * - :cpp:class:`RibbonToolTipCapabilities <gui_forms::RibbonToolTipCapabilities>`
@@ -176,6 +209,26 @@ Related types
      - Whether a tooltip shows when its target takes the keyboard focus (ToolTipSettings::show_on_focus).
    * - :cpp:class:`ToolTipShowOnHoverCapability <gui_forms::ToolTipShowOnHoverCapability>`
      - Whether a tooltip shows when the pointer rests on its target (ToolTipSettings::show_on_hover).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AboutInfo final
+
+   ``#include <gui_forms/components/about_dialog/about_dialog.hpp>``
+
+   What an AboutDialog shows. ``product`` and ``version`` make the heading ("Product 1.2"); ``description`` and ``copyright`` are the body's paragraphs; ``credits`` (licences, acknowledgements) sit behind a "Show credits" expander, left out when empty. An empty caption gives "About <product>".
+
+   .. cpp:member:: std::string caption
+
+   .. cpp:member:: std::string product
+
+   .. cpp:member:: std::string version
+
+   .. cpp:member:: std::string description
+
+   .. cpp:member:: std::string copyright
+
+   .. cpp:member:: std::string credits
 
 .. cpp:namespace:: gui_forms
 
@@ -306,6 +359,134 @@ Related types
    .. cpp:member:: std::string_view use
 
    .. cpp:member:: bool italic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Callout::Parts final
+
+   ``#include <gui_forms/controls/callout/callout.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry face
+
+   .. cpp:member:: PartGeometry beak
+
+   .. cpp:member:: PartGeometry close
+
+   .. cpp:member:: PartGeometry actuator
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CalloutActionTextCapability
+
+   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+
+   The action button's text; empty for no action button. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CalloutActionTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, CalloutActionTextCapability<Declaring>> action_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CalloutCapabilities : public CalloutTitleCapability<Declaring>, public CalloutTextCapability<Declaring>, public CalloutActionTextCapability<Declaring>, public CalloutLightDismissCapability<Declaring>, public CalloutPrefersAboveCapability<Declaring>
+
+   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+
+   Every Callout capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The bold first line; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string text
+
+      The explanation under the title, wrapped to the callout's width. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string action_text
+
+      The action button's text; empty for no action button. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: bool light_dismiss
+
+      Whether a press anywhere outside the callout closes it; without it, presses outside reach the window and only the close mark, Escape or the action close it.
+
+   .. cpp:member:: bool prefers_above
+
+      Whether the callout opens above its target rather than below; it moves to the other side when the preferred one has no room.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CalloutLightDismissCapability
+
+   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+
+   Whether a press anywhere outside the callout closes it; without it, presses outside reach the window and only the close mark, Escape or the action close it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CalloutLightDismissCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CalloutLightDismissCapability<Declaring>> light_dismiss
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CalloutPrefersAboveCapability
+
+   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+
+   Whether the callout opens above its target rather than below; it moves to the other side when the preferred one has no room.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CalloutPrefersAboveCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CalloutPrefersAboveCapability<Declaring>> prefers_above
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CalloutTextCapability
+
+   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+
+   The explanation under the title, wrapped to the callout's width. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CalloutTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, CalloutTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CalloutTitleCapability
+
+   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+
+   The bold first line; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CalloutTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, CalloutTitleCapability<Declaring>> title
 
 .. cpp:namespace:: gui_forms
 
@@ -666,6 +847,68 @@ Related types
    .. cpp:function:: static MessageBoxResult refused(HostServiceError error)
 
       Throws std::invalid_argument for HostServiceError::none, which is not a refusal.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ModalLayer::Parts final
+
+   ``#include <gui_forms/controls/modal_layer/modal_layer.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``scrim`` covers the client while content is shown; ``shadow`` lies under the content.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry scrim
+
+   .. cpp:member:: PartGeometry shadow
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ModalLayerCapabilities : public ModalLayerCloseOnEscapeCapability<Declaring>
+
+   ``#include <gui_forms/controls/modal_layer/modal_layer_capabilities/modal_layer_capabilities.hpp>``
+
+   Every ModalLayer capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool close_on_escape
+
+      Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ModalLayerCloseOnEscapeCapability
+
+   ``#include <gui_forms/controls/modal_layer/modal_layer_capabilities/modal_layer_capabilities.hpp>``
+
+   Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ModalLayerCloseOnEscapeCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ModalLayerCloseOnEscapeCapability<Declaring>> close_on_escape
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ModalLayerClosingEvent final
+
+   ``#include <gui_forms/controls/modal_layer/modal_layer.hpp>``
+
+   The argument of ModalLayer::closing: the result the layer would close with, and whether a handler refuses the closing.
+
+   .. cpp:member:: DialogResult result
+
+      Default: ``{DialogResult::none}``.
+
+   .. cpp:member:: bool cancel
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1405,6 +1648,24 @@ Related types
 
 Enumerations
 ------------
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CalloutCloseReason
+
+   ``#include <gui_forms/controls/callout/callout.hpp>``
+
+   .. cpp:enumerator:: close_button
+
+   .. cpp:enumerator:: escape_key
+
+   .. cpp:enumerator:: click_away
+
+   .. cpp:enumerator:: action
+
+   .. cpp:enumerator:: programmatic
+
+   .. cpp:enumerator:: owner_unavailable
 
 .. cpp:namespace:: gui_forms
 

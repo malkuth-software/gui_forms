@@ -25,7 +25,7 @@ constexpr std::string_view program_locale =
     "<locale xml:lang=\"en\">\n"
     "  <controls>\n"
     "    <control name=\"app\" text=\"Sketch\" help-line=\"The drawing window.\">\n"
-    "      <help keywords=\"window; drawing, canvas\">\n"
+    "      <help keywords=\"window; drawing; canvas\">\n"
     "        Sketch draws on a canvas. Open [the tools](app.tools) or read [the site](https://example.org).\n"
     "\n"
     "        {collapsible}\n"
@@ -34,10 +34,10 @@ constexpr std::string_view program_locale =
     "        Hidden until opened.\n"
     "      </help>\n"
     "      <control name=\"tools\" text=\"Tools\" help-line=\"The tool panel.\">\n"
-    "        <help keywords=\"tools; drawing, pen\">Pick a tool. See [the pen](app.tools.pen \"popup\").</help>\n"
+    "        <help keywords=\"tools; drawing; pen\">Pick a tool. See [the pen](app.tools.pen \"popup\").</help>\n"
     "        <control name=\"pen\" text=\"Pen\" help-line=\"Draws freehand lines.\"/>\n"
     "        <control name=\"eraser\" text=\"Eraser\" help-line=\"Removes strokes.\">\n"
-    "          <help keywords=\"drawing, eraser\">Erases what it touches.</help>\n"
+    "          <help keywords=\"drawing; eraser\">Erases what it touches.</help>\n"
     "        </control>\n"
     "      </control>\n"
     "      <control name=\"silent\" text=\"Silent\"/>\n"
@@ -164,6 +164,8 @@ void viewer() {
             "a bookmark is added and reaches the system");
     require(!viewer.add_bookmark(), "the same page is not bookmarked twice");
     // Keys: Alt+N selects Index, Alt+Left goes back, F6 moves to the book.
+    // The search tab is showing: the contents tree is focusable once its tab is.
+    viewer.select_tab(HelpNavigationTab::contents);
     require((*program.window).request_focus(viewer.contents_tree()), "focus in the contents");
     require((*program.window).dispatch_key({KeyAction::down, PhysicalKey::n, Modifier::alt}) &&
                 viewer.selected_tab() == HelpNavigationTab::index,

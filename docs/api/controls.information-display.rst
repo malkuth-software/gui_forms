@@ -45,6 +45,20 @@ Labels, images, progress and review cards.
      - Item child of a PlotView declaring a text label anchored at a data point.
    * - :cpp:class:`ReviewCard <gui_forms::ReviewCard>`
      - A card that presents one review record: a title, a summary and a verdict.
+   * - :cpp:class:`SevenSegmentDisplay <gui_forms::SevenSegmentDisplay>`
+     - Read-only seven-segment readout from the instruments package: digits, hexadecimal and the letters a cell can form, decimal points and colons, right-aligned in a fixed or fitted number of cells, unlit segments drawn faintly.
+   * - :cpp:class:`GaugeBase <gui_forms::GaugeBase>`
+     - Shared read-only gauge authority from the instruments package: a RangeControl value with scale marks, units, decimals and low and high alarm limits, a meter to assistive technology, that LinearGauge and RadialGauge draw.
+   * - :cpp:class:`LinearGauge <gui_forms::LinearGauge>`
+     - Bar gauge from the instruments package: the value filling a horizontal or vertical scale with marks, alarm segments along it and the value as text at its end.
+   * - :cpp:class:`RadialGauge <gui_forms::RadialGauge>`
+     - Dial gauge from the instruments package: the value lighting a 270-degree scale arc with marks, alarm segments and a needle, the value as text below the centre.
+   * - :cpp:class:`StepIndicator <gui_forms::StepIndicator>`
+     - Row of numbered steps joined by connectors, completed steps checked and the current step highlighted, a press on a completed step reported for going back.
+   * - :cpp:class:`HelpBook <gui_forms::HelpBook>`
+     - Paper pane showing one help page: title, markdown body with callouts and collapsible sections, topic, popup and external links, keyboard link stops, and a print layout.
+   * - :cpp:class:`HelpBookViewer <gui_forms::HelpBookViewer>`
+     - Three-pane help viewer: toolbar, Contents, Index, Search and Bookmarks tabs and a HelpBook, with history and contents sync, over one compiled helpbook section.
 
 .. toctree::
    :hidden:
@@ -66,6 +80,13 @@ Labels, images, progress and review cards.
    generated/gui_forms.PlotSeriesItem
    generated/gui_forms.PlotAnnotationItem
    generated/gui_forms.ReviewCard
+   generated/gui_forms.SevenSegmentDisplay
+   generated/gui_forms.GaugeBase
+   generated/gui_forms.LinearGauge
+   generated/gui_forms.RadialGauge
+   generated/gui_forms.StepIndicator
+   generated/gui_forms.HelpBook
+   generated/gui_forms.HelpBookViewer
 
 Related types
 -------------
@@ -96,6 +117,118 @@ Related types
      - The picture above the title, an ImageId into the window's ImageRegistry, drawn in a 48-unit square; none by default.
    * - :cpp:class:`EmptyStateTitleCapability <gui_forms::EmptyStateTitleCapability>`
      - The heading that says what is empty, such as "No messages"; it names the control to assistive technology.
+   * - :cpp:class:`GaugeBaseCapabilities <gui_forms::GaugeBaseCapabilities>`
+     - Every GaugeBase capability, in the order the declaring class takes them.
+   * - :cpp:class:`GaugeBaseDecimalPlacesCapability <gui_forms::GaugeBaseDecimalPlacesCapability>`
+     - Digits after the decimal point in the shown value, at most 6 (std::invalid_argument).
+   * - :cpp:class:`GaugeBaseHighAlarmCapability <gui_forms::GaugeBaseHighAlarmCapability>`
+     - The value above which the gauge is in alarm, or none.
+   * - :cpp:class:`GaugeBaseLowAlarmCapability <gui_forms::GaugeBaseLowAlarmCapability>`
+     - The value below which the gauge is in alarm, or none.
+   * - :cpp:class:`GaugeBaseShowValueCapability <gui_forms::GaugeBaseShowValueCapability>`
+     - Whether the value is shown as text beside the scale.
+   * - :cpp:class:`GaugeBaseTickFrequencyCapability <gui_forms::GaugeBaseTickFrequencyCapability>`
+     - Distance in value units between scale marks; zero draws none.
+   * - :cpp:class:`GaugeBaseUnitsCapability <gui_forms::GaugeBaseUnitsCapability>`
+     - The unit shown after the value, such as "kPa"; empty for none.
+   * - :cpp:class:`HelpBook::LinkParts <gui_forms::HelpBook::LinkParts>`
+     -  
+   * - :cpp:class:`HelpBook::Parts <gui_forms::HelpBook::Parts>`
+     - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`HelpBook::TopicParts <gui_forms::HelpBook::TopicParts>`
+     - One topic item: a collapsible section's bar and expander, or one link's text.
+   * - :cpp:class:`HelpBookCompileOptions <gui_forms::HelpBookCompileOptions>`
+     -  
+   * - :cpp:class:`HelpBookCompileResult <gui_forms::HelpBookCompileResult>`
+     -  
+   * - :cpp:class:`HelpBookImage <gui_forms::HelpBookImage>`
+     - A PNG resource a help body may show (``![alt](name.png)``): its name in the body, the registered image and its size in logical units.
+   * - :cpp:class:`HelpBookLabels <gui_forms::HelpBookLabels>`
+     - The words the book shows for its callouts: a one-word label each.
+   * - :cpp:class:`HelpBookReadLimits <gui_forms::HelpBookReadLimits>`
+     -  
+   * - :cpp:class:`HelpBookReadResult <gui_forms::HelpBookReadResult>`
+     -  
+   * - :cpp:class:`HelpBookRecord <gui_forms::HelpBookRecord>`
+     - One record of the section: its resolved fields, the help body's plain text folded for phrase search, and where the fields came from.
+   * - :cpp:class:`HelpBookSection <gui_forms::HelpBookSection>`
+     -  
+   * - :cpp:class:`HelpBookViewerLabels <gui_forms::HelpBookViewerLabels>`
+     - The words HelpBookViewer shows: the help system's own text, translated with the program's.
+   * - :cpp:class:`HelpBookViewerSnapshot <gui_forms::HelpBookViewerSnapshot>`
+     -  
+   * - :cpp:class:`HelpCatalog <gui_forms::HelpCatalog>`
+     - The help text store of one program: the three layers, the rescue switch and the language in force.
+   * - :cpp:class:`HelpContentsLine <gui_forms::HelpContentsLine>`
+     - A control with a help line but no help body: listed on the page of its nearest ancestor that has one (``page`` indexes the tree's nodes).
+   * - :cpp:class:`HelpContentsNode <gui_forms::HelpContentsNode>`
+     - One page of the generated contents, in preorder.
+   * - :cpp:class:`HelpContentsTree <gui_forms::HelpContentsTree>`
+     -  
+   * - :cpp:class:`HelpEntryRejection <gui_forms::HelpEntryRejection>`
+     -  
+   * - :cpp:class:`HelpFieldLimits <gui_forms::HelpFieldLimits>`
+     - The bounds a layer enforces on its fields; each, when exceeded, rejects the one field (HelpEntryRefusal::too_long), not the file.
+   * - :cpp:class:`HelpKeyword <gui_forms::HelpKeyword>`
+     - One keyword of a ``keywords`` field: the keyword and, when the entry has a ',', its subkeyword.
+   * - :cpp:class:`HelpKeywordEntry <gui_forms::HelpKeywordEntry>`
+     - One keyword of the index: folded for ordering and lookup, as written for showing, and the record it opens.
+   * - :cpp:class:`HelpLinkActivation <gui_forms::HelpLinkActivation>`
+     - A link was activated (click, Enter, or the semantic press).
+   * - :cpp:class:`HelpLinkEntry <gui_forms::HelpLinkEntry>`
+     - One link of a body, in record and source order.
+   * - :cpp:class:`HelpLinkTarget <gui_forms::HelpLinkTarget>`
+     - What a link destination is in a help body (study section 4): a valid stable ID, optionally with '#' and an anchor, is a topic link (a popup when ``title`` is "popup"); anything else is external.
+   * - :cpp:class:`HelpLocaleReadResult <gui_forms::HelpLocaleReadResult>`
+     -  
+   * - :cpp:class:`HelpPageBlock <gui_forms::HelpPageBlock>`
+     - One block.
+   * - :cpp:class:`HelpPageImage <gui_forms::HelpPageImage>`
+     -  
+   * - :cpp:class:`HelpPageLink <gui_forms::HelpPageLink>`
+     -  
+   * - :cpp:class:`HelpPageModel <gui_forms::HelpPageModel>`
+     -  
+   * - :cpp:class:`HelpPageRun <gui_forms::HelpPageRun>`
+     - A piece of a block's text in one style.
+   * - :cpp:class:`HelpPageSection <gui_forms::HelpPageSection>`
+     - A collapsible section: its heading block, the first block after it, and whether it starts open.
+   * - :cpp:class:`HelpPlace <gui_forms::HelpPlace>`
+     -  
+   * - :cpp:class:`HelpPrintOptions <gui_forms::HelpPrintOptions>`
+     - Printing help pages (help system study, section 8).
+   * - :cpp:class:`HelpPrintPlan <gui_forms::HelpPrintPlan>`
+     -  
+   * - :cpp:class:`HelpPrintRequest <gui_forms::HelpPrintRequest>`
+     - Printing was asked for: the page shown (``page``), or the contents book under it when ``book`` is set.
+   * - :cpp:class:`HelpPrintSheet <gui_forms::HelpPrintSheet>`
+     - One sheet: the band of the print layout it shows, in content coordinates.
+   * - :cpp:class:`HelpRecordEntry <gui_forms::HelpRecordEntry>`
+     - One record's help fields as one layer gives them.
+   * - :cpp:class:`HelpRecordLayer <gui_forms::HelpRecordLayer>`
+     - The records of one language, sorted by stable ID with each ID once.
+   * - :cpp:class:`HelpResolvedField <gui_forms::HelpResolvedField>`
+     - One resolved field: the text and the layer it came from.
+   * - :cpp:class:`HelpResolvedRecord <gui_forms::HelpResolvedRecord>`
+     -  
+   * - :cpp:class:`HelpSearchHit <gui_forms::HelpSearchHit>`
+     - One record that holds every required term.
+   * - :cpp:class:`HelpSearchOptions <gui_forms::HelpSearchOptions>`
+     -  
+   * - :cpp:class:`HelpSearchPosting <gui_forms::HelpSearchPosting>`
+     - One posting of a search term: a record that holds it, how many times, and whether its title does.
+   * - :cpp:class:`HelpSearchQuery <gui_forms::HelpSearchQuery>`
+     - A query split into what must be found.
+   * - :cpp:class:`HelpSearchTerm <gui_forms::HelpSearchTerm>`
+     - One search term: folded, with its postings (HelpBookSection::postings from first_posting, posting_count of them, in record order).
+   * - :cpp:class:`HelpSectionToggle <gui_forms::HelpSectionToggle>`
+     - A collapsible section was opened or closed.
+   * - :cpp:class:`HelpSkeletonNode <gui_forms::HelpSkeletonNode>`
+     - One node of the program's structure, in the order the skeleton walk enumerates it (depth first, children in order).
+   * - :cpp:class:`HelpTopic <gui_forms::HelpTopic>`
+     - A stand-alone topic ("Make your first picture"): an ordinary help record that no control holds, declared like a message, inline const gui_forms::HelpTopic first_picture{ gui_forms::StableId("help.first-picture"), "Make your first picture", first_picture_body, gui_forms::HelpPlace::after("main")}; Its title is the record's ``text``, its body the record's ``help``.
+   * - :cpp:class:`HelpTopicPlacement <gui_forms::HelpTopicPlacement>`
+     - A topic's place in the contents, as the contents generator reads it: from a HelpTopic or from a run-time declaration (HelpBookSystem::declare_topic).
    * - :cpp:class:`InfoBanner::Parts <gui_forms::InfoBanner::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`InfoBannerCapabilities <gui_forms::InfoBannerCapabilities>`
@@ -130,6 +263,8 @@ Related types
      - Whether an ampersand in the text marks the access key (UseMnemonic).
    * - :cpp:class:`LabelVerticalAlignmentCapability <gui_forms::LabelVerticalAlignmentCapability>`
      - Vertical placement of the text: near, center or far.
+   * - :cpp:class:`LinearGauge::Parts <gui_forms::LinearGauge::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`PictureBox::Parts <gui_forms::PictureBox::Parts>`
      - Stage T1 anatomy, as dot members: Panel's parts and the image.
    * - :cpp:class:`PictureBoxCapabilities <gui_forms::PictureBoxCapabilities>`
@@ -248,6 +383,8 @@ Related types
      - Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay).
    * - :cpp:class:`ProgressWovenStripes <gui_forms::ProgressWovenStripes>`
      - Randomly woven stripes (owner amendment, 2026-11-02): setup chooses which stripes exist, where and in what order at random; run weaves each in as the fraction passes its threshold, and shimmers them.
+   * - :cpp:class:`RadialGauge::Parts <gui_forms::RadialGauge::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`ReviewCardCapabilities <gui_forms::ReviewCardCapabilities>`
      - Every ReviewCard capability, in the order the declaring class takes them.
    * - :cpp:class:`ReviewCardRecordCapability <gui_forms::ReviewCardRecordCapability>`
@@ -258,6 +395,18 @@ Related types
      - One bubble rising in the fill, or one puff of steam rising above the bar.
    * - :cpp:class:`ScopeSweep <gui_forms::ScopeSweep>`
      - The trace (a rise from the lower left to a peak above the level's place, and a fall to the right edge) and the sweep line crossing the plot once a period.
+   * - :cpp:class:`SevenSegmentCell <gui_forms::SevenSegmentCell>`
+     - One cell of a seven-segment reading: the lit segments, as bits from a (the top bar, bit 0) clockwise through f (the upper left, bit 5) to g (the middle bar, bit 6); whether its decimal point is lit; and whether it is a colon cell, which is half a digit wide and shows two dots instead.
+   * - :cpp:class:`SevenSegmentDisplay::Parts <gui_forms::SevenSegmentDisplay::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`SevenSegmentDisplayCapabilities <gui_forms::SevenSegmentDisplayCapabilities>`
+     - Every SevenSegmentDisplay capability, in the order the declaring class takes them.
+   * - :cpp:class:`SevenSegmentDisplayDigitCountCapability <gui_forms::SevenSegmentDisplayDigitCountCapability>`
+     - The digit cells shown, at most 64 (std::invalid_argument); zero shows as many as the text needs.
+   * - :cpp:class:`SevenSegmentDisplayGhostSegmentsCapability <gui_forms::SevenSegmentDisplayGhostSegmentsCapability>`
+     - Whether the unlit segments are drawn faintly, as on a real display.
+   * - :cpp:class:`SevenSegmentDisplayTextCapability <gui_forms::SevenSegmentDisplayTextCapability>`
+     - The reading the cells show, right-aligned: digits, the hexadecimal letters, the letters a seven-segment cell can form, '-', '_', '=', the degree sign and spaces; '.' and ',' light the previous cell's point and ':' is a colon cell.
    * - :cpp:class:`Sparkline::Parts <gui_forms::Sparkline::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`Sparkline::States <gui_forms::Sparkline::States>`
@@ -274,6 +423,12 @@ Related types
      - Whether the spinner shows and turns; an inactive spinner draws nothing and reports no busy state.
    * - :cpp:class:`SpinnerCapabilities <gui_forms::SpinnerCapabilities>`
      - Every Spinner capability, in the order the declaring class takes them.
+   * - :cpp:class:`StepIndicator::Parts <gui_forms::StepIndicator::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts): the chips and connectors of every step, each part spanning all of its instances.
+   * - :cpp:class:`StepIndicatorCapabilities <gui_forms::StepIndicatorCapabilities>`
+     - Every StepIndicator capability, in the order the declaring class takes them.
+   * - :cpp:class:`StepIndicatorCurrentStepCapability <gui_forms::StepIndicatorCurrentStepCapability>`
+     - The step under way, counted from zero; the steps before it are complete.
    * - :cpp:class:`SweepScope::Parts <gui_forms::SweepScope::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SweepScope::States <gui_forms::SweepScope::States>`
@@ -493,6 +648,1216 @@ Related types
    .. cpp:function:: static void assign(EmptyStateTitleCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, EmptyStateTitleCapability<Declaring>> title
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GaugeBaseCapabilities : public GaugeBaseTickFrequencyCapability<Declaring>, public GaugeBaseUnitsCapability<Declaring>, public GaugeBaseDecimalPlacesCapability<Declaring>, public GaugeBaseShowValueCapability<Declaring>, public GaugeBaseLowAlarmCapability<Declaring>, public GaugeBaseHighAlarmCapability<Declaring>
+
+   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+
+   Every GaugeBase capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double tick_frequency
+
+      Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.
+
+   .. cpp:member:: std::string units
+
+      The unit shown after the value, such as "kPa"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::uint32_t decimal_places
+
+      Digits after the decimal point in the shown value, at most 6 (std::invalid_argument).
+
+   .. cpp:member:: bool show_value
+
+      Whether the value is shown as text beside the scale.
+
+   .. cpp:member:: std::optional<double> low_alarm
+
+      The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
+
+   .. cpp:member:: std::optional<double> high_alarm
+
+      The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GaugeBaseDecimalPlacesCapability
+
+   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+
+   Digits after the decimal point in the shown value, at most 6 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GaugeBaseDecimalPlacesCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, GaugeBaseDecimalPlacesCapability<Declaring>> decimal_places
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GaugeBaseHighAlarmCapability
+
+   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+
+   The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GaugeBaseHighAlarmCapability& capability, std::optional<double> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<double>, GaugeBaseHighAlarmCapability<Declaring>> high_alarm
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GaugeBaseLowAlarmCapability
+
+   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+
+   The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GaugeBaseLowAlarmCapability& capability, std::optional<double> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<double>, GaugeBaseLowAlarmCapability<Declaring>> low_alarm
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GaugeBaseShowValueCapability
+
+   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+
+   Whether the value is shown as text beside the scale.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GaugeBaseShowValueCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, GaugeBaseShowValueCapability<Declaring>> show_value
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GaugeBaseTickFrequencyCapability
+
+   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+
+   Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GaugeBaseTickFrequencyCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, GaugeBaseTickFrequencyCapability<Declaring>> tick_frequency
+
+      Default: ``{10.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GaugeBaseUnitsCapability
+
+   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+
+   The unit shown after the value, such as "kPa"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GaugeBaseUnitsCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, GaugeBaseUnitsCapability<Declaring>> units
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBook::LinkParts final
+
+   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+
+   .. cpp:member:: PartGeometry link_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBook::Parts final
+
+   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+
+   Stage T1 anatomy, as dot members.
+
+   .. cpp:member:: ScrollableControl::Parts scrollable
+
+   .. cpp:member:: PartGeometry paper
+
+   .. cpp:member:: PartGeometry title
+
+   .. cpp:member:: PartGeometry rule
+
+   .. cpp:member:: PartGeometry close
+
+   .. cpp:member:: PartGeometry body
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBook::TopicParts final
+
+   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+
+   One topic item: a collapsible section's bar and expander, or one link's text.
+
+   .. cpp:member:: PartGeometry topic_bar
+
+   .. cpp:member:: PartGeometry expander
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookCompileOptions final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   .. cpp:member:: std::span<const std::string> image_names
+
+      The PNG resources an image may name, by name ("name.png"). Any order.
+
+   .. cpp:member:: MarkdownLimits markdown
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookCompileResult final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool succeeded() const noexcept
+
+      The build-time pass fails on any rejection; a run-time pass over a user's file keeps what passed.
+
+   .. cpp:member:: HelpBookSection section
+
+   .. cpp:member:: std::vector<HelpEntryRejection> rejections
+
+      Every field the pass rejected: a body that does not parse, links to records that do not exist, images that are not resources. A rejected body is left out of the section; the record's other fields stay.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookImage final
+
+   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+
+   A PNG resource a help body may show (``![alt](name.png)``): its name in the body, the registered image and its size in logical units.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: ImageId image
+
+   .. cpp:member:: Size size
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookLabels final
+
+   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+
+   The words the book shows for its callouts: a one-word label each. They are the help system's own text, translated with the program's.
+
+   .. cpp:member:: std::string note
+
+      Default: ``{"Note"}``.
+
+   .. cpp:member:: std::string tip
+
+      Default: ``{"Tip"}``.
+
+   .. cpp:member:: std::string caution
+
+      Default: ``{"Caution"}``.
+
+   .. cpp:member:: std::string close
+
+      Default: ``{"Close help"}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookReadLimits final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   .. cpp:member:: std::size_t maximum_bytes
+
+      Default: ``{64U * 1024U * 1024U}``.
+
+   .. cpp:member:: std::size_t maximum_records
+
+      Default: ``{100000U}``.
+
+   .. cpp:member:: std::size_t maximum_entries
+
+      Default: ``{4U * 1024U * 1024U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookReadResult final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   .. cpp:member:: HelpBookReadError error
+
+      Default: ``{HelpBookReadError::none}``.
+
+   .. cpp:member:: HelpBookSection section
+
+      The section on success; empty on failure.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookRecord final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   One record of the section: its resolved fields, the help body's plain text folded for phrase search, and where the fields came from.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::string title
+
+   .. cpp:member:: std::string help_line
+
+   .. cpp:member:: std::string help
+
+   .. cpp:member:: std::string keywords
+
+   .. cpp:member:: std::string folded_text
+
+      markdown_plain_text of the body, case-folded (fold_help_text).
+
+   .. cpp:member:: std::uint32_t contents_node
+
+      The record's node in the contents, or help_no_parent. Default: ``{help_no_parent}``.
+
+   .. cpp:member:: bool fallback
+
+      A field came from the built-in layer while a translation is in force (the page marks the fallback).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookSection final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::optional<std::size_t> find(std::string_view stable_id) const noexcept
+
+      The record holding ``stable_id``, or none.
+
+   .. cpp:function:: std::size_t keyword_position(std::string_view folded_prefix) const noexcept
+
+      The first keyword entry not before ``folded_prefix``: the index tab's type-ahead position.
+
+   .. cpp:member:: std::uint16_t format_major
+
+      Default: ``{helpbook_format_major}``.
+
+   .. cpp:member:: std::uint16_t format_minor
+
+      Default: ``{helpbook_format_minor}``.
+
+   .. cpp:member:: std::string language
+
+   .. cpp:member:: std::uint64_t catalog_revision
+
+      The catalog revision the section was compiled from.
+
+   .. cpp:member:: std::vector<HelpBookRecord> records
+
+      Sorted by stable ID.
+
+   .. cpp:member:: HelpContentsTree contents
+
+   .. cpp:member:: std::vector<HelpKeywordEntry> keywords
+
+      Sorted by folded keyword, then subkeyword, then record.
+
+   .. cpp:member:: std::vector<HelpSearchTerm> terms
+
+   .. cpp:member:: std::vector<HelpSearchPosting> postings
+
+   .. cpp:member:: std::vector<HelpLinkEntry> links
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookViewerLabels final
+
+   ``#include <gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp>``
+
+   The words HelpBookViewer shows: the help system's own text, translated with the program's. ``built_in_language`` is the untranslatable way back (translation design): the name of the program's built-in language, which the program supplies in that language; empty hides the link.
+
+   .. cpp:member:: std::string contents
+
+      Default: ``{"Contents"}``.
+
+   .. cpp:member:: std::string index
+
+      Default: ``{"Index"}``.
+
+   .. cpp:member:: std::string search
+
+      Default: ``{"Search"}``.
+
+   .. cpp:member:: std::string bookmarks
+
+      Default: ``{"Bookmarks"}``.
+
+   .. cpp:member:: std::string hide
+
+      Default: ``{"Hide"}``.
+
+   .. cpp:member:: std::string show
+
+      Default: ``{"Show"}``.
+
+   .. cpp:member:: std::string back
+
+      Default: ``{"Back"}``.
+
+   .. cpp:member:: std::string forward
+
+      Default: ``{"Forward"}``.
+
+   .. cpp:member:: std::string home
+
+      Default: ``{"Home"}``.
+
+   .. cpp:member:: std::string print
+
+      Default: ``{"Print"}``.
+
+   .. cpp:member:: std::string locate
+
+      Default: ``{"Show in contents"}``.
+
+   .. cpp:member:: std::string add
+
+      Default: ``{"Add"}``.
+
+   .. cpp:member:: std::string remove
+
+      Default: ``{"Remove"}``.
+
+   .. cpp:member:: std::string titles_only
+
+      Default: ``{"Search titles only"}``.
+
+   .. cpp:member:: std::string index_placeholder
+
+      Default: ``{"Type a keyword"}``.
+
+   .. cpp:member:: std::string search_placeholder
+
+      Default: ``{"Type words to find"}``.
+
+   .. cpp:member:: std::string built_in_language
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookViewerSnapshot final
+
+   ``#include <gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp>``
+
+   .. cpp:member:: std::size_t history_size
+
+   .. cpp:member:: std::size_t history_position
+
+   .. cpp:member:: std::size_t navigations
+
+   .. cpp:member:: std::size_t searches
+
+   .. cpp:member:: HelpSearchStatus last_search
+
+      Default: ``{HelpSearchStatus::empty_query}``.
+
+   .. cpp:member:: std::size_t last_hit_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HelpCatalog final
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   The help text store of one program: the three layers, the rescue switch and the language in force. The program owns it (HelpBookSystem holds one). UI thread.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool built_in_only() const noexcept
+
+   .. cpp:function:: void set_built_in_only(bool built_in_only) noexcept
+
+      The untranslatable way back (translation design): while set, only the built-in layer resolves, whatever the translation and user files say.
+
+   .. cpp:function:: const std::string& language() const noexcept
+
+   .. cpp:function:: std::uint64_t revision() const noexcept
+
+      Grows by one on every change; a compiled section remembers the revision it was built from.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: const HelpRecordLayer& layer(HelpLayer which) const& noexcept
+
+   .. cpp:function:: HelpRecordLayer& built_in() & noexcept
+
+      The built-in layer, for the program to fill. Bumps the revision.
+
+   .. cpp:function:: HelpResolvedRecord resolve(std::string_view stable_id) const
+
+      Resolves every field of ``stable_id`` from the highest layer in force that gives it.
+
+   .. cpp:function:: void collect_ids(std::vector<std::string>& ids) const
+
+      Fills ``ids`` (cleared first) with every ID any layer in force holds, sorted and unique.
+
+   .. cpp:function:: void set_translation(HelpRecordLayer records, std::string language)
+
+      Replaces the translation layer and the language it is in; an empty layer with an empty language removes it. Bumps the revision.
+
+   .. cpp:function:: void set_user_overrides(HelpRecordLayer records)
+
+      Replaces the user layer. Bumps the revision.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpContentsLine final
+
+   ``#include <gui_forms/help/help_contents/help_contents.hpp>``
+
+   A control with a help line but no help body: listed on the page of its nearest ancestor that has one (``page`` indexes the tree's nodes).
+
+   .. cpp:member:: std::uint32_t page
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::string title
+
+   .. cpp:member:: std::string help_line
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpContentsNode final
+
+   ``#include <gui_forms/help/help_contents/help_contents.hpp>``
+
+   One page of the generated contents, in preorder. ``parent`` indexes the tree's nodes (help_no_parent at the top level). Titles come from the catalog in force, so they differ by language; the shape does not.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::string title
+
+   .. cpp:member:: std::uint32_t parent
+
+      Default: ``{help_no_parent}``.
+
+   .. cpp:member:: std::uint32_t depth
+
+   .. cpp:member:: bool topic
+
+      A stand-alone topic rather than a part of the program's structure.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpContentsTree final
+
+   ``#include <gui_forms/help/help_contents/help_contents.hpp>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::uint32_t find(std::string_view stable_id) const noexcept
+
+      The node holding ``stable_id``, or help_no_parent.
+
+   .. cpp:function:: void clear() noexcept
+
+   .. cpp:member:: std::vector<HelpContentsNode> nodes
+
+   .. cpp:member:: std::vector<HelpContentsLine> lines
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpEntryRejection final
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: HelpField field
+
+      Default: ``{HelpField::help}``.
+
+   .. cpp:member:: HelpEntryRefusal reason
+
+      Default: ``{HelpEntryRefusal::invalid_text}``.
+
+   .. cpp:member:: std::string detail
+
+      What was wrong, for logs: the link target, the image name, the offending segment. Empty when the reason says it all.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpFieldLimits final
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   The bounds a layer enforces on its fields; each, when exceeded, rejects the one field (HelpEntryRefusal::too_long), not the file. Lengths are in bytes of UTF-8. maximum_records bounds a layer's records and rejects a whole locale file past it.
+
+   .. cpp:member:: std::size_t maximum_title_bytes
+
+      Default: ``{1024U}``.
+
+   .. cpp:member:: std::size_t maximum_help_line_bytes
+
+      Default: ``{2048U}``.
+
+   .. cpp:member:: std::size_t maximum_help_bytes
+
+      Default: ``{64U * 1024U}``.
+
+   .. cpp:member:: std::size_t maximum_keywords_bytes
+
+      Default: ``{4096U}``.
+
+   .. cpp:member:: std::size_t maximum_records
+
+      Default: ``{20000U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpKeyword final
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   One keyword of a ``keywords`` field: the keyword and, when the entry has a ',', its subkeyword. Both are trimmed of spaces.
+
+   .. cpp:member:: std::string keyword
+
+   .. cpp:member:: std::string subkeyword
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpKeywordEntry final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   One keyword of the index: folded for ordering and lookup, as written for showing, and the record it opens.
+
+   .. cpp:member:: std::string folded
+
+   .. cpp:member:: std::string keyword
+
+   .. cpp:member:: std::string subkeyword
+
+   .. cpp:member:: std::uint32_t record
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpLinkActivation final
+
+   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+
+   A link was activated (click, Enter, or the semantic press). ``page`` is the page's stable ID; ``bounds`` the link's box in window coordinates, where a popup anchors. A handler that acts sets ``handled``; the viewer handles topic and popup links itself and offers external ones to the application.
+
+   .. cpp:member:: std::string page
+
+   .. cpp:member:: HelpLinkKind kind
+
+      Default: ``{HelpLinkKind::external}``.
+
+   .. cpp:member:: std::string target
+
+   .. cpp:member:: std::string fragment
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: bool handled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpLinkEntry final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   One link of a body, in record and source order.
+
+   .. cpp:member:: std::uint32_t record
+
+   .. cpp:member:: HelpLinkKind kind
+
+      Default: ``{HelpLinkKind::external}``.
+
+   .. cpp:member:: std::string target
+
+      The stable ID (topic, popup), the destination as written (external) or the image name.
+
+   .. cpp:member:: std::string fragment
+
+      After '#' in a topic link: the heading anchor inside the topic.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpLinkTarget final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   What a link destination is in a help body (study section 4): a valid stable ID, optionally with '#' and an anchor, is a topic link (a popup when ``title`` is "popup"); anything else is external.
+
+   .. cpp:member:: HelpLinkKind kind
+
+      Default: ``{HelpLinkKind::external}``.
+
+   .. cpp:member:: std::string target
+
+   .. cpp:member:: std::string fragment
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpLocaleReadResult final
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   .. cpp:member:: HelpLocaleError error
+
+      Default: ``{HelpLocaleError::none}``.
+
+   .. cpp:member:: XmlError xml_error
+
+      Default: ``{XmlError::none}``.
+
+   .. cpp:member:: XmlSourcePosition position
+
+   .. cpp:member:: std::string language
+
+      The ``xml:lang`` tag, as written.
+
+   .. cpp:member:: HelpRecordLayer records
+
+      The help fields the file gives. Empty on a refused file.
+
+   .. cpp:member:: std::vector<HelpEntryRejection> rejections
+
+      The fields that were rejected one by one. Empty on a refused file.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPageBlock final
+
+   ``#include <gui_forms/help/help_page/help_page.hpp>``
+
+   One block. ``level`` is a heading's level (1 to 6) or a list item's nesting. ``section`` is the innermost collapsible section the block lies in (a section's heading is not in its own section). ``anchor`` is a heading's fragment name (help_heading_anchor), or a listed control's stable ID for a help-line entry, so a link or F1 can scroll to it. ``image`` indexes the page's images for an image block.
+
+   .. cpp:member:: HelpPageBlockKind kind
+
+      Default: ``{HelpPageBlockKind::paragraph}``.
+
+   .. cpp:member:: std::size_t level
+
+   .. cpp:member:: std::size_t quote_depth
+
+   .. cpp:member:: MarkdownListMarker marker
+
+      Default: ``{MarkdownListMarker::bullet}``.
+
+   .. cpp:member:: std::uint32_t ordinal
+
+   .. cpp:member:: MarkdownAlignment alignment
+
+      Default: ``{MarkdownAlignment::left}``.
+
+   .. cpp:member:: HelpCalloutKind callout
+
+      Default: ``{HelpCalloutKind::none}``.
+
+   .. cpp:member:: std::optional<std::size_t> section
+
+   .. cpp:member:: std::string anchor
+
+   .. cpp:member:: std::optional<std::size_t> image
+
+   .. cpp:member:: std::size_t first_run
+
+      The block's runs: HelpPageModel::runs from first_run, run_count of them.
+
+   .. cpp:member:: std::size_t run_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPageImage final
+
+   ``#include <gui_forms/help/help_page/help_page.hpp>``
+
+   .. cpp:member:: std::string source
+
+   .. cpp:member:: std::string alternative
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPageLink final
+
+   ``#include <gui_forms/help/help_page/help_page.hpp>``
+
+   .. cpp:member:: HelpLinkKind kind
+
+      Default: ``{HelpLinkKind::external}``.
+
+   .. cpp:member:: std::string target
+
+   .. cpp:member:: std::string fragment
+
+   .. cpp:member:: std::string target_title
+
+      A topic or popup link's target title, when the page was built from a section: printing shows it in brackets after the link.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPageModel final
+
+   ``#include <gui_forms/help/help_page/help_page.hpp>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::optional<std::size_t> find_anchor(std::string_view anchor) const noexcept
+
+      The block whose anchor is ``anchor``, or none.
+
+   .. cpp:function:: void clear() noexcept
+
+      Ends every element's lifetime; capacity remains.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::string title
+
+   .. cpp:member:: bool fallback
+
+      A field came from the built-in language while a translation is in force: the page marks it.
+
+   .. cpp:member:: std::vector<HelpPageBlock> blocks
+
+   .. cpp:member:: std::vector<HelpPageRun> runs
+
+   .. cpp:member:: std::vector<HelpPageLink> links
+
+   .. cpp:member:: std::vector<HelpPageImage> images
+
+   .. cpp:member:: std::vector<HelpPageSection> sections
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPageRun final
+
+   ``#include <gui_forms/help/help_page/help_page.hpp>``
+
+   A piece of a block's text in one style. ``link`` indexes the page's links.
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: bool bold
+
+   .. cpp:member:: bool italic
+
+   .. cpp:member:: bool code
+
+   .. cpp:member:: bool underline
+
+   .. cpp:member:: bool strikethrough
+
+   .. cpp:member:: bool line_break
+
+   .. cpp:member:: std::optional<std::size_t> link
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPageSection final
+
+   ``#include <gui_forms/help/help_page/help_page.hpp>``
+
+   A collapsible section: its heading block, the first block after it, and whether it starts open.
+
+   .. cpp:member:: std::size_t heading
+
+   .. cpp:member:: std::size_t end
+
+   .. cpp:member:: bool initially_open
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HelpPlace final
+
+   ``#include <gui_forms/help/help_contents/help_contents.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: HelpPlaceKind kind() const noexcept
+
+   .. cpp:function:: std::string_view anchor() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static HelpPlace after(StableIdLiteral anchor)
+
+      After :cpp:func:`anchor <gui_forms::HelpPlace::anchor>` (a stable ID; checked when the program is compiled).
+
+   .. cpp:function:: static HelpPlace under(StableIdLiteral anchor)
+
+      The last child of :cpp:func:`anchor <gui_forms::HelpPlace::anchor>`.
+
+   .. cpp:function:: static HelpPlace top()
+
+      The start of the top level: a welcome or home topic.
+
+   .. cpp:function:: static HelpPlace parse(std::string_view text)
+
+      A place read at run time (the C ABI's "after:<id>", "under:<id>", "top"). Throws std::invalid_argument for any other text or an anchor that is not a stable ID. The anchor is copied.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPrintOptions final
+
+   ``#include <gui_forms/controls/help/help_print/help_print.hpp>``
+
+   Printing help pages (help system study, section 8). The page is laid out for paper (every section open, links followed by their target's title in brackets), broken into sheets only between lines, and each sheet carries a header: the program's name at the left and the page's title at the right, over a rule, and a footer with the sheet number. Sending sheets to a printer is the host's print path, which GUI.Forms does not have yet: the program paints each sheet onto the painter its print path gives it.
+
+   .. cpp:member:: Size sheet
+
+      The sheet in logical units (US Letter at 96 per inch by default). Default: ``{816.0, 1056.0}``.
+
+   .. cpp:member:: double margin
+
+      Default: ``{72.0}``.
+
+   .. cpp:member:: double header_height
+
+      Default: ``{28.0}``.
+
+   .. cpp:member:: double footer_height
+
+      Default: ``{24.0}``.
+
+   .. cpp:member:: std::string program_title
+
+   .. cpp:member:: std::string footer_format
+
+      "{0}" is replaced by the sheet number and "{1}" by the sheet count. Default: ``{"Page {0} of {1}"}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPrintPlan final
+
+   ``#include <gui_forms/controls/help/help_print/help_print.hpp>``
+
+   .. cpp:member:: double content_width
+
+   .. cpp:member:: double content_height
+
+   .. cpp:member:: std::vector<HelpPrintSheet> sheets
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPrintRequest final
+
+   ``#include <gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp>``
+
+   Printing was asked for: the page shown (``page``), or the contents book under it when ``book`` is set. The help system's handler prints.
+
+   .. cpp:member:: std::string page
+
+   .. cpp:member:: bool book
+
+   .. cpp:member:: bool handled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPrintSheet final
+
+   ``#include <gui_forms/controls/help/help_print/help_print.hpp>``
+
+   One sheet: the band of the print layout it shows, in content coordinates.
+
+   .. cpp:member:: double top
+
+   .. cpp:member:: double height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpRecordEntry final
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   One record's help fields as one layer gives them. A field the layer does not give is absent, so a lower layer's value shows through; an empty value that is present hides the lower layers' value.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::optional<std::string> title
+
+   .. cpp:member:: std::optional<std::string> help_line
+
+   .. cpp:member:: std::optional<std::string> help
+
+   .. cpp:member:: std::optional<std::string> keywords
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HelpRecordLayer final
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   The records of one language, sorted by stable ID with each ID once. Owns its records. Not thread-safe; one owner mutates it.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const HelpRecordEntry> entries() const& noexcept
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+   .. cpp:function:: bool empty() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: const HelpRecordEntry* find(std::string_view stable_id) const& noexcept
+
+      The record with this ID, or null. The pointer borrows this layer and is invalidated by any change to it; a temporary layer is refused.
+
+   .. cpp:function:: void set(std::string_view stable_id, HelpField field, std::string value)
+
+      Sets one field of the record ``stable_id``, creating the record. Throws std::invalid_argument, changing nothing, for an ID that is not a stable ID or a value that is not valid UTF-8 or holds NUL.
+
+   .. cpp:function:: bool reset(std::string_view stable_id, HelpField field)
+
+      Removes one field; a record with no field left is removed. Returns whether the field was present.
+
+   .. cpp:function:: void put(HelpRecordEntry entry)
+
+      Puts ``entry`` in, replacing a record with the same ID. The entry's ID must be a stable ID (std::invalid_argument otherwise).
+
+   .. cpp:function:: void merge_over(const HelpRecordLayer& over)
+
+      Every field ``over`` gives replaces this layer's; the others stay.
+
+   .. cpp:function:: void clear() noexcept
+
+      Ends every record's lifetime; capacity remains.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpResolvedField final
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   One resolved field: the text and the layer it came from. ``fallback`` is set when a translation is in force and the field came from the built-in layer, so the page can mark it.
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: std::optional<HelpLayer> origin
+
+   .. cpp:member:: bool fallback
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpResolvedRecord final
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: HelpResolvedField title
+
+   .. cpp:member:: HelpResolvedField help_line
+
+   .. cpp:member:: HelpResolvedField help
+
+   .. cpp:member:: HelpResolvedField keywords
+
+   .. cpp:member:: bool found
+
+      Whether any layer holds the record.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpSearchHit final
+
+   ``#include <gui_forms/help/help_search/help_search.hpp>``
+
+   One record that holds every required term. Ranked by title hit, then frequency (the required terms' counts, summed), then contents order.
+
+   .. cpp:member:: std::uint32_t record
+
+   .. cpp:member:: bool title_hit
+
+   .. cpp:member:: std::uint32_t frequency
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpSearchOptions final
+
+   ``#include <gui_forms/help/help_search/help_search.hpp>``
+
+   .. cpp:member:: bool titles_only
+
+      Only titles are searched; phrases are checked against the title.
+
+   .. cpp:member:: std::size_t budget
+
+      The most postings and phrase words one search visits before it stops with the hits so far (status partial): the per-keystroke budget on the UI thread. Default: ``{200000U}``.
+
+   .. cpp:member:: std::size_t maximum_hits
+
+      The most hits kept, best first. Default: ``{500U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpSearchPosting final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   One posting of a search term: a record that holds it, how many times, and whether its title does.
+
+   .. cpp:member:: std::uint32_t record
+
+   .. cpp:member:: std::uint32_t count
+
+   .. cpp:member:: bool in_title
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpSearchQuery final
+
+   ``#include <gui_forms/help/help_search/help_search.hpp>``
+
+   A query split into what must be found. Every word, the phrases' words included, is a required term; ``phrases`` keep each phrase's words in order for the consecutive check.
+
+   .. cpp:member:: std::vector<std::string> words
+
+   .. cpp:member:: std::vector<std::vector<std::string>> phrases
+
+   .. cpp:member:: bool last_is_prefix
+
+      The last word was typed without a following space or quote: it matches every term it is a prefix of.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpSearchTerm final
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   One search term: folded, with its postings (HelpBookSection::postings from first_posting, posting_count of them, in record order). Terms are sorted by bytes.
+
+   .. cpp:member:: std::string term
+
+   .. cpp:member:: std::uint32_t first_posting
+
+   .. cpp:member:: std::uint32_t posting_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpSectionToggle final
+
+   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+
+   A collapsible section was opened or closed.
+
+   .. cpp:member:: std::size_t section
+
+   .. cpp:member:: bool open
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpSkeletonNode final
+
+   ``#include <gui_forms/help/help_contents/help_contents.hpp>``
+
+   One node of the program's structure, in the order the skeleton walk enumerates it (depth first, children in order). ``depth`` is 0 for a window. ``name`` is the control's accessible name or text, the title the contents uses when no record gives one.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: std::uint32_t depth
+
+   .. cpp:member:: HelpSkeletonKind kind
+
+      Default: ``{HelpSkeletonKind::control}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HelpTopic final
+
+   ``#include <gui_forms/help/help_contents/help_contents.hpp>``
+
+   A stand-alone topic ("Make your first picture"): an ordinary help record that no control holds, declared like a message, inline const gui_forms::HelpTopic first_picture{ gui_forms::StableId("help.first-picture"), "Make your first picture", first_picture_body, gui_forms::HelpPlace::after("main")}; Its title is the record's ``text``, its body the record's ``help``. The text given here is the built-in language's; a language file translates it by the topic's stable ID. A declaration joins the process's topic list when it is made and leaves it when destroyed, so a topic at namespace scope is declared for the whole run. Declarations are made during static initialization or on the UI thread, never concurrently.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: HelpTopic(StableId stable_id, std::string title, std::string body, HelpPlace place, std::string help_line = {}, std::string keywords = {})
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const StableId& stable_id() const noexcept
+
+   .. cpp:function:: const std::string& title() const noexcept
+
+   .. cpp:function:: const std::string& body() const noexcept
+
+   .. cpp:function:: const HelpPlace& place() const noexcept
+
+   .. cpp:function:: const std::string& help_line() const noexcept
+
+   .. cpp:function:: const std::string& keywords() const noexcept
+
+   .. cpp:function:: const HelpTopic* next() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static const HelpTopic* first() noexcept
+
+      The first declared topic, in declaration order, or null; :cpp:func:`next <gui_forms::HelpTopic::next>` walks the rest. The pointers stay valid while the topics live.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpTopicPlacement final
+
+   ``#include <gui_forms/help/help_contents/help_contents.hpp>``
+
+   A topic's place in the contents, as the contents generator reads it: from a HelpTopic or from a run-time declaration (HelpBookSystem::declare_topic).
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: HelpPlaceKind kind
+
+      Default: ``{HelpPlaceKind::top}``.
+
+   .. cpp:member:: std::string anchor
 
 .. cpp:namespace:: gui_forms
 
@@ -822,6 +2187,26 @@ Related types
    .. cpp:member:: PropertyCell<VerticalAlignment, LabelVerticalAlignmentCapability<Declaring>> vertical_alignment
 
       Default: ``{VerticalAlignment::center}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LinearGauge::Parts final
+
+   ``#include <gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``alarm_zone`` spans the alarm segments and is absent without alarm limits inside the range; ``caption`` is absent while show_value is clear.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry plot
+
+   .. cpp:member:: PartGeometry alarm_zone
+
+   .. cpp:member:: PartGeometry trace
+
+   .. cpp:member:: PartGeometry graticule
+
+   .. cpp:member:: PartGeometry caption
 
 .. cpp:namespace:: gui_forms
 
@@ -1968,6 +3353,30 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: RadialGauge::Parts final
+
+   ``#include <gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). The arcs and the needle publish the square their circle is inscribed in; ``alarm_arc`` is absent without alarm limits, ``value_arc`` at the minimum, and ``caption`` while show_value is clear.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry plot
+
+   .. cpp:member:: PartGeometry track
+
+   .. cpp:member:: PartGeometry alarm_arc
+
+   .. cpp:member:: PartGeometry value_arc
+
+   .. cpp:member:: PartGeometry graticule
+
+   .. cpp:member:: PartGeometry needle
+
+   .. cpp:member:: PartGeometry caption
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> ReviewCardCapabilities : public ReviewCardRecordCapability<Declaring>
 
    ``#include <gui_forms/controls/panel/card/review_card/review_card_capabilities/review_card_capabilities.hpp>``
@@ -2058,6 +3467,108 @@ Related types
       Default: ``1.0``.
 
    .. cpp:member:: constexpr EffectDeclaration declaration
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SevenSegmentCell final
+
+   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp>``
+
+   One cell of a seven-segment reading: the lit segments, as bits from a (the top bar, bit 0) clockwise through f (the upper left, bit 5) to g (the middle bar, bit 6); whether its decimal point is lit; and whether it is a colon cell, which is half a digit wide and shows two dots instead.
+
+   .. cpp:member:: std::uint8_t segments
+
+   .. cpp:member:: bool point
+
+   .. cpp:member:: bool colon
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SevenSegmentDisplay::Parts final
+
+   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``plot`` is the window, ``trace`` the box around the cells' lit bars and ``graticule`` the box around the cells (present while ghost_segments is set).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry plot
+
+   .. cpp:member:: PartGeometry trace
+
+   .. cpp:member:: PartGeometry graticule
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SevenSegmentDisplayCapabilities : public SevenSegmentDisplayTextCapability<Declaring>, public SevenSegmentDisplayDigitCountCapability<Declaring>, public SevenSegmentDisplayGhostSegmentsCapability<Declaring>
+
+   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp>``
+
+   Every SevenSegmentDisplay capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The reading the cells show, right-aligned: digits, the hexadecimal letters, the letters a seven-segment cell can form, '-', '_', '=', the degree sign and spaces; '.' and ',' light the previous cell's point and ':' is a colon cell. Other characters show as blank cells. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::uint32_t digit_count
+
+      The digit cells shown, at most 64 (std::invalid_argument); zero shows as many as the text needs. A longer reading keeps its last digits (overflowed()).
+
+   .. cpp:member:: bool ghost_segments
+
+      Whether the unlit segments are drawn faintly, as on a real display.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SevenSegmentDisplayDigitCountCapability
+
+   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp>``
+
+   The digit cells shown, at most 64 (std::invalid_argument); zero shows as many as the text needs. A longer reading keeps its last digits (overflowed()).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SevenSegmentDisplayDigitCountCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, SevenSegmentDisplayDigitCountCapability<Declaring>> digit_count
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SevenSegmentDisplayGhostSegmentsCapability
+
+   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp>``
+
+   Whether the unlit segments are drawn faintly, as on a real display.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SevenSegmentDisplayGhostSegmentsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SevenSegmentDisplayGhostSegmentsCapability<Declaring>> ghost_segments
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SevenSegmentDisplayTextCapability
+
+   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp>``
+
+   The reading the cells show, right-aligned: digits, the hexadecimal letters, the letters a seven-segment cell can form, '-', '_', '=', the degree sign and spaces; '.' and ',' light the previous cell's point and ':' is a colon cell. Other characters show as blank cells. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SevenSegmentDisplayTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, SevenSegmentDisplayTextCapability<Declaring>> text
 
 .. cpp:namespace:: gui_forms
 
@@ -2181,6 +3692,56 @@ Related types
    .. cpp:member:: bool active
 
       Whether the spinner shows and turns; an inactive spinner draws nothing and reports no busy state.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: StepIndicator::Parts final
+
+   ``#include <gui_forms/controls/step_indicator/step_indicator.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts): the chips and connectors of every step, each part spanning all of its instances.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry chip
+
+   .. cpp:member:: PartGeometry glyph
+
+   .. cpp:member:: PartGeometry divider
+
+   .. cpp:member:: PartGeometry caption
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> StepIndicatorCapabilities : public StepIndicatorCurrentStepCapability<Declaring>
+
+   ``#include <gui_forms/controls/step_indicator/step_indicator_capabilities/step_indicator_capabilities.hpp>``
+
+   Every StepIndicator capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::uint32_t current_step
+
+      The step under way, counted from zero; the steps before it are complete. Past the last step throws std::invalid_argument (zero is always accepted).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> StepIndicatorCurrentStepCapability
+
+   ``#include <gui_forms/controls/step_indicator/step_indicator_capabilities/step_indicator_capabilities.hpp>``
+
+   The step under way, counted from zero; the steps before it are complete. Past the last step throws std::invalid_argument (zero is always accepted).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(StepIndicatorCurrentStepCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, StepIndicatorCurrentStepCapability<Declaring>> current_step
+
+      Default: ``{0U}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2428,6 +3989,182 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: HelpBookReadError
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: not_a_section
+
+   .. cpp:enumerator:: later_major_version
+
+   .. cpp:enumerator:: malformed
+
+   .. cpp:enumerator:: limit_exceeded
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpCalloutKind
+
+   ``#include <gui_forms/help/help_page/help_page.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: note
+
+   .. cpp:enumerator:: tip
+
+   .. cpp:enumerator:: caution
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpEntryRefusal
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   .. cpp:enumerator:: invalid_stable_id
+
+   .. cpp:enumerator:: too_long
+
+   .. cpp:enumerator:: invalid_text
+
+   .. cpp:enumerator:: invalid_keywords
+
+   .. cpp:enumerator:: duplicate_record
+
+   .. cpp:enumerator:: markdown_fault
+
+   .. cpp:enumerator:: broken_link
+
+   .. cpp:enumerator:: missing_image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpField
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   .. cpp:enumerator:: title
+
+   .. cpp:enumerator:: help_line
+
+   .. cpp:enumerator:: help
+
+   .. cpp:enumerator:: keywords
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpLayer
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   .. cpp:enumerator:: built_in
+
+   .. cpp:enumerator:: translation
+
+   .. cpp:enumerator:: user
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpLinkKind
+
+   ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+   .. cpp:enumerator:: topic
+
+   .. cpp:enumerator:: popup
+
+   .. cpp:enumerator:: external
+
+   .. cpp:enumerator:: image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpLocaleError
+
+   ``#include <gui_forms/help/help_records/help_records.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: xml
+
+   .. cpp:enumerator:: wrong_root
+
+   .. cpp:enumerator:: no_language
+
+   .. cpp:enumerator:: too_many_records
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpNavigationTab
+
+   ``#include <gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp>``
+
+   .. cpp:enumerator:: contents
+
+   .. cpp:enumerator:: index
+
+   .. cpp:enumerator:: search
+
+   .. cpp:enumerator:: bookmarks
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpPageBlockKind
+
+   ``#include <gui_forms/help/help_page/help_page.hpp>``
+
+   .. cpp:enumerator:: paragraph
+
+   .. cpp:enumerator:: heading
+
+   .. cpp:enumerator:: list_item
+
+   .. cpp:enumerator:: code
+
+   .. cpp:enumerator:: rule
+
+   .. cpp:enumerator:: image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpPlaceKind
+
+   ``#include <gui_forms/help/help_contents/help_contents.hpp>``
+
+   .. cpp:enumerator:: after
+
+   .. cpp:enumerator:: under
+
+   .. cpp:enumerator:: top
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpSearchStatus
+
+   ``#include <gui_forms/help/help_search/help_search.hpp>``
+
+   .. cpp:enumerator:: complete
+
+   .. cpp:enumerator:: partial
+
+   .. cpp:enumerator:: empty_query
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HelpSkeletonKind
+
+   ``#include <gui_forms/help/help_contents/help_contents.hpp>``
+
+   .. cpp:enumerator:: window
+
+   .. cpp:enumerator:: group
+
+   .. cpp:enumerator:: control
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: HorizontalAlignment
 
    ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
@@ -2629,11 +4366,31 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/controls/help/help_print/help_print.hpp>``
+
+.. cpp:function:: void plan_help_print(HelpBook& book, const HelpPrintOptions& options, HelpPrintPlan& plan)
+
+   Lays ``book``'s page out for print and breaks it into sheets. A line taller than a sheet is cut at the sheet's foot. ``plan`` is replaced. The book must be attached to a window (its text needs the window's fonts).
+
+.. cpp:function:: void paint_help_print_sheet(Painter& painter, const HelpBook& book, const HelpPrintPlan& plan, std::size_t sheet, const HelpPrintOptions& options, Point origin)
+
+   Paints sheet ``sheet`` of ``plan`` with its top left at ``origin``: header, content band and footer. Nothing for a sheet out of range.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/controls/info_banner/notice_values/notice_values.hpp>``
 
 .. cpp:function:: constexpr Color notice_severity_colour(NoticeSeverity severity) noexcept
 
    A severity's colour, which InfoBanner's keyline and icon, Toast's icon and InstrumentRack's module keyline draw as an authored foreground over the notice's role, under the severity's custom state (``:state(warning)``). Mid-tone, so that each reads on a light face and a dark one; high contrast replaces it with the role's own colour. Provisional until T4's floor gives the status colours roles.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp>``
+
+.. cpp:function:: std::uint8_t seven_segment_pattern(char32_t character) noexcept
+
+   The segments ``character`` lights (a Unicode scalar value): the digits, the hexadecimal letters and the other letters a seven-segment cell can form (in whichever case it can), '-', '_', '=', the degree sign (U+00B0) and space; zero for anything else.
 
 .. cpp:namespace:: gui_forms
 
@@ -2650,3 +4407,133 @@ Functions, constants and aliases
 .. cpp:function:: void register_progress_bar_effects(EffectRegistry& registry)
 
    Adds the progress bar's effects to ``registry``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/help/help_contents/help_contents.hpp>``
+
+.. cpp:function:: void collect_declared_topics(std::vector<HelpTopicPlacement>& placements)
+
+   Fills ``placements`` (cleared first) from every declared HelpTopic, in declaration order.
+
+.. cpp:function:: void put_declared_topics(HelpRecordLayer& layer)
+
+   Writes every declared HelpTopic's text into ``layer`` (the built-in layer): title, body, help line and keywords.
+
+.. cpp:function:: void append_help_skeleton(const SurfaceRoot& window, std::vector<HelpSkeletonNode>& nodes)
+
+   Appends ``window``'s structure to ``nodes``: its root as the window, then every control of its tree, depth first. Overlays and controls without a stable ID path under the root are not part of the structure. UI thread.
+
+.. cpp:function:: void build_help_contents(std::span<const HelpSkeletonNode> skeleton, std::span<const HelpTopicPlacement> topics, const HelpCatalog& catalog, HelpContentsTree& tree)
+
+   Generates the contents (help system study, ruling A): the skeleton's windows, groups and controls, in skeleton order, keeping only records with a ``help`` body as pages; a record with only a ``help-line`` becomes a line on its nearest page; then each placement slotted in at its place, in order. A placement whose record has no body is left out. Titles are the resolved ``text``, else the skeleton's name, else the ID's last segment. ``tree`` is replaced.
+
+.. cpp:var:: constexpr std::uint32_t help_no_parent
+
+   Value: ``0xFFFFFFFFU``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/help/help_page/help_page.hpp>``
+
+.. cpp:function:: std::string_view help_callout_name(HelpCalloutKind kind) noexcept
+
+.. cpp:function:: void help_heading_anchor(std::string_view heading, std::string& anchor)
+
+   A heading's fragment name: ASCII letters folded to lower case, digits and non-ASCII bytes kept, every other run of bytes one '-', with no '-' at either end. ``anchor`` is replaced.
+
+.. cpp:function:: MarkdownParseResult build_help_page(std::string_view stable_id, std::string_view title, std::string_view body, HelpPageModel& page, const MarkdownLimits& limits = {})
+
+   Builds ``page`` from a record's title and body. On a markdown failure the page holds the title only and the result says why. ``page`` is replaced.
+
+.. cpp:function:: MarkdownParseResult build_help_page(const HelpBookSection& section, std::size_t record, HelpPageModel& page, const MarkdownLimits& limits = {})
+
+   Builds the page of record ``record`` of ``section``: its body, then one list entry per control listed on the page (HelpContentsLine), with the control's title in bold and its help line, anchored at its stable ID.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/help/help_records/help_records.hpp>``
+
+.. cpp:function:: std::string_view help_field_name(HelpField field) noexcept
+
+   The registered name of a field, as the locale XML spells it: "text", "help-line", "help" or "keywords". Static storage.
+
+.. cpp:function:: const std::optional<std::string>& help_entry_field(const HelpRecordEntry& entry, HelpField field) noexcept
+
+   The field of ``entry`` named by ``field``. The reference borrows ``entry``.
+
+.. cpp:function:: std::optional<std::string>& help_entry_field(HelpRecordEntry& entry, HelpField field) noexcept
+
+.. cpp:function:: std::string_view help_entry_refusal_name(HelpEntryRefusal refusal) noexcept
+
+.. cpp:function:: bool parse_help_keywords(std::string_view field, std::vector<HelpKeyword>& keywords)
+
+   Fills ``keywords`` (cleared first) from a ``keywords`` field. Returns false, leaving ``keywords`` empty, when an entry is empty or has more than one ','. An empty or all-space field has no keywords and is valid.
+
+.. cpp:function:: void normalize_help_body(std::string_view raw, std::string& body)
+
+   The ``<help>`` element's character data as a help body: a leading line end and the trailing white space go, and the indentation every non-blank line shares is removed, so a body indented to sit under its ``<control>`` reads as written. ``body`` is replaced.
+
+.. cpp:function:: std::string_view help_locale_error_name(HelpLocaleError error) noexcept
+
+.. cpp:function:: HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits = {}, const XmlLimits& xml_limits = {})
+
+   Reads the help fields of a ``locales-<tag>.xml`` file: <locale xml:lang="fr"> <controls> <control name="main"> <control name="paste" text="Coller" help-line="..."> <help keywords="presse-papiers; coller, image">...</help> </control> </control> </controls> </locale> ``<control>`` elements nest by stable-ID segment; ``text`` is the record's title, ``help-line`` an attribute, and the body the ``<help>`` child's character data (normalize_help_body), with ``keywords`` on it. Other attributes and elements (the rest of the language file) are ignored. Expected faults never throw.
+
+.. cpp:function:: XmlWriteResult write_help_locale(const HelpRecordLayer& records, std::string_view language, const XmlLimits& xml_limits = {})
+
+   Writes ``records`` as a locale file read_help_locale accepts: the template export when ``records`` is the built-in layer (every field with the built-in text as its value), or a translation. Records nest by segment in stable-ID order. The result's error is the XML writer's.
+
+.. cpp:var:: constexpr std::size_t help_field_count
+
+   Value: ``4U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/help/help_search/help_search.hpp>``
+
+.. cpp:function:: void parse_help_query(std::string_view text, HelpSearchQuery& query)
+
+   Fills ``query`` (replaced) from what the user typed: words, and phrases in double quotes (an unclosed quote runs to the end).
+
+.. cpp:function:: HelpSearchStatus search_help(const HelpBookSection& section, const HelpSearchQuery& query, const HelpSearchOptions& options, std::vector<HelpSearchHit>& hits)
+
+   Searches ``section``. ``hits`` is cleared first and its storage reused.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>``
+
+.. cpp:function:: std::string_view help_link_kind_name(HelpLinkKind kind) noexcept
+
+.. cpp:function:: void fold_help_text(std::string_view text, std::string& folded)
+
+   Case-folds help text for indexing and search: ASCII letters to lower case; other bytes are kept (Unicode case folding is the text engine's and comes with the language-file implementation). ``folded`` is replaced.
+
+.. cpp:function:: void split_help_words(std::string_view text, std::vector<std::string_view>& words)
+
+   Splits folded text into search words: maximal runs of ASCII letters and digits and of non-ASCII bytes. Each word is a view into ``text``; ``words`` is cleared first.
+
+.. cpp:function:: HelpLinkTarget classify_help_link(std::string_view destination, std::string_view title)
+
+.. cpp:function:: HelpBookCompileResult compile_helpbook_section(const HelpCatalog& catalog, std::span<const HelpSkeletonNode> skeleton, std::span<const HelpTopicPlacement> topics, const HelpBookCompileOptions& options = {})
+
+   The help pass over one language's catalog: validates every help body (markdown, topic links, images), resolves every record, generates the contents from ``skeleton`` and ``topics``, and builds the keyword index, the search term table and the link table. A topic link may name any record in the catalog or any node of the skeleton.
+
+.. cpp:function:: void write_helpbook_section(const HelpBookSection& section, std::vector<std::byte>& bytes)
+
+   The section's bytes (little-endian): the magic "GFHB", the format's major and minor version, then sub-sections, each a tag, its own version and its byte length. ``bytes`` is replaced.
+
+.. cpp:function:: std::string_view helpbook_read_error_name(HelpBookReadError error) noexcept
+
+.. cpp:function:: HelpBookReadResult read_helpbook_section(std::span<const std::byte> bytes, const HelpBookReadLimits& limits = {})
+
+   Reads bytes write_helpbook_section wrote. Every length, count and index is checked before use; unknown sub-sections are skipped; a later major version is refused with its own error. Expected faults never throw.
+
+.. cpp:var:: constexpr std::uint16_t helpbook_format_major
+
+   Value: ``1U``.
+
+.. cpp:var:: constexpr std::uint16_t helpbook_format_minor
+
+   Value: ``0U``.

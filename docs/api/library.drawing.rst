@@ -169,6 +169,12 @@ Types
 
    .. rubric:: Properties
 
+   .. cpp:function:: bool borrows_memory() const
+
+   .. cpp:function:: const std::byte* borrowed_memory() const
+
+      The borrowed memory, or nullptr for a bitmap that owns its pixels.
+
    .. cpp:function:: std::uint32_t width() const
 
       Requires liveness and returns pixel width.
@@ -195,6 +201,10 @@ Types
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: static std::unique_ptr<Bitmap> borrow(std::uint32_t width, std::uint32_t height, std::size_t row_bytes, std::byte* memory)
+
+      A bitmap over memory it does not own: width x height premultiplied BGRA rows, row_bytes apart, at memory (a native DIB section's pixels). The caller keeps the memory alive and unmoved for the bitmap's life. Drawing writes those pixels in place; a snapshot copies them.
 
    .. cpp:function:: Color get_pixel(std::uint32_t x, std::uint32_t y) const
 

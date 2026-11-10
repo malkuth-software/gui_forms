@@ -96,6 +96,8 @@ gui_forms::SurfaceRoot
       **overrides** : ``WindowOverrides*``, read-only
          Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
+      **invalidation_overlay_setting** : ``std::optional<bool>``, read-only
+
       **text_metrics_provider** : ``TextMetricsProvider*``
 
       **theme** : ``Theme``
@@ -412,6 +414,12 @@ gui_forms::SurfaceRoot
         - A picture of a control and its descendants as last laid out: their retained painting is replayed, every paint plane in order, into an offscreen framebuffer of the host's own CPU raster at the given scale, and the pixels are registered as one of the window's images (premultiplied BGRA).
       * - :cpp:func:`capture_window <gui_forms::SurfaceRoot::capture_window>`
         - The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does.
+      * - :cpp:func:`invalidation_overlay_enabled <gui_forms::SurfaceRoot::invalidation_overlay_enabled>`
+        - Whether the overlay is on now, after the process switch's last change.
+      * - :cpp:func:`invalidation_overlay <gui_forms::SurfaceRoot::invalidation_overlay>`
+        - The window's outlines while the overlay is on, for its host to composite at present time (InvalidationOverlay::compose); null while it is off.
+      * - :cpp:func:`record_presented_area <gui_forms::SurfaceRoot::record_presented_area>`
+        - Records an area the host presented without a paint of the window's (a live frame, external content), with its cause and source, while the overlay is on; nothing while it is off.
       * - :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>`
         - Removes a snapshot's image; false when it is not there.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`
@@ -582,6 +590,8 @@ gui_forms::SurfaceRoot
         - Shows :cpp:func:`theme <gui_forms::SurfaceRoot::theme>` in this window alone, whatever its resources' theme (ApplicationResources::set_theme no longer reaches it); null returns to the resources' theme.
       * - :cpp:func:`set_framebuffer_painter <gui_forms::SurfaceRoot::set_framebuffer_painter>`
         - Native host borrows its painter until shutdown; clear before destroying it.
+      * - :cpp:func:`set_invalidation_overlay <gui_forms::SurfaceRoot::set_invalidation_overlay>`
+        - The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp).
       * - :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`
         - Host adapters also install a paint wake seam.
       * - :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`
@@ -699,6 +709,8 @@ gui_forms::SurfaceRoot
    .. cpp:function:: const WindowOverrides* overrides() const noexcept
 
       Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
+
+   .. cpp:function:: std::optional<bool> invalidation_overlay_setting() const noexcept
 
    .. cpp:function:: TextMetricsProvider* text_metrics_provider() const noexcept
 
@@ -1166,6 +1178,18 @@ gui_forms::SurfaceRoot
 
       The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does. What the host composites outside the window's pixels (the system backdrop, native frame and shadow) is not drawn. Callable whenever the window is not painting, at any time after the host attached, so a screenshot or a test needs no timer. None, changing nothing, while no framebuffer painter is installed (a headless window, a host whose fonts are not ready), during a paint, for an empty window, for a scale outside (0, 8], or when the framebuffer refuses. Cost: one replay of the window into ceil(width * scale) by ceil(height * scale) pixels and one copy of them; chunks the replay had to rebuild are marked for the next real paint. On the UI thread (std::logic_error elsewhere).
 
+   .. cpp:function:: bool invalidation_overlay_enabled() noexcept
+
+      Whether the overlay is on now, after the process switch's last change. UI thread.
+
+   .. cpp:function:: InvalidationOverlay* invalidation_overlay() noexcept
+
+      The window's outlines while the overlay is on, for its host to composite at present time (InvalidationOverlay::compose); null while it is off. Valid until the overlay is turned off. UI thread.
+
+   .. cpp:function:: void record_presented_area(Rect bounds, InvalidationCause cause, std::string_view source)
+
+      Records an area the host presented without a paint of the window's (a live frame, external content), with its cause and source, while the overlay is on; nothing while it is off. UI thread.
+
    .. cpp:function:: bool release_control_snapshot(ImageId image)
 
       Removes a snapshot's image; false when it is not there.
@@ -1594,6 +1618,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void set_framebuffer_painter(Painter* painter)
 
       Native host borrows its painter until shutdown; clear before destroying it. Created framebuffers own their rendering state independently of the host.
+
+   .. cpp:function:: void set_invalidation_overlay(std::optional<bool> enabled)
+
+      The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp). The window's own setting: on, off, or none to follow the process switch (set_invalidation_overlay_default, read from GUI_FORMS_DEBUG_INVALIDATION at first). Turning it off drops the outlines; turning it on records from the next damage. Neither damages the window. UI thread.
 
    .. cpp:function:: void set_paint_wake_handler(std::function<void()> wake)
 

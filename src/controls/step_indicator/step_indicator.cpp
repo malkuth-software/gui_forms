@@ -315,4 +315,19 @@ void StepIndicator::written(const decltype(current_step)&) {
 
 // property_codemod end StepIndicator
 
+namespace {
+
+// The events StepIndicator adds to those of Control, in declaration order.
+constexpr std::array<InteractionDeclaration, 2> step_indicator_interactions{{
+    {.name = "step_clicked", .payload = "std::size_t", .mutable_payload = false},
+    {.name = "current_step_changed", .payload = "std::uint32_t", .mutable_payload = false},
+}};
+
+} // namespace
+
+void StepIndicator::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Control::append_interactions(interactions);
+    interactions.insert(interactions.end(), step_indicator_interactions.begin(), step_indicator_interactions.end());
+}
+
 } // namespace gui_forms

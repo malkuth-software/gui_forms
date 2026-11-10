@@ -5,6 +5,7 @@
 #include "gui_forms/help/help_page/help_page.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <array>
 #include <algorithm>
 #include <limits>
 #include <utility>
@@ -646,6 +647,22 @@ HelpBookSystemSnapshot HelpBookSystem::snapshot() const noexcept {
     snapshot.popup_open = popup_open();
     snapshot.help_mode = help_mode_active();
     return snapshot;
+}
+
+namespace {
+
+// The events HelpBookSystem adds to those of Component, in declaration order.
+constexpr std::array<InteractionDeclaration, 3> help_book_system_interactions{{
+    {.name = "external_link", .payload = "HelpLinkActivation", .mutable_payload = true},
+    {.name = "print_requested", .payload = "HelpPrintRequest", .mutable_payload = true},
+    {.name = "bookmarks_changed", .payload = "std::vector<std::string>", .mutable_payload = false},
+}};
+
+} // namespace
+
+void HelpBookSystem::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Component::append_interactions(interactions);
+    interactions.insert(interactions.end(), help_book_system_interactions.begin(), help_book_system_interactions.end());
 }
 
 } // namespace gui_forms

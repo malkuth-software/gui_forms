@@ -3476,6 +3476,14 @@ Enumerations
 
    .. cpp:enumerator:: series
 
+   .. cpp:enumerator:: arc
+
+   .. cpp:enumerator:: needle
+
+   .. cpp:enumerator:: beak
+
+   .. cpp:enumerator:: scrim
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms

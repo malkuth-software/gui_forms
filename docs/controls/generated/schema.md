@@ -20,7 +20,7 @@ Every control also raises these interactions: `name_changed`, `visible_changed`,
 
 The atoms controls declare and themes address (design language §8.5 and §12.7).
 
-Part roles: `region`, `shadow`, `face`, `edge`, `keyline`, `perimeter`, `sheen`, `seam`, `divider`, `caption`, `cap`, `well`, `track`, `fill`, `thumb`, `actuator`, `indicator`, `activity`, `glyph`, `icon`, `label`, `content`, `caret`, `disclosure`, `grip`, `chip`, `focus`, `preselect`, `selection`, `validation`, `drop`, `image`, `plot`, `graticule`, `trace`, `axis`, `tick`, `tick_label`, `grid_major`, `grid_minor`, `legend`, `legend_entry`, `marker`, `crosshair`, `annotation`, `color_scale`, `series`.
+Part roles: `region`, `shadow`, `face`, `edge`, `keyline`, `perimeter`, `sheen`, `seam`, `divider`, `caption`, `cap`, `well`, `track`, `fill`, `thumb`, `actuator`, `indicator`, `activity`, `glyph`, `icon`, `label`, `content`, `caret`, `disclosure`, `grip`, `chip`, `focus`, `preselect`, `selection`, `validation`, `drop`, `image`, `plot`, `graticule`, `trace`, `axis`, `tick`, `tick_label`, `grid_major`, `grid_minor`, `legend`, `legend_entry`, `marker`, `crosshair`, `annotation`, `color_scale`, `series`, `arc`, `needle`, `beak`, `scrim`.
 
 States: `normal`, `hot`, `pressed`, `captured`, `focused`, `focus_visible`, `preselect`, `selected`, `checked`, `indeterminate`, `current`, `active_tool`, `enabled`, `disabled`, `unavailable`, `read_only`, `invalid`, `pending`, `open`, `closed`, `expanding`, `collapsing`, `interrupted`, `drop_accepted`, `drop_rejected`, `key`, `secondary_participating`, `drag_proximate`, `deactivated`, `high_contrast`, `reduced_motion`.
 
@@ -30,7 +30,7 @@ Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_
 
 Engine inputs: `pointer_x`, `pointer_y`, `time_in_state`, `display_scale`, `text_scale`.
 
-Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`, `authored_color`, `text_tone`, `pointed_face`, `part_profile`.
+Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`, `authored_color`, `text_tone`, `pointed_face`, `part_profile`, `arc_angles`.
 
 Recipe families: `window`, `panel`, `card`, `button`, `accent_button`, `command_button`, `choice`, `editor`, `menu_item`, `selection`, `progress`, `tool_tip`, `link`, `visited_link`, `notice`, `badge`.
 
@@ -1407,7 +1407,7 @@ Properties beyond every control's: `maximum` (number), `minimum` (number), `valu
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `maximum` (number), `minimum` (number), `tick_frequency` (number), `value` (number), `visual_style` (enumeration).
+Properties beyond every control's: `maximum` (number), `minimum` (number), `thumb_extent` (number), `tick_frequency` (number), `value` (number), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1441,6 +1441,7 @@ Properties beyond every control's: `default_value` (number), `label` (text), `ma
 | `range_changed` | `double, double` |
 | `value_changed` | `double` |
 | `scroll` | `RangeScrollEvent` |
+| `value_committed` | `double` |
 
 ## `numeric_up_down` (NumericUpDown, control)
 
@@ -1468,7 +1469,7 @@ Properties beyond every control's: `default_value` (number), `label` (text), `ma
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `invalid`, `pending`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `decimal_places` (unsigned_integer), `increment` (number), `maximum` (number), `minimum` (number), `scrub` (boolean), `value` (number).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `decimal_places` (unsigned_integer), `increment` (number), `maximum` (number), `minimum` (number), `scrub` (boolean), `text_alignment` (enumeration), `thousands_separator` (boolean), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -3275,6 +3276,266 @@ Properties beyond every control's: none.
 |---|---|
 | `closed` | `DialogResult` |
 
+## `seven_segment_display` (SevenSegmentDisplay, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `plot` | plot |  |  |
+| `trace` | trace |  |  |
+| `graticule` | graticule |  |  |
+
+States: `normal`, `selected`, `enabled`, `disabled`.
+
+Properties beyond every control's: `digit_count` (unsigned_integer), `ghost_segments` (boolean), `text` (text).
+
+| Interaction | Payload |
+|---|---|
+| `text_changed` | `std::string` |
+
+## `gauge_base` (GaugeBase, component)
+
+| Interaction | Payload |
+|---|---|
+| `name_changed` | `std::string` |
+| `visible_changed` | `bool` |
+| `enabled_changed` | `bool` |
+| `auto_size_changed` | `bool` |
+| `causes_validation_changed` | `bool` |
+| `validating` | `ControlValidationEvent`, by reference |
+| `validated` | none |
+| `tool_tip_text_changed` | `std::string` |
+| `initialization_completed` | `Dirty, bool` |
+| `pointer_observed` | `PointerEvent` |
+| `pointer_preview_observed` | `PointerEvent` |
+| `mouse_down` | `MouseEventArgs` |
+| `mouse_up` | `MouseEventArgs` |
+| `mouse_move` | `MouseEventArgs` |
+| `mouse_wheel` | `MouseEventArgs` |
+| `mouse_enter` | none |
+| `mouse_hover` | none |
+| `mouse_leave` | none |
+| `mouse_capture_changed` | none |
+| `click` | none |
+| `mouse_click` | `MouseEventArgs` |
+| `double_click` | none |
+| `mouse_double_click` | `MouseEventArgs` |
+| `context_menu_requested` | `ContextMenuRequest`, by reference |
+| `focus_observed` | `bool` |
+| `arranged_bounds_changed` | `Rect` |
+| `help_requested` | `HelpRequestEvent`, by reference |
+| `preview_key_down` | `PreviewKeyDownEventArgs`, by reference |
+| `key_down` | `KeyEventArgs`, by reference |
+| `key_press` | `KeyPressEventArgs`, by reference |
+| `key_up` | `KeyEventArgs`, by reference |
+| `range_changed` | `double, double` |
+| `value_changed` | `double` |
+| `scroll` | `RangeScrollEvent` |
+
+## `linear_gauge` (LinearGauge, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `plot` | plot |  |  |
+| `alarm_zone` | track |  |  |
+| `trace` | trace |  |  |
+| `graticule` | graticule |  |  |
+| `caption` | caption |  |  |
+
+States: `normal`, `selected`, `enabled`, `disabled`, `invalid`.
+
+Properties beyond every control's: `decimal_places` (unsigned_integer), `maximum` (number), `minimum` (number), `show_value` (boolean), `tick_frequency` (number), `units` (text), `value` (number).
+
+| Interaction | Payload |
+|---|---|
+| `range_changed` | `double, double` |
+| `value_changed` | `double` |
+| `scroll` | `RangeScrollEvent` |
+
+## `radial_gauge` (RadialGauge, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `plot` | plot |  |  |
+| `track` | arc |  |  |
+| `alarm_arc` | arc |  |  |
+| `value_arc` | arc |  |  |
+| `graticule` | graticule |  |  |
+| `needle` | needle |  |  |
+| `caption` | caption |  |  |
+
+States: `normal`, `selected`, `enabled`, `disabled`, `invalid`.
+
+Properties beyond every control's: `decimal_places` (unsigned_integer), `maximum` (number), `minimum` (number), `show_value` (boolean), `tick_frequency` (number), `units` (text), `value` (number).
+
+| Interaction | Payload |
+|---|---|
+| `range_changed` | `double, double` |
+| `value_changed` | `double` |
+| `scroll` | `RangeScrollEvent` |
+
+## `dial` (Dial, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `track` | arc |  |  |
+| `value_arc` | arc |  |  |
+| `graticule` | graticule |  |  |
+| `thumb` | thumb |  |  |
+| `needle` | needle |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `selected`, `hot`.
+
+Properties beyond every control's: `maximum` (number), `minimum` (number), `show_arc` (boolean), `tick_frequency` (number), `value` (number).
+
+| Interaction | Payload |
+|---|---|
+| `range_changed` | `double, double` |
+| `value_changed` | `double` |
+| `scroll` | `RangeScrollEvent` |
+
+## `step_indicator` (StepIndicator, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `chip` | chip |  |  |
+| `glyph` | glyph |  |  |
+| `divider` | divider |  |  |
+| `caption` | caption |  |  |
+
+States: `normal`, `selected`, `checked`, `enabled`, `disabled`.
+
+Properties beyond every control's: `current_step` (unsigned_integer).
+
+| Interaction | Payload |
+|---|---|
+| `step_clicked` | `std::size_t` |
+| `current_step_changed` | `std::uint32_t` |
+
+## `wizard` (Wizard, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `caption` | caption |  |  |
+| `label` | label |  |  |
+| `divider` | divider |  |  |
+
+States: `normal`, `enabled`, `disabled`.
+
+Properties beyond every control's: `back_text` (text), `cancel_text` (text), `current_page` (unsigned_integer), `finish_text` (text), `next_text` (text), `show_step_indicator` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `page_changing` | `WizardPageChangingEvent`, by reference |
+| `page_changed` | `std::uint32_t` |
+| `finished` | none |
+| `cancelled` | none |
+
+## `wizard_page` (WizardPage, component)
+
+| Interaction | Payload |
+|---|---|
+| `name_changed` | `std::string` |
+| `visible_changed` | `bool` |
+| `enabled_changed` | `bool` |
+| `auto_size_changed` | `bool` |
+| `causes_validation_changed` | `bool` |
+| `validating` | `ControlValidationEvent`, by reference |
+| `validated` | none |
+| `tool_tip_text_changed` | `std::string` |
+| `initialization_completed` | `Dirty, bool` |
+| `pointer_observed` | `PointerEvent` |
+| `pointer_preview_observed` | `PointerEvent` |
+| `mouse_down` | `MouseEventArgs` |
+| `mouse_up` | `MouseEventArgs` |
+| `mouse_move` | `MouseEventArgs` |
+| `mouse_wheel` | `MouseEventArgs` |
+| `mouse_enter` | none |
+| `mouse_hover` | none |
+| `mouse_leave` | none |
+| `mouse_capture_changed` | none |
+| `click` | none |
+| `mouse_click` | `MouseEventArgs` |
+| `double_click` | none |
+| `mouse_double_click` | `MouseEventArgs` |
+| `context_menu_requested` | `ContextMenuRequest`, by reference |
+| `focus_observed` | `bool` |
+| `arranged_bounds_changed` | `Rect` |
+| `help_requested` | `HelpRequestEvent`, by reference |
+| `preview_key_down` | `PreviewKeyDownEventArgs`, by reference |
+| `key_down` | `KeyEventArgs`, by reference |
+| `key_press` | `KeyPressEventArgs`, by reference |
+| `key_up` | `KeyEventArgs`, by reference |
+| `scroll` | `ScrollEvent`, by reference |
+
+## `callout` (Callout, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `face` | face |  |  |
+| `beak` | beak |  |  |
+| `close` | glyph |  | hot, pressed |
+| `actuator` | actuator | `button` |  |
+
+States: `normal`, `enabled`, `disabled`.
+
+Properties beyond every control's: `action_text` (text), `light_dismiss` (boolean), `prefers_above` (boolean), `text` (text), `title` (text).
+
+| Interaction | Payload |
+|---|---|
+| `closed` | `CalloutCloseReason` |
+| `action_clicked` | none |
+
+## `modal_layer` (ModalLayer, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `scrim` | scrim |  |  |
+| `shadow` | shadow |  |  |
+
+States: `normal`, `enabled`, `disabled`.
+
+Properties beyond every control's: `close_on_escape` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `closing` | `ModalLayerClosingEvent`, by reference |
+| `closed` | `DialogResult` |
+
+## `lookup_combo_box` (LookupComboBox, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `label` | content |  |  |
+| `actuator` | actuator |  |  |
+| `glyph` | disclosure |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `pressed`, `enabled`, `disabled`, `focused`, `focus_visible`, `active_tool`.
+
+Properties beyond every control's: `display_column` (unsigned_integer), `max_drop_down_rows` (unsigned_integer), `selected_key` (text).
+
+| Interaction | Payload |
+|---|---|
+| `selected_key_changed` | `std::string` |
+| `drop_down_changed` | `bool` |
+
+## `about_dialog` (AboutDialog, component)
+
+| Interaction | Payload |
+|---|---|
+| `closed` | `DialogResult` |
+
 ## `folder_browser_dialog` (FolderBrowserDialog, component)
 
 Interactions: none.
@@ -3476,6 +3737,106 @@ Interactions beyond every control's: none.
 | Interaction | Payload |
 |---|---|
 | `help_requested` | `HelpRequestEvent`, by reference |
+
+## `help_book` (HelpBook, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `viewport` | region |  |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
+| `scroll_corner` | face |  |  |
+| `focus` | focus |  |  |
+| `paper` | face |  |  |
+| `title` | label |  |  |
+| `rule` | divider |  |  |
+| `close` | glyph |  |  |
+| `body` | content |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Item system `topic`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `topic_bar` | face |  |  |
+| `expander` | disclosure |  |  |
+
+Item states: `hot`, `pressed`, `open`, `closed`.
+
+Item system `link`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `link_text` | label |  |  |
+
+Item states: `hot`, `pressed`, `focus_visible`.
+
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+
+| Interaction | Payload |
+|---|---|
+| `scroll` | `ScrollEvent`, by reference |
+| `link_activated` | `HelpLinkActivation`, by reference |
+| `close_requested` | none |
+| `section_toggled` | `HelpSectionToggle` |
+
+## `help_book_viewer` (HelpBookViewer, component)
+
+| Interaction | Payload |
+|---|---|
+| `name_changed` | `std::string` |
+| `visible_changed` | `bool` |
+| `enabled_changed` | `bool` |
+| `auto_size_changed` | `bool` |
+| `causes_validation_changed` | `bool` |
+| `validating` | `ControlValidationEvent`, by reference |
+| `validated` | none |
+| `tool_tip_text_changed` | `std::string` |
+| `initialization_completed` | `Dirty, bool` |
+| `pointer_observed` | `PointerEvent` |
+| `pointer_preview_observed` | `PointerEvent` |
+| `mouse_down` | `MouseEventArgs` |
+| `mouse_up` | `MouseEventArgs` |
+| `mouse_move` | `MouseEventArgs` |
+| `mouse_wheel` | `MouseEventArgs` |
+| `mouse_enter` | none |
+| `mouse_hover` | none |
+| `mouse_leave` | none |
+| `mouse_capture_changed` | none |
+| `click` | none |
+| `mouse_click` | `MouseEventArgs` |
+| `double_click` | none |
+| `mouse_double_click` | `MouseEventArgs` |
+| `context_menu_requested` | `ContextMenuRequest`, by reference |
+| `focus_observed` | `bool` |
+| `arranged_bounds_changed` | `Rect` |
+| `help_requested` | `HelpRequestEvent`, by reference |
+| `preview_key_down` | `PreviewKeyDownEventArgs`, by reference |
+| `key_down` | `KeyEventArgs`, by reference |
+| `key_press` | `KeyPressEventArgs`, by reference |
+| `key_up` | `KeyEventArgs`, by reference |
+| `navigated` | `std::string` |
+| `external_link` | `HelpLinkActivation`, by reference |
+| `popup_requested` | `HelpLinkActivation`, by reference |
+| `print_requested` | `HelpPrintRequest`, by reference |
+| `bookmarks_changed` | `std::vector<std::string>` |
+| `built_in_language_requested` | none |
+
+## `help_book_system` (HelpBookSystem, component)
+
+| Interaction | Payload |
+|---|---|
+| `external_link` | `HelpLinkActivation`, by reference |
+| `print_requested` | `HelpPrintRequest`, by reference |
+| `bookmarks_changed` | `std::vector<std::string>` |
 
 ## `semantic_feedback` (SemanticFeedback, component)
 

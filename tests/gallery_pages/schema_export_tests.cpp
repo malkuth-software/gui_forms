@@ -1,5 +1,13 @@
 #include "support.hpp"
 
+#include "gui_forms/components/about_dialog/about_dialog.hpp"
+#include "gui_forms/controls/callout/callout.hpp"
+#include "gui_forms/controls/help/help_book/help_book.hpp"
+#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
+#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
+#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
+#include "gui_forms/controls/modal_layer/modal_layer.hpp"
+#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
 #include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
 #include "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
 #include "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
@@ -661,6 +669,13 @@ std::size_t catalog_position(std::string_view id) {
     return gallery::control_catalog.size();
 }
 
+// GaugeBase's constructor is protected: a subclass that adds nothing stands
+// for it.
+class SchemaGauge final : public GaugeBase {
+public:
+    explicit SchemaGauge(StableId stable_id) : GaugeBase(std::move(stable_id)) {}
+};
+
 void record_control(const Control& control, std::vector<TypeRecord>& records) {
     const ControlAnatomy& anatomy = control.anatomy();
     const std::size_t position = catalog_position(anatomy.control_id);
@@ -854,6 +869,22 @@ void test_schema_export() {
     record_component("plot_annotation_item", *plot_annotation, records);
     record_control(*sparkline, records);
     record_control(*value_bar, records);
+    // The final controls and the help system shown only inside another or
+    // on demand. WizardPage and HelpBookViewer have no anatomy of their own
+    // yet and GaugeBase is a base: they are recorded by their ids.
+    const std::shared_ptr<SchemaGauge> gauge_base = make_control<SchemaGauge>(StableId("schema.gauge-base"));
+    const std::shared_ptr<WizardPage> wizard_page = make_control<WizardPage>(StableId("schema.wizard-page"));
+    const std::shared_ptr<Callout> callout = make_control<Callout>(StableId("schema.callout"));
+    const std::shared_ptr<ModalLayer> modal_layer = make_control<ModalLayer>(StableId("schema.modal-layer"));
+    const std::shared_ptr<HelpBookViewer> help_viewer =
+        make_control<HelpBookViewer>(StableId("schema.help-viewer"));
+    const std::shared_ptr<HelpBook> help_book = make_control<HelpBook>(StableId("schema.help-book"));
+    record_component("gauge_base", *gauge_base, records);
+    record_component("wizard_page", *wizard_page, records);
+    record_control(*callout, records);
+    record_control(*modal_layer, records);
+    record_component("help_book_viewer", *help_viewer, records);
+    record_control(*help_book, records);
 
     // Components, constructed directly.
     const std::shared_ptr<Command> command = std::make_shared<Command>();
@@ -908,6 +939,11 @@ void test_schema_export() {
     record_component("binding_source", *binding_source, records);
     record_component("binding_context", *binding_context, records);
     record_component("dock_workspace", *dock_workspace, records);
+    const std::shared_ptr<AboutDialog> about_dialog =
+        std::make_shared<AboutDialog>(StableId("schema.about"), AboutInfo{});
+    const std::shared_ptr<HelpBookSystem> help_system = std::make_shared<HelpBookSystem>();
+    record_component("about_dialog", *about_dialog, records);
+    record_component("help_book_system", *help_system, records);
 
     std::size_t services = 0;
     for (std::size_t index = 0; index < records.size(); ++index) {

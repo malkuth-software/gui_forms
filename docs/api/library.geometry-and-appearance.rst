@@ -260,6 +260,8 @@ Types
      - One independent segment of stroke_segments (no joins between segments).
    * - :cpp:class:`ParameterValidation <gui_forms::ParameterValidation>`
      - The first defect found and the index of the parameter it concerns.
+   * - :cpp:class:`PartArc <gui_forms::PartArc>`
+     - An arc's or a needle's angles (design language 8.5; row 2.5, owner option (a)), in radians clockwise from twelve o'clock, on the circle inscribed in the part's bounds (centred in them, its diameter their shorter side).
    * - :cpp:class:`PartCornerRadii <gui_forms::PartCornerRadii>`
      - The four corners' radii of a shape drawn in a box, in the box's units: top-left, top-right, bottom-right and bottom-left.
    * - :cpp:class:`PartHitRegion <gui_forms::PartHitRegion>`
@@ -1433,6 +1435,18 @@ Types
    .. cpp:member:: std::optional<Color> fill_text
 
       The text's colour where it lies over a fill (``fill-text-color``, the value bar study's section 3.6), if the theme sets one; none, the built-in recipes' value, draws such text in the fill's own selected text colour.
+
+   .. cpp:member:: double stroke_width
+
+      The dial parts and the scrim (row 2.5; owner option (a)): an arc's thickness and a needle's width at its hub, in logical units (0 to maximum_recipe_stroke_width); the needle's outline; and the colour, its alpha the opacity, a scrim covers what lies behind with. Default: ``{4.0}``.
+
+   .. cpp:member:: NeedleShape needle_shape
+
+      Default: ``{NeedleShape::tapered}``.
+
+   .. cpp:member:: Color scrim
+
+      Default: ``{Color::rgba(16, 24, 32, 96)}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3926,6 +3940,18 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PartArc final
+
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+
+   An arc's or a needle's angles (design language 8.5; row 2.5, owner option (a)), in radians clockwise from twelve o'clock, on the circle inscribed in the part's bounds (centred in them, its diameter their shorter side). An arc runs from ``start`` through ``sweep`` (negative sweeps anticlockwise; at most one turn either way is drawn); a needle points at ``start`` and reads no sweep.
+
+   .. cpp:member:: double start
+
+   .. cpp:member:: double sweep
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PartCornerRadii final
 
    ``#include <gui_forms/engine/part_shape/part_shape.hpp>``
@@ -4093,6 +4119,10 @@ Types
    .. cpp:member:: std::optional<Size> measured_text
 
       The text's measurement in ``font``, when the caller has already made it (paint_text_part_at does), so the text is not measured again; none otherwise. A cache, not vocabulary: it changes nothing drawn, and a caller that sets it must have measured exactly ``text`` in ``font``.
+
+   .. cpp:member:: std::optional<PartArc> arc
+
+      The arc and needle roles' angles (PartArc), or none, when neither draws. Every other role ignores them.
 
 .. cpp:namespace:: gui_forms
 
@@ -4691,6 +4721,10 @@ Types
    .. cpp:member:: RecipeOutlineStyle outline_style
 
       Default: ``{RecipeOutlineStyle::ring}``.
+
+   .. cpp:member:: NeedleShape needle_shape
+
+      Default: ``{NeedleShape::tapered}``.
 
    .. cpp:member:: bool shadowed
 
@@ -6888,6 +6922,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: NeedleShape
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: line
+
+   .. cpp:enumerator:: tapered
+
+   .. cpp:enumerator:: dot
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PaintGroupComposite
 
    ``#include <gui_forms/types/painter/painter.hpp>``
@@ -7249,6 +7295,12 @@ Enumerations
    .. cpp:enumerator:: default_outline_colour
 
    .. cpp:enumerator:: fill_text
+
+   .. cpp:enumerator:: stroke_width
+
+   .. cpp:enumerator:: needle_shape
+
+   .. cpp:enumerator:: scrim_colour
 
    .. cpp:enumerator:: block_size
 
@@ -8315,6 +8367,10 @@ Functions, constants and aliases
 
    Value: ``64.0``.
 
+.. cpp:var:: constexpr double maximum_recipe_stroke_width
+
+   An arc or needle at most 32 logical units thick (stroke-width). Value: ``32.0``.
+
 .. cpp:var:: constexpr double maximum_text_shadow_blur
 
    Value: ``8.0``.
@@ -8601,7 +8657,7 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(PartMark::count)``.
 
-.. cpp:var:: constexpr std::array<std::string_view, 8> part_value_names
+.. cpp:var:: constexpr std::array<std::string_view, 9> part_value_names
 
    The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in.
 

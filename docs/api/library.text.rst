@@ -77,6 +77,8 @@ Related types
      - One string literal the GUI.Forms Clang plugin found passed to a localizable property (a parameter or field marked GUI_FORMS_LOCALIZABLE).
    * - :cpp:class:`MarkdownBlock <gui_forms::MarkdownBlock>`
      - A block and the spans it holds.
+   * - :cpp:class:`MarkdownImage <gui_forms::MarkdownImage>`
+     - An image's source and title, decoded.
    * - :cpp:class:`MarkdownLimits <gui_forms::MarkdownLimits>`
      - Bounds on one parse.
    * - :cpp:class:`MarkdownLink <gui_forms::MarkdownLink>`
@@ -680,11 +682,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: MarkdownImage final
+
+   ``#include <gui_forms/text/markdown/markdown.hpp>``
+
+   An image's source and title, decoded. Every image of the source has its own entry, in source order; its spans are its alternative text. Parsing records the source only and never opens it.
+
+   .. cpp:member:: std::string source
+
+   .. cpp:member:: std::string title
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MarkdownLimits final
 
    ``#include <gui_forms/text/markdown/markdown.hpp>``
 
-   Bounds on one parse. source_bytes bounds the input; blocks and spans bound the tables; text_bytes bounds the span texts and link targets together.
+   Bounds on one parse. source_bytes bounds the input; blocks and spans bound the tables; text_bytes bounds the span texts, link targets and titles, and image sources and titles together.
 
    .. cpp:member:: std::size_t source_bytes
 
@@ -711,6 +725,10 @@ Related types
    A link's destination, decoded. Every link of the source has its own entry, in source order.
 
    .. cpp:member:: std::string target
+
+   .. cpp:member:: std::string title
+
+      The link title (``[text](target "title")``), decoded; empty without one.
 
 .. cpp:namespace:: gui_forms
 
@@ -801,6 +819,10 @@ Related types
    .. cpp:member:: std::optional<std::size_t> link
 
       The link the span is the text of: an index into MarkdownDocument::links.
+
+   .. cpp:member:: std::optional<std::size_t> image
+
+      The image the span is the alternative text of: an index into MarkdownDocument::images.
 
 .. cpp:namespace:: gui_forms
 

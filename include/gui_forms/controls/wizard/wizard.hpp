@@ -77,6 +77,7 @@ public:
     [[nodiscard]] std::shared_ptr<StepIndicator> step_indicator() const noexcept { return indicator_; }
 
     [[nodiscard]] Event<WizardPageChangingEvent&>& page_changing() noexcept { return page_changing_; }
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] Event<std::uint32_t>& page_changed() noexcept { return page_changed_; }
     [[nodiscard]] Event<>& finished() noexcept { return finished_; }
     [[nodiscard]] Event<>& cancelled() noexcept { return cancelled_; }

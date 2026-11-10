@@ -261,7 +261,9 @@ std::string HelpBookViewer::record_title(std::string_view stable_id) const {
 
 bool HelpBookViewer::show(std::string_view stable_id, std::string_view anchor) {
     require_mutable();
-    if (!section_ || !(*section_).find(stable_id).has_value()) return false;
+    // A page is a record with a node in the contents; a control with no
+    // body has a record but no page.
+    if (!section_ || (*section_).contents.find(stable_id) == help_no_parent) return false;
     navigate_to(stable_id, anchor, true);
     return true;
 }

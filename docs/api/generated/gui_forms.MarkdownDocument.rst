@@ -72,3 +72,5 @@ gui_forms::MarkdownDocument
    .. cpp:member:: std::vector<MarkdownSpan> spans
 
    .. cpp:member:: std::vector<MarkdownLink> links
+
+   .. cpp:member:: std::vector<MarkdownImage> images

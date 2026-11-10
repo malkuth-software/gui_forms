@@ -72,6 +72,12 @@ gui_forms::NumericUpDown
       **scrub** : ``bool``
          Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
 
+      **thousands_separator** : ``bool``
+         Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+
+      **text_alignment** : ``HorizontalAlignment``
+         Where the editor's text sits (TextAlign): near, center or far.
+
       **editor** : ``std::shared_ptr<TextBox>``, read-only
          The :cpp:class:`TextBox <gui_forms::TextBox>` that shows and edits the number. Use it to set the font or
          to move focus to the field.
@@ -256,6 +262,14 @@ gui_forms::NumericUpDown
 
       Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
 
+   .. cpp:member:: bool thousands_separator
+
+      Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+
+   .. cpp:member:: HorizontalAlignment text_alignment
+
+      Where the editor's text sits (TextAlign): near, center or far.
+
    .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
       The :cpp:class:`TextBox <gui_forms::TextBox>` that shows and edits the number. Use it to set the font or
@@ -344,4 +358,4 @@ gui_forms::NumericUpDown
 
    .. cpp:member:: constexpr std::size_t numeric_up_down_property_count
 
-      NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 6U``.
+      NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 8U``.

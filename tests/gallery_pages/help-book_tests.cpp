@@ -16,7 +16,8 @@ void test_help_book(gui_forms::Window& window) {
     window.perform_layout();
     require((*viewer).can_go_back() && (*viewer).back() && (*viewer).current_page() == "gallery.help.welcome",
             "history goes back");
-    (*viewer).show_search("phrases");
+    // The topic's body says to put words in quotes.
+    (*viewer).show_search("quotes");
     require(!(*viewer).search_results().empty() && (*viewer).search_results().front() == "gallery.help.search",
             "search finds the searching topic");
     const std::shared_ptr<HelpBook> paper =
