@@ -2393,6 +2393,12 @@ target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
 add_executable(gui_forms_plot_performance_probe EXCLUDE_FROM_ALL benchmarks/plot_performance_probe.cpp)
 target_link_libraries(gui_forms_plot_performance_probe PRIVATE gui_forms_plot_primitives)
 
+# Audit addendum batch d: the per-operation cost of a window of several
+# thousand controls (attach, pointer, focus, layout, paint, inherited reads,
+# bulk clear). Built only when asked for; run in Release.
+add_executable(gui_forms_tree_cost_benchmark EXCLUDE_FROM_ALL benchmarks/tree_cost_benchmark.cpp)
+target_link_libraries(gui_forms_tree_cost_benchmark PRIVATE gui_forms_core)
+
 # APP_WINDOW_RULES_DESIGN K.2: the creation-cost gate (a bare window, a popup
 # and a generated form window; time and allocations against the committed
 # baseline benchmarks/creation/creation_baseline.txt). Built only when asked
