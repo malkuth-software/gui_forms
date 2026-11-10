@@ -93,6 +93,7 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_rules.cpp
     src/abi/stable/tables/abi_data_grid.cpp
     src/abi/stable/tables/abi_docking.cpp
+    src/abi/stable/tables/abi_fonts.cpp
     src/abi/stable/tables/abi_splashscreen.cpp
     src/abi/stable/custom/abi_custom_control.cpp
     src/abi/stable/windows/abi_windows_paint_endpoint.cpp

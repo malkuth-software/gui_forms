@@ -305,6 +305,17 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status read_elements(gf_object object, gf_utf8_view name, uint64_t first, uint64_t count,
+                                          gf_value* values, char* text_buffer, uint64_t text_capacity,
+                                          uint64_t* text_required) const noexcept {
+        if (table_.struct_size < 48u || table_.read_elements == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.read_elements(object, name, first, count, values, text_buffer, text_capacity,
+                                                      text_required);
+        return called;
+    }
+
 private:
     gf_properties_table table_;
 };
@@ -1321,6 +1332,24 @@ public:
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.decoration_at(object, layer, index, decoration);
+        return called;
+    }
+
+    [[nodiscard]] gf_status utf8_to_utf16_offset(gf_object object, uint64_t utf8_offset,
+                                                 uint64_t* utf16_offset) const noexcept {
+        if (table_.struct_size < 112u || table_.utf8_to_utf16_offset == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.utf8_to_utf16_offset(object, utf8_offset, utf16_offset);
+        return called;
+    }
+
+    [[nodiscard]] gf_status utf16_to_utf8_offset(gf_object object, uint64_t utf16_offset,
+                                                 uint64_t* utf8_offset) const noexcept {
+        if (table_.struct_size < 120u || table_.utf16_to_utf8_offset == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.utf16_to_utf8_offset(object, utf16_offset, utf8_offset);
         return called;
     }
 
@@ -2355,6 +2384,55 @@ public:
 
 private:
     gf_docking_table table_;
+};
+
+// gf_fonts_table, negotiated as GF_TABLE_FONTS.
+class FontsTable {
+public:
+    FontsTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(FontsTable& output) noexcept {
+        gf_fonts_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_FONTS, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = FontsTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static FontsTable adopt(const gf_fonts_table& adopted_table) noexcept {
+        FontsTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_fonts_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status family_id(gf_utf8_view name, uint32_t* family) const noexcept {
+        if (table_.struct_size < 16u || table_.family_id == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.family_id(name, family);
+        return called;
+    }
+
+    [[nodiscard]] gf_status family_name(uint32_t family, char* buffer, uint64_t capacity,
+                                        uint64_t* required) const noexcept {
+        if (table_.struct_size < 24u || table_.family_name == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.family_name(family, buffer, capacity, required);
+        return called;
+    }
+
+private:
+    gf_fonts_table table_;
 };
 
 // gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.

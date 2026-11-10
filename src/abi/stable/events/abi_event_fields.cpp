@@ -5,6 +5,8 @@
 
 #include "../tables/abi_records.hpp"
 
+#include "gui_forms/detail/storage_growth.hpp"
+
 #include <cmath>
 #include <string>
 #include <variant>
@@ -153,7 +155,7 @@ gf_object EventFields::lend(const Component* object) {
     if (object == nullptr) {
         return 0U;
     }
-    lent_.reserve(lent_.size() + 1U);
+    detail::reserve_one_more(lent_);
     const Control* control = dynamic_cast<const Control*>(object);
     gf_object lent = 0U;
     if (control != nullptr) {
@@ -209,7 +211,7 @@ void EventFields::publish(gf_event& event, bool single_argument) {
     records_.clear();
     records_.reserve(fields_.size());
     std::vector<EventFields*>& frames = active_frames();
-    frames.reserve(frames.size() + 1U);
+    detail::reserve_one_more(frames);
     std::size_t index = 0U;
     for (index = 0U; index < fields_.size(); ++index) {
         gf_event_field record{};

@@ -1,17 +1,6 @@
 {
   "format": 1,
-  "mode": "report",
-  "baseline": "manifests/abi/baseline/gf_abi-0.5.json",
-  "breaks": [
-    {
-      "finding": "constants: GF_TABLE_POPUPS removed",
-      "reason": "Owner order 2026-11-05: the in-surface popup mechanism is renamed to overlay before the 1.0 seal, with no compatibility alias; the table is now GF_TABLE_OVERLAYS / gf_overlays_table, same slot and layout.",
-      "recorded": "2026-11-05"
-    },
-    {
-      "finding": "structs: gf_popups_table removed",
-      "reason": "Owner order 2026-11-05: the in-surface popup mechanism is renamed to overlay before the 1.0 seal, with no compatibility alias; the table is now GF_TABLE_OVERLAYS / gf_overlays_table, same slot and layout.",
-      "recorded": "2026-11-05"
-    }
-  ]
+  "mode": "blocking",
+  "baseline": "manifests/abi/baseline/gf_abi-1.1.json",
+  "breaks": []
 }

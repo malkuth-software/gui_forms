@@ -137,8 +137,9 @@ private:
 
 } // namespace
 
-CustomControlState::CustomControlState(const gf_custom_control_callbacks& callbacks, std::size_t property_count)
-    : callbacks_(callbacks) {
+CustomControlState::CustomControlState(const gf_custom_control_callbacks& callbacks,
+                                       const gf_custom_layout_callbacks& layout, std::size_t property_count)
+    : callbacks_(callbacks), layout_(layout) {
     definitions_.reserve(property_count);
     changed_events_.reserve(property_count);
 }
@@ -395,10 +396,95 @@ void CustomControlState::revoke() noexcept {
     }
 }
 
+std::optional<Size> CustomControlState::measure(const Control& control, Size available) const {
+    if (revoked_ || layout_.measure == nullptr) {
+        return std::nullopt;
+    }
+    gf_logical_size given{};
+    given.width = available.width;
+    given.height = available.height;
+    gf_logical_size preferred{};
+    gf_status status = GF_STATUS_INTERNAL;
+    {
+        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
+                                            "measure", 0U);
+        status = layout_.measure(callbacks_.context, registry().identity_of(&control), given, &preferred);
+    }
+    if (status != GF_STATUS_OK || !std::isfinite(preferred.width) || !std::isfinite(preferred.height) ||
+        preferred.width < 0.0 || preferred.height < 0.0) {
+        return std::nullopt;
+    }
+    const Size answered{preferred.width, preferred.height};
+    return answered;
+}
+
+std::optional<bool> CustomControlState::hit_test(const Control& control, Point local_point) const {
+    if (revoked_ || layout_.hit_test == nullptr) {
+        return std::nullopt;
+    }
+    gf_logical_point point{};
+    point.x = local_point.x;
+    point.y = local_point.y;
+    std::uint32_t hit = 2U;
+    gf_status status = GF_STATUS_INTERNAL;
+    {
+        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
+                                            "hit_test", 0U);
+        status = layout_.hit_test(callbacks_.context, registry().identity_of(&control), point, &hit);
+    }
+    if (status != GF_STATUS_OK || hit > 1U) {
+        return std::nullopt;
+    }
+    const bool on_control = hit == 1U;
+    return on_control;
+}
+
+void CustomControlState::describe(const Control& control, SemanticDescriptor& descriptor) const {
+    if (revoked_ || layout_.semantics == nullptr) {
+        return;
+    }
+    gf_custom_semantics record{};
+    record.struct_size = static_cast<std::uint32_t>(sizeof(gf_custom_semantics));
+    record.role = static_cast<std::uint32_t>(descriptor.role);
+    record.name.data = descriptor.name.data();
+    record.name.size = descriptor.name.size();
+    record.value.data = descriptor.value.data();
+    record.value.size = descriptor.value.size();
+    record.description.data = descriptor.description.data();
+    record.description.size = descriptor.description.size();
+    gf_status status = GF_STATUS_INTERNAL;
+    {
+        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
+                                            "semantics", 0U);
+        status = layout_.semantics(callbacks_.context, registry().identity_of(&control), &record);
+    }
+    if (status != GF_STATUS_OK || record.role >= semantic_role_count) {
+        return;
+    }
+    // Every text is checked before any is taken, so a malformed answer
+    // leaves the base's description whole.
+    std::string_view name;
+    std::string_view value;
+    std::string_view description;
+    if (read_text(record.name, callback_slot, name) != GF_STATUS_OK ||
+        read_text(record.value, callback_slot, value) != GF_STATUS_OK ||
+        read_text(record.description, callback_slot, description) != GF_STATUS_OK) {
+        return;
+    }
+    std::string named(name);
+    std::string valued(value);
+    std::string described(description);
+    descriptor.role = static_cast<SemanticRole>(record.role);
+    descriptor.name = std::move(named);
+    descriptor.value = std::move(valued);
+    descriptor.description = std::move(described);
+}
+
 template <typename Base>
 CustomControl<Base>::CustomControl(StableId stable_id, const gf_custom_control_callbacks& callbacks,
+                                   const gf_custom_layout_callbacks& layout,
                                    const std::vector<CustomPropertyDefinition>& definitions, bool focusable)
-    : Base(std::move(stable_id)), state_(callbacks, definitions.size()) {
+    : Base(std::move(stable_id)), state_(callbacks, layout, definitions.size()) {
     std::vector<PropertyRegistration> registrations = state_.registrations(*this, definitions);
     for (PropertyRegistration& registration : registrations) {
         (*this).define_bindable_property(std::move(registration));
@@ -417,6 +503,38 @@ bool CustomControl<Base>::notify_changed(std::size_t index) {
     }
     (*this).publish_change(*changed);
     return true;
+}
+
+template <typename Base>
+Size CustomControl<Base>::measure(Size available) {
+    const std::optional<Size> answered = state_.measure(*this, available);
+    if (answered) {
+        return *answered;
+    }
+    const Size measured = Base::measure(available);
+    return measured;
+}
+
+template <typename Base>
+bool CustomControl<Base>::hit_test_local(Point local_point) const {
+    // The caller decides only inside the control's own bounds; outside them
+    // the base's answer (a miss) stands.
+    const bool inside = Base::hit_test_local(local_point);
+    if (!inside) {
+        return false;
+    }
+    const std::optional<bool> answered = state_.hit_test(*this, local_point);
+    if (answered) {
+        return *answered;
+    }
+    return inside;
+}
+
+template <typename Base>
+SemanticDescriptor CustomControl<Base>::semantic_descriptor() const {
+    SemanticDescriptor descriptor = Base::semantic_descriptor();
+    state_.describe(*this, descriptor);
+    return descriptor;
 }
 
 template <typename Base>

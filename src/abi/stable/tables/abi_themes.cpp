@@ -390,9 +390,16 @@ gf_status GF_CALL themes_publish_value(gf_utf8_view name, double value) noexcept
             (*input).value = value;
             (*input).present = true;
         }
+        // Every open window: the run's and each owned one, as a theme
+        // switch reaches them all (N33).
         Window* window = state.running_window();
         if (window != nullptr) {
             static_cast<void>((*window).publish_value(text, value));
+        }
+        const std::span<const OpenOwnedWindow> owned = state.owned_windows();
+        std::size_t index = 0U;
+        for (index = 0U; index < owned.size(); ++index) {
+            static_cast<void>((*owned[index].window).publish_value(text, value));
         }
         return GF_STATUS_OK;
     } catch (...) {
@@ -422,6 +429,11 @@ gf_status GF_CALL themes_withdraw_value(gf_utf8_view name) noexcept {
         Window* window = state.running_window();
         if (window != nullptr) {
             (*window).withdraw_value(text);
+        }
+        const std::span<const OpenOwnedWindow> owned = state.owned_windows();
+        std::size_t index = 0U;
+        for (index = 0U; index < owned.size(); ++index) {
+            (*owned[index].window).withdraw_value(text);
         }
         return GF_STATUS_OK;
     } catch (...) {

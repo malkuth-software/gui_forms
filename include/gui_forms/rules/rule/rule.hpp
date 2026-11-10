@@ -75,8 +75,8 @@ enum class RuleTriggerKind : std::uint8_t {
 
 // The condition kinds. The numbers through window_active are the C ABI's
 // GF_RULE_CONDITION_* values; is_true and equals are C++ only. dragging and
-// drop_candidate (the drag engine's, roadmap 2.1) are C++ only until the C
-// ABI admits them (phase E4), which keeps their numbers.
+// drop_candidate (the drag engine's, roadmap 2.1) are the C ABI's 12 and 13
+// since 1.2.
 enum class RuleConditionKind : std::uint8_t {
     none = 0,
     // The physical key is held (the window's input state).
@@ -109,7 +109,7 @@ enum class RuleConditionKind : std::uint8_t {
 
 // The action kinds. The numbers through focus are the C ABI's
 // GF_RULE_ACTION_* values (program is a gf_callback there);
-// begin_keyboard_drag is C++ only until the C ABI admits it (phase E4).
+// begin_keyboard_drag is the C ABI's 6 since 1.2.
 enum class RuleActionKind : std::uint8_t {
     none = 0,
     program = 1,
@@ -448,7 +448,8 @@ namespace condition {
 [[nodiscard]] RuleCondition not_visible(Control& control);
 [[nodiscard]] RuleCondition window_active();
 [[nodiscard]] RuleCondition not_window_active();
-// The drag engine's levels (C++ only for now; see RuleConditionKind).
+// The drag engine's levels (GF_RULE_CONDITION_DRAGGING and _DROP_CANDIDATE
+// in the C ABI).
 [[nodiscard]] RuleCondition dragging(Control& control);
 [[nodiscard]] RuleCondition not_dragging(Control& control);
 [[nodiscard]] RuleCondition drop_candidate(Control& control);

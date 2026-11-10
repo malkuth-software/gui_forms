@@ -442,10 +442,13 @@ std::uint32_t call_owned_callback(gf_object root, const CallbackBinding* callbac
 
 struct OwnedReady {
     std::shared_ptr<OwnedWindow> owned;
-    void operator()(Window&, ApplicationWindowHandle window) const {
+    void operator()(Window& model, ApplicationWindowHandle window) const {
         (*owned).window = window;
         (*owned).ready_seen = true;
         owned_windows().push_back(owned);
+        // Published values and dialog owners reach the window from here
+        // until it closes (N32, N33).
+        engine().attach_owned_window((*owned).root, model);
         static_cast<void>(call_owned_callback((*owned).root, (*owned).ready.get(), "ready"));
     }
 };
@@ -472,6 +475,7 @@ struct OwnedClosed {
                 break;
             }
         }
+        engine().detach_owned_window((*owned).root);
         static_cast<void>(call_owned_callback((*owned).root, (*owned).closed.get(), "closed"));
         (*owned).ready.reset();
         (*owned).closing.reset();

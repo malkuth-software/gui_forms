@@ -35,6 +35,8 @@ constexpr SlotIdentity replace_decorations_slot{GF_TABLE_TEXT_EDITING, 8U};
 constexpr SlotIdentity clear_decorations_slot{GF_TABLE_TEXT_EDITING, 9U};
 constexpr SlotIdentity decoration_count_slot{GF_TABLE_TEXT_EDITING, 10U};
 constexpr SlotIdentity decoration_at_slot{GF_TABLE_TEXT_EDITING, 11U};
+constexpr SlotIdentity utf8_to_utf16_offset_slot{GF_TABLE_TEXT_EDITING, 12U};
+constexpr SlotIdentity utf16_to_utf8_offset_slot{GF_TABLE_TEXT_EDITING, 13U};
 
 constexpr const char* not_text_box = "the control is not a text box";
 constexpr const char* not_text_field = "the control is not a text box or an editable combo box";
@@ -462,6 +464,62 @@ gf_status GF_CALL text_editing_decoration_at(gf_object object, std::uint32_t lay
     }
 }
 
+// K9: the conversions a UTF-16 caller (the C# Windows Forms layer) needs
+// for every selection and decoration call, without copying the text out.
+gf_status GF_CALL text_editing_utf8_to_utf16_offset(gf_object object, std::uint64_t utf8_offset,
+                                                    std::uint64_t* utf16_offset) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(utf8_to_utf16_offset_slot.table_id,
+                                            utf8_to_utf16_offset_slot.slot_index);
+        if (utf16_offset == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, utf8_to_utf16_offset_slot,
+                        "utf8_to_utf16_offset needs an output");
+        }
+        std::shared_ptr<TextBox> box;
+        const gf_status entered = enter_text_field(object, utf8_to_utf16_offset_slot, box);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        Utf8Offset offset;
+        if (!text_offset(utf8_offset, (*box).text.read(), offset)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, utf8_to_utf16_offset_slot, "the offset lies past the text");
+        }
+        // Inside a scalar: std::invalid_argument, GF_STATUS_INVALID_ARGUMENT.
+        const Utf16Offset converted = (*box).utf16_offset(offset);
+        *utf16_offset = converted.value();
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(utf8_to_utf16_offset_slot);
+    }
+}
+
+gf_status GF_CALL text_editing_utf16_to_utf8_offset(gf_object object, std::uint64_t utf16_offset,
+                                                    std::uint64_t* utf8_offset) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(utf16_to_utf8_offset_slot.table_id,
+                                            utf16_to_utf8_offset_slot.slot_index);
+        if (utf8_offset == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, utf16_to_utf8_offset_slot,
+                        "utf16_to_utf8_offset needs an output");
+        }
+        std::shared_ptr<TextBox> box;
+        const gf_status entered = enter_text_field(object, utf16_to_utf8_offset_slot, box);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        if (utf16_offset > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, utf16_to_utf8_offset_slot, "the position lies past the text");
+        }
+        // Past the text: std::out_of_range; between surrogate halves:
+        // std::invalid_argument. Both are GF_STATUS_INVALID_ARGUMENT.
+        const Utf8Offset converted = (*box).utf8_offset(Utf16Offset{static_cast<std::size_t>(utf16_offset)});
+        *utf8_offset = converted.value();
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(utf16_to_utf8_offset_slot);
+    }
+}
+
 constexpr gf_text_editing_table table{
     .struct_size = sizeof(gf_text_editing_table),
     .abi_minor = GF_ABI_MINOR,
@@ -477,6 +535,8 @@ constexpr gf_text_editing_table table{
     .clear_decorations = &text_editing_clear_decorations,
     .decoration_count = &text_editing_decoration_count,
     .decoration_at = &text_editing_decoration_at,
+    .utf8_to_utf16_offset = &text_editing_utf8_to_utf16_offset,
+    .utf16_to_utf8_offset = &text_editing_utf16_to_utf8_offset,
 };
 
 } // namespace

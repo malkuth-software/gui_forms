@@ -11,24 +11,23 @@ namespace GuiForms.Interop;
 public static unsafe class Abi
 {
     private static readonly object negotiation_lock = new object();
-    private static bool negotiated;
-    private static gf_runtime_table runtime_table;
-    private static gf_objects_table objects_table;
-    private static gf_properties_table properties_table;
-    private static gf_events_table events_table;
-    private static gf_dispatch_table dispatch_table;
-    private static gf_diagnostics_table diagnostics_table;
-    private static gf_windows_table windows_table;
+    // The negotiated tables, published once (N72): a call reads this
+    // reference without the lock and borrows the table in place (ref
+    // readonly), so it neither locks nor copies seven tables per call. Null
+    // until the first negotiation succeeds.
+    private static volatile Tables? negotiated;
 
-    public static gf_runtime_table runtime => tables().runtime;
-    public static gf_objects_table objects => tables().objects;
-    public static gf_properties_table properties => tables().properties;
-    public static gf_events_table events => tables().events;
-    public static gf_dispatch_table dispatch => tables().dispatch;
-    public static gf_diagnostics_table diagnostics => tables().diagnostics;
-    public static gf_windows_table windows => tables().windows;
+    public static ref readonly gf_runtime_table runtime => ref tables().runtime;
+    public static ref readonly gf_objects_table objects => ref tables().objects;
+    public static ref readonly gf_properties_table properties => ref tables().properties;
+    public static ref readonly gf_events_table events => ref tables().events;
+    public static ref readonly gf_dispatch_table dispatch => ref tables().dispatch;
+    public static ref readonly gf_diagnostics_table diagnostics => ref tables().diagnostics;
+    public static ref readonly gf_windows_table windows => ref tables().windows;
 
-    private readonly struct Tables
+    // Immutable once built: the published reference is the only writer's
+    // hand-off, so readers need no lock.
+    private sealed class Tables
     {
         public readonly gf_runtime_table runtime;
         public readonly gf_objects_table objects;
@@ -52,31 +51,40 @@ public static unsafe class Abi
         }
     }
 
-    // Negotiates every table on first use; a refusal throws and leaves nothing negotiated.
+    // The published tables, negotiating every table on first use under the
+    // lock; a refusal throws and leaves nothing published, so a later call
+    // tries again.
     private static Tables tables()
     {
+        Tables? published = negotiated;
+        if (published != null)
+        {
+            return published;
+        }
         lock (negotiation_lock)
         {
-            if (!negotiated)
+            published = negotiated;
+            if (published != null)
             {
-                negotiate(Exports.get_runtime_table(out gf_runtime_table runtime), "runtime");
-                negotiate(Exports.get_objects_table(out gf_objects_table objects), "objects");
-                negotiate(Exports.get_properties_table(out gf_properties_table properties), "properties");
-                negotiate(Exports.get_events_table(out gf_events_table events), "events");
-                negotiate(Exports.get_dispatch_table(out gf_dispatch_table dispatch), "dispatch");
-                negotiate(Exports.get_diagnostics_table(out gf_diagnostics_table diagnostics), "diagnostics");
-                negotiate(Exports.get_windows_table(out gf_windows_table windows), "windows");
-                runtime_table = runtime;
-                objects_table = objects;
-                properties_table = properties;
-                events_table = events;
-                dispatch_table = dispatch;
-                diagnostics_table = diagnostics;
-                windows_table = windows;
-                negotiated = true;
+                return published;
             }
-            return new Tables(runtime_table, objects_table, properties_table, events_table, dispatch_table,
-                              diagnostics_table, windows_table);
+            // The C ABI supports only 64-bit targets (gf_abi.h), and
+            // ObjectHandle keeps a gf_object, a 64-bit identity, in its
+            // IntPtr (N73): a 32-bit process is refused before any call.
+            if (IntPtr.Size != 8)
+            {
+                throw new PlatformNotSupportedException("GUI.Forms supports 64-bit processes only");
+            }
+            negotiate(Exports.get_runtime_table(out gf_runtime_table runtime), "runtime");
+            negotiate(Exports.get_objects_table(out gf_objects_table objects), "objects");
+            negotiate(Exports.get_properties_table(out gf_properties_table properties), "properties");
+            negotiate(Exports.get_events_table(out gf_events_table events), "events");
+            negotiate(Exports.get_dispatch_table(out gf_dispatch_table dispatch), "dispatch");
+            negotiate(Exports.get_diagnostics_table(out gf_diagnostics_table diagnostics), "diagnostics");
+            negotiate(Exports.get_windows_table(out gf_windows_table windows), "windows");
+            Tables made = new Tables(runtime, objects, properties, events, dispatch, diagnostics, windows);
+            negotiated = made;
+            return made;
         }
     }
 

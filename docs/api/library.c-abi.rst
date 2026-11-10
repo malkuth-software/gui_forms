@@ -32,6 +32,8 @@ Types
      - gf_docking_table, negotiated as GF_TABLE_DOCKING.
    * - :cpp:class:`EventsTable <gui_forms::abi::EventsTable>`
      - gf_events_table, negotiated as GF_TABLE_EVENTS.
+   * - :cpp:class:`FontsTable <gui_forms::abi::FontsTable>`
+     - gf_fonts_table, negotiated as GF_TABLE_FONTS.
    * - :cpp:class:`gd_api_v0 <gd_api_v0>`
      - gd_api_v0 is the size-versioned negotiated function table for drawing object ownership, transforms, paths, regions, brushes, pens, fonts, text, images, bitmap locks/edits/damage, recording/replay, native interop, and raster publication.
    * - :cpp:class:`gd_bitmap_damage_summary <gd_bitmap_damage_summary>`
@@ -102,7 +104,11 @@ Types
      -  
    * - :cpp:class:`gf_custom_controls_table <gf_custom_controls_table>`
      -  
+   * - :cpp:class:`gf_custom_layout_callbacks <gf_custom_layout_callbacks>`
+     -  
    * - :cpp:class:`gf_custom_property <gf_custom_property>`
+     -  
+   * - :cpp:class:`gf_custom_semantics <gf_custom_semantics>`
      -  
    * - :cpp:class:`gf_data_grid_cell <gf_data_grid_cell>`
      -  
@@ -141,6 +147,8 @@ Types
    * - :cpp:class:`gf_file_filter <gf_file_filter>`
      -  
    * - :cpp:class:`gf_font <gf_font>`
+     -  
+   * - :cpp:class:`gf_fonts_table <gf_fonts_table>`
      -  
    * - :cpp:class:`gf_host_capabilities <gf_host_capabilities>`
      -  
@@ -707,6 +715,39 @@ Types
    .. cpp:function:: gf_status write_field(gf_event* event, uint64_t field, const gf_value* value) const noexcept
 
    .. cpp:function:: gf_status field_element(const gf_event* event, uint64_t field, uint64_t index, gf_value* element) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: FontsTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_fonts_table, negotiated as GF_TABLE_FONTS.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: FontsTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_fonts_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(FontsTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static FontsTable adopt(const gf_fonts_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status family_id(gf_utf8_view name, uint32_t* family) const noexcept
+
+   .. cpp:function:: gf_status family_name(uint32_t family, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
 
 .. cpp:namespace:: 0
 
@@ -1553,6 +1594,8 @@ Types
 
    .. cpp:member:: gf_custom_control_callbacks callbacks
 
+   .. cpp:member:: const gf_custom_layout_callbacks* layout
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_custom_controls_table
@@ -1569,6 +1612,25 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_custom_layout_callbacks
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*measure)(void* context, gf_object control, gf_logical_size available, gf_logical_size* preferred)
+
+   .. cpp:member:: gf_status (*hit_test)(void* context, gf_object control, gf_logical_point point, uint32_t* hit)
+
+   .. cpp:member:: gf_status (*semantics)(void* context, gf_object control, gf_custom_semantics* semantics)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
 
 .. cpp:namespace:: 0
 
@@ -1593,6 +1655,22 @@ Types
    .. cpp:member:: const gf_create_choice* choices
 
    .. cpp:member:: uint64_t choice_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_custom_semantics
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t role
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view value
+
+   .. cpp:member:: gf_utf8_view description
 
 .. cpp:namespace:: 0
 
@@ -1789,6 +1867,8 @@ Types
    .. cpp:member:: uint32_t initial_rgba
 
    .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_object owner
 
 .. cpp:namespace:: 0
 
@@ -2083,6 +2163,23 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_fonts_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*family_id)(gf_utf8_view name, uint32_t* family)
+
+   .. cpp:member:: gf_status (*family_name)(uint32_t family, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_host_capabilities
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2326,6 +2423,8 @@ Types
    .. cpp:member:: gf_status (*reset)(gf_object object, gf_utf8_view name)
 
    .. cpp:member:: gf_status (*element_at)(gf_object object, gf_utf8_view name, uint64_t index, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*read_elements)(gf_object object, gf_utf8_view name, uint64_t first, uint64_t count, gf_value* values, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2991,6 +3090,10 @@ Types
 
    .. cpp:member:: gf_status (*decoration_at)(gf_object object, uint32_t layer, uint64_t index, gf_text_decoration* decoration)
 
+   .. cpp:member:: gf_status (*utf8_to_utf16_offset)(gf_object object, uint64_t utf8_offset, uint64_t* utf16_offset)
+
+   .. cpp:member:: gf_status (*utf16_to_utf8_offset)(gf_object object, uint64_t utf16_offset, uint64_t* utf8_offset)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3421,6 +3524,8 @@ Types
 
    .. cpp:function:: gf_status element_at(gf_object object, gf_utf8_view name, uint64_t index, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
 
+   .. cpp:function:: gf_status read_elements(gf_object object, gf_utf8_view name, uint64_t first, uint64_t count, gf_value* values, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
 .. cpp:namespace:: gui_forms::abi
 
 .. cpp:class:: PropertyGridTable
@@ -3729,6 +3834,10 @@ Types
    .. cpp:function:: gf_status decoration_count(gf_object object, uint32_t layer, uint64_t* count) const noexcept
 
    .. cpp:function:: gf_status decoration_at(gf_object object, uint32_t layer, uint64_t index, gf_text_decoration* decoration) const noexcept
+
+   .. cpp:function:: gf_status utf8_to_utf16_offset(gf_object object, uint64_t utf8_offset, uint64_t* utf16_offset) const noexcept
+
+   .. cpp:function:: gf_status utf16_to_utf8_offset(gf_object object, uint64_t utf16_offset, uint64_t* utf8_offset) const noexcept
 
    .. cpp:function:: gf_status set_decorations(gf_object object, uint32_t layer, const gf_text_decoration* decorations, uint64_t count) const noexcept
 

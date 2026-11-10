@@ -167,6 +167,7 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
     load_table(&kit, GF_TABLE_RULES, &kit.rules, sizeof(kit.rules), "load the rules table");
     load_table(&kit, GF_TABLE_DATA_GRID, &kit.data_grid, sizeof(kit.data_grid), "load the data grid table");
     load_table(&kit, GF_TABLE_DOCKING, &kit.docking, sizeof(kit.docking), "load the docking table");
+    load_table(&kit, GF_TABLE_FONTS, &kit.fonts, sizeof(kit.fonts), "load the fonts table");
     if (kit.failures == 0u) {
         gf_kit_ownership(&kit);
         gf_kit_values(&kit);

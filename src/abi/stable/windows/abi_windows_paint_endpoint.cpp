@@ -70,11 +70,17 @@ struct WriteBinding final {
 };
 
 // The live endpoints and writes, by token. Any thread reaches them (the
-// device-context functions run on the shim's), so one mutex guards both
+// device-context functions run on the shim's), so one mutex guards the
 // maps and the counters; no endpoint function runs while it is held.
+// tokens_by_handle and tokens_by_device_context index the live endpoints by
+// their compatibility handle and device context: both are made with the
+// endpoint (acquire configures it) and stay fixed until its release, so the
+// indexes are written at acquire and erased at release only (N22).
 struct EndpointRegistry final {
     std::mutex mutex;
     std::unordered_map<std::uint64_t, EndpointBinding> endpoints;
+    std::unordered_map<std::uint64_t, std::uint64_t> tokens_by_handle;
+    std::unordered_map<std::uint64_t, std::uint64_t> tokens_by_device_context;
     std::unordered_map<std::uint64_t, WriteBinding> writes;
     std::uint64_t next_endpoint{1U};
     std::uint64_t next_write{1U};
@@ -97,35 +103,35 @@ std::shared_ptr<Endpoint> find_endpoint(gf_paint_endpoint token) {
     return (*found).second.endpoint;
 }
 
-// The endpoints alive now, so a search by handle or device context calls
-// the endpoints outside the lock.
-std::vector<std::shared_ptr<Endpoint>> live_endpoints() {
+// The live endpoint an index names by key, or null: one lookup in the
+// index and one in the endpoints. The caller holds the registry's lock.
+std::shared_ptr<Endpoint> indexed_endpoint_locked(const std::unordered_map<std::uint64_t, std::uint64_t>& index,
+                                                  std::uint64_t key) {
     EndpointRegistry& endpoints = endpoint_registry();
-    std::vector<std::shared_ptr<Endpoint>> live;
-    const std::scoped_lock lock(endpoints.mutex);
-    live.reserve(endpoints.endpoints.size());
-    for (const std::pair<const std::uint64_t, EndpointBinding>& entry : endpoints.endpoints) {
-        live.push_back(entry.second.endpoint);
+    const std::unordered_map<std::uint64_t, std::uint64_t>::const_iterator token = index.find(key);
+    if (token == index.end()) {
+        return nullptr;
     }
-    return live;
+    const std::unordered_map<std::uint64_t, EndpointBinding>::const_iterator found =
+        endpoints.endpoints.find((*token).second);
+    if (found == endpoints.endpoints.end()) {
+        return nullptr;
+    }
+    return (*found).second.endpoint;
 }
 
 std::shared_ptr<Endpoint> endpoint_for_handle(std::uint64_t handle) {
-    for (const std::shared_ptr<Endpoint>& endpoint : live_endpoints()) {
-        if (static_cast<std::uint64_t>((*endpoint).compatibility_handle()) == handle) {
-            return endpoint;
-        }
-    }
-    return nullptr;
+    EndpointRegistry& endpoints = endpoint_registry();
+    const std::scoped_lock lock(endpoints.mutex);
+    std::shared_ptr<Endpoint> endpoint = indexed_endpoint_locked(endpoints.tokens_by_handle, handle);
+    return endpoint;
 }
 
 std::shared_ptr<Endpoint> endpoint_for_dc(std::uint64_t device_context) {
-    for (const std::shared_ptr<Endpoint>& endpoint : live_endpoints()) {
-        if (static_cast<std::uint64_t>((*endpoint).device_context()) == device_context) {
-            return endpoint;
-        }
-    }
-    return nullptr;
+    EndpointRegistry& endpoints = endpoint_registry();
+    const std::scoped_lock lock(endpoints.mutex);
+    std::shared_ptr<Endpoint> endpoint = indexed_endpoint_locked(endpoints.tokens_by_device_context, device_context);
+    return endpoint;
 }
 
 bool valid_extent(std::uint32_t width, std::uint32_t height) noexcept {
@@ -156,13 +162,24 @@ gf_status GF_CALL endpoint_acquire(gf_object control, std::uint32_t width, std::
             (*made).release();
             return fail(GF_STATUS_WRONG_HANDLE_KIND, acquire_slot, "the control is not a custom control");
         }
+        const std::uint64_t handle = static_cast<std::uint64_t>((*made).compatibility_handle());
+        const std::uint64_t device_context = static_cast<std::uint64_t>((*made).device_context());
         EndpointRegistry& endpoints = endpoint_registry();
         const std::scoped_lock lock(endpoints.mutex);
         const std::uint64_t token = endpoints.next_endpoint;
+        // Room for every node first, so a failed allocation leaves the maps
+        // as they were.
+        endpoints.endpoints.reserve(endpoints.endpoints.size() + 1U);
+        endpoints.tokens_by_handle.reserve(endpoints.tokens_by_handle.size() + 1U);
+        endpoints.tokens_by_device_context.reserve(endpoints.tokens_by_device_context.size() + 1U);
         endpoints.next_endpoint = token + 1U;
         endpoints.endpoints.emplace(token, EndpointBinding{made, std::weak_ptr<Control>(target), surface});
+        endpoints.tokens_by_handle.insert_or_assign(handle, token);
+        if (device_context != 0U) {
+            endpoints.tokens_by_device_context.insert_or_assign(device_context, token);
+        }
         *endpoint = token;
-        *compatibility_handle = static_cast<std::uint64_t>((*made).compatibility_handle());
+        *compatibility_handle = handle;
         return GF_STATUS_OK;
     } catch (...) {
         return fail_with_current_exception(acquire_slot);
@@ -288,12 +305,27 @@ gf_status GF_CALL endpoint_release(gf_paint_endpoint token) noexcept {
             }
             binding = std::move((*found).second);
             endpoints.endpoints.erase(found);
+            const std::uint64_t handle = static_cast<std::uint64_t>((*binding.endpoint).compatibility_handle());
+            const std::uint64_t device_context = static_cast<std::uint64_t>((*binding.endpoint).device_context());
+            const std::unordered_map<std::uint64_t, std::uint64_t>::const_iterator by_handle =
+                endpoints.tokens_by_handle.find(handle);
+            if (by_handle != endpoints.tokens_by_handle.end() && (*by_handle).second == token) {
+                endpoints.tokens_by_handle.erase(by_handle);
+            }
+            const std::unordered_map<std::uint64_t, std::uint64_t>::const_iterator by_device_context =
+                endpoints.tokens_by_device_context.find(device_context);
+            if (by_device_context != endpoints.tokens_by_device_context.end() &&
+                (*by_device_context).second == token) {
+                endpoints.tokens_by_device_context.erase(by_device_context);
+            }
         }
         // On the UI thread the control lets the surface go now; from another
         // thread (a finalizer) it keeps the last frame until it is disposed,
-        // since retained state changes only on the UI thread.
+        // since retained state changes only on the UI thread. The thread is
+        // tested without recording a failure: release succeeds from any
+        // thread, so it leaves no WRONG_THREAD behind for error_detail (N23).
         const Control::Ptr control = binding.control.lock();
-        if (control && registry().enter_ui(release_slot, false) == GF_STATUS_OK && (*control).is_alive()) {
+        if (control && registry().calling_ui_thread() && (*control).is_alive()) {
             static_cast<void>(unbind_custom_surface(*control, binding.surface));
         }
         (*binding.endpoint).release();

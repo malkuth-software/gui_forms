@@ -14,6 +14,7 @@
 #include "../../../src/abi/stable/registry/abi_registry.hpp"
 
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/component/failures/component_failures.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
@@ -461,6 +462,44 @@ void key_events(const Tables& tables) {
     require_ok(tables.objects.release(root_object), "release the key root");
 }
 
+// The status a core failure reaches the C ABI as (N6): the core's own
+// failure types and its limit report name the header's statuses rather
+// than INVALID_STATE, and the ABI's text check is the text module's strict
+// validator (N7).
+gf_status status_of_thrown(int which) {
+    const abi1::SlotIdentity slot{GF_TABLE_OBJECTS, 0U};
+    try {
+        if (which == 0) throw WrongThreadError("wrong thread");
+        if (which == 1) throw DisposedError("disposed");
+        if (which == 2) throw std::length_error("limit");
+        throw std::logic_error("state");
+    } catch (...) {
+        const gf_status status = abi1::fail_with_current_exception(slot);
+        return status;
+    }
+}
+
+void failure_statuses() {
+    require(status_of_thrown(0) == GF_STATUS_WRONG_THREAD, "a core wrong-thread failure is GF_STATUS_WRONG_THREAD");
+    require(status_of_thrown(1) == GF_STATUS_DISPOSED, "a core disposed failure is GF_STATUS_DISPOSED");
+    require(status_of_thrown(2) == GF_STATUS_LIMIT_EXCEEDED, "a core limit is GF_STATUS_LIMIT_EXCEEDED");
+    require(status_of_thrown(3) == GF_STATUS_INVALID_STATE, "another logic error is GF_STATUS_INVALID_STATE");
+    const abi1::SlotIdentity slot{GF_TABLE_OBJECTS, 0U};
+    std::string_view read;
+    const std::string_view well_formed = "caf\xC3\xA9 \xF0\x9F\x98\x80";
+    require(abi1::read_text(text_view(well_formed), slot, read) == GF_STATUS_OK && read == well_formed,
+            "read_text admits well-formed UTF-8");
+    const std::string_view overlong = "\xC0\xAF";
+    const std::string_view surrogate = "\xED\xA0\x80";
+    const std::string_view truncated = "\xE2\x82";
+    require(abi1::read_text(text_view(overlong), slot, read) == GF_STATUS_INVALID_ARGUMENT,
+            "read_text refuses an overlong encoding");
+    require(abi1::read_text(text_view(surrogate), slot, read) == GF_STATUS_INVALID_ARGUMENT,
+            "read_text refuses an encoded surrogate");
+    require(abi1::read_text(text_view(truncated), slot, read) == GF_STATUS_INVALID_ARGUMENT,
+            "read_text refuses a truncated sequence");
+}
+
 } // namespace
 
 int main() {
@@ -471,6 +510,7 @@ int main() {
         optional_text(tables);
         two_arguments(tables);
         key_events(tables);
+        failure_statuses();
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return 1;

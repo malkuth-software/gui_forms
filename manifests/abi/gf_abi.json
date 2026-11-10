@@ -4,7 +4,7 @@
   "header": "include/gui_forms/c/gf_abi.h",
   "abi": {
     "major": 1,
-    "minor": 1
+    "minor": 2
   },
   "targets": [
     "x86_64-w64-windows-gnu",
@@ -20,7 +20,7 @@
     },
     {
       "name": "GF_ABI_MINOR",
-      "value": 1,
+      "value": 2,
       "type": "uint32"
     },
     {
@@ -209,6 +209,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_TABLE_FONTS",
+      "value": 22,
+      "type": "uint32"
+    },
+    {
       "name": "GF_TABLE_WINDOWS_PAINT_ENDPOINT",
       "value": 256,
       "type": "uint32"
@@ -371,6 +376,11 @@
     {
       "name": "GF_CREATE_MAXIMUM_NAME_BYTES",
       "value": 256,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL",
+      "value": 65536,
       "type": "uint32"
     },
     {
@@ -1614,6 +1624,16 @@
       "type": "uint32"
     },
     {
+      "name": "GF_RULE_CONDITION_DRAGGING",
+      "value": 12,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_DROP_CANDIDATE",
+      "value": 13,
+      "type": "uint32"
+    },
+    {
       "name": "GF_RULE_MODIFIER_SHIFT",
       "value": 1,
       "type": "uint32"
@@ -1656,6 +1676,11 @@
     {
       "name": "GF_RULE_ACTION_FOCUS",
       "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_BEGIN_KEYBOARD_DRAG",
+      "value": 6,
       "type": "uint32"
     },
     {
@@ -3458,7 +3483,7 @@
     {
       "name": "gf_properties_table",
       "kind": "table",
-      "size": 40,
+      "size": 48,
       "align": 8,
       "fields": [
         {
@@ -3592,6 +3617,50 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "read_elements",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "first",
+                "type": "uint64_t"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              },
+              {
+                "name": "values",
+                "type": "gf_value*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
         }
       ]
     },
@@ -4109,7 +4178,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "show_modal",
@@ -4133,7 +4202,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "show_owned",
@@ -4153,7 +4222,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "window_properties",
@@ -4177,7 +4246,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "focused_control",
@@ -4197,7 +4266,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         }
       ]
     },
@@ -5811,7 +5880,7 @@
     {
       "name": "gf_dialog_request",
       "kind": "extensible",
-      "size": 136,
+      "size": 144,
       "align": 8,
       "fields": [
         {
@@ -5909,6 +5978,12 @@
           "type": "uint32_t",
           "offset": 132,
           "size": 4
+        },
+        {
+          "name": "owner",
+          "type": "gf_object",
+          "offset": 136,
+          "size": 8
         }
       ]
     },
@@ -6274,7 +6349,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "invalidation_overlay",
@@ -6290,7 +6365,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         }
       ]
     },
@@ -6732,7 +6807,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "focus_state",
@@ -6756,7 +6831,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         }
       ]
     },
@@ -6843,7 +6918,7 @@
     {
       "name": "gf_text_editing_table",
       "kind": "table",
-      "size": 104,
+      "size": 120,
       "align": 8,
       "fields": [
         {
@@ -7048,7 +7123,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "replace_decorations",
@@ -7084,7 +7159,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "clear_decorations",
@@ -7100,7 +7175,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "decoration_count",
@@ -7124,7 +7199,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "decoration_at",
@@ -7152,7 +7227,55 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
+        },
+        {
+          "name": "utf8_to_utf16_offset",
+          "type": "function",
+          "offset": 104,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "utf8_offset",
+                "type": "uint64_t"
+              },
+              {
+                "name": "utf16_offset",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "utf16_to_utf8_offset",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "utf16_offset",
+                "type": "uint64_t"
+              },
+              {
+                "name": "utf8_offset",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
         }
       ]
     },
@@ -7340,7 +7463,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "close_anchored",
@@ -7356,7 +7479,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_tool_tips_shown",
@@ -7376,7 +7499,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "tool_tips_shown",
@@ -7400,7 +7523,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         }
       ]
     },
@@ -7659,6 +7782,44 @@
       ]
     },
     {
+      "name": "gf_custom_semantics",
+      "kind": "extensible",
+      "size": 56,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "role",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "value",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "description",
+          "type": "gf_utf8_view",
+          "offset": 40,
+          "size": 16
+        }
+      ]
+    },
+    {
       "name": "gf_custom_control_callbacks",
       "kind": "extensible",
       "size": 48,
@@ -7777,9 +7938,106 @@
       ]
     },
     {
+      "name": "gf_custom_layout_callbacks",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "measure",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "control",
+                "type": "gf_object"
+              },
+              {
+                "name": "available",
+                "type": "gf_logical_size"
+              },
+              {
+                "name": "preferred",
+                "type": "gf_logical_size*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hit_test",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "control",
+                "type": "gf_object"
+              },
+              {
+                "name": "point",
+                "type": "gf_logical_point"
+              },
+              {
+                "name": "hit",
+                "type": "uint32_t*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "semantics",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "control",
+                "type": "gf_object"
+              },
+              {
+                "name": "semantics",
+                "type": "gf_custom_semantics*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "gf_custom_control_spec",
       "kind": "extensible",
-      "size": 80,
+      "size": 88,
       "align": 8,
       "fields": [
         {
@@ -7823,6 +8081,12 @@
           "type": "gf_custom_control_callbacks",
           "offset": 32,
           "size": 48
+        },
+        {
+          "name": "layout",
+          "type": "const gf_custom_layout_callbacks*",
+          "offset": 80,
+          "size": 8
         }
       ]
     },
@@ -9012,7 +9276,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "column_at",
@@ -9048,7 +9312,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "column_item",
@@ -9084,7 +9348,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "insert_column",
@@ -9108,7 +9372,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "remove_column",
@@ -9128,7 +9392,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "column_index",
@@ -9152,7 +9416,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_column_header_text",
@@ -9176,7 +9440,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_column_width",
@@ -9200,7 +9464,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_column_read_only",
@@ -9224,7 +9488,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_column_hidden",
@@ -9248,7 +9512,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "row_count",
@@ -9272,7 +9536,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "insert_rows",
@@ -9300,7 +9564,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "append_rows",
@@ -9328,7 +9592,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "erase_rows",
@@ -9352,7 +9616,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "replace_row",
@@ -9376,7 +9640,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "clear_rows",
@@ -9392,7 +9656,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "row_id",
@@ -9424,7 +9688,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "row_position",
@@ -9448,7 +9712,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "cell_value",
@@ -9492,7 +9756,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_cell_value",
@@ -9524,7 +9788,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "cell_text",
@@ -9560,7 +9824,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "read_cells",
@@ -9604,7 +9868,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "current_cell",
@@ -9632,7 +9896,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_current_cell",
@@ -9660,7 +9924,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "selected_rows",
@@ -9688,7 +9952,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "selected_cells",
@@ -9716,7 +9980,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_row_selected",
@@ -9740,7 +10004,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_cell_selected",
@@ -9768,7 +10032,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "clear_selection",
@@ -9784,7 +10048,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "select_all",
@@ -9800,7 +10064,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "begin_edit",
@@ -9824,7 +10088,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "end_edit",
@@ -9844,7 +10108,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "cancel_edit",
@@ -9860,7 +10124,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         }
       ]
     },
@@ -10178,7 +10442,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_panel_content",
@@ -10202,7 +10466,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_panel_title",
@@ -10226,7 +10490,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "apply_edit",
@@ -10250,7 +10514,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "locate",
@@ -10274,7 +10538,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "save_layout",
@@ -10302,7 +10566,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "load_layout",
@@ -10326,7 +10590,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "activate_panel",
@@ -10346,7 +10610,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "attach_windows",
@@ -10362,7 +10626,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "document_area",
@@ -10382,7 +10646,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "panel_at",
@@ -10418,7 +10682,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "floating_sites",
@@ -10446,7 +10710,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "floating_site",
@@ -10474,7 +10738,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "update_panel",
@@ -10494,7 +10758,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_options",
@@ -10514,7 +10778,7 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
         },
         {
           "name": "set_floating_window_visibility",
@@ -10538,7 +10802,75 @@
               }
             ]
           },
-          "since": "1.1"
+          "since": "1.2"
+        }
+      ]
+    },
+    {
+      "name": "gf_fonts_table",
+      "kind": "table",
+      "size": 24,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "family_id",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "family",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "family_name",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "family",
+                "type": "uint32_t"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
         }
       ]
     },

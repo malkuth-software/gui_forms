@@ -56,4 +56,8 @@ void shape_collection(BindingValue& converted, const std::optional<BindingValue>
                                            std::uint64_t text_capacity, std::uint64_t* text_required,
                                            SlotIdentity slot);
 
+// Writes complete's 1.0 fields after struct_size into a caller's gf_value,
+// leaving its struct_size and any later fields.
+void write_value_fields(const gf_value& complete, gf_value& destination) noexcept;
+
 } // namespace gui_forms::abi1

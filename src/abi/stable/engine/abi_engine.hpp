@@ -41,6 +41,14 @@ struct KeptOwner final {
     Component::Ptr owner;
 };
 
+// An owned window open now (windows.show_modal or show_owned), from its
+// ready to its closed, and the root it was opened over. Observed only: the
+// application's window table owns the window.
+struct OpenOwnedWindow final {
+    gf_object root = 0U;
+    Window* window = nullptr;
+};
+
 // One published name and, while present, its value.
 struct PublishedInput final {
     std::string name;
@@ -95,6 +103,17 @@ public:
     void detach_window() noexcept { running_ = nullptr; }
     [[nodiscard]] Window* running_window() const noexcept { return running_; }
 
+    // The owned windows open now, in opening order. attach_owned_window
+    // throws std::bad_alloc, recording nothing; detach_owned_window forgets
+    // the window opened over root, if any.
+    void attach_owned_window(gf_object root, Window& window);
+    void detach_owned_window(gf_object root) noexcept;
+    [[nodiscard]] std::span<const OpenOwnedWindow> owned_windows() const noexcept { return owned_; }
+    // The window open over root: the running window for zero or the run's
+    // root (run_root), an owned window for its root; null for any other
+    // object or when that window is not open (N32).
+    [[nodiscard]] Window* window_over(gf_object root, gf_object run_root) const noexcept;
+
     // The paths the last dialog chose.
     [[nodiscard]] std::vector<std::string>& dialog_paths() noexcept { return dialog_paths_; }
 
@@ -122,6 +141,7 @@ private:
     std::vector<PublishedInput> published_{};
     std::vector<std::string> published_names_{};
     Window* running_ = nullptr;
+    std::vector<OpenOwnedWindow> owned_{};
     std::vector<std::string> dialog_paths_{};
     std::uint64_t next_dialog_request_ = 1;
     std::vector<KeptOwner> kept_owners_{};

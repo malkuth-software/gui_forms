@@ -111,6 +111,18 @@ static void tree(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.child_at(panel, 2u, &at), GF_STATUS_INVALID_ARGUMENT,
                   "child_at past the last child is refused");
 
+    /* An insertion between children is one mutation that lands at its index (N11). */
+    gf_kit_status(kit, (*kit).objects.insert_child(panel, third, 1u), GF_STATUS_OK, "insert between two children");
+    gf_kit_status(kit, (*kit).objects.child_count(panel, &count), GF_STATUS_OK, "child_count after a middle insert");
+    gf_kit_check(kit, count == 3u, "the middle insert adds one child");
+    gf_kit_status(kit, (*kit).objects.child_at(panel, 1u, &at), GF_STATUS_OK, "child_at the middle index");
+    gf_kit_check(kit, at == third, "the middle insert lands at its index");
+    gf_kit_status(kit, (*kit).objects.release(at), GF_STATUS_OK, "release the middle child_at reference");
+    gf_kit_status(kit, (*kit).objects.child_at(panel, 2u, &at), GF_STATUS_OK, "child_at above the middle");
+    gf_kit_check(kit, at == first, "the child above keeps its order");
+    gf_kit_status(kit, (*kit).objects.release(at), GF_STATUS_OK, "release the upper child_at reference");
+    gf_kit_status(kit, (*kit).objects.remove_child(panel, third), GF_STATUS_OK, "take the middle child out again");
+
     /* The parent keeps a child whose last reference goes; its identity ends. */
     gf_kit_status(kit, (*kit).objects.release(first), GF_STATUS_OK, "release a child's only reference");
     gf_kit_check(kit, gf_kit_state(kit, first) == GF_OBJECT_STATE_DISPOSED + 1u, "the child's identity ended");

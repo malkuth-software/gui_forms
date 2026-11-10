@@ -45,6 +45,13 @@ internal static unsafe class Program
         gf_status refused = Exports.gf_abi_get_table(Constants.GF_TABLE_RUNTIME, Constants.GF_ABI_MAJOR + 1u, 0u,
                                                      &later, (ulong)sizeof(gf_runtime_table));
         expect(refused == Constants.GF_STATUS_UNSUPPORTED_VERSION, "a later major is refused");
+        // The tables are negotiated once and lent in place (N72): two reads
+        // borrow the same table, not two copies.
+        ref gf_objects_table first = ref System.Runtime.CompilerServices.Unsafe.AsRef(in Abi.objects);
+        ref gf_objects_table second = ref System.Runtime.CompilerServices.Unsafe.AsRef(in Abi.objects);
+        expect(System.Runtime.CompilerServices.Unsafe.AreSame(ref first, ref second),
+               "every call borrows the one negotiated table");
+        expect(IntPtr.Size == 8, "the binding runs 64-bit (N73)");
     }
 
     private static void ownership()
