@@ -484,6 +484,9 @@ public:
     void on_pointer_preview(PointerEvent& event) override;
     void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
+    // Semantics and accessibility only: on_focus_changed repaints the key
+    // stop alone (repaint_stop), not the whole ribbon.
+    [[nodiscard]] Dirty focus_invalidation() const noexcept override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
     bool on_semantic_child_action(std::string_view stable_id, SemanticAction action,

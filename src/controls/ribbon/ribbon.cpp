@@ -2154,7 +2154,15 @@ void Ribbon::on_focus_changed(bool focused) {
     focused_ = focused;
     if (focused_ && !stop_) stop_ = Stop{StopKind::tab, selected_tab_.value_or(0U), {}};
     invalidate(Dirty::semantics);
-    repaint_stop(stop_);
+    // The stop shows focus only with the focus cue (stop_focus_visible); a
+    // pointer press that focuses the ribbon changes no pixel. The window
+    // repaints the focused control when the cue appears.
+    const Window* const host = attached_window();
+    if (host != nullptr && (*host).focus_cue_visible()) repaint_stop(stop_);
+}
+
+Dirty Ribbon::focus_invalidation() const noexcept {
+    return Dirty::semantics | Dirty::accessibility;
 }
 
 void Ribbon::overlay_focus_changed(bool focused) {

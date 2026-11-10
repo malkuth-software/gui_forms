@@ -2027,6 +2027,11 @@ private:
     void update_display_cache_metrics() noexcept;
     void compact_frame_requests() noexcept;
     [[nodiscard]] Rect absolute_bounds_of(const Control& control) const;
+    // Whether `control` and every ancestor have been arranged (non-empty
+    // arranged bounds): before that a control has painted nothing and its
+    // window position is not known, so its invalidation damages nothing;
+    // the layout that arranges it damages where it lands.
+    [[nodiscard]] bool arranged_in_window(const Control& control) const;
     [[nodiscard]] Rect visual_bounds_of(const Control& control,
                                         Insets outsets) const;
     [[nodiscard]] Rect paint_damage_bounds_of(const Control& control) const;

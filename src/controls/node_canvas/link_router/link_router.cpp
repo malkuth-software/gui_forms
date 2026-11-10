@@ -66,7 +66,8 @@ WorldPoint centre_of(const WorldRect& bounds) noexcept {
     return centre;
 }
 
-// The edge of `node` facing `other`'s centre, for fallback routes.
+// The edge of `node` facing `other`'s centre: an unresolved automatic
+// port's edge, and a fallback route's.
 std::uint8_t facing_side(const NodeRecord& node, const NodeRecord& other) noexcept {
     const WorldPoint from = centre_of(node.bounds);
     const WorldPoint to = centre_of(other.bounds);
@@ -279,7 +280,7 @@ void LinkRouter::prepare_ports(const NodeGraph& graph) {
     port_far_set_.assign(total, 0U);
 }
 
-LinkRouter::RouteEnd LinkRouter::make_end(const NodeGraph& graph, PortRef port) const noexcept {
+LinkRouter::RouteEnd LinkRouter::make_end(const NodeGraph& graph, PortRef port, PortRef other_end) const noexcept {
     RouteEnd end{};
     end.node = port.node.index;
     end.port = port.port.value;
@@ -299,9 +300,13 @@ LinkRouter::RouteEnd LinkRouter::make_end(const NodeGraph& graph, PortRef port) 
         end.offset = resolved_offsets_[global];
         return end;
     }
-    end.side_count = 4U;
-    end.sides = {static_cast<std::uint8_t>(PortSide::left), static_cast<std::uint8_t>(PortSide::right),
-                 static_cast<std::uint8_t>(PortSide::top), static_cast<std::uint8_t>(PortSide::bottom)};
+    // The owner's ruling: an automatic port's side is chosen by direction,
+    // the edge facing the link's other node, not by the search's cost (a
+    // route leaving another edge can have fewer bends).
+    const NodeRecord& node = graph.node_slots()[port.node.index];
+    const NodeRecord& other = graph.node_slots()[other_end.node.index];
+    end.side_count = 1U;
+    end.sides[0] = facing_side(node, other);
     end.offset = 0.5;
     return end;
 }
@@ -370,7 +375,7 @@ bool LinkRouter::build_grid(const NodeGraph& graph, const LinkRouterOptions& opt
     rows_.push_back(high_y + margin);
     for (const LinkRecord& link : links) {
         if (!link.live) continue;
-        const std::array<RouteEnd, 2> ends{make_end(graph, link.from), make_end(graph, link.to)};
+        const std::array<RouteEnd, 2> ends{make_end(graph, link.from, link.to), make_end(graph, link.to, link.from)};
         for (const RouteEnd& end : ends) {
             const NodeRecord& node = nodes[end.node];
             for (std::size_t index = 0U; index < end.side_count; ++index) {
@@ -415,6 +420,9 @@ bool LinkRouter::build_grid(const NodeGraph& graph, const LinkRouterOptions& opt
             }
         }
     }
+    // The vertices are bounded by maximum_route_grid_vertices above; the
+    // states (four headings a vertex) fit when the vertices do.
+    if (vertices > std::numeric_limits<std::size_t>::max() / heading_count) return false;
     const std::size_t states = vertices * heading_count;
     if (cost_.size() < states) {
         cost_.resize(states, 0.0);
@@ -453,8 +461,8 @@ void LinkRouter::route_pass(const NodeGraph& graph, const LinkRouterOptions& opt
     std::sort(order_.begin(), order_.end(), shorter);
     for (const std::uint32_t index : order_) {
         const LinkRecord& link = links[index];
-        const RouteEnd from = make_end(graph, link.from);
-        const RouteEnd to = make_end(graph, link.to);
+        const RouteEnd from = make_end(graph, link.from, link.to);
+        const RouteEnd to = make_end(graph, link.to, link.from);
         RoutedLink route{};
         route.link = LinkId{index, link.generation};
         const bool found = grid_ready && search(graph, options, from, to, route, statistics);
@@ -919,10 +927,13 @@ void append_link_route_trace(std::string& out, const LinkRouter& router) {
         std::array<char, 128> head{};
         const std::string_view from = port_side_name(route.from_side);
         const std::string_view to = port_side_name(route.to_side);
+        // Side names are a few characters; the bound keeps the precision an int.
+        const int from_length = static_cast<int>(std::min(from.size(), std::size_t{16U}));
+        const int to_length = static_cast<int>(std::min(to.size(), std::size_t{16U}));
         const int written = std::snprintf(head.data(), head.size(), "link %u.%u %.*s>%.*s bends=%u%s:",
                                           static_cast<unsigned>(route.link.index),
-                                          static_cast<unsigned>(route.link.generation), static_cast<int>(from.size()),
-                                          from.data(), static_cast<int>(to.size()), to.data(),
+                                          static_cast<unsigned>(route.link.generation), from_length,
+                                          from.data(), to_length, to.data(),
                                           static_cast<unsigned>(route.bends), route.fallback ? " fallback" : "");
         if (written > 0) out.append(head.data(), std::min(static_cast<std::size_t>(written), head.size() - 1U));
         for (const WorldPoint point : router.points(route)) {

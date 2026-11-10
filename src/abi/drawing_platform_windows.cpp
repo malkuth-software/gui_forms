@@ -230,7 +230,7 @@ struct BorrowableDib final {
 
 using BeginWriteV1 = decltype(&gf_windows_paint_endpoint_begin_write_v1);
 using EndWriteV1 = decltype(&gf_windows_paint_endpoint_end_write_v1);
-using GetStableTable = gf_status (GF_CALL*)(gf_table_id, std::uint32_t, std::uint32_t, void*, std::uint64_t);
+using GetStableTable = decltype(&gf_abi_get_table);
 
 struct EndpointProbe final {
     BeginWriteV1 begin_write_v1{};

@@ -966,6 +966,16 @@ public:
     virtual void on_drag(DragEvent& event);
     virtual void on_drag_bubble(DragEvent& event);
     virtual void on_focus_changed(bool focused);
+    // What the window invalidates on this control when it gains or loses
+    // focus, after on_focus_changed: invalidation::focus (paint, semantics,
+    // accessibility) by default. A control that repaints only its focused
+    // part itself in on_focus_changed (a ribbon's key stop) leaves paint out.
+    [[nodiscard]] virtual Dirty focus_invalidation() const noexcept;
+    // Whether this control paints anything of its own. False for an input
+    // catcher (a transparent layer that takes outside clicks): its own
+    // invalidation and attachment damage nothing, and a resize that keeps its
+    // origin damages nothing; its children damage their own bounds.
+    [[nodiscard]] virtual bool paints_content() const noexcept;
     // Focus moved to `descendant`, a control inside this one: the window
     // calls this on each ancestor of a newly focused control, innermost
     // first, after the focused control's on_focus_changed (Windows Forms'

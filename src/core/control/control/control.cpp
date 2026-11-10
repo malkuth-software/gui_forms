@@ -3937,6 +3937,14 @@ void Control::on_context_menu_requested(ContextMenuRequest& request) {
     static_cast<void>(request);
 }
 
+Dirty Control::focus_invalidation() const noexcept {
+    return invalidation::focus;
+}
+
+bool Control::paints_content() const noexcept {
+    return true;
+}
+
 bool Control::clicks_primary_button_only() const noexcept {
     return false;
 }

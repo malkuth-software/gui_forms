@@ -22,8 +22,6 @@
 #include <array>
 #include <atomic>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
 #include <exception>
 #include <functional>
 #include <stdexcept>
@@ -364,7 +362,7 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
     }
     if (!(*control).is_alive()) return;
     if (!focused || (*root).eligible(control)) {
-        (*control).invalidate(invalidation::focus);
+        (*control).invalidate((*control).focus_invalidation());
         if (focused) (*root).reveal_focused(control);
     } else {
         (*root).focused_.reset();
@@ -3314,7 +3312,7 @@ void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
     }
     if (has_dirty(requested_dirty, Dirty::paint)) {
         Rect bounds = paint_damage_bounds_of(control);
-        if (bounds.empty()) {
+        if (bounds.empty() && control.paints_content() && arranged_in_window(control)) {
             bounds = control.requested_bounds_;
         }
         // Structural invalidation recomposes every plane so vacated pixels
@@ -3548,6 +3546,13 @@ void SurfaceRoot::damage_resized(Control& control, Rect old_bounds, Rect new_bou
     static_cast<void>(relaid);
     const DamageCauseScope cause(*this, InvalidationCause::layout, &control);
     const bool same_origin = old_bounds.x == new_bounds.x && old_bounds.y == new_bounds.y;
+    // A control that paints nothing damages only what its children paint.
+    if (same_origin && !control.paints_content()) {
+        for (const Control::Ptr& child : control.children_) {
+            add_subtree_damage(child);
+        }
+        return;
+    }
     if (same_origin && !escalate) {
         add_resize_strip_damage(old_bounds, new_bounds, 0.0);
     } else {
@@ -3833,7 +3838,7 @@ void SurfaceRoot::settle_touch(Control& control, detail::PendingTouch owed) {
     }
     if (owed.damages_bounds) {
         Rect bounds = paint_damage_bounds_of(control);
-        if (bounds.empty()) {
+        if (bounds.empty() && control.paints_content() && arranged_in_window(control)) {
             bounds = control.requested_bounds_;
         }
         const DamageCauseScope cause(*this, InvalidationCause::control, &control);
@@ -4755,6 +4760,14 @@ Rect SurfaceRoot::absolute_bounds_of(const Control& control) const {
     return result;
 }
 
+bool SurfaceRoot::arranged_in_window(const Control& control) const {
+    if (control.arranged_bounds_.empty()) return false;
+    for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        if ((*ancestor).arranged_bounds_.empty()) return false;
+    }
+    return true;
+}
+
 Rect SurfaceRoot::visual_bounds_of(const Control& control, Insets outsets) const {
     outsets = {bounded_visual_outset(outsets.left),
                bounded_visual_outset(outsets.top),
@@ -4767,6 +4780,11 @@ Rect SurfaceRoot::visual_bounds_of(const Control& control, Insets outsets) const
 }
 
 Rect SurfaceRoot::paint_damage_bounds_of(const Control& control) const {
+    if (!control.paints_content()) return Rect{};
+    // A control not arranged yet (it or an ancestor has empty bounds) has
+    // painted nothing: its outsets (a shadow) round an empty rectangle at
+    // its parent's origin would damage pixels it never touches.
+    if (!arranged_in_window(control)) return Rect{};
     return Rect::united(
         visual_bounds_of(control, control.effective_visual_outsets()),
         visual_bounds_of(control, control.last_painted_visual_outsets_));

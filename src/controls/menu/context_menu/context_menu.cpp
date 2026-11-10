@@ -127,6 +127,12 @@ struct ContextMenu::Impl final {
             if (impl_.forward_text(event)) event.handled = true;
         }
 
+        // Transparent: the layer only takes outside clicks and keys, so
+        // opening a menu damages the menu's panels, not the whole client.
+        [[nodiscard]] bool paints_content() const noexcept override {
+            return false;
+        }
+
         [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
             SemanticDescriptor descriptor;
             descriptor.exposed = false;

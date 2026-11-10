@@ -24,6 +24,9 @@ class SubSurfaceHost;
 
 namespace detail {
 class PlotEngine;
+// Complete only in plot_view.cpp: the vectors of them below have no
+// default member initializer, so libstdc++ instantiates their constructor and
+// destructor only there (PlotView's constructor and destructor).
 struct PlotEngineSeries;
 struct PlotEngineAnnotation;
 struct PlotLiveInbox;
@@ -215,8 +218,8 @@ private:
     // (gather_series); the engine's series borrow the items' data and
     // labels until the next gather.
     std::vector<PlotSeriesItem*> series_items_{};
-    std::vector<detail::PlotEngineSeries> gathered_{};
-    std::vector<detail::PlotEngineAnnotation> annotations_{};
+    std::vector<detail::PlotEngineSeries> gathered_;
+    std::vector<detail::PlotEngineAnnotation> annotations_;
     // The axis items' revisions and the series' data revisions when last
     // taken (sums with the counts mixed in).
     std::uint64_t axes_signature_{};

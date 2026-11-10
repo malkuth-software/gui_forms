@@ -20,9 +20,9 @@
 //     over (grid vertex, heading) states. A step costs its length, a turn
 //     `bend_penalty`, and entering a vertex that an earlier route crosses
 //     perpendicularly `crossing_penalty`, so later links avoid crossing
-//     earlier ones where a detour is cheaper. Every edge a port may use is a
-//     start or goal state, so an automatic port's edge is chosen by the
-//     search: the one facing the link's other end costs least.
+//     earlier ones where a detour is cheaper. An automatic port's edge is
+//     chosen by direction (the owner's ruling): the edge of its node facing
+//     the centre of the link's other node, along the dominant axis.
 //  4. An automatic port takes the edge its first link chose; a node's
 //     automatic ports on one edge are spread along it in the order of their
 //     links' far ends (which keeps their links from crossing), and every
@@ -217,7 +217,9 @@ private:
 
     void collect_obstacles(const NodeGraph& graph, const LinkRouterOptions& options);
     void prepare_ports(const NodeGraph& graph);
-    [[nodiscard]] RouteEnd make_end(const NodeGraph& graph, PortRef port) const noexcept;
+    // `other_end` is the link's other end: an unresolved automatic port takes the
+    // edge facing its node.
+    [[nodiscard]] RouteEnd make_end(const NodeGraph& graph, PortRef port, PortRef other_end) const noexcept;
     void fill_candidates(const NodeGraph& graph, const RouteEnd& end, double margin,
                          std::array<Candidate, 4>& candidates) const noexcept;
     [[nodiscard]] bool build_grid(const NodeGraph& graph, const LinkRouterOptions& options);

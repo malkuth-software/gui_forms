@@ -209,8 +209,16 @@ void automatic_ports_spread_in_order() {
     }
     require(to_lower.from_side == PortSide::right && to_upper.from_side == PortSide::right,
             "both automatic outputs face the targets");
-    require(to_upper.from_anchor.y < to_lower.from_anchor.y && to_upper.from_anchor.y == 100.0 / 3.0 &&
-                to_lower.from_anchor.y == 200.0 / 3.0,
+    // The spread offsets are thirds of the edge: (rank + 1) / 3 times its
+    // height, within rounding of 100 / 3 and 200 / 3.
+    constexpr double rounding = 1e-9;
+    const bool upper_third = std::fabs(to_upper.from_anchor.y - 100.0 / 3.0) <= rounding;
+    const bool lower_third = std::fabs(to_lower.from_anchor.y - 200.0 / 3.0) <= rounding;
+    if (!upper_third || !lower_third) {
+        std::cerr << "automatic outputs anchored at y " << to_upper.from_anchor.y << " and " << to_lower.from_anchor.y
+                  << ", fallbacks " << statistics.fallbacks << "\n";
+    }
+    require(to_upper.from_anchor.y < to_lower.from_anchor.y && upper_third && lower_third,
             "the ports are spread along the edge in the order of their far ends");
     require(statistics.crossings == 0U && well_formed(router) && !enters_a_node(graph, router),
             "the spread links neither cross nor enter a node");
@@ -262,6 +270,10 @@ void crossings_are_avoided() {
     static_cast<void>(link_of(graph, lower, 1U, above, 0U));
     LinkRouter router;
     LinkRouterOptions options = orthogonal_options();
+    // Going round the upper source costs about two margins of length and two
+    // turns more than crossing (some 200 units), above the default penalty
+    // of 80, so the default crosses; a penalty above the detour avoids it.
+    options.crossing_penalty = 400.0;
     const LinkRouteStatistics avoided = router.route(graph, options);
     require(well_formed(router) && !enters_a_node(graph, router), "the three links are well formed");
     options.crossing_penalty = 0.0;

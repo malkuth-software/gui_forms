@@ -186,6 +186,10 @@ Token Parser::scan_number(std::size_t start) const noexcept {
     Token token{};
     token.kind = TokenKind::number;
     token.position = start;
+    if (text_.empty()) {
+        token.kind = TokenKind::invalid;
+        return token;
+    }
     const char* const first = text_.data() + start;
     const char* const last = text_.data() + text_.size();
     double parsed{};
