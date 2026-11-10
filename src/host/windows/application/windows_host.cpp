@@ -3358,6 +3358,16 @@ private:
             return saved ? TRUE : FALSE;
         }
         if (command == "close") { PostMessageW(hwnd_, WM_CLOSE, 0, 0); return TRUE; }
+        // The invalidation overlay on, off, or following the program's
+        // switch (tools/contention_fuzz.py toggles it under load).
+        if (command == "overlay on" || command == "overlay off" || command == "overlay default") {
+            std::optional<bool> enabled{};
+            if (command == "overlay on") enabled = true;
+            if (command == "overlay off") enabled = false;
+            (*model_).set_invalidation_overlay(enabled);
+            collect_damage();
+            return TRUE;
+        }
         constexpr std::string_view move_at = "move ";
         if (command.starts_with(move_at)) {
             std::istringstream input(command.substr(move_at.size()));
