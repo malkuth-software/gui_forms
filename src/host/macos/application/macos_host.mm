@@ -11,6 +11,7 @@
 #include "application_menu.hpp"
 #include "front_reuse.hpp"
 #include "live_surface_damage.hpp"
+#include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
@@ -29,12 +30,14 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <dlfcn.h>
 #include <exception>
 #include <filesystem>
 #include <limits>
 #include <memory>
 #include <optional>
+#include <span>
 #include <time.h>
 #include <string>
 #include <string_view>
@@ -1014,6 +1017,15 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     std::string _frameCapturePath;
     BOOL _frameCaptureCompleted;
     BOOL _frameCaptureSaved;
+    // The invalidation overlay's present-time storage (gui_forms/diagnostics/
+    // invalidation_overlay), reused: the scratch frame the outlines are
+    // composited in (sized on first use), the device areas they cover now,
+    // those they covered at the last fade tick, and the fade timer, nil
+    // while nothing shows. The timer retains a weak proxy, not the view.
+    std::vector<std::byte> _overlayScratch;
+    std::vector<gui_forms::DevicePixelRect> _overlayRegions;
+    std::vector<gui_forms::DevicePixelRect> _overlayDrawn;
+    NSTimer* _overlayTimer;
 }
 - (instancetype)initWithModel:(std::unique_ptr<Window>)model
        transparentFullSizeContent:(BOOL)transparentFullSizeContent
@@ -1051,6 +1063,9 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (void)startDisplayLinkIfNeeded;
 - (void)stopDisplayLink;
 - (void)displayLinkTick;
+- (void)armInvalidationOverlayTimer;
+- (void)stopInvalidationOverlayTimer;
+- (void)invalidationOverlayTick;
 - (void)setDisplayTraceEnabled:(BOOL)enabled;
 - (MacDisplayLinkTrace)displayTraceSnapshot;
 - (void)recordNativeCallbackFault:(const char*)operation
@@ -1108,6 +1123,32 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
         return;
     }
     [view displayLinkTick];
+}
+@end
+
+// NSTimer retains its target: this proxy observes the view weakly, so the
+// invalidation overlay's fade timer cannot keep a closed window's view
+// alive, and a tick after the view is gone stops the timer.
+@interface GUIFormsOverlayTimerTarget : NSObject {
+    __weak GUIFormsView* _view;
+}
+- (instancetype)initWithView:(GUIFormsView*)view;
+- (void)tick:(NSTimer*)sender;
+@end
+
+@implementation GUIFormsOverlayTimerTarget
+- (instancetype)initWithView:(GUIFormsView*)view {
+    self = [super init];
+    if (self != nil) _view = view;
+    return self;
+}
+- (void)tick:(NSTimer*)sender {
+    GUIFormsView* view = _view;
+    if (view == nil) {
+        [sender invalidate];
+        return;
+    }
+    [view invalidationOverlayTick];
 }
 @end
 
@@ -2479,6 +2520,7 @@ void post_perform_close(NSWindow* window) {
     if (newWindow == nil) {
         [_displayLink invalidate];
         _displayLink = nil;
+        [self stopInvalidationOverlayTimer];
     }
     [super viewWillMoveToWindow:newWindow];
 }
@@ -2489,6 +2531,7 @@ void post_perform_close(NSWindow* window) {
     [self stopDisplayLink];
     [_displayLink invalidate];
     _displayLink = nil;
+    [self stopInvalidationOverlayTimer];
     if (_wakeSource != nil) {
         dispatch_source_cancel(_wakeSource);
         _wakeSource = nil;
@@ -2683,6 +2726,58 @@ void post_perform_close(NSWindow* window) {
         if (!first) continue;
         (*_pendingLivePresentations[index].surface).notify_presented(_liveFrameGenerations[source], timing);
     }
+}
+
+// The invalidation overlay's fade (invalidation_overlay.hpp): while outlines
+// show, every tick asks AppKit to draw the areas they cover now and those
+// they covered at the last tick. With nothing owed, such a draw is a copy of
+// the raster (copy_only_draw), composited at present time, so the overlay
+// causes no paint of its own; a faded outline leaves the raster's pixels.
+// The timer stops once nothing shows. UI thread.
+- (void)armInvalidationOverlayTimer {
+    if (_overlayTimer != nil || self.window == nil) return;
+    GUIFormsOverlayTimerTarget* proxy = [[GUIFormsOverlayTimerTarget alloc] initWithView:self];
+    _overlayTimer = [NSTimer timerWithTimeInterval:(1.0 / 30.0)
+                                            target:proxy
+                                          selector:@selector(tick:)
+                                          userInfo:nil
+                                           repeats:YES];
+    [[NSRunLoop currentRunLoop] addTimer:_overlayTimer forMode:NSRunLoopCommonModes];
+}
+
+- (void)stopInvalidationOverlayTimer {
+    if (_overlayTimer == nil) return;
+    [_overlayTimer invalidate];
+    _overlayTimer = nil;
+}
+
+- (void)invalidationOverlayTick {
+    if (!_model) {
+        [self stopInvalidationOverlayTimer];
+        return;
+    }
+    const double scale = self.window == nil ? 1.0 : self.window.backingScaleFactor;
+    const double width = std::max(0.0, self.bounds.size.width) * scale;
+    const double height = std::max(0.0, self.bounds.size.height) * scale;
+    _overlayRegions.clear();
+    gui_forms::InvalidationOverlay* const overlay = (*_model).invalidation_overlay();
+    if (overlay != nullptr) {
+        (*overlay).expire(gui_forms::InvalidationClock::now());
+        (*overlay).fill_regions(scale, static_cast<std::uint32_t>(std::ceil(width)),
+                                static_cast<std::uint32_t>(std::ceil(height)), _overlayRegions);
+    }
+    for (const gui_forms::DevicePixelRect& region : _overlayRegions) {
+        [self setNeedsDisplayInRect:NSMakeRect(region.left / scale, region.top / scale,
+                                               (region.right - region.left) / scale,
+                                               (region.bottom - region.top) / scale)];
+    }
+    for (const gui_forms::DevicePixelRect& region : _overlayDrawn) {
+        [self setNeedsDisplayInRect:NSMakeRect(region.left / scale, region.top / scale,
+                                               (region.right - region.left) / scale,
+                                               (region.bottom - region.top) / scale)];
+    }
+    _overlayDrawn.swap(_overlayRegions);
+    if (_overlayDrawn.empty()) [self stopInvalidationOverlayTimer];
 }
 
 - (void)displayLinkTick {
@@ -3240,6 +3335,7 @@ void post_perform_close(NSWindow* window) {
                 frame, update.destination, 1.0);
             _raster.restore();
             if (!liveDrawsSucceeded) break;
+            (*_model).note_live_surface_presented(update, _liveRegions[index]);
         }
         _raster.end_frame();
     }
@@ -3289,6 +3385,50 @@ void post_perform_close(NSWindow* window) {
     bool presented = false;
     std::uint64_t copyNanoseconds = 0U;
     const void* pixels = _raster.pixels();
+    // The invalidation overlay at present time: the dirty rectangle's pixels
+    // are copied into a scratch frame and the outlines composited there, and
+    // that frame is drawn instead of the raster. AppKit clips the draw to the
+    // dirty rectangles, so the scratch frame's pixels outside them are never
+    // shown. The raster is never drawn on, so the overlay damages nothing.
+    // Off, this is one relaxed load.
+    gui_forms::InvalidationOverlay* const overlay = (*_model).invalidation_overlay();
+    if (overlay != nullptr && pixels != nullptr && _rasterHasContent == YES && presentationSize.width > 0.0) {
+        const std::size_t frameBytes = _raster.byte_size();
+        const std::int32_t frameWidth = static_cast<std::int32_t>(_raster.pixel_width());
+        const std::int32_t frameHeight = static_cast<std::int32_t>(_raster.pixel_height());
+        const std::size_t rowBytes = _raster.row_bytes();
+        const double frameScale = static_cast<double>(frameWidth) / presentationSize.width;
+        if (_overlayScratch.size() != frameBytes) _overlayScratch.assign(frameBytes, std::byte{0});
+        // The dirty rectangle in device pixels, outward (the view is flipped,
+        // so its rows are the raster's).
+        gui_forms::DevicePixelRect box{};
+        box.left = std::clamp<std::int32_t>(
+            static_cast<std::int32_t>(std::floor(dirtyRect.origin.x * frameScale)), 0, frameWidth);
+        box.top = std::clamp<std::int32_t>(
+            static_cast<std::int32_t>(std::floor(dirtyRect.origin.y * frameScale)), 0, frameHeight);
+        box.right = std::clamp<std::int32_t>(
+            static_cast<std::int32_t>(std::ceil((dirtyRect.origin.x + dirtyRect.size.width) * frameScale)),
+            box.left, frameWidth);
+        box.bottom = std::clamp<std::int32_t>(
+            static_cast<std::int32_t>(std::ceil((dirtyRect.origin.y + dirtyRect.size.height) * frameScale)),
+            box.top, frameHeight);
+        const std::byte* const source = static_cast<const std::byte*>(pixels);
+        const std::size_t rowOffset = static_cast<std::size_t>(box.left) * 4U;
+        const std::size_t rowLength = static_cast<std::size_t>(box.right - box.left) * 4U;
+        for (std::int32_t y = box.top; y < box.bottom; ++y) {
+            const std::size_t offset = static_cast<std::size_t>(y) * rowBytes + rowOffset;
+            std::memcpy(_overlayScratch.data() + offset, source + offset, rowLength);
+        }
+        const gui_forms::InvalidationClock::time_point now = gui_forms::InvalidationClock::now();
+        (*overlay).expire(now);
+        gui_forms::InvalidationOverlayTarget target{};
+        target.pixels = std::span<std::byte>(_overlayScratch);
+        target.width = static_cast<std::uint32_t>(frameWidth);
+        target.height = static_cast<std::uint32_t>(frameHeight);
+        target.row_bytes = rowBytes;
+        (*overlay).compose(target, frameScale, now, box);
+        pixels = _overlayScratch.data();
+    }
     // Native exposure/snapshot callbacks can precede unocclusion. The model
     // intentionally declines painting then; the last complete raster is still
     // valid and must be copied into AppKit's newly supplied backing context.
@@ -3360,6 +3500,11 @@ void post_perform_close(NSWindow* window) {
     // timing of this pass (threaded sub-surfaces design note sections 7 and
     // 8), once per pass, before the presentations are released.
     if (livePresented) [self reportLivePresentations];
+    // Outlines recorded by this draw may reach outside its dirty rectangles
+    // (labels, the legend): the fade timer's first tick presents them.
+    if ((overlay != nullptr && !(*overlay).empty()) || !_overlayDrawn.empty()) {
+        [self armInvalidationOverlayTimer];
+    }
     if (presented) {
 #if defined(GUI_FORMS_PREPARED_TEXT)
         if (committed) _pendingLivePresentations.clear();

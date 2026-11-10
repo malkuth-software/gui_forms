@@ -4,6 +4,7 @@
 #include "../services/x11_tray_icons.hpp"
 #include "../compositor/x11_compositor.hpp"
 #include "../settings/xsettings_watch.hpp"
+#include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/platform/linux_host.hpp"
 #include <X11/Xlib.h>
 #include <signal.h>
@@ -298,6 +299,15 @@ public:
   // The last press, for the computed click count (linux_input_rules.hpp).
   LinuxClickHistory click_history{};
   std::vector<char> presentation;
+  // The invalidation overlay's present-time storage (gui_forms/diagnostics/
+  // invalidation_overlay), reused: the scratch frame the outlines are
+  // composited in (sized on first use), the device areas they cover now and
+  // those they covered at the last present, and the rectangles a present
+  // copies with them. Window pixels are device pixels here (scale 1).
+  std::vector<std::byte> overlay_scratch;
+  std::vector<DevicePixelRect> overlay_regions;
+  std::vector<DevicePixelRect> overlay_drawn;
+  std::vector<Rect> overlay_present;
   // Per tick, reused across ticks. Each surface's frame is taken once
   // (`live_frames`, holding its read lease until the tick is composed), with
   // the device pixels and rectangles presented for it. Each fragment of a

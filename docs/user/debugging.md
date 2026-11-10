@@ -62,5 +62,8 @@ The overlay never draws into the window's raster. The host composites it at
 present time onto a copy of the presented frame and presents only the areas
 it draws on, so the overlay causes no damage of its own and its fading
 repaints are never reported. When an outline fades, the host presents that
-area again from the raster, so nothing is left behind. On Windows the fade is
-driven by a timer that stops with the last outline.
+area again from the raster, so nothing is left behind. The fade is driven at
+about 30 frames a second (a timer on Windows and macOS, the event loop's wait
+on Linux) and stops with the last outline. On macOS a fade step asks AppKit
+to draw the outlined areas; with nothing owed that draw copies the raster and
+paints nothing.

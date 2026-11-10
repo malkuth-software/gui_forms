@@ -328,6 +328,70 @@ std::optional<NativePresentKernel> convert_present_rectangle(XImage& image, cons
 
 namespace {
 
+// The invalidation overlay at present time: copies the bounding box of the
+// requested rectangles and of the areas the outlines cover now and covered
+// at the last present from the raster's `source` pixels into the window's
+// scratch frame, composites the outlines there, and fills
+// window.overlay_present with every rectangle the present must copy.
+// Returns the scratch pixels, or null when there is nothing to draw (the
+// raster is presented as it is). The raster is never drawn on, so the
+// overlay damages nothing. UI thread.
+const unsigned char* compose_invalidation_overlay(NativeWindow& window, InvalidationOverlay* overlay,
+                                                  const std::span<const Rect> requested,
+                                                  const unsigned char* source, std::uint32_t width,
+                                                  std::uint32_t height, std::size_t row_bytes) {
+  const InvalidationClock::time_point now = InvalidationClock::now();
+  window.overlay_regions.clear();
+  if (overlay != nullptr) {
+    (*overlay).expire(now);
+    (*overlay).fill_regions(1.0, width, height, window.overlay_regions);
+  }
+  if (window.overlay_regions.empty() && window.overlay_drawn.empty()) return nullptr;
+  window.overlay_present.assign(requested.begin(), requested.end());
+  for (const DevicePixelRect& region : window.overlay_regions) {
+    window.overlay_present.push_back(Rect{static_cast<double>(region.left), static_cast<double>(region.top),
+        static_cast<double>(region.right - region.left), static_cast<double>(region.bottom - region.top)});
+  }
+  for (const DevicePixelRect& region : window.overlay_drawn) {
+    window.overlay_present.push_back(Rect{static_cast<double>(region.left), static_cast<double>(region.top),
+        static_cast<double>(region.right - region.left), static_cast<double>(region.bottom - region.top)});
+  }
+  const std::int32_t frame_width = static_cast<std::int32_t>(width);
+  const std::int32_t frame_height = static_cast<std::int32_t>(height);
+  DevicePixelRect box{frame_width, frame_height, 0, 0};
+  for (const Rect& rectangle : window.overlay_present) {
+    if (!rectangle.finite() || rectangle.empty()) continue;
+    box.left = std::min(box.left, std::clamp<std::int32_t>(
+        static_cast<std::int32_t>(std::floor(rectangle.x)), 0, frame_width));
+    box.top = std::min(box.top, std::clamp<std::int32_t>(
+        static_cast<std::int32_t>(std::floor(rectangle.y)), 0, frame_height));
+    box.right = std::max(box.right, std::clamp<std::int32_t>(
+        static_cast<std::int32_t>(std::ceil(rectangle.right())), 0, frame_width));
+    box.bottom = std::max(box.bottom, std::clamp<std::int32_t>(
+        static_cast<std::int32_t>(std::ceil(rectangle.bottom())), 0, frame_height));
+  }
+  window.overlay_drawn.swap(window.overlay_regions);
+  if (box.right <= box.left || box.bottom <= box.top) return nullptr;
+  const std::size_t frame_bytes = row_bytes * static_cast<std::size_t>(height);
+  if (window.overlay_scratch.size() != frame_bytes) window.overlay_scratch.assign(frame_bytes, std::byte{0});
+  const std::size_t row_offset = static_cast<std::size_t>(box.left) * 4U;
+  const std::size_t row_length = static_cast<std::size_t>(box.right - box.left) * 4U;
+  for (std::int32_t y = box.top; y < box.bottom; ++y) {
+    const std::size_t offset = static_cast<std::size_t>(y) * row_bytes + row_offset;
+    std::memcpy(window.overlay_scratch.data() + offset, source + offset, row_length);
+  }
+  if (overlay != nullptr) {
+    InvalidationOverlayTarget target{};
+    target.pixels = std::span<std::byte>(window.overlay_scratch);
+    target.width = width;
+    target.height = height;
+    target.row_bytes = row_bytes;
+    (*overlay).compose(target, 1.0, now, box);
+  }
+  const unsigned char* const composed = reinterpret_cast<const unsigned char*>(window.overlay_scratch.data());
+  return composed;
+}
+
 // Copies each rectangle of the raster's pixels to the window (stage DP partial
 // present): one native image for the raster, converted and submitted rectangle
 // by rectangle. Rectangles are clipped to the window and widened to whole
@@ -350,6 +414,19 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
   NativePresentSource present{};
   present.pixels = source;
   present.row_bytes = raster.row_bytes();
+  // The invalidation overlay, while it is on or an outline was last shown:
+  // the present copies the composited scratch frame, outlines included. Off,
+  // this is one relaxed load and a size test.
+  std::span<const Rect> rectangles = requested;
+  InvalidationOverlay* const overlay = (*window.entry.model).invalidation_overlay();
+  if (overlay != nullptr || !window.overlay_drawn.empty()) {
+    const unsigned char* const composed =
+        compose_invalidation_overlay(window, overlay, requested, source, width, height, present.row_bytes);
+    if (composed != nullptr) {
+      present.pixels = composed;
+      rectangles = window.overlay_present;
+    }
+  }
   present.alpha_mask = window.alpha_mask;
   present.present_alpha = window.present_alpha;
   PresentationImage owner{};
@@ -369,8 +446,8 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
   image.data = window.presentation.data();
   // The copy alone is timed: conversion, XPutImage and the flush.
   const std::chrono::steady_clock::time_point copy_started = std::chrono::steady_clock::now();
-  for (std::size_t index = 0; index < requested.size(); ++index) {
-    const Rect rectangle = requested[index];
+  for (std::size_t index = 0; index < rectangles.size(); ++index) {
+    const Rect rectangle = rectangles[index];
     if (!rectangle.finite()) continue;
     const Rect clipped = Rect::intersection(rectangle, extent);
     if (clipped.empty()) continue;
@@ -1450,6 +1527,15 @@ void NativeWindow::update() {
   for (std::size_t index = 0; index < live_regions.size(); ++index) {
     if (!live_regions[index].empty()) screen.add(live_regions[index]);
   }
+  if (visible && screen.empty() && !overlay_drawn.empty()) {
+    // The invalidation overlay's fade: nothing owed, so the outlines alone
+    // are presented again from the raster (a faded one leaves the raster's
+    // pixels), with no paint and no report.
+    live_frames.clear();
+    PresentedArea faded;
+    static_cast<void>(present_raster_rectangles(*this, std::span<const Rect>{}, faded));
+    return;
+  }
   if (!visible || screen.empty()) {
     live_frames.clear();
     return;
@@ -1593,7 +1679,10 @@ void NativeWindow::compose_live_frames() {
     const bool drawn = raster.draw_live_surface_frame(
         live_frames[live_frame_sources[index]], live_updates[index].destination, 1.0);
     raster.restore();
-    if (drawn) continue;
+    if (drawn) {
+      (*entry.model).note_live_surface_presented(live_updates[index], region);
+      continue;
+    }
     // Retained painting draws the surface's latest frame there instead.
     live_regions[index] = {};
     damage.add(region);
@@ -1758,6 +1847,10 @@ void Runtime::step(int maximum_wait) {
     // least every 16 ms, as the Windows host's waitable timer does.
     if ((*window.entry.model).has_live_surface_presentations())
       wait = wait < 0 ? 16 : std::min(wait, 16);
+    // The invalidation overlay's fade, while an outline shows: 33 ms, as
+    // the Windows host's timer.
+    if (!window.overlay_drawn.empty())
+      wait = wait < 0 ? 33 : std::min(wait, 33);
     const std::optional<FrameTime> deadline = (*window.entry.model).next_wake();
     if (deadline) {
       const long long delay =
