@@ -91,13 +91,28 @@ struct DockAllowedPlacements final {
     bool tabbed{true};
     bool hidden{true};
     bool closed{true};
+    // The sides of the document area a docked stack holding the panel may
+    // stand on, and the window edges it may be auto-hidden to (DockPanel
+    // Suite's DockLeft, DockTop, DockRight and DockBottom areas).
+    bool left{true};
+    bool top{true};
+    bool right{true};
+    bool bottom{true};
 
-    friend bool operator==(const DockAllowedPlacements& left,
-                           const DockAllowedPlacements& right) noexcept {
-        return left.docked == right.docked && left.document_area == right.document_area &&
-               left.floating == right.floating && left.auto_hidden == right.auto_hidden &&
-               left.tabbed == right.tabbed && left.hidden == right.hidden &&
-               left.closed == right.closed;
+    friend bool operator==(const DockAllowedPlacements& first,
+                           const DockAllowedPlacements& second) noexcept {
+        return first.docked == second.docked && first.document_area == second.document_area &&
+               first.floating == second.floating && first.auto_hidden == second.auto_hidden &&
+               first.tabbed == second.tabbed && first.hidden == second.hidden &&
+               first.closed == second.closed && first.left == second.left && first.top == second.top &&
+               first.right == second.right && first.bottom == second.bottom;
+    }
+
+    [[nodiscard]] bool allows_side(DockSide side) const noexcept {
+        if (side == DockSide::left) return left;
+        if (side == DockSide::top) return top;
+        if (side == DockSide::right) return right;
+        return bottom;
     }
 };
 
@@ -132,6 +147,9 @@ struct DockPanelDescriptor final {
     // keeps each side of a split at least this large where it can.
     Size minimum_size{};
     DockDefaultPlacement default_placement{};
+    // Whether its caption and tab show a close button. Hidden, the panel
+    // still closes or hides through its position menu and the program.
+    bool close_button_visible{true};
 };
 
 // Which other groups a dock group admits into a stack beside its own panels

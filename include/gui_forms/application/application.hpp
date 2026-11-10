@@ -134,6 +134,10 @@ public:
     // (HostWindowing::request_frame). As with request_client_size, the
     // model and frame_changed follow only when the host reports the change.
     [[nodiscard]] HostServiceStatus request_frame(Rect content) const;
+    // Whether this floating tool window stays shown while the application
+    // is inactive (HostWindowing::set_shown_while_inactive). Available from
+    // the window's admission, before it is ready; other kinds ignore it.
+    [[nodiscard]] HostServiceStatus set_shown_while_inactive(bool shown) const;
     // Orders the window above the run's other windows, never above other
     // applications' windows, without activating it (window_ordering).
     [[nodiscard]] HostServiceStatus bring_to_front() const;

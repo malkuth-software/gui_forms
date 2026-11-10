@@ -802,7 +802,7 @@ private:
     [[nodiscard]] Size stack_minimum(const DockNode& node) const;
     [[nodiscard]] std::vector<DockNodeId> plan_collapse(Size available) const;
     void place(DockNodeId node, Rect bounds, std::span<const DockNodeId> collapsed);
-    [[nodiscard]] CaptionGeometry caption_geometry(Rect caption, bool pin) const;
+    [[nodiscard]] CaptionGeometry caption_geometry(Rect caption, bool pin, bool close) const;
     [[nodiscard]] bool seams_moved() const noexcept;
     [[nodiscard]] double caption_height() const;
 
@@ -835,6 +835,11 @@ private:
     [[nodiscard]] AnatomyStateSet button_states(std::size_t stack, Zone zone) const;
     [[nodiscard]] bool stack_current(const StackSlot& slot) const;
     [[nodiscard]] bool pin_shown(const StackSlot& slot) const;
+    // Whether the stack's selected panel shows a close button
+    // (DockPanelDescriptor::close_button_visible).
+    [[nodiscard]] bool close_shown(const StackSlot& slot) const;
+    // Whether a document panel's tab shows its close button.
+    [[nodiscard]] bool tab_closable(const DockPanelId& panel) const;
     [[nodiscard]] SeamParts seam_parts(std::size_t seam) const;
     [[nodiscard]] StackParts stack_parts(const StackSlot& slot, std::size_t index) const;
     [[nodiscard]] std::size_t visible_stack_count() const;

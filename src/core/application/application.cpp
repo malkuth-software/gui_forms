@@ -660,6 +660,20 @@ HostServiceStatus ApplicationWindowHandle::request_frame(const Rect content) con
     return status;
 }
 
+HostServiceStatus ApplicationWindowHandle::set_shown_while_inactive(const bool shown) const {
+    HostServiceStatus status;
+    const std::shared_ptr<detail::ApplicationWindowState> state = ready_state(state_, status);
+    if (!state) return status;
+    HostWindowing* windowing = run_windowing(*state, status);
+    if (windowing == nullptr) return status;
+    try {
+        // A native show may reach handlers that close this window; `state`
+        // is held through the call.
+        status = (*windowing).set_shown_while_inactive((*state).id, shown);
+    } catch (...) { status.error = HostServiceError::backend_failure; }
+    return status;
+}
+
 HostServiceStatus ApplicationWindowHandle::bring_to_front() const {
     HostServiceStatus status;
     const std::shared_ptr<detail::ApplicationWindowState> state = ready_state(state_, status);

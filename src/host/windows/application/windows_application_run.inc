@@ -118,6 +118,30 @@ DwmGetWindowAttributeFunction load_dwm_get_window_attribute() noexcept {
     return function;
 }
 
+using DwmSetWindowAttributeFunction = decltype(&::DwmSetWindowAttribute);
+
+DwmSetWindowAttributeFunction load_dwm_set_window_attribute() noexcept {
+    HMODULE library = LoadLibraryW(L"dwmapi.dll");
+    if (library == nullptr) return nullptr;
+    const DwmSetWindowAttributeFunction function =
+        load_function<DwmSetWindowAttributeFunction>(library, "DwmSetWindowAttribute");
+    return function;
+}
+
+// A floating window takes its owner's caption scheme: the dark title bar
+// (DWMWA_USE_IMMERSIVE_DARK_MODE, 20) its owner has, whether the program or
+// GUI.Forms set it, so a torn-out panel matches its main window. Nothing
+// where dwmapi.dll or the attribute is missing (before Windows 10 20H1).
+void follow_owner_caption_scheme(HWND owner, HWND window) noexcept {
+    static const DwmGetWindowAttributeFunction get_attribute = load_dwm_get_window_attribute();
+    static const DwmSetWindowAttributeFunction set_attribute = load_dwm_set_window_attribute();
+    if (get_attribute == nullptr || set_attribute == nullptr || owner == nullptr) return;
+    constexpr DWORD immersive_dark_mode = 20U;
+    BOOL dark = FALSE;
+    if (FAILED(get_attribute(owner, immersive_dark_mode, &dark, sizeof(dark)))) return;
+    static_cast<void>(set_attribute(window, immersive_dark_mode, &dark, sizeof(dark)));
+}
+
 bool visible_window_bounds(HWND window, RECT& bounds) noexcept {
     static const DwmGetWindowAttributeFunction get_attribute = load_dwm_get_window_attribute();
     constexpr DWORD extended_frame_bounds = DWMWA_EXTENDED_FRAME_BOUNDS;
@@ -412,6 +436,7 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
         return outcome;
     }
     report_native_frame(id, window);
+    if (floating) follow_owner_caption_scheme(owner, window);
     // A popup is placed where the program put it, before it is shown.
     if (popup.has_value()) {
         const Rect content{(*popup).origin.x, (*popup).origin.y, initial_size.width, initial_size.height};

@@ -162,6 +162,10 @@ public:
     // does). Returns false, changing nothing, when the ID is empty or
     // already registered.
     bool register_panel(const DockPanelDescriptor& descriptor);
+    // Replaces a registered panel's descriptor (its restrictions, defaults
+    // and close button); where it stands is unchanged, and later edits obey
+    // the new restrictions. False for an unregistered identity.
+    bool update_panel(const DockPanelDescriptor& descriptor);
     [[nodiscard]] const DockPanelDescriptor* find_descriptor(const DockPanelId& panel) const noexcept;
     // Replaces the group descriptor with the same ID, or adds it.
     void set_group(const DockGroupDescriptor& group);
@@ -225,6 +229,7 @@ public:
 private:
     [[nodiscard]] DockTransactionResult run(const DockTransaction& transaction,
                                             DockLayoutState& scratch) const;
+    [[nodiscard]] std::optional<DockPanelId> side_refusal(const DockLayoutState& after) const;
     void commit(DockLayoutState&& replacement, DockEditOrigin origin, std::size_t edit_count,
                 bool restored, bool frames_only);
 

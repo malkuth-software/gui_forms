@@ -196,6 +196,10 @@ TableBytes find_table(gf_table_id table_id) noexcept {
         found.data = &gui_forms::abi1::data_grid_table();
         found.size = sizeof(gf_data_grid_table);
         break;
+    case GF_TABLE_DOCKING:
+        found.data = &gui_forms::abi1::docking_table();
+        found.size = sizeof(gf_docking_table);
+        break;
 #if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
     case GF_TABLE_WINDOWS_PAINT_ENDPOINT:
         found.data = &gui_forms::abi1::windows_paint_endpoint_table();

@@ -204,6 +204,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_TABLE_DOCKING",
+      "value": 21,
+      "type": "uint32"
+    },
+    {
       "name": "GF_TABLE_WINDOWS_PAINT_ENDPOINT",
       "value": 256,
       "type": "uint32"
@@ -1699,6 +1704,386 @@
       "type": "uint32"
     },
     {
+      "name": "GF_DOCK_PANEL_KIND_TOOL",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_PANEL_KIND_DOCUMENT",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_PLACEMENT_DOCKED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_PLACEMENT_FLOATING",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_PLACEMENT_AUTO_HIDDEN",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_PLACEMENT_HIDDEN",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_PLACEMENT_ABSENT",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_SIDE_LEFT",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_SIDE_TOP",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_SIDE_RIGHT",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_SIDE_BOTTOM",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_SIDE_NONE",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_NODE_KIND_SPLIT",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_NODE_KIND_TOOL_STACK",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_NODE_KIND_DOCUMENT_STACK",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_NODE_KIND_DOCUMENT_AREA",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_NODE_KIND_NONE",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_DOCKED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_DOCUMENT_AREA",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_FLOATING",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_AUTO_HIDDEN",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_TABBED",
+      "value": 16,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_HIDDEN",
+      "value": 32,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_CLOSED",
+      "value": 64,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_SIDE_LEFT",
+      "value": 128,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_SIDE_TOP",
+      "value": 256,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_SIDE_RIGHT",
+      "value": 512,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_SIDE_BOTTOM",
+      "value": 1024,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_ALL",
+      "value": 2047,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_CLOSE_BUTTON_HIDDEN",
+      "value": 2048,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_OPTION_FLOATS_SHOWN_WHILE_INACTIVE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_OPTION_DOCUMENT_TABS_HIDDEN",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_OPTION_AUTO_HIDE_NO_HOVER",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_OPTION_AREA_BACKGROUND",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_OPTION_ALL",
+      "value": 15,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_WINDOW_VISIBILITY_WORKSPACE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_WINDOW_VISIBILITY_SHOWN",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_WINDOW_VISIBILITY_POLICY",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_DOCK_INTO",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_DOCK_BESIDE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_DOCK_AT_EDGE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_FLOAT",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_AUTO_HIDE",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_UNPIN",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_HIDE",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_SHOW",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_CLOSE",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_MOVE",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_SELECT",
+      "value": 10,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_SET_RATIO",
+      "value": 11,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_SET_FLOATING_FRAME",
+      "value": 12,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_UNKNOWN_PANEL",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_UNKNOWN_NODE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_UNKNOWN_SITE",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_NOT_A_STACK",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_NOT_A_SPLIT",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_NOT_AUTO_HIDDEN",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_TARGET_IS_SUBJECT",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_INVALID_RATIO",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_INVALID_FRAME",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_INVALID_EXTENT",
+      "value": 10,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_FLOATING_SITE_LIMIT",
+      "value": 11,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_IDENTITIES_EXHAUSTED",
+      "value": 12,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_NOT_ROOT_LEVEL",
+      "value": 13,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_NOT_IN_MAIN_SITE",
+      "value": 14,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_ALREADY_PLACED",
+      "value": 15,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_NOT_PLACED",
+      "value": 16,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_INVARIANT_VIOLATED",
+      "value": 17,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_PLACEMENT_NOT_ALLOWED",
+      "value": 18,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_TABBING_NOT_ALLOWED",
+      "value": 19,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_KIND_MISMATCH",
+      "value": 20,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_GROUP_NOT_ADMITTED",
+      "value": 21,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_SITE_REFUSES_KIND",
+      "value": 22,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_SITE_REFUSES_GROUP",
+      "value": 23,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_REFUSAL_USER_DOCKING_LOCKED",
+      "value": 24,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"
@@ -1939,6 +2324,42 @@
     },
     {
       "name": "gf_data_grid_column_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_panel_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_placement",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_side",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_node_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_allowed",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_option_flags",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_window_visibility",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_edit_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_refusal",
       "type": "uint32_t"
     },
     {
@@ -9341,6 +9762,684 @@
               {
                 "name": "grid",
                 "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.1"
+        }
+      ]
+    },
+    {
+      "name": "gf_dock_panel",
+      "kind": "extensible",
+      "size": 136,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_dock_panel_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "allowed",
+          "type": "gf_dock_allowed",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "dock_as_document",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "default_placement",
+          "type": "gf_dock_placement",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "default_side",
+          "type": "gf_dock_side",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "default_ratio",
+          "type": "double",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "default_extent",
+          "type": "double",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "default_frame",
+          "type": "gf_logical_rect",
+          "offset": 40,
+          "size": 32
+        },
+        {
+          "name": "minimum_size",
+          "type": "gf_logical_size",
+          "offset": 72,
+          "size": 16
+        },
+        {
+          "name": "id",
+          "type": "gf_utf8_view",
+          "offset": 88,
+          "size": 16
+        },
+        {
+          "name": "title",
+          "type": "gf_utf8_view",
+          "offset": 104,
+          "size": 16
+        },
+        {
+          "name": "content",
+          "type": "gf_object",
+          "offset": 120,
+          "size": 8
+        },
+        {
+          "name": "reserved",
+          "type": "uint64_t",
+          "offset": 128,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_dock_edit",
+      "kind": "extensible",
+      "size": 104,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_dock_edit_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "subject_is_stack",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "subject_stack",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "target_node",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "site",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "side",
+          "type": "gf_dock_side",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "index",
+          "type": "uint32_t",
+          "offset": 28,
+          "size": 4
+        },
+        {
+          "name": "ratio",
+          "type": "double",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "extent",
+          "type": "double",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "frame",
+          "type": "gf_logical_rect",
+          "offset": 48,
+          "size": 32
+        },
+        {
+          "name": "panel",
+          "type": "gf_utf8_view",
+          "offset": 80,
+          "size": 16
+        },
+        {
+          "name": "reserved",
+          "type": "uint64_t",
+          "offset": 96,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_dock_location",
+      "kind": "extensible",
+      "size": 40,
+      "align": 4,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "placement",
+          "type": "gf_dock_placement",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "stack",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "index",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "site",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "stack_kind",
+          "type": "gf_dock_node_kind",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "side",
+          "type": "gf_dock_side",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "selected",
+          "type": "uint32_t",
+          "offset": 28,
+          "size": 4
+        },
+        {
+          "name": "stack_panel_count",
+          "type": "uint32_t",
+          "offset": 32,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 36,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_dock_options",
+      "kind": "extensible",
+      "size": 16,
+      "align": 4,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_dock_option_flags",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "area_background",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_docking_table",
+      "kind": "table",
+      "size": 136,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "register_panel",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "panel",
+                "type": "const gf_dock_panel*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_panel_content",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "panel",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "content",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_panel_title",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "panel",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "title",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "apply_edit",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "edit",
+                "type": "const gf_dock_edit*"
+              },
+              {
+                "name": "refusal",
+                "type": "gf_dock_refusal*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "locate",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "panel",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "location",
+                "type": "gf_dock_location*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "save_layout",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "load_layout",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "xml",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "diagnostic_count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "activate_panel",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "panel",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "attach_windows",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "document_area",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "node",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "panel_at",
+          "type": "function",
+          "offset": 88,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "stack",
+                "type": "uint32_t"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "floating_sites",
+          "type": "function",
+          "offset": 96,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "sites",
+                "type": "uint32_t*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "floating_site",
+          "type": "function",
+          "offset": 104,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "site",
+                "type": "uint32_t"
+              },
+              {
+                "name": "frame",
+                "type": "gf_logical_rect*"
+              },
+              {
+                "name": "first_stack",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "update_panel",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "panel",
+                "type": "const gf_dock_panel*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_options",
+          "type": "function",
+          "offset": 120,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "options",
+                "type": "const gf_dock_options*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_floating_window_visibility",
+          "type": "function",
+          "offset": 128,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "site",
+                "type": "uint32_t"
+              },
+              {
+                "name": "visibility",
+                "type": "gf_dock_window_visibility"
               }
             ]
           },

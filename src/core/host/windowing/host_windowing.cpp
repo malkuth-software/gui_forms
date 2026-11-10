@@ -545,8 +545,8 @@ bool HostWindowing::policy_visible(HostWindowId window) const noexcept {
     if (!traits.floating) return (*entry).requested_visible;
     const WindowRecord* primary = record(primary_);
     const bool primary_minimized = primary != nullptr && (*primary).minimized;
-    const bool hidden_by_inactivity =
-        traits.hides_when_application_inactive && !snapshot_.application_active;
+    const bool hidden_by_inactivity = traits.hides_when_application_inactive &&
+                                      !(*entry).shown_while_inactive && !snapshot_.application_active;
     const bool visible = (*entry).requested_visible && !hidden_by_inactivity && !primary_minimized;
     return visible;
 }
@@ -609,6 +609,16 @@ HostServiceStatus HostWindowing::set_visible(HostWindowId window, bool visible) 
     if (current != nullptr && status.accepted()) (*current).shown = visible;
     if (!status.accepted()) ++snapshot_.rejected_requests;
     return status;
+}
+
+HostServiceStatus HostWindowing::set_shown_while_inactive(HostWindowId window, bool shown) {
+    if (std::this_thread::get_id() != ui_thread_) return reject(HostServiceError::wrong_thread);
+    if (snapshot_.shutdown) return reject(HostServiceError::after_shutdown);
+    WindowRecord* entry = record(window);
+    if (entry == nullptr) return reject(HostServiceError::invalid_argument);
+    (*entry).shown_while_inactive = shown;
+    apply_visibility(*entry);
+    return {};
 }
 
 void HostWindowing::report_application_active(bool active) {
