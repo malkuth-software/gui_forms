@@ -632,20 +632,30 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
     const TabMargins file = row_widths.application_margins;
     placed.application = {client.x, client.y + file.top, row_widths.application,
                           std::max(1.0, row - file.top - file.bottom)};
-    double x = client.x + row_widths.application + row_widths.gap;
+    // A negative gap overlaps the tabs like stacked folders: each tab's
+    // trailing (tapered) edge lies over the next one's leading part, never
+    // more than half the narrower tab, so every tab keeps a face to click.
+    // File never overlaps the first tab.
+    double x = client.x + row_widths.application + std::max(0.0, row_widths.gap);
     placed.tabs.reserve(tabs_.size());
     // A tab's top and bottom follow its state's margins: the selected tab
     // stands taller than the rest and may run into the plane (RENDERING_
     // REFERENCE §4).
+    std::optional<double> previous_width;
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         if (!shown(tab)) {
             placed.tabs.push_back(Rect{});
             continue;
         }
         const double width = row_widths.tabs[tab];
+        if (previous_width) {
+            const double deepest = std::min(*previous_width, width) * 0.5;
+            x += std::max(row_widths.gap, -deepest);
+        }
         const TabMargins margins = selected_tab_ == tab ? row_widths.selected : row_widths.rest;
         placed.tabs.push_back({x, client.y + margins.top, width, std::max(1.0, row - margins.top - margins.bottom)});
-        x += width + row_widths.gap;
+        x += width;
+        previous_width = width;
     }
     if (!selected_tab_) return placed;
     reset_layout_groups(placed);

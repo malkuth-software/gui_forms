@@ -1865,8 +1865,8 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::edge_shadow_colour: return true;
     case RecipeField::block_size:
     case RecipeField::minimum_inline_size:
-    case RecipeField::padding_inline:
-    case RecipeField::gap: return in_range(declaration.number, 0.0, maximum_part_metric);
+    case RecipeField::padding_inline: return in_range(declaration.number, 0.0, maximum_part_metric);
+    case RecipeField::gap: return in_range(declaration.number, -maximum_part_margin, maximum_part_metric);
     case RecipeField::margin_block_start:
     case RecipeField::margin_block_end:
         return in_range(declaration.number, -maximum_part_margin, maximum_part_margin);

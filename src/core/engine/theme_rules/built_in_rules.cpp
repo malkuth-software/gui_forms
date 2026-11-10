@@ -59,15 +59,22 @@ ThemeRule built_in_rule(std::string label, std::string_view control_type, std::s
     return rule;
 }
 
+// A part whose hover is the dithered rise (the soft dither: flat at rest,
+// the bulge rising while hot): `control_type`'s `part`, without the plate
+// states a command face keeps.
+void add_dithered_rise(ThemeRuleSheet& sheet, std::string_view control_type, std::string_view part) {
+    ThemeRule rise = built_in_rule("ribbon_rise:" + std::string(part), control_type, part);
+    rise.declarations.push_back(RuleDeclaration::primitive("dithered_bulge"));
+    rise.transitions.push_back(ribbon_rise());
+    sheet.rules.push_back(std::move(rise));
+}
+
 // A ribbon part that takes the dithered button (RB decision 23: the large
 // elements that conventionally show a hover square), and the states in
 // which it keeps today's plate: a checked toggle and an open menu are told
 // apart by the plate, which the bulge alone would not show.
 void add_ribbon_button(ThemeRuleSheet& sheet, std::string_view part, bool checkable) {
-    ThemeRule rise = built_in_rule("ribbon_rise:" + std::string(part), "ribbon", part);
-    rise.declarations.push_back(RuleDeclaration::primitive("dithered_bulge"));
-    rise.transitions.push_back(ribbon_rise());
-    sheet.rules.push_back(std::move(rise));
+    add_dithered_rise(sheet, "ribbon", part);
     if (checkable) {
         ThemeRule checked = built_in_rule("ribbon_checked:" + std::string(part), "ribbon", part);
         checked.selector.states.push_back(AnatomyState::checked);
@@ -84,6 +91,12 @@ ThemeRuleSheet make_built_in_rules() {
     ThemeRuleSheet sheet{};
     add_ribbon_button(sheet, "command_face", true);
     add_ribbon_button(sheet, "group_button", false);
+    // The soft dither is every ribbon hover (owner, 2026-11-09): a gallery's
+    // items, and the tabs through their hover layer, which lies over the
+    // tab's own face (a theme's tab rules choose the face's material, so the
+    // rise cannot be the face itself).
+    add_dithered_rise(sheet, "ribbon_gallery", "item_face");
+    add_dithered_rise(sheet, "ribbon", "tab_hover");
     // The tiles' plates are engine primitives (E8): the pill plate, the gold
     // plate while lit, so that a tile's fade composites one engine raster
     // and its pixels are the same on every host. Their quiet look (dark

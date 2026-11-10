@@ -428,7 +428,7 @@ private:
     bool lower_outline_colour();
     bool lower_outline_width();
     bool lower_outline_offset();
-    bool lower_part_length(RecipeField field, bool negatives, double maximum);
+    bool lower_part_length(RecipeField field, double minimum, double maximum);
     bool lower_part_shape(RecipeField length_field, RecipeField colour_field, bool colour_required);
     bool lower_text_shadow();
     bool lower_font_family();
@@ -2398,13 +2398,17 @@ bool MaterialReader::lower_outline_offset() {
 // A part metric (`height`, `min-width`, `padding-inline`, `gap`,
 // `margin-top`, `margin-bottom`): one length, negative only for a margin,
 // within `maximum` either way.
-bool MaterialReader::lower_part_length(RecipeField field, bool negatives, double maximum) {
+// A part's metric: one length in [minimum, maximum] (a negative minimum
+// admits negative lengths: a margin running the part into its neighbour, or
+// a gap overlapping the parts it separates).
+bool MaterialReader::lower_part_length(RecipeField field, double minimum, double maximum) {
     if (value_.components.size() != 1U) {
         return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
     }
     BoxLength length{};
+    const bool negatives = minimum < 0.0;
     if (!read_length(0U, false, negatives, length)) return false;
-    if (std::abs(length.units) > maximum) {
+    if (length.units < minimum || length.units > maximum) {
         const ValueComponent& component = value_.components[0];
         return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
     }
@@ -2695,22 +2699,22 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::font_weight: static_cast<void>(lower_font_weight()); return;
     case MaterialProperty::letter_spacing: static_cast<void>(lower_letter_spacing()); return;
     case MaterialProperty::height:
-        static_cast<void>(lower_part_length(RecipeField::block_size, false, maximum_part_metric));
+        static_cast<void>(lower_part_length(RecipeField::block_size, 0.0, maximum_part_metric));
         return;
     case MaterialProperty::min_width:
-        static_cast<void>(lower_part_length(RecipeField::minimum_inline_size, false, maximum_part_metric));
+        static_cast<void>(lower_part_length(RecipeField::minimum_inline_size, 0.0, maximum_part_metric));
         return;
     case MaterialProperty::padding_inline:
-        static_cast<void>(lower_part_length(RecipeField::padding_inline, false, maximum_part_metric));
+        static_cast<void>(lower_part_length(RecipeField::padding_inline, 0.0, maximum_part_metric));
         return;
     case MaterialProperty::gap:
-        static_cast<void>(lower_part_length(RecipeField::gap, false, maximum_part_metric));
+        static_cast<void>(lower_part_length(RecipeField::gap, -maximum_part_margin, maximum_part_metric));
         return;
     case MaterialProperty::margin_top:
-        static_cast<void>(lower_part_length(RecipeField::margin_block_start, true, maximum_part_margin));
+        static_cast<void>(lower_part_length(RecipeField::margin_block_start, -maximum_part_margin, maximum_part_margin));
         return;
     case MaterialProperty::margin_bottom:
-        static_cast<void>(lower_part_length(RecipeField::margin_block_end, true, maximum_part_margin));
+        static_cast<void>(lower_part_length(RecipeField::margin_block_end, -maximum_part_margin, maximum_part_margin));
         return;
     case MaterialProperty::taper:
         static_cast<void>(lower_part_shape(RecipeField::taper, RecipeField::taper_colour, false));
