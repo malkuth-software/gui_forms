@@ -411,6 +411,14 @@ public:
     struct DecodedImage final {
         std::uint64_t content_hash{};
         sk_sp<SkImage> image;
+        // A premultiplied BGRA image's pixels, which `image` shares, kept so
+        // that a patch run updates only its rectangle (D4); null for a
+        // decoded file. row_bytes is the image's width times four.
+        sk_sp<SkData> pixels;
+        std::size_t row_bytes{};
+        // The ImagePatchRegion::base_image this record was last patched
+        // under, or 0.
+        std::uint64_t patch_base_image{};
         // fill_image_pattern's tile, resampled once to the device tile size
         // it was last drawn at; null until a pattern needs it. Replacing the
         // image replaces the record, and the tile with it.
@@ -444,6 +452,8 @@ public:
     bool prepared_mode{false};
 #endif
     ImageMap images;
+    // A patch run's base image -> the key its record now has (D4).
+    std::unordered_map<std::uint64_t, std::uint64_t> patch_runs;
     text::HarfBuzzFontEngine text_engine;
     // Identity of text_engine for shaped-text memos. A memo holding an
     // expired or different identity was shaped by another raster.
@@ -475,6 +485,20 @@ public:
         bool rounded{};
         SkRect rounded_rect{};
         double radius{};
+        // The rounded clip enclosing the innermost one (D6); one further out
+        // is kept as its bounds in rect.
+        bool outer_rounded{};
+        SkRect outer_rounded_rect{};
+        double outer_radius{};
+        // Moves the innermost rounded clip outward before another is added
+        // inside it; the clip that was outer is kept as its bounds.
+        void push_rounded_clip() {
+            if (!rounded) return;
+            if (outer_rounded && !rect.intersect(outer_rounded_rect)) rect.setEmpty();
+            outer_rounded = true;
+            outer_rounded_rect = rounded_rect;
+            outer_radius = radius;
+        }
         // Disjoint device rectangles of the frame damage and clip_damage.
         bool region_limited{};
         SkRegion region;
@@ -603,6 +627,8 @@ public:
     }
     const ImageRegistry* image_registry{};
     std::uint64_t image_registry_revision{std::numeric_limits<std::uint64_t>::max()};
+    // Patch runs applied by copying their rectangle only (D4).
+    std::uint64_t image_patches_applied{};
     bool image_registry_synchronized{true};
 
     // Registers `bytes`, kept alive by `owner`, with the text engine without copying them.
@@ -980,6 +1006,82 @@ PreparedTextPaintResult SkiaRaster::draw_prepared_text(const PreparedTextLayout&
 }
 #endif
 
+// D4: brings a kept BGRA image up to date by copying only the rectangle
+// of its open patch run. The record found is the one synchronized before
+// the run (keyed by the run's base image at its base hash) or during it
+// (named by patch_runs). Returns false, changing nothing, when no such
+// record exists or its pixels are shared; the caller then copies the whole
+// image.
+bool SkiaRaster::apply_image_patch(const ImageResourceView& resource) {
+    const ImagePatchRegion& region = resource.patched;
+    if (region.base_hash == 0U ||
+        resource.encoding != ImageResourceEncoding::bgra32_premultiplied) {
+        return false;
+    }
+    std::uint64_t key = region.base_image;
+    Impl::ImageMap::iterator found = (*impl_).images.find(key);
+    bool current = found != (*impl_).images.end() &&
+                   (*found).second.content_hash == region.base_hash;
+    if (!current) {
+        const std::unordered_map<std::uint64_t, std::uint64_t>::const_iterator run =
+            (*impl_).patch_runs.find(region.base_image);
+        if (run == (*impl_).patch_runs.end()) return false;
+        key = (*run).second;
+        found = (*impl_).images.find(key);
+        current = found != (*impl_).images.end() &&
+                  (*found).second.patch_base_image == region.base_image;
+    }
+    if (!current) return false;
+    Impl::DecodedImage& kept = (*found).second;
+    const std::size_t width = static_cast<std::size_t>(resource.metadata.width);
+    const std::size_t height = static_cast<std::size_t>(resource.metadata.height);
+    const std::size_t row_bytes = width * 4U;
+    if (!kept.pixels || !kept.image || kept.row_bytes != row_bytes ||
+        static_cast<std::size_t>((*kept.image).width()) != width ||
+        static_cast<std::size_t>((*kept.image).height()) != height ||
+        resource.row_bytes != row_bytes || resource.encoded.size() != row_bytes * height ||
+        static_cast<std::uint64_t>(region.x) + region.width > width ||
+        static_cast<std::uint64_t>(region.y) + region.height > height) {
+        return false;
+    }
+    // The image shares the pixels: release it so that they are written
+    // with no reader, then make a new image over them.
+    const SkImageInfo info = (*kept.image).imageInfo();
+    kept.image.reset();
+    kept.device_tile.reset();
+    if (!(*kept.pixels).unique()) {
+        (*impl_).images.erase(found);
+        return false;
+    }
+    std::byte* const destination = static_cast<std::byte*>((*kept.pixels).writable_data());
+    const std::size_t origin = static_cast<std::size_t>(region.y) * row_bytes +
+                               static_cast<std::size_t>(region.x) * 4U;
+    const std::size_t span_bytes = static_cast<std::size_t>(region.width) * 4U;
+    for (std::uint32_t row = 0U; row < region.height; ++row) {
+        const std::size_t offset = origin + static_cast<std::size_t>(row) * row_bytes;
+        std::memcpy(destination + offset, resource.encoded.data() + offset, span_bytes);
+    }
+    sk_sp<SkImage> image = SkImages::RasterFromData(info, kept.pixels, row_bytes);
+    if (!image) {
+        (*impl_).images.erase(found);
+        return false;
+    }
+    Impl::DecodedImage record = std::move(kept);
+    record.image = std::move(image);
+    record.content_hash = resource.content_hash;
+    record.patch_base_image = region.base_image;
+    record.device_tile_opaque = false;
+    (*impl_).images.erase(found);
+    (*impl_).images[resource.image.value] = std::move(record);
+    (*impl_).patch_runs[region.base_image] = resource.image.value;
+    ++(*impl_).image_patches_applied;
+    return true;
+}
+
+std::uint64_t SkiaRaster::image_patches_applied() const noexcept {
+    return (*impl_).image_patches_applied;
+}
+
 bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
     const ImageRegistrySnapshot snapshot = registry.snapshot();
     const bool same_registry = &registry == (*impl_).image_registry;
@@ -988,6 +1090,7 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
     }
     if (!same_registry) {
         (*impl_).images.clear();
+        (*impl_).patch_runs.clear();
     }
 
     bool synchronized = true;
@@ -1004,6 +1107,9 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
         const Impl::ImageMap::const_iterator existing = (*impl_).images.find(id.value);
         if (existing != (*impl_).images.end() &&
             (*existing).second.content_hash == (*resource).content_hash) {
+            continue;
+        }
+        if (apply_image_patch(*resource)) {
             continue;
         }
 
@@ -1032,9 +1138,12 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
             synchronized = false;
             continue;
         }
-        std::vector<std::byte> pixels;
+        // D3: a decoded image goes straight into the storage its SkImage
+        // keeps, with no intermediate vector and second copy.
         sk_sp<SkData> pixel_data;
-        if ((*resource).encoding == ImageResourceEncoding::bgra32_premultiplied) {
+        const bool patchable =
+            (*resource).encoding == ImageResourceEncoding::bgra32_premultiplied;
+        if (patchable) {
             if ((*resource).row_bytes != row_bytes ||
                 (*resource).encoded.size() != (*resource).metadata.decoded_byte_count) {
                 (*impl_).images.erase(id.value);
@@ -1046,7 +1155,9 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
         } else {
             const gui_forms::image::PixelTarget target{gui_forms::image::PixelOrder::bgra,
                                                        gui_forms::image::PixelAlpha::premultiplied};
-            pixels.resize((*resource).metadata.decoded_byte_count);
+            pixel_data = SkData::MakeUninitialized(*output_bytes);
+            const std::span<std::byte> pixels(
+                static_cast<std::byte*>((*pixel_data).writable_data()), *output_bytes);
             const gui_forms::image::ResourcePixelResult decoded =
                 decoder.decode(*resource, target, pixels, row_bytes);
             if (decoded.error != gui_forms::image::ResourcePixelError::none ||
@@ -1057,17 +1168,20 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
                 continue;
             }
         }
-        if (!pixel_data) {
-            pixel_data = SkData::MakeWithCopy(pixels.data(), pixels.size());
-        }
-        sk_sp<SkImage> image =
-            SkImages::RasterFromData(output_info, std::move(pixel_data), row_bytes);
+        sk_sp<SkImage> image = SkImages::RasterFromData(output_info, pixel_data, row_bytes);
         if (!image) {
             (*impl_).images.erase(id.value);
             synchronized = false;
             continue;
         }
-        (*impl_).images[id.value] = {(*resource).content_hash, std::move(image)};
+        Impl::DecodedImage record{};
+        record.content_hash = (*resource).content_hash;
+        record.image = std::move(image);
+        if (patchable) {
+            record.pixels = std::move(pixel_data);
+            record.row_bytes = row_bytes;
+        }
+        (*impl_).images[id.value] = std::move(record);
     }
     for (Impl::ImageMap::iterator iterator = (*impl_).images.begin();
          iterator != (*impl_).images.end();) {
@@ -1075,6 +1189,14 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
             iterator = (*impl_).images.erase(iterator);
         } else {
             ++iterator;
+        }
+    }
+    for (std::unordered_map<std::uint64_t, std::uint64_t>::iterator run = (*impl_).patch_runs.begin();
+         run != (*impl_).patch_runs.end();) {
+        if (!active.contains((*run).second)) {
+            run = (*impl_).patch_runs.erase(run);
+        } else {
+            ++run;
         }
     }
     (*impl_).image_registry_revision = snapshot.revision;
@@ -1190,9 +1312,9 @@ void SkiaRaster::clip_rounded_rect(Rect rect, double radius) {
         if (Impl::TextClipState* const state = (*impl_).current_text_clip(*canvas)) {
             const SkMatrix matrix = (*canvas).getTotalMatrix();
             const SkRect device = matrix.mapRect(to_sk_rect(rect));
-            // One rounded clip is exact. An enclosing rounded clip is kept as
-            // its bounds only: nested rounded clips are approximated.
-            if ((*state).rounded && !(*state).rect.intersect((*state).rounded_rect)) (*state).rect.setEmpty();
+            // The innermost rounded clip and the one enclosing it are exact
+            // (D6); one further out is kept as its bounds.
+            (*state).push_rounded_clip();
             (*state).rounded = true;
             (*state).rounded_rect = device;
             (*state).radius = std::max(0.0, radius) * static_cast<double>(matrix.getScaleX());
@@ -1213,7 +1335,7 @@ void SkiaRaster::clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) {
             const SkRect device = matrix.mapRect(to_sk_rect(rect));
             const double largest = std::max(std::max(radii.top_left, radii.top_right),
                                             std::max(radii.bottom_right, radii.bottom_left));
-            if ((*state).rounded && !(*state).rect.intersect((*state).rounded_rect)) (*state).rect.setEmpty();
+            (*state).push_rounded_clip();
             (*state).rounded = true;
             (*state).rounded_rect = device;
             (*state).radius = std::max(0.0, largest) * static_cast<double>(matrix.getScaleX());
@@ -1669,6 +1791,9 @@ public:
     std::size_t face_count{};
     FontSpec font{};
     std::size_t text_bytes{};
+    // The text's hash beside its length (N58): a cache handed a different
+    // text of the same length is made again rather than drawing the old one.
+    std::size_t text_hash{};
     text::ShapedText shaped;
     // ADR-004 coverage of the shaped run at one device scale and phase.
     bool has_coverage{};
@@ -1689,17 +1814,19 @@ void SkiaRaster::draw_retained_text_utf8(const Point origin, const std::string_v
         return;
     }
     const std::size_t face_count = (*impl_).text_engine.face_count();
+    const std::size_t text_hash = std::hash<std::string_view>{}(text);
     ShapedTextMemo* memo = dynamic_cast<ShapedTextMemo*>((*cache).memo.get());
     const bool current = memo != nullptr &&
         (*memo).engine.lock() == (*impl_).text_engine_identity &&
         (*memo).face_count == face_count && (*memo).font == font_spec &&
-        (*memo).text_bytes == text.size();
+        (*memo).text_bytes == text.size() && (*memo).text_hash == text_hash;
     if (!current) {
         std::unique_ptr<ShapedTextMemo> replacement = std::make_unique<ShapedTextMemo>();
         (*replacement).engine = (*impl_).text_engine_identity;
         (*replacement).face_count = face_count;
         (*replacement).font = font_spec;
         (*replacement).text_bytes = text.size();
+        (*replacement).text_hash = text_hash;
         (*replacement).shaped = (*impl_).shaped_text(text, font_spec);
         memo = replacement.get();
         (*cache).memo = std::move(replacement);
@@ -1781,6 +1908,14 @@ std::optional<SkiaRaster::Impl::SharedComposite> SkiaRaster::Impl::shared_compos
         clip.rounded_rect = {static_cast<double>((*state).rounded_rect.left()), static_cast<double>((*state).rounded_rect.top()),
                              static_cast<double>((*state).rounded_rect.width()), static_cast<double>((*state).rounded_rect.height())};
         clip.radius = (*state).radius;
+        if ((*state).outer_rounded) {
+            clip.outer_rounded = true;
+            clip.outer_rounded_rect = {static_cast<double>((*state).outer_rounded_rect.left()),
+                                       static_cast<double>((*state).outer_rounded_rect.top()),
+                                       static_cast<double>((*state).outer_rounded_rect.width()),
+                                       static_cast<double>((*state).outer_rounded_rect.height())};
+            clip.outer_radius = (*state).outer_radius;
+        }
     }
     const SharedComposite shared{state, composite_target, clip};
     return shared;
@@ -1931,6 +2066,13 @@ ResolvedTextLayout SkiaRaster::resolve_text_layout_utf8(
     std::string_view text, FontSpec font_spec) {
     const ResolvedTextLayout& layout = (*impl_).resolved_layout(text, font_spec);
     return layout;
+}
+
+TextExtent SkiaRaster::measure_text_extent_utf8(
+    std::string_view text, FontSpec font_spec) {
+    const ResolvedTextLayout& layout = (*impl_).resolved_layout(text, font_spec);
+    const TextExtent extent = text_extent_of(layout);
+    return extent;
 }
 
 TextResolutionStatus SkiaRaster::fill_line_break_opportunities_utf8(

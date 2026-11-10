@@ -23,12 +23,12 @@ constexpr double minimum_text_width = 80.0;
 
 double text_width(const Control& measurer, std::string_view text, FontSpec font) {
     if (text.empty()) return 0.0;
-    const double result = measurer.resolve_text_layout_utf8(text, font).logical_size.width;
+    const double result = measurer.measure_text_extent_utf8(text, font).logical_size.width;
     return result;
 }
 
 double line_height(const Control& measurer, FontSpec font) {
-    const double result = std::max(font.size * 1.35, measurer.resolve_text_layout_utf8("Mg", font).logical_size.height);
+    const double result = std::max(font.size * 1.35, measurer.measure_text_extent_utf8("Mg", font).logical_size.height);
     return result;
 }
 

@@ -158,6 +158,23 @@ int main() {
                              unbounded.width / 2.0, &bounded) == GD_OK);
     CHECK(bounded.width <= unbounded.width / 2.0);
     CHECK(bounded.height > unbounded.height);
+    // N60: a hyphen is a line-break opportunity (UAX #14). A width that
+    // fits "alpha-be" breaks after the hyphen, so the widest line is
+    // "alpha-" as measured alone, and the text takes two lines.
+    const char hyphenated[] = "alpha-beta";
+    const char first_line[] = "alpha-";
+    const char fitted[] = "alpha-be";
+    gd_size one_line{};
+    gd_size first_size{};
+    gd_size fitted_size{};
+    gd_size broken{};
+    CHECK(api.measure_string({hyphenated, sizeof(hyphenated) - 1U}, font, format, 0.0, &one_line) == GD_OK);
+    CHECK(api.measure_string({first_line, sizeof(first_line) - 1U}, font, format, 0.0, &first_size) == GD_OK);
+    CHECK(api.measure_string({fitted, sizeof(fitted) - 1U}, font, format, 0.0, &fitted_size) == GD_OK);
+    CHECK(api.measure_string({hyphenated, sizeof(hyphenated) - 1U}, font, format, fitted_size.width,
+                             &broken) == GD_OK);
+    CHECK(broken.height > one_line.height);
+    CHECK(broken.width == first_size.width);
 
     CHECK(api.release(format) == GD_OK);
     CHECK(api.release(font) == GD_OK);

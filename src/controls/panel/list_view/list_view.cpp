@@ -242,6 +242,7 @@ void ListView::set_columns(std::vector<ListViewColumn> columns) {
     pressed_column_.reset();
     hot_column_.reset();
     columns_ = std::move(columns);
+    advance_layout_revision();
     ++model_revision_;
     if (sort_column_ && *sort_column_ >= columns_.size()) {
         sort_column_.reset();
@@ -258,6 +259,7 @@ void ListView::set_column_width(std::size_t column, double width) {
     }
     if (columns_[column].width == width) return;
     columns_[column].width = width;
+    advance_layout_revision();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     const ListViewColumnWidthChange change{std::string(stable_id().value()), column, width};
     publish_change(column_width_changed_, change);
@@ -314,6 +316,7 @@ void ListView::set_items(std::vector<ListViewItem> items) {
         if (found != next_indices.end()) next_anchor = (*found).second;
     }
     items_.swap(items);
+    advance_layout_revision();
     item_indices_.swap(next_indices);
     selected_.swap(next_selected);
     selected_count_ = next_count;
@@ -364,13 +367,17 @@ void ListView::set_virtual_source(std::shared_ptr<ListViewItemSource> source) {
     }
     // A new source is a new model: nothing carries over.
     items_.clear();
+    advance_layout_revision();
     item_indices_.clear();
     source_ = std::move(source);
+    advance_layout_revision();
     virtual_count_ = count;
+    advance_layout_revision();
     std::fill(selected_.begin(), selected_.end(), static_cast<std::uint8_t>(0U));
     focused_index_.reset();
     anchor_index_.reset();
     top_item_ = 0U;
+    advance_layout_revision();
     reset_after_model_change(count);
 }
 
@@ -380,6 +387,7 @@ void ListView::refresh_virtual_items() {
     const std::size_t count = (*source_).item_count();
     if (count > maximum_items) throw std::invalid_argument("ListView source has more items than maximum_items");
     virtual_count_ = count;
+    advance_layout_revision();
     reset_after_model_change(count);
 }
 
@@ -701,7 +709,9 @@ void ListView::set_top_line(std::size_t line) {
         const std::size_t item = clamped * placed.per_line;
         if (item == top_item_ && clamped == placed.top_line) return;
         top_item_ = item;
+        advance_layout_revision();
         top_header_ = false;
+        advance_layout_revision();
     }
     hot_index_.reset();
     conceal_cut_off_text();
@@ -723,8 +733,10 @@ void ListView::set_horizontal_offset(double offset) {
     require_mutable();
     if (!std::isfinite(offset) || offset < 0.0) throw std::invalid_argument("ListView horizontal offset is invalid");
     horizontal_offset_ = offset;
+    advance_layout_revision();
     const Layout placed = layout();
     horizontal_offset_ = placed.horizontal_offset;
+    advance_layout_revision();
     conceal_cut_off_text();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     place_label_editor(placed);
@@ -780,6 +792,7 @@ void ListView::on_horizontal_scroll(double value) {
     }
     if (view.read() != ListViewView::details || horizontal_offset_ == value) return;
     horizontal_offset_ = std::max(0.0, value);
+    advance_layout_revision();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -827,6 +840,7 @@ void ListView::sort_items(std::size_t column, ListViewSortOrder order) {
         if (selected_[old] != 0U && old != position) moved = true;
     }
     items_.swap(sorted);
+    advance_layout_revision();
     selected_.swap(sorted_flags);
     item_indices_.clear();
     for (std::size_t index = 0; index < items_.size(); ++index) {
@@ -937,6 +951,7 @@ void ListView::set_groups(std::vector<ListViewGroup> groups) {
         }
     }
     groups_ = std::move(groups);
+    advance_layout_revision();
     ++model_revision_;
     hot_index_.reset();
     conceal_cut_off_text();
@@ -1141,7 +1156,9 @@ std::size_t ListView::next_item_line(const Layout& placed, std::size_t line, boo
 
 void ListView::store_top_line(const Layout& placed, std::size_t line) {
     top_header_ = header_line(placed, line);
+    advance_layout_revision();
     top_item_ = line_first(placed, line);
+    advance_layout_revision();
 }
 
 // -- layout ------------------------------------------------------------------
@@ -1161,8 +1178,17 @@ Size ListView::icon_size(bool large) const noexcept {
     return result;
 }
 
-ListView::Layout ListView::layout() const {
-    return layout_for(client_rectangle());
+const ListView::Layout& ListView::layout() const {
+    const LayoutKey key = layout_key();
+    const std::uint64_t model = model_revision_;
+    if (kept_layout_valid_ && kept_layout_key_ == key && kept_layout_model_ == model) return kept_layout_;
+    // The key is taken before the layout is made: a layout that
+    // writes what it reads is made again at the next call.
+    kept_layout_ = layout_for(key.client);
+    kept_layout_key_ = key;
+    kept_layout_model_ = model;
+    kept_layout_valid_ = true;
+    return kept_layout_;
 }
 
 ListView::Layout ListView::layout_for(Rect client) const {
@@ -1566,8 +1592,10 @@ void ListView::arrange(Rect final_bounds) {
         store_top_line(placed, placed.top_line);
     } else {
         top_item_ = std::min(top_item_, placed.top_line * placed.per_line);
+        advance_layout_revision();
     }
     horizontal_offset_ = placed.horizontal_offset;
+    advance_layout_revision();
     place_label_editor(placed);
     sync_scroll_bars(placed);
 }
@@ -2165,6 +2193,7 @@ void ListView::on_pointer(PointerEvent& event) {
                     std::clamp(resize_start_width_ + delta, minimum_column_width, maximum_column_width);
                 if (columns_[*resizing_column_].width != width) {
                     columns_[*resizing_column_].width = width;
+                    advance_layout_revision();
                     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
                 }
             }
@@ -2364,6 +2393,7 @@ void ListView::on_key(KeyEvent& event) {
     cancel_label_click();
     if (event.physical_key == PhysicalKey::escape && resizing_column_) {
         columns_[*resizing_column_].width = resize_start_width_;
+        advance_layout_revision();
         finish_column_resize();
         invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
         event.handled = true;
@@ -2633,6 +2663,7 @@ void ListView::end_label_edit() {
     const std::optional<std::size_t> at = index_of(item_id);
     if (!at || items_[*at].text == label) return;
     items_[*at].text = label;
+    advance_layout_revision();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 

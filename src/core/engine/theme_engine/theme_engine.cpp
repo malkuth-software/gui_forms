@@ -1050,13 +1050,18 @@ Rect ThemeEngine::text_slot(const Control& control, const PartPaint& part) const
 }
 
 void ThemeEngine::paint(Painter& painter, const Control& control, const PartPaint& part) const {
+    paint_clipped(painter, control, part, std::span<const Rect>{});
+}
+
+void ThemeEngine::paint_clipped(Painter& painter, const Control& control, const PartPaint& part,
+                                const std::span<const Rect> clips) const {
     const PartPlan decided = plan(control, part);
     const PartBlend blend = decided.resolution.blend;
     // Forced high contrast draws no blend, whatever draws the part.
     const bool high_contrast = blend != PartBlend::normal && part_visual_context(control, part.states).high_contrast;
     const bool blends = blend != PartBlend::normal && !high_contrast;
     if (!blends) {
-        paint_planned(painter, control, part, decided);
+        paint_planned(painter, control, part, decided, clips, nullptr);
         return;
     }
     // The part's extent, as its record notes it: its bounds grown by its
@@ -1073,52 +1078,125 @@ void ThemeEngine::paint(Painter& painter, const Control& control, const PartPain
     group.bounds = Rect{part.bounds.x - grown.left, part.bounds.y - grown.top,
                         part.bounds.width + grown.left + grown.right, part.bounds.height + grown.top + grown.bottom};
     group.composite = blend == PartBlend::multiply ? PaintGroupComposite::multiply : PaintGroupComposite::screen;
-    painter.begin_group(group);
-    paint_planned(painter, control, part, decided);
-    painter.end_group();
+    paint_planned(painter, control, part, decided, clips, &group);
 }
 
+// N39: the state of one part's paint, which each stage of paint_planned
+// reads and leaves for the next. The materials made for this paint only
+// live here, so the request's material pointer stays valid through the
+// draw; nothing in it outlives the paint.
+struct ThemeEngine::PartPaintRun final {
+    // What the draw stage does: nothing, the built-in recipe at `shown` and
+    // `opacity`, or the baked raster.
+    enum class Outcome : std::uint8_t { nothing, built_in, raster };
+
+    const PartPlan& decided;
+    SurfaceRoot* window{};
+    std::optional<PartRecordHandle> record{};
+    EnginePartRecord* kept{};
+    bool primitive_draws{};
+    bool samples_backplane{};
+    bool reduced_motion{};
+    Window::EnginePaintPlace place{};
+    Rect extent{};
+    PartTransitionSources transitions{};
+    PartRasterRequest request{};
+    std::optional<double> ambient_time{};
+    std::array<double, maximum_expression_inputs> inputs{};
+    PresentedProperties presented{};
+    std::uint32_t movable{};
+    double opacity{1.0};
+    bool invisible{};
+    PartPaint shown{};
+    bool stretched{};
+    double granted{1.0};
+    double shown_scale{1.0};
+    Point moved{};
+    std::optional<PointerOverlay> placed{};
+    // The materials lent for this paint only (lend_part_material).
+    SurfaceMaterial* unkept_material{};
+    std::optional<SurfaceMaterial> authored_ground{};
+    std::optional<SurfaceMaterial> unreflected{};
+    std::optional<SurfaceMaterial> ground{};
+    std::optional<SurfaceMaterial> overlay{};
+    Window::EngineBackplane backplane{};
+    std::optional<std::uint32_t> margin{};
+    std::shared_ptr<const PartRaster> raster{};
+    std::shared_ptr<const PartRaster> fading_from{};
+    Outcome outcome{Outcome::nothing};
+};
+
 void ThemeEngine::paint_planned(Painter& painter, const Control& control, const PartPaint& part,
-                                const PartPlan& decided) const {
+                                const PartPlan& decided, const std::span<const Rect> clips,
+                                const PaintGroup* const group) const {
+    PartPaintRun run{decided};
+    note_part_paint(painter, control, part, run);
+    if (!run.primitive_draws) {
+        paint_without_primitive(part, run);
+    } else if (prepare_part_request(control, part, run) && lend_part_material(control, part, run)) {
+        borrow_part_backplane(part, run);
+        bake_part(part, run);
+    }
+    if (run.outcome == PartPaintRun::Outcome::nothing) return;
+    // N91: what the stages above resolved and baked once is drawn under
+    // each clip, as a paint of the whole part per clip would draw it.
+    if (clips.empty()) {
+        if (group != nullptr) painter.begin_group(*group);
+        draw_part_paint(painter, control, part, run);
+        if (group != nullptr) painter.end_group();
+        return;
+    }
+    for (const Rect clip : clips) {
+        painter.save();
+        painter.clip_rect(clip);
+        if (group != nullptr) painter.begin_group(*group);
+        draw_part_paint(painter, control, part, run);
+        if (group != nullptr) painter.end_group();
+        painter.restore();
+    }
+}
+
+// The part's record and where it lands: what the window notes before the
+// part draws (E6, E7).
+void ThemeEngine::note_part_paint(Painter& painter, const Control& control, const PartPaint& part,
+                                  PartPaintRun& run) const {
     SurfaceRoot* const window = control.attached_surface_root();
+    run.window = window;
     // A program drawing both a theme and an inline style (E1, W401).
     const bool themed = rules_.rule_count() > rules_.built_in_rule_count();
     if (window != nullptr && themed && control.inline_style_rules() != nullptr) {
         (*window).note_inline_with_theme(control);
     }
-    std::optional<PartRecordHandle> record{};
     if (part.key && part_bounds_paintable(part.bounds) && window != nullptr) {
-        record = (*window).note_engine_part(control, *part.key, part.states);
+        run.record = (*window).note_engine_part(control, *part.key, part.states);
     }
-    const CompiledThemeRules::Resolution& resolution = decided.resolution;
+    const CompiledThemeRules::Resolution& resolution = run.decided.resolution;
     // A frameless part (PartPaint::frame) is its material's ground; a
     // primitive that draws no theme material has no ground apart from its
     // frame, so the built-in recipe draws such a part.
-    const bool groundless = decided.drawing == PartDrawing::primitive && part.frame == PartFrame::none &&
+    const bool groundless = run.decided.drawing == PartDrawing::primitive && part.frame == PartFrame::none &&
                             !(*resolution.primitive).theme_material(resolution.parameters, part.family);
-    const bool primitive_draws = decided.drawing == PartDrawing::primitive && window != nullptr && !groundless;
+    run.primitive_draws = run.decided.drawing == PartDrawing::primitive && window != nullptr && !groundless;
     // Where the part lands, and what it reads: the inputs are delivered and
     // damaged only for a part with a record (E6).
-    Window::EnginePaintPlace place{};
-    if (record || primitive_draws) place = (*window).engine_paint_place(control, painter);
-    const bool reduced_motion = window != nullptr && (*window).presentation_settings().reduced_motion;
-    Rect extent{};
+    if (run.record || run.primitive_draws) run.place = (*window).engine_paint_place(control, painter);
+    run.reduced_motion = window != nullptr && (*window).presentation_settings().reduced_motion;
     // Glass (E9-B) samples the window's backplane, the backplane plane
     // alone; a part recorded in the backplane plane would sample itself, so
     // it samples nothing.
-    const bool samples_backplane =
-        primitive_draws && (*resolution.primitive).backplane_margin(resolution.parameters, decided.scale) &&
-        (*place.painted_by).paint_plane() != PaintPlane::backplane;
-    if (record) {
+    run.samples_backplane =
+        run.primitive_draws && (*resolution.primitive).backplane_margin(resolution.parameters, run.decided.scale) &&
+        (*run.place.painted_by).paint_plane() != PaintPlane::backplane;
+    if (run.record) {
         Insets outsets{};
         std::uint64_t inputs_read = 0U;
-        if (primitive_draws) {
+        if (run.primitive_draws) {
             outsets = (*resolution.primitive).descriptor().outsets;
             inputs_read = resolution.inputs_read;
             // An overlay that follows the pointer (E9-A) is repainted when
             // the pointer moves within the part, though its raster never
             // reads it.
-            if (follows_pointer(resolution, part, reduced_motion)) inputs_read = inputs_read | pointer_inputs();
+            if (follows_pointer(resolution, part, run.reduced_motion)) inputs_read = inputs_read | pointer_inputs();
         }
         // A part that scales or translates may draw anywhere in its granted
         // overflow.
@@ -1128,63 +1206,72 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
             outsets.right = outsets.right + part.granted_overflow.right;
             outsets.bottom = outsets.bottom + part.granted_overflow.bottom;
         }
-        extent = part_extent(part.bounds, place.origin, outsets);
-        (*window).note_engine_paint(*record, inputs_read, *place.painted_by, extent);
-        (*window).note_engine_backplane_reader(*record, samples_backplane);
+        run.extent = part_extent(part.bounds, run.place.origin, outsets);
+        (*window).note_engine_paint(*run.record, inputs_read, *run.place.painted_by, run.extent);
+        (*window).note_engine_backplane_reader(*run.record, run.samples_backplane);
     }
     // The part's record, for its transitions and its ambient effect (E7).
-    EnginePartRecord* const kept = record ? (*window).engine_part_record(*record) : nullptr;
-    PartTransitionSources transitions{};
-    transitions.window = window;
-    transitions.record = kept;
-    if (record) transitions.handle = *record;
-    if (kept != nullptr) transitions.owner = (*window).find(control.stable_id().value());
-    transitions.states = part.states;
-    transitions.rules_serial = rules_.serial();
+    run.kept = run.record ? (*window).engine_part_record(*run.record) : nullptr;
+    run.transitions.window = window;
+    run.transitions.record = run.kept;
+    if (run.record) run.transitions.handle = *run.record;
+    if (run.kept != nullptr) run.transitions.owner = (*window).find(control.stable_id().value());
+    run.transitions.states = part.states;
+    run.transitions.rules_serial = rules_.serial();
     if (transitions_read_em(resolution)) {
-        transitions.em = text_role_em(control, resolved_text_role(control, resolution.font));
+        run.transitions.em = text_role_em(control, resolved_text_role(control, resolution.font));
     }
-    if (!primitive_draws) {
-        if (kept != nullptr) stop_ambient(*window, *kept, *record);
-        PrimitiveParameterBlock unused{};
-        const PresentedProperties presented = run_transitions(resolution, transitions, nullptr, unused);
-        PartPaint shown = scaled_part(part, presented.scale);
-        const double shown_scale = std::min(presented.scale, granted_scale(part.bounds, part.granted_overflow));
-        shown.bounds = moved_by(shown.bounds, granted_translation(part, shown_scale, presented.translation));
-        paint_built_in(painter, control, shown, presented.opacity);
-        return;
-    }
-    PartRasterRequest request{};
+}
+
+// A part no primitive draws: its transitions, then the built-in recipe at
+// its presented scale, translation and opacity.
+void ThemeEngine::paint_without_primitive(const PartPaint& part, PartPaintRun& run) const {
+    if (run.kept != nullptr) stop_ambient(*run.window, *run.kept, *run.record);
+    PrimitiveParameterBlock unused{};
+    const PresentedProperties presented = run_transitions(run.decided.resolution, run.transitions, nullptr, unused);
+    run.shown = scaled_part(part, presented.scale);
+    const double shown_scale = std::min(presented.scale, granted_scale(part.bounds, part.granted_overflow));
+    run.shown.bounds = moved_by(run.shown.bounds, granted_translation(part, shown_scale, presented.translation));
+    run.opacity = presented.opacity;
+    run.outcome = PartPaintRun::Outcome::built_in;
+}
+
+// The raster request: the ambient effect's time, then the inputs, the
+// expressions that read them, and the transitions over both; the size the
+// part is baked and shown at. False when an overlay's band is empty, which
+// draws nothing.
+bool ThemeEngine::prepare_part_request(const Control& control, const PartPaint& part, PartPaintRun& run) const {
+    SurfaceRoot* const window = run.window;
+    const CompiledThemeRules::Resolution& resolution = run.decided.resolution;
+    PartRasterRequest& request = run.request;
     request.primitive = resolution.primitive;
     request.parameters = resolution.parameters;
     request.target.logical_size = Size{part.bounds.width, part.bounds.height};
-    request.target.scale = decided.scale;
+    request.target.scale = run.decided.scale;
     request.target.states = part.states;
-    request.extent = decided.extent;
-    // The ambient effect's time, then the inputs, the expressions that read
-    // them, and the transitions over both.
-    std::optional<double> ambient_time{};
+    request.extent = run.decided.extent;
     if (resolution.ambient != nullptr) {
         const double window_area = (*window).client_size().width * (*window).client_size().height;
         const bool everyday = !control.on_ceremonial_surface();
-        const bool area_ok = !everyday || extent.area() <= maximum_ambient_window_fraction * window_area;
-        ambient_time = ambient_seconds(*window, kept, record, *resolution.ambient, area_ok);
-    } else if (kept != nullptr) {
-        stop_ambient(*window, *kept, *record);
+        const bool area_ok = !everyday || run.extent.area() <= maximum_ambient_window_fraction * window_area;
+        run.ambient_time = ambient_seconds(*window, run.kept, run.record, *resolution.ambient, area_ok);
+    } else if (run.kept != nullptr) {
+        stop_ambient(*window, *run.kept, *run.record);
     }
-    std::array<double, maximum_expression_inputs> inputs{};
     PartInputSources sources{};
     sources.window = window;
-    sources.part_origin = Point{place.window_origin.x + part.bounds.x, place.window_origin.y + part.bounds.y};
+    sources.part_origin =
+        Point{run.place.window_origin.x + part.bounds.x, run.place.window_origin.y + part.bounds.y};
     sources.states = part.states;
     sources.pointer = (*window).engine_pointer();
-    sources.record = kept;
-    sources.time_in_state = ambient_time;
-    gather_inputs(rules_, resolution.inputs_read, sources, inputs);
-    for (std::size_t index = 0; index < engine_input_count; ++index) request.target.inputs[index] = inputs[index];
-    evaluate_expressions(resolution, inputs, part.states, request.parameters);
+    sources.record = run.kept;
+    sources.time_in_state = run.ambient_time;
+    gather_inputs(rules_, resolution.inputs_read, sources, run.inputs);
+    for (std::size_t index = 0; index < engine_input_count; ++index) request.target.inputs[index] = run.inputs[index];
+    evaluate_expressions(resolution, run.inputs, part.states, request.parameters);
     const PrimitiveDescriptor& descriptor = (*request.primitive).descriptor();
-    const PresentedProperties presented = run_transitions(resolution, transitions, &descriptor, request.parameters);
+    run.presented = run_transitions(resolution, run.transitions, &descriptor, request.parameters);
+    const PresentedProperties& presented = run.presented;
     // E7r: nothing bakes per frame. Moving animated parameters step through
     // shared keyframes, and an ambient effect's loop frames are shared.
     // Owner C and D (2026-10-22): a running transition, or the pointer,
@@ -1194,40 +1281,41 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
         step_to_keyframes(descriptor, presented.moving_parameters | driven, request.parameters);
     // The parameters whose keyframes are worth baking ahead: those a
     // transition or the pointer can move.
-    const std::uint32_t movable = presented.transitioned_parameters | driven;
+    run.movable = presented.transitioned_parameters | driven;
     // While its scale moves, the part's raster at its own size is shown
     // stretched (form b), so it is shared too: baked when the move starts.
-    request.shared = kept != nullptr && (at_keyframes || ambient_time.has_value() || presented.scale_moving);
-    const double opacity = presented.opacity;
+    request.shared =
+        run.kept != nullptr && (at_keyframes || run.ambient_time.has_value() || presented.scale_moving);
+    run.opacity = presented.opacity;
     // A part at opacity 0, or one its primitive draws as nothing (a flat
     // bulge), composites nothing and needs no raster: it only prepares the
     // keyframes of a transition starting from it (a rise from the plane).
-    const bool invisible = opacity <= 0.0 || (*request.primitive).blank(request.parameters);
+    run.invisible = run.opacity <= 0.0 || (*request.primitive).blank(request.parameters);
     // A scaled part at rest is drawn at its scaled size (D5-1), so that its
     // edges stay sharp; one whose scaled raster would not fit, or would
     // break the animated frame budget, is drawn at its own size. While its
     // scale moves, its raster at its own size is stretched over the scaled
     // bounds (E7r form b), so that the move bakes nothing.
-    PartPaint shown = scaled_part(part, presented.scale);
-    const bool stretched = shown.bounds != part.bounds && presented.scale_moving;
+    run.shown = scaled_part(part, presented.scale);
+    run.stretched = run.shown.bounds != part.bounds && presented.scale_moving;
     // A primitive behind the overlay seam (E9-A, the sheen) bakes its own
     // size, a band of the part's height, and is placed when composited. It
     // follows the part's presentational scale as a face does: at rest it
     // bakes at the scaled size, and while the scale moves its raster at the
     // part's own size is stretched by the same factor (E7r form b).
-    const double granted = std::min(presented.scale, granted_scale(part.bounds, part.granted_overflow));
-    const std::optional<PointerOverlay> placed =
+    run.granted = std::min(presented.scale, granted_scale(part.bounds, part.granted_overflow));
+    run.placed =
         (*request.primitive).pointer_overlay(request.parameters, Size{part.bounds.width, part.bounds.height});
-    if (placed) {
-        const double baked_scale = stretched || shown.bounds == part.bounds ? 1.0 : granted;
-        const Size baked{(*placed).size.width * baked_scale, (*placed).size.height * baked_scale};
+    if (run.placed) {
+        const double baked_scale = run.stretched || run.shown.bounds == part.bounds ? 1.0 : run.granted;
+        const Size baked{(*run.placed).size.width * baked_scale, (*run.placed).size.height * baked_scale};
         request.target.logical_size = baked;
-        request.extent = raster_extent(baked, Insets{}, decided.scale.value);
-        if (request.extent.width == 0U || request.extent.height == 0U) return;
+        request.extent = raster_extent(baked, Insets{}, run.decided.scale.value);
+        if (request.extent.width == 0U || request.extent.height == 0U) return false;
     }
-    if (!placed && shown.bounds != part.bounds && !stretched) {
-        const double scale = decided.scale.value;
-        const Size shown_size{shown.bounds.width, shown.bounds.height};
+    if (!run.placed && run.shown.bounds != part.bounds && !run.stretched) {
+        const double scale = run.decided.scale.value;
+        const Size shown_size{run.shown.bounds.width, run.shown.bounds.height};
         const DeviceExtent scaled = raster_extent(shown_size, descriptor.outsets, scale);
         const std::uint64_t pixels =
             static_cast<std::uint64_t>(scaled.width) * static_cast<std::uint64_t>(scaled.height);
@@ -1236,32 +1324,36 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
         const bool within = scaled.width > 0U && scaled.height > 0U &&
                             (!animated(descriptor) || operations <= maximum_animated_operations_per_frame);
         if (within) {
-            request.target.logical_size = Size{shown.bounds.width, shown.bounds.height};
+            request.target.logical_size = Size{run.shown.bounds.width, run.shown.bounds.height};
             request.extent = scaled;
         } else {
-            shown = part;
+            run.shown = part;
         }
     }
     // The part as drawn moves by its translation (E9.6), within the overflow
     // its scale as shown leaves; its raster is composited at the offset, so
     // that the move bakes nothing. Its hit region and text slot stay put.
-    const bool at_own_size = shown.bounds == part.bounds;
-    const double shown_scale = at_own_size ? 1.0 : granted;
-    const Point moved = granted_translation(part, shown_scale, presented.translation);
-    shown.bounds = moved_by(shown.bounds, moved);
-    // A primitive that draws a theme material borrows the material of its
-    // recipe role for the part's state (E8-1), with the material fields the
-    // rules set in place (EC1), the part's own corner radius and the
-    // window's images, for this paint only.
-    // A material made for this paint only (forced high contrast) is
-    // assembled into the window's one paint slot, and a part that keeps no
-    // assembly borrows one of the window's unkept assemblies: paint_planned
-    // is not reentrant, and nothing below reaches another part's paint
-    // while they are borrowed, so one slot is enough.
-    SurfaceMaterial* unkept_material = nullptr;
-    std::optional<SurfaceMaterial> authored_ground{};
-    std::optional<SurfaceMaterial> unreflected{};
-    std::optional<SurfaceMaterial> ground{};
+    const bool at_own_size = run.shown.bounds == part.bounds;
+    run.shown_scale = at_own_size ? 1.0 : run.granted;
+    run.moved = granted_translation(part, run.shown_scale, presented.translation);
+    run.shown.bounds = moved_by(run.shown.bounds, run.moved);
+    return true;
+}
+
+// A primitive that draws a theme material borrows the material of its
+// recipe role for the part's state (E8-1), with the material fields the
+// rules set in place (EC1), the part's own corner radius and the window's
+// images, for this paint only. False when the part borrows the overlay
+// shadow and its theme casts none, which draws nothing.
+// A material made for this paint only (forced high contrast) is assembled
+// into the window's one paint slot, and a part that keeps no assembly
+// borrows one of the window's unkept assemblies: paint_planned is not
+// reentrant, and nothing below reaches another part's paint while they are
+// borrowed, so one slot is enough.
+bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& part, PartPaintRun& run) const {
+    SurfaceRoot* const window = run.window;
+    const CompiledThemeRules::Resolution& resolution = run.decided.resolution;
+    PartRasterRequest& request = run.request;
     const std::optional<ControlVisualRole> material_role =
         (*request.primitive).theme_material(request.parameters, part.family);
     if (material_role) {
@@ -1276,11 +1368,11 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
             if (material_fields_read_em(forced.fields)) {
                 relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
             }
-            unkept_material = &(*window).engine_paint_material();
+            run.unkept_material = &(*window).engine_paint_material();
             assemble_material(recipe.material, forced.fields, Size{part.bounds.width, part.bounds.height}, relative,
-                              *unkept_material);
+                              *run.unkept_material);
             (*window).metrics().record_engine_material_assembly();
-            request.target.material = unkept_material;
+            request.target.material = run.unkept_material;
         } else if (resolution.materials_authored && context.dark && derives_dark(control.effective_theme())) {
             // The dark variant (T4 phase 5): the rules' fields in place on
             // the light recipe's material, then the whole darkened by rule,
@@ -1314,7 +1406,7 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
             }
             UnkeptAssemblies unkept{(*window).engine_unkept_assemblies(), (*window).engine_unkept_next(),
                                     (*window).metrics()};
-            request.target.material = &authored_material(unkept, kept, rules_.serial(), recipe.material,
+            request.target.material = &authored_material(unkept, run.kept, rules_.serial(), recipe.material,
                                                          part.bounds, relative, resolution, (*window).metrics());
         }
         // An authored background (owner decision T4-1) stands as the
@@ -1322,26 +1414,26 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
         // never in high contrast.
         const bool important = resolution.level >= CascadeLevel::important_user_theme;
         if (authored_background_applies(part) && !important && !context.high_contrast) {
-            authored_ground.emplace(*request.target.material);
-            (*authored_ground).fills.assign(1U, MaterialFillLayer::solid(*part.authored_background));
-            request.target.material = &*authored_ground;
+            run.authored_ground.emplace(*request.target.material);
+            (*run.authored_ground).fills.assign(1U, MaterialFillLayer::solid(*part.authored_background));
+            request.target.material = &*run.authored_ground;
         }
         // A reflection is omitted under high contrast and under reduced
         // transparency (stage T5, PLAN.md §4.5, T5-Q16), for this paint only.
         const bool reflections_omitted =
             context.high_contrast || (*window).presentation_settings().reduced_transparency;
         if (reflections_omitted && (*request.target.material).reflection) {
-            unreflected.emplace(*request.target.material);
-            (*unreflected).reflection.reset();
-            request.target.material = &*unreflected;
+            run.unreflected.emplace(*request.target.material);
+            (*run.unreflected).reflection.reset();
+            request.target.material = &*run.unreflected;
         }
         // A frameless part draws the material's ground alone, without its
         // borders (PartPaint::frame), for this paint only.
         if (part.frame == PartFrame::none) {
-            ground.emplace(*request.target.material);
-            (*ground).border.reset();
-            (*ground).border_edges = MaterialBorderEdges{};
-            request.target.material = &*ground;
+            run.ground.emplace(*request.target.material);
+            (*run.ground).border.reset();
+            (*run.ground).border_edges = MaterialBorderEdges{};
+            request.target.material = &*run.ground;
         }
         request.target.corner_radius = part.corner_radius;
         request.target.images = &(*window).image_resources();
@@ -1352,138 +1444,166 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
     // recipe's), for this paint only. A theme that casts none draws nothing.
     // Made only for a part that borrows it: a SurfaceMaterial's default
     // fill is a heap allocation, which every other part would pay.
-    std::optional<SurfaceMaterial> overlay{};
     if ((*request.primitive).lends_overlay_shadow()) {
         const ControlVisualContext context = part_visual_context(control, part.states);
         const Theme& theme = control.effective_theme();
         const std::vector<MaterialShadow>& layers = theme.overlay_shadow(context.high_contrast);
-        if (layers.empty()) return;
+        if (layers.empty()) return false;
         const ControlVisualRecipe& recipe = theme.resolve(part.family, context);
-        overlay.emplace();
-        (*overlay).fills.assign(1U, MaterialFillLayer::solid(Color::rgba(0, 0, 0, 0)));
-        (*overlay).shadows = layers;
-        (*overlay).corner_radius = recipe.material.corner_radius;
-        if (part.corner_radius) (*overlay).corner_radius = std::max(0.0, *part.corner_radius);
-        request.target.material = &*overlay;
+        run.overlay.emplace();
+        (*run.overlay).fills.assign(1U, MaterialFillLayer::solid(Color::rgba(0, 0, 0, 0)));
+        (*run.overlay).shadows = layers;
+        (*run.overlay).corner_radius = recipe.material.corner_radius;
+        if (part.corner_radius) (*run.overlay).corner_radius = std::max(0.0, *part.corner_radius);
+        request.target.material = &*run.overlay;
         request.target.images = &(*window).image_resources();
     }
+    return true;
+}
+
+// Glass, and a backplane reflection, borrow the backplane image under the
+// raster, grown by the margin they read, for this paint only. Their raster
+// depends on where it lies, so it is never shared as a keyframe.
+void ThemeEngine::borrow_part_backplane(const PartPaint& part, PartPaintRun& run) const {
+    SurfaceRoot* const window = run.window;
+    PartRasterRequest& request = run.request;
+    const PrimitiveDescriptor& descriptor = (*request.primitive).descriptor();
     // A material that reflects the backplane (stage T5, PLAN.md §4.4)
     // reads it under its own box only, so at a margin of 0; like glass, a
     // part in the backplane plane would read itself, so it reads nothing.
     const SurfaceMaterial* const lent = request.target.material;
     const bool reflects_backplane =
-        primitive_draws && !samples_backplane && lent != nullptr && (*lent).reflection &&
+        run.primitive_draws && !run.samples_backplane && lent != nullptr && (*lent).reflection &&
         (*(*lent).reflection).source == MaterialReflectionSource::backplane &&
-        (*place.painted_by).paint_plane() != PaintPlane::backplane;
-    if (record && reflects_backplane) (*window).note_engine_backplane_reader(*record, true);
-    // Glass, and a backplane reflection, borrow the backplane image under
-    // the raster, grown by the margin they read, for this paint only. Their
-    // raster depends on where it lies, so it is never shared as a keyframe.
-    Window::EngineBackplane backplane{};
-    std::optional<std::uint32_t> margin{};
-    if (samples_backplane) margin = (*request.primitive).backplane_margin(request.parameters, decided.scale);
-    if (reflects_backplane) margin = 0U;
-    if (margin) {
-        const Point raster_origin{place.window_origin.x + shown.bounds.x - descriptor.outsets.left,
-                                  place.window_origin.y + shown.bounds.y - descriptor.outsets.top};
-        backplane = (*window).engine_backplane(raster_origin, request.extent, decided.scale, *margin);
-        request.target.backplane = backplane.image.get();
-        request.target.backplane_margin = *margin;
-        request.target.backplane_generation = backplane.generation;
-        request.target.backplane_origin = backplane.origin;
-        request.target.reduced_transparency = (*window).presentation_settings().reduced_transparency;
-        request.target.corner_radius = part.corner_radius;
-        request.shared = false;
+        (*run.place.painted_by).paint_plane() != PaintPlane::backplane;
+    if (run.record && reflects_backplane) (*window).note_engine_backplane_reader(*run.record, true);
+    if (run.samples_backplane) {
+        run.margin = (*request.primitive).backplane_margin(request.parameters, run.decided.scale);
     }
+    if (reflects_backplane) run.margin = 0U;
+    if (!run.margin) return;
+    const Point raster_origin{run.place.window_origin.x + run.shown.bounds.x - descriptor.outsets.left,
+                              run.place.window_origin.y + run.shown.bounds.y - descriptor.outsets.top};
+    run.backplane = (*window).engine_backplane(raster_origin, request.extent, run.decided.scale, *run.margin);
+    request.target.backplane = run.backplane.image.get();
+    request.target.backplane_margin = *run.margin;
+    request.target.backplane_generation = run.backplane.generation;
+    request.target.backplane_origin = run.backplane.origin;
+    request.target.reduced_transparency = (*window).presentation_settings().reduced_transparency;
+    request.target.corner_radius = part.corner_radius;
+    request.shared = false;
+}
+
+// The part's raster: its keyframes queued, then baked or taken from its
+// record; the built-in recipe where the primitive refuses the part or no
+// raster is made.
+void ThemeEngine::bake_part(const PartPaint& part, PartPaintRun& run) const {
+    SurfaceRoot* const window = run.window;
+    const PartRasterRequest& request = run.request;
     // A primitive that refuses the part leaves it to the built-in recipe;
     // a keyed part's refusal is counted when it begins (E8c).
     const bool accepted = (*request.primitive).accepts(request.parameters, request.target);
     // Owner A (2026-10-22): a part that can move its parameters has their
     // keyframes queued for idle frames when it first paints and whenever
     // its states change; one it reaches first is baked on demand.
-    const bool requeue = kept != nullptr && (!(*kept).keyframe_states || *(*kept).keyframe_states != part.states);
-    if (accepted && movable != 0U && requeue && !margin) {
-        (*kept).keyframe_states = part.states;
-        queue_keyframes(*window, request, movable);
+    const bool requeue =
+        run.kept != nullptr && (!(*run.kept).keyframe_states || *(*run.kept).keyframe_states != part.states);
+    if (accepted && run.movable != 0U && requeue && !run.margin) {
+        (*run.kept).keyframe_states = part.states;
+        queue_keyframes(*window, request, run.movable);
     }
-    if (invisible) return;
-    const bool newly_refused = kept == nullptr || !(*kept).primitive_refused;
-    if (kept != nullptr) (*kept).primitive_refused = !accepted;
+    if (run.invisible) return;
+    const bool newly_refused = run.kept == nullptr || !(*run.kept).primitive_refused;
+    if (run.kept != nullptr) (*run.kept).primitive_refused = !accepted;
     if (!accepted) {
         if (newly_refused) (*window).metrics().record_engine_primitive_refusal();
-        paint_built_in(painter, control, shown, opacity);
+        run.outcome = PartPaintRun::Outcome::built_in;
         return;
     }
-    std::shared_ptr<const PartRaster> raster{};
-    if (record) {
-        const PartRasterResult drawn = (*window).engine_part_raster(*record, request);
-        raster = drawn.raster;
+    if (run.record) {
+        const PartRasterResult drawn = (*window).engine_part_raster(*run.record, request);
+        run.raster = drawn.raster;
     } else {
         // A part with no record: a raster of its own, for this paint only
         // (assembled from the window's slice references when it slices).
         const PartRasterResult drawn = (*window).engine_unkeyed_raster(request);
-        raster = drawn.raster;
+        run.raster = drawn.raster;
     }
-    if (!raster) {
-        paint_built_in(painter, control, shown, opacity);
-        return;
-    }
-    if (placed) {
-        const double pointer_x = inputs[input_slot(EngineInput::pointer_x)];
-        OverlayPlacement placement{};
-        placement.face = shown.bounds;
-        placement.granted = shown_scale;
-        placement.stretched = stretched;
-        placement.pointer_x = pointer_x;
-        placement.reduced_motion = reduced_motion;
-        paint_pointer_overlay(painter, control, part, *placed, placement, raster, opacity);
+    if (!run.raster) {
+        run.outcome = PartPaintRun::Outcome::built_in;
         return;
     }
     // A face that changed from one discrete state to another cross-fades
-    // (form a): the old face at 1 - t and the new one added at t, in one
-    // isolated group at the part's opacity. The two faces have the same
-    // extent (fades_between), so while the scale moves (form b) both are
-    // stretched over the same rectangle and the fade composes with the pop.
-    std::shared_ptr<const PartRaster> fading_from{};
-    if (kept != nullptr) fading_from = note_face(*kept, presented.face, raster, part.states);
+    // (form a); its old face is noted once per paint.
+    if (!run.placed && run.kept != nullptr) {
+        run.fading_from = note_face(*run.kept, run.presented.face, run.raster, part.states);
+    }
+    run.outcome = PartPaintRun::Outcome::raster;
+}
+
+// Draws what the stages decided: the built-in recipe, or the raster as an
+// overlay, a cross-fade, stretched or in place. Reads the run only, so it
+// may be repeated under several clips (N91).
+void ThemeEngine::draw_part_paint(Painter& painter, const Control& control, const PartPaint& part,
+                                  const PartPaintRun& run) const {
+    if (run.outcome == PartPaintRun::Outcome::built_in) {
+        paint_built_in(painter, control, run.shown, run.opacity);
+        return;
+    }
+    const std::shared_ptr<const PartRaster>& raster = run.raster;
+    if (run.placed) {
+        const double pointer_x = run.inputs[input_slot(EngineInput::pointer_x)];
+        OverlayPlacement placement{};
+        placement.face = run.shown.bounds;
+        placement.granted = run.shown_scale;
+        placement.stretched = run.stretched;
+        placement.pointer_x = pointer_x;
+        placement.reduced_motion = run.reduced_motion;
+        paint_pointer_overlay(painter, control, part, *run.placed, placement, raster, run.opacity);
+        return;
+    }
+    // The old face at 1 - t and the new one added at t, in one isolated
+    // group at the part's opacity. The two faces have the same extent
+    // (fades_between), so while the scale moves (form b) both are stretched
+    // over the same rectangle and the fade composes with the pop.
     // The raster covers the part grown by its primitive's outsets; stretched,
     // that rectangle is scaled about the part's centre as its bounds are.
-    const Insets outsets = descriptor.outsets;
+    const Insets outsets = (*run.request.primitive).descriptor().outsets;
     Rect stretched_to{};
-    if (stretched) {
+    if (run.stretched) {
         const Rect covered{part.bounds.x - outsets.left, part.bounds.y - outsets.top,
                            part.bounds.width + outsets.left + outsets.right,
                            part.bounds.height + outsets.top + outsets.bottom};
-        const double granted = std::min(presented.scale, granted_scale(part.bounds, part.granted_overflow));
+        const double granted = std::min(run.presented.scale, granted_scale(part.bounds, part.granted_overflow));
         const Point centre{part.bounds.x + part.bounds.width * 0.5, part.bounds.y + part.bounds.height * 0.5};
-        stretched_to = Rect{centre.x + (covered.x - centre.x) * granted + moved.x,
-                            centre.y + (covered.y - centre.y) * granted + moved.y, covered.width * granted,
+        stretched_to = Rect{centre.x + (covered.x - centre.x) * granted + run.moved.x,
+                            centre.y + (covered.y - centre.y) * granted + run.moved.y, covered.width * granted,
                             covered.height * granted};
     }
-    if (fading_from) {
-        const double fade = std::clamp((*presented.face).current(), 0.0, 1.0);
-        const Point origin{shown.bounds.x - outsets.left, shown.bounds.y - outsets.top};
+    if (run.fading_from) {
+        const double fade = std::clamp((*run.presented.face).current(), 0.0, 1.0);
+        const Point origin{run.shown.bounds.x - outsets.left, run.shown.bounds.y - outsets.top};
         const DeviceExtent covered = (*raster).extent();
         const double device_scale = (*raster).scale().value;
         Rect bounds{origin.x, origin.y, static_cast<double>(covered.width) / device_scale,
                     static_cast<double>(covered.height) / device_scale};
-        if (stretched) bounds = stretched_to;
+        if (run.stretched) bounds = stretched_to;
         PaintGroup whole{};
         whole.bounds = bounds;
-        whole.opacity = opacity;
+        whole.opacity = run.opacity;
         whole.isolated = true;
         PaintGroup added{};
         added.bounds = bounds;
         added.opacity = fade;
         added.composite = PaintGroupComposite::plus;
         painter.begin_group(whole);
-        if (stretched) {
-            painter.draw_part_raster_scaled(fading_from, stretched_to, 1.0 - fade);
+        if (run.stretched) {
+            painter.draw_part_raster_scaled(run.fading_from, stretched_to, 1.0 - fade);
         } else {
-            painter.draw_part_raster(fading_from, origin, 1.0 - fade);
+            painter.draw_part_raster(run.fading_from, origin, 1.0 - fade);
         }
         painter.begin_group(added);
-        if (stretched) {
+        if (run.stretched) {
             painter.draw_part_raster_scaled(raster, stretched_to, 1.0);
         } else {
             painter.draw_part_raster(raster, origin, 1.0);
@@ -1492,11 +1612,12 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
         painter.end_group();
         return;
     }
-    if (stretched) {
-        painter.draw_part_raster_scaled(raster, stretched_to, opacity);
+    if (run.stretched) {
+        painter.draw_part_raster_scaled(raster, stretched_to, run.opacity);
         return;
     }
-    painter.draw_part_raster(raster, Point{shown.bounds.x - outsets.left, shown.bounds.y - outsets.top}, opacity);
+    painter.draw_part_raster(raster, Point{run.shown.bounds.x - outsets.left, run.shown.bounds.y - outsets.top},
+                             run.opacity);
 }
 
 // Queues every keyframe level of each animated parameter in `movable`,

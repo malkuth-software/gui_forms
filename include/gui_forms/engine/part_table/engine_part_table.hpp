@@ -114,6 +114,12 @@ struct CachedPartRaster final {
     // drawn; invalidation advances the current ones.
     std::uint64_t raster_generation{};
     std::uint64_t raster_table_generation{};
+    // N37: the table's recency list of part rasters it budgets (held, not
+    // shared), least recently painted first. Observing links, kept by the
+    // table; `listed` says whether this raster is on the list.
+    bool listed{};
+    CachedPartRaster* older_raster{};
+    CachedPartRaster* newer_raster{};
 };
 
 // A part's assembled material (T3 EC1): its recipe's material, the floor,
@@ -623,7 +629,34 @@ private:
         bool item{};
         std::uint32_t older{no_slot};
         std::uint32_t newer{no_slot};
+        // N36: the record's neighbours among its control's records, in
+        // ascending slot order, or no_slot at either end.
+        std::uint32_t control_previous{no_slot};
+        std::uint32_t control_next{no_slot};
     };
+
+    // Heterogeneous lookup by control id (N36): a string_view finds a
+    // std::string key without making one.
+    struct ControlIdHash final {
+        using is_transparent = void;
+        [[nodiscard]] std::size_t operator()(std::string_view id) const noexcept {
+            return std::hash<std::string_view>{}(id);
+        }
+    };
+    struct ControlIdEqual final {
+        using is_transparent = void;
+        [[nodiscard]] bool operator()(std::string_view left, std::string_view right) const noexcept {
+            return left == right;
+        }
+    };
+
+    // N36: a control's records, linked in ascending slot order from
+    // control_first_; link before the first record, unlink anywhere.
+    void link_control(std::uint32_t slot, std::string_view control_id) noexcept;
+    void unlink_control(std::uint32_t slot) noexcept;
+    // N37: the raster recency list.
+    void list_raster_newest(CachedPartRaster& cached) noexcept;
+    void unlist_raster(CachedPartRaster& cached) noexcept;
 
     // Recency list of item records: link at the newest end, unlink anywhere.
     void link_newest(std::uint32_t slot) noexcept;
@@ -647,6 +680,8 @@ private:
     void count_readers(std::uint64_t old_inputs, std::uint64_t inputs) noexcept;
     // Evicts the least recently painted cached rasters, never `keep`'s,
     // until `incoming` more bytes fit the budget.
+    // drop_raster for a record's cache.
+    void drop_cached_raster(CachedPartRaster& cached) noexcept;
     void make_room(std::size_t incoming, const EnginePartRecord* keep) noexcept;
     // Whether the record's cached raster answers `request` now.
     [[nodiscard]] bool raster_current(const EnginePartRecord& record, const PartRasterRequest& request) const noexcept;
@@ -723,6 +758,11 @@ private:
     std::vector<std::uint32_t> free_slots_;
     // Lookup text to slot, one entry per live record.
     std::unordered_map<std::string, std::uint32_t> index_;
+    // Each control's lowest record slot (N36).
+    std::unordered_map<std::string, std::uint32_t, ControlIdHash, ControlIdEqual> control_first_;
+    // The raster recency list's ends (N37).
+    CachedPartRaster* oldest_raster_{};
+    CachedPartRaster* newest_raster_{};
     // Reused by every lookup, so that a paint of a known part allocates
     // nothing once the string has grown to the longest key.
     std::string lookup_scratch_;

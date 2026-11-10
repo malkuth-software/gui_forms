@@ -66,6 +66,38 @@ void alpha_channel_modes() {
     require((opaque >> 24U) == 255U, "opaque destinations stay opaque");
 }
 
+// D6: an inner rounded clip in the corner of an outer one keeps the outer
+// arc. The inner clip alone covers the outer corner pixel fully; nested, it
+// takes the outer clip's coverage there, and without an outer clip the
+// result is the inner clip's alone.
+void nested_rounded_clips_keep_both_arcs() {
+    const TextCompositeClip outer_only{.rect = {0.0, 0.0, 40.0, 40.0}, .rounded = true,
+                                       .rounded_rect = {0.0, 0.0, 40.0, 40.0}, .radius = 16.0};
+    const TextCompositeClip inner_only{.rect = {0.0, 0.0, 20.0, 20.0}, .rounded = true,
+                                       .rounded_rect = {0.0, 0.0, 20.0, 20.0}, .radius = 2.0};
+    TextCompositeClip nested = inner_only;
+    nested.outer_rounded = true;
+    nested.outer_rounded_rect = outer_only.rounded_rect;
+    nested.outer_radius = outer_only.radius;
+    require(detail::text_clip_coverage(inner_only, 2, 2) == 256U, "the inner clip alone covers the outer corner");
+    require(detail::text_clip_coverage(nested, 2, 2) == detail::text_clip_coverage(outer_only, 2, 2) &&
+            detail::text_clip_coverage(outer_only, 2, 2) < 256U,
+            "the nested clip keeps the outer arc");
+    require(detail::text_clip_coverage(nested, 10, 10) == 256U, "the shared interior is fully covered");
+    for (std::int64_t y = 0; y < 20; ++y) {
+        for (std::int64_t x = 0; x < 20; ++x) {
+            require(detail::text_clip_coverage(nested, x, y) <= detail::text_clip_coverage(inner_only, x, y) &&
+                    detail::text_clip_coverage(nested, x, y) <= detail::text_clip_coverage(outer_only, x, y),
+                    "nested coverage never exceeds either clip");
+        }
+    }
+    TextCompositeClip ignored = outer_only;
+    ignored.rounded = false;
+    ignored.outer_rounded = true;
+    ignored.outer_rounded_rect = {0.0, 0.0, 4.0, 4.0};
+    require(detail::text_clip_coverage(ignored, 2, 2) == 256U, "an outer clip without an inner one is not read");
+}
+
 void fractional_rect_edges_are_area_coverage() {
     // A clip starting a quarter into pixel 0 covers three quarters of it.
     const TextCompositeClip quarter{.rect = {0.25, 0.0, 10.0, 10.0}};
@@ -232,6 +264,7 @@ int main() {
     alpha_channel_modes();
     fractional_rect_edges_are_area_coverage();
     rounded_corners_are_antialiased();
+    nested_rounded_clips_keep_both_arcs();
     invalid_geometry_writes_nothing();
     clipped_composite_blends_partially();
     source_mode_replaces();

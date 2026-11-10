@@ -39,6 +39,13 @@ struct TextCompositeClip final {
     bool rounded{};
     Rect rounded_rect{};
     double radius{};
+    // The rounded clip enclosing the one above, when clips nest (D6): its
+    // corners are applied too, so text in the corner of an inner rounded
+    // clip stays inside the outer one. A third enclosing rounded clip is
+    // kept as its bounds (rect).
+    bool outer_rounded{};
+    Rect outer_rounded_rect{};
+    double outer_radius{};
 };
 
 // Grayscale coverage, 0..255, row-major with stride == width, placed with its

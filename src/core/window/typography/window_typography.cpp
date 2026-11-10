@@ -23,6 +23,15 @@ ResolvedTextLayout SurfaceRoot::resolve_text_layout_utf8(
         : estimate_text_layout_utf8(utf8, effective_font);
 }
 
+TextExtent SurfaceRoot::measure_text_extent_utf8(
+    std::string_view utf8, FontSpec effective_font) const {
+    if (!valid_font_spec(effective_font) || text_metrics_provider_ == nullptr) {
+        return text_extent_of(estimate_text_layout_utf8(utf8, effective_font));
+    }
+    const TextExtent extent = (*text_metrics_provider_).measure_text_extent_utf8(utf8, effective_font);
+    return extent;
+}
+
 TextResolutionStatus SurfaceRoot::fill_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) const {
     if (text_metrics_provider_ == nullptr) {

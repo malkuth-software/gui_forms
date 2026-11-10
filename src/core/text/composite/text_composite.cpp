@@ -117,7 +117,19 @@ struct PreparedClip final {
     bool rounded{};
     FixedRect rounded_rect{};
     std::int64_t radius{};
+    bool outer_rounded{};
+    FixedRect outer_rounded_rect{};
+    std::int64_t outer_radius{};
 };
+
+// A rounded clip's radius in fixed point, held to half its shorter side.
+std::int64_t prepared_radius(const FixedRect rect, const double radius) noexcept {
+    const std::int64_t width = rect.right - rect.left;
+    const std::int64_t height = rect.bottom - rect.top;
+    const std::int64_t requested = std::llround(radius * static_cast<double>(unit));
+    const std::int64_t held = std::clamp<std::int64_t>(requested, 0, std::min({width / 2, height / 2, radius_limit}));
+    return held;
+}
 
 PreparedClip prepare_clip(const TextCompositeClip clip) noexcept {
     PreparedClip result{};
@@ -125,10 +137,13 @@ PreparedClip prepare_clip(const TextCompositeClip clip) noexcept {
     result.rounded = clip.rounded;
     if (clip.rounded) {
         result.rounded_rect = fixed_rect(clip.rounded_rect);
-        const std::int64_t width = result.rounded_rect.right - result.rounded_rect.left;
-        const std::int64_t height = result.rounded_rect.bottom - result.rounded_rect.top;
-        const std::int64_t requested = std::llround(clip.radius * static_cast<double>(unit));
-        result.radius = std::clamp<std::int64_t>(requested, 0, std::min({width / 2, height / 2, radius_limit}));
+        result.radius = prepared_radius(result.rounded_rect, clip.radius);
+    }
+    // The outer clip is read only beside an inner one.
+    result.outer_rounded = clip.rounded && clip.outer_rounded;
+    if (result.outer_rounded) {
+        result.outer_rounded_rect = fixed_rect(clip.outer_rounded_rect);
+        result.outer_radius = prepared_radius(result.outer_rounded_rect, clip.outer_radius);
     }
     return result;
 }
@@ -138,7 +153,10 @@ std::int64_t prepared_clip_coverage(const PreparedClip& clip, const std::int64_t
     if (!clip.rounded || rectangular == 0) return rectangular;
     const std::int64_t rounded = rounded_coverage(clip.rounded_rect, clip.radius, x, y);
     const std::int64_t combined = (rectangular * rounded + half_unit) / unit;
-    return combined;
+    if (!clip.outer_rounded || combined == 0) return combined;
+    const std::int64_t outer = rounded_coverage(clip.outer_rounded_rect, clip.outer_radius, x, y);
+    const std::int64_t nested = (combined * outer + half_unit) / unit;
+    return nested;
 }
 
 std::int64_t floor_pixel(const std::int64_t fixed) noexcept {
@@ -250,7 +268,9 @@ void composite_text_interior_span(const TextCoverage& coverage, const TextCompos
 } // namespace
 
 std::uint32_t text_clip_coverage(const TextCompositeClip clip, const std::int64_t x, const std::int64_t y) noexcept {
-    if (!valid_rect(clip.rect) || (clip.rounded && (!valid_rect(clip.rounded_rect) || !valid_coordinate(clip.radius)))) {
+    if (!valid_rect(clip.rect) || (clip.rounded && (!valid_rect(clip.rounded_rect) || !valid_coordinate(clip.radius))) ||
+        (clip.rounded && clip.outer_rounded &&
+         (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius)))) {
         return 0U;
     }
     const PreparedClip prepared = prepare_clip(clip);
@@ -264,6 +284,8 @@ TextCompositeStatus composite_text_coverage(const TextCoverage coverage, const T
     if (target.width == 0 || target.height == 0 || target.stride < target.width ||
         target.height > target.pixels.size() / target.stride || !valid_rect(clip.rect) ||
         (clip.rounded && (!valid_rect(clip.rounded_rect) || !valid_coordinate(clip.radius) || clip.radius < 0.0)) ||
+        (clip.rounded && clip.outer_rounded &&
+         (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius) || clip.outer_radius < 0.0)) ||
         std::abs(coverage.left) > static_cast<std::int64_t>(coordinate_limit) ||
         std::abs(coverage.top) > static_cast<std::int64_t>(coordinate_limit)) {
         return TextCompositeStatus::invalid_geometry;
@@ -278,6 +300,12 @@ TextCompositeStatus composite_text_coverage(const TextCoverage coverage, const T
         limit.top = std::max(limit.top, prepared.rounded_rect.top);
         limit.right = std::min(limit.right, prepared.rounded_rect.right);
         limit.bottom = std::min(limit.bottom, prepared.rounded_rect.bottom);
+    }
+    if (prepared.outer_rounded) {
+        limit.left = std::max(limit.left, prepared.outer_rounded_rect.left);
+        limit.top = std::max(limit.top, prepared.outer_rounded_rect.top);
+        limit.right = std::min(limit.right, prepared.outer_rounded_rect.right);
+        limit.bottom = std::min(limit.bottom, prepared.outer_rounded_rect.bottom);
     }
     const std::int64_t left = std::max<std::int64_t>({0, floor_pixel(limit.left), coverage.left});
     const std::int64_t top = std::max<std::int64_t>({0, floor_pixel(limit.top), coverage.top});
@@ -608,6 +636,8 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
     if (target.width == 0 || target.height == 0 || target.stride < target.width ||
         target.height > target.pixels.size() / target.stride || !valid_rect(clip.rect) ||
         (clip.rounded && (!valid_rect(clip.rounded_rect) || !valid_coordinate(clip.radius) || clip.radius < 0.0)) ||
+        (clip.rounded && clip.outer_rounded &&
+         (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius) || clip.outer_radius < 0.0)) ||
         std::abs(source.left) > static_cast<std::int64_t>(coordinate_limit) ||
         std::abs(source.top) > static_cast<std::int64_t>(coordinate_limit) ||
         static_cast<double>(source.shown_width) > coordinate_limit ||
@@ -624,6 +654,12 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
         limit.top = std::max(limit.top, prepared.rounded_rect.top);
         limit.right = std::min(limit.right, prepared.rounded_rect.right);
         limit.bottom = std::min(limit.bottom, prepared.rounded_rect.bottom);
+    }
+    if (prepared.outer_rounded) {
+        limit.left = std::max(limit.left, prepared.outer_rounded_rect.left);
+        limit.top = std::max(limit.top, prepared.outer_rounded_rect.top);
+        limit.right = std::min(limit.right, prepared.outer_rounded_rect.right);
+        limit.bottom = std::min(limit.bottom, prepared.outer_rounded_rect.bottom);
     }
     const bool scaled = (source.shown_width != 0U && source.shown_width != source.width) ||
                         (source.shown_height != 0U && source.shown_height != source.height);

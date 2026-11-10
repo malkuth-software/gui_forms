@@ -22,8 +22,8 @@ struct LabelWidth final {
     const Label& label;
     FontSpec font{};
     double operator()(const std::string_view value) const {
-        const ResolvedTextLayout layout = label.resolve_text_layout_utf8(value, font);
-        return layout.logical_size.width;
+        const TextExtent extent = label.measure_text_extent_utf8(value, font);
+        return extent.logical_size.width;
     }
 };
 
@@ -31,8 +31,8 @@ struct PainterLabelWidth final {
     Painter& painter;
     FontSpec font{};
     double operator()(const std::string_view value) const {
-        const ResolvedTextLayout layout = painter.resolve_text_layout_utf8(value, font);
-        return layout.logical_size.width;
+        const TextExtent extent = painter.measure_text_extent_utf8(value, font);
+        return extent.logical_size.width;
     }
 };
 std::shared_ptr<const PropertyEnumDescriptor> horizontal_alignment_enum() {
@@ -270,8 +270,8 @@ double Label::widest_unbreakable_segment(const std::string_view shown,
             ++word_end;
         }
         if (word_end > cursor) {
-            const ResolvedTextLayout word =
-                resolve_text_layout_utf8(shown.substr(cursor, word_end - cursor), face);
+            const TextExtent word =
+                measure_text_extent_utf8(shown.substr(cursor, word_end - cursor), face);
             widest = std::max(widest, word.logical_size.width);
         }
         cursor = word_end;
@@ -290,7 +290,7 @@ Size Label::measure_wrapped_text(const double content_width_limit,
     double content_width{};
     double line_height{};
     for (const std::string& line : lines) {
-        const ResolvedTextLayout metrics = resolve_text_layout_utf8(line, face);
+        const TextExtent metrics = measure_text_extent_utf8(line, face);
         content_width = std::max(content_width, metrics.logical_size.width);
         line_height = std::max(
             line_height, std::max(face.size, metrics.logical_size.height) *
@@ -332,14 +332,14 @@ Label::TextLayout Label::layout_label_text(const std::string_view shown,
     TextLayout layout;
     layout.lines = label_lines(
         shown, face, std::max(0.0, arranged.width - 4.0), text_wrapping.read(), resolve, maximum_lines.read());
-    std::vector<ResolvedTextLayout> metrics{};
+    std::vector<TextExtent> metrics{};
     metrics.reserve(layout.lines.size());
     double line_height{};
     for (const std::string& line : layout.lines) {
         if (painter != nullptr) {
-            metrics.push_back((*painter).resolve_text_layout_utf8(line, face));
+            metrics.push_back((*painter).measure_text_extent_utf8(line, face));
         } else {
-            metrics.push_back(resolve_text_layout_utf8(line, face));
+            metrics.push_back(measure_text_extent_utf8(line, face));
         }
         line_height = std::max(
             line_height,

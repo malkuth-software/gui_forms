@@ -159,19 +159,31 @@ std::string elide_text_end(Painter& painter, std::string_view text, FontSpec fon
     if (painter.measure_text_utf8(ellipsis, font).width > maximum_width) {
         return {};
     }
+    // The longest grapheme prefix that fits with the ellipsis after it. A
+    // longer prefix is never narrower, so a binary search over the grapheme
+    // count finds it in about log2(n) measures rather than one per removed
+    // grapheme (N55). `fitting` fits (the ellipsis alone was measured
+    // above); `too_long` does not (the whole text did not fit without it).
     const TextStore store(text);
-    std::size_t grapheme = store.grapheme_count().value();
-    while (grapheme > 0U) {
-        --grapheme;
-        const std::size_t end =
-            store.utf8_offset(GraphemeIndex(grapheme)).value();
-        std::string candidate(text.substr(0U, end));
+    std::size_t fitting = 0U;
+    std::size_t too_long = store.grapheme_count().value();
+    std::string candidate;
+    candidate.reserve(text.size() + ellipsis.size());
+    while (too_long - fitting > 1U) {
+        const std::size_t middle = fitting + (too_long - fitting) / 2U;
+        const std::size_t end = store.utf8_offset(GraphemeIndex(middle)).value();
+        candidate.assign(text.substr(0U, end));
         candidate.append(ellipsis);
         if (painter.measure_text_utf8(candidate, font).width <= maximum_width) {
-            return candidate;
+            fitting = middle;
+        } else {
+            too_long = middle;
         }
     }
-    return std::string(ellipsis);
+    const std::size_t end = store.utf8_offset(GraphemeIndex(fitting)).value();
+    candidate.assign(text.substr(0U, end));
+    candidate.append(ellipsis);
+    return candidate;
 }
 
 Rect aligned_rect(Rect bounds, Size size,

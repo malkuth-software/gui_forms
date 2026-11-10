@@ -328,7 +328,9 @@ bool top_down_section(HDC device, HGDIOBJ selected, const DIBSECTION& section) n
 // Fills dib when device's selected bitmap can be borrowed; false otherwise
 // (the copying path then serves the surface).
 bool borrowable_dib(HDC device, BorrowableDib& dib) noexcept {
-    if (std::getenv("GUI_DRAWING_NO_BORROW") != nullptr) return false;
+    // Read once (B3): getenv walks the environment on every call.
+    static const bool borrowing_refused = std::getenv("GUI_DRAWING_NO_BORROW") != nullptr;
+    if (borrowing_refused) return false;
     if (GetObjectType(device) != OBJ_MEMDC) return false;
     const HGDIOBJ selected = GetCurrentObject(device, OBJ_BITMAP);
     if (selected == nullptr) return false;
@@ -418,7 +420,8 @@ gd_result capture_surface(std::uintptr_t source, std::uint32_t kind,
         // The copy is read from the DIB's memory below; GDI may hold the
         // BitBlt in this thread's batch until flushed.
         GdiFlush() != FALSE;
-    if (std::getenv("GUI_DRAWING_TRACE_NATIVE_SURFACES") != nullptr && !ok) {
+    static const bool traced = std::getenv("GUI_DRAWING_TRACE_NATIVE_SURFACES") != nullptr;
+    if (traced && !ok) {
         std::fprintf(stderr,
                      "gui-drawing-native-surface=capture-failed|kind:%u|size:%ux%u|dc:%p|dib:%p|memory:%p|previous:%p|error:%lu\n",
                      kind, width, height, static_cast<void*>(device),

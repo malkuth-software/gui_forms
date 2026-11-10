@@ -261,8 +261,15 @@ protected:
         // The end reserve (set_end_reserve), at the strip's far end.
         Rect end_reserve{};
     };
-    [[nodiscard]] Layout layout() const;
+    // The layout at the current key, kept (S5): made again only when the
+    // key (Control::LayoutKey, and the model revision where one is read)
+    // has moved. The reference is valid until the next layout().
+    [[nodiscard]] const Layout& layout() const;
     [[nodiscard]] Layout layout_for(Rect surface) const;
+    mutable Layout kept_layout_{};
+    mutable LayoutKey kept_layout_key_{};
+    mutable std::uint64_t kept_layout_model_{};
+    mutable bool kept_layout_valid_{};
     [[nodiscard]] bool status_layout() const noexcept { return status_layout_; }
     // Checks items before set_items changes anything. ToolStrip accepts every
     // valid item; a derived strip that admits fewer kinds throws

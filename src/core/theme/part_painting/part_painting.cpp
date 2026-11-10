@@ -1026,28 +1026,28 @@ double pointed_length(const PartPaint& part) noexcept {
     return length;
 }
 
-// A pointed part (PartPaint::point): the whole part painted once clipped
-// to its body and once to each strip of its nose, so whatever draws the
-// part (a primitive or the built-in recipe) is cut to the shape; then the
-// nose's two edges in the material's border colour.
+// A pointed part (PartPaint::point): the whole part drawn once clipped to
+// its body and once to each strip of its nose, so whatever draws the part
+// (a primitive or the built-in recipe) is cut to the shape; then the nose's
+// two edges in the material's border colour. The part is resolved and
+// baked once and its drawing repeated under the clips (N91).
+void paint_part_clipped(Painter& painter, const Control& control, const PartPaint& part,
+                        std::span<const Rect> clips);
+
 void paint_pointed_part(Painter& painter, const Control& control, const PartPaint& part, double length) {
     PartPaint whole = part;
     whole.point.reset();
     const Rect bounds = part.bounds;
     const double shoulder = bounds.x + bounds.width - length;
-    painter.save();
-    painter.clip_rect({bounds.x, bounds.y, bounds.width - length, bounds.height});
-    paint_part(painter, control, whole);
-    painter.restore();
+    std::array<Rect, pointed_face_strips + 1U> clips{};
+    clips[0] = Rect{bounds.x, bounds.y, bounds.width - length, bounds.height};
     for (std::size_t strip = 0U; strip < pointed_face_strips; ++strip) {
         const double left = length * static_cast<double>(strip) / static_cast<double>(pointed_face_strips);
         const double right = length * static_cast<double>(strip + 1U) / static_cast<double>(pointed_face_strips);
         const double inset = bounds.height * 0.5 * left / length;
-        painter.save();
-        painter.clip_rect({shoulder + left, bounds.y + inset, right - left, bounds.height - inset * 2.0});
-        paint_part(painter, control, whole);
-        painter.restore();
+        clips[strip + 1U] = Rect{shoulder + left, bounds.y + inset, right - left, bounds.height - inset * 2.0};
     }
+    paint_part_clipped(painter, control, whole, clips);
     const ControlVisualContext context = part_visual_context(control, part.states);
     const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
     if (part.frame == PartFrame::none || !recipe.material.border) return;
@@ -1256,9 +1256,30 @@ void paint_primitive_accent(Painter& painter, const Control& control, const Part
     painter.fill_rounded_rect(part.bounds, radius, theme.accent(*part.accent));
 }
 
+// paint_primitive_accent under each of `clips`, or once without any.
+void paint_primitive_accent_clipped(Painter& painter, const Control& control, const PartPaint& part,
+                                    const std::span<const Rect> clips) {
+    if (clips.empty()) {
+        paint_primitive_accent(painter, control, part);
+        return;
+    }
+    for (const Rect clip : clips) {
+        painter.save();
+        painter.clip_rect(clip);
+        paint_primitive_accent(painter, control, part);
+        painter.restore();
+    }
+}
+
 } // namespace
 
-void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
+namespace {
+
+// paint_part with what it draws repeated under each of `clips` (N91). A
+// pointed or profiled part, which cuts itself by clips of its own, is
+// painted whole under each clip.
+void paint_part_clipped(Painter& painter, const Control& control, const PartPaint& part,
+                        const std::span<const Rect> clips) {
     // Drawn in GUI.Forms' own theme in place of the application's (T4
     // theme variants): colours chosen against the other theme are not
     // applied, the part's own included.
@@ -1267,16 +1288,34 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
         PartPaint plain = part;
         plain.authored_background.reset();
         plain.authored_foreground.reset();
-        paint_part(painter, control, plain);
+        paint_part_clipped(painter, control, plain, clips);
         return;
     }
     const double length = pointed_length(part);
     if (length > 0.0 && paintable(part.bounds)) {
-        paint_pointed_part(painter, control, part, length);
+        if (clips.empty()) {
+            paint_pointed_part(painter, control, part, length);
+            return;
+        }
+        for (const Rect clip : clips) {
+            painter.save();
+            painter.clip_rect(clip);
+            paint_pointed_part(painter, control, part, length);
+            painter.restore();
+        }
         return;
     }
     if (profiled(part) && paintable(part.bounds)) {
-        paint_profiled_part(painter, control, part);
+        if (clips.empty()) {
+            paint_profiled_part(painter, control, part);
+            return;
+        }
+        for (const Rect clip : clips) {
+            painter.save();
+            painter.clip_rect(clip);
+            paint_profiled_part(painter, control, part);
+            painter.restore();
+        }
         return;
     }
     const Theme& theme = control.effective_theme();
@@ -1290,15 +1329,21 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
     if (!foreground && !suspended) foreground = control.ambient_fore_color();
     const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
     if (unchanged) {
-        theme.engine().paint(painter, control, part);
-        paint_primitive_accent(painter, control, part);
+        theme.engine().paint_clipped(painter, control, part, clips);
+        paint_primitive_accent_clipped(painter, control, part, clips);
         return;
     }
     PartPaint coloured = part;
     coloured.authored_background = background;
     coloured.authored_foreground = foreground;
-    theme.engine().paint(painter, control, coloured);
-    paint_primitive_accent(painter, control, coloured);
+    theme.engine().paint_clipped(painter, control, coloured, clips);
+    paint_primitive_accent_clipped(painter, control, coloured, clips);
+}
+
+} // namespace
+
+void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
+    paint_part_clipped(painter, control, part, std::span<const Rect>{});
 }
 
 void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
