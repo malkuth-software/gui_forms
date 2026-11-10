@@ -356,7 +356,13 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         print('pull request: no SDK install or installed reference examples (the merge group builds them)',
               flush=True)
         return
-    run('cmake', '--install', toolkit)
+    # Windows: the installed DLLs and programs drop their COFF symbol tables
+    # (about a fifth of a Release DLL); a Release build carries no debug
+    # information, and nothing reads the symbols at run time.
+    install_command: list[str] = ['cmake', '--install', str(toolkit)]
+    if host == 'windows':
+        install_command.append('--strip')
+    run(*install_command)
     check_installed_notices(sdk)
     if host == 'windows':
         check_windows_sdk_imports(sdk)

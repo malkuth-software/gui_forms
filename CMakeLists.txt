@@ -160,6 +160,16 @@ include(cmake/LocalizablePlugin.cmake)
 if(WIN32 AND NOT MSVC)
     add_link_options(-static)
 endif()
+# Linker pruning for the Release DLLs (MinGW). Every function and datum gets
+# its own section and each DLL drops the sections nothing reaches from its
+# exports. Sections the localizable-literal plugin and the effect pass write
+# (.gfloc) are not COMDAT and are always kept; the code that remains is
+# unchanged. Identical-code folding is left off: it would merge functions
+# whose addresses the code may compare, and it saved nothing measurable here.
+if(MINGW)
+    add_compile_options($<$<CONFIG:Release>:-ffunction-sections> $<$<CONFIG:Release>:-fdata-sections>)
+    add_link_options($<$<AND:$<CONFIG:Release>,$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>>:LINKER:--gc-sections>)
+endif()
 include(CMakePackageConfigHelpers)
 # Everything from malkuth-software/stx at stx.lock's commit, as one built
 # package this build links and never compiles (cmake/Stx.cmake,
@@ -1283,10 +1293,29 @@ if(GUI_FORMS_ENABLE_SKIA)
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/executor
     )
-    target_link_libraries(gui_drawing_raster_c_api PRIVATE
-        gui_drawing_skia
-        gui_drawing_c_api
-    )
+    # One copy of the renderer. Where the application DLL is built (MinGW,
+    # below), it carries the drawing executor (gui_drawing_skia), the text
+    # engine and the Skia derivative, and this module calls into it instead
+    # of linking a second copy of all three. The two modules pass heap
+    # blocks only through the one UCRT heap (see add_link_options(-static)).
+    # The application's import library comes first on the link line, so no
+    # static archive member is drawn in for a symbol it exports. Elsewhere
+    # the module links the executor statically.
+    if(MINGW AND GUI_FORMS_ENABLE_WINDOWS_HOST)
+        target_link_libraries(gui_drawing_raster_c_api PRIVATE
+            gui_forms_application
+            gui_drawing_c_api
+        )
+        target_include_directories(gui_drawing_raster_c_api PRIVATE
+            $<TARGET_PROPERTY:gui_drawing_core,INTERFACE_INCLUDE_DIRECTORIES>
+        )
+        target_compile_features(gui_drawing_raster_c_api PRIVATE cxx_std_20)
+    else()
+        target_link_libraries(gui_drawing_raster_c_api PRIVATE
+            gui_drawing_skia
+            gui_drawing_c_api
+        )
+    endif()
     set_target_properties(gui_drawing_raster_c_api PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN YES
@@ -1520,9 +1549,12 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         target_compile_features(gui_forms_application PUBLIC cxx_std_20)
         target_compile_definitions(gui_forms_application PRIVATE
             GUI_FORMS_APPLICATION_WINDOWS=1 GUI_FORMS_APPLICATION_SKIA=1)
+        # gui_drawing_skia: the drawing executor gui_drawing_raster0 calls
+        # into, so the renderer exists once (gui_drawing_raster_c_api above).
         target_link_libraries(gui_forms_application PRIVATE
             "-Wl,--whole-archive" gui_forms_core gui_drawing_core
-            gui_forms_controls gui_forms_host_windows gui_forms_skia "-Wl,--no-whole-archive"
+            gui_forms_controls gui_forms_host_windows gui_forms_skia
+            $<TARGET_NAME_IF_EXISTS:gui_drawing_skia> "-Wl,--no-whole-archive"
             gui_forms_text_engine stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
             user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32)
         target_link_options(gui_forms_application PRIVATE "-Wl,--export-all-symbols")
