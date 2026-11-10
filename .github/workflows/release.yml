@@ -72,11 +72,11 @@ jobs:
       run:
         working-directory: gui_forms
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           path: gui_forms
       - uses: ./gui_forms/.github/actions/harness-checkout
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - name: Test the packaging tools
@@ -140,7 +140,7 @@ jobs:
       # The tree native.yml built and tested and this run's workflow files come
       # from (a pull request's test merge commit, or the pushed commit), so its
       # objects match and packages name that revision.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           path: gui_forms
           # A pull request's merge commit and its base (HEAD^1), for the change selection.
@@ -149,11 +149,11 @@ jobs:
       # pins; the gui_forms/tools paths below forward to it
       # (docs/building/template-harness.md).
       - uses: ./gui_forms/.github/actions/harness-checkout
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       # --- toolchain restoration, copied from native.yml ---------------------------
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         id: toolchain-python
         if: runner.os == 'Windows'
         with:
@@ -184,7 +184,7 @@ jobs:
         id: linux-image
         if: runner.os == 'Linux'
         run: echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: linux-packages
         if: runner.os == 'Linux'
         with:
@@ -194,12 +194,12 @@ jobs:
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: sh gui_forms/tools/install_linux_ci_packages.sh programs "$RUNNER_TEMP/apt-archives"
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         if: runner.os == 'Linux' && github.event_name != 'pull_request' && github.event_name != 'merge_group' && steps.linux-packages.outputs.cache-hit != 'true'
         with:
           path: ${{ runner.temp }}/apt-archives
           key: ${{ steps.linux-packages.outputs.cache-primary-key }}
-      - uses: msys2/setup-msys2@v2
+      - uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
         id: msys2
         if: runner.os == 'Windows' && steps.toolchain.outputs.restored != 'true'
         with:
@@ -213,7 +213,7 @@ jobs:
       - name: Identify and verify LLVM release compiler
         id: compiler
         run: python gui_forms/tools/compiler_identity.py
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         if: runner.os == 'macOS'
         with:
           path: .build/toolchain/llvm-22.1.8-macos14
@@ -247,7 +247,7 @@ jobs:
           echo "GUI_FORMS_JOB_START=$(date +%s)" >> "$GITHUB_ENV"
       # Objects: this workflow's own key first, then whatever native.yml saved for
       # the same compiler. Dependencies: native.yml's exact key (same fetch scripts).
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: objects
         with:
           path: .ccache
@@ -258,7 +258,7 @@ jobs:
             gui-objects-v2-${{ matrix.platform }}-
       # Restored on every run, saved only on main (below): a pull request's
       # copy could be restored by no other ref.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: dependencies
         with:
           path: |
@@ -271,7 +271,7 @@ jobs:
       # content-addressed files, so the union is a valid cache. Its
       # cache-manifest.json names the tests that native job passed on this
       # tree (validated_tests); a pull request runs only the others below.
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         if: inputs.from_native
         with:
           name: gui-forms-cache-${{ matrix.platform }}
@@ -312,7 +312,7 @@ jobs:
       # and packages the tested tree without compiling it again (about 200 s
       # of the linux-x64 job on 2026-11-02, run 41473847301). An expired or
       # missing archive only means compiling as before.
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         id: tested-objects
         if: steps.tested.outputs.reused == 'true' && inputs.from_native && github.event_name == 'push'
         continue-on-error: true
@@ -331,7 +331,7 @@ jobs:
       # (cmake/Stx.cmake), restored from the cache the platform's native job
       # keeps under the same key, and built while configuring only when no
       # entry matches.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: stx-package
         with:
           path: .ci/stx-package
@@ -426,7 +426,7 @@ jobs:
           LC_ALL=C comm -13 "$RUNNER_TEMP/ccache-before.txt" "$RUNNER_TEMP/ccache-after.txt" | grep -v -e '/stats$' -e '\.lock$' -e '/tmp/' > "$RUNNER_TEMP/ccache-new.txt" || true
           echo "$(wc -l < "$RUNNER_TEMP/ccache-new.txt") new compiler cache files"
           tar -cf gui-programs-objects-${{ matrix.platform }}.tar -T "$RUNNER_TEMP/ccache-new.txt"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: success() && inputs.from_native && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
         with:
           name: gui-programs-objects-${{ matrix.platform }}
@@ -452,7 +452,7 @@ jobs:
             mkdir -p gui_forms/third_party/miniaudio
             tar -C "$fetched" -cf - . | tar -C gui_forms/third_party/miniaudio -xf -
           fi
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.dependencies.outputs.cache-hit != 'true'
         with:
           path: |
@@ -464,14 +464,14 @@ jobs:
       - name: Keep only the compiler cache entries this build used
         if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.objects.outputs.cache-hit != 'true'
         run: python gui_forms/tools/ci_cache.py evict --since "$GUI_FORMS_JOB_START"
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         if: success() && github.event_name != 'pull_request' && github.event_name != 'merge_group' && steps.objects.outputs.cache-hit != 'true'
         with:
           path: .ccache
           key: ${{ steps.objects.outputs.cache-primary-key }}
       # A package this job built (no native job's entry matched), after the
       # tests passed; merge groups save nothing.
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         if: success() && github.event_name != 'merge_group' && steps.stx-package.outputs.cache-hit != 'true' && hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''
         with:
           path: .ci/stx-package
@@ -507,7 +507,7 @@ jobs:
           if [ -f gui_forms/third_party/miniaudio/miniaudio.h ]; then miniaudio=gui_forms/third_party/miniaudio; fi
           python gui_forms/tools/package_sdk.py --version "$RELEASE_VERSION" --revision "${{ github.sha }}" --out dist \
             --checkout "stx=$BUILD_DIR/_deps/gui_forms_stx-src" --checkout "miniaudio=$miniaudio" --fetch-missing $COMPILER_CACHE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !(inputs.from_native && github.event_name == 'pull_request') }}
         with:
           name: gui-forms-programs-${{ matrix.platform }}
@@ -523,7 +523,7 @@ jobs:
       # upload-artifact roots an artifact at the common ancestor of its paths, and
       # the release job reads packages-*.json from the top of the merged receipts.
       # Every receipts path stays under dist/; the ctest log is its own artifact.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: gui-forms-receipts-${{ matrix.platform }}
@@ -532,7 +532,7 @@ jobs:
             dist/smoke-*.json
             dist/ctest-*.xml
           if-no-files-found: warn
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: gui-forms-ctest-log-${{ matrix.platform }}
@@ -557,7 +557,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           path: gui_forms
       - uses: ./gui_forms/.github/actions/harness-checkout
