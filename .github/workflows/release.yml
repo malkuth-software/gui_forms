@@ -237,6 +237,10 @@ jobs:
           echo "CCACHE_DIR=$cache_dir" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$cache_base" >> "$GITHUB_ENV"
           echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
+          # The test programs share precompiled headers
+          # (cmake/TestPrecompiledHeader.cmake): ccache caches a compile that
+          # reads one only with these two relaxations.
+          echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
           echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
           # Before the cache is restored: tools/ci_cache.py evict keeps the
           # entries used after this moment.

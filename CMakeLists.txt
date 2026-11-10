@@ -5445,6 +5445,13 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     endforeach()
 endif()
 
+# One precompiled header per group of test programs, after every option is set
+# (cmake/TestPrecompiledHeader.cmake).
+if(GUI_FORMS_BUILD_TESTS)
+    include(cmake/TestPrecompiledHeader.cmake)
+    gui_forms_share_test_precompiled_header()
+endif()
+
 # The foreground and input-desktop tests (gui_forms_foreground_test and
 # gui_forms_input_desktop_test, above), on the hosts that build them.
 foreach(gui_forms_foreground_name IN ITEMS

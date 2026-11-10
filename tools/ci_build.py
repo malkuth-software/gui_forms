@@ -263,6 +263,11 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     if stx_package_dir and sanitize:
         stx_package_dir += '-sanitize'
     options.extend(stx_options(os.environ.get('GUI_FORMS_STX_PREFIX', ''), stx_package_dir))
+    # The test programs' shared precompiled headers (cmake/TestPrecompiledHeader.cmake):
+    # GUI_FORMS_TEST_PRECOMPILED_HEADER=OFF (the daily CI build) compiles every
+    # test without them.
+    if os.environ.get('GUI_FORMS_TEST_PRECOMPILED_HEADER', '') in ('ON', 'OFF'):
+        options.append('-DGUI_FORMS_TEST_PRECOMPILED_HEADER=' + os.environ['GUI_FORMS_TEST_PRECOMPILED_HEADER'])
     timeout: str = '120'
     if sanitize:
         sanitizer_cmake: list[str]
