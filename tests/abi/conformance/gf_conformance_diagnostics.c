@@ -131,8 +131,27 @@ static void in_posted(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(label), GF_STATUS_OK, "release the frames label");
 }
 
+/* The invalidation overlay's process switch: set, read back, refused
+ * values, then restored. */
+static void invalidation_overlay(gf_kit* kit) {
+    if ((*kit).diagnostics.struct_size < 32u) return;
+    uint32_t before = 7u;
+    gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(&before), GF_STATUS_OK, "read the overlay switch");
+    gf_kit_check(kit, before <= 1u, "the overlay switch reads 0 or 1");
+    gf_kit_status(kit, (*kit).diagnostics.set_invalidation_overlay(1u), GF_STATUS_OK, "turn the overlay on");
+    uint32_t on = 0u;
+    gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(&on), GF_STATUS_OK, "read the overlay on");
+    gf_kit_check(kit, on == 1u, "the overlay reads on");
+    gf_kit_status(kit, (*kit).diagnostics.set_invalidation_overlay(2u), GF_STATUS_INVALID_ARGUMENT,
+                  "an overlay switch other than 0 or 1 is refused");
+    gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "reading the overlay needs an output");
+    gf_kit_status(kit, (*kit).diagnostics.set_invalidation_overlay(before), GF_STATUS_OK, "restore the overlay");
+}
+
 void gf_kit_diagnostics(gf_kit* kit) {
     outside(kit);
+    invalidation_overlay(kit);
     in_event(kit);
     in_posted(kit);
     uint64_t required = 9u;

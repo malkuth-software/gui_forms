@@ -1317,6 +1317,10 @@ Types
 
       The producer promises every pixel has alpha 255; the presenter may copy instead of blend, and need not paint what lies under it.
 
+   .. cpp:member:: LiveSurfaceOrigin origin
+
+      Default: ``{LiveSurfaceOrigin::producer}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: LiveSurfaceFrame final
@@ -2608,6 +2612,16 @@ Enumerations
    .. cpp:enumerator:: pending
 
    .. cpp:enumerator:: stopped
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LiveSurfaceOrigin
+
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+
+   .. cpp:enumerator:: producer
+
+   .. cpp:enumerator:: compatibility_paint
 
 .. cpp:namespace:: gui_forms
 

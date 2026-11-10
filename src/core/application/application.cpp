@@ -4,6 +4,7 @@
 
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -497,6 +498,15 @@ void Application::set_tool_tips_shown(bool shown) noexcept {
 bool Application::tool_tips_shown() const noexcept {
     const bool shown = (*tool_tips_shown_).load(std::memory_order_relaxed);
     return shown;
+}
+
+void Application::set_invalidation_overlay(bool enabled) noexcept {
+    set_invalidation_overlay_default(enabled);
+}
+
+bool Application::invalidation_overlay() const noexcept {
+    const bool enabled = invalidation_overlay_default();
+    return enabled;
 }
 
 bool Application::request_open_files(std::vector<std::string> paths) {

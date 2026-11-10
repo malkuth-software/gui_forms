@@ -3275,6 +3275,7 @@ void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
         }
         // Structural invalidation recomposes every plane so vacated pixels
         // cannot survive beneath a transparent or detached control.
+        const DamageCauseScope cause(*this, InvalidationCause::control, &control);
         add_damage_all_planes(bounds);
         requested_damage_area += bounds.area();
     }
@@ -3350,6 +3351,7 @@ bool SurfaceRoot::covered_by_pending_subtree(const Control& control, Dirty kinds
 void SurfaceRoot::change_paint_plane(Control& control, PaintPlane plane) {
     require_root_thread("paint-plane mutation");
     const Rect bounds = paint_damage_bounds_of(control);
+    const DamageCauseScope cause(*this, InvalidationCause::control, &control);
     add_damage_all_planes(bounds);
     control.paint_plane_ = plane;
     control.display_chunk_.reset();
@@ -3363,6 +3365,8 @@ void SurfaceRoot::add_damage(Rect damage, PaintPlane plane) {
     // plane only when its painted bounds contain the pending bounds.
     damage = Rect::intersection(damage, {0.0, 0.0, client_size_.width, client_size_.height});
     if (damage.empty()) return;
+    sync_invalidation_overlay();
+    if (invalidation_overlay_ != nullptr) note_damage_cause(damage, false);
     DamageRegion& region = plane_damage_[paint_plane_index(plane)];
     const std::uint64_t compactions = region.compaction_count();
     const std::uint64_t collapses = region.collapse_count();
@@ -3372,6 +3376,91 @@ void SurfaceRoot::add_damage(Rect damage, PaintPlane plane) {
         region.collapse_count() - collapses);
     // Glass over the damaged backplane shows it changed (E9-B).
     if (plane == PaintPlane::backplane) damage_backplane_readers(&damage);
+}
+
+void SurfaceRoot::sync_invalidation_overlay() {
+    const std::uint64_t generation = invalidation_overlay_default_generation();
+    if (generation == invalidation_overlay_generation_) return;
+    invalidation_overlay_generation_ = generation;
+    const bool enabled = invalidation_overlay_setting_.value_or(invalidation_overlay_default());
+    if (enabled && invalidation_overlay_ == nullptr) {
+        invalidation_overlay_ = std::make_unique<InvalidationOverlay>();
+    } else if (!enabled && invalidation_overlay_ != nullptr) {
+        invalidation_overlay_.reset();
+        invalidation_causes_.clear();
+    }
+}
+
+void SurfaceRoot::set_invalidation_overlay(std::optional<bool> enabled) {
+    require_root_thread("invalidation overlay setting");
+    invalidation_overlay_setting_ = enabled;
+    // Applied by the next sync, as a process switch change is.
+    invalidation_overlay_generation_ = 0U;
+    sync_invalidation_overlay();
+}
+
+bool SurfaceRoot::invalidation_overlay_enabled() noexcept {
+    sync_invalidation_overlay();
+    return invalidation_overlay_ != nullptr;
+}
+
+InvalidationOverlay* SurfaceRoot::invalidation_overlay() noexcept {
+    sync_invalidation_overlay();
+    return invalidation_overlay_.get();
+}
+
+void SurfaceRoot::record_presented_area(Rect bounds, InvalidationCause cause, std::string_view source) {
+    sync_invalidation_overlay();
+    if (invalidation_overlay_ == nullptr) return;
+    (*invalidation_overlay_).record(bounds, cause, source, InvalidationClock::now());
+}
+
+void SurfaceRoot::note_damage_cause(Rect damage, bool presented_whole) {
+    const std::string_view source =
+        damage_source_ != nullptr ? (*damage_source_).stable_id().value() : std::string_view{};
+    // add_damage_all_planes notes one rectangle once a plane: keep one.
+    if (!invalidation_causes_.empty()) {
+        const InvalidationCauseRecord& last = invalidation_causes_.back();
+        if (last.bounds == damage && last.cause == damage_cause_ && last.source == source &&
+            last.presented_whole == presented_whole) {
+            return;
+        }
+    }
+    if (invalidation_causes_.size() >= maximum_invalidation_causes) return;
+    InvalidationCauseRecord record{};
+    record.bounds = damage;
+    record.cause = damage_cause_;
+    record.source = std::string(source);
+    record.presented_whole = presented_whole;
+    invalidation_causes_.push_back(std::move(record));
+}
+
+void SurfaceRoot::attribute_painted_damage(std::span<const Rect> painted) {
+    InvalidationOverlay& overlay = *invalidation_overlay_;
+    const InvalidationClock::time_point now = InvalidationClock::now();
+    overlay.expire(now);
+    for (const InvalidationCauseRecord& record : invalidation_causes_) {
+        if (record.presented_whole) {
+            overlay.record(record.bounds, record.cause, record.source, now);
+            continue;
+        }
+        for (const Rect& rectangle : painted) {
+            const Rect shown = Rect::intersection(record.bounds, rectangle);
+            if (!shown.empty()) overlay.record(shown, record.cause, record.source, now);
+        }
+    }
+    for (const Rect& rectangle : painted) {
+        bool asked = false;
+        for (const InvalidationCauseRecord& record : invalidation_causes_) {
+            if (record.presented_whole) continue;
+            if (!Rect::intersection(record.bounds, rectangle).empty()) {
+                asked = true;
+                break;
+            }
+        }
+        if (!asked) overlay.record(rectangle, InvalidationCause::host_expose, std::string_view{}, now);
+    }
+    invalidation_causes_.clear();
 }
 
 void SurfaceRoot::add_damage_all_planes(Rect damage) {
@@ -3412,8 +3501,8 @@ void SurfaceRoot::damage_resized(Control& control, Rect old_bounds, Rect new_bou
     // recorded again at the new size either way (paint_recursive).
     // `control` and `relaid` are for the hot-paths strip rules (material
     // bands, viewports).
-    static_cast<void>(control);
     static_cast<void>(relaid);
+    const DamageCauseScope cause(*this, InvalidationCause::layout, &control);
     const bool same_origin = old_bounds.x == new_bounds.x && old_bounds.y == new_bounds.y;
     if (same_origin && !escalate) {
         add_resize_strip_damage(old_bounds, new_bounds, 0.0);
@@ -3573,6 +3662,9 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
         plane = damage_after_scroll_copy(plane, clip, offset);
     }
     scroll_copies_.push_back(ScrollCopy{clip, offset});
+    const DamageCauseScope cause(*this, InvalidationCause::scroll_copy, &scroller);
+    sync_invalidation_overlay();
+    if (invalidation_overlay_ != nullptr) note_damage_cause(clip, true);
     scroll_translating_ = &scroller;
     scroll_translation_ = offset;
     const double band_x = offset.x < 0.0 ? clip.x + clip.width + offset.x : clip.x;
@@ -3653,6 +3745,7 @@ PaintLeaseState SurfaceRoot::paint_lease_state() const noexcept {
 }
 
 void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
+    const DamageCauseScope cause(*this, InvalidationCause::control, control.get());
     add_damage_all_planes(paint_damage_bounds_of(*control));
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
         add_subtree_damage(child);
@@ -3699,6 +3792,7 @@ void SurfaceRoot::settle_touch(Control& control, detail::PendingTouch owed) {
         if (bounds.empty()) {
             bounds = control.requested_bounds_;
         }
+        const DamageCauseScope cause(*this, InvalidationCause::control, &control);
         add_damage(bounds, control.paint_plane_);
         metrics_.record_requested_damage(bounds.area());
     }
@@ -3763,6 +3857,7 @@ void SurfaceRoot::settle_dirty() {
         const Rect bounds = absolute_bounds_of(*control);
         const Rect window_damage{bounds.x + pending.local_damage.x, bounds.y + pending.local_damage.y,
                                  pending.local_damage.width, pending.local_damage.height};
+        const DamageCauseScope cause(*this, InvalidationCause::control, control);
         add_damage(window_damage, (*control).paint_plane_);
         metrics_.record_requested_damage(window_damage.area());
     }

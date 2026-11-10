@@ -56,6 +56,7 @@ public:
     static void diagnostics_clicked(GalleryContext& context, const RuleFiring& firing);
     static void apply_clicked(GalleryContext& context, const RuleFiring& firing);
     static void precise_updates_clicked(GalleryContext& context, const RuleFiring& firing);
+    static void invalidation_overlay_clicked(GalleryContext& context, const RuleFiring& firing);
     static void classic_relief_clicked(GalleryContext& context, const RuleFiring& firing);
     static void quiet_relief_clicked(GalleryContext& context, const RuleFiring& firing);
     static void three_state_clicked(GalleryContext& context, const RuleFiring& firing);

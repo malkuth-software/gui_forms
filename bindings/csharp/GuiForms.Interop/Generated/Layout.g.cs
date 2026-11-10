@@ -595,10 +595,12 @@ public static unsafe class Layout
         {
             gf_diagnostics_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_diagnostics_table size", sizeof(gf_diagnostics_table), 16);
+            failures += expect(output, "gf_diagnostics_table size", sizeof(gf_diagnostics_table), 32);
             failures += expect(output, "gf_diagnostics_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_diagnostics_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_diagnostics_table.shadow_frames offset", (long)((byte*)&value.shadow_frames - start), 8);
+            failures += expect(output, "gf_diagnostics_table.set_invalidation_overlay offset", (long)((byte*)&value.set_invalidation_overlay - start), 16);
+            failures += expect(output, "gf_diagnostics_table.invalidation_overlay offset", (long)((byte*)&value.invalidation_overlay - start), 24);
         }
         {
             gf_layout_transaction value = default;

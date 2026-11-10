@@ -696,6 +696,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
     // The pass is complete: the checkpoints release their controls.
     paint_checkpoints_.clear();
     in_paint_ = false;
+    if (invalidation_overlay_ != nullptr) attribute_painted_damage(painted);
     ++paint_leases_completed_;
     rendered_revision_ = lease_revision;
 
@@ -818,6 +819,22 @@ PaintLeaseSnapshot SurfaceRoot::paint_lease_snapshot() const noexcept {
             paint_wakes_coalesced_, presentation_receipts_accepted_,
             presentation_receipts_rejected_, paint_wake_pending_,
             dirty_after_render_};
+}
+
+void Window::note_live_surface_presented(const LiveSurfacePresentation& presentation, const Rect presented) {
+    InvalidationOverlay* const overlay = invalidation_overlay();
+    if (overlay == nullptr) return;
+    InvalidationCause cause = InvalidationCause::live_surface;
+    if (presentation.surface &&
+        (*presentation.surface).snapshot().description.origin == LiveSurfaceOrigin::compatibility_paint) {
+        cause = InvalidationCause::external_content;
+    }
+    std::string_view source{};
+    Control::Ptr control{};
+    const LiveSurfaceRegistrationMap::const_iterator entry = live_surface_registrations_.find(presentation.control.value);
+    if (entry != live_surface_registrations_.end()) control = (*entry).second.control.lock();
+    if (control) source = (*control).stable_id().value();
+    (*overlay).record(presented, cause, source, InvalidationClock::now());
 }
 
 bool Window::queue_live_surface_presentation(

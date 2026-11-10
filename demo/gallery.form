@@ -90,6 +90,12 @@ form gallery.window {
         classes: "note";
         bounds: 10 262 260 52;
       }
+      /* The invalidation overlay (docs/user/debugging.md): outlines what
+         the window presents again, for 300 ms, by cause. */
+      check-box gallery.diagnostics.invalidation {
+        text: "Show invalidation";
+        bounds: 10 320 260 28;
+      }
     }
 
     /* Each page's viewport goes here, anchored to all four edges. */
