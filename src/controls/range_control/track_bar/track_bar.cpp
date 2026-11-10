@@ -135,21 +135,22 @@ Rect TrackBar::thumb_bounds() const noexcept {
     const Rect bounds = local_bounds();
     const Rect span = value_span_bounds();
     const double ratio = normalized_value();
-    double thumb_extent = 14.0;
+    double thumb_side = 14.0;
     if (visual_style.read() == TrackBarVisualStyle::compact) {
-        thumb_extent = 8.0;
+        thumb_side = 8.0;
     } else if (visual_style.read() == TrackBarVisualStyle::filled) {
-        thumb_extent = 12.0;
+        thumb_side = 12.0;
     }
+    if (thumb_extent.read() > 0.0) thumb_side = thumb_extent.read();
     if (orientation.read() == Orientation::horizontal) {
-        const Rect thumb{span.x + ratio * span.width - thumb_extent * 0.5,
-                         std::max(2.0, (bounds.height - thumb_extent) * 0.5),
-                         thumb_extent, thumb_extent};
+        const Rect thumb{span.x + ratio * span.width - thumb_side * 0.5,
+                         std::max(2.0, (bounds.height - thumb_side) * 0.5),
+                         thumb_side, thumb_side};
         return thumb;
     }
-    const Rect thumb{std::max(2.0, (bounds.width - thumb_extent) * 0.5),
-                     span.y + (1.0 - ratio) * span.height - thumb_extent * 0.5,
-                     thumb_extent, thumb_extent};
+    const Rect thumb{std::max(2.0, (bounds.width - thumb_side) * 0.5),
+                     span.y + (1.0 - ratio) * span.height - thumb_side * 0.5,
+                     thumb_side, thumb_side};
     return thumb;
 }
 
@@ -464,6 +465,25 @@ const PropertyDescriptor& describe_track_bar_visual_style() {
     return descriptor;
 }
 
+PropertyDescriptor track_bar_thumb_extent_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "thumb_extent";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Appearance";
+    descriptor.description = "The thumb's side in pixels; 0 takes the visual style's.";
+    descriptor.default_value = BindingValue{0.0};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_track_bar_thumb_extent() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        track_bar_thumb_extent_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 PropertyType PropertyValueTraits<TrackBarVisualStyle>::type() {
@@ -486,7 +506,7 @@ TrackBarVisualStyle PropertyValueTraits<TrackBarVisualStyle>::from_binding(const
 }
 
 const std::array<PropertyEntry, TrackBar::track_bar_property_count>& TrackBar::track_bar_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 2U> own{{
+    static constexpr std::array<PropertyEntry, 3U> own{{
         {"tick_frequency", &describe_track_bar_tick_frequency,
          &read_cell_entry<TrackBar, decltype(&TrackBar::tick_frequency), &TrackBar::tick_frequency>,
          &write_cell_entry<TrackBar, decltype(&TrackBar::tick_frequency), &TrackBar::tick_frequency>,
@@ -495,6 +515,11 @@ const std::array<PropertyEntry, TrackBar::track_bar_property_count>& TrackBar::t
         {"visual_style", &describe_track_bar_visual_style,
          &read_cell_entry<TrackBar, decltype(&TrackBar::visual_style), &TrackBar::visual_style>,
          &write_cell_entry<TrackBar, decltype(&TrackBar::visual_style), &TrackBar::visual_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"thumb_extent", &describe_track_bar_thumb_extent,
+         &read_cell_entry<TrackBar, decltype(&TrackBar::thumb_extent), &TrackBar::thumb_extent>,
+         &write_cell_entry<TrackBar, decltype(&TrackBar::thumb_extent), &TrackBar::thumb_extent>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};
@@ -532,6 +557,16 @@ void TrackBar::prepare_write(const decltype(visual_style)&, TrackBarVisualStyle&
 }
 
 void TrackBar::written(const decltype(visual_style)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void TrackBar::prepare_write(const decltype(thumb_extent)&, double& incoming) {
+    require_mutable();
+    require_finite(incoming, "thumb extent must be finite");
+    if (incoming < 0.0 || incoming > 64.0) throw std::invalid_argument("thumb extent must be between 0 and 64");
+}
+
+void TrackBar::written(const decltype(thumb_extent)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 

@@ -890,6 +890,13 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
     }
     horizontal_offset_ = std::clamp(horizontal_offset_, 0.0,
         std::max(0.0, layout_positions_.back() - viewport));
+    // Text narrower than the box sits per text_alignment: a negative offset
+    // moves it right, and position_at, the caret and the semantic layout
+    // all read the same offset.
+    const double slack = viewport - layout_positions_.back();
+    if (slack > 0.0 && text_alignment.read() != HorizontalAlignment::near) {
+        horizontal_offset_ = text_alignment.read() == HorizontalAlignment::center ? -slack * 0.5 : -slack;
+    }
 
     const double origin_x = text_left_ - horizontal_offset_;
     const double selection_x = origin_x + boundary_x((*editing_).selection().start());
@@ -1701,6 +1708,15 @@ void TextBox::prepare_write(const decltype(accepts_escape)&, bool&) {
 void TextBox::written(const decltype(accepts_escape)&) {}
 
 void TextBox::on_font_changed() {}
+
+void TextBox::prepare_write(const decltype(text_alignment)&, HorizontalAlignment& incoming) {
+    require_mutable();
+    if (incoming > HorizontalAlignment::far) throw std::invalid_argument("TextBox text alignment is unknown");
+}
+
+void TextBox::written(const decltype(text_alignment)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
 
 // property_codemod end TextBox
 

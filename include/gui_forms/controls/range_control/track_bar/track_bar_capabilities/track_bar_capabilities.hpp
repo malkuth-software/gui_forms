@@ -64,6 +64,19 @@ struct TrackBarVisualStyleChoiceCapability {
     }
 };
 
+// The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact). Finite and between 0 and 64, else std::invalid_argument.
+template <typename Declaring>
+struct TrackBarThumbExtentCapability {
+    PropertyCell<double, TrackBarThumbExtentCapability<Declaring>> thumb_extent{0.0};
+
+    static void assign(TrackBarThumbExtentCapability& capability, double incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.thumb_extent), incoming);
+        if (!capability.thumb_extent.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.thumb_extent));
+    }
+};
+
 // TrackBarVisualStyle as a property value; defined beside TrackBar's table.
 template <>
 struct PropertyValueTraits<TrackBarVisualStyle> {
@@ -76,6 +89,7 @@ struct PropertyValueTraits<TrackBarVisualStyle> {
 template <typename Declaring>
 struct TrackBarCapabilities : public TrackBarTickFrequencyCapability<Declaring>,
                               public TrackBarShowTicksCapability<Declaring>,
-                              public TrackBarVisualStyleChoiceCapability<Declaring> {};
+                              public TrackBarVisualStyleChoiceCapability<Declaring>,
+                              public TrackBarThumbExtentCapability<Declaring> {};
 
 } // namespace gui_forms

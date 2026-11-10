@@ -503,6 +503,7 @@ private:
     friend struct TextBoxAutoCompleteSourceCapability<TextBox>;
     friend struct TextBoxAutoCompleteCustomSourceCapability<TextBox>;
     friend struct TextBoxAutoCompleteCaseSensitiveCapability<TextBox>;
+    friend struct TextBoxTextAlignmentCapability<TextBox>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void write_view(const decltype(text)& cell, std::string incoming);
     [[nodiscard]] std::string read_view(const decltype(text)& cell) const;
@@ -538,6 +539,8 @@ private:
     void written(const decltype(auto_complete_custom_source)& cell);
     void prepare_write(const decltype(auto_complete_case_sensitive)& cell, bool& incoming);
     void written(const decltype(auto_complete_case_sensitive)& cell);
+    void prepare_write(const decltype(text_alignment)& cell, HorizontalAlignment& incoming);
+    void written(const decltype(text_alignment)& cell);
     // property_codemod end TextBox
 };
 

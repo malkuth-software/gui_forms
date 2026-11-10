@@ -5,6 +5,7 @@
 #include "gui_forms/control/shared_capabilities/shared_capabilities.hpp"
 #include "gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp"
 #include "gui_forms/types.hpp"
+#include "gui_forms/controls/label/label_capabilities/label_capabilities.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -247,6 +248,19 @@ struct TextBoxAutoCompleteCaseSensitiveCapability {
     }
 };
 
+// Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+template <typename Declaring>
+struct TextBoxTextAlignmentCapability {
+    PropertyCell<HorizontalAlignment, TextBoxTextAlignmentCapability<Declaring>> text_alignment{HorizontalAlignment::near};
+
+    static void assign(TextBoxTextAlignmentCapability& capability, HorizontalAlignment incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.text_alignment), incoming);
+        if (!capability.text_alignment.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.text_alignment));
+    }
+};
+
 // Every TextBox capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct TextBoxCapabilities : public TextBoxTextCapability<Declaring>,
@@ -265,7 +279,8 @@ struct TextBoxCapabilities : public TextBoxTextCapability<Declaring>,
                              public TextBoxAutoCompleteModeCapability<Declaring>,
                              public TextBoxAutoCompleteSourceCapability<Declaring>,
                              public TextBoxAutoCompleteCustomSourceCapability<Declaring>,
-                             public TextBoxAutoCompleteCaseSensitiveCapability<Declaring> {
+                             public TextBoxAutoCompleteCaseSensitiveCapability<Declaring>,
+                             public TextBoxTextAlignmentCapability<Declaring> {
     TextBoxCapabilities() : FontCapability<Declaring>(FontSpec{FontRole::content, 12.0, 400, false}) {}
 };
 

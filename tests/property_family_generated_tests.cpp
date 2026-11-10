@@ -1645,6 +1645,22 @@ void test_numeric_up_down_properties() {
         expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
                "NumericUpDown.scrub: the table reads the cell");
     }
+    {
+        const bool sample = true;
+        (*control).thousands_separator = sample;
+        expect((*control).thousands_separator.read() == sample, "NumericUpDown.thousands_separator: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("thousands_separator");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "NumericUpDown.thousands_separator: the table reads the cell");
+    }
+    {
+        const HorizontalAlignment sample = HorizontalAlignment::far;
+        (*control).text_alignment = sample;
+        expect((*control).text_alignment.read() == sample, "NumericUpDown.text_alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text_alignment");
+        expect(by_name && *by_name == PropertyValueTraits<HorizontalAlignment>::to_binding(sample),
+               "NumericUpDown.text_alignment: the table reads the cell");
+    }
 }
 
 void test_object_view_properties() {
@@ -2750,6 +2766,11 @@ void test_text_box_properties() {
         (*control).auto_complete_case_sensitive = sample;
         expect((*control).auto_complete_case_sensitive.read() == sample, "TextBox.auto_complete_case_sensitive: a write stores");
     }
+    {
+        const HorizontalAlignment sample = HorizontalAlignment::far;
+        (*control).text_alignment = sample;
+        expect((*control).text_alignment.read() == sample, "TextBox.text_alignment: a write stores");
+    }
 }
 
 void test_toggle_switch_properties() {
@@ -2894,6 +2915,14 @@ void test_track_bar_properties() {
         const std::optional<BindingValue> by_name = (*control).property_value("visual_style");
         expect(by_name && *by_name == PropertyValueTraits<TrackBarVisualStyle>::to_binding(sample),
                "TrackBar.visual_style: the table reads the cell");
+    }
+    {
+        const double sample = 10.0;
+        (*control).thumb_extent = sample;
+        expect((*control).thumb_extent.read() == sample, "TrackBar.thumb_extent: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("thumb_extent");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "TrackBar.thumb_extent: the table reads the cell");
     }
 }
 
