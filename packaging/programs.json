@@ -37,7 +37,10 @@
       "NotoSansHebrew-Regular.ttf",
       "NotoSansDevanagari-Regular.ttf",
       "NotoSansBengali-Regular.ttf",
-      "NotoSansGurmukhi-Regular.ttf"
+      "NotoSansGurmukhi-Regular.ttf",
+      "Selawik-Regular.ttf",
+      "Selawik-Semibold.ttf",
+      "Selawik-Bold.ttf"
     ],
     "notices": [
       "ATTRIBUTION.md",
@@ -46,6 +49,7 @@
       "OFL-Noto.txt",
       "OFL-NotoSansCJKjp.txt",
       "OFL-NotoEmoji.txt",
+      "OFL-Selawik.txt",
       "LICENSE-PortsmouthRapids.txt"
     ]
   },

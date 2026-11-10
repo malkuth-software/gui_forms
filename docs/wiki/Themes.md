@@ -7,7 +7,8 @@ program chooses its theme; a form only names roles with `classes`.
 ## Choosing a look
 
 - **Built-in themes:** `gui-forms` (GUI.Forms' own, light and dark) and
-  `windows-professional`; and the familiar themes `classic` (Windows 2000),
+  `windows-professional` (the stock Windows-familiar theme, light and dark,
+  also `gf::FamiliarTheme::windows_professional`); and the familiar themes `classic` (Windows 2000),
   `modern-flat`, `xp-style`, `windows7-style` and `macos-style`, shown with
   `gf::familiar_theme(gf::FamiliarTheme::classic)`.
 - **A theme package**: a `theme.json` manifest and a sheet, compiled onto a

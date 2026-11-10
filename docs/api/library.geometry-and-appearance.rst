@@ -46,6 +46,8 @@ Types
      -  
    * - :cpp:class:`BoxLength <gui_forms::BoxLength>`
      - A length along one axis of the part's box: ``fraction`` of the box's extent on that axis plus ``units`` logical units, as CSS's <length-percentage> (a percentage, a length, or the calc() of both).
+   * - :cpp:class:`BundledFontFamily <gui_forms::BundledFontFamily>`
+     - A bundled font family a theme names in place of a role's faces (theme-language ``font-family: Selawik``).
    * - :cpp:class:`CachedPartRaster <gui_forms::CachedPartRaster>`
      - A part's cached raster and what drew it: the primitive, every parameter (animated ones included, since they change the pixels), the target with its states restricted to those the primitive reads, and the extent.
    * - :cpp:class:`CheckerPattern <gui_forms::CheckerPattern>`
@@ -741,6 +743,16 @@ Types
    .. cpp:member:: double fraction
 
    .. cpp:member:: double units
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BundledFontFamily
+
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+
+   A bundled font family a theme names in place of a role's faces (theme-language ``font-family: Selawik``). Zero is none: the role's own faces. Only families bundled with the library have numbers (the table in src/core/resources/fonts/bundled_font_families.hpp); a host font never has one, so a family can never reach a font the application did not ship.
+
+   .. cpp:member:: std::uint8_t value
 
 .. cpp:namespace:: gui_forms
 
@@ -2613,6 +2625,10 @@ Types
    .. cpp:member:: double letter_spacing
 
       Additional logical pixels inserted between shaped grapheme clusters. This is a layout input: painters and measurement must apply the same value. Zero preserves the typeface's native spacing.
+
+   .. cpp:member:: BundledFontFamily family
+
+      A named bundled family whose faces draw before the role's. The role still chooses the faces for characters the family does not cover, and a family whose faces could not be loaded leaves the role's faces in charge.
 
 .. cpp:namespace:: gui_forms
 
@@ -4752,6 +4768,8 @@ Types
 
       Default: ``{FontRole::control}``.
 
+   .. cpp:member:: BundledFontFamily font_family
+
    .. cpp:member:: bool italic
 
 .. cpp:namespace:: gui_forms
@@ -6469,6 +6487,8 @@ Enumerations
    .. cpp:enumerator:: windows7_style
 
    .. cpp:enumerator:: macos_style
+
+   .. cpp:enumerator:: windows_professional
 
    .. cpp:enumerator:: count
 
@@ -8563,7 +8583,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view familiar_theme_id(FamiliarTheme theme) noexcept
 
-   The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``, ``macos-style``); empty for ``count``.
+   The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``, ``macos-style``, ``windows-professional``); empty for ``count``.
 
 .. cpp:function:: std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept
 
