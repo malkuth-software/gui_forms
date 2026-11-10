@@ -4,6 +4,7 @@ The product-independent steps it imports (sanitizer options, test selection,
 configure records) are tested with them in template_harness
 (harness/test_ci_build_steps.py)."""
 from __future__ import annotations
+import io
 import json
 from pathlib import Path
 import re
@@ -14,6 +15,7 @@ from unittest import mock
 
 import ci_build
 import ci_build_steps
+import pr_build_targets
 
 
 class GalleryOptionTests(unittest.TestCase):
@@ -284,6 +286,35 @@ class InstallOnlyTests(unittest.TestCase):
                     mock.patch('sys.stderr'):
                 with self.assertRaises(SystemExit):
                     ci_build.main()
+
+
+class PullRequestTargetListTests(unittest.TestCase):
+    """pr_build_targets.py's list feeds `xargs cmake --build --target` in Git
+    Bash: on Windows its lines must end without a carriage return (programs
+    on windows-x64 refused 'gui_forms_abi1.lib' + CR)."""
+
+    def test_the_list_and_the_pattern_end_lines_without_a_carriage_return(self) -> None:
+        listing: dict = {'tests': [{'name': 'a_tests', 'command': ['a_tests']},
+                                   {'name': 'b_tests', 'command': ['b_tests']}]}
+        # A text stream that writes CRLF, as Windows' stdout does by default.
+        raw: io.BytesIO = io.BytesIO()
+        windows_stdout: io.TextIOWrapper = io.TextIOWrapper(raw, encoding='utf-8', newline='\r\n')
+        with tempfile.TemporaryDirectory() as scratch:
+            pattern_path: Path = Path(scratch) / 'pattern.txt'
+            arguments: list[str] = ['--build-dir', scratch, '--tests', 'a_tests|b_tests\r',
+                                    '--pattern-out', str(pattern_path)]
+            with mock.patch.object(ci_build, 'test_listing', return_value=listing) as listed, \
+                    mock.patch.object(ci_build, 'ninja_outputs', return_value={}), \
+                    mock.patch.object(ci_build, 'test_build_targets',
+                                      return_value=(['gui_forms_abi1.lib', 'a_tests.exe'], [])), \
+                    mock.patch.object(sys, 'stdout', windows_stdout), mock.patch('sys.stderr'):
+                self.assertEqual(pr_build_targets.main(arguments), 0)
+                windows_stdout.flush()
+            pattern: bytes = pattern_path.read_bytes()
+        self.assertEqual(raw.getvalue(), b'gui_forms_abi1.lib\na_tests.exe\n')
+        self.assertNotIn(b'\r', pattern)
+        # The CRLF pattern a Windows tool printed reaches ctest without its CR.
+        self.assertEqual(listed.call_args.args[1], 'a_tests|b_tests')
 
 
 if __name__ == '__main__':

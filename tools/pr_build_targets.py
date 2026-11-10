@@ -32,8 +32,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--pattern-out', type=Path, default=None,
                         help='write the ctest -R pattern of the tests left here (NONE: none)')
     args: argparse.Namespace = parser.parse_args(argv)
+    # The listing feeds `xargs cmake --build --target` in Git Bash: on Windows a
+    # text-mode stdout would end each target with a carriage return, which
+    # ninja then reads as part of the target's name.
+    sys.stdout.reconfigure(newline='\n')
     toolkit: Path = args.build_dir.resolve()
-    listing: dict = ci_build.test_listing(toolkit, args.tests, '')
+    # A pattern read from another tool's output on Windows may keep a
+    # carriage return: it is no part of the pattern.
+    tests: str = args.tests.strip()
+    listing: dict = ci_build.test_listing(toolkit, tests, '')
     if args.changed_from:
         changed: list[str] = change_selection.changed_paths(ci_build.ROOT / 'gui_forms', args.changed_from)
         # The change selection says why each path selects what it does on standard output, which here
@@ -48,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
         pattern: str = 'NONE'
         if names:
             pattern = change_selection.name_pattern(names)
-        args.pattern_out.write_text(pattern + '\n', encoding='utf-8')
+        args.pattern_out.write_text(pattern + '\n', encoding='utf-8', newline='\n')
     targets: list[str]
     unbuilt: list[str]
     targets, unbuilt = ci_build.test_build_targets(listing, ci_build.ninja_outputs(toolkit), toolkit)
