@@ -6,6 +6,7 @@
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <span>
 #include <stdexcept>
@@ -77,9 +78,70 @@ void RasterCanvas::set_view(double zoom, gui_drawing::PointF origin) {
         throw std::invalid_argument("canvas view origin must be finite and bounded");
     }
     if (zoom_ == zoom && view_origin_ == origin) return;
+    const bool pan = zoom_ == zoom;
+    const Point previous = content_offset();
     zoom_ = zoom;
     view_origin_ = origin;
-    invalidate(Dirty::paint | Dirty::semantics);
+    if (!pan || !paint_follows_view_ || !pan_copies_exactly()) {
+        invalidate(Dirty::paint | Dirty::semantics);
+        return;
+    }
+    // The painted canvas moves with the bitmap's origin; scroll_content
+    // repaints the canvas itself when it cannot copy.
+    invalidate(Dirty::semantics);
+    const Point offset = content_offset();
+    const Point moved{offset.x - previous.x, offset.y - previous.y};
+    static_cast<void>(scroll_content(client_rectangle(), moved));
+}
+
+double RasterCanvas::device_scale() const noexcept {
+    const SurfaceRoot* const owner = surface_root();
+    return owner != nullptr ? (*owner).scale() : 1.0;
+}
+
+bool RasterCanvas::binary_view() const noexcept {
+    const double scale = device_scale();
+    const double scale_power = std::exp2(std::round(std::log2(scale)));
+    const double zoom_power = std::exp2(std::round(std::log2(zoom_)));
+    return scale_power == scale && zoom_power == zoom_;
+}
+
+int RasterCanvas::offset_reach_bits() const noexcept {
+    // Twice the bitmap's extent in device pixels, at least 2^10.
+    constexpr int least = 10;
+    constexpr int most = 23;
+    if (!bitmap_) return least;
+    const double extent = static_cast<double>(std::max((*bitmap_).width(), (*bitmap_).height())) * zoom_ *
+                          device_scale();
+    const int bits = static_cast<int>(std::ceil(std::log2(std::max(1.0, extent * 2.0))));
+    return std::clamp(bits, least, most);
+}
+
+Point RasterCanvas::content_offset() const noexcept {
+    if (!binary_view()) {
+        const Point offset{-view_origin_.x * zoom_, -view_origin_.y * zoom_};
+        return offset;
+    }
+    // Device 2^-(23 - reach)ths: within the reach, single precision holds
+    // every coordinate the canvas paints exactly.
+    constexpr int mantissa_bits = 23;
+    const double steps = std::exp2(static_cast<double>(mantissa_bits - offset_reach_bits()));
+    const double scale = device_scale();
+    const double x = std::round(-view_origin_.x * zoom_ * scale * steps);
+    const double y = std::round(-view_origin_.y * zoom_ * scale * steps);
+    const Point offset{x / (steps * scale), y / (steps * scale)};
+    return offset;
+}
+
+bool RasterCanvas::pan_copies_exactly() const noexcept {
+    // The renderer samples through the inverse of the bitmap's placement:
+    // exact only when the device pixels per bitmap pixel are a power of two.
+    if (!binary_view()) return false;
+    if (!bitmap_) return true;
+    const Point offset = content_offset();
+    const double extent = static_cast<double>(std::max((*bitmap_).width(), (*bitmap_).height())) * zoom_;
+    const double furthest = (std::max(std::abs(offset.x), std::abs(offset.y)) + extent) * device_scale();
+    return furthest <= std::exp2(static_cast<double>(offset_reach_bits()));
 }
 
 void RasterCanvas::set_transparency_colors(Color first, Color second) {
@@ -204,15 +266,34 @@ bool RasterCanvas::synchronize_bitmap() {
 }
 
 Rect RasterCanvas::bitmap_to_client(gui_drawing::RectI pixels) const noexcept {
-    return {(static_cast<double>(pixels.x) - view_origin_.x) * zoom_,
-            (static_cast<double>(pixels.y) - view_origin_.y) * zoom_,
-            static_cast<double>(pixels.width) * zoom_,
-            static_cast<double>(pixels.height) * zoom_};
+    const double width = static_cast<double>(pixels.width) * zoom_;
+    const double height = static_cast<double>(pixels.height) * zoom_;
+    if (!binary_view()) {
+        const Rect client{(static_cast<double>(pixels.x) - view_origin_.x) * zoom_,
+                          (static_cast<double>(pixels.y) - view_origin_.y) * zoom_, width, height};
+        return client;
+    }
+    const Point offset = content_offset();
+    const Rect client{offset.x + static_cast<double>(pixels.x) * zoom_,
+                      offset.y + static_cast<double>(pixels.y) * zoom_, width, height};
+    return client;
 }
 
 gui_drawing::PointF RasterCanvas::client_to_bitmap(Point client) const noexcept {
-    return {client.x / zoom_ + view_origin_.x,
-            client.y / zoom_ + view_origin_.y};
+    if (!binary_view()) {
+        const gui_drawing::PointF pixel{client.x / zoom_ + view_origin_.x, client.y / zoom_ + view_origin_.y};
+        return pixel;
+    }
+    const Point offset = content_offset();
+    const gui_drawing::PointF pixel{(client.x - offset.x) / zoom_, (client.y - offset.y) / zoom_};
+    return pixel;
+}
+
+Rect RasterCanvas::visible_destination() const noexcept {
+    if (!bitmap_) return Rect{};
+    const gui_drawing::RectI whole{0, 0, static_cast<std::int32_t>((*bitmap_).width()),
+                                   static_cast<std::int32_t>((*bitmap_).height())};
+    return Rect::intersection(bitmap_to_client(whole), client_rectangle());
 }
 
 gui_drawing::RectF RasterCanvas::visible_bitmap_bounds() const {
@@ -240,39 +321,41 @@ Rect RasterCanvas::damage_to_client(gui_drawing::RectI pixels) const noexcept {
     return Rect::intersection(bitmap_to_client(pixels), client_rectangle());
 }
 
-void RasterCanvas::paint_transparency_grid(Painter& painter, Rect bounds) const {
+void RasterCanvas::paint_transparency_grid(Painter& painter, Rect bounds, Point anchor) const {
     painter.fill_rect(bounds, transparency_first_);
     const double area = std::max(0.0, bounds.width * bounds.height);
     const double tile = transparency_cell_size.read() == 0.0
         ? std::max(8.0, std::ceil(std::sqrt(area / 2048.0)))
         : transparency_cell_size.read();
-    const std::int64_t columns = static_cast<std::int64_t>(
-        std::ceil(bounds.width / tile));
-    const std::int64_t rows = static_cast<std::int64_t>(
-        std::ceil(bounds.height / tile));
-    for (std::int64_t row = 0; row < rows; ++row) {
-        for (std::int64_t column = row & 1; column < columns; column += 2) {
-            painter.fill_rect(
-                {bounds.x + static_cast<double>(column) * tile,
-                 bounds.y + static_cast<double>(row) * tile,
-                 std::min(tile, bounds.right() -
-                                   (bounds.x + static_cast<double>(column) * tile)),
-                 std::min(tile, bounds.bottom() -
-                                   (bounds.y + static_cast<double>(row) * tile))},
-                transparency_second_);
+    // The cells crossing `bounds`, numbered from the anchor's cell; the
+    // second colour fills those whose row and column sum to an odd number.
+    const std::int64_t first_column = static_cast<std::int64_t>(std::floor((bounds.x - anchor.x) / tile));
+    const std::int64_t end_column = static_cast<std::int64_t>(std::ceil((bounds.right() - anchor.x) / tile));
+    const std::int64_t first_row = static_cast<std::int64_t>(std::floor((bounds.y - anchor.y) / tile));
+    const std::int64_t end_row = static_cast<std::int64_t>(std::ceil((bounds.bottom() - anchor.y) / tile));
+    for (std::int64_t row = first_row; row < end_row; ++row) {
+        const std::int64_t odd_start = ((first_column + row) % 2 == 0) ? first_column + 1 : first_column;
+        for (std::int64_t column = odd_start; column < end_column; column += 2) {
+            const Rect cell{anchor.x + static_cast<double>(column) * tile,
+                            anchor.y + static_cast<double>(row) * tile, tile, tile};
+            const Rect shown = Rect::intersection(cell, bounds);
+            if (!shown.empty()) painter.fill_rect(shown, transparency_second_);
         }
     }
 }
 
 void RasterCanvas::on_paint(Painter& painter, Rect) {
     const Rect bounds = client_rectangle();
-    painter.fill_rect(bounds, canvas_background.read());
+    const Color background = canvas_background.read();
+    painter.fill_rect(bounds, background);
+    if (background.alpha == 255U && !declares_clarity()) report_opaque_cover(painter, bounds);
+    // Everything below is placed by the view, except an automatic checker
+    // cell size, which follows the visible area.
+    paint_follows_view_ = !transparency_grid.read() || transparency_cell_size.read() != 0.0;
     if (!bitmap_ || tiles_.empty()) return;
-    const gui_drawing::RectF visible = visible_bitmap_bounds();
-    if (visible.empty()) return;
-    const Rect destination{(visible.x - view_origin_.x) * zoom_,
-        (visible.y - view_origin_.y) * zoom_, visible.width * zoom_, visible.height * zoom_};
-    if (transparency_grid.read()) paint_transparency_grid(painter, destination);
+    const Rect destination = visible_destination();
+    if (destination.empty()) return;
+    if (transparency_grid.read()) paint_transparency_grid(painter, destination, content_offset());
     for (std::size_t index = 0; index < tiles_.size(); ++index) {
         const Tile& tile = tiles_[index];
         const Rect clip = Rect::intersection(bitmap_to_client(tile.content), destination);
@@ -373,13 +456,8 @@ void RasterCanvas::publish_part_geometry(std::span<PartGeometry> geometry) const
     record.face = PartGeometry::from_bounds(bounds);
     if (bitmap_ && !tiles_.empty()) {
         // The visible part of the bitmap, where on_paint draws its tiles.
-        const gui_drawing::RectF visible = visible_bitmap_bounds();
-        if (!visible.empty()) {
-            const Rect destination{(visible.x - view_origin_.x) * zoom_,
-                                   (visible.y - view_origin_.y) * zoom_,
-                                   visible.width * zoom_, visible.height * zoom_};
-            record.image = PartGeometry::from_bounds(destination);
-        }
+        const Rect destination = visible_destination();
+        if (!destination.empty()) record.image = PartGeometry::from_bounds(destination);
     }
     record.focus = PartGeometry::from_bounds(bounds);
     write_parts(anatomy(), raster_canvas_part_fields, record, geometry);

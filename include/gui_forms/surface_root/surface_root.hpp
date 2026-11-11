@@ -814,6 +814,18 @@ public:
     // device-aligned, or copies are off; the caller then repaints its
     // viewport.
     [[nodiscard]] bool request_scroll_copy(Control& scroller, Point offset);
+    // Called by Control::scroll_content, outside or inside a layout pass:
+    // what `owner` painted inside `local_area` (its own coordinates) moved by
+    // `offset` (whole device pixels). Returns true when the copy is
+    // recorded: the damage already pending (local marks placed first) moves
+    // with the pixels, the exposed band is damaged, and what is drawn over
+    // the area (the owner's children, later siblings, overlays) is damaged
+    // where it is and where the copy moved it. False, recording nothing,
+    // when copies are off, the owner or an ancestor is hidden, the visible
+    // area or the offset is not device-aligned, the offset is not smaller
+    // than the area, or the owner's last recorded paint left no opaque
+    // cover over the visible area (Control::report_opaque_cover).
+    [[nodiscard]] bool request_content_scroll(Control& owner, Rect local_area, Point offset);
     [[nodiscard]] bool needs_frame() const noexcept;
     [[nodiscard]] std::optional<FrameTime> next_wake() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
@@ -2321,6 +2333,15 @@ private:
     // paint into it from the overlay plane to `crossing`.
     [[nodiscard]] bool other_plane_crosses(const Control::Ptr& control, const Control& scroller,
                                            Rect clip, bool beneath_covered, std::vector<Rect>& crossing) const;
+    // The shared tail of request_scroll_copy and request_content_scroll,
+    // over the visible `clip` (window coordinates) of `source`'s moved
+    // pixels: checks what lies beneath (unless `covered`, an opaque fill of
+    // the source or an ancestor already covers the clip) and collects what
+    // is drawn above into scroll_overlay_crossings_ (which the caller
+    // cleared, and may have begun), then records the copy and its damage.
+    // `translating`: the source's children moved with the copy in this
+    // layout pass, so their moves damage nothing.
+    [[nodiscard]] bool accept_scroll_copy(Control& source, Rect clip, Point offset, bool covered, bool translating);
     // Scratch for request_scroll_copy's overlay crossings.
     std::vector<Rect> scroll_overlay_crossings_;
     struct PaintControlCheckpoint final {

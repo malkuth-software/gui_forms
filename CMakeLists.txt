@@ -5069,6 +5069,10 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_canvas_raster_tests COMMAND gui_forms_canvas_raster_tests)
 
+        add_executable(gui_forms_content_scroll_raster_tests tests/content_scroll_raster_tests.cpp)
+        target_link_libraries(gui_forms_content_scroll_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_content_scroll_raster_tests COMMAND gui_forms_content_scroll_raster_tests)
+
         add_executable(gui_forms_skia_edge_snapping_tests tests/skia_edge_snapping_tests.cpp)
         target_link_libraries(gui_forms_skia_edge_snapping_tests PRIVATE gui_forms_skia)
         add_test(NAME gui_forms_skia_edge_snapping_tests COMMAND gui_forms_skia_edge_snapping_tests)

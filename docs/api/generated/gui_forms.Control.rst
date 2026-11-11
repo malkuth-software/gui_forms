@@ -563,6 +563,8 @@ gui_forms::Control
         - Whether the control has the style class.
       * - :cpp:func:`invalidate <gui_forms::Control::invalidate>`
         - ``invalidate(Dirty)`` records what a change invalidated, for this control and the path to the root; the window acts on it at its next flush or paint.
+      * - :cpp:func:`scroll_content <gui_forms::Control::scroll_content>`
+        - Declares that what this control painted inside ``area`` (client coordinates) has moved by ``offset`` logical units, as a pan of its content does.
       * - :cpp:func:`invalidate_subtree <gui_forms::Control::invalidate_subtree>`
         - Like ``invalidate(Dirty)``, but marks every descendant too, for changes such as a font or theme that affect how children measure and paint.
       * - :cpp:func:`invalidate_declared <gui_forms::Control::invalidate_declared>`
@@ -1481,6 +1483,10 @@ gui_forms::Control
       and the path to the root; the window acts on it at its next flush or
       paint. ``invalidate(Rect)`` asks for a repaint of part of the client area
       only.
+
+   .. cpp:function:: bool scroll_content(Rect area, Point offset)
+
+      Declares that what this control painted inside ``area`` (client coordinates) has moved by ``offset`` logical units, as a pan of its content does. The window then moves those pixels with a scroll copy (SurfaceRoot::request_content_scroll) and repaints only the band the move exposed and what is drawn over the area (this control's children, later siblings, overlays); the control's display chunk is recorded again. The caller's promise: the next paint draws, inside the area and outside the exposed band, exactly the pixels it drew before, moved by ``offset``; paint that stays in place (a marker at a fixed spot) is the caller's to invalidate where it is and where the copy moved it. Returns false and invalidates the area instead when the window cannot copy: copies are off, the visible area or the offset is not whole device pixels, the offset is not smaller than the area, the control or an ancestor is hidden, or its last paint did not report an opaque cover of the visible area (report_opaque_cover). Not during a paint.
 
    .. cpp:function:: void invalidate_subtree(Dirty dirty)
 

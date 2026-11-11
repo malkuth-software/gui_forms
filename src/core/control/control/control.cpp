@@ -3210,6 +3210,28 @@ void Control::invalidate(Dirty requested_dirty) {
     }
 }
 
+bool Control::scroll_content(Rect area, Point offset) {
+    require_mutable();
+    if (!area.finite() || !std::isfinite(offset.x) || !std::isfinite(offset.y)) {
+        throw std::invalid_argument("scrolled content area and offset must be finite");
+    }
+    const Rect visible = Rect::intersection(area, client_rectangle());
+    if (visible.empty()) return false;
+    const bool copied = initialization_depth_ == 0 && surface_root_ != nullptr &&
+        (*surface_root_).request_content_scroll(*this, visible, offset);
+    if (!copied) {
+        invalidate(visible);
+        return false;
+    }
+    // Recorded again, its damage only the bands the copy exposed (already
+    // damaged by the copy), in this control's coordinates.
+    const double band_x = offset.x < 0.0 ? visible.right() + offset.x : visible.x;
+    const double band_y = offset.y < 0.0 ? visible.bottom() + offset.y : visible.y;
+    if (offset.x != 0.0) invalidate(Rect{band_x, visible.y, std::abs(offset.x), visible.height});
+    if (offset.y != 0.0) invalidate(Rect{visible.x, band_y, visible.width, std::abs(offset.y)});
+    return true;
+}
+
 void Control::invalidate(Rect local_damage) {
     require_mutable();
     ++layout_revision_;

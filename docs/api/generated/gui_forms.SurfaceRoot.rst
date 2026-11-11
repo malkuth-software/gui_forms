@@ -460,6 +460,8 @@ gui_forms::SurfaceRoot
         - Appends the copies recorded since the last take to ``copies``, in the order recorded, and forgets them.
       * - :cpp:func:`request_scroll_copy <gui_forms::SurfaceRoot::request_scroll_copy>`
         - Called by ``scroller``'s arrange, inside the layout pass, after it moved its scrolling children by ``offset`` (whole device pixels) and nothing else changed in its child viewport.
+      * - :cpp:func:`request_content_scroll <gui_forms::SurfaceRoot::request_content_scroll>`
+        - Called by Control::scroll_content, outside or inside a layout pass: what ``owner`` painted inside ``local_area`` (its own coordinates) moved by ``offset`` (whole device pixels).
       * - :cpp:func:`schedule_paint <gui_forms::SurfaceRoot::schedule_paint>`
         -  
       * - :cpp:func:`schedule_ui_timer <gui_forms::SurfaceRoot::schedule_ui_timer>`
@@ -1298,6 +1300,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: bool request_scroll_copy(Control& scroller, Point offset)
 
       Called by ``scroller``'s arrange, inside the layout pass, after it moved its scrolling children by ``offset`` (whole device pixels) and nothing else changed in its child viewport. Returns true when the copy is recorded: the damage already pending in the viewport is moved by ``offset``, the exposed band is damaged, and the children's moves by exactly ``offset`` in this pass damage nothing; controls drawn over the viewport (later siblings, overlays) are damaged where they are and where the copy moved their pixels. False when the pixels beneath the viewport would not move with it (an earlier sibling or a backplane control crosses it, or an ancestor's paint depends on its size, below the first opaque fill covering it), the viewport or offset is not device-aligned, or copies are off; the caller then repaints its viewport.
+
+   .. cpp:function:: bool request_content_scroll(Control& owner, Rect local_area, Point offset)
+
+      Called by Control::scroll_content, outside or inside a layout pass: what ``owner`` painted inside ``local_area`` (its own coordinates) moved by ``offset`` (whole device pixels). Returns true when the copy is recorded: the damage already pending (local marks placed first) moves with the pixels, the exposed band is damaged, and what is drawn over the area (the owner's children, later siblings, overlays) is damaged where it is and where the copy moved it. False, recording nothing, when copies are off, the owner or an ancestor is hidden, the visible area or the offset is not device-aligned, the offset is not smaller than the area, or the owner's last recorded paint left no opaque cover over the visible area (Control::report_opaque_cover).
 
    .. cpp:function:: FrameRequestToken schedule_paint(const Control::Ptr& control, FrameTime deadline)
 
