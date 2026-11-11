@@ -4495,11 +4495,13 @@ if(GUI_FORMS_BUILD_TESTS)
         list(GET _gui_fail_fast_fields 0 _gui_fail_fast_mode)
         list(GET _gui_fail_fast_fields 1 _gui_fail_fast_site)
         list(GET _gui_fail_fast_fields 2 _gui_fail_fast_text)
+        # fail_fast() aborts: SIGABRT on Linux and macOS, which CTest counts as a failure
+        # whatever the output says, so the mode runs through cmake/expect_fail_fast.cmake.
         add_test(NAME gui_forms_fail_fast_${_gui_fail_fast_mode}
-                 COMMAND gui_forms_fail_fast_tests ${_gui_fail_fast_mode})
-        set_tests_properties(gui_forms_fail_fast_${_gui_fail_fast_mode} PROPERTIES
-            PASS_REGULAR_EXPRESSION "GUI.Forms: fatal exception at ${_gui_fail_fast_site}: ${_gui_fail_fast_text}"
-            FAIL_REGULAR_EXPRESSION "survived")
+                 COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_fail_fast_tests>
+                         -DMODE=${_gui_fail_fast_mode}
+                         "-DEXPECTED=GUI.Forms: fatal exception at ${_gui_fail_fast_site}: ${_gui_fail_fast_text}"
+                         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
     endforeach()
 
     add_executable(gui_forms_program_options_tests tests/program_options_tests.cpp)
