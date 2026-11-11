@@ -1,5 +1,7 @@
 #include "fail_fast.hpp"
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -27,6 +29,8 @@ namespace {
 
 // At most this many frames are printed; the report must stay readable.
 constexpr int maximum_stack_frames = 48;
+// At most this many characters of a site are printed (it fits an int).
+constexpr std::size_t maximum_site_characters = 256U;
 
 void write_exception_text(std::exception_ptr failure) noexcept {
     if (!failure) {
@@ -75,7 +79,10 @@ void write_stack() noexcept {
 } // namespace
 
 void fail_fast(std::string_view site, std::exception_ptr failure) noexcept {
-    std::fprintf(stderr, "GUI.Forms: fatal exception at %.*s: ", static_cast<int>(site.size()), site.data());
+    // %.*s takes an int precision; a site is a short literal, and a longer
+    // one is cut at maximum_site_characters.
+    const std::size_t shown = std::min(site.size(), maximum_site_characters);
+    std::fprintf(stderr, "GUI.Forms: fatal exception at %.*s: ", static_cast<int>(shown), site.data());
     write_exception_text(failure);
     std::fputs("\nGUI.Forms: stack:\n", stderr);
     write_stack();
