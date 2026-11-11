@@ -1209,6 +1209,10 @@ void BindingSource::apply_notification(const BindingNotification& notification) 
         valid = notification.row < old_count &&
                 (notification.target == binding_whole_row || notification.target < schema_.size());
         break;
+    default:
+        // A kind outside the enumeration is not trusted: a reset.
+        valid = false;
+        break;
     }
     if (valid) {
         // A count that disagrees with the notification makes it a reset.
@@ -1359,6 +1363,10 @@ void BindingSource::apply_notification(const BindingNotification& notification) 
         return;
     }
     case BindingNotificationKind::reset:
+        break;
+    default:
+        // Unreachable: the validation above turned any other kind into a
+        // reset and returned; the position is placed as for a reset.
         break;
     }
     place_position(anchor, old_position);

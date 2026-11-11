@@ -65,6 +65,7 @@ BindingKeyView BindingView::key_view(const KeyCell& cell) const noexcept {
         view.text = std::string_view(text_).substr(static_cast<std::size_t>(cell.text_offset), cell.text_size);
         break;
     default:
+        // Null and the other kinds order by their kind alone.
         break;
     }
     return view;

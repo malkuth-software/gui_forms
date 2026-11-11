@@ -97,6 +97,7 @@ bool binding_predicate_holds(const BindingPredicate& predicate, const BindingVal
         return holds;
     }
     default:
+        // The ordering operators compare keys below.
         break;
     }
     const int order = compare_binding_keys(value, predicate.operand);
@@ -114,6 +115,7 @@ bool binding_predicate_holds(const BindingPredicate& predicate, const BindingVal
     case BindingPredicateOperator::greater_or_equal:
         return order >= 0;
     default:
+        // The null and text operators returned above; nothing else holds.
         return false;
     }
 }
@@ -144,6 +146,7 @@ KeyFamily family_of(BindingValueKind kind) noexcept {
     case BindingValueKind::text:
         return KeyFamily::text;
     default:
+        // Every other kind (geometry, colours, ...) orders after text.
         return KeyFamily::other;
     }
 }
@@ -319,6 +322,7 @@ int compare_binding_key_views(const BindingKeyView& left, const BindingKeyView& 
     case KeyFamily::text:
         return compare_text_ignoring_case(left.text, right.text);
     default:
+        // The other family orders by kind alone.
         return three_way(static_cast<int>(left.kind), static_cast<int>(right.kind));
     }
 }

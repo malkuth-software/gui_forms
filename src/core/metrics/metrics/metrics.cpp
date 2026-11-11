@@ -276,6 +276,10 @@ void Metrics::record_expectation_miss(HousekeepingExpectation expectation, std::
     case HousekeepingExpectation::paint_within_budget: misses = &values_.paint_budget_misses; break;
     case HousekeepingExpectation::live_drain_kept_up: misses = &values_.live_drain_misses; break;
     case HousekeepingExpectation::damage_bounded: misses = &values_.damage_bound_misses; break;
+    default:
+        // An expectation outside the enumeration counts as a wake miss,
+        // the initial target, so the miss is still recorded.
+        break;
     }
     *misses = *misses + 1U;
     if (!reported_miss(*misses)) return;
