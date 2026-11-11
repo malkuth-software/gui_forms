@@ -389,7 +389,8 @@ slide. The ``seam`` item system has ``seam_bar`` and ``seam_grip`` (the
 ``caption_label``, ``caption_grip`` (the ``grip_dots`` mark in the muted
 ink, between the title and the buttons, drawn in every theme; a sheet
 recolours it with ``dock-site::part(caption-grip) { muted-color: ... }`` and
-hides it with ``muted-color: transparent``), ``caption_menu`` and ``caption_menu_glyph`` (a
+hides it with ``muted-color: transparent`` (which warns W201, as any literal
+text ink does)), ``caption_menu`` and ``caption_menu_glyph`` (a
 ``chevron_down``), ``caption_pin`` and ``caption_pin_glyph`` (the ``pin``
 mark, checked while docked), ``caption_close`` and ``caption_close_glyph``;
 its states

@@ -202,6 +202,25 @@ void test_rule_faces() {
     require((*heading).foreground() == Color::rgba(1, 2, 3), "code's own foreground stands over the rule");
 }
 
+// A sheet whose only findings are literal colours in text positions
+// (W201): warned, and still applied.
+std::shared_ptr<const Theme> theme_from_sheet_with_literal_inks(std::string_view text) {
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    ThemeCompileOptions options{};
+    options.controls = stock_control_anatomies();
+    options.base = ThemeBase::windows_professional;
+    const ThemeCompileResult result = compile_theme_package(faces_package(text), library, images, options);
+    require(result.succeeded(), "the literal-ink sheet compiles");
+    for (const ThemeCompileDiagnostic& diagnostic : result.diagnostics()) {
+        const bool literal_ink = diagnostic.code == "W201";
+        require(literal_ink, "the literal-ink sheet warns only of literal inks");
+        if (!literal_ink) std::cerr << "  " << diagnostic.code << " " << diagnostic.name << '\n';
+    }
+    std::shared_ptr<const Theme> theme = result.theme();
+    return theme;
+}
+
 // The package's compile result, diagnostics and all.
 ThemeCompileResult compiled_sheet(std::string_view text) {
     ImageRegistry images{};
@@ -357,8 +376,8 @@ void test_dock_site_parts() {
 
     // The caption grip (cp29): drawn in every theme in the grip mark's muted
     // ink (owner, 2026-11-11); a rule recolours it, and a transparent ink
-    // hides it. The inks are roles: a literal colour in a text position
-    // warns (W201), though it still applies.
+    // hides it. A literal colour in a text position warns (W201), though
+    // it still applies.
     window.set_theme(theme_from_sheet(":root { grip-ink: #3060a0 on #ffffff; }\n"
                                       "dock-site::part(caption-grip) { muted-color: role(grip-ink); }\n"));
     window.perform_layout();
@@ -369,8 +388,10 @@ void test_dock_site_parts() {
     window.perform_layout();
     ColourPainter plain{};
     window.paint(plain);
-    window.set_theme(theme_from_sheet(":root { grip-none: transparent on #ffffff; }\n"
-                                      "dock-site::part(caption-grip) { muted-color: role(grip-none); }\n"));
+    // A role cannot be transparent, so the sheet hiding the grip writes the
+    // literal and takes its W201.
+    window.set_theme(
+        theme_from_sheet_with_literal_inks("dock-site::part(caption-grip) { muted-color: transparent; }\n"));
     window.perform_layout();
     ColourPainter hidden{};
     window.paint(hidden);
