@@ -3332,6 +3332,10 @@ void bound_identity_follows_list_changes() {
     const std::string current = (*source).stable_id(50U);
     const std::string first_selected = (*source).stable_id(10U);
     const std::string second_selected = (*source).stable_id(120U);
+    // In full-row selection the current cell's row is selected too, so the
+    // selection holds three rows: 50 (current), 10 and 120.
+    require((*grid).selected_rows().size() == 3U && (*grid).is_row_selected(row_at(50U)),
+            "the current row and the two rows are selected");
 
     std::uint64_t state = 0x2545F4914F6CDD1DULL;
     for (std::size_t step = 0U; step < 300U; ++step) {
@@ -3361,9 +3365,10 @@ void bound_identity_follows_list_changes() {
         const std::optional<DataGridViewCellAddress> cell = (*grid).current_cell();
         const std::optional<std::size_t> current_row = table.find(current);
         require(cell && current_row && (*cell).row.value == *current_row, "the current cell stays on its row");
-        require((*grid).is_row_selected(row_at(*table.find(first_selected))) &&
+        require((*grid).is_row_selected(row_at(*current_row)) &&
+                    (*grid).is_row_selected(row_at(*table.find(first_selected))) &&
                     (*grid).is_row_selected(row_at(*table.find(second_selected))) &&
-                    (*grid).selected_rows().size() == 2U,
+                    (*grid).selected_rows().size() == 3U,
                 "the selection stays on its rows");
     }
 
