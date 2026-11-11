@@ -74,6 +74,10 @@
 .canvas-mist::part(face) { background: #fbfbf9; }
 .container-face::part(face) { background: #f1f1ef; }
 .lifecycle-face::part(face) { background: #f4f4f2; }
+/* The basics page's lifecycle card (gallery-lifecycle-card): a near-white
+   plate, slightly translucent over its group, under the theme's ink. Its
+   accent strip and outline are mid tones that read on either plate. */
+.lifecycle-card::part(face) { background: rgb(247 249 251 / 93%); }
 .picture-light::part(face) { background: #f9f9f7; }
 .picture-dark::part(face) { background: #ededeb; }
 .picture-ground::part(face) { background: #efefed; }
@@ -109,6 +113,7 @@
   .canvas-mist::part(face) { background: #21211f; }
   .container-face::part(face) { background: #2a2a28; }
   .lifecycle-face::part(face) { background: #292927; }
+  .lifecycle-card::part(face) { background: rgb(42 48 54 / 93%); }
   .picture-light::part(face) { background: #2d2d2b; }
   .picture-dark::part(face) { background: #20201e; }
   .picture-ground::part(face) { background: #292927; }
