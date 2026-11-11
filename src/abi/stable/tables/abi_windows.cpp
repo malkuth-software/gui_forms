@@ -8,6 +8,7 @@
 #include "../engine/abi_engine.hpp"
 #include "../events/abi_event_fields.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../schema/abi_schema.hpp"
 #include "../windows/abi_window_handle.hpp"
 
 #include "gui_forms/application.hpp"
@@ -761,8 +762,8 @@ gf_status GF_CALL windows_create(gf_object root, gf_object* window) noexcept {
 }
 
 // The interactions every window raises (Window::append_interactions). Their
-// names and payloads are static strings, so the views interaction_at hands
-// out stay valid while the library is loaded.
+// names and payloads (the ABI's words for them, K2) are static strings, so
+// the views interaction_at hands out stay valid while the library is loaded.
 std::vector<InteractionDeclaration> window_interactions() {
     std::vector<InteractionDeclaration> interactions;
     Window::append_interactions(interactions);
@@ -799,7 +800,8 @@ gf_status GF_CALL windows_interaction_at(std::uint64_t interaction, gf_schema_in
         complete.struct_size = sizeof(gf_schema_interaction);
         complete.mutable_payload = held.mutable_payload ? 1U : 0U;
         complete.name = gf_utf8_view{held.name.data(), held.name.size()};
-        complete.payload = gf_utf8_view{held.payload.data(), held.payload.size()};
+        const std::string_view fields = interaction_payload_fields(held.payload);
+        complete.payload = gf_utf8_view{fields.data(), fields.size()};
         write_record(complete, record);
         return GF_STATUS_OK;
     } catch (...) {

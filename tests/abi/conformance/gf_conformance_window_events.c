@@ -86,22 +86,22 @@ static void window_listing(gf_kit* kit) {
             continue;
         }
         if (gf_kit_view_equals(interaction.name, "help_requested") &&
-            gf_kit_view_equals(interaction.payload, "HelpRequestEvent") && interaction.mutable_payload == 1u) {
+            gf_kit_view_equals(interaction.payload, "target_stable_id: text, position: point, help_namespace: text, help_string: text, keyword: text, navigator: enumeration, keyboard_initiated: boolean, handled: boolean") && interaction.mutable_payload == 1u) {
             help = 1;
         }
         if (gf_kit_view_equals(interaction.name, "focused_control_changed")) {
             focus = 1;
         }
         if ((gf_kit_view_equals(interaction.name, "key_down") || gf_kit_view_equals(interaction.name, "key_up")) &&
-            gf_kit_view_equals(interaction.payload, "KeyEventArgs") && interaction.mutable_payload == 1u) {
+            gf_kit_view_equals(interaction.payload, "key_code: unsigned_integer, physical_key: unsigned_integer, scan_code: unsigned_integer, modifiers: enumeration, repeat: boolean, released_by_deactivation: boolean, handled: boolean, suppress_key_press: boolean") && interaction.mutable_payload == 1u) {
             ++keys;
         }
         if (gf_kit_view_equals(interaction.name, "key_press") &&
-            gf_kit_view_equals(interaction.payload, "KeyPressEventArgs") && interaction.mutable_payload == 1u) {
+            gf_kit_view_equals(interaction.payload, "text: text, key_char: unsigned_integer, handled: boolean") && interaction.mutable_payload == 1u) {
             ++keys;
         }
         if (gf_kit_view_equals(interaction.name, "key_state_changed") &&
-            gf_kit_view_equals(interaction.payload, "KeyStateChange") && interaction.mutable_payload == 0u) {
+            gf_kit_view_equals(interaction.payload, "key_code: unsigned_integer, physical_key: unsigned_integer, scan_code: unsigned_integer, modifiers: enumeration, down: boolean, released_by_deactivation: boolean") && interaction.mutable_payload == 0u) {
             ++keys;
         }
     }

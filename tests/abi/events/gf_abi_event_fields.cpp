@@ -24,7 +24,9 @@
 #include "gui_forms/window.hpp"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
+#include <new>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -32,6 +34,30 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+// N12's measurement: every allocation of the process is counted, so the
+// cost of one emission through the ABI forwarder is the count across it.
+// Single threaded: the program raises its events on its one thread.
+namespace event_fields_allocation_probe {
+std::uint64_t allocations = 0U;
+} // namespace event_fields_allocation_probe
+
+void* operator new(std::size_t bytes) {
+    event_fields_allocation_probe::allocations = event_fields_allocation_probe::allocations + 1U;
+    void* memory = std::malloc(bytes == 0U ? 1U : bytes);
+    if (memory == nullptr) {
+        throw std::bad_alloc();
+    }
+    return memory;
+}
+void* operator new[](std::size_t bytes) {
+    void* memory = ::operator new(bytes);
+    return memory;
+}
+void operator delete(void* memory) noexcept { std::free(memory); }
+void operator delete[](void* memory) noexcept { std::free(memory); }
+void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
+void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
 
 namespace {
 
@@ -462,6 +488,70 @@ void key_events(const Tables& tables) {
     require_ok(tables.objects.release(root_object), "release the key root");
 }
 
+// A callback that reads nothing, so an emission's count is the forwarder's.
+void GF_CALL quiet_invoke(void* context, gf_event* event) {
+    int& invoked = *static_cast<int*>(context);
+    invoked = invoked + 1;
+    static_cast<void>(event);
+}
+
+// The allocations of rounds key_down dispatches to a button with
+// subscribers ABI subscriptions, per dispatch.
+double allocations_per_key_down(const Tables& tables, int subscribers) {
+    const gf_object root_object = create(tables, "panel", "fields.measure");
+    const gf_object button_object = create(tables, "button", "fields.measure.button");
+    const std::shared_ptr<Panel> root = control_of<Panel>(root_object);
+    const std::shared_ptr<Button> button = control_of<Button>(button_object);
+    (*button).set_requested_bounds({0.0, 0.0, 60.0, 20.0});
+    (*root).add_child(button);
+    Window window(root, Size{120.0, 60.0});
+    window.perform_layout();
+    (*button).focusable = true;
+    require(window.request_focus(button), "the measured button takes the focus");
+    int invoked = 0;
+    gf_callback callback{};
+    callback.struct_size = sizeof(gf_callback);
+    callback.invoke = &quiet_invoke;
+    callback.context = &invoked;
+    std::vector<gf_subscription> subscriptions(static_cast<std::size_t>(subscribers), 0U);
+    for (gf_subscription& subscription : subscriptions) {
+        require_ok(tables.events.subscribe(button_object, text_view("key_down"), &callback, &subscription),
+                   "subscribe the measured key_down");
+    }
+    KeyEvent pressed;
+    pressed.action = KeyAction::down;
+    pressed.physical_key = PhysicalKey::a;
+    // One dispatch first, so lazily built tables are not counted.
+    static_cast<void>(window.dispatch_key(pressed));
+    constexpr int rounds = 64;
+    const std::uint64_t before = event_fields_allocation_probe::allocations;
+    for (int round = 0; round < rounds; ++round) {
+        static_cast<void>(window.dispatch_key(pressed));
+    }
+    const std::uint64_t after = event_fields_allocation_probe::allocations;
+    require(invoked == subscribers * (rounds + 1), "every measured dispatch reaches every subscriber");
+    for (const gf_subscription subscription : subscriptions) {
+        require_ok(tables.events.disconnect(subscription), "disconnect the measured key_down");
+    }
+    require_ok(tables.objects.release(button_object), "release the measured button");
+    require_ok(tables.objects.release(root_object), "release the measured root");
+    const double per_dispatch = static_cast<double>(after - before) / static_cast<double>(rounds);
+    return per_dispatch;
+}
+
+// N12: what one emission through the ABI forwarder allocates, beside the
+// route's own cost (no subscriber). Each subscription reuses its fields, so
+// after its first emission a subscriber adds no allocation (before the
+// reuse: +11 per subscriber per key_down).
+void emission_allocations(const Tables& tables) {
+    const double none = allocations_per_key_down(tables, 0);
+    const double one = allocations_per_key_down(tables, 1);
+    const double four = allocations_per_key_down(tables, 4);
+    std::cout << "N12 key_down allocations per dispatch: route " << none << ", 1 subscriber +" << (one - none)
+              << ", 4 subscribers +" << (four - none) << '\n';
+    require(one == none && four == none, "an ABI subscriber adds no allocation per emission once warmed");
+}
+
 // The status a core failure reaches the C ABI as (N6): the core's own
 // failure types and its limit report name the header's statuses rather
 // than INVALID_STATE, and the ABI's text check is the text module's strict
@@ -510,6 +600,7 @@ int main() {
         optional_text(tables);
         two_arguments(tables);
         key_events(tables);
+        emission_allocations(tables);
         failure_statuses();
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';

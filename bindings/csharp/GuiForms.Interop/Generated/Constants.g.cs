@@ -46,6 +46,7 @@ public static class Constants
     public const uint GF_TABLE_DATA_GRID = 20u;
     public const uint GF_TABLE_DOCKING = 21u;
     public const uint GF_TABLE_FONTS = 22u;
+    public const uint GF_TABLE_HELP = 23u;
     public const uint GF_TABLE_WINDOWS_PAINT_ENDPOINT = 256u;
     public const uint GF_ABI_ENTRY_SLOT = 4294967295u;
     public const uint GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES = 512u;
@@ -289,6 +290,7 @@ public static class Constants
     public const uint GF_CONTROL_UPDATE_ON_PROPERTY_CHANGED = 0u;
     public const uint GF_CONTROL_UPDATE_NEVER = 1u;
     public const uint GF_BINDING_MAXIMUM_FIELDS = 1024u;
+    public const uint GF_BINDING_MAXIMUM_RECORDS_PER_CALL = 65536u;
     public const uint GF_SUBSURFACE_STATE_STOPPED = 0u;
     public const uint GF_SUBSURFACE_STATE_STARTING = 1u;
     public const uint GF_SUBSURFACE_STATE_RUNNING = 2u;
@@ -428,5 +430,8 @@ public static class Constants
     public const uint GF_DOCK_REFUSAL_SITE_REFUSES_KIND = 22u;
     public const uint GF_DOCK_REFUSAL_SITE_REFUSES_GROUP = 23u;
     public const uint GF_DOCK_REFUSAL_USER_DOCKING_LOCKED = 24u;
+    public const uint GF_HELP_NAVIGATOR_CONTENTS = 0u;
+    public const uint GF_HELP_NAVIGATOR_INDEX = 1u;
+    public const uint GF_HELP_NAVIGATOR_SEARCH = 2u;
     public const uint GF_PAINT_ENDPOINT_MAXIMUM_SIDE = 32768u;
 }

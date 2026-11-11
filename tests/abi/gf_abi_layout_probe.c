@@ -129,7 +129,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_objects_table, child_count) == 80, "gf_objects_tabl
 GF_LAYOUT_ASSERT(offsetof(gf_objects_table, child_at) == 88, "gf_objects_table.child_at offset");
 GF_LAYOUT_ASSERT(offsetof(gf_objects_table, parent) == 96, "gf_objects_table.parent offset");
 GF_LAYOUT_ASSERT(offsetof(gf_objects_table, create_with) == 104, "gf_objects_table.create_with offset");
-GF_LAYOUT_ASSERT(sizeof(gf_properties_table) == 48, "gf_properties_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_properties_table) == 64, "gf_properties_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_properties_table, struct_size) == 0, "gf_properties_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_properties_table, abi_minor) == 4, "gf_properties_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_properties_table, get) == 8, "gf_properties_table.get offset");
@@ -137,6 +137,8 @@ GF_LAYOUT_ASSERT(offsetof(gf_properties_table, set) == 16, "gf_properties_table.
 GF_LAYOUT_ASSERT(offsetof(gf_properties_table, reset) == 24, "gf_properties_table.reset offset");
 GF_LAYOUT_ASSERT(offsetof(gf_properties_table, element_at) == 32, "gf_properties_table.element_at offset");
 GF_LAYOUT_ASSERT(offsetof(gf_properties_table, read_elements) == 40, "gf_properties_table.read_elements offset");
+GF_LAYOUT_ASSERT(offsetof(gf_properties_table, get_at) == 48, "gf_properties_table.get_at offset");
+GF_LAYOUT_ASSERT(offsetof(gf_properties_table, set_at) == 56, "gf_properties_table.set_at offset");
 GF_LAYOUT_ASSERT(sizeof(gf_events_table) == 48, "gf_events_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_events_table, struct_size) == 0, "gf_events_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_events_table, abi_minor) == 4, "gf_events_table.abi_minor offset");
@@ -588,7 +590,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_binding_record, editable) == 4, "gf_binding_record.
 GF_LAYOUT_ASSERT(offsetof(gf_binding_record, stable_id) == 8, "gf_binding_record.stable_id offset");
 GF_LAYOUT_ASSERT(offsetof(gf_binding_record, fields) == 24, "gf_binding_record.fields offset");
 GF_LAYOUT_ASSERT(offsetof(gf_binding_record, field_count) == 32, "gf_binding_record.field_count offset");
-GF_LAYOUT_ASSERT(sizeof(gf_bindings_table) == 104, "gf_bindings_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_bindings_table) == 112, "gf_bindings_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, struct_size) == 0, "gf_bindings_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, abi_minor) == 4, "gf_bindings_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, bind) == 8, "gf_bindings_table.bind offset");
@@ -603,6 +605,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, set_position) == 72, "gf_bindings_t
 GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, position) == 80, "gf_bindings_table.position offset");
 GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, current_field) == 88, "gf_bindings_table.current_field offset");
 GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, set_current_field) == 96, "gf_bindings_table.set_current_field offset");
+GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, add_records) == 104, "gf_bindings_table.add_records offset");
 GF_LAYOUT_ASSERT(sizeof(gf_subsurface_content) == 40, "gf_subsurface_content size");
 GF_LAYOUT_ASSERT(offsetof(gf_subsurface_content, struct_size) == 0, "gf_subsurface_content.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_subsurface_content, opaque) == 4, "gf_subsurface_content.opaque offset");
@@ -789,6 +792,18 @@ GF_LAYOUT_ASSERT(offsetof(gf_fonts_table, struct_size) == 0, "gf_fonts_table.str
 GF_LAYOUT_ASSERT(offsetof(gf_fonts_table, abi_minor) == 4, "gf_fonts_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_fonts_table, family_id) == 8, "gf_fonts_table.family_id offset");
 GF_LAYOUT_ASSERT(offsetof(gf_fonts_table, family_name) == 16, "gf_fonts_table.family_name offset");
+GF_LAYOUT_ASSERT(sizeof(gf_help_table) == 80, "gf_help_table size");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, struct_size) == 0, "gf_help_table.struct_size offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, abi_minor) == 4, "gf_help_table.abi_minor offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, attach) == 8, "gf_help_table.attach offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, detach) == 16, "gf_help_table.detach offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, load_built_in) == 24, "gf_help_table.load_built_in offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, show) == 32, "gf_help_table.show offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, show_navigator) == 40, "gf_help_table.show_navigator offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, show_popup) == 48, "gf_help_table.show_popup offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, resolve) == 56, "gf_help_table.resolve offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, enter_help_mode) == 64, "gf_help_table.enter_help_mode offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, cancel_help_mode) == 72, "gf_help_table.cancel_help_mode offset");
 GF_LAYOUT_ASSERT(sizeof(gf_windows_paint_endpoint_table) == 104, "gf_windows_paint_endpoint_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_paint_endpoint_table, struct_size) == 0, "gf_windows_paint_endpoint_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_paint_endpoint_table, abi_minor) == 4, "gf_windows_paint_endpoint_table.abi_minor offset");

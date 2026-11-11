@@ -3,9 +3,13 @@
 // byte (carriage returns aside). The program consumes gf_abi.h and the
 // standard library only, as a binding generator would.
 //
-// Usage: gf_abi_schema_export <control-tables.schema.json> [<written.json>]
-// The second path, when given, receives the schema as the ABI gave it, so
-// a failure can be compared line by line.
+// Usage: gf_abi_schema_export <control-tables.schema.json> <interaction_fields.json>
+//        [<written.json>]
+// The committed schema spells interaction payloads in C++; the ABI publishes
+// them in its own words (K2), so each committed payload is first replaced by
+// its entry in manifests/abi/interaction_fields.json (the public map). The
+// third path, when given, receives the schema as the ABI gave it, so a
+// failure can be compared line by line.
 
 #include "gui_forms/c/gf_abi.h"
 
@@ -16,6 +20,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -604,6 +609,65 @@ std::string render_schema() {
 }
 
 // The committed file's text without carriage returns.
+// The map from a payload's C++ spelling to the ABI's words: one
+// `    "spelling": "fields",` line per entry, as abi_event_catalog.py writes
+// it (neither side holds a quote or a backslash).
+std::map<std::string, std::string, std::less<>> read_payload_fields(const char* path) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) {
+        throw std::runtime_error(std::string("cannot read ") + path);
+    }
+    std::map<std::string, std::string, std::less<>> fields;
+    std::string line;
+    while (std::getline(file, line)) {
+        const std::size_t first = line.find("    \"");
+        const std::size_t separator = line.find("\": \"");
+        if (first != 0U || separator == std::string::npos || line.find("\"payloads\"") != std::string::npos) {
+            continue;
+        }
+        const std::size_t value_start = separator + 4U;
+        const std::size_t value_end = line.rfind('"');
+        if (value_end < value_start) {
+            throw std::runtime_error(std::string("malformed entry in ") + path + ": " + line);
+        }
+        std::string spelling = line.substr(5U, separator - 5U);
+        std::string value = line.substr(value_start, value_end - value_start);
+        fields.insert_or_assign(std::move(spelling), std::move(value));
+    }
+    return fields;
+}
+
+// The committed schema with every interaction payload in the ABI's words.
+std::string translate_payloads(const std::string& committed,
+                               const std::map<std::string, std::string, std::less<>>& fields) {
+    constexpr std::string_view marker = "\"payload\": \"";
+    std::string translated;
+    translated.reserve(committed.size());
+    std::size_t position = 0U;
+    for (;;) {
+        const std::size_t found = committed.find(marker, position);
+        if (found == std::string::npos) {
+            translated.append(committed, position, std::string::npos);
+            break;
+        }
+        const std::size_t start = found + marker.size();
+        const std::size_t end = committed.find('"', start);
+        if (end == std::string::npos) {
+            throw std::runtime_error("an unterminated payload in the committed schema");
+        }
+        const std::string_view spelling(committed.data() + start, end - start);
+        const std::map<std::string, std::string, std::less<>>::const_iterator entry = fields.find(spelling);
+        if (entry == fields.end()) {
+            throw std::runtime_error("interaction_fields.json has no entry for the payload \"" +
+                                     std::string(spelling) + "\"");
+        }
+        translated.append(committed, position, start - position);
+        translated += (*entry).second;
+        position = end;
+    }
+    return translated;
+}
+
 std::string read_committed(const char* path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
@@ -630,19 +694,21 @@ std::size_t first_different_line(std::string_view left, std::string_view right) 
 }
 
 int run(int argc, char** argv) {
-    if (argc < 2) {
-        std::cerr << "usage: gf_abi_schema_export <control-tables.schema.json> [<written.json>]\n";
+    if (argc < 3) {
+        std::cerr << "usage: gf_abi_schema_export <control-tables.schema.json> <interaction_fields.json> "
+                     "[<written.json>]\n";
         return 2;
     }
     tables.schema.struct_size = sizeof(tables.schema);
     require_ok(gf_abi_get_table(GF_TABLE_SCHEMA, GF_ABI_MAJOR, GF_ABI_MINOR, &tables.schema, sizeof(tables.schema)),
                "gf_abi_get_table");
     const std::string written = render_schema();
-    if (argc > 2) {
-        std::ofstream file(argv[2], std::ios::binary | std::ios::trunc);
+    if (argc > 3) {
+        std::ofstream file(argv[3], std::ios::binary | std::ios::trunc);
         file << written;
     }
-    const std::string committed = read_committed(argv[1]);
+    const std::map<std::string, std::string, std::less<>> fields = read_payload_fields(argv[2]);
+    const std::string committed = translate_payloads(read_committed(argv[1]), fields);
     std::uint64_t type_count = 0U;
     require_ok(tables.schema.type_count(&type_count), "type_count");
     if (committed != written) {

@@ -70,5 +70,6 @@ global using gf_dock_option_flags = uint;
 global using gf_dock_window_visibility = uint;
 global using gf_dock_edit_kind = uint;
 global using gf_dock_refusal = uint;
+global using gf_help_navigator = uint;
 global using gf_paint_endpoint = ulong;
 global using gf_paint_write_lease = ulong;

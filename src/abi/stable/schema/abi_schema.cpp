@@ -2,6 +2,7 @@
 
 #include "abi_schema.hpp"
 
+#include "abi_interaction_fields.hpp"
 #include "abi_schema_catalog.hpp"
 #include "../windows/abi_window_properties.hpp"
 
@@ -9,6 +10,7 @@
 #include "gui_forms/semantics.hpp"
 #include "gui_forms/theme.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <span>
 #include <string>
@@ -17,6 +19,14 @@
 
 namespace gui_forms::abi1 {
 namespace {
+
+// Orders the generated payload table by its C++ spelling (sorted so).
+struct InteractionFieldsBefore final {
+    bool operator()(const InteractionFieldsEntry& entry, std::string_view payload) const noexcept {
+        return entry.payload < payload;
+    }
+};
+
 
 void add_name(std::vector<std::string>& names, std::string_view name) {
     names.emplace_back(name);
@@ -150,7 +160,7 @@ SchemaType type_of(const SchemaCatalogEntry& entry) {
     type.interactions.reserve(sample.interactions.size());
     for (const InteractionDeclaration& declaration : sample.interactions) {
         type.interactions.push_back(SchemaInteraction{std::string(declaration.name),
-                                                      std::string(declaration.payload),
+                                                      std::string(interaction_payload_fields(declaration.payload)),
                                                       declaration.mutable_payload});
     }
     return type;
@@ -184,7 +194,7 @@ SchemaType window_type() {
     type.interactions.reserve(interactions.size());
     for (const InteractionDeclaration& declaration : interactions) {
         type.interactions.push_back(SchemaInteraction{std::string(declaration.name),
-                                                      std::string(declaration.payload),
+                                                      std::string(interaction_payload_fields(declaration.payload)),
                                                       declaration.mutable_payload});
     }
     return type;
@@ -290,6 +300,15 @@ std::string_view catalog_type_id_of(const Component& object) {
         return (*control).anatomy().control_id;
     }
     return std::string_view{};
+}
+
+std::string_view interaction_payload_fields(std::string_view payload) noexcept {
+    const std::array<InteractionFieldsEntry, interaction_fields.size()>::const_iterator found =
+        std::lower_bound(interaction_fields.begin(), interaction_fields.end(), payload, InteractionFieldsBefore{});
+    if (found == interaction_fields.end() || (*found).payload != payload) {
+        return std::string_view();
+    }
+    return (*found).fields;
 }
 
 } // namespace gui_forms::abi1

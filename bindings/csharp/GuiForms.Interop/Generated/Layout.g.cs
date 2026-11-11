@@ -201,7 +201,7 @@ public static unsafe class Layout
         {
             gf_properties_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_properties_table size", sizeof(gf_properties_table), 48);
+            failures += expect(output, "gf_properties_table size", sizeof(gf_properties_table), 64);
             failures += expect(output, "gf_properties_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_properties_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_properties_table.get offset", (long)((byte*)&value.get - start), 8);
@@ -209,6 +209,8 @@ public static unsafe class Layout
             failures += expect(output, "gf_properties_table.reset offset", (long)((byte*)&value.reset - start), 24);
             failures += expect(output, "gf_properties_table.element_at offset", (long)((byte*)&value.element_at - start), 32);
             failures += expect(output, "gf_properties_table.read_elements offset", (long)((byte*)&value.read_elements - start), 40);
+            failures += expect(output, "gf_properties_table.get_at offset", (long)((byte*)&value.get_at - start), 48);
+            failures += expect(output, "gf_properties_table.set_at offset", (long)((byte*)&value.set_at - start), 56);
         }
         {
             gf_events_table value = default;
@@ -860,7 +862,7 @@ public static unsafe class Layout
         {
             gf_bindings_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_bindings_table size", sizeof(gf_bindings_table), 104);
+            failures += expect(output, "gf_bindings_table size", sizeof(gf_bindings_table), 112);
             failures += expect(output, "gf_bindings_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_bindings_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_bindings_table.bind offset", (long)((byte*)&value.bind - start), 8);
@@ -875,6 +877,7 @@ public static unsafe class Layout
             failures += expect(output, "gf_bindings_table.position offset", (long)((byte*)&value.position - start), 80);
             failures += expect(output, "gf_bindings_table.current_field offset", (long)((byte*)&value.current_field - start), 88);
             failures += expect(output, "gf_bindings_table.set_current_field offset", (long)((byte*)&value.set_current_field - start), 96);
+            failures += expect(output, "gf_bindings_table.add_records offset", (long)((byte*)&value.add_records - start), 104);
         }
         {
             gf_subsurface_content value = default;
@@ -1133,6 +1136,22 @@ public static unsafe class Layout
             failures += expect(output, "gf_fonts_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_fonts_table.family_id offset", (long)((byte*)&value.family_id - start), 8);
             failures += expect(output, "gf_fonts_table.family_name offset", (long)((byte*)&value.family_name - start), 16);
+        }
+        {
+            gf_help_table value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_help_table size", sizeof(gf_help_table), 80);
+            failures += expect(output, "gf_help_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_help_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
+            failures += expect(output, "gf_help_table.attach offset", (long)((byte*)&value.attach - start), 8);
+            failures += expect(output, "gf_help_table.detach offset", (long)((byte*)&value.detach - start), 16);
+            failures += expect(output, "gf_help_table.load_built_in offset", (long)((byte*)&value.load_built_in - start), 24);
+            failures += expect(output, "gf_help_table.show offset", (long)((byte*)&value.show - start), 32);
+            failures += expect(output, "gf_help_table.show_navigator offset", (long)((byte*)&value.show_navigator - start), 40);
+            failures += expect(output, "gf_help_table.show_popup offset", (long)((byte*)&value.show_popup - start), 48);
+            failures += expect(output, "gf_help_table.resolve offset", (long)((byte*)&value.resolve - start), 56);
+            failures += expect(output, "gf_help_table.enter_help_mode offset", (long)((byte*)&value.enter_help_mode - start), 64);
+            failures += expect(output, "gf_help_table.cancel_help_mode offset", (long)((byte*)&value.cancel_help_mode - start), 72);
         }
         {
             gf_windows_paint_endpoint_table value = default;

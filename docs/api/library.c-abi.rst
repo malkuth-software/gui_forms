@@ -150,6 +150,8 @@ Types
      -  
    * - :cpp:class:`gf_fonts_table <gf_fonts_table>`
      -  
+   * - :cpp:class:`gf_help_table <gf_help_table>`
+     -  
    * - :cpp:class:`gf_host_capabilities <gf_host_capabilities>`
      -  
    * - :cpp:class:`gf_host_table <gf_host_table>`
@@ -246,6 +248,8 @@ Types
      -  
    * - :cpp:class:`gf_windows_table <gf_windows_table>`
      -  
+   * - :cpp:class:`HelpTable <gui_forms::abi::HelpTable>`
+     - gf_help_table, negotiated as GF_TABLE_HELP.
    * - :cpp:class:`HostTable <gui_forms::abi::HostTable>`
      - gf_host_table, negotiated as GF_TABLE_HOST.
    * - :cpp:class:`ObjectReference <gui_forms::abi::ObjectReference>`
@@ -360,6 +364,8 @@ Types
    .. cpp:function:: gf_status position(gf_object source, int64_t* position, uint64_t* count) const noexcept
 
    .. cpp:function:: gf_status current_field(gf_object source, gf_utf8_view field, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status add_records(gf_object source, const gf_binding_record* records, uint64_t count, uint64_t* first) const noexcept
 
    .. cpp:function:: gf_status set_position(gf_object source, int64_t position, uint32_t* moved) const noexcept
 
@@ -1449,6 +1455,8 @@ Types
 
    .. cpp:member:: gf_status (*set_current_field)(gf_object source, gf_utf8_view field, const gf_value* value, uint32_t* accepted)
 
+   .. cpp:member:: gf_status (*add_records)(gf_object source, const gf_binding_record* records, uint64_t count, uint64_t* first)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -2180,6 +2188,37 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_help_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*attach)(gf_object system, gf_object window)
+
+   .. cpp:member:: gf_status (*detach)(gf_object system, gf_object window)
+
+   .. cpp:member:: gf_status (*load_built_in)(gf_object system, gf_utf8_view locale_xml)
+
+   .. cpp:member:: gf_status (*show)(gf_object system, gf_utf8_view stable_id, uint32_t* shown)
+
+   .. cpp:member:: gf_status (*show_navigator)(gf_object system, gf_help_navigator navigator, gf_utf8_view text, uint32_t* shown)
+
+   .. cpp:member:: gf_status (*show_popup)(gf_object system, gf_utf8_view stable_id, gf_object anchor, uint32_t* shown)
+
+   .. cpp:member:: gf_status (*resolve)(gf_object system, gf_object control, char* buffer, uint64_t capacity, uint64_t* required, uint32_t* home)
+
+   .. cpp:member:: gf_status (*enter_help_mode)(gf_object system, gf_object window, uint32_t* entered)
+
+   .. cpp:member:: gf_status (*cancel_help_mode)(gf_object system)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_host_capabilities
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2425,6 +2464,10 @@ Types
    .. cpp:member:: gf_status (*element_at)(gf_object object, gf_utf8_view name, uint64_t index, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
 
    .. cpp:member:: gf_status (*read_elements)(gf_object object, gf_utf8_view name, uint64_t first, uint64_t count, gf_value* values, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*get_at)(gf_object object, uint64_t index, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*set_at)(gf_object object, uint64_t index, const gf_value* value)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3311,6 +3354,53 @@ Types
 
 .. cpp:namespace:: gui_forms::abi
 
+.. cpp:class:: HelpTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_help_table, negotiated as GF_TABLE_HELP.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: HelpTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_help_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(HelpTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static HelpTable adopt(const gf_help_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status attach(gf_object system, gf_object window) const noexcept
+
+   .. cpp:function:: gf_status detach(gf_object system, gf_object window) const noexcept
+
+   .. cpp:function:: gf_status load_built_in(gf_object system, gf_utf8_view locale_xml) const noexcept
+
+   .. cpp:function:: gf_status show(gf_object system, gf_utf8_view stable_id, uint32_t* shown) const noexcept
+
+   .. cpp:function:: gf_status show_navigator(gf_object system, gf_help_navigator navigator, gf_utf8_view text, uint32_t* shown) const noexcept
+
+   .. cpp:function:: gf_status show_popup(gf_object system, gf_utf8_view stable_id, gf_object anchor, uint32_t* shown) const noexcept
+
+   .. cpp:function:: gf_status resolve(gf_object system, gf_object control, char* buffer, uint64_t capacity, uint64_t* required, uint32_t* home) const noexcept
+
+   .. cpp:function:: gf_status enter_help_mode(gf_object system, gf_object window, uint32_t* entered) const noexcept
+
+   .. cpp:function:: gf_status cancel_help_mode(gf_object system) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
 .. cpp:class:: HostTable
 
    ``#include <gui_forms/c/gf_abi.hpp>``
@@ -3525,6 +3615,10 @@ Types
    .. cpp:function:: gf_status element_at(gf_object object, gf_utf8_view name, uint64_t index, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
 
    .. cpp:function:: gf_status read_elements(gf_object object, gf_utf8_view name, uint64_t first, uint64_t count, gf_value* values, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status get_at(gf_object object, uint64_t index, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status set_at(gf_object object, uint64_t index, const gf_value* value) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

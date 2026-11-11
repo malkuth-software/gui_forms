@@ -102,4 +102,10 @@ inline constexpr std::string_view window_type_id = "window";
 // the schema does not list.
 [[nodiscard]] std::string_view catalog_type_id_of(const Component& object);
 
+// An interaction's payload in the ABI's own words (K2): the event fields its
+// callback receives, from the table abi_event_catalog.py generates for every
+// declaration (static storage). A payload the table lacks (a declaration the
+// generator did not read) is empty rather than its C++ spelling.
+[[nodiscard]] std::string_view interaction_payload_fields(std::string_view payload) noexcept;
+
 } // namespace gui_forms::abi1

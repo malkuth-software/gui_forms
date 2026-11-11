@@ -27,7 +27,7 @@ to_windows_path() { "$winepath_binary" -w "$1"; }
 
 for file in "$bundle" "$wine_binary" "$winepath_binary" "$windows_dotnet" \
             "$runner" "$forms" "$primitives" "$drawing" \
-            "$native_dir/gui_forms_abi0.dll" "$native_dir/gui_drawing_abi0.dll" \
+            "$native_dir/gui_forms_abi1.dll" "$native_dir/gui_drawing_abi0.dll" \
             "$native_dir/gui_drawing_raster0.dll" "$native_dir/fonts/PortsmouthRapids.ttf"; do
     require_file "$file"
 done
