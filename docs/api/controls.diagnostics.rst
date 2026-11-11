@@ -72,6 +72,10 @@ Related types
      - Every MetricsView capability, in the order the declaring class takes them.
    * - :cpp:class:`MetricsViewTitleCapability <gui_forms::MetricsViewTitleCapability>`
      - The heading painted above the metrics; it is also the accessible name.
+   * - :cpp:class:`StockSpecimen <gui_forms::StockSpecimen>`
+     -  
+   * - :cpp:class:`StockSpecimenInstance <gui_forms::StockSpecimenInstance>`
+     - What a window holds for one specimen.
    * - :cpp:class:`TypographySpecimen::Parts <gui_forms::TypographySpecimen::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`TypographySpecimen::States <gui_forms::TypographySpecimen::States>`
@@ -926,6 +930,42 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: StockSpecimen final
+
+   ``#include <gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp>``
+
+   .. cpp:member:: std::string_view control_id
+
+      The subject's control id, as stock_control_anatomies() names it ("check_box"). A type without an anatomy of its own (a plot item) publishes the base anatomy, "control", at run time.
+
+   .. cpp:member:: std::string_view family
+
+      The registry's category (manifests/controls.json), a palette's family ("Value setting").
+
+   .. cpp:member:: Size size
+
+      The logical size the subject is laid out at.
+
+   .. cpp:member:: std::string_view sample_text
+
+      The text set on a type with a writable ``text`` property ("Check box").
+
+   .. cpp:member:: StockSpecimenMaker make
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: StockSpecimenInstance final
+
+   ``#include <gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp>``
+
+   What a window holds for one specimen. ``subject`` is the control of the row's type, which a palette captures and shows states on; ``root`` is what the window holds: the subject itself, or a holder that owns what the subject borrows (a PageSet, a DockWorkspace, an overlay's anchor) and lays the subject over its whole client area. Keep ``root`` alive while ``subject`` is used.
+
+   .. cpp:member:: Control::Ptr root
+
+   .. cpp:member:: Control::Ptr subject
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TypographySpecimen::Parts final
 
    ``#include <gui_forms/controls/typography_specimen/typography_specimen.hpp>``
@@ -1582,6 +1622,26 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp>``
+
+.. cpp:function:: std::span<const StockSpecimen> stock_specimens() noexcept
+
+   Every row, in schema order. Static storage.
+
+.. cpp:function:: const StockSpecimen* find_stock_specimen(std::string_view control_id) noexcept
+
+   The row for ``control_id``, or null.
+
+.. cpp:function:: StockSpecimenInstance make_stock_specimen(const StockSpecimen& specimen, StableId id)
+
+   ``specimen``'s instance (specimen.make), IDs starting with ``id``. Makers write only ordinary property values; a refused write is the write's own exception (std::invalid_argument or std::logic_error). UI thread.
+
+.. cpp:type:: StockSpecimenMaker = StockSpecimenInstance (*)(const StockSpecimen& specimen, StableId id)
+
+   Makes ``specimen``'s instance, its controls' stable IDs starting with ``id``.
 
 .. cpp:namespace:: gui_forms
 

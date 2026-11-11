@@ -380,7 +380,9 @@ Related types
    * - :cpp:class:`ProgressRingValueCapability <gui_forms::ProgressRingValueCapability>`
      - The progress, from 0 to maximum; a value outside that range is drawn clamped to it.
    * - :cpp:class:`ProgressStripes <gui_forms::ProgressStripes>`
-     - Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay).
+     - Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay): filled bands clipped to the fill's inner shape, leaning back from the leading edge and travelling toward it, anchored to the track's start edge so a growing fill does not shift them.
+   * - :cpp:class:`ProgressStripeView <gui_forms::ProgressStripeView>`
+     - The marching stripes' geometry and colours (the barber pole, owner rulings of 2026-11-11), resolved by the bar from the fill part's stripe properties (ControlStripePattern) before the frame runs.
    * - :cpp:class:`ProgressWovenStripes <gui_forms::ProgressWovenStripes>`
      - Randomly woven stripes (owner amendment, 2026-11-02): setup chooses which stripes exist, where and in what order at random; run weaves each in as the fraction passes its threshold, and shimmers them.
    * - :cpp:class:`RadialGauge::Parts <gui_forms::RadialGauge::Parts>`
@@ -3317,7 +3319,7 @@ Related types
 
    ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
 
-   Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay).
+   Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay): filled bands clipped to the fill's inner shape, leaning back from the leading edge and travelling toward it, anchored to the track's start edge so a growing fill does not shift them. Each band is one four-point polygon; the bar keeps the pitch at least the fill's length over maximum_stripes less the margin bands, so run's bound (256 passes of about 110: a polygon 72, its points and the pass's arithmetic) stays under the 40,000 budget.
 
 
    .. rubric:: Methods
@@ -3328,9 +3330,61 @@ Related types
 
    .. cpp:member:: constexpr std::size_t maximum_stripes
 
-      Default: ``1024U``.
+      Default: ``256U``.
 
    .. cpp:member:: constexpr EffectDeclaration declaration
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ProgressStripeView final
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+
+   The marching stripes' geometry and colours (the barber pole, owner rulings of 2026-11-11), resolved by the bar from the fill part's stripe properties (ControlStripePattern) before the frame runs. Lengths are logical units in bar space: along the fill direction and across it.
+
+   .. cpp:member:: double pitch
+
+      The distance from one band to the next, along the fill direction. Default: ``{16.0}``.
+
+   .. cpp:member:: double band
+
+      The pale band's width, a minority of the pitch: the fill colour between the bands dominates. Default: ``{6.4}``.
+
+   .. cpp:member:: double slant
+
+      How far a band's far side (across the bar) runs ahead of its near side, along the fill direction: positive leans the band back from the leading edge (Rule 1), negative leans it forward. Default: ``{16.0}``.
+
+   .. cpp:member:: bool forward
+
+      Whether the bands travel toward the leading edge (Rule 2); false travels them back toward the start edge. Default: ``{true}``.
+
+   .. cpp:member:: ProgressFillDirection direction
+
+      Default: ``{ProgressFillDirection::left_to_right}``.
+
+   .. cpp:member:: Rect clip
+
+      The fill's inner shape the bands are clipped to: the fill inside its rim, with its rounded ends.
+
+   .. cpp:member:: double clip_radius
+
+   .. cpp:member:: Color colour
+
+      The pale band's colour, and the opaque ground painted under the bands where the theme sets ``stripe-ground`` (alpha 0: the fill as painted shows between the bands).
+
+   .. cpp:member:: Color ground
+
+   .. cpp:member:: bool gloss
+
+      Whether a gloss is drawn over a painted ground, standing for the fill's shading it covers. Default: ``{true}``.
+
+   .. cpp:member:: double period_seconds
+
+      Seconds for the bands to travel one pitch; 0 holds them. Default: ``{1.25}``.
+
+   .. cpp:member:: bool hidden
+
+      Whether the bands are hidden rather than held while motion is reduced (``stripe-reduced-motion: none``).
 
 .. cpp:namespace:: gui_forms
 
@@ -4302,6 +4356,20 @@ Enumerations
    .. cpp:enumerator:: marching_stripes
 
    .. cpp:enumerator:: laser_etch
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ProgressFillDirection
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+
+   .. cpp:enumerator:: left_to_right
+
+   .. cpp:enumerator:: right_to_left
+
+   .. cpp:enumerator:: bottom_to_top
+
+   .. cpp:enumerator:: top_to_bottom
 
 .. cpp:namespace:: gui_forms
 

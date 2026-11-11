@@ -300,6 +300,8 @@ gui_forms::Control
          how stock controls paint and what state they report to assistive
          technology.
 
+      **specimen_states** : ``AnatomyStateSet``
+
       **invoke_required** : ``bool``, read-only
          Whether the calling thread must go through :cpp:func:`begin_invoke <gui_forms::Control::begin_invoke>` or :cpp:func:`invoke <gui_forms::Control::invoke>`
          to touch the control: true when the control is attached and the caller
@@ -1098,6 +1100,12 @@ gui_forms::Control
    .. cpp:function:: void set_visual_status(ControlVisualStatus status)
 
       Sets :cpp:func:`visual_status <gui_forms::Control::visual_status>`; see the property's description above.
+
+   .. cpp:function:: AnatomyStateSet specimen_states() const noexcept
+
+   .. cpp:function:: void set_specimen_states(AnatomyStateSet shown)
+
+      Specimen states (theme palettes and tests only; owner request 2026-11-11): shows ``shown`` among the control's published states (base_anatomy_states, so anatomy_states and the parts' states, and visual_context) on top of what its input, focus and values give it, so that a palette can draw a control hot, pressed or focused without sending input. Nothing else changes: no event is raised; focus, pointer capture, values and semantics stay as they are; and real input still adds its own states. A shown disabled replaces enabled, and a shown focus_visible adds focused. Every standard state in ``shown`` must be one anatomy().states declares and every custom index one anatomy().custom_states declares; otherwise std::invalid_argument naming the first other, changing nothing. An empty set ends the presentation. Repaints the control. UI thread. A palette reaches value states (checked, selected, read_only, invalid, disabled) through the control's real values instead: show_specimen_state (gui_forms/capture/specimen_states) chooses the route per state. A control whose paint reads its own flags rather than its published states draws a shown state as its rest state.
 
    .. cpp:function:: bool invoke_required() const noexcept
 

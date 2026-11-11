@@ -81,7 +81,7 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "The retained window model, update scopes, damage, frame scheduling, "
           "the UI-thread dispatcher, per-window instrumentation and each "
           "thread's shadow frames.",
-          ("window", "surface_root", "scheduler", "dispatcher", "display", "dirty", "metrics", "diagnostics")),
+          ("window", "surface_root", "scheduler", "dispatcher", "display", "dirty", "metrics", "diagnostics", "capture")),
     Group("control-and-component", "Control and component",
           "The base classes every control and nonvisual component derives from, "
           "with layout, docking, anchoring and validation vocabularies (layout "
@@ -178,6 +178,9 @@ DIRECTORY_TO_CATEGORY: dict[str, str] = {
     "include/gui_forms/controls/node_canvas": "Drawing",
     # The help system's support headers (printing) sit beside its controls.
     "include/gui_forms/controls/help": "Information display",
+    # The stock specimens (one per anatomy, for captures and the theme
+    # editor's palette) are a catalogue, not a control.
+    "include/gui_forms/controls/specimen": "Diagnostics",
 }
 
 CATEGORY_DESCRIPTIONS: dict[str, str] = {

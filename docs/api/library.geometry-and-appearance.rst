@@ -79,13 +79,15 @@ Types
    * - :cpp:class:`ConnectedControlVisualGeometry <gui_forms::ConnectedControlVisualGeometry>`
      - The resolved recipe owns no renderer object.
    * - :cpp:class:`ControlPartMetrics <gui_forms::ControlPartMetrics>`
-     - A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle.
+     -  
    * - :cpp:class:`ControlRoleRecipes <gui_forms::ControlRoleRecipes>`
      - ControlRoleRecipes stores complete ordinary, selected, high-contrast, and high-contrast-selected recipes across the closed surface-state axis.
    * - :cpp:class:`ControlRoleTable <gui_forms::ControlRoleTable>`
      - The recipes of every control visual role, indexed by ControlVisualRole, held out of line.
    * - :cpp:class:`ControlStateRecipes <gui_forms::ControlStateRecipes>`
      -  
+   * - :cpp:class:`ControlStripePattern <gui_forms::ControlStripePattern>`
+     - A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle.
    * - :cpp:class:`ControlTextShadow <gui_forms::ControlTextShadow>`
      - A text shadow (E9.6, CSS ``text-shadow``): the text's glyphs, moved by ``offset`` logical units (each axis within ±maximum_text_shadow_offset), blurred by ``blur_radius`` (the shadows' blur-radius convention, 0 to maximum_text_shadow_blur; both limits are the theme rules') and drawn in ``color`` under the glyphs.
    * - :cpp:class:`ControlVisualContext <gui_forms::ControlVisualContext>`
@@ -1256,8 +1258,6 @@ Types
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
 
-   A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle. Lengths are logical units; a taper, flare or edge shadow of zero draws nothing.
-
    .. cpp:member:: std::optional<double> block_size
 
    .. cpp:member:: std::optional<double> minimum_inline_size
@@ -1281,6 +1281,8 @@ Types
    .. cpp:member:: double edge_shadow_width
 
    .. cpp:member:: Color edge_shadow_colour
+
+   .. cpp:member:: ControlStripePattern stripes
 
 .. cpp:namespace:: gui_forms
 
@@ -1353,6 +1355,34 @@ Types
    .. cpp:function:: const ControlVisualRecipe& resolve(ControlSurfaceState state) const noexcept
 
    .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> values
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ControlStripePattern final
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
+
+   A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle. Lengths are logical units; a taper, flare or edge shadow of zero draws nothing. A part's stripe pattern (RecipeField::stripe_pitch to stripe_reduced_motion; the barber pole, owner rulings of 2026-11-11), each unset where no rule sets it, when the stripe effect keeps its own value: pitch auto (the fill's inner thickness, at least 8), a pale share of 0.4, 45 degrees, a backward lean travelling forward at 0.8 pitches a second, the fill as the theme paints it under translucent pale bands, a gloss over opaque stripe colours, and still bands under reduced motion. A pitch of 0 is ``auto``.
+
+   .. cpp:member:: std::optional<double> pitch
+
+   .. cpp:member:: std::optional<double> ratio
+
+   .. cpp:member:: std::optional<double> angle_degrees
+
+   .. cpp:member:: std::optional<StripeSense> lean
+
+   .. cpp:member:: std::optional<StripeSense> direction
+
+   .. cpp:member:: std::optional<double> speed
+
+   .. cpp:member:: std::optional<Color> colour
+
+   .. cpp:member:: std::optional<Color> ground
+
+   .. cpp:member:: std::optional<StripeGloss> gloss
+
+   .. cpp:member:: std::optional<StripeReducedMotion> reduced_motion
 
 .. cpp:namespace:: gui_forms
 
@@ -1702,6 +1732,10 @@ Types
    .. cpp:function:: void clip_rect(Rect rect) noexcept
 
       Narrows the clip to ``rect`` (in the current offset's coordinates).
+
+   .. cpp:function:: void clip_rounded_rect(Rect rect, double radius) noexcept
+
+      Narrows the clip to ``rect`` with every corner rounded by ``radius`` (clamped to half the shorter side; 0 is a plain clip_rect), in the current offset's coordinates: a fill's inner shape, inside its rim.
 
    .. cpp:function:: void translate(Point offset) noexcept
 
@@ -4762,6 +4796,18 @@ Types
 
       Default: ``{NeedleShape::tapered}``.
 
+   .. cpp:member:: StripeSense stripe_sense
+
+      The stripe pattern's keywords (stripe_lean and stripe_direction, stripe_gloss, stripe_reduced_motion). Default: ``{StripeSense::forward}``.
+
+   .. cpp:member:: StripeGloss stripe_gloss
+
+      Default: ``{StripeGloss::automatic}``.
+
+   .. cpp:member:: StripeReducedMotion stripe_reduced_motion
+
+      Default: ``{StripeReducedMotion::still}``.
+
    .. cpp:member:: bool shadowed
 
    .. cpp:member:: Point shadow_offset
@@ -7396,6 +7442,26 @@ Enumerations
 
    .. cpp:enumerator:: edge_shadow_colour
 
+   .. cpp:enumerator:: stripe_pitch
+
+   .. cpp:enumerator:: stripe_ratio
+
+   .. cpp:enumerator:: stripe_angle
+
+   .. cpp:enumerator:: stripe_lean
+
+   .. cpp:enumerator:: stripe_direction
+
+   .. cpp:enumerator:: stripe_speed
+
+   .. cpp:enumerator:: stripe_colour
+
+   .. cpp:enumerator:: stripe_ground_colour
+
+   .. cpp:enumerator:: stripe_gloss
+
+   .. cpp:enumerator:: stripe_reduced_motion
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -7555,6 +7621,36 @@ Enumerations
    .. cpp:enumerator:: fractional
 
    .. cpp:enumerator:: too_small
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: StripeGloss
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: automatic
+
+   .. cpp:enumerator:: none
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: StripeReducedMotion
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: still
+
+   .. cpp:enumerator:: none
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: StripeSense
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: forward
+
+   .. cpp:enumerator:: backward
 
 .. cpp:namespace:: gui_forms
 
@@ -8460,6 +8556,34 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_part_shape
 
    Value: ``64.0``.
+
+.. cpp:var:: constexpr double minimum_stripe_pitch
+
+   What a stripe pattern admits (RecipeField::stripe_pitch to stripe_speed): a pitch of 0 (auto) or 4 to 64 logical units, a pale share of 0.1 to 0.9, an angle of 15 to 75 degrees and a speed of 0 to 3 pitches per second. Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_stripe_pitch
+
+   Value: ``64.0``.
+
+.. cpp:var:: constexpr double minimum_stripe_ratio
+
+   Value: ``0.1``.
+
+.. cpp:var:: constexpr double maximum_stripe_ratio
+
+   Value: ``0.9``.
+
+.. cpp:var:: constexpr double minimum_stripe_angle
+
+   Value: ``15.0``.
+
+.. cpp:var:: constexpr double maximum_stripe_angle
+
+   Value: ``75.0``.
+
+.. cpp:var:: constexpr double maximum_stripe_speed
+
+   Value: ``3.0``.
 
 .. cpp:var:: constexpr double minimum_rule_font_size
 

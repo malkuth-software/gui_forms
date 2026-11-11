@@ -50,6 +50,8 @@ Related types
      - The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them.
    * - :cpp:class:`ControlAvailabilityChange <gui_forms::ControlAvailabilityChange>`
      - ControlAvailabilityChange carries authoritative runtime/stable identity and effective visibility/enabled state after retained lifecycle change.
+   * - :cpp:class:`ControlCaptureOptions <gui_forms::ControlCaptureOptions>`
+     - What Window::capture_control draws (owner request 2026-11-11, the theme palette): one control and its descendants as the window lays them out.
    * - :cpp:class:`ControlLookup <gui_forms::ControlLookup>`
      - What SurfaceRoot::control found: the one control with the ID, or why there is none (then ``control`` is null).
    * - :cpp:class:`ControlSnapshot <gui_forms::ControlSnapshot>`
@@ -106,6 +108,16 @@ Related types
      -  
    * - :cpp:class:`NativePopupToken <gui_forms::NativePopupToken>`
      - Keeps one popup open (Window::open_native_popup).
+   * - :cpp:class:`OffscreenAttachment <gui_forms::OffscreenAttachment>`
+     - While it lives, ``window`` measures text with ``raster`` and draws captures through it: it is the window's text metrics provider and framebuffer painter.
+   * - :cpp:class:`OffscreenCaptureOptions <gui_forms::OffscreenCaptureOptions>`
+     - What OffscreenAttachment's captures draw.
+   * - :cpp:class:`OffscreenRaster <gui_forms::OffscreenRaster>`
+     - A CPU raster with the bundled fonts registered and no host window.
+   * - :cpp:class:`OffscreenRasterCreateResult <gui_forms::OffscreenRasterCreateResult>`
+     - OffscreenRaster::create's outcome: the raster, or why there is none.
+   * - :cpp:class:`OffscreenRasterOptions <gui_forms::OffscreenRasterOptions>`
+     -  
    * - :cpp:class:`OverlayOptions <gui_forms::OverlayOptions>`
      - OverlayOptions distinguishes interactive overlays that require an enabled owner from passive providers that require only live visible attachment.
    * - :cpp:class:`OverlayToken <gui_forms::OverlayToken>`
@@ -140,6 +152,8 @@ Related types
      - Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included.
    * - :cpp:class:`ShadowStackState <gui_forms::ShadowStackState>`
      - The calling thread's stack beside its frames.
+   * - :cpp:class:`SpecimenStateResult <gui_forms::SpecimenStateResult>`
+     -  
    * - :cpp:class:`SurfaceRequestAnswer <gui_forms::SurfaceRequestAnswer>`
      - Where a request's answers go: posted through the requesting root's dispatcher and called on its thread, in the order they were given.
    * - :cpp:class:`SurfaceRequestOutcome <gui_forms::SurfaceRequestOutcome>`
@@ -410,6 +424,26 @@ Related types
    .. cpp:member:: bool effectively_visible
 
    .. cpp:member:: bool effectively_enabled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ControlCaptureOptions final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   What Window::capture_control draws (owner request 2026-11-11, the theme palette): one control and its descendants as the window lays them out.
+
+   .. cpp:member:: double scale
+
+      Device pixels per logical unit; 0 takes the window's own scale.
+
+   .. cpp:member:: double margin
+
+      Logical units added around the control's bounds on every side, for what it draws outside them (focus and default rings, shadows); the area is clipped to the window. Negative or not finite is refused.
+
+   .. cpp:member:: bool include_backplane
+
+      The window's backplane (the theme's window material) under the control, as capture_window draws it, so the picture is what the window shows there; off, what the subtree does not paint stays transparent, as snapshot_control leaves it. Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1061,6 +1095,142 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: OffscreenAttachment final
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   While it lives, :cpp:func:`window <gui_forms::OffscreenAttachment::window>` measures text with ``raster`` and draws captures through it: it is the window's text metrics provider and framebuffer painter. Its end puts back the provider the window had and removes the painter. Attach only a window with no host (a window an application run shows keeps its host's raster). Declare it after the raster and the window, so that it ends before both. std::logic_error off the window's thread (which must be the raster's). Not copyable or movable.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: OffscreenAttachment(OffscreenRaster& raster, Window& window)
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Window& window() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::optional<WindowCapture> capture_window(const OffscreenCaptureOptions& options)
+
+      The whole window (Window::capture_window) at ``options``. None as capture_window, or for a refused scale; the window's settings are put back either way.
+
+   .. cpp:function:: std::optional<WindowCapture> capture_control(const Control::Ptr& control, const OffscreenCaptureOptions& options)
+
+      One control and its descendants (Window::capture_control) at ``options``. None as capture_control.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: OffscreenCaptureOptions final
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   What OffscreenAttachment's captures draw. The settings apply for the capture alone: the window's own scale and presentation are put back after it (a scale change relays the window out, both ways).
+
+   .. cpp:member:: double scale
+
+      Device pixels per logical unit, in (0, 8]. The window is laid out at this scale for the capture, as a host lays it out on such a display. Default: ``{1.0}``.
+
+   .. cpp:member:: std::optional<ColourScheme> colour_scheme
+
+      The colour scheme drawn; none keeps the window's.
+
+   .. cpp:member:: std::optional<bool> high_contrast
+
+      Forced high contrast; none keeps the window's.
+
+   .. cpp:member:: bool include_overlays
+
+      capture_window: the window's in-surface overlays. Default: ``{true}``.
+
+   .. cpp:member:: double margin
+
+      capture_control: logical units around the control (ControlCaptureOptions::margin).
+
+   .. cpp:member:: bool include_backplane
+
+      capture_control: the window's backplane under the control. Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: OffscreenRaster final
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   A CPU raster with the bundled fonts registered and no host window. A window borrows it through an OffscreenAttachment; captures make their own framebuffers, so one raster serves windows of any size and scale, one at a time or together. One thread: the one that made it, which is the UI thread of every window attached to it. Not copyable or movable: windows hold its address. Destroy it after every attachment to it has ended (its destructor stops the program otherwise, since a window would keep a dangling painter).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const std::filesystem::path& font_directory() const noexcept
+
+      The directory its faces came from.
+
+   .. cpp:function:: std::size_t attachments() const noexcept
+
+      How many attachments to it are alive.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static OffscreenRasterCreateResult create(const OffscreenRasterOptions& options = {})
+
+      Finds the bundled faces (OffscreenRasterOptions), reads and seals them once for the process (the hosts' shared set) and makes the raster. On the UI thread.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: OffscreenRasterCreateResult final
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   OffscreenRaster::create's outcome: the raster, or why there is none. Made only through :cpp:func:`created <gui_forms::OffscreenRasterCreateResult::created>` and :cpp:func:`refused <gui_forms::OffscreenRasterCreateResult::refused>`.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: OffscreenRasterCreateResult(OffscreenRasterCreateResult&&) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool succeeded() const noexcept
+
+      Whether a raster was made (true still after take_raster).
+
+   .. cpp:function:: OffscreenRasterError error() const noexcept
+
+      none when a raster was made.
+
+   .. cpp:function:: std::string detail() const
+
+      For a refusal, what was refused and where it looked; empty otherwise.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static OffscreenRasterCreateResult created(std::unique_ptr<OffscreenRaster> raster)
+
+   .. cpp:function:: static OffscreenRasterCreateResult refused(OffscreenRasterError error, std::string detail)
+
+   .. cpp:function:: std::unique_ptr<OffscreenRaster> take_raster() noexcept
+
+      The raster, moved out to the caller; null after a refusal or a second take.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: OffscreenRasterOptions final
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   .. cpp:member:: std::filesystem::path font_directory
+
+      The bundled font directory (assets/fonts, installed as share/GUIForms/fonts); empty looks where the hosts look.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: OverlayOptions final
 
    ``#include <gui_forms/surface_root/surface_root.hpp>``
@@ -1487,6 +1657,20 @@ Related types
    .. cpp:member:: std::uint64_t dropped
 
       Default: ``0U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SpecimenStateResult final
+
+   ``#include <gui_forms/capture/specimen_states/specimen_states.hpp>``
+
+   .. cpp:member:: SpecimenStateRoute route
+
+      Default: ``{SpecimenStateRoute::rest}``.
+
+   .. cpp:member:: std::string detail
+
+      The property written ("checked"), or for refused the refusal's text; empty otherwise.
 
 .. cpp:namespace:: gui_forms
 
@@ -2379,6 +2563,20 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: OffscreenRasterError
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: fonts_not_found
+
+   .. cpp:enumerator:: fonts_refused
+
+   .. cpp:enumerator:: raster_refused
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PaintLeaseState
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
@@ -2460,6 +2658,24 @@ Enumerations
    .. cpp:enumerator:: paint_pass
 
    .. cpp:enumerator:: posted_callback
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SpecimenStateRoute
+
+   ``#include <gui_forms/capture/specimen_states/specimen_states.hpp>``
+
+   .. cpp:enumerator:: rest
+
+   .. cpp:enumerator:: value
+
+   .. cpp:enumerator:: presentation
+
+   .. cpp:enumerator:: environment
+
+   .. cpp:enumerator:: not_declared
+
+   .. cpp:enumerator:: refused
 
 .. cpp:namespace:: gui_forms
 
@@ -2573,6 +2789,22 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/capture/specimen_states/specimen_states.hpp>``
+
+.. cpp:function:: SpecimenStateResult show_specimen_state(Control& control, AnatomyState state)
+
+   Shows ``state`` on ``control`` by its route, above. Never throws for a state the control cannot take: that is not_declared or refused.
+
+.. cpp:function:: SpecimenStateResult show_specimen_custom_state(Control& control, CustomStateIndex state)
+
+   Shows custom state ``state`` (a position in anatomy().custom_states) by presentation; not_declared past the declaration.
+
+.. cpp:function:: std::string_view specimen_state_route_name(SpecimenStateRoute route) noexcept
+
+   The route name ("value") for manifests and logs.
 
 .. cpp:namespace:: gui_forms
 
