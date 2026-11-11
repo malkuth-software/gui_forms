@@ -219,7 +219,9 @@ struct ThemeRequestContext final {
     // The program's published values.
     std::vector<std::string> published_values{};
     // The effects a theme's `effect` may name; it must outlive the request.
-    // Null: only the names' form is checked.
+    // Null: the process's installed registry when the request is settled
+    // (installed_effect_registry); with none installed either, only the
+    // names' form is checked and the report says so.
     const EffectRegistry* effects{};
 };
 

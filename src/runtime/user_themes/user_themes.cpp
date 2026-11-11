@@ -1,4 +1,5 @@
 #include "gui_forms/application/user_themes/user_themes.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
@@ -262,14 +263,16 @@ void report_findings(ThemeRequestReport& report, std::span<const ThemeCompileDia
     }
 }
 
-// The compile options of `context`, borrowing it.
+// The compile options of `context`, borrowing it. A context without a
+// registry of its own borrows the process's installed one, read now
+// (installed_effect_registry); null when neither is there.
 ThemeCompileOptions options_of(const ThemeRequestContext& context) {
     ThemeCompileOptions options{};
     options.controls = context.controls.empty() ? stock_control_anatomies()
                                                 : std::span<const ControlAnatomy>(context.controls);
     options.published_values = std::span<const std::string>(context.published_values);
     options.base = context.base;
-    options.effects = context.effects;
+    options.effects = context.effects != nullptr ? context.effects : installed_effect_registry();
     return options;
 }
 
@@ -538,6 +541,12 @@ ThemeRequestReport apply_theme_request(ApplicationResources& resources, const Th
         return report;
     }
     const ThemeCompileOptions options = options_of(context);
+    if (options.effects == nullptr) {
+        // No registry to check against: a misspelt `effect` name is not
+        // refused (E417 is skipped) and the effect is simply absent.
+        report_line(report, request_text(request) +
+                                ": no effect registry is installed, so `effect` names are checked for their form only");
+    }
     const ThemeLibrary no_library{};
     const ThemeLibrary& library = context.library != nullptr ? *context.library : no_library;
     if (request.kind == ThemeRequestKind::named) {

@@ -3,7 +3,6 @@
 #include "gui_forms/text/types/text_types.hpp"
 
 #include "gui_forms/application/user_themes/user_themes.hpp"
-#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
@@ -376,16 +375,14 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
     // The theme the process was started with (--theme,
     // GUI_FORMS_THEME_SHEET), held for the first window, which settles it
     // once the program has chosen its policy and its own user theme. The
-    // configured effects are borrowed for create only, so the request
-    // checks a user theme's `effect` names against the built-in registry,
-    // which lives as long as the process and is the one every stock
-    // control attaches its effects from: a name it does not hold refuses
-    // the user theme (E417) as it refuses a program package, and the
-    // program's own theme stays.
+    // configured effects are borrowed for create only, so the request holds
+    // none: it is settled against the process's installed registry
+    // (installed_effect_registry, read then), where a name the registry
+    // does not hold refuses the user theme (E417) as it refuses a program
+    // package, and the program's own theme stays.
     ThemeRequestContext request_context{};
     request_context.library = std::make_shared<const ThemeLibrary>(std::move(config.theme.library));
     request_context.base = config.theme.base;
-    request_context.effects = &built_in_effect_registry();
     // The stock anatomies and the program's own, which theme_anatomies
     // places in the storage when there are both; none means the stock ones.
     if (!config.theme.controls.empty()) {
