@@ -2214,7 +2214,10 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
     const std::size_t text_position = static_cast<std::size_t>(RecipeField::text);
     const bool important_text = fields.fields[text_position] != nullptr &&
                                 fields.levels[text_position] >= CascadeLevel::important_user_theme;
-    return ResolvedControlRecipe(floor, std::move(authored), important_text);
+    const std::size_t glyph_position = static_cast<std::size_t>(RecipeField::glyph);
+    const bool important_glyph = fields.fields[glyph_position] != nullptr &&
+                                 fields.levels[glyph_position] >= CascadeLevel::important_user_theme;
+    return ResolvedControlRecipe(floor, std::move(authored), important_text, important_glyph);
 }
 
 namespace {

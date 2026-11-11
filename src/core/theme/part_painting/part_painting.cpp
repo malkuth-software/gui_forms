@@ -883,8 +883,9 @@ bool ground_role(const PartPaint& part) noexcept {
 // PartPaint::authored_background), for one paint: the background as the
 // material's only fill on a ground, and the foreground, unless the part is
 // disabled, as the text, the mark ink or the rule's colour by role. An
-// important text colour (`important_text`) keeps its place.
-void apply_authored_colours(const PartPaint& part, bool disabled, bool important_text,
+// important text colour (`important_text`) and an important glyph colour
+// (`important_glyph`, for the marks) keep their places.
+void apply_authored_colours(const PartPaint& part, bool disabled, bool important_text, bool important_glyph,
                             ControlVisualRecipe& recipe) {
     if (part.authored_background && ground_role(part)) {
         recipe.material.fills.assign(1U, MaterialFillLayer::solid(*part.authored_background));
@@ -912,7 +913,7 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::disclosure:
     case PartRole::grip:
     case PartRole::needle:
-        recipe.glyph = ink;
+        if (!important_glyph) recipe.glyph = ink;
         return;
     case PartRole::arc:
         // paint_arc strokes an unselected arc in the border's colour, else
@@ -1402,7 +1403,7 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
     if (authored) {
         ControlVisualRecipe styled = recipe;
         const bool disabled = context.surface == ControlSurfaceState::disabled;
-        apply_authored_colours(part, disabled, resolved.important_text(), styled);
+        apply_authored_colours(part, disabled, resolved.important_text(), resolved.important_glyph(), styled);
         paint_part_from_recipe(painter, part, styled, context);
         opaque_face = opaque_surface_part(part, styled.material);
     } else {

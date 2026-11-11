@@ -224,7 +224,7 @@ struct PartPaint final {
     //   inked with it and rules (keyline, divider, seam) are drawn in it. A
     //   disabled part keeps the theme's disabled colours, so disabled stays
     //   greyed; a theme text colour declared important stands over it for
-    //   text.
+    //   text, and a glyph colour declared important for marks.
     // A rule that chooses a primitive for the part at an important level
     // stands over both; a primitive that draws a theme material takes the
     // background in its material's fills, and a primitive's own colour

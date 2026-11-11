@@ -358,7 +358,10 @@ bool embedded_bar_amber(std::string_view sheet, bool authored_back) {
     (*child).set_requested_bounds({10.0, 10.0, 60.0, 300.0});
     (*panel).add_child(child);
     (*panel).auto_scroll = true;
-    if (authored_back) (*panel).back_color = Color::rgba(0x19, 0x19, 0x19);
+    if (authored_back) {
+        (*panel).back_color = Color::rgba(0x19, 0x19, 0x19);
+        (*panel).fore_color = Color::rgba(0xff, 0xff, 0xff);
+    }
     Window window(panel, Size{120.0, 100.0});
     window.set_theme(theme_from_sheet(sheet));
     window.perform_layout();
@@ -392,6 +395,11 @@ void test_embedded_scroll_bar_rules() {
         "v-scroll-bar::part(increment-glyph), v-scroll-bar::part(decrement-glyph) { glyph-color: role(chrome-highlight); }\n";
     require(!embedded_bar_amber("", false), "no amber without the rule");
     require(embedded_bar_amber(glyph_rule, false), "the glyph parts colour a panel's own arrow marks");
+    constexpr std::string_view important_glyph_rule =
+        ":root { chrome-highlight: #d09010; }\n"
+        "v-scroll-bar::part(increment-glyph) { glyph-color: role(chrome-highlight) !important; }\n";
+    require(embedded_bar_amber(important_glyph_rule, true),
+            "an important glyph rule colours the marks of a panel with its own colours");
     require(standalone_bar_amber(glyph_rule), "the glyph parts colour a stand-alone bar's arrow marks");
     constexpr std::string_view actuator_rule =
         ":root { chrome-highlight: #d09010; }\n"
