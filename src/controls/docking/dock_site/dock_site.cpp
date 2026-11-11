@@ -7,7 +7,6 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
-#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
@@ -70,23 +69,6 @@ using dock_site_detail::moved;
 using dock_site_detail::seam_bar_thickness;
 using dock_site_detail::strip_extent;
 using dock_site_detail::to_window;
-
-// Whether a theme rule names `keyed`'s part: its recipe resolved with the
-// part's name differs from the recipe without it, which only the rules
-// naming no part reach (a rule on a named part sets its text colours, muted
-// ink and glyphs). The grip mark draws in the muted ink. Under forced high
-// contrast a rule's colours are dropped, so no part is named there.
-bool part_named_by_rule(const Control& control, const PartPaint& keyed) {
-    if (!keyed.key) return false;
-    const Theme& theme = control.effective_theme();
-    const ControlVisualContext context = part_visual_context(control, keyed.states);
-    const ResolvedControlRecipe named =
-        theme.resolve(control, keyed.family, context, keyed.states, (*keyed.key).part, keyed.control_type);
-    const ResolvedControlRecipe broad =
-        theme.resolve(control, keyed.family, context, keyed.states, std::string_view{}, keyed.control_type);
-    const bool differs = !(named.recipe() == broad.recipe());
-    return differs;
-}
 
 std::size_t command_index(DockPositionCommand command) noexcept {
     const std::size_t index = static_cast<std::size_t>(command);
@@ -1433,14 +1415,16 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     part.text = slot.title;
     paint_part(painter, surface, part);
     part.text = {};
-    // The grip, only where a theme rule names it (cp29: SDR#'s dotted
-    // caption grip); the stock themes draw none.
+    // The grip (cp29: SDR#'s dotted caption grip), in every theme: the grip
+    // mark in the caption's muted ink. A sheet hides it with a transparent
+    // ink, `dock-site::part(caption_grip) { muted-color: transparent; }`
+    // (owner, 2026-11-11).
     const Rect grip = caption_grip(slot, placed);
     if (!grip.empty()) {
         part.role = PartRole::grip;
         part.bounds = moved(grip, offset);
         part.key = PartKey{"caption_grip", item, {}};
-        if (part_named_by_rule(surface, part)) paint_part(painter, surface, part);
+        paint_part(painter, surface, part);
     }
     // The buttons: flat at rest with a plate when hot (the menu-item family,
     // as the tool strip's).
@@ -2629,8 +2613,8 @@ constexpr std::array<PartField<DockSite::StackParts>, 12> stack_part_fields{{
      .member = &DockSite::StackParts::caption_key},
     {.declaration = {.name = "caption_label", .role = PartRole::caption, .composed_from = {}},
      .member = &DockSite::StackParts::caption_label},
-    // The dotted grip after the title (cp29), drawn only where a rule names
-    // it.
+    // The dotted grip after the title (cp29), drawn in every theme; a
+    // transparent muted ink hides it.
     {.declaration = {.name = "caption_grip", .role = PartRole::grip, .composed_from = {}},
      .member = &DockSite::StackParts::caption_grip},
     {.declaration = {.name = "caption_menu", .role = PartRole::actuator, .composed_from = "button",

@@ -66,6 +66,15 @@ public:
         draw_part_raster(raster, Point{}, opacity);
     }
 
+    // The fills that leave ink: those whose colour is not fully transparent.
+    [[nodiscard]] std::size_t inked_fills() const {
+        std::size_t inked = 0U;
+        for (const Color& color : fills) {
+            if (color.alpha() != 0U) ++inked;
+        }
+        return inked;
+    }
+
     [[nodiscard]] bool filled(Color color) const {
         for (const Color& fill : fills) {
             if (fill == color) return true;
@@ -346,18 +355,27 @@ void test_dock_site_parts() {
     window.paint(painter);
     require(painter.filled(caption_blue), "dock-site::part(caption) paints the tool stacks' captions");
 
-    // The caption grip (cp29): drawn only where a rule names it, in the
-    // grip mark's muted ink.
+    // The caption grip (cp29): drawn in every theme in the grip mark's muted
+    // ink (owner, 2026-11-11); a rule recolours it, and a transparent ink
+    // hides it.
     window.set_theme(theme_from_sheet("dock-site::part(caption_grip) { muted-color: #3060a0; }\n"));
     window.perform_layout();
     ColourPainter gripped{};
     window.paint(gripped);
-    require(gripped.filled(caption_blue), "dock-site::part(caption_grip) paints the captions' dotted grip");
+    require(gripped.filled(caption_blue), "dock-site::part(caption_grip) recolours the captions' dotted grip");
     window.set_theme(theme_from_sheet("dock-site::part(caption_label) { color: #3060a0; }\n"));
     window.perform_layout();
     ColourPainter plain{};
     window.paint(plain);
-    require(!plain.filled(caption_blue), "no grip is drawn where no rule names it");
+    window.set_theme(theme_from_sheet("dock-site::part(caption_label) { color: #3060a0; }\n"
+                                      "dock-site::part(caption_grip) { muted-color: transparent; }\n"));
+    window.perform_layout();
+    ColourPainter hidden{};
+    window.paint(hidden);
+    const std::size_t plain_inked = plain.inked_fills();
+    const std::size_t hidden_inked = hidden.inked_fills();
+    require(plain_inked > hidden_inked, "the grip is drawn where no rule names it");
+    require(hidden.filled(Color::rgba(0U, 0U, 0U, 0U)), "a transparent muted ink hides the grip");
 }
 
 // PageView's content well carries its anatomy name (cp29), so a
