@@ -861,8 +861,15 @@ private:
     };
     [[nodiscard]] RealizedItem locate_realized(const Layout& placed, std::size_t item) const;
     [[nodiscard]] std::vector<RealizedItem> realized_list(const Layout& placed) const;
-    [[nodiscard]] Layout layout() const;
+    // The layout at the current key, kept (S5): made again only when the
+    // key (Control::LayoutKey, and the model revision where one is read)
+    // has moved. The reference is valid until the next layout().
+    [[nodiscard]] const Layout& layout() const;
     [[nodiscard]] Layout layout_for(Rect client) const;
+    mutable Layout kept_layout_{};
+    mutable LayoutKey kept_layout_key_{};
+    mutable std::uint64_t kept_layout_model_{};
+    mutable bool kept_layout_valid_{};
     [[nodiscard]] Layout overlay_layout(Rect panel) const;
     void reset_layout_groups(Layout& placed) const;
     void place_plane(Layout& placed) const;

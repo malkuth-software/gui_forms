@@ -2,6 +2,7 @@
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "../text/harfbuzz/bundled_face_loader.hpp"
+#include "stx_zlib/checksum.hpp"
 #if defined(_WIN32)
 #include "../../host/windows/fonts/sealed_pages_windows.hpp"
 #else
@@ -29,17 +30,6 @@ constexpr std::size_t green = 1U;
 constexpr std::size_t red = 2U;
 constexpr std::size_t alpha = 3U;
 
-std::uint32_t crc32(std::span<const std::byte> bytes) {
-    std::uint32_t crc = 0xffffffffU;
-    for (const std::byte value : bytes) {
-        crc ^= std::to_integer<std::uint8_t>(value);
-        for (unsigned bit = 0; bit < 8; ++bit) {
-            const std::uint32_t mask = 0U - (crc & 1U);
-            crc = (crc >> 1U) ^ (0xedb88320U & mask);
-        }
-    }
-    return crc ^ 0xffffffffU;
-}
 
 void write_u32(std::span<std::byte> destination, std::uint32_t value) {
     destination[0] = static_cast<std::byte>(value >> 24U);
@@ -257,7 +247,7 @@ int main() {
         std::as_bytes(std::span{png}).begin(), std::as_bytes(std::span{png}).end());
     broken_payload[41] = std::byte{0};
     write_u32(std::span<std::byte>(broken_payload.data() + 54, 4),
-              crc32(std::span<const std::byte>(broken_payload.data() + 37, 17)));
+              stx_zlib::crc32(std::span<const std::byte>(broken_payload.data() + 37, 17)));
     gui_forms::ImageRegistry broken_images;
     const gui_forms::ImageLoadResult structurally_valid =
         broken_images.load_png(broken_payload);

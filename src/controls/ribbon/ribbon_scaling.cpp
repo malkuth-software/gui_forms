@@ -715,8 +715,17 @@ void Ribbon::place_plane(Layout& placed) const {
     placed.groups_area = {start, plane.y, std::max(0.0, limit - start), plane.height};
 }
 
-Ribbon::Layout Ribbon::layout() const {
-    return layout_for(client_rectangle());
+const Ribbon::Layout& Ribbon::layout() const {
+    const LayoutKey key = layout_key();
+    const std::uint64_t model = content_generation_;
+    if (kept_layout_valid_ && kept_layout_key_ == key && kept_layout_model_ == model) return kept_layout_;
+    // The key is taken before the layout is made: a layout that
+    // writes what it reads is made again at the next call.
+    kept_layout_ = layout_for(key.client);
+    kept_layout_key_ = key;
+    kept_layout_model_ = model;
+    kept_layout_valid_ = true;
+    return kept_layout_;
 }
 
 Ribbon::Layout Ribbon::layout_for(Rect client) const {

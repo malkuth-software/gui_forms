@@ -595,6 +595,78 @@ void test_interior_shortcut_matches_coverage() {
     }
 }
 
+// A scaled source: the stepped sample positions and the direct texel
+// fetches give the bytes of the divided, edge-tested path, which a rounded
+// clip of radius 0 cannot force, so the reference here is the per-pixel
+// formula itself (sample_position and the bilinear weights as documented).
+void test_scaled_steps_match_the_formula() {
+    constexpr std::uint32_t source_width = 5U;
+    constexpr std::uint32_t source_height = 4U;
+    std::vector<std::uint8_t> bytes{};
+    for (std::uint32_t index = 0U; index < source_width * source_height; ++index) {
+        const unsigned alpha = 60U + (index * 31U) % 196U;
+        bytes.push_back(static_cast<std::uint8_t>((index * 11U) % (alpha + 1U)));
+        bytes.push_back(static_cast<std::uint8_t>((index * 23U) % (alpha + 1U)));
+        bytes.push_back(static_cast<std::uint8_t>((index * 41U) % (alpha + 1U)));
+        bytes.push_back(static_cast<std::uint8_t>(alpha));
+    }
+    constexpr std::array<std::array<std::uint32_t, 2>, 3> shown{{{13U, 9U}, {7U, 11U}, {3U, 2U}}};
+    for (const std::array<std::uint32_t, 2>& size : shown) {
+        PartRasterSource source = source_of(bytes, source_width, source_height, 1, 2);
+        source.shown_width = size[0];
+        source.shown_height = size[1];
+        const std::uint32_t width = size[0] + 3U;
+        const std::uint32_t height = size[1] + 4U;
+        TestTarget target = make_target(width, height, 0U, false);
+        require(detail::composite_part_raster(source, target.target, whole(width, height), 255U) ==
+                    TextCompositeStatus::success,
+                "a scaled source composites");
+        for (std::uint32_t y = 0U; y < height; ++y) {
+            for (std::uint32_t x = 0U; x < width; ++x) {
+                const std::int64_t shown_x = static_cast<std::int64_t>(x) - 1;
+                const std::int64_t shown_y = static_cast<std::int64_t>(y) - 2;
+                std::uint32_t expected = 0U;
+                if (shown_x >= 0 && shown_y >= 0 && shown_x < static_cast<std::int64_t>(size[0]) &&
+                    shown_y < static_cast<std::int64_t>(size[1])) {
+                    const std::int64_t across =
+                        (2 * shown_x + 1) * static_cast<std::int64_t>(source_width) * 256 / (2 * size[0]) - 128;
+                    const std::int64_t down =
+                        (2 * shown_y + 1) * static_cast<std::int64_t>(source_height) * 256 / (2 * size[1]) - 128;
+                    const std::int64_t texel_x = across >> 8;
+                    const std::int64_t texel_y = down >> 8;
+                    const std::uint64_t after = static_cast<std::uint64_t>(across & 255);
+                    const std::uint64_t below = static_cast<std::uint64_t>(down & 255);
+                    std::array<std::uint64_t, 4> channels{};
+                    constexpr std::array<std::size_t, 4> order{2U, 1U, 0U, 3U};
+                    for (std::size_t channel = 0U; channel < 4U; ++channel) {
+                        std::array<std::uint64_t, 4> texels{};
+                        for (std::size_t corner = 0U; corner < 4U; ++corner) {
+                            const std::int64_t tx = texel_x + static_cast<std::int64_t>(corner % 2U);
+                            const std::int64_t ty = texel_y + static_cast<std::int64_t>(corner / 2U);
+                            if (tx < 0 || ty < 0 || tx >= static_cast<std::int64_t>(source_width) ||
+                                ty >= static_cast<std::int64_t>(source_height)) {
+                                continue;
+                            }
+                            texels[corner] = bytes[static_cast<std::size_t>(ty * source_width + tx) * 4U + order[channel]];
+                        }
+                        const std::uint64_t upper = texels[0] * (256U - after) + texels[1] * after;
+                        const std::uint64_t lower = texels[2] * (256U - after) + texels[3] * after;
+                        channels[channel] = (upper * (256U - below) + lower * below + 32768U) >> 16U;
+                    }
+                    // Over a transparent target at full weight the result is
+                    // the weighted source itself.
+                    if (channels[3] != 0U) {
+                        expected = pack(static_cast<unsigned>(channels[0]), static_cast<unsigned>(channels[1]),
+                                        static_cast<unsigned>(channels[2]), static_cast<unsigned>(channels[3]));
+                    }
+                }
+                require(target.pixels[static_cast<std::size_t>(y) * width + x] == expected,
+                        "a stepped scaled sample equals the formula");
+            }
+        }
+    }
+}
+
 int main() {
     test_opacity_quantization();
     test_blend_arithmetic();
@@ -607,6 +679,7 @@ int main() {
     test_separable_blends();
     test_copy_blend();
     test_interior_shortcut_matches_coverage();
+    test_scaled_steps_match_the_formula();
     test_part_raster();
     test_command_is_recorded_replayed_and_inspected();
     std::cout << "part composite tests passed\n";

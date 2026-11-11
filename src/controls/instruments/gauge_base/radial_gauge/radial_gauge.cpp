@@ -123,7 +123,7 @@ Rect RadialGauge::mark_at(Point centre, double radius, double ratio, double side
 Rect RadialGauge::caption_bounds(const Face& placed) const {
     if (!show_value.read() || placed.plot.empty()) return Rect{};
     const std::string shown = value_text();
-    const Size text = resolve_text_layout_utf8(shown, value_font(caption_font_size(placed.plot.width))).logical_size;
+    const Size text = measure_text_extent_utf8(shown, value_font(caption_font_size(placed.plot.width))).logical_size;
     const double radius = placed.arc.width * 0.5;
     const double width = std::min(std::ceil(text.width), radius * 2.0);
     const double height = std::ceil(text.height);

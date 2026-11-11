@@ -225,7 +225,7 @@ void RichTextBox::measure_run(const Run& run, std::size_t& chunk) {
             prefix = 0.0;
         }
         const std::string_view measured = text.substr(chunk_start, next - chunk_start);
-        const double width = resolve_text_layout_utf8(measured, font).logical_size.width;
+        const double width = measure_text_extent_utf8(measured, font).logical_size.width;
         cell.advance = width - prefix;
         cell.space = scalar == U' ';
         cells_.push_back(cell);

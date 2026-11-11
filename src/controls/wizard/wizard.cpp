@@ -224,11 +224,11 @@ Wizard::Placement Wizard::placement(Size size) const {
     const double inner_width = std::max(0.0, size.width - wizard_padding * 2.0);
     double y = wizard_padding;
     const std::shared_ptr<WizardPage> shown = page(current_page.read());
-    const double heading_height = std::ceil(resolve_text_layout_utf8("Ag", heading_font()).logical_size.height);
+    const double heading_height = std::ceil(measure_text_extent_utf8("Ag", heading_font()).logical_size.height);
     placed.caption = Rect{wizard_padding, y, inner_width, heading_height};
     y += heading_height;
     if (shown && !(*shown).description.read().empty()) {
-        const double line = std::ceil(resolve_text_layout_utf8("Ag", description_font()).logical_size.height);
+        const double line = std::ceil(measure_text_extent_utf8("Ag", description_font()).logical_size.height);
         y += header_gap;
         placed.label = Rect{wizard_padding, y, inner_width, line};
         y += line;

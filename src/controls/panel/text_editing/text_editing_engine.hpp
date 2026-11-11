@@ -174,6 +174,9 @@ private:
     bool step_history(std::deque<HistoryEdit>& from, std::deque<HistoryEdit>& to, bool forward);
     // Replaces the whole text with a filter's rewrite, as one history step.
     bool apply_rewrite(std::string_view rewritten, Utf8Offset caret);
+    // Whether the edit keeps the lines it touches within the multiline
+    // line bound (text_editing_engine.cpp).
+    [[nodiscard]] bool edited_lines_fit(Utf8Offset start, Utf8Offset end, std::string_view replacement) const;
 
     // Replaces the whole text, recording the change from the old one.
     void replace_whole_text(std::string_view text);

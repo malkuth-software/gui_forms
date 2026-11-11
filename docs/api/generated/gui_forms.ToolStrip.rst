@@ -379,7 +379,7 @@ gui_forms::ToolStrip
 
       *Protected.*
 
-      The kept layout for the strip's client rectangle, recomputed only when its key changes (audit S5, N98). The reference is valid until the next call that may lay the strip out again; callers copy what they keep across application code.
+      The layout at the current key, kept (S5): made again only when the key (Control::LayoutKey, and the model revision where one is read) has moved. The reference is valid until the next layout().
 
    .. cpp:function:: Layout layout_for(Rect surface) const
 

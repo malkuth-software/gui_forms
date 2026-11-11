@@ -674,7 +674,7 @@ void MenuStrip::publish_realized_item_geometry(std::size_t item,
     }
     const std::string display = use_mnemonic.read()
         ? menu_display_text(items_[index].text) : items_[index].text;
-    const double text_width = resolve_text_layout_utf8(display, item_font).logical_size.width;
+    const double text_width = measure_text_extent_utf8(display, item_font).logical_size.width;
     const double text_x = bounds.x + item_padding.read() * effective_text_scale();
     const Rect label{text_x, bounds.y, text_width, bounds.height};
     // The highlight on_paint lays inside the item, one unit in.

@@ -69,15 +69,6 @@ namespace {
     return result;
 }
 
-[[nodiscard]] std::size_t first_utf8_codepoint_size(std::string_view text) noexcept {
-    if (text.empty()) return 0U;
-    const unsigned char first = static_cast<unsigned char>(text.front());
-    if ((first & 0x80U) == 0U) return 1U;
-    if ((first & 0xe0U) == 0xc0U) return std::min<std::size_t>(2U, text.size());
-    if ((first & 0xf0U) == 0xe0U) return std::min<std::size_t>(3U, text.size());
-    return std::min<std::size_t>(4U, text.size());
-}
-
 [[nodiscard]] SkColor to_sk_color(Color color) noexcept {
     return color.is_empty() ? SK_ColorTRANSPARENT :
         SkColorSetARGB(color.alpha(), color.red(), color.green(), color.blue());
@@ -1068,6 +1059,11 @@ SizeF SkiaExecutor::measure_string(std::string_view utf8,
     double maximum_width{};
     std::size_t line_count{};
     std::size_t offset{};
+    // Per paragraph, reused: each byte's cluster advance, whether a cluster
+    // starts there, and the line-break opportunity after it.
+    std::vector<double> advance_at;
+    std::vector<std::uint8_t> cluster_start;
+    std::vector<gui_forms::LineBreakOpportunity> opportunities;
     do {
         const std::size_t newline = utf8.find('\n', offset);
         const std::size_t end = newline == std::string_view::npos ? utf8.size() : newline;
@@ -1078,48 +1074,66 @@ SizeF SkiaExecutor::measure_string(std::string_view utf8,
             maximum_width = std::max(maximum_width, width);
             ++line_count;
         } else {
-            while (!line.empty()) {
-                // Advance per code point: each glyph's advance belongs to the
-                // code point starting its cluster (left-to-right lines).
-                const text::ShapedText shaped = engine.shape(line, font.spec);
-                std::vector<double> advance_at(line.size(), 0.0);
-                for (const text::ShapedFontRun& run : shaped.runs) {
-                    for (const text::ShapedGlyph& glyph : run.glyphs) {
-                        const std::size_t cluster = glyph.cluster.value();
-                        if (cluster < advance_at.size()) advance_at[cluster] += static_cast<double>(glyph.advance_x);
+            // N60: the paragraph is shaped once. Its clusters (from one
+            // glyph cluster's first byte to the next's) are what a line
+            // fits, so no line ends inside a cluster, and a line that does
+            // not fit ends at the last UAX #14 opportunity among its fitted
+            // clusters, its trailing spaces and tabs not measured. Each line
+            // so broken is shaped once more for its width: the shaping is
+            // linear in the paragraph, not quadratic.
+            const text::ShapedText shaped = engine.shape(line, font.spec);
+            const std::size_t length = line.size();
+            advance_at.assign(length, 0.0);
+            cluster_start.assign(length, 0U);
+            cluster_start[0] = 1U;
+            for (const text::ShapedFontRun& run : shaped.runs) {
+                for (const text::ShapedGlyph& glyph : run.glyphs) {
+                    const std::size_t cluster = glyph.cluster.value();
+                    if (cluster >= length) continue;
+                    advance_at[cluster] += static_cast<double>(glyph.advance_x);
+                    cluster_start[cluster] = 1U;
+                }
+            }
+            opportunities.resize(length);
+            const bool breaks_known =
+                text::HarfBuzzFontEngine::fill_line_break_opportunities_utf8(line, opportunities) !=
+                gui_forms::TextResolutionStatus::invalid_request;
+            std::size_t line_start = 0U;
+            while (line_start < length) {
+                double width{};
+                std::size_t cursor = line_start;
+                std::size_t break_end = line_start;
+                while (cursor < length) {
+                    std::size_t next = cursor + 1U;
+                    while (next < length && cluster_start[next] == 0U) ++next;
+                    // A glyph's advance is held at its cluster's first byte.
+                    const double cluster_width = advance_at[cursor];
+                    // The first cluster is always taken, even when too wide.
+                    if (cursor > line_start && width + cluster_width > content_width) break;
+                    width += cluster_width;
+                    cursor = next;
+                    const gui_forms::LineBreakOpportunity after = opportunities[next - 1U];
+                    if (breaks_known && (after == gui_forms::LineBreakOpportunity::allowed ||
+                                         after == gui_forms::LineBreakOpportunity::mandatory)) {
+                        break_end = next;
                     }
                 }
-                std::vector<std::size_t> byte_ends;
-                std::vector<double> widths;
-                for (std::string_view rest = line; !rest.empty();) {
-                    const std::size_t start = line.size() - rest.size();
-                    const std::size_t count = first_utf8_codepoint_size(rest);
-                    byte_ends.push_back(start + count);
-                    widths.push_back(advance_at[start]);
-                    rest.remove_prefix(count);
-                }
-                double width{};
-                std::size_t fitted{};
-                while (fitted < widths.size() && width + widths[fitted] <= content_width) {
-                    width += widths[fitted++];
-                }
-                if (fitted == 0U) {
-                    fitted = 1U;
-                    width = widths.empty() ? 0.0 : widths.front();
-                }
-                std::size_t consumed = byte_ends[std::min(fitted, byte_ends.size()) - 1U];
-                if (consumed < line.size()) {
-                    const std::size_t space = line.substr(0U, consumed).find_last_of(" \t");
-                    if (space != std::string_view::npos && space != 0U) {
-                        consumed = space;
-                        width = engine.shape(line.substr(0U, consumed), font.spec).width;
+                std::size_t consumed = cursor;
+                if (cursor < length && break_end > line_start) {
+                    std::size_t trimmed = break_end;
+                    while (trimmed > line_start && (line[trimmed - 1U] == ' ' || line[trimmed - 1U] == '\t')) {
+                        --trimmed;
+                    }
+                    if (trimmed > line_start) {
+                        consumed = break_end;
+                        width = engine.shape(line.substr(line_start, trimmed - line_start), font.spec).width;
                     }
                 }
                 maximum_width = std::max(maximum_width, std::min(content_width, width));
                 ++line_count;
-                line.remove_prefix(consumed);
-                while (!line.empty() && (line.front() == ' ' || line.front() == '\t')) {
-                    line.remove_prefix(1U);
+                line_start = consumed;
+                while (line_start < length && (line[line_start] == ' ' || line[line_start] == '\t')) {
+                    ++line_start;
                 }
             }
         }

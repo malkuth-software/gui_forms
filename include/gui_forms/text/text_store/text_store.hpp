@@ -2,6 +2,7 @@
 
 #include "gui_forms/text/types/text_types.hpp"
 
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <string>
@@ -82,9 +83,11 @@ private:
 
     TextStoreLimits limits_;
     std::string text_;
-    std::vector<std::size_t> line_starts_;
-    std::vector<std::size_t> line_content_ends_;
-    std::vector<std::size_t> grapheme_boundaries_;
+    // Byte offsets into text_, ascending. Four bytes each: text_ never
+    // exceeds maximum_offset_bytes (text_store.cpp), whatever the limits.
+    std::vector<std::uint32_t> line_starts_;
+    std::vector<std::uint32_t> line_content_ends_;
+    std::vector<std::uint32_t> grapheme_boundaries_;
     std::vector<TextStyleSpan> style_spans_;
     std::size_t scalar_count_{};
     std::size_t utf16_units_{};

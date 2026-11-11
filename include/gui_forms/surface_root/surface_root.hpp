@@ -593,6 +593,9 @@ public:
     }
     [[nodiscard]] ResolvedTextLayout resolve_text_layout_utf8(
         std::string_view utf8, FontSpec effective_font) const;
+    // The extent resolve_text_layout_utf8 reports, without the layout (D2).
+    [[nodiscard]] TextExtent measure_text_extent_utf8(
+        std::string_view utf8, FontSpec effective_font) const;
     // The installed provider's line-break opportunities
     // (TextMetricsProvider::fill_line_break_opportunities_utf8), or the
     // estimate without one.

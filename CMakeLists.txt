@@ -3893,6 +3893,10 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_list_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_list_view_tests COMMAND gui_forms_list_view_tests)
 
+    add_executable(gui_forms_kept_layout_tests tests/kept_layout_tests.cpp)
+    target_link_libraries(gui_forms_kept_layout_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_kept_layout_tests COMMAND gui_forms_kept_layout_tests)
+
     add_executable(gui_forms_data_grid_view_tests tests/data_grid_view_tests.cpp)
     target_link_libraries(gui_forms_data_grid_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_data_grid_view_tests COMMAND gui_forms_data_grid_view_tests)

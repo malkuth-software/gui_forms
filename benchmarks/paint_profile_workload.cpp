@@ -13,6 +13,8 @@
 // - pages: every Gallery page in gallery_page_specs.hpp order, selected,
 //   laid out and painted whole at scales 1 and 2, 4 warm-up and 24 measured
 //   frames per page.
+// - rerecord: the pages at scale 1, every display chunk recorded again
+//   each frame.
 //
 // The raster loads the bundled faces the Linux host loads
 // (linux_host.cpp), from GUI_FORMS_PROFILE_FONT_DIRECTORY, so text is shaped
@@ -30,6 +32,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "skia_raster.hpp"
 #include "../src/core/damage/device_damage/device_damage.hpp"
+#include "../src/core/display/command/display_command.hpp"
 
 #include <algorithm>
 #include <array>
@@ -51,7 +54,9 @@
 
 namespace {
 
+using gui_forms::Control;
 using gui_forms::DamageRegion;
+using gui_forms::Dirty;
 using gui_forms::FontRole;
 using gui_forms::MetricsSnapshot;
 using gui_forms::Rect;
@@ -177,14 +182,26 @@ void prepare_scale(SkiaRaster& raster, Window& window, Size size, double scale) 
     static_cast<void>(window.take_damage());
 }
 
+// Marks every control's paint dirty, so that the next frame records every
+// display chunk again (the rerecord phase).
+void dirty_every_chunk(Window& window) {
+    const Control::Ptr root = window.root();
+    if (root) (*root).invalidate_subtree(Dirty::paint);
+    static_cast<void>(window.take_damage());
+}
+
 CaseResult measure(SkiaRaster& raster, Window& window, Rect damage, double scale,
-                   std::size_t warmup_frames, std::size_t measured_frames) {
+                   std::size_t warmup_frames, std::size_t measured_frames, bool rerecord = false) {
     std::size_t frame = 0;
-    for (frame = 0; frame < warmup_frames; ++frame) paint_once(raster, window, damage, scale);
+    for (frame = 0; frame < warmup_frames; ++frame) {
+        if (rerecord) dirty_every_chunk(window);
+        paint_once(raster, window, damage, scale);
+    }
     std::vector<std::uint64_t> samples;
     samples.reserve(measured_frames);
     const MetricsSnapshot before = window.metrics_snapshot();
     for (frame = 0; frame < measured_frames; ++frame) {
+        if (rerecord) dirty_every_chunk(window);
         const Clock::time_point started = Clock::now();
         paint_once(raster, window, damage, scale);
         const Clock::duration elapsed = Clock::now() - started;
@@ -258,6 +275,33 @@ void run_page_phase(SkiaRaster& raster, Window& window, std::ofstream& records) 
     }
 }
 
+// rerecord: every Gallery page at scale 1, every display chunk recorded
+// again each frame (N35's steady-state cost of a themed control: cascade,
+// part records and raster hits, with the recording itself).
+void run_rerecord_phase(SkiaRaster& raster, Window& window, std::ofstream& records) {
+    const Size size = gui_forms::gallery::gallery_default_size;
+    const Rect whole{0.0, 0.0, size.width, size.height};
+    prepare_scale(raster, window, size, 1.0);
+    for (const gui_forms::gallery::GalleryPageSpec& spec : gui_forms::gallery::gallery_pages) {
+        if (!gui_forms::gallery::select_gallery_page(window, spec.id)) {
+            throw std::runtime_error("unknown Gallery page " + std::string(spec.id));
+        }
+        window.perform_layout();
+        static_cast<void>(window.take_damage());
+        const CaseResult result =
+            measure(raster, window, whole, 1.0, page_warmup_frames, page_measured_frames, true);
+        write_record(records, case_record("rerecord", spec.id, 1.0, 100.0, page_measured_frames, result));
+        // S2's memory figure: the page's display commands (replayed once a
+        // frame) at their fixed record size, strings and vectors aside.
+        const std::uint64_t commands = result.counters.display_commands_replayed / page_measured_frames;
+        std::ostringstream line;
+        line << "{\"workload\":\"paint\",\"phase\":\"display-memory\",\"page\":\"" << spec.id
+             << "\",\"commands\":" << commands << ",\"command_bytes\":" << sizeof(gui_forms::detail::DisplayCommand)
+             << ",\"fixed_bytes\":" << commands * sizeof(gui_forms::detail::DisplayCommand) << "}";
+        write_record(records, line.str());
+    }
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -275,6 +319,7 @@ int main(int argc, char** argv) {
         register_bundled_faces(raster, GUI_FORMS_PROFILE_FONT_DIRECTORY);
         run_damage_phase(raster, *gallery, records);
         run_page_phase(raster, *gallery, records);
+        run_rerecord_phase(raster, *gallery, records);
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "paint profile workload failed: " << error.what() << '\n';
