@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/binding/property_cell/property_cell.hpp"
+
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 
 #include <cstddef>
@@ -144,6 +146,7 @@ public:
         require_unchanged_since(revision);
         elements_ = std::move(elements);
         record(edit);
+        detail::advance_property_write_epoch();
         Capability::written(capability(), edit);
         return *this;
     }
@@ -174,6 +177,7 @@ public:
             static_cast<typename std::vector<Element>::difference_type>(index);
         elements_.insert(elements_.begin() + offset, std::move(element));
         record(edit);
+        detail::advance_property_write_epoch();
         Capability::written(capability(), edit);
     }
 
@@ -205,6 +209,7 @@ public:
         elements_.insert(elements_.begin() + offset, std::make_move_iterator(elements.begin()),
                          std::make_move_iterator(elements.end()));
         record(edit);
+        detail::advance_property_write_epoch();
         Capability::written(capability(), edit);
     }
 
@@ -230,6 +235,7 @@ public:
             static_cast<typename std::vector<Element>::difference_type>(index + count);
         elements_.erase(elements_.begin() + first, elements_.begin() + last);
         record(edit);
+        detail::advance_property_write_epoch();
         Capability::written(capability(), edit);
     }
 
@@ -244,6 +250,7 @@ public:
         require_unchanged_since(revision);
         elements_[index] = std::move(element);
         record(edit);
+        detail::advance_property_write_epoch();
         Capability::written(capability(), edit);
     }
 
@@ -256,6 +263,7 @@ public:
         require_unchanged_since(revision);
         elements_.clear();
         record(edit);
+        detail::advance_property_write_epoch();
         Capability::written(capability(), edit);
     }
 

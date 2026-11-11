@@ -112,6 +112,20 @@ enum class LineBreakOpportunity : std::uint8_t {
     inside_character,
 };
 
+// A text's extent without its runs or names (D2): the part of a
+// ResolvedTextLayout that measuring reads. A provider answers it with the
+// same values its resolve_text_layout_utf8 reports, without copying the
+// layout's strings and run vector.
+struct TextExtent final {
+    Size logical_size{};
+    double ascent{};
+    double descent{};
+    double line_gap{};
+    TextResolutionStatus status{TextResolutionStatus::estimated};
+};
+
+[[nodiscard]] TextExtent text_extent_of(const ResolvedTextLayout& layout) noexcept;
+
 // Portable non-owning service seam. Implementations may use a private text
 // engine, but this contract contains no HarfBuzz, FreeType, Skia, AppKit, or
 // Win32 type. A Window invalidates measurement when the installed provider
@@ -121,6 +135,11 @@ public:
     virtual ~TextMetricsProvider() = default;
     [[nodiscard]] virtual ResolvedTextLayout resolve_text_layout_utf8(
         std::string_view utf8, FontSpec effective_font) = 0;
+    // The extent resolve_text_layout_utf8 reports (TextExtent). The default
+    // resolves the layout and reads it; a provider that keeps its layouts
+    // reads the kept one.
+    [[nodiscard]] virtual TextExtent measure_text_extent_utf8(
+        std::string_view utf8, FontSpec effective_font);
     // Fills `opportunities`, whose size must equal utf8.size(), with the
     // line-break opportunity after each byte. Line breaking depends on the
     // text only, not on a font. Returns invalid_request, with

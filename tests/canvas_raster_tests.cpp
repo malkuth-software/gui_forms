@@ -47,6 +47,11 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
     require(window.paint(tiled).has_value());
     tiled.end_frame();
     if (edited) {
+        // Two patches, synchronized one at a time: the first finds the record
+        // made before the run, the second the record the first patched (D4).
+        // Either copies only its rectangle, and the result matches a raster
+        // given the whole final bitmap.
+        const std::uint64_t patches_before = tiled.image_patches_applied();
         (*bitmap).set_pixel(511, 511, gui_drawing::Color::from_name("red"));
         (*bitmap).set_pixel(512, 512, gui_drawing::Color::from_name("blue"));
         require((*canvas).synchronize_bitmap());
@@ -54,6 +59,15 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
         tiled.begin_frame(damage);
         require(window.paint(tiled).has_value());
         tiled.end_frame();
+        const std::uint64_t patches_first = tiled.image_patches_applied();
+        require(patches_first > patches_before);
+        (*bitmap).set_pixel(500, 505, gui_drawing::Color::from_name("lime"));
+        require((*canvas).synchronize_bitmap());
+        require(tiled.synchronize_images(window.image_resources()));
+        tiled.begin_frame(damage);
+        require(window.paint(tiled).has_value());
+        tiled.end_frame();
+        require(tiled.image_patches_applied() > patches_first);
     }
     const gui_drawing::ImageSnapshot snapshot = (*bitmap).snapshot();
     ImageRegistry registry;

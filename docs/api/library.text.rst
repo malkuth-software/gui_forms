@@ -141,6 +141,8 @@ Related types
      - A display position mapped to the source.
    * - :cpp:class:`TextEditResult <gui_forms::TextEditResult>`
      - TextEditResult records exact removed/inserted UTF-8 ranges, scalar counts, resulting revision, and whether content changed.
+   * - :cpp:class:`TextExtent <gui_forms::TextExtent>`
+     - A text's extent without its runs or names (D2): the part of a ResolvedTextLayout that measuring reads.
    * - :cpp:class:`TextMaskBudgetSnapshot <gui_forms::TextMaskBudgetSnapshot>`
      -  
    * - :cpp:class:`TextMaskByteUsage <gui_forms::TextMaskByteUsage>`
@@ -1405,6 +1407,26 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: TextExtent final
+
+   ``#include <gui_forms/typography/types/typography_types.hpp>``
+
+   A text's extent without its runs or names (D2): the part of a ResolvedTextLayout that measuring reads. A provider answers it with the same values its resolve_text_layout_utf8 reports, without copying the layout's strings and run vector.
+
+   .. cpp:member:: Size logical_size
+
+   .. cpp:member:: double ascent
+
+   .. cpp:member:: double descent
+
+   .. cpp:member:: double line_gap
+
+   .. cpp:member:: TextResolutionStatus status
+
+      Default: ``{TextResolutionStatus::estimated}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TextMaskBudgetSnapshot
 
    ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
@@ -1790,6 +1812,10 @@ Related types
    .. rubric:: Extension points
 
    .. cpp:function:: virtual ResolvedTextLayout resolve_text_layout_utf8(std::string_view utf8, FontSpec effective_font) = 0
+
+   .. cpp:function:: virtual TextExtent measure_text_extent_utf8(std::string_view utf8, FontSpec effective_font)
+
+      The extent resolve_text_layout_utf8 reports (TextExtent). The default resolves the layout and reads it; a provider that keeps its layouts reads the kept one.
 
    .. cpp:function:: virtual TextResolutionStatus fill_line_break_opportunities_utf8(std::string_view utf8, std::span<LineBreakOpportunity> opportunities)
 
@@ -2716,6 +2742,8 @@ Functions, constants and aliases
 ``#include <gui_forms/typography/types/typography_types.hpp>``
 
 .. cpp:function:: const char* text_resolution_status_name(TextResolutionStatus status) noexcept
+
+.. cpp:function:: TextExtent text_extent_of(const ResolvedTextLayout& layout) noexcept
 
 .. cpp:function:: TextResolutionStatus estimate_line_break_opportunities_utf8(std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept
 

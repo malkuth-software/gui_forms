@@ -159,7 +159,7 @@ double BreadcrumbTrail::natural_width(
         segment_font.weight = 700;
     }
     const double text_width =
-        resolve_text_layout_utf8(segment.text, segment_font).logical_size.width;
+        measure_text_extent_utf8(segment.text, segment_font).logical_size.width;
     const double padding = appearance.read() == BreadcrumbAppearance::raised ? 33.0 : 23.0;
     const double result = std::clamp(padding + text_width, 38.0, 220.0);
     return result;
@@ -761,7 +761,7 @@ void BreadcrumbTrail::publish_realized_item_geometry(std::size_t item,
         item_font.weight = 700;
     }
     // Labels sit nine units into a segment and centred on the others.
-    const double text_width = resolve_text_layout_utf8(text, item_font).logical_size.width;
+    const double text_width = measure_text_extent_utf8(text, item_font).logical_size.width;
     const double text_x = visible.kind == VisibleKind::segment
         ? bounds.x + 9.0
         : bounds.x + std::max(0.0, (bounds.width - text_width) * 0.5);

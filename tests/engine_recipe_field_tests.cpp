@@ -447,6 +447,56 @@ void test_authored_colours() {
 
 } // namespace
 
+// N90: a control keeps the recipes it resolved, and a kept recipe never
+// outlives the facts it was resolved in: a class written on the control, or
+// on the parent whose text colour it inherits, is seen by the next resolve.
+void test_kept_recipes() {
+    std::vector<ThemeRule> rules{};
+    ThemeRule warm{};
+    warm.label = "warm";
+    warm.level = CascadeLevel::theme_sheet;
+    warm.selector.classes.push_back("warm");
+    warm.recipe_fields.push_back(colour_field(RecipeField::text, red));
+    rules.push_back(warm);
+    ThemeRule cool{};
+    cool.label = "cool";
+    cool.level = CascadeLevel::theme_sheet;
+    cool.selector.classes.push_back("cool");
+    cool.recipe_fields.push_back(colour_field(RecipeField::text, blue));
+    rules.push_back(cool);
+    ThemeRule inherits = control_rule("second", "second");
+    RecipeDeclaration inherited{};
+    inherited.field = RecipeField::text;
+    inherited.inherit = true;
+    inherits.recipe_fields.push_back(inherited);
+    rules.push_back(inherits);
+    const std::unique_ptr<Fixture> fixture = make_fixture(rules);
+    const Theme& theme = (*(*fixture).window).theme();
+    Labelled& first = *(*fixture).first;
+    const ControlVisualContext context = first.visual_context();
+    const ControlVisualRecipe& floor = theme.resolve(ControlVisualRole::button, context);
+
+    const ResolvedControlRecipe plain = theme.resolve(first, ControlVisualRole::button, context);
+    const ResolvedControlRecipe again = theme.resolve(first, ControlVisualRole::button, context);
+    require(!plain.authored() && !again.authored() && &again.recipe() == &floor,
+            "a kept recipe is the recipe the cascade gave");
+    first.classes = {"warm"};
+    const ResolvedControlRecipe warmed = theme.resolve(first, ControlVisualRole::button, context);
+    require(warmed.authored() && warmed.recipe().text == red, "a class written after a resolve is seen");
+    first.classes = std::vector<std::string>{};
+    const ResolvedControlRecipe cleared = theme.resolve(first, ControlVisualRole::button, context);
+    require(!cleared.authored(), "a class removed after a resolve is seen");
+
+    Labelled& second = *(*fixture).second;
+    const ControlVisualContext second_context = second.visual_context();
+    const ResolvedControlRecipe before = theme.resolve(second, ControlVisualRole::button, second_context);
+    require(before.recipe().text == theme.resolve(ControlVisualRole::button, second_context).text,
+            "an inherited text colour is the floor's under a parent that sets none");
+    (*(*fixture).root).classes = {"cool"};
+    const ResolvedControlRecipe after = theme.resolve(second, ControlVisualRole::button, second_context);
+    require(after.authored() && after.recipe().text == blue, "a parent's class written after a resolve is inherited");
+}
+
 int main() {
     test_field_names();
     test_compile();
@@ -457,6 +507,7 @@ int main() {
     test_states();
     test_label_part();
     test_authored_colours();
+    test_kept_recipes();
     std::cout << "gui_forms_engine_recipe_field_tests: passed\n";
     return 0;
 }

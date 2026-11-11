@@ -544,8 +544,15 @@ private:
     };
     using ItemIndices = std::unordered_map<std::string, std::size_t>;
 
-    [[nodiscard]] Layout layout() const;
+    // The layout at the current key, kept (S5): made again only when the
+    // key (Control::LayoutKey, and the model revision where one is read)
+    // has moved. The reference is valid until the next layout().
+    [[nodiscard]] const Layout& layout() const;
     [[nodiscard]] Layout layout_for(Rect client) const;
+    mutable Layout kept_layout_{};
+    mutable LayoutKey kept_layout_key_{};
+    mutable std::uint64_t kept_layout_model_{};
+    mutable bool kept_layout_valid_{};
     [[nodiscard]] double text_line_height() const;
     [[nodiscard]] Size icon_size(bool large) const noexcept;
     [[nodiscard]] std::size_t maximum_top_line(const Layout& placed) const noexcept;

@@ -62,7 +62,7 @@ std::array<Rect, rich_text_bar_button_count> RichTextBox::bar_buttons() const {
     double x = bar_padding + 1.0;
     for (std::size_t index = 0U; index < rich_text_bar_button_count; ++index) {
         const std::string_view label = bar_button_texts[index].label;
-        double width = resolve_text_layout_utf8(label, bar_font).logical_size.width + 2.0 * button_inset;
+        double width = measure_text_extent_utf8(label, bar_font).logical_size.width + 2.0 * button_inset;
         if (button_of(index) == RichTextBarButton::heading) width += arrow_width;
         width = std::max(width, height);
         buttons[index] = {x, bar_padding, width, height};

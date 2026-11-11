@@ -718,7 +718,7 @@ void TreeView::publish_realized_item_geometry(std::size_t item,
         }
     }
     const double text_width =
-        resolve_text_layout_utf8(node.text, text_font(font.read())).logical_size.width;
+        measure_text_extent_utf8(node.text, text_font(font.read())).logical_size.width;
     const Rect label{content_x, y, text_width, row_height};
     record.row = PartGeometry::from_bounds(Rect::intersection(row, content));
     record.label = PartGeometry::from_bounds(Rect::intersection(Rect::intersection(label, row), content));

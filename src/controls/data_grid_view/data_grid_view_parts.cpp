@@ -352,7 +352,7 @@ double DataGridView::preferred_cell_width(DataGridViewRowPosition row, std::size
     const double scale = effective_text_scale();
     const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
     // Text is measured in the scaled font; widths are logical units.
-    const double text_width = text.empty() ? 0.0 : resolve_text_layout_utf8(text, face).logical_size.width / scale;
+    const double text_width = text.empty() ? 0.0 : measure_text_extent_utf8(text, face).logical_size.width / scale;
     const Insets padding = content_padding(style, 1.0);
     const DataGridViewColumnKind kind = columns_[column].kind;
     double content = 0.0;
@@ -390,7 +390,7 @@ double DataGridView::preferred_column_header_width(std::size_t column) const {
     const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
     const double text_width = definition.header_text.empty()
         ? 0.0
-        : resolve_text_layout_utf8(definition.header_text, face).logical_size.width / scale;
+        : measure_text_extent_utf8(definition.header_text, face).logical_size.width / scale;
     const Insets padding = content_padding(style, 1.0);
     // A sortable column keeps the glyph's lane, as Windows Forms does.
     const bool sortable = column_sort_mode(column) != DataGridViewColumnSortMode::not_sortable ||

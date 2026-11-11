@@ -137,7 +137,7 @@ FontSpec Toast::message_font() const noexcept {
 Toast::Placement Toast::placement(Size size) const {
     Placement placed;
     placed.face = Rect{0.0, 0.0, size.width, size.height};
-    const Size message = resolve_text_layout_utf8(content_.message, message_font()).logical_size;
+    const Size message = measure_text_extent_utf8(content_.message, message_font()).logical_size;
     const double message_width = std::ceil(std::min(message.width, maximum_message_width));
     const double message_height = std::ceil(message.height);
     double tallest = std::max(icon_side, message_height);

@@ -94,9 +94,9 @@ EmptyState::Placement EmptyState::placement(Size size) const {
     const std::string& heading = title.read();
     const std::string& body = description.read();
     Size heading_size{};
-    if (!heading.empty()) heading_size = resolve_text_layout_utf8(heading, title_font()).logical_size;
+    if (!heading.empty()) heading_size = measure_text_extent_utf8(heading, title_font()).logical_size;
     Size body_size{};
-    if (!body.empty()) body_size = resolve_text_layout_utf8(body, description_font()).logical_size;
+    if (!body.empty()) body_size = measure_text_extent_utf8(body, description_font()).logical_size;
     heading_size = Size{std::ceil(heading_size.width), std::ceil(heading_size.height)};
     body_size = Size{std::ceil(body_size.width), std::ceil(body_size.height)};
     const bool texted = !heading.empty() || !body.empty();

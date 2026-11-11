@@ -508,6 +508,7 @@ void TreeListView::rebuild_order() {
 // The rows: the shown preorder without the nodes under a collapsed node.
 void TreeListView::rebuild_rows() {
     visible_.clear();
+    advance_layout_revision();
     row_of_node_.assign(nodes_.size(), no_index);
     std::optional<std::size_t> hidden_below{};
     for (const std::size_t index : order_) {
@@ -519,6 +520,7 @@ void TreeListView::rebuild_rows() {
         if (has_children(index) && !nodes_[index].expanded) hidden_below = depth;
     }
     top_row_ = visible_.empty() ? 0U : std::min(top_row_, visible_.size() - 1U);
+    advance_layout_revision();
     hot_row_.reset();
 }
 
@@ -620,6 +622,7 @@ void TreeListView::set_columns(std::vector<TreeListColumn> columns) {
     dragging_column_ = false;
     hot_column_.reset();
     columns_ = std::move(columns);
+    advance_layout_revision();
     column_order_.resize(columns_.size());
     std::iota(column_order_.begin(), column_order_.end(), std::size_t{0U});
     column_position_ = column_order_;
@@ -642,6 +645,7 @@ void TreeListView::set_column_width(std::size_t column, double width) {
     }
     if (columns_[column].width == width) return;
     columns_[column].width = width;
+    advance_layout_revision();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     const TreeListColumnWidthChange change{column, width};
     publish_change(column_width_changed_, change);
@@ -843,6 +847,7 @@ void TreeListView::set_top_row(std::size_t row) {
     const std::size_t clamped = std::min(row, maximum_top_row(placed));
     if (clamped == top_row_ && clamped == placed.top_row) return;
     top_row_ = clamped;
+    advance_layout_revision();
     hot_row_.reset();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     sync_scroll_bars(layout());
@@ -902,8 +907,10 @@ void TreeListView::set_horizontal_offset(double offset) {
     require_mutable();
     if (!std::isfinite(offset) || offset < 0.0) throw std::invalid_argument("TreeListView horizontal offset is invalid");
     horizontal_offset_ = offset;
+    advance_layout_revision();
     const Layout placed = layout();
     horizontal_offset_ = placed.horizontal_offset;
+    advance_layout_revision();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     sync_scroll_bars(placed);
 }
@@ -1004,8 +1011,25 @@ Size TreeListView::icon_size() const noexcept {
     return result;
 }
 
-TreeListView::Layout TreeListView::layout() const {
-    return layout_for(client_rectangle());
+const TreeListView::Layout& TreeListView::layout() const {
+    const LayoutKey key = layout_key();
+    // Virtual mode: the height index's revision stands for the row heights
+    // the layout read. Measuring (here or in ensure_row_visible) writes the
+    // index without moving the control's key, so the revision is part of
+    // the model.
+    const std::uint64_t model = row_source_ ? (*row_heights_).revision() : 0U;
+    if (kept_layout_valid_ && kept_layout_key_ == key && kept_layout_model_ == model) return kept_layout_;
+    // The control's key is taken before the layout is made: a layout that
+    // writes what it reads is made again at the next call. The heights'
+    // revision is read after it, because the pass measures the rows it
+    // shows before placing them: a pass that measured new rows keeps a
+    // layout made from those heights, and a pass that measured nothing
+    // leaves the revision where the next call will find it.
+    kept_layout_ = layout_for(key.client);
+    kept_layout_key_ = key;
+    kept_layout_model_ = row_source_ ? (*row_heights_).revision() : 0U;
+    kept_layout_valid_ = true;
+    return kept_layout_;
 }
 
 TreeListView::Layout TreeListView::layout_for(Rect client) const {
@@ -1074,8 +1098,13 @@ TreeListView::Layout TreeListView::layout_for(Rect client) const {
     placed.top_row = std::min(top_row_, maximum_top_row(placed));
     if (row_source_ && placed.shown_rows > 0U) {
         // Measure what is shown, then clamp again with the heights found.
+        // A clamp that moves the top shows rows the first pass did not
+        // reach, so they are measured too; the pass then ends, so the kept
+        // layout (keyed on the heights after this pass) shows measured rows.
         measure_rows(placed.top_row, area.height, scale, estimate);
+        const std::size_t measured_top = placed.top_row;
         placed.top_row = std::min(top_row_, maximum_top_row(placed));
+        if (placed.top_row != measured_top) measure_rows(placed.top_row, area.height, scale, estimate);
         placed.visible_rows = end_realized(placed) - placed.top_row;
     }
     const double maximum_offset = std::max(0.0, (columns_width - area.width) / scale);
@@ -1290,7 +1319,9 @@ void TreeListView::arrange(Rect final_bounds) {
     }
     // Keep the stored scroll within the new bounds.
     top_row_ = placed.top_row;
+    advance_layout_revision();
     horizontal_offset_ = placed.horizontal_offset;
+    advance_layout_revision();
     sync_scroll_bars(placed);
 }
 
@@ -1328,6 +1359,7 @@ void TreeListView::on_vertical_scroll(double value) {
 void TreeListView::on_horizontal_scroll(double value) {
     if (synchronizing_scroll_ || !is_alive() || horizontal_offset_ == value) return;
     horizontal_offset_ = std::max(0.0, value);
+    advance_layout_revision();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -1579,6 +1611,7 @@ void TreeListView::on_pointer(PointerEvent& event) {
                     std::clamp(resize_start_width_ + delta, minimum_column_width, maximum_column_width);
                 if (columns_[*resizing_column_].width != width) {
                     columns_[*resizing_column_].width = width;
+                    advance_layout_revision();
                     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
                 }
             }
@@ -1766,6 +1799,7 @@ void TreeListView::on_key(KeyEvent& event) {
     const Control::Ptr lifetime = shared_from_this();
     if (event.physical_key == PhysicalKey::escape && resizing_column_) {
         columns_[*resizing_column_].width = resize_start_width_;
+        advance_layout_revision();
         finish_column_resize();
         invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
         event.handled = true;

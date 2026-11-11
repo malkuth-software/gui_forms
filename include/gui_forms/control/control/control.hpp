@@ -59,6 +59,12 @@ struct HelpRequestEvent;
 
 namespace detail {
 class DisplayChunk;
+class KeptResolutions;
+// The control's kept cascade results (src/core/theme/theme/kept_resolutions.hpp).
+[[nodiscard]] KeptResolutions& kept_resolutions_of(const Control& control);
+// Whether controls keep their layouts (S5); on by default. Off, every
+// layout is made afresh: for tests that compare kept layouts with fresh ones.
+void set_layout_keeping(bool keeping) noexcept;
 struct DispatcherState;
 struct ControlInlineStyle;
 struct InlineRestyle;
@@ -431,6 +437,10 @@ public:
     // through the attached terminal provider without applying text scale a
     // second time.
     [[nodiscard]] ResolvedTextLayout resolve_text_layout_utf8(
+        std::string_view utf8, FontSpec effective) const;
+    // The extent resolve_text_layout_utf8 reports, without the layout (D2):
+    // for measuring, as a wrap probe does.
+    [[nodiscard]] TextExtent measure_text_extent_utf8(
         std::string_view utf8, FontSpec effective) const;
     // The attached window's line-break opportunities
     // (Window::fill_line_break_opportunities_utf8), or the estimate while
@@ -1245,6 +1255,26 @@ protected:
     // this base implementation; it owns the mutation-free child detach path.
     void on_dispose() noexcept override;
 
+    // What a control's kept layout was made under (S5): the process's
+    // property-write epoch, the control's layout revision (advanced by every
+    // invalidation of the control and by advance_layout_revision), its
+    // client rectangle and its text scale. A kept layout whose key differs
+    // from the current one is made again.
+    struct LayoutKey final {
+        std::uint64_t property_epoch{};
+        std::uint64_t revision{};
+        Rect client{};
+        double text_scale{};
+        friend bool operator==(const LayoutKey& left, const LayoutKey& right) noexcept {
+            return left.property_epoch == right.property_epoch && left.revision == right.revision &&
+                   left.client == right.client && left.text_scale == right.text_scale;
+        }
+    };
+    [[nodiscard]] LayoutKey layout_key() const;
+    // Called after writing a field a kept layout reads that is neither a
+    // property cell nor a collection cell, before the next layout read.
+    void advance_layout_revision() noexcept { ++layout_revision_; }
+
 private:
     // The theme the control takes without its own override: its parent's,
     // else its window's, else the default theme.
@@ -1285,6 +1315,7 @@ private:
     // error: the theme's rules reading its names then keep the theme's
     // definitions (CompiledThemeRules::theme_serial differs).
     void refresh_inline_style();
+    friend detail::KeptResolutions& detail::kept_resolutions_of(const Control& control);
     friend class Window;
     friend class SurfaceRoot;
     friend class ContentRegion;
@@ -1619,6 +1650,10 @@ private:
     Event<HelpRequestEvent&> help_requested_;
     BindablePropertyMap bindable_properties_;
     mutable std::unique_ptr<ControlBindingsCollection> data_bindings_;
+    // The recipes and part plans the cascade gave this control, kept
+    // while the style epoch stands (kept_resolutions.hpp); made on first
+    // use by the const resolution calls, hence mutable.
+    mutable std::unique_ptr<detail::KeptResolutions> kept_resolutions_;
     // The form bindings' links, in the order they were made. Declared after
     // the events they subscribe to, so they end first.
     std::vector<std::unique_ptr<PropertyLink>> property_links_;
@@ -1648,6 +1683,8 @@ private:
     bool layout_deferred_{};
     std::uint64_t layout_requested_revision_{};
     std::uint64_t layout_committed_revision_{};
+    // Advanced by every invalidation and by advance_layout_revision (LayoutKey).
+    std::uint64_t layout_revision_{};
 
     enum class RegisteredProperty : std::uint8_t {
         name,

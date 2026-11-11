@@ -78,6 +78,11 @@ public:
     [[nodiscard]] std::size_t run_count() const noexcept;
     [[nodiscard]] std::size_t depth() const noexcept;
 
+    // Advances on every change to a count or a height (assign, a
+    // set_height that changed a value, insert, erase), so a holder can
+    // key a kept layout on it. A move carries it; it never goes back.
+    [[nodiscard]] std::uint64_t revision() const noexcept { return revision_; }
+
 private:
     struct Run final {
         std::size_t count{};
@@ -113,6 +118,7 @@ private:
 
     std::unique_ptr<Node> root_{};
     double estimate_{1.0};
+    std::uint64_t revision_{0U};
 };
 
 } // namespace gui_forms

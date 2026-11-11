@@ -95,10 +95,17 @@ std::vector<std::byte> read_file(const std::filesystem::path& path) {
     return input ? std::move(bytes) : std::vector<std::byte>{};
 }
 
-[[nodiscard]] bool trace_fonts() {
+// Whether GUI_DRAWING_TRACE_FONTS is 1 (B3): read once, as getenv walks the
+// environment on every call.
+[[nodiscard]] bool read_trace_fonts() {
     const char* const trace = std::getenv("GUI_DRAWING_TRACE_FONTS");
     const bool result = trace != nullptr && std::strcmp(trace, "1") == 0;
     return result;
+}
+
+[[nodiscard]] bool trace_fonts() {
+    static const bool traced = read_trace_fonts();
+    return traced;
 }
 
 [[nodiscard]] std::string ascii_folded(std::string_view value) {

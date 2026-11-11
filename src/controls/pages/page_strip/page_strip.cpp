@@ -409,7 +409,7 @@ void PageStrip::measure_tabs() const {
             double content = padding * 2.0;
             if (tab.has_icon) content += image_size * scale;
             if (tab.has_icon && !tab.label.empty()) content += image_text_gap * scale;
-            if (!tab.label.empty()) content += resolve_text_layout_utf8(tab.label, label_font).logical_size.width;
+            if (!tab.label.empty()) content += measure_text_extent_utf8(tab.label, label_font).logical_size.width;
             if (tab.reserves_slot) content += slot;
             natural = std::clamp(content, minimum, maximum);
         }
@@ -674,7 +674,7 @@ void PageStrip::layout_shrink() const {
     layout_.overflow = true;
     const FontSpec label_font = text_font(font.read());
     const std::string widest = std::to_string(count - pinned);
-    const double count_width = resolve_text_layout_utf8(widest, label_font).logical_size.width;
+    const double count_width = measure_text_extent_utf8(widest, label_font).logical_size.width;
     const double list_width = (list_padding * 2.0 + count_glyph_gap + glyph_size) * scale + count_width;
     const double end = main_extent() - inset;
     const double button_start = end - list_width;

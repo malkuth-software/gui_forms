@@ -8,10 +8,12 @@
 #include "gui_forms/window.hpp"
 #include "../../display/chunk/display_chunk.hpp"
 #include "../../theme/theme_compiler/control_inline_style.hpp"
+#include "../../theme/theme/kept_resolutions.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -1180,6 +1182,13 @@ ResolvedTextLayout Control::resolve_text_layout_utf8(
         : estimate_text_layout_utf8(utf8, effective);
 }
 
+TextExtent Control::measure_text_extent_utf8(
+    std::string_view utf8, FontSpec effective) const {
+    if (surface_root_ == nullptr) return text_extent_of(estimate_text_layout_utf8(utf8, effective));
+    const TextExtent extent = (*surface_root_).measure_text_extent_utf8(utf8, effective);
+    return extent;
+}
+
 TextResolutionStatus Control::fill_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) const {
     if (surface_root_ == nullptr) return estimate_line_break_opportunities_utf8(utf8, opportunities);
@@ -2107,6 +2116,8 @@ void Control::add_child(Ptr child) {
     }
 
     (*child).parent_ = weak_from_this();
+    // The child's ancestors changed: every kept resolution may read them.
+    detail::advance_style_epoch();
     (*child).layout_slot_.reset();
     (*child).anchor_reference_.reset();
     children_.push_back(child);
@@ -2152,6 +2163,7 @@ Control::Ptr Control::remove_child(RuntimeId child_id) {
     if ((*removed).parent_.lock().get() == this) {
         (*removed).parent_.reset();
     }
+    detail::advance_style_epoch();
     (*removed).layout_slot_.reset();
     (*removed).anchor_reference_.reset();
     if (surface_root_) {
@@ -3162,11 +3174,14 @@ void Control::invalidate(Dirty requested_dirty) {
     if (requested_dirty == Dirty::none) {
         return;
     }
+    ++layout_revision_;
     if (has_dirty(requested_dirty, Dirty::measure)) {
         requested_dirty |= Dirty::arrange;
     }
     if (initialization_depth_ != 0) {
         pending_initialization_dirty_ |= requested_dirty;
+        // A resolution read before the deferred mark lands is not kept past it.
+        if (has_dirty(requested_dirty, Dirty::style)) detail::advance_style_epoch();
         return;
     }
     if (surface_root_) {
@@ -3197,6 +3212,7 @@ void Control::invalidate(Dirty requested_dirty) {
 
 void Control::invalidate(Rect local_damage) {
     require_mutable();
+    ++layout_revision_;
     if (!local_damage.finite()) {
         throw std::invalid_argument("local paint damage must be finite");
     }
@@ -3241,12 +3257,14 @@ void Control::invalidate_subtree(Dirty requested_dirty) {
     if (requested_dirty == Dirty::none) {
         return;
     }
+    ++layout_revision_;
     if (has_dirty(requested_dirty, Dirty::measure)) {
         requested_dirty |= Dirty::arrange;
     }
     if (initialization_depth_ != 0) {
         pending_initialization_dirty_ |= requested_dirty;
         pending_initialization_subtree_ = true;
+        if (has_dirty(requested_dirty, Dirty::style)) detail::advance_style_epoch();
         return;
     }
     if (surface_root_) {
@@ -4130,6 +4148,8 @@ void Control::clear_dirty(Dirty cleared) noexcept {
 
 void Control::add_dirty(Dirty added) noexcept {
     dirty_ |= added;
+    ++layout_revision_;
+    if (has_dirty(added, Dirty::style)) detail::advance_style_epoch();
     if (has_dirty(added, Dirty::measure)) {
         advance_measure_generation();
     }
@@ -4258,6 +4278,7 @@ void Control::on_dispose() noexcept {
     std::vector<Ptr> visual_children = std::move(children_);
     children_.clear();
     display_chunk_.reset();
+    detail::advance_style_epoch();
     for (const std::shared_ptr<gui_forms::Control>& child : visual_children) {
         (*child).parent_.reset();
         (*child).dispose();
@@ -4307,5 +4328,104 @@ void Control::append_interactions(std::vector<InteractionDeclaration>& interacti
     Component::append_interactions(interactions);
     interactions.insert(interactions.end(), control_interactions.begin(), control_interactions.end());
 }
+
+namespace {
+// detail::set_layout_keeping; with keeping off, each key carries epoch 0
+// (never a real epoch) and a revision no key has held before.
+std::atomic<bool> layout_keeping{true};
+std::atomic<std::uint64_t> unkept_layout_count{};
+} // namespace
+
+void detail::set_layout_keeping(bool keeping) noexcept {
+    layout_keeping.store(keeping, std::memory_order_relaxed);
+}
+
+Control::LayoutKey Control::layout_key() const {
+    LayoutKey key{};
+    key.property_epoch = detail::property_write_epoch();
+    key.revision = layout_revision_;
+    if (!layout_keeping.load(std::memory_order_relaxed)) {
+        key.property_epoch = 0U;
+        key.revision = unkept_layout_count.fetch_add(1U, std::memory_order_relaxed);
+    }
+    key.client = client_rectangle();
+    key.text_scale = effective_text_scale();
+    return key;
+}
+
+namespace detail {
+
+namespace {
+// Starts at 1 so that a new table, at epoch 0, is stale.
+std::atomic<std::uint64_t> style_epoch_counter{1U};
+} // namespace
+
+namespace {
+// Starts at 1 so that a kept layout made before any write (epoch 0) is stale.
+std::atomic<std::uint64_t> property_write_counter{1U};
+} // namespace
+
+std::uint64_t property_write_epoch() noexcept {
+    const std::uint64_t epoch = property_write_counter.load(std::memory_order_relaxed);
+    return epoch;
+}
+
+void advance_property_write_epoch() noexcept {
+    property_write_counter.fetch_add(1U, std::memory_order_relaxed);
+}
+
+std::uint64_t style_epoch() noexcept {
+    const std::uint64_t epoch = style_epoch_counter.load(std::memory_order_relaxed);
+    return epoch;
+}
+
+void advance_style_epoch() noexcept {
+    // 2^64 advances do not occur; zero is still skipped for the reason above.
+    const std::uint64_t previous = style_epoch_counter.fetch_add(1U, std::memory_order_relaxed);
+    if (previous + 1U == 0U) style_epoch_counter.store(1U, std::memory_order_relaxed);
+}
+
+KeptResolutions& kept_resolutions_of(const Control& control) {
+    if (control.kept_resolutions_ == nullptr) control.kept_resolutions_ = std::make_unique<KeptResolutions>();
+    KeptResolutions& kept = *control.kept_resolutions_;
+    const std::uint64_t epoch = style_epoch();
+    if (kept.epoch != epoch) {
+        kept.recipes.clear();
+        kept.plans.clear();
+        kept.epoch = epoch;
+    }
+    return kept;
+}
+
+void fill_ancestor_states(const Control& control, std::vector<AnatomyStateSet>& states) {
+    states.clear();
+    for (Control::Ptr above = control.parent(); above != nullptr; above = (*above).parent()) {
+        states.push_back((*above).anatomy_states());
+    }
+}
+
+bool ancestor_states_match(const Control& control, const std::vector<AnatomyStateSet>& states) {
+    std::size_t index = 0U;
+    for (Control::Ptr above = control.parent(); above != nullptr; above = (*above).parent()) {
+        if (index >= states.size() || !((*above).anatomy_states() == states[index])) return false;
+        ++index;
+    }
+    const bool whole = index == states.size();
+    return whole;
+}
+
+KeptPlacement kept_placement_of(const Control& control) noexcept {
+    KeptPlacement placement{};
+    placement.theme = &control.effective_theme();
+    const SurfaceRoot* const window = control.attached_surface_root();
+    placement.window = window;
+    if (window != nullptr) {
+        placement.media = window_media_facts(*window);
+        placement.text_scale = (*window).presentation_settings().text_scale;
+    }
+    return placement;
+}
+
+} // namespace detail
 
 } // namespace gui_forms

@@ -381,6 +381,8 @@ struct ImageRegistry::Slot final {
     std::vector<std::byte> encoded;
     std::uint64_t row_bytes{};
     std::uint64_t content_hash{};
+    // The open patch run (ImagePatchRegion); closed by every other change.
+    ImagePatchRegion patched{};
 };
 
 ImageRegistry::ImageRegistry(ImageRegistryLimits limits) : limits_(limits) {}
@@ -522,6 +524,7 @@ ImageLoadResult ImageRegistry::store_new(ImageResourceEncoding encoding,
     slot.encoded = std::move(encoded);
     slot.row_bytes = row_bytes;
     slot.content_hash = content_hash;
+    slot.patched = {};
     ++resource_count_;
     encoded_bytes_ += slot.encoded.size();
     decoded_bytes_ += slot.metadata.decoded_byte_count;
@@ -617,6 +620,7 @@ ImageLoadResult ImageRegistry::replace_encoded(ImageId image,
     slot.encoded = std::move(replacement);
     slot.row_bytes = validated.row_bytes;
     slot.content_hash = hash_bytes(encoded);
+    slot.patched = {};
     encoded_bytes_ += slot.encoded.size();
     decoded_bytes_ += slot.metadata.decoded_byte_count;
     ++revision_;
@@ -671,6 +675,7 @@ ImageLoadResult ImageRegistry::replace_bgra32_premultiplied(
         slot.row_bytes = tight_row_bytes;
         slot.content_hash = hash_bytes(slot.encoded) ^
             ((static_cast<std::uint64_t>(width) << 32U) | height);
+        slot.patched = {};
         encoded_bytes_ += slot.encoded.size();
         decoded_bytes_ += decoded_bytes;
         ++revision_;
@@ -713,6 +718,7 @@ ImageLoadResult ImageRegistry::update_bgra32_premultiplied(
     slot.content_hash = slot.content_hash ==
             std::numeric_limits<std::uint64_t>::max()
         ? 1U : slot.content_hash + 1U;
+    slot.patched = {};
     ++revision_;
     return ImageLoadResult::success(image);
 }
@@ -762,6 +768,26 @@ ImageLoadResult ImageRegistry::patch_bgra32_premultiplied(
                         static_cast<std::size_t>(row) *
                             static_cast<std::size_t>(slot.row_bytes));
     }
+    if (slot.patched.base_hash == 0U) {
+        slot.patched.base_image = image.value;
+        slot.patched.base_hash = slot.content_hash;
+        slot.patched.x = x;
+        slot.patched.y = y;
+        slot.patched.width = width;
+        slot.patched.height = height;
+    } else {
+        const std::uint32_t left = std::min(slot.patched.x, x);
+        const std::uint32_t top = std::min(slot.patched.y, y);
+        const std::uint64_t run_right =
+            std::max(static_cast<std::uint64_t>(slot.patched.x) + slot.patched.width, right);
+        const std::uint64_t run_bottom =
+            std::max(static_cast<std::uint64_t>(slot.patched.y) + slot.patched.height, bottom);
+        slot.patched.x = left;
+        slot.patched.y = top;
+        // Both edges lie within the image, so the extents fit 32 bits.
+        slot.patched.width = static_cast<std::uint32_t>(run_right - left);
+        slot.patched.height = static_cast<std::uint32_t>(run_bottom - top);
+    }
     slot.generation = next_generation(slot.generation);
     // This is an opaque cache revision, as in the full-surface update path.
     // A bounded patch must not scan the rest of a potentially large canvas.
@@ -791,6 +817,7 @@ bool ImageRegistry::remove(ImageId image) noexcept {
     std::vector<std::byte>{}.swap(slot.encoded);
     slot.row_bytes = 0;
     slot.content_hash = 0;
+    slot.patched = {};
     ++revision_;
     return true;
 }
@@ -807,6 +834,7 @@ void ImageRegistry::clear() noexcept {
             std::vector<std::byte>{}.swap(slot.encoded);
             slot.row_bytes = 0;
             slot.content_hash = 0;
+            slot.patched = {};
         }
     }
     resource_count_ = 0;
@@ -826,7 +854,7 @@ std::optional<ImageResourceView> ImageRegistry::find(ImageId image) const noexce
         return std::nullopt;
     }
     return ImageResourceView{image, slot.encoding, slot.metadata, slot.encoded,
-                             slot.row_bytes, slot.content_hash};
+                             slot.row_bytes, slot.content_hash, slot.patched};
 }
 
 std::vector<ImageId> ImageRegistry::image_ids() const {
