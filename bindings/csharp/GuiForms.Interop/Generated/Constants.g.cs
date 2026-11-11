@@ -24,6 +24,7 @@ public static class Constants
     public const int GF_STATUS_LIMIT_EXCEEDED = 13;
     public const int GF_STATUS_CANCELLED = 14;
     public const int GF_STATUS_REMOVED = 15;
+    public const int GF_STATUS_NATIVE_EXCEPTION = 16;
     public const uint GF_TABLE_RUNTIME = 1u;
     public const uint GF_TABLE_OBJECTS = 2u;
     public const uint GF_TABLE_PROPERTIES = 3u;
@@ -262,6 +263,8 @@ public static class Constants
     public const uint GF_SHADOW_FRAME_SUBJECT_CAPACITY = 48u;
     public const uint GF_SHADOW_FRAME_NAME_CAPACITY = 32u;
     public const uint GF_SHADOW_STACK_CAPACITY = 64u;
+    public const uint GF_FAILURE_SITE_CAPACITY = 64u;
+    public const uint GF_FAILURE_MESSAGE_CAPACITY = 512u;
     public const uint GF_SCROLL_ORIENTATION_HORIZONTAL = 0u;
     public const uint GF_SCROLL_ORIENTATION_VERTICAL = 1u;
     public const uint GF_TEXT_INK_ROLE_TEXT = 0u;

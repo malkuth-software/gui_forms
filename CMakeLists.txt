@@ -318,6 +318,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/motion_value/motion_value.cpp
     src/core/engine/motion_clock/motion_clock.cpp
     src/core/failure/fail_fast.cpp
+    src/core/failure/failure_snapshot.cpp
     src/core/drag_engine/drag_engine.cpp
     src/core/drag_engine/scrub_gesture.cpp
     src/core/engine/effect_canvas/effect_canvas.cpp
@@ -4501,6 +4502,12 @@ if(GUI_FORMS_BUILD_TESTS)
             PASS_REGULAR_EXPRESSION "GUI.Forms: fatal exception at ${_gui_fail_fast_site}: ${_gui_fail_fast_text}"
             FAIL_REGULAR_EXPRESSION "survived")
     endforeach()
+    # The report prints the failure snapshot's shadow frames: the event frame
+    # the target threw in, closed by unwinding before the boundary caught it.
+    add_test(NAME gui_forms_fail_fast_shadow_frames COMMAND gui_forms_fail_fast_tests shadow_frames)
+    set_tests_properties(gui_forms_fail_fast_shadow_frames PROPERTIES
+        PASS_REGULAR_EXPRESSION "GUI.Forms: shadow frames \\(1 open, 1 recorded\\):[\r\n]+  #0 kind 3 fail-fast.frame click 0"
+        FAIL_REGULAR_EXPRESSION "survived")
 
     add_executable(gui_forms_program_options_tests tests/program_options_tests.cpp)
     target_link_libraries(gui_forms_program_options_tests PRIVATE gui_forms_core)

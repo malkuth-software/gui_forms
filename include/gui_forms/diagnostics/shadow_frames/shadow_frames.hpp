@@ -12,6 +12,12 @@
 // name), never an address, so two runs' stacks compare. Frames are pushed
 // and popped only by ShadowFrameScope, so an exception that unwinds through
 // a scope pops its frame as a return would.
+//
+// An unwinding pop keeps the story of the failure: a popped frame's record
+// stays in the stack's storage until a later push reuses it, and the first
+// scope an exception unwinds notes the depth it was thrown at (two stores,
+// on the exception path only). A boundary that catches the exception reads
+// those frames with copy_failure_shadow_frames.
 
 #include <array>
 #include <cstddef>
@@ -104,5 +110,18 @@ public:
 // state. Returns the number of recorded frames, which may exceed the number
 // copied. Never throws or allocates.
 std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept;
+
+// As copy_shadow_frames, but for a boundary that has just caught an
+// exception: the frames open where the exception was thrown, the frames it
+// unwound included, when no frame has been opened or closed by a return
+// since its last unwinding pop; otherwise (no exception unwound a frame, or
+// the thread has moved on) the frames open now. state.depth is the depth
+// copied from; pushed and dropped are the thread's. Never throws or
+// allocates. The mark cannot tell two unwindings apart when nothing opens
+// or closes a frame between them: an exception caught and handled inside a
+// frame, then another thrown from that frame or an outer one, shows the
+// first's deeper frames above the second's. The outer frames are the
+// second's either way.
+std::size_t copy_failure_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept;
 
 } // namespace gui_forms

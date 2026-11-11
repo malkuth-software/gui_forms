@@ -10,7 +10,7 @@ namespace GuiForms.Interop;
 
 /// <summary>One shadow frame, its fixed-size texts decoded.</summary>
 [DebuggerDisplay("{kind_name,nq} {subject,nq} {name,nq}")]
-public sealed class ShadowFrame
+public sealed unsafe class ShadowFrame
 {
     public gf_shadow_frame_kind kind { get; }
     public gf_shadow_frame_flags flags { get; }
@@ -61,6 +61,17 @@ public sealed class ShadowFrame
     {
         return kind_name + " " + subject + " " + name;
     }
+
+    /// <summary>A managed copy of one library record, its texts decoded within their capacities.</summary>
+    internal static ShadowFrame from_native(gf_shadow_frame* frame)
+    {
+        int subject_size = (int)Math.Min((*frame).subject_size, Constants.GF_SHADOW_FRAME_SUBJECT_CAPACITY);
+        int name_size = (int)Math.Min((*frame).name_size, Constants.GF_SHADOW_FRAME_NAME_CAPACITY);
+        string subject = Encoding.UTF8.GetString((*frame).subject, subject_size);
+        string name = Encoding.UTF8.GetString((*frame).name, name_size);
+        return new ShadowFrame((*frame).kind, (*frame).flags, (*frame).table_id, (*frame).slot_index,
+                               (*frame).sequence, subject, name);
+    }
 }
 
 public static unsafe class ShadowStack
@@ -91,11 +102,7 @@ public static unsafe class ShadowStack
         ShadowFrame[] result = new ShadowFrame[count];
         for (int index = 0; index < count; ++index)
         {
-            gf_shadow_frame* frame = frames + index;
-            string subject = Encoding.UTF8.GetString((*frame).subject, (int)Math.Min((*frame).subject_size, 48u));
-            string name = Encoding.UTF8.GetString((*frame).name, (int)Math.Min((*frame).name_size, 32u));
-            result[index] = new ShadowFrame((*frame).kind, (*frame).flags, (*frame).table_id, (*frame).slot_index,
-                                            (*frame).sequence, subject, name);
+            result[index] = ShadowFrame.from_native(frames + index);
         }
         return result;
     }

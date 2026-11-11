@@ -1106,6 +1106,49 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status failure_snapshot(gf_failure_snapshot* snapshot, gf_shadow_frame* frames,
+                                             uint64_t frame_capacity, uint64_t* frames_required, char* message_buffer,
+                                             uint64_t message_capacity, uint64_t* message_required) const noexcept {
+        if (table_.struct_size < 40u || table_.failure_snapshot == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.failure_snapshot(snapshot, frames, frame_capacity, frames_required,
+                                                         message_buffer, message_capacity, message_required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status clear_failure_snapshot() const noexcept {
+        if (table_.struct_size < 48u || table_.clear_failure_snapshot == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.clear_failure_snapshot();
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_exception_reflection(uint32_t enabled) const noexcept {
+        if (table_.struct_size < 56u || table_.set_exception_reflection == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_exception_reflection(enabled);
+        return called;
+    }
+
+    [[nodiscard]] gf_status exception_reflection(uint32_t* enabled) const noexcept {
+        if (table_.struct_size < 64u || table_.exception_reflection == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.exception_reflection(enabled);
+        return called;
+    }
+
+    [[nodiscard]] gf_status raise_native_exception(gf_utf8_view message) const noexcept {
+        if (table_.struct_size < 72u || table_.raise_native_exception == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.raise_native_exception(message);
+        return called;
+    }
+
 private:
     gf_diagnostics_table table_;
 };

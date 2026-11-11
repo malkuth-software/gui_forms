@@ -152,6 +152,8 @@ Types
      -  
    * - :cpp:class:`gf_events_table <gf_events_table>`
      -  
+   * - :cpp:class:`gf_failure_snapshot <gf_failure_snapshot>`
+     -  
    * - :cpp:class:`gf_file_filter <gf_file_filter>`
      -  
    * - :cpp:class:`gf_font <gf_font>`
@@ -592,6 +594,8 @@ Types
 
    .. cpp:function:: const gf_diagnostics_table& c_table() const noexcept
 
+   .. cpp:function:: gf_status clear_failure_snapshot() const noexcept
+
 
    .. rubric:: Methods
 
@@ -607,7 +611,15 @@ Types
 
    .. cpp:function:: gf_status invalidation_overlay(uint32_t* enabled) const noexcept
 
+   .. cpp:function:: gf_status failure_snapshot(gf_failure_snapshot* snapshot, gf_shadow_frame* frames, uint64_t frame_capacity, uint64_t* frames_required, char* message_buffer, uint64_t message_capacity, uint64_t* message_required) const noexcept
+
+   .. cpp:function:: gf_status exception_reflection(uint32_t* enabled) const noexcept
+
+   .. cpp:function:: gf_status raise_native_exception(gf_utf8_view message) const noexcept
+
    .. cpp:function:: gf_status set_invalidation_overlay(uint32_t enabled) const noexcept
+
+   .. cpp:function:: gf_status set_exception_reflection(uint32_t enabled) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1943,6 +1955,16 @@ Types
 
    .. cpp:member:: gf_status (*invalidation_overlay)(uint32_t* enabled)
 
+   .. cpp:member:: gf_status (*failure_snapshot)(gf_failure_snapshot* snapshot, gf_shadow_frame* frames, uint64_t frame_capacity, uint64_t* frames_required, char* message_buffer, uint64_t message_capacity, uint64_t* message_required)
+
+   .. cpp:member:: gf_status (*clear_failure_snapshot)(void)
+
+   .. cpp:member:: gf_status (*set_exception_reflection)(uint32_t enabled)
+
+   .. cpp:member:: gf_status (*exception_reflection)(uint32_t* enabled)
+
+   .. cpp:member:: gf_status (*raise_native_exception)(gf_utf8_view message)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -2247,6 +2269,32 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_failure_snapshot
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_status status
+
+   .. cpp:member:: gf_table_id table_id
+
+   .. cpp:member:: uint32_t slot_index
+
+   .. cpp:member:: uint64_t sequence
+
+   .. cpp:member:: uint32_t frame_count
+
+   .. cpp:member:: uint32_t depth
+
+   .. cpp:member:: uint32_t site_size
+
+   .. cpp:member:: uint32_t message_size
+
+   .. cpp:member:: uint8_t site[64]
 
 .. cpp:namespace:: 0
 
