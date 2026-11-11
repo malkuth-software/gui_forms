@@ -4377,6 +4377,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_focus_scope_tests
              COMMAND gui_forms_focus_scope_tests)
 
+    add_executable(gui_forms_control_depth_tests tests/control_depth_tests.cpp)
+    target_link_libraries(gui_forms_control_depth_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_control_depth_tests COMMAND gui_forms_control_depth_tests)
+
     add_executable(gui_forms_animation_tests
         tests/animation_tests.cpp
     )

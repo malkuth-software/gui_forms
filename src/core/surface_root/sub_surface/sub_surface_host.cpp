@@ -46,6 +46,10 @@ constexpr std::string_view request_item_prefix = "sub-surface-request.";
 // comment of SubSurfaceHost): `prefix` is the host's stable identity and a
 // '.', `offset` the host's position in the window, `keep_focus` whether the
 // sub-surface has keyboard focus.
+// Recurses once per semantic level. Control levels are bounded by
+// maximum_control_tree_depth (control.hpp); the virtual item levels a
+// control publishes below itself are not yet (an open target of the
+// depth rule, owner 2026-11-11).
 void translate_sub_surface_nodes(std::vector<SemanticNode>& nodes, const std::string& prefix, Point offset,
                                  bool keep_focus) {
     for (SemanticNode& node : nodes) {
@@ -77,6 +81,10 @@ struct SubSurfaceNodeTarget final {
 // Finds the node of the sub-surface's own snapshot whose stable identity is
 // `inner`, depth first in publication order, under the control `owner`.
 // False when there is none.
+// Recurses once per semantic level. Control levels are bounded by
+// maximum_control_tree_depth (control.hpp); the virtual item levels a
+// control publishes below itself are not yet (an open target of the
+// depth rule, owner 2026-11-11).
 bool find_sub_surface_node(const std::vector<SemanticNode>& nodes, std::string_view inner, RuntimeId owner,
                            SubSurfaceNodeTarget& found) {
     for (const SemanticNode& node : nodes) {

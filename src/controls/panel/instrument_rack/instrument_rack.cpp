@@ -63,6 +63,8 @@ ControlVisualStatus module_status(InstrumentModuleState state) noexcept {
     return ControlVisualStatus::normal;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 Control::Ptr first_focusable_descendant(const Control::Ptr& root) {
     if (!root) return {};
     if ((*root).focusable.read() && (*root).effectively_visible() &&
@@ -73,11 +75,13 @@ Control::Ptr first_focusable_descendant(const Control::Ptr& root) {
     return {};
 }
 
+// Whether `candidate` is `root` or below it: the candidate's ancestor
+// chain, walked upward, instead of a recursive search down from the root
+// (the depth rule); the chain is at most maximum_control_tree_depth long.
 bool contains_control(const Control::Ptr& root, const Control::Ptr& candidate) {
     if (!root || !candidate) return false;
-    if (root == candidate) return true;
-    for (const Control::Ptr& child : (*root).children()) {
-        if (contains_control(child, candidate)) return true;
+    for (Control::Ptr ancestor = candidate; ancestor; ancestor = (*ancestor).parent()) {
+        if (ancestor == root) return true;
     }
     return false;
 }

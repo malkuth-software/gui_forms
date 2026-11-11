@@ -10,6 +10,7 @@
 #include "../dispatcher/state/dispatcher_state.hpp"
 #include "../drag_engine/drag_engine.hpp"
 #include "../display/chunk/display_chunk.hpp"
+#include "../control/control/control_tree_walk.hpp"
 #include "../display/recording_painter/recording_painter.hpp"
 #include "../display/replay/replay_display_chunk.hpp"
 #include "../scheduler/request/scheduled_frame_request.hpp"
@@ -232,6 +233,8 @@ void note_hidden_subtree(const Control::Ptr& control, const Control::Ptr& focuse
 // `control` and the controls below it when they publish no node of their
 // own, for the nearest exposed ancestor's node; an exposed control's node
 // takes the focus of its own hidden controls and reports nothing upward.
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void append_semantic_nodes(const Control::Ptr& control,
                            const Control* expected_parent,
                            const SurfaceRoot* owner,
@@ -321,6 +324,8 @@ void append_semantic_nodes(const Control::Ptr& control,
     ++count;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 bool dispatch_semantic_child_action(Control::Ptr control,
                                     std::string_view stable_id,
                                     SemanticAction action,
@@ -983,6 +988,8 @@ bool SurfaceRoot::tab_order_less(const Control::Ptr& left,
     return (*left).tab_index.read() < (*right).tab_index.read();
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::collect_focus_candidates(const Control::Ptr& control,
                                       ControlList& result,
                                       bool focusable_only) const {
@@ -998,6 +1005,8 @@ void SurfaceRoot::collect_focus_candidates(const Control::Ptr& control,
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::collect_mnemonic_candidates(const Control::Ptr& control,
                                          const Control::Ptr& root,
                                          char32_t character,
@@ -1201,6 +1210,8 @@ bool SurfaceRoot::validate_children(const Control::Ptr& container,
     return accepted;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::validate_children_recursive(
     const Control::Ptr& parent, const Control::Ptr& container,
     ValidationConstraints constraints, bool& accepted) {
@@ -2614,6 +2625,8 @@ void SurfaceRoot::cancel_drag() noexcept {
     abandon_deferred_drag();
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
                                   const Control::WeakPtr& parent,
                                   ControlList& attached) {
@@ -2638,6 +2651,8 @@ void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
                                   ControlList& detached) {
     (*control).lifecycle_notification_ = true;
@@ -2666,23 +2681,31 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     }
 }
 
-void SurfaceRoot::forget_destroyed_subtree(Control& control) noexcept {
-    const std::size_t released = engine_parts_.release_control(control.stable_id_.value());
-    if (released > 0U) metrics_.record_engine_parts_released(released, engine_parts_.record_count());
-    motion_clock_.release_owner(control);
-    erase_containing_block_entries(control.runtime_id());
-    if (control.display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
-    control.layout_deferred_listed_in_ = nullptr;
-    control_table_.release(control.surface_slot_);
-    control.surface_slot_ = {};
-    control.window_ = nullptr;
-    control.surface_root_ = nullptr;
-    {
-        std::scoped_lock lock(control.dispatcher_mutex_);
-        control.dispatcher_state_.reset();
-    }
-    for (const Control::Ptr& child : control.children_) {
-        if (child && (*child).surface_root_ == this) forget_destroyed_subtree(*child);
+void SurfaceRoot::forget_destroyed_subtree(Control& root) noexcept {
+    // Walked in fixed storage (the depth rule): this runs in a destructor.
+    // `root` is forgotten whatever it records; below it, only controls
+    // still registered here, and their subtrees.
+    detail::SubtreeWalk walk(root);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        Control& control = *current;
+        if (current != &root && control.surface_root_ != this) {
+            walk.skip_children();
+            continue;
+        }
+        const std::size_t released = engine_parts_.release_control(control.stable_id_.value());
+        if (released > 0U) metrics_.record_engine_parts_released(released, engine_parts_.record_count());
+        motion_clock_.release_owner(control);
+        erase_containing_block_entries(control.runtime_id());
+        if (control.display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
+        control.layout_deferred_listed_in_ = nullptr;
+        control_table_.release(control.surface_slot_);
+        control.surface_slot_ = {};
+        control.window_ = nullptr;
+        control.surface_root_ = nullptr;
+        {
+            std::scoped_lock lock(control.dispatcher_mutex_);
+            control.dispatcher_state_.reset();
+        }
     }
 }
 
@@ -3035,6 +3058,8 @@ void SurfaceRoot::publish_control_availability(Control& control) {
         ControlAvailabilityPublication{this, retained, change});
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::collect_subtree_registration(
     const Control::Ptr& control, ControlList& controls,
     std::unordered_set<std::string>& local_ids) {
@@ -3085,6 +3110,8 @@ void SurfaceRoot::register_subtree(const Control::Ptr& control) {
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::unregister_subtree(const Control::Ptr& control) {
     const StableIdMap::const_iterator registered = stable_ids_.find((*control).stable_id_.value());
     if (registered != stable_ids_.end()) stable_ids_.erase(registered);
@@ -3412,6 +3439,8 @@ bool SurfaceRoot::semantic_scope_reaches(const Control::Ptr& control) const {
     return false;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
                                  double& requested_damage_area) {
     // A pending touch inside the subtree whose kinds the mark covers is
@@ -3727,12 +3756,23 @@ void SurfaceRoot::take_scroll_copies(std::vector<ScrollCopy>& copies) {
 
 void SurfaceRoot::collect_overlay_paint(const Control::Ptr& control, Rect clip,
                                         std::vector<Rect>& crossing) const {
-    if (!control || !(*control).is_alive() || !(*control).visible.read()) return;
-    const Rect bounds = visual_bounds_of(*control, (*control).effective_visual_outsets());
-    if (!Rect::intersection(bounds, clip).empty() && !records_no_paint(*control)) crossing.push_back(bounds);
-    for (const Control::Ptr& child : (*control).children_) collect_overlay_paint(child, clip, crossing);
+    if (!control) return;
+    // In pre-order, in fixed storage (the depth rule); a disposed or hidden
+    // control's subtree is skipped whole. Reading bounds changes no child
+    // list.
+    detail::SubtreeWalk walk(*control);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        if (!(*current).is_alive() || !(*current).visible.read()) {
+            walk.skip_children();
+            continue;
+        }
+        const Rect bounds = visual_bounds_of(*current, (*current).effective_visual_outsets());
+        if (!Rect::intersection(bounds, clip).empty() && !records_no_paint(*current)) crossing.push_back(bounds);
+    }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 bool SurfaceRoot::other_plane_crosses(const Control::Ptr& control, const Control& scroller,
                                       Rect clip, bool beneath_covered, std::vector<Rect>& crossing) const {
     if (!control || control.get() == &scroller || !(*control).is_alive() ||
@@ -3979,6 +4019,8 @@ void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
 // Each descendant's paint bounds, placed from its parent's origin; a
 // rectangle inside `covered` (the subtree root's damage, already added)
 // adds nothing to the damage's union, so only those leaving it are added.
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::add_descendant_damage(const Control& parent, Point parent_origin, Rect covered) {
     for (const std::shared_ptr<gui_forms::Control>& child : parent.children_) {
         if (!child) continue;
@@ -4224,6 +4266,8 @@ std::vector<Control::Ptr> SurfaceRoot::route_to(const Control::Ptr& target) cons
     return route;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control, Point parent_origin,
                                         Point window_position) const {
     if (!eligible(control) || (*control).surface_root_ != this) {
@@ -4270,6 +4314,8 @@ Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control, Point 
         ? control : Control::Ptr{};
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
                                      Size available,
                                      std::uint64_t& visited_nodes,
@@ -4350,6 +4396,8 @@ ResizeAxes resized_axes(Rect before, Rect after) noexcept {
 
 } // namespace
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
                                      Rect final_bounds,
                                      std::uint64_t& visited_nodes,
@@ -4444,6 +4492,8 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
     (*control).subtree_dirty_ = summary;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 bool SurfaceRoot::has_runnable_layout_dirty(
     const Control::Ptr& control) const noexcept {
     if (!control || (*control).layout_suspend_depth_ != 0U ||
@@ -4576,6 +4626,8 @@ void SurfaceRoot::set_containing_block_dependencies(Control& dependent, std::spa
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::mark_subtree_arrange(Control& control) noexcept {
     constexpr Dirty effects = Dirty::arrange | Dirty::hit_test;
     control.dirty_ |= effects;
@@ -4645,6 +4697,8 @@ void SurfaceRoot::note_suspended_layout_request(Control& control) noexcept {
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::commit_layout_requests_recursive(
     const Control::Ptr& control) noexcept {
     if (!control || (*control).layout_suspend_depth_ != 0U) return;
@@ -4726,6 +4780,8 @@ void SurfaceRoot::refresh_ancestor_summaries(Control& first) noexcept {
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 Dirty SurfaceRoot::recompute_subtree_dirty(const Control::Ptr& control) noexcept {
     Dirty summary = (*control).dirty_;
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
@@ -4735,22 +4791,26 @@ Dirty SurfaceRoot::recompute_subtree_dirty(const Control::Ptr& control) noexcept
     return summary;
 }
 
+// The two clears walk in fixed storage (the depth rule); clearing flags
+// changes no child list.
 void SurfaceRoot::clear_layout_dirty_subtree(const Control::Ptr& control) noexcept {
-    (*control).clear_dirty(Dirty::layout | Dirty::hit_test);
-    (*control).clear_subtree_dirty(Dirty::layout | Dirty::hit_test);
-    for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
-        clear_layout_dirty_subtree(child);
+    detail::SubtreeWalk walk(*control);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        (*current).clear_dirty(Dirty::layout | Dirty::hit_test);
+        (*current).clear_subtree_dirty(Dirty::layout | Dirty::hit_test);
     }
 }
 
 void SurfaceRoot::clear_paint_dirty_subtree(const Control::Ptr& control) noexcept {
-    (*control).clear_dirty(Dirty::paint);
-    (*control).clear_subtree_dirty(Dirty::paint);
-    for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
-        clear_paint_dirty_subtree(child);
+    detail::SubtreeWalk walk(*control);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        (*current).clear_dirty(Dirty::paint);
+        (*current).clear_subtree_dirty(Dirty::paint);
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Point parent_origin, const Rect damage,
                               const PaintPlane plane, std::vector<Control::Ptr>& path) const {
     if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).visible.read() ||
@@ -4864,6 +4924,8 @@ void SurfaceRoot::summarize_subtree_paint(Control& control) const noexcept {
     control.subtree_dirty_ = without_dirty(control.subtree_dirty_, Dirty::paint) | paint_summary;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                              const Point parent_origin,
                              Painter& painter,
@@ -4990,9 +5052,11 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
 }
 
 std::uint64_t SurfaceRoot::display_cache_entries(const Control::Ptr& control) const noexcept {
-    std::uint64_t entries = (*control).display_chunk_ ? 1U : 0U;
-    for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
-        entries += display_cache_entries(child);
+    // Counted in fixed storage (the depth rule).
+    std::uint64_t entries = 0U;
+    detail::SubtreeWalk walk(*control);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        if ((*current).display_chunk_) ++entries;
     }
     return entries;
 }

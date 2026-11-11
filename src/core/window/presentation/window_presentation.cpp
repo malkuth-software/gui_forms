@@ -1056,6 +1056,8 @@ void Window::set_live_surface_idle_waiting(const bool waiting) {
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void Window::collect_visible_overlay_rectangles(
     const Control::Ptr& control, std::vector<Rect>& rectangles) const {
     if (!control || !(*control).is_alive() || (*control).surface_root_ != this ||
@@ -1073,6 +1075,8 @@ void Window::collect_visible_overlay_rectangles(
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void Window::collect_overlay_attachment_cover(const Control& control, const Rect root_cover,
                                               std::vector<Rect>& rectangles) const {
     for (const Control::Ptr& child : control.children_) {

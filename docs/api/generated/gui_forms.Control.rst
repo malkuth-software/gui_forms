@@ -1345,7 +1345,7 @@ gui_forms::Control
 
    .. cpp:function:: void insert_child(Ptr child, std::size_t index)
 
-      Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index_from_top moves it. On failure the tree is unchanged.
+      Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index_from_top moves it. On failure the tree is unchanged. The refusals are add_child's.
 
    .. cpp:function:: Ptr remove_child(RuntimeId child)
 

@@ -885,6 +885,10 @@ struct LinuxAccessibility::Impl {
     // The node's children are moved out of it before its own fields are
     // kept (audit N100: an object keeps no copy of its subtree), so the
     // snapshot is consumed.
+    // Recurses once per semantic level. Control levels are bounded by
+    // maximum_control_tree_depth (control.hpp); the virtual item levels a
+    // control publishes below itself are not yet (an open target of the
+    // depth rule, owner 2026-11-11).
     void sync(SemanticNode& node, AtkObject* parent, int index, std::uint64_t owner_control) {
         std::vector<SemanticNode> child_nodes = std::move(node.children);
         node.children.clear();

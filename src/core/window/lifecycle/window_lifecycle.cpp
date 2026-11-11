@@ -326,6 +326,8 @@ void SurfaceRoot::set_chrome_insets(Insets insets) {
 // that axis. Those controls, and only those, are marked for measure. The
 // reached set contains each reached control's ancestors, so their subtree
 // flags already cover it.
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::mark_resized_measure(Control& control, bool width_reaches, bool height_reaches) {
     // add_dirty advances the measure generation, so a reached control's
     // cached measure answers (measure_for_layout) are not answered again.

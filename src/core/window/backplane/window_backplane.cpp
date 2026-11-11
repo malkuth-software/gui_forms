@@ -138,6 +138,8 @@ bool SurfaceRoot::replay_backplane(Rect covered, const BackplaneRegion& region, 
     return true;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::replay_backplane_subtree(const Control::Ptr& control, Rect clip, Painter& painter) const {
     const Control& node = *control;
     if (!node.is_alive() || node.surface_root_ != this || !node.visible.read() || node.layout_collapsed_) return;
@@ -165,6 +167,8 @@ void SurfaceRoot::replay_backplane_subtree(const Control::Ptr& control, Rect cli
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::composite_backplane_subtree(const Control::Ptr& control, Rect clip, const BackplaneRegion& region,
                                          const PartRasterView& image, std::uint64_t& skipped) const {
     const Control& node = *control;

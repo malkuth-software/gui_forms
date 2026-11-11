@@ -64,6 +64,8 @@ inline bool tab_index_before(const Control::Ptr& left, const Control::Ptr& right
 // take focus, or null. Tab order, not child order: a panel's first child
 // may sit at its bottom, and focusing it would scroll an auto-scrolling
 // content to the end.
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 inline Control::Ptr first_focusable(const Control::Ptr& root) {
     if (!root) return {};
     const std::span<const Control::Ptr> children = (*root).children();

@@ -294,6 +294,8 @@ namespace {
 
 // The control under `control` (itself included) whose stable id is
 // `stable_id`, depth first, or null.
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 Control::Ptr find_gallery_control(const Control::Ptr& control, std::string_view stable_id) {
     if ((*control).stable_id().value() == stable_id) return control;
     for (const Control::Ptr& child : (*control).children()) {

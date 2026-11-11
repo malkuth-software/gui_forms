@@ -153,7 +153,41 @@ static void tree(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(panel), GF_STATUS_OK, "release a disposed root");
 }
 
+/* The tree nests at most 64 levels, the root counted as one: a chain at the
+ * limit is accepted and one level more is refused, changing nothing. */
+static void depth(gf_kit* kit) {
+    enum { depth_limit = 64 };
+    gf_object chain[depth_limit];
+    char stable_id[32];
+    for (int level = 0; level < depth_limit; ++level) {
+        snprintf(stable_id, sizeof(stable_id), "kit.depth.%d", level + 1);
+        chain[level] = gf_kit_create(kit, "Panel", stable_id);
+        if (level > 0) {
+            gf_kit_status(kit, (*kit).objects.insert_child(chain[level - 1], chain[level], 0u), GF_STATUS_OK,
+                          "a chain up to the depth limit is accepted");
+        }
+    }
+    const gf_object extra = gf_kit_create(kit, "Panel", "kit.depth.extra");
+    gf_kit_status(kit, (*kit).objects.insert_child(chain[depth_limit - 1], extra, 0u), GF_STATUS_LIMIT_EXCEEDED,
+                  "a child one level past the depth limit is refused");
+    gf_kit_check(kit, last_failure_is(kit, GF_STATUS_LIMIT_EXCEEDED, GF_TABLE_OBJECTS, 7u),
+                 "the depth refusal names objects.insert_child");
+    uint64_t count = 1u;
+    gf_kit_status(kit, (*kit).objects.child_count(chain[depth_limit - 1], &count), GF_STATUS_OK,
+                  "child_count after the depth refusal");
+    gf_kit_check(kit, count == 0u, "the depth refusal adds no child");
+    gf_object parent = 1u;
+    gf_kit_status(kit, (*kit).objects.parent(extra, &parent), GF_STATUS_OK, "parent after the depth refusal");
+    gf_kit_check(kit, parent == 0u, "the refused child stays parentless");
+    gf_kit_status(kit, (*kit).objects.release(extra), GF_STATUS_OK, "release the refused child");
+    gf_kit_status(kit, (*kit).objects.dispose(chain[0]), GF_STATUS_OK, "dispose a chain at the depth limit");
+    for (int level = depth_limit - 1; level >= 0; --level) {
+        gf_kit_status(kit, (*kit).objects.release(chain[level]), GF_STATUS_OK, "release a chain member");
+    }
+}
+
 void gf_kit_ownership(gf_kit* kit) {
     identities(kit);
     tree(kit);
+    depth(kit);
 }
