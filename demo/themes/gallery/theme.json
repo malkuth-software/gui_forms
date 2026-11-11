@@ -3,5 +3,5 @@
   "name": "gallery",
   "version": "1.0.0",
   "engine": ">=0.3",
-  "sheet": {"path": "gallery.theme.css", "sha256": "8710bfb73912393c4323c416e18da307a3cc7180a7f7333f752aa48a342b98f0"}
+  "sheet": {"path": "gallery.theme.css", "sha256": "20ab0b4c495c04ef487f93fd929c40055570f6ba0bf2228927513ca8e5b0155e"}
 }
