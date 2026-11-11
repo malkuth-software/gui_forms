@@ -162,8 +162,9 @@ gui_forms::PageView
    panel); panels of pages not selected are hidden and not published. The view
    adds no node of its own unless it has an accessible name.
 
-   The view paints its content area as a ``well`` part through the by-role
-   paint path; its parts are ``region``, ``strip`` (composed from
+   The view paints its content area as the ``content`` part, a ``well``,
+   through the by-role paint path, so a ``page-view::part(content)`` rule
+   reaches it; its parts are ``region``, ``strip`` (composed from
    ``page_strip``), ``content`` and ``focus``.
 
    .. rubric:: Examples

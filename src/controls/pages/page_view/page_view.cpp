@@ -391,10 +391,14 @@ void PageView::arrange(Rect final_bounds) {
 void PageView::on_paint(Painter& painter, Rect) {
     const Rect surface = client_rectangle();
     const Areas areas = areas_for(Size{surface.width, surface.height});
+    // The content well carries its anatomy name (cp29), so a
+    // `page-view::part(content)` rule reaches it; rules naming no part
+    // reach it as before.
     PartPaint part{};
     part.family = ControlVisualRole::panel;
     part.role = PartRole::well;
     part.bounds = areas.content;
+    part.key = PartKey{"content", {}, {}};
     paint_part(painter, *this, part);
 }
 

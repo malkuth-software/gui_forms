@@ -6737,6 +6737,7 @@
             {"name": "caption_accent", "role": "keyline", "composed_from": null, "states": []},
             {"name": "caption_key", "role": "chip", "composed_from": null, "states": []},
             {"name": "caption_label", "role": "caption", "composed_from": null, "states": []},
+            {"name": "caption_grip", "role": "grip", "composed_from": null, "states": []},
             {"name": "caption_menu", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed", "open", "disabled"]},
             {"name": "caption_menu_glyph", "role": "glyph", "composed_from": null, "states": ["disabled"]},
             {"name": "caption_pin", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed", "checked", "disabled"]},
