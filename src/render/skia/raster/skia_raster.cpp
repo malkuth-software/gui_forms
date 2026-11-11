@@ -2143,7 +2143,8 @@ bool SkiaRaster::Impl::composite_part(SkCanvas& target, const PartRaster& raster
     const detail::PartRasterSource source{.pixels = raster.pixels(), .width = extent.width, .height = extent.height,
                                           .row_bytes = raster.row_bytes(),
                                           .left = std::llround(static_cast<double>(device.x())),
-                                          .top = std::llround(static_cast<double>(device.y()))};
+                                          .top = std::llround(static_cast<double>(device.y())),
+                                          .opaque = raster.opaque()};
     const bool composited = composite_source(target, source, opacity);
     return composited;
 }

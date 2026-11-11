@@ -210,9 +210,10 @@ void quotient_identity_is_exact() {
     }
 }
 
-// The pixels wholly inside a rectangular clip take the alpha from a table
-// per coverage byte: the result equals the per-pixel coverage path, which a
-// rounded clip of radius 0 around the whole target forces on every pixel.
+// The interior (clip coverage a whole unit) takes the block kernels, and a
+// rounded clip of radius 0 has the same interior as a rectangular one: the
+// two give the same bytes. part_composite_tests checks the interior against
+// the per-pixel formula.
 void interior_table_matches_coverage() {
     constexpr std::uint32_t width = 11U;
     constexpr std::uint32_t height = 7U;
@@ -249,7 +250,7 @@ void interior_table_matches_coverage() {
                         rounded, colour, mode);
                     require(first == TextCompositeStatus::success && second == TextCompositeStatus::success,
                             "both clips composite");
-                    require(table == covered, "the interior table matches the per-pixel coverage path");
+                    require(table == covered, "the rectangular and radius-0 rounded clips agree");
                 }
             }
         }

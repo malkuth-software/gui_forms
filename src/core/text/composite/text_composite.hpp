@@ -117,6 +117,11 @@ struct PartRasterSource final {
     // How the weighted source joins the target (PartCompositeBlend). Copy
     // writes every target pixel within the source's extent and the clip.
     PartCompositeBlend blend{PartCompositeBlend::source_over};
+    // Every source pixel's alpha is 255, as its maker recorded at bake time
+    // (PartRaster::opaque). Source-over at full opacity then copies the
+    // unscaled interior's rows. A source not wholly opaque must leave it
+    // false: its rows would be copied, not blended.
+    bool opaque{};
 };
 
 // A part opacity in [0, 1] as the byte the blend reads: floor(o * 255 + 0.5),
