@@ -188,6 +188,9 @@ def main() -> int:
         status: int = build(tree, arguments.jobs)
         log_text: str = (tree / 'lifetime-lint-build.log').read_text(encoding='utf-8', errors='replace')
         print(f'lifetime-lint: build exit {status}, {log_text.count("FAILED:")} failed edges')
+    if not (tree / 'lifetime-lint-build.log').is_file():
+        print(f'lifetime-lint: no build log in {tree} (run once without --parse-only); nothing reported')
+        return 0
     findings: list[dict] = parse(tree)
     destination: Path = Path(arguments.json) if arguments.json else tree / 'lifetime-lint-findings.json'
     destination.write_text(json.dumps(findings, indent=1) + '\n', encoding='utf-8')
