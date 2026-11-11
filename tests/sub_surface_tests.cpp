@@ -1306,8 +1306,10 @@ void thread_builds_semantics_only_when_taken() {
 
     // Two changes, neither snapshot taken: each completes on the thread, and
     // a correct thread builds nothing however long it is given.
-    thread.dispatcher().begin_invoke(RenameFirst(stops, "once")).wait_and_rethrow();
-    thread.dispatcher().begin_invoke(RenameFirst(stops, "twice")).wait_and_rethrow();
+    const DispatchInvokeResult once = thread.dispatcher().invoke(RenameFirst(stops, "once"));
+    const DispatchInvokeResult twice = thread.dispatcher().invoke(RenameFirst(stops, "twice"));
+    require(once == DispatchInvokeResult::completed && twice == DispatchInvokeResult::completed,
+            "both changes complete on the thread");
     const std::chrono::steady_clock::time_point quiet_until =
         std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
     while (std::chrono::steady_clock::now() < quiet_until) {
