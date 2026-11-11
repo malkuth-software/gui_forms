@@ -206,12 +206,13 @@ class ResolvedControlRecipe final {
 public:
     explicit ResolvedControlRecipe(const ControlVisualRecipe& floor) noexcept : floor_(&floor) {}
     ResolvedControlRecipe(const ControlVisualRecipe& floor, ControlVisualRecipe&& authored,
-                          bool important_text = false) noexcept
-        : floor_(&floor), authored_(std::move(authored)), important_text_(important_text) {}
+                          bool important_text = false, bool important_glyph = false) noexcept
+        : floor_(&floor), authored_(std::move(authored)), important_text_(important_text),
+          important_glyph_(important_glyph) {}
     // The floor is borrowed, so it is never a temporary.
     explicit ResolvedControlRecipe(const ControlVisualRecipe&& floor) = delete;
     ResolvedControlRecipe(const ControlVisualRecipe&& floor, ControlVisualRecipe&& authored,
-                          bool important_text = false) = delete;
+                          bool important_text = false, bool important_glyph = false) = delete;
 
     [[nodiscard]] const ControlVisualRecipe& recipe() const& noexcept {
         if (authored_) return *authored_;
@@ -224,11 +225,15 @@ public:
     // (CascadeLevel::important_user_theme or above), where it stands over
     // a part's authored foreground (owner decision T4-1).
     [[nodiscard]] bool important_text() const noexcept { return important_text_; }
+    // Whether the glyph colour was declared at an important level, where it
+    // stands over a part's authored foreground for the marks it inks.
+    [[nodiscard]] bool important_glyph() const noexcept { return important_glyph_; }
 
 private:
     const ControlVisualRecipe* floor_;
     std::optional<ControlVisualRecipe> authored_{};
     bool important_text_{};
+    bool important_glyph_{};
 };
 
 inline constexpr std::size_t control_visual_role_count =

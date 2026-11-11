@@ -4100,7 +4100,7 @@ Types
 
    .. cpp:member:: std::optional<Color> authored_background
 
-      The colours an application authored for this part (design language 8.5; owner decision T4-1), or none, such as a DataGridView cell style's BackColor and ForeColor. They stand where an inline style's colours would stand for this one part: over the theme's ordinary declarations, under its important ones, and never in high contrast, where the role's colours stand (§5.8). Unlike the content colour they are a look, not data. - The background: a surface role (and an indicator or glyph without a mark, which paints its ground) paints it flat in place of the material's fills, keeping the material's border, keylines and shadows and the part's shape. A fill with a content colour shows the content colour. A disabled part keeps it. - The foreground: text roles and the caret draw in it, marks are inked with it and rules (keyline, divider, seam) are drawn in it. A disabled part keeps the theme's disabled colours, so disabled stays greyed; a theme text colour declared important stands over it for text. A rule that chooses a primitive for the part at an important level stands over both; a primitive that draws a theme material takes the background in its material's fills, and a primitive's own colour parameters do not read them.
+      The colours an application authored for this part (design language 8.5; owner decision T4-1), or none, such as a DataGridView cell style's BackColor and ForeColor. They stand where an inline style's colours would stand for this one part: over the theme's ordinary declarations, under its important ones, and never in high contrast, where the role's colours stand (§5.8). Unlike the content colour they are a look, not data. - The background: a surface role (and an indicator or glyph without a mark, which paints its ground) paints it flat in place of the material's fills, keeping the material's border, keylines and shadows and the part's shape. A fill with a content colour shows the content colour. A disabled part keeps it. - The foreground: text roles and the caret draw in it, marks are inked with it and rules (keyline, divider, seam) are drawn in it. A disabled part keeps the theme's disabled colours, so disabled stays greyed; a theme text colour declared important stands over it for text, and a glyph colour declared important for marks. A rule that chooses a primitive for the part at an important level stands over both; a primitive that draws a theme material takes the background in its material's fills, and a primitive's own colour parameters do not read them.
 
    .. cpp:member:: std::optional<Color> authored_foreground
 
@@ -4811,7 +4811,7 @@ Types
 
    .. cpp:function:: explicit ResolvedControlRecipe(const ControlVisualRecipe& floor) noexcept
 
-   .. cpp:function:: ResolvedControlRecipe(const ControlVisualRecipe& floor, ControlVisualRecipe&& authored, bool important_text = false) noexcept
+   .. cpp:function:: ResolvedControlRecipe(const ControlVisualRecipe& floor, ControlVisualRecipe&& authored, bool important_text = false, bool important_glyph = false) noexcept
 
 
    .. rubric:: Properties
@@ -4825,6 +4825,10 @@ Types
    .. cpp:function:: bool important_text() const noexcept
 
       Whether the text colour was declared at an important level (CascadeLevel::important_user_theme or above), where it stands over a part's authored foreground (owner decision T4-1).
+
+   .. cpp:function:: bool important_glyph() const noexcept
+
+      Whether the glyph colour was declared at an important level, where it stands over a part's authored foreground for the marks it inks.
 
 .. cpp:namespace:: gui_forms
 
