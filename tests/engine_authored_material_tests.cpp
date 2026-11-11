@@ -597,8 +597,12 @@ void test_engine_equivalence() {
     require(pixels_hash(*authored) == pixels_hash(*written),
             "the fields bake as the same material written into the recipe in C++");
     require(pixels_hash(*authored) != pixels_hash(*plain), "and the fields change the part");
-    require(assemblies(*(*authored).window) == 1U && assemblies(*(*written).window) == 0U,
-            "the authored part assembled its material once; the written one assembles none");
+    // The field rule names no control type, so it also reaches the root
+    // panel's face, which no primitive draws: the built-in recipe draws it
+    // in its authored material too (built_in_part_material), one assembly
+    // each.
+    require(assemblies(*(*authored).window) == 2U && assemblies(*(*written).window) == 0U,
+            "the authored button face and panel face assembled their material once each; the written one assembles none");
 
     Window& window = *(*authored).window;
     const std::uint64_t first_bakes = bakes(window);
