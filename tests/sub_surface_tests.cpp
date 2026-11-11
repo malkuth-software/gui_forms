@@ -134,6 +134,18 @@ constexpr std::chrono::seconds wait_limit{10};
     return false;
 }
 
+// Waits until the thread has built `snapshots` semantic snapshots. A frame
+// is counted before the same turn publishes its snapshot (produce, then
+// publish_semantics), so a published frame does not imply a snapshot.
+[[nodiscard]] bool wait_for_snapshots(const SubSurfaceThread& thread, std::uint64_t snapshots) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        if (thread.statistics().semantic_snapshots_published >= snapshots) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
 // Whether every pixel of the frame is `color`.
 [[nodiscard]] bool frame_is(const LiveSurfaceFrame& frame, Color color) {
     if (!frame) return false;
@@ -1261,6 +1273,7 @@ void thread_publishes_semantics() {
     require(!thread.take_semantics(), "nothing is published before the first configuration");
     thread.configure(configuration_of(1U, 100U, 30U));
     require(wait_for_published(thread, 1U), "the first frame is published");
+    require(wait_for_snapshots(thread, 1U), "the first configuration builds a snapshot");
     std::shared_ptr<const SemanticSnapshot> first = thread.take_semantics();
     require(static_cast<bool>(first), "a snapshot is published with the first configuration");
     const SemanticNode* const stop = find_node((*first).roots, "sub.first");
@@ -1272,10 +1285,7 @@ void thread_publishes_semantics() {
 
     const DispatchOperation renamed = thread.dispatcher().begin_invoke(RenameFirst(stops, "renamed"));
     static_cast<void>(renamed);
-    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
-    while (thread.statistics().semantic_snapshots_published < 2U && std::chrono::steady_clock::now() < limit) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
+    require(wait_for_snapshots(thread, 2U), "the change builds a second snapshot");
     std::shared_ptr<const SemanticSnapshot> second = thread.take_semantics();
     require(second && (*second).generation > (*first).generation, "a semantic change publishes again");
     const SemanticNode* const named = find_node((*second).roots, "sub.first");
@@ -1304,11 +1314,8 @@ void thread_builds_semantics_only_when_taken() {
     SubSurfaceThread thread(std::make_unique<SemanticContent>(log, stops), surface, default_theme(), nullptr);
     require(wait_for_state(thread, SubSurfaceState::running), "thread reaches running");
     thread.configure(configuration_of(1U, 100U, 30U));
-    const std::chrono::steady_clock::time_point first_limit = std::chrono::steady_clock::now() + wait_limit;
-    while (thread.statistics().semantic_snapshots_published < 1U && std::chrono::steady_clock::now() < first_limit) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    require(thread.statistics().semantic_snapshots_published == 1U, "the first snapshot is built untaken");
+    require(wait_for_snapshots(thread, 1U) && thread.statistics().semantic_snapshots_published == 1U,
+            "the first snapshot is built untaken");
 
     // Two changes, neither snapshot taken: each completes on the thread, and
     // a correct thread builds nothing however long it is given.
@@ -1327,10 +1334,7 @@ void thread_builds_semantics_only_when_taken() {
     std::shared_ptr<const SemanticSnapshot> stale = thread.take_semantics();
     require(stale && (*find_node((*stale).roots, "sub.first")).name == "first",
             "the snapshot taken is the one built before the changes");
-    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
-    while (thread.statistics().semantic_snapshots_published < 2U && std::chrono::steady_clock::now() < limit) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
+    require(wait_for_snapshots(thread, 2U), "taking the stale snapshot builds the newest");
     std::shared_ptr<const SemanticSnapshot> newest = thread.take_semantics();
     require(thread.statistics().semantic_snapshots_published == 2U && newest &&
                 (*find_node((*newest).roots, "sub.first")).name == "twice",
