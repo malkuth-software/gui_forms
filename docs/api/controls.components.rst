@@ -34,7 +34,7 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
    * - :cpp:class:`Binding <gui_forms::Binding>`
      - A two-way connection between one property of a control and one field of a :cpp:class:`BindingSource <gui_forms::BindingSource>`.
    * - :cpp:class:`BindingSource <gui_forms::BindingSource>`
-     - A list of records with a current position, to which controls are bound.
+     - A list of rows with a current position, to which controls are bound.
    * - :cpp:class:`BindingContext <gui_forms::BindingContext>`
      - A registry of the binding sources used in one window and their currency managers.
 
@@ -1041,6 +1041,18 @@ Related types
 
 Enumerations
 ------------
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BindingViewMode
+
+   ``#include <gui_forms/binding/binding_source/binding_source.hpp>``
+
+   .. cpp:enumerator:: provider_order
+
+   .. cpp:enumerator:: provider_view
+
+   .. cpp:enumerator:: index
 
 .. cpp:namespace:: gui_forms
 

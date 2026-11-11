@@ -22,8 +22,8 @@ std::size_t CurrencyManager::count() const noexcept {
     return source_ == nullptr ? 0U : (*source_).count();
 }
 
-const BindingRecord* CurrencyManager::current() const noexcept {
-    return source_ == nullptr ? nullptr : (*source_).current();
+std::string CurrencyManager::current_stable_id() const {
+    return source_ == nullptr ? std::string{} : (*source_).current_stable_id();
 }
 
 std::ptrdiff_t CurrencyManager::position() const noexcept {
@@ -86,10 +86,6 @@ Event<const std::string&>& CurrencyManager::data_error() noexcept {
     return (*source_).data_error();
 }
 
-std::span<const BindingRecord> CurrencyManager::list() const noexcept {
-    return source_ == nullptr ? std::span<const BindingRecord>{}
-                              : (*source_).records();
-}
 
 Event<const BindingListChange&>& CurrencyManager::list_changed() noexcept {
     return (*source_).list_changed();

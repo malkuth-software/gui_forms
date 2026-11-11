@@ -1,11 +1,13 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
+#include "support/binding_test_rows.hpp"
 #include "support/named_callbacks.hpp"
 
 #include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -38,7 +40,7 @@ struct Fixture final {
         (*root).add_child(enabled);
         (*root).add_child(gain);
         (*root).add_child(caption);
-        (*source).set_records({
+        gui_forms::test_rows::fill_source(*source, {
             {"record.alpha", {{"name", std::string("Alpha")},
                                {"enabled", true}, {"gain", 24.0}}},
             {"record.beta", {{"name", std::string("Beta")},
@@ -711,7 +713,7 @@ void test_visual_property_values_drive_stock_controls() {
     (*root).add_child(picture);
     Window window(root, {200.0, 120.0});
     std::shared_ptr<gui_forms::BindingSource> source = std::make_shared<BindingSource>(window);
-    (*source).set_records({
+    gui_forms::test_rows::fill_source(*source, {
         {"property.visual.record", {{"image", std::uint64_t{77}}}},
     });
     const std::shared_ptr<Binding> image_binding = (*picture).data_bindings().add(
@@ -774,8 +776,7 @@ void test_multi_control_two_way_currency_and_event_order() {
             callbacks::PushConstant<std::vector<std::string>, std::string>(
                 order, "item"));
     require((*fixture.source).currency_manager().set_position(1) &&
-                (*(*fixture.source).currency_manager().current()).stable_id ==
-                    "record.beta" && (*fixture.editor).text.read() == "Beta" &&
+                (*fixture.source).currency_manager().current_stable_id() == "record.beta" && (*fixture.editor).text.read() == "Beta" &&
                 !(*fixture.enabled).checked.read() && (*fixture.gain).value.read() == 72.0 &&
                 order == std::vector<std::string>{
                     "position:1", "current", "item"},
@@ -836,7 +837,7 @@ void test_format_parse_failure_rollback_and_completion() {
     (*root).add_child(editor);
     Window window(root, {320.0, 120.0});
     std::shared_ptr<gui_forms::BindingSource> source = std::make_shared<BindingSource>(window);
-    (*source).set_records({{"format.record", {{"amount", 12.5}}}});
+    gui_forms::test_rows::fill_source(*source, {{"format.record", {{"amount", 12.5}}}});
     BindingOptions options;
     options.formatting_enabled = true;
     options.format_string = "F2";
@@ -882,7 +883,7 @@ void test_number_formats_and_their_text() {
     (*root).add_child(count);
     Window window(root, {320.0, 120.0});
     std::shared_ptr<gui_forms::BindingSource> source = std::make_shared<BindingSource>(window);
-    (*source).set_records({{"number.record",
+    gui_forms::test_rows::fill_source(*source, {{"number.record",
                             {{"amount", 1234.5}, {"count", std::int64_t{9007199254740993}}}}});
     BindingOptions grouped;
     grouped.formatting_enabled = true;
@@ -917,7 +918,7 @@ void test_number_formats_and_their_text() {
 void test_edit_transactions_list_mutation_and_context() {
     Fixture fixture;
     BindingManagerBase& manager = (*fixture.source).currency_manager();
-    require(manager.count() == 2U && manager.current() == (*fixture.source).current() &&
+    require(manager.count() == 2U && manager.current_stable_id() == (*fixture.source).current_stable_id() &&
                 (*fixture.source).begin_edit() &&
                 (*fixture.source).set_current_field("name", std::string("draft")),
             "editable current record must establish a deterministic snapshot");
@@ -933,9 +934,9 @@ void test_edit_transactions_list_mutation_and_context() {
                 std::optional<BindingValue>{std::string("committed")},
             "EndEdit must retire rollback state without changing committed fields");
 
-    const std::size_t inserted = (*fixture.source).insert(
-        1U, {"record.middle", {{"name", std::string("Middle")}}});
-    require(inserted == 1U && (*fixture.source).count() == 3U &&
+    const std::optional<std::size_t> inserted = (*fixture.source).insert(
+        1U, gui_forms::test_rows::row_of(*fixture.source, {"record.middle", {{"name", std::string("Middle")}}}));
+    require(inserted == std::optional<std::size_t>{1U} && (*fixture.source).count() == 3U &&
                 (*fixture.source).find("name", std::string("Middle")) == 1U,
             "BindingSource must support stable insertion and field search");
     require(manager.remove_at(1U) &&
@@ -1003,7 +1004,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
     (*root).add_child(deferred);
     Window window(root, {480.0, 180.0});
     std::shared_ptr<gui_forms::BindingSource> source = std::make_shared<BindingSource>(window);
-    (*source).set_records({
+    gui_forms::test_rows::fill_source(*source, {
         {"advanced.record", {{"choice", std::int64_t{1}},
                               {"amount", 42.0},
                               {"name", std::string("Alpha")}}},

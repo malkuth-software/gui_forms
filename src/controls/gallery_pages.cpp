@@ -427,14 +427,19 @@ void initialize_gallery_runtime(Window& window) {
     (*context).components.add((*context).error_provider);
     (*context).components.add((*context).help_provider);
     (*context).components.add((*context).binding_source);
-    (*(*context).binding_source).set_records({
-        {"profile.local", {{"name", std::string("Local index")},
-                            {"enabled", true}, {"gain", 28.0}}},
-        {"profile.archive", {{"name", std::string("Archive review")},
-                              {"enabled", false}, {"gain", 61.0}}},
-        {"profile.plugins", {{"name", std::string("Plugin surfaces")},
-                              {"enabled", true}, {"gain", 84.0}}},
+    // Three profiles: name is text; enabled and gain take what their
+    // check box and track bar write back, so they are untyped.
+    const std::shared_ptr<BindingTable> profiles = std::make_shared<BindingTable>(BindingSchema(std::vector<BindingColumn>{
+        BindingColumn{"name", BindingValueKind::text},
+        BindingColumn{"enabled"},
+        BindingColumn{"gain"},
+    }));
+    (*profiles).assign(std::vector<BindingRow>{
+        BindingRow{"profile.local", {std::string("Local index"), true, 28.0}},
+        BindingRow{"profile.archive", {std::string("Archive review"), false, 61.0}},
+        BindingRow{"profile.plugins", {std::string("Plugin surfaces"), true, 84.0}},
     });
+    (*(*context).binding_source).set_provider(profiles);
     if ((*context).binding_navigator) {
         (*(*context).binding_navigator).binding_source = (*context).binding_source;
     }

@@ -10,6 +10,7 @@
 #include "gui_forms/gui_forms.hpp"
 
 #include "../src/controls/text_block/line_wrapping.hpp"
+#include "support/binding_test_rows.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -896,13 +897,9 @@ void bound_rows() {
     (*grid).allow_user_to_add_rows = false;
     Window window(grid, {360.0, 160.0});
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
-    BindingRecord::FieldMap first;
-    first["Name"] = std::string("Ada");
-    first["City"] = std::string("London");
-    BindingRecord::FieldMap second;
-    second["Name"] = std::string("Grace");
-    second["City"] = std::string("Arlington");
-    (*source).set_records({BindingRecord("person.1", first), BindingRecord("person.2", second)});
+    const test_rows::NamedRow first{"person.1", {{"Name", std::string("Ada")}, {"City", std::string("London")}}};
+    const test_rows::NamedRow second{"person.2", {{"Name", std::string("Grace")}, {"City", std::string("Arlington")}}};
+    test_rows::fill_source(*source, {first, second});
     (*grid).data_source = source;
     window.perform_layout();
     require((*grid).row_source() == DataGridViewRowSource::binding_source && (*grid).row_count() == 2U &&
@@ -917,10 +914,14 @@ void bound_rows() {
     require((*grid).end_edit() && (*source).current_field("City") == BindingValue{std::string("Paris")} &&
                 (*grid).cell_text(row_at(0U), 1U) == "Paris",
             "a committed edit sets the source's field");
-    static_cast<void>((*source).add(BindingRecord("person.3", first)));
+    test_rows::NamedRow third = first;
+    third.stable_id = "person.3";
+    static_cast<void>((*source).add(test_rows::row_of(*source, third)));
     require((*grid).row_count() == 3U, "an added record is a new row");
     (*grid).set_cell_selected(row_at(2U), 0U, true);
-    static_cast<void>((*source).insert(0U, BindingRecord("person.0", second)));
+    test_rows::NamedRow zeroth = second;
+    zeroth.stable_id = "person.0";
+    static_cast<void>((*source).insert(0U, test_rows::row_of(*source, zeroth)));
     require((*grid).current_row_id() == id("person.1") && (*grid).current_cell() == cell_at(1U, 1U) &&
                 (*grid).is_cell_selected(row_at(3U), 0U) && (*source).position() == 1,
             "an inserted record keeps the current cell and the selection on their records");
@@ -1678,9 +1679,7 @@ void new_row_bound() {
                          {.name = "city", .header_text = "City", .data_property_name = "City"}});
     Window window(grid, {360.0, 160.0});
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
-    BindingRecord::FieldMap first;
-    first["Name"] = std::string("Ada");
-    (*source).set_records({BindingRecord("person.1", first)});
+    test_rows::fill_source(*source, {{"person.1", {{"Name", std::string("Ada")}}}});
     (*grid).data_source = source;
     (*grid).allow_user_to_add_rows = true;
     window.perform_layout();
@@ -1688,7 +1687,7 @@ void new_row_bound() {
     const DataGridViewRowId placeholder = (*grid).row_id(row_at(1U));
     require((*grid).set_current_cell(cell_at(1U, 1U)) && (*grid).begin_edit(), "edit the new row");
     (*(*grid).editing_control()).text = "Paris";
-    require((*grid).end_edit() && (*source).count() == 2U && (*source).records()[1].stable_id == placeholder.value &&
+    require((*grid).end_edit() && (*source).count() == 2U && (*source).stable_id(1U) == placeholder.value &&
                 (*grid).cell_text(row_at(1U), 1U) == "Paris" && (*grid).row_count() == 3U,
             "the commit adds a record with the new row's ID and the value");
     (*source).set_allow_new(false);
@@ -1722,15 +1721,13 @@ void deleting_rows() {
     (*bound).selection_mode = DataGridViewSelectionMode::full_row_select;
     Window bound_window(bound, {300.0, 160.0});
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(bound_window);
-    BindingRecord::FieldMap fields;
-    fields["Name"] = std::string("Ada");
-    (*source).set_records({BindingRecord("p.1", fields), BindingRecord("p.2", fields)});
+    test_rows::fill_source(*source, {{"p.1", {{"Name", std::string("Ada")}}}, {"p.2", {{"Name", std::string("Ada")}}}});
     (*bound).data_source = source;
     (*bound).allow_user_to_delete_rows = true;
     bound_window.perform_layout();
     require(bound_window.request_focus(bound) && (*bound).set_current_cell(cell_at(0U, 0U)), "bound focus");
     require(key(bound_window, PhysicalKey::delete_forward) && (*source).count() == 1U &&
-                (*source).records()[0].stable_id == "p.2",
+                (*source).stable_id(0U) == "p.2",
             "Delete removes a bound row's record");
 }
 

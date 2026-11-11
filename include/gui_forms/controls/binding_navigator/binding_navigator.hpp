@@ -10,12 +10,13 @@
 
 namespace gui_forms {
 
-// Raised by a BindingNavigator's add command. A handler supplies the record
-// to add; without one nothing is added. The navigator adds it to the end of
-// the binding source and moves to it.
+// Raised by a BindingNavigator's add command. A handler supplies the row
+// to add, its values in the source's column order; without one nothing is
+// added. The navigator adds it to the end of the binding source and moves
+// to it.
 struct BindingNavigatorAddNew final {
     std::string navigator_id{};
-    std::optional<BindingRecord> record{};
+    std::optional<BindingRow> row{};
 };
 
 // A ToolStrip that moves through a BindingSource (Windows Forms'

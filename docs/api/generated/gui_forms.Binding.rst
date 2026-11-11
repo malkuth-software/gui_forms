@@ -38,11 +38,11 @@ gui_forms::Binding
          ``std::invalid_argument``.
 
       **source** : ``std::shared_ptr<BindingSource>``
-         The source of the records. It must be alive, or ``std::invalid_argument``
+         The source of the rows. It must be alive, or ``std::invalid_argument``
          is thrown. The binding holds it weakly.
 
       **data_member** : ``std::string``
-         The field of each record, trimmed and compared ignoring ASCII case. It
+         The field (column) of each row, trimmed and compared ignoring ASCII case. It
          must not be empty.
 
       **options** : ``BindingOptions``, default ``{}``
@@ -130,7 +130,7 @@ gui_forms::Binding
    .. seealso::
 
       :cpp:class:`BindingSource <gui_forms::BindingSource>`
-         The records and the current position that bindings follow.
+         The rows and the current position that bindings follow.
 
       :cpp:class:`BindingContext <gui_forms::BindingContext>`
          The currency managers of a window's binding sources.
@@ -176,10 +176,10 @@ gui_forms::Binding
       (*root).add_child(name);
       gf::Window window(root, gf::Size{320.0, 120.0});
 
-      gf::BindingRecord::FieldMap fields;
-      fields["name"] = std::string("Ada");
       std::shared_ptr<gf::BindingSource> people = std::make_shared<gf::BindingSource>(window);
-      (*people).set_records({gf::BindingRecord("person.1", fields)});
+      gf::BindingTable& table = *(*people).table();
+      static_cast<void>(table.add_column(gf::BindingColumn{"name", gf::BindingValueKind::text}));
+      static_cast<void>(table.append(gf::BindingRow{"person.1", {std::string("Ada")}}));
 
       gf::BindingOptions options;
       options.data_source_update_mode = gf::DataSourceUpdateMode::on_property_changed;
@@ -206,10 +206,10 @@ gui_forms::Binding
       void example() {
           std::shared_ptr<gf::TextBox> price = gf::make_control<gf::TextBox>(gf::StableId("item.price"));
           gf::Window window(price, gf::Size{200.0, 32.0});
-          gf::BindingRecord::FieldMap fields;
-          fields["price"] = 12.5;
           std::shared_ptr<gf::BindingSource> items = std::make_shared<gf::BindingSource>(window);
-          (*items).set_records({gf::BindingRecord("item.1", fields)});
+          gf::BindingTable& table = *(*items).table();
+          static_cast<void>(table.add_column(gf::BindingColumn{"price", gf::BindingValueKind::number}));
+          static_cast<void>(table.append(gf::BindingRow{"item.1", {12.5}}));
 
           gf::BindingOptions options;
           options.formatting_enabled = true;

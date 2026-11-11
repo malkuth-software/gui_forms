@@ -9,6 +9,7 @@
 #include "gui_forms/background_worker/background_worker.hpp"
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_context/binding_context.hpp"
+#include "gui_forms/binding/binding_schema/binding_schema.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
 #include "gui_forms/binding/types/binding_contract_types.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
@@ -967,8 +968,8 @@ void read_field(EventFields& fields, std::string_view name, BindingConvertEvent&
 void append_field(EventFields& fields, std::string_view name, const BindingListChange& value);
 void append_field(EventFields& fields, std::string_view name, const BindingNavigatorAddNew& value);
 void read_field(EventFields& fields, std::string_view name, BindingNavigatorAddNew& value);
-void append_field(EventFields& fields, std::string_view name, const BindingRecord& value);
-void read_field(EventFields& fields, std::string_view name, BindingRecord& value);
+void append_field(EventFields& fields, std::string_view name, const BindingRow& value);
+void read_field(EventFields& fields, std::string_view name, BindingRow& value);
 void append_field(EventFields& fields, std::string_view name, const BundledFontFamily& value);
 void read_field(EventFields& fields, std::string_view name, BundledFontFamily& value);
 void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value);
@@ -1245,25 +1246,29 @@ inline void append_field(EventFields& fields, std::string_view name, const Bindi
 inline void append_field(EventFields& fields, std::string_view name, const BindingNavigatorAddNew& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "navigator_id", value.navigator_id);
-    append_field(fields, "record", value.record);
+    append_field(fields, "row", value.row);
     fields.leave(prefix);
 }
 
 inline void read_field(EventFields& fields, std::string_view name, BindingNavigatorAddNew& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     read_field(fields, "navigator_id", value.navigator_id);
-    read_field(fields, "record", value.record);
+    read_field(fields, "row", value.row);
     fields.leave(prefix);
 }
 
-inline void append_field(EventFields& fields, std::string_view name, const BindingRecord& value) {
+inline void append_field(EventFields& fields, std::string_view name, const BindingRow& value) {
     const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "stable_id", value.stable_id);
+    append_field(fields, "values", value.values);
     append_field(fields, "editable", value.editable);
     fields.leave(prefix);
 }
 
-inline void read_field(EventFields& fields, std::string_view name, BindingRecord& value) {
+inline void read_field(EventFields& fields, std::string_view name, BindingRow& value) {
     const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "stable_id", value.stable_id);
+    read_field(fields, "values", value.values);
     read_field(fields, "editable", value.editable);
     fields.leave(prefix);
 }
@@ -6420,10 +6425,8 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
 }};
 
 // Payload members no field carries yet, with the family that takes them.
-inline constexpr std::array<std::string_view, 8> deferred_event_members{{
+inline constexpr std::array<std::string_view, 6> deferred_event_members{{
     "BackgroundWorkerCompleted.error (std::exception_ptr): no portable form; the error message is a field",
-    "BindingRecord.errors (ErrorMap): keyed collections (C5c)",
-    "BindingRecord.fields (FieldMap): keyed collections (C5c)",
     "DockSite.drag_ended (DockDragOutcome): docking family (C5d)",
     "ItemContentPaint.painter (Painter&): owner-draw surfaces (C5d)",
     "ItemContentPaint.states (AnatomyStateSet): owner-draw surfaces (C5d)",

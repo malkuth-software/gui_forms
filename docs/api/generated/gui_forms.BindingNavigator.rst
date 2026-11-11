@@ -58,10 +58,12 @@ gui_forms::BindingNavigator
    :Events:
 
       **adding_new** : ``Event<BindingNavigatorAddNew&>``
-         Raised by the add command. A handler supplies the record to add in
-         ``BindingNavigatorAddNew::record``; without one nothing is added. The
+         Raised by the add command. A handler supplies the row to add, a
+         :cpp:class:`BindingRow <gui_forms::BindingRow>` with a value per column of the source's schema, in
+         ``BindingNavigatorAddNew::row``; without one nothing is added. The
          navigator adds it to the end of the source (which throws
-         ``std::invalid_argument`` for a repeated stable ID) and moves to it.
+         ``std::invalid_argument`` when the provider refuses it, as for a repeated
+         stable ID) and moves to it, unless the filter hides it.
 
    :Inherited:
 
@@ -160,10 +162,12 @@ gui_forms::BindingNavigator
 
    .. cpp:function:: Event<BindingNavigatorAddNew&>& adding_new() noexcept
 
-      Raised by the add command. A handler supplies the record to add in
-      ``BindingNavigatorAddNew::record``; without one nothing is added. The
+      Raised by the add command. A handler supplies the row to add, a
+      :cpp:class:`BindingRow <gui_forms::BindingRow>` with a value per column of the source's schema, in
+      ``BindingNavigatorAddNew::row``; without one nothing is added. The
       navigator adds it to the end of the source (which throws
-      ``std::invalid_argument`` for a repeated stable ID) and moves to it.
+      ``std::invalid_argument`` when the provider refuses it, as for a repeated
+      stable ID) and moves to it, unless the filter hides it.
 
 
    .. rubric:: Methods

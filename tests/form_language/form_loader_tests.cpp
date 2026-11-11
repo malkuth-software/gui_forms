@@ -241,10 +241,10 @@ void test_bindings() {
     const std::shared_ptr<gui_forms::Panel> host =
         gui_forms::make_control<gui_forms::Panel>(gui_forms::StableId("host"));
     gui_forms::Window window(host, gui_forms::Size{320.0, 200.0});
-    gui_forms::BindingRecord::FieldMap fields{};
-    fields["name"] = std::string("Ada");
     const std::shared_ptr<gui_forms::BindingSource> people = std::make_shared<gui_forms::BindingSource>(window);
-    (*people).set_records({gui_forms::BindingRecord("person.1", fields)});
+    gui_forms::BindingTable& people_table = *(*people).table();
+    static_cast<void>(people_table.add_column(gui_forms::BindingColumn{"name"}));
+    static_cast<void>(people_table.append(gui_forms::BindingRow{"person.1", {std::string("Ada")}}));
     gui_forms::Value<bool> autosave{true};
     gui_forms::Value<double> level{25.0};
     gui_forms::Command save{};
@@ -315,9 +315,8 @@ void test_bindings() {
         (*number).value = 30.0;
         require(level.get() == 30.0, "bindings: the numeric value, two way by its property's default");
         (*name).text = std::string("Ada Lovelace");
-        const gui_forms::BindingRecord* record = (*people).current();
         const gui_forms::BindingValue written{std::string("Ada Lovelace")};
-        require(record != nullptr && (*record).fields.at("name") == written,
+        require((*people).current_field("name") == std::optional<gui_forms::BindingValue>{written},
                 "bindings: the field, written back on every change");
         static_cast<void>((*button).perform_click());
         require(saved.calls == 1, "bindings: the button runs its command");

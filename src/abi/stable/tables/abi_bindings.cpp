@@ -4,11 +4,14 @@
 
 #include "abi_tables.hpp"
 
+#include "abi_binding_provider.hpp"
+
 #include "../registry/abi_registry.hpp"
 #include "../values/abi_values.hpp"
 
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/binding/binding_table/binding_table.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
@@ -39,6 +42,12 @@ constexpr SlotIdentity position_slot{GF_TABLE_BINDINGS, 9U};
 constexpr SlotIdentity current_field_slot{GF_TABLE_BINDINGS, 10U};
 constexpr SlotIdentity set_current_field_slot{GF_TABLE_BINDINGS, 11U};
 constexpr SlotIdentity add_records_slot{GF_TABLE_BINDINGS, 12U};
+constexpr SlotIdentity set_provider_slot{GF_TABLE_BINDINGS, 13U};
+constexpr SlotIdentity notify_slot{GF_TABLE_BINDINGS, 14U};
+constexpr SlotIdentity set_sort_slot{GF_TABLE_BINDINGS, 15U};
+constexpr SlotIdentity set_filter_slot{GF_TABLE_BINDINGS, 16U};
+constexpr SlotIdentity generation_slot{GF_TABLE_BINDINGS, 17U};
+constexpr SlotIdentity read_cell_slot{GF_TABLE_BINDINGS, 18U};
 
 constexpr std::uint32_t arguments_size_1_0 = 96U;
 constexpr std::uint32_t record_size_1_0 = 40U;
@@ -82,8 +91,16 @@ gf_status read_optional_value(const gf_value* value, SlotIdentity slot, BindingV
     return read_value(value, slot, converted);
 }
 
+// A caller's record as read: its fields by canonical name, in the caller's
+// order, before they are placed in the source's columns.
+struct AbiRecord final {
+    std::string stable_id;
+    bool editable{};
+    std::vector<std::pair<std::string, BindingValue>> fields;
+};
+
 // A caller's record, read and validated whole.
-gf_status read_record(const gf_binding_record* record, SlotIdentity slot, BindingRecord& converted) {
+gf_status read_record(const gf_binding_record* record, SlotIdentity slot, AbiRecord& converted) {
     if (record == nullptr || (*record).struct_size < record_size_1_0 || (*record).editable > 1U ||
         (*record).field_count > GF_BINDING_MAXIMUM_FIELDS ||
         ((*record).fields == nullptr && (*record).field_count != 0U)) {
@@ -95,8 +112,13 @@ gf_status read_record(const gf_binding_record* record, SlotIdentity slot, Bindin
     if (identified != GF_STATUS_OK) {
         return identified;
     }
+    if (!valid_stable_id(stable_id)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's stable id breaks the StableId rule");
+    }
     converted.stable_id = std::string(stable_id);
     converted.editable = (*record).editable == 1U;
+    converted.fields.reserve(static_cast<std::size_t>((*record).field_count));
+    std::set<std::string> names;
     for (std::uint64_t index = 0U; index < (*record).field_count; ++index) {
         const gf_binding_field& field = (*record).fields[index];
         std::string_view name;
@@ -112,12 +134,96 @@ gf_status read_record(const gf_binding_record* record, SlotIdentity slot, Bindin
         if (valued != GF_STATUS_OK) {
             return valued;
         }
-        const bool inserted = converted.fields.emplace(std::string(name), std::move(value)).second;
-        if (!inserted) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's field names are distinct");
+        std::string canonical = canonical_binding_name(name);
+        if (!names.insert(canonical).second) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "two of a record's fields share a canonical name");
+        }
+        converted.fields.emplace_back(std::move(canonical), std::move(value));
+    }
+    return GF_STATUS_OK;
+}
+
+// Everything the source would refuse for a batch of records, checked before
+// the first goes in so a refusal adds none: additions disabled, a provider
+// that cannot insert, a stable id repeated within the batch or already in
+// the source, a field the source has no column for (a BindingTable grows
+// one), or a value not of its column's kind. A provider other than the
+// built-in table may still refuse a record part way; the records before it
+// stay added and the call reports the refusal.
+gf_status check_batch(const BindingSource& source, const std::vector<AbiRecord>& batch, SlotIdentity slot) {
+    if (!source.allow_new()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the source's additions are disabled");
+    }
+    if (!(*source.provider()).capabilities().inserts) {
+        return fail(GF_STATUS_INVALID_STATE, slot, "the source's provider does not insert rows");
+    }
+    const std::shared_ptr<BindingTable> table = source.table();
+    std::set<std::string_view> identities;
+    for (const AbiRecord& record : batch) {
+        if (!identities.insert(record.stable_id).second) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's stable id is repeated or already present");
+        }
+        bool present = false;
+        if (table) {
+            present = (*table).find(record.stable_id).has_value();
+        } else {
+            present = source.find_stable_id(record.stable_id).has_value();
+        }
+        if (present) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's stable id is repeated or already present");
+        }
+        for (const std::pair<std::string, BindingValue>& field : record.fields) {
+            const std::optional<std::size_t> column = source.column_of(field.first);
+            if (!column) {
+                if (!table) {
+                    return fail(GF_STATUS_INVALID_ARGUMENT, slot,
+                                "a record names a field the source has no column for");
+                }
+                continue;
+            }
+            if (!source.schema().admits(*column, field.second)) {
+                return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's value is not of its column's kind");
+            }
         }
     }
     return GF_STATUS_OK;
+}
+
+// The checked records as rows in the source's columns. A BindingTable
+// grows a column for each field it lacks (find_or_add_column), the one
+// change made here; check_batch has already refused everything else.
+std::vector<BindingRow> place_records(BindingSource& source, std::vector<AbiRecord>& batch) {
+    const std::shared_ptr<BindingTable> table = source.table();
+    if (table) {
+        for (const AbiRecord& record : batch) {
+            for (const std::pair<std::string, BindingValue>& field : record.fields) {
+                static_cast<void>((*table).find_or_add_column(field.first));
+            }
+        }
+    }
+    std::vector<BindingRow> rows;
+    rows.reserve(batch.size());
+    for (AbiRecord& record : batch) {
+        BindingRow row;
+        row.stable_id = std::move(record.stable_id);
+        row.editable = record.editable;
+        row.values.resize(source.schema().size());
+        for (std::pair<std::string, BindingValue>& field : record.fields) {
+            const std::optional<std::size_t> column = source.column_of(field.first);
+            row.values[*column] = std::move(field.second);
+        }
+        rows.push_back(std::move(row));
+    }
+    return rows;
+}
+
+// A record's view position, or GF_BINDING_HIDDEN_POSITION when the
+// source's filter hides it.
+std::uint64_t position_or_hidden(const std::optional<std::size_t>& position) noexcept {
+    if (!position) {
+        return GF_BINDING_HIDDEN_POSITION;
+    }
+    return static_cast<std::uint64_t>(*position);
 }
 
 gf_status read_options(const gf_binding_arguments& arguments, BindingOptions& options) {
@@ -251,8 +357,8 @@ gf_status GF_CALL bindings_add_record(gf_object source, const gf_binding_record*
         if (index == nullptr) {
             return fail(GF_STATUS_INVALID_ARGUMENT, add_record_slot, "add_record needs an index output");
         }
-        BindingRecord converted;
-        const gf_status read = read_record(record, add_record_slot, converted);
+        std::vector<AbiRecord> converted(1U);
+        const gf_status read = read_record(record, add_record_slot, converted.front());
         if (read != GF_STATUS_OK) {
             return read;
         }
@@ -261,41 +367,16 @@ gf_status GF_CALL bindings_add_record(gf_object source, const gf_binding_record*
         if (entered != GF_STATUS_OK) {
             return entered;
         }
-        *index = static_cast<std::uint64_t>((*typed).add(std::move(converted)));
+        const gf_status checked = check_batch(*typed, converted, add_record_slot);
+        if (checked != GF_STATUS_OK) {
+            return checked;
+        }
+        std::vector<BindingRow> rows = place_records(*typed, converted);
+        *index = position_or_hidden((*typed).add(std::move(rows.front())));
         return GF_STATUS_OK;
     } catch (...) {
         return fail_with_current_exception(add_record_slot);
     }
-}
-
-// Everything BindingSource::add would refuse for a batch, checked before
-// the first record goes in so a refusal adds none: additions disabled, a
-// stable id that breaks the StableId rule, two fields with one canonical
-// name, or a stable id repeated within the batch or already in the source.
-gf_status check_batch(const BindingSource& source, const std::vector<BindingRecord>& batch, SlotIdentity slot) {
-    if (!source.allow_new()) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the source's additions are disabled");
-    }
-    std::set<std::string> identities;
-    for (const BindingRecord& existing : source.records()) {
-        identities.insert(existing.stable_id);
-    }
-    for (const BindingRecord& record : batch) {
-        if (!valid_stable_id(record.stable_id)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's stable id breaks the StableId rule");
-        }
-        if (!identities.insert(record.stable_id).second) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's stable id is repeated or already present");
-        }
-        std::set<std::string> names;
-        for (const std::pair<const std::string, BindingValue>& field : record.fields) {
-            const std::string canonical = canonical_binding_name(field.first);
-            if (!names.insert(canonical).second) {
-                return fail(GF_STATUS_INVALID_ARGUMENT, slot, "two of a record's fields share a canonical name");
-            }
-        }
-    }
-    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_add_records(gf_object source, const gf_binding_record* records, std::uint64_t count,
@@ -321,7 +402,7 @@ gf_status GF_CALL bindings_add_records(gf_object source, const gf_binding_record
             }
         }
         // Every record is read and validated before the source changes.
-        std::vector<BindingRecord> converted;
+        std::vector<AbiRecord> converted;
         converted.reserve(static_cast<std::size_t>(count));
         const unsigned char* cursor = reinterpret_cast<const unsigned char*>(records);
         for (std::uint64_t index = 0U; index < count; ++index) {
@@ -330,7 +411,7 @@ gf_status GF_CALL bindings_add_records(gf_object source, const gf_binding_record
                 return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot,
                             "every record repeats the first one's struct_size");
             }
-            BindingRecord one;
+            AbiRecord one;
             const gf_status read = read_record(record, add_records_slot, one);
             if (read != GF_STATUS_OK) {
                 return read;
@@ -347,6 +428,7 @@ gf_status GF_CALL bindings_add_records(gf_object source, const gf_binding_record
         if (checked != GF_STATUS_OK) {
             return checked;
         }
+        std::vector<BindingRow> rows = place_records(*typed, converted);
         const std::uint64_t start = static_cast<std::uint64_t>((*typed).count());
         // One reset for the call: the per-record list changes are held
         // while the records go in, then the source resets its bindings
@@ -355,8 +437,8 @@ gf_status GF_CALL bindings_add_records(gf_object source, const gf_binding_record
         const bool raising = (*typed).raise_list_changed_events();
         (*typed).set_raise_list_changed_events(false);
         try {
-            for (BindingRecord& record : converted) {
-                static_cast<void>((*typed).add(std::move(record)));
+            for (BindingRow& row : rows) {
+                static_cast<void>((*typed).add(std::move(row)));
             }
         } catch (...) {
             (*typed).set_raise_list_changed_events(raising);
@@ -377,8 +459,8 @@ gf_status GF_CALL bindings_insert_record(gf_object source, std::uint64_t index,
                                          const gf_binding_record* record) noexcept {
     try {
         const ShadowFrameScope shadow_frame(insert_record_slot.table_id, insert_record_slot.slot_index);
-        BindingRecord converted;
-        const gf_status read = read_record(record, insert_record_slot, converted);
+        std::vector<AbiRecord> converted(1U);
+        const gf_status read = read_record(record, insert_record_slot, converted.front());
         if (read != GF_STATUS_OK) {
             return read;
         }
@@ -390,7 +472,12 @@ gf_status GF_CALL bindings_insert_record(gf_object source, std::uint64_t index,
         if (index > (*typed).count()) {
             return fail(GF_STATUS_INVALID_ARGUMENT, insert_record_slot, "the index is past the records");
         }
-        static_cast<void>((*typed).insert(static_cast<std::size_t>(index), std::move(converted)));
+        const gf_status checked = check_batch(*typed, converted, insert_record_slot);
+        if (checked != GF_STATUS_OK) {
+            return checked;
+        }
+        std::vector<BindingRow> rows = place_records(*typed, converted);
+        static_cast<void>((*typed).insert(static_cast<std::size_t>(index), std::move(rows.front())));
         return GF_STATUS_OK;
     } catch (...) {
         return fail_with_current_exception(insert_record_slot);
@@ -532,6 +619,172 @@ gf_status GF_CALL bindings_set_current_field(gf_object source, gf_utf8_view fiel
     }
 }
 
+gf_status GF_CALL bindings_set_provider(gf_object source, const gf_binding_column* columns,
+                                        std::uint64_t column_count, const gf_binding_provider_callbacks* callbacks,
+                                        std::uint64_t* provider) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(set_provider_slot.table_id, set_provider_slot.slot_index);
+        if (provider == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, set_provider_slot, "set_provider needs a provider output");
+        }
+        // Everything the caller lends is read and checked before the
+        // source changes.
+        BindingSchema schema;
+        gf_binding_provider_callbacks copied{};
+        if (callbacks != nullptr) {
+            const gf_status checked = check_binding_provider_callbacks(*callbacks, set_provider_slot);
+            if (checked != GF_STATUS_OK) {
+                return checked;
+            }
+            copied = *callbacks;
+            copied.struct_size = static_cast<std::uint32_t>(sizeof(gf_binding_provider_callbacks));
+            const gf_status read = read_binding_columns(columns, column_count, set_provider_slot, schema);
+            if (read != GF_STATUS_OK) {
+                return read;
+            }
+        } else if (column_count != 0U) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, set_provider_slot, "an empty table takes no columns");
+        }
+        std::shared_ptr<BindingSource> typed;
+        const gf_status entered = enter_typed_component(source, set_provider_slot, not_source, typed);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        if (callbacks == nullptr) {
+            (*typed).set_provider(nullptr);
+            *provider = 0U;
+            return GF_STATUS_OK;
+        }
+        const std::uint64_t id = next_binding_provider_id();
+        std::shared_ptr<AbiBindingProvider> made = std::make_shared<AbiBindingProvider>(std::move(schema), copied, id);
+        (*typed).set_provider(std::move(made));
+        *provider = id;
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(set_provider_slot);
+    }
+}
+gf_status GF_CALL bindings_notify(std::uint64_t provider, gf_binding_notification_kind kind, std::uint64_t row,
+                                  std::uint64_t count, std::uint64_t target) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(notify_slot.table_id, notify_slot.slot_index);
+        // Any thread: no registry entry, only the provider's own link.
+        if (kind > GF_BINDING_NOTIFY_CHANGED) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, notify_slot, "kind is a gf_binding_notification_kind");
+        }
+        if (row > binding_maximum_rows || count > binding_maximum_rows ||
+            (target > binding_maximum_rows && target != GF_BINDING_WHOLE_ROW)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, notify_slot, "the rows are past the bounds");
+        }
+        BindingNotification notification{};
+        notification.kind = static_cast<BindingNotificationKind>(kind);
+        notification.row = static_cast<std::size_t>(row);
+        notification.count = static_cast<std::size_t>(count);
+        notification.target = static_cast<std::size_t>(target);
+        return notify_binding_provider(provider, notification, notify_slot);
+    } catch (...) {
+        return fail_with_current_exception(notify_slot);
+    }
+}
+gf_status GF_CALL bindings_set_sort(gf_object source, const gf_binding_sort_key* keys, std::uint64_t count) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(set_sort_slot.table_id, set_sort_slot.slot_index);
+        std::vector<BindingSortKey> converted;
+        const gf_status read = read_binding_sort_keys(keys, count, set_sort_slot, converted);
+        if (read != GF_STATUS_OK) {
+            return read;
+        }
+        std::shared_ptr<BindingSource> typed;
+        const gf_status entered = enter_typed_component(source, set_sort_slot, not_source, typed);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        for (const BindingSortKey& key : converted) {
+            if (!(*typed).column_of(key.column)) {
+                return fail(GF_STATUS_NOT_FOUND, set_sort_slot, "a sort key names a column the source has not got");
+            }
+        }
+        (*typed).set_sort(std::move(converted));
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(set_sort_slot);
+    }
+}
+gf_status GF_CALL bindings_set_filter(gf_object source, const gf_binding_predicate* predicates,
+                                      std::uint64_t count) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(set_filter_slot.table_id, set_filter_slot.slot_index);
+        BindingFilter converted;
+        const gf_status read = read_binding_predicates(predicates, count, set_filter_slot, converted);
+        if (read != GF_STATUS_OK) {
+            return read;
+        }
+        std::shared_ptr<BindingSource> typed;
+        const gf_status entered = enter_typed_component(source, set_filter_slot, not_source, typed);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        for (const BindingPredicate& predicate : converted.all_of) {
+            if (!(*typed).column_of(predicate.column)) {
+                return fail(GF_STATUS_NOT_FOUND, set_filter_slot, "a predicate names a column the source has not got");
+            }
+        }
+        (*typed).set_filter(std::move(converted));
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(set_filter_slot);
+    }
+}
+gf_status GF_CALL bindings_generation(gf_object source, std::uint64_t* generation, std::uint64_t* count) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(generation_slot.table_id, generation_slot.slot_index);
+        if (generation == nullptr || count == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, generation_slot, "generation needs its two outputs");
+        }
+        std::shared_ptr<BindingSource> typed;
+        const gf_status entered = enter_typed_component(source, generation_slot, not_source, typed);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        *generation = (*typed).generation();
+        *count = static_cast<std::uint64_t>((*typed).count());
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(generation_slot);
+    }
+}
+gf_status GF_CALL bindings_read_cell(gf_object source, std::uint64_t generation, std::uint64_t row,
+                                     std::uint64_t column, gf_value* value, char* text_buffer,
+                                     std::uint64_t text_capacity, std::uint64_t* text_required) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(read_cell_slot.table_id, read_cell_slot.slot_index);
+        const gf_status output = check_value_output(value, text_buffer, text_capacity, text_required, read_cell_slot);
+        if (output != GF_STATUS_OK) {
+            return output;
+        }
+        std::shared_ptr<BindingSource> typed;
+        const gf_status entered = enter_typed_component(source, read_cell_slot, not_source, typed);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        if (generation != (*typed).generation()) {
+            return fail(GF_STATUS_STALE_HANDLE, read_cell_slot, "the source has changed since that generation");
+        }
+        if (row >= (*typed).count() || column >= (*typed).schema().size()) {
+            return fail(GF_STATUS_NOT_FOUND, read_cell_slot, "the row or column is past the source's");
+        }
+        const std::size_t shown_row = static_cast<std::size_t>(row);
+        const std::size_t shown_column = static_cast<std::size_t>(column);
+        const std::optional<BindingValue> cell = (*typed).value_at(generation, shown_row, shown_column);
+        if (!cell) {
+            const std::string error = (*typed).error(shown_row, shown_column);
+            return fail(GF_STATUS_INVALID_STATE, read_cell_slot, error);
+        }
+        return write_value_output(*cell, value, text_buffer, text_capacity, text_required, read_cell_slot);
+    } catch (...) {
+        return fail_with_current_exception(read_cell_slot);
+    }
+}
 constexpr gf_bindings_table table{
     .struct_size = sizeof(gf_bindings_table),
     .abi_minor = GF_ABI_MINOR,
@@ -548,6 +801,12 @@ constexpr gf_bindings_table table{
     .current_field = &bindings_current_field,
     .set_current_field = &bindings_set_current_field,
     .add_records = &bindings_add_records,
+    .set_provider = &bindings_set_provider,
+    .notify = &bindings_notify,
+    .set_sort = &bindings_set_sort,
+    .set_filter = &bindings_set_filter,
+    .generation = &bindings_generation,
+    .read_cell = &bindings_read_cell,
 };
 
 } // namespace

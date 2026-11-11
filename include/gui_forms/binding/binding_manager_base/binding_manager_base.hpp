@@ -13,7 +13,8 @@ class BindingManagerBase {
 public:
     virtual ~BindingManagerBase() = default;
     [[nodiscard]] virtual std::size_t count() const noexcept = 0;
-    [[nodiscard]] virtual const BindingRecord* current() const noexcept = 0;
+    // The current row's stable ID, or empty with no current row.
+    [[nodiscard]] virtual std::string current_stable_id() const = 0;
     [[nodiscard]] virtual std::ptrdiff_t position() const noexcept = 0;
     [[nodiscard]] virtual bool binding_suspended() const noexcept = 0;
     virtual bool set_position(std::ptrdiff_t position) = 0;

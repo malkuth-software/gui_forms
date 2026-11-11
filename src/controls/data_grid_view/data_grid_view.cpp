@@ -299,7 +299,7 @@ std::string DataGridView::row_id_text(DataGridViewRowPosition row) const {
     if (is_new_row(row)) return new_row_.stable_id.value;
     if (row_source_ == DataGridViewRowSource::virtual_rows) return virtual_order_.id_at(row.value);
     if (row_source_ == DataGridViewRowSource::binding_source) {
-        return (*data_source_).records()[row.value].stable_id;
+        return (*data_source_).stable_id(row.value);
     }
     return rows.read()[row.value].stable_id.value;
 }
@@ -323,11 +323,11 @@ BindingValue DataGridView::stored_value(DataGridViewRowPosition row, std::size_t
     if (row_source_ == DataGridViewRowSource::binding_source) {
         const std::string& field = columns_[column].data_property_name;
         if (field.empty()) return BindingValue{};
-        const BindingRecord& record = (*data_source_).records()[row.value];
-        const std::string canonical = canonical_binding_name(field);
-        const BindingRecord::FieldMap::const_iterator found = record.fields.find(canonical);
-        if (found == record.fields.end()) return BindingValue{};
-        return (*found).second;
+        // A cell the provider gave no valid answer for shows empty; its
+        // error text says why (held_cell_error_text).
+        const std::optional<BindingValue> value = (*data_source_).field(row.value, field);
+        if (!value) return BindingValue{};
+        return *value;
     }
     return rows.read()[row.value].cells[column];
 }
@@ -368,18 +368,30 @@ bool DataGridView::store_value(DataGridViewRowPosition row, std::size_t column, 
 bool DataGridView::row_read_only(DataGridViewRowPosition row) const {
     if (is_new_row(row) || row_source_ == DataGridViewRowSource::virtual_rows) return false;
     if (row_source_ == DataGridViewRowSource::binding_source) {
-        const BindingRecord& record = (*data_source_).records()[row.value];
-        const bool result = !record.editable || !(*data_source_).allow_edit();
-        return result;
+        // A row is read-only when the source is, or when every one of its
+        // cells is (a BindingTable row that is not editable).
+        BindingSource& source = *data_source_;
+        if (!source.allow_edit()) return true;
+        const std::size_t width = source.schema().size();
+        bool every_cell_locked = width > 0U;
+        for (std::size_t column = 0U; column < width && every_cell_locked; ++column) {
+            every_cell_locked = source.read_only(row.value, column);
+        }
+        return every_cell_locked;
     }
     return rows.read()[row.value].read_only;
 }
 
 bool DataGridView::cell_read_only(DataGridViewRowPosition row, std::size_t column) const {
     if (read_only.read() || columns_[column].read_only || row_read_only(row)) return true;
-    const bool unbound_field = row_source_ == DataGridViewRowSource::binding_source &&
-                               columns_[column].data_property_name.empty();
-    return unbound_field;
+    if (row_source_ != DataGridViewRowSource::binding_source || is_new_row(row)) return false;
+    const std::string& field = columns_[column].data_property_name;
+    if (field.empty()) return true;
+    // A field the provider has not got is written by the built-in table,
+    // which grows it; any other provider's missing field is read-only.
+    const std::optional<std::size_t> bound = (*data_source_).column_of(field);
+    if (!bound) return !(*data_source_).table();
+    return (*data_source_).read_only(row.value, *bound);
 }
 
 DataGridViewRowId DataGridView::row_id(DataGridViewRowPosition position) const {
@@ -2947,17 +2959,29 @@ bool DataGridView::add_new_row() {
     values.resize(columns_.size());
     const DataGridViewRowPosition position{data_row_count()};
     if (row_source_ == DataGridViewRowSource::binding_source) {
-        // The record takes the new row's ID and its values, field by field.
-        BindingRecord record{};
-        record.stable_id = row_id;
+        // The row takes the new row's ID and its values, field by field, in
+        // the source's column order. The built-in table grows a field it
+        // has not got first, as a record took any field.
+        const std::shared_ptr<BindingSource> source = data_source_;
+        const std::shared_ptr<BindingTable> built_in = (*source).table();
         for (std::size_t column = 0; column < columns_.size(); ++column) {
             const std::string& field = columns_[column].data_property_name;
             if (field.empty() || binding_value_kind(values[column]) == BindingValueKind::null) continue;
-            record.fields.insert_or_assign(canonical_binding_name(field), values[column]);
+            if (built_in && !(*source).column_of(field)) static_cast<void>((*built_in).find_or_add_column(field));
+        }
+        if (!is_alive() || !(*source).is_alive()) return false;
+        BindingRow added{};
+        added.stable_id = row_id;
+        added.values.resize((*source).schema().size());
+        for (std::size_t column = 0; column < columns_.size(); ++column) {
+            const std::string& field = columns_[column].data_property_name;
+            if (field.empty() || binding_value_kind(values[column]) == BindingValueKind::null) continue;
+            const std::optional<std::size_t> bound = (*source).column_of(field);
+            if (bound) added.values[*bound] = values[column];
         }
         adding_row_ = true;
         synchronizing_position_ = true;
-        static_cast<void>((*data_source_).add(std::move(record)));
+        static_cast<void>((*source).add(std::move(added)));
         synchronizing_position_ = false;
         adding_row_ = false;
         if (!is_alive()) return false;
@@ -3095,10 +3119,9 @@ std::string DataGridView::held_cell_error_text(DataGridViewRowPosition row, std:
     if (row_source_ != DataGridViewRowSource::binding_source || is_new_row(row)) return {};
     const std::string& field = columns_[column].data_property_name;
     if (field.empty()) return {};
-    const BindingRecord& record = (*data_source_).records()[row.value];
-    const BindingRecord::ErrorMap::const_iterator error = record.errors.find(canonical_binding_name(field));
-    if (error == record.errors.end()) return {};
-    return (*error).second;
+    const std::optional<std::size_t> bound = (*data_source_).column_of(field);
+    if (!bound) return {};
+    return (*data_source_).error(row.value, *bound);
 }
 
 void DataGridView::set_cell_error_text(DataGridViewRowPosition row, std::size_t column, std::string text) {
@@ -3135,10 +3158,7 @@ std::string DataGridView::held_row_error_text(DataGridViewRowPosition row) const
     const RowErrors::const_iterator found = row_errors_.find(row_id);
     if (found != row_errors_.end()) return (*found).second;
     if (row_source_ != DataGridViewRowSource::binding_source || is_new_row(row)) return {};
-    const BindingRecord& record = (*data_source_).records()[row.value];
-    const BindingRecord::ErrorMap::const_iterator error = record.errors.find(std::string{});
-    if (error == record.errors.end()) return {};
-    return (*error).second;
+    return (*data_source_).error(row.value, binding_whole_row);
 }
 
 void DataGridView::set_row_error_text(DataGridViewRowPosition row, std::string text) {

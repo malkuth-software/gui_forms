@@ -24,7 +24,8 @@ struct SupplyRecord final {
     bool* supply{};
     void operator()(BindingNavigatorAddNew& request) const {
         ++*requests;
-        if (*supply) request.record = BindingRecord("record.new", {{"name", std::string("New")}});
+        // The source's table has the one column, name, so the row is positional.
+        if (*supply) request.row = BindingRow{"record.new", {std::string("New")}};
     }
 };
 
@@ -46,12 +47,16 @@ std::string count_text(const BindingNavigator& navigator) {
     return {};
 }
 
-std::vector<BindingRecord> records(std::size_t count) {
-    std::vector<BindingRecord> result;
+// Replaces source's rows with count rows of one column, name.
+void fill_rows(BindingSource& source, std::size_t count) {
+    BindingTable& table = *source.table();
+    static_cast<void>(table.find_or_add_column("name"));
+    std::vector<BindingRow> rows;
+    rows.reserve(count);
     for (std::size_t index = 0; index < count; ++index) {
-        result.push_back(BindingRecord("record." + std::to_string(index), {{"name", std::string("Row")}}));
+        rows.push_back(BindingRow{"record." + std::to_string(index), {std::string("Row")}});
     }
-    return result;
+    table.assign(std::move(rows));
 }
 
 bool enabled(const std::shared_ptr<Command>& command) {
@@ -77,7 +82,7 @@ void standard_items_and_states() {
             "without a source every action is disabled");
 
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
-    (*source).set_records(records(3U));
+    fill_rows(*source, 3U);
     (*navigator).binding_source = source;
     require(count_text(*navigator) == "of 3" && (*(*navigator).text_box("position")).text.read() == "1",
             "the navigator shows the count and the one-based position");
@@ -107,7 +112,7 @@ void position_box() {
     Window window(navigator, {700.0, 25.0});
     window.perform_layout();
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
-    (*source).set_records(records(5U));
+    fill_rows(*source, 5U);
     (*navigator).binding_source = source;
     const std::shared_ptr<TextBox> box = (*navigator).text_box("position");
     require(window.request_focus(box), "the position box takes focus");
@@ -131,7 +136,7 @@ void add_and_delete() {
     Window window(navigator, {700.0, 25.0});
     window.perform_layout();
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
-    (*source).set_records(records(2U));
+    fill_rows(*source, 2U);
     (*navigator).binding_source = source;
     int requests = 0;
     bool supply = false;

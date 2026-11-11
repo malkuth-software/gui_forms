@@ -484,11 +484,11 @@ Related types
 
    ``#include <gui_forms/controls/binding_navigator/binding_navigator.hpp>``
 
-   Raised by a BindingNavigator's add command. A handler supplies the record to add; without one nothing is added. The navigator adds it to the end of the binding source and moves to it.
+   Raised by a BindingNavigator's add command. A handler supplies the row to add, its values in the source's column order; without one nothing is added. The navigator adds it to the end of the binding source and moves to it.
 
    .. cpp:member:: std::string navigator_id
 
-   .. cpp:member:: std::optional<BindingRecord> record
+   .. cpp:member:: std::optional<BindingRow> row
 
 .. cpp:namespace:: gui_forms
 
