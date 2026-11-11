@@ -17,11 +17,9 @@ public:
     PreparedControl() : Control(StableId("linux-prepared-fixture")) {}
     PreparedTextLayout layout{};
     Color background{255, 255, 255, 255};
-    bool fail{false};
 protected:
     void on_paint(Painter& painter, const Rect bounds) override {
         painter.fill_rect(bounds, background);
-        if (fail) throw std::runtime_error("injected control paint refusal");
         const PreparedTextPaintResult result = painter.draw_prepared_text(layout, layout.authority(), {8, 32}, {0, 0, 0, 255});
         if (result.status != PreparedTextStatus::success) throw gui_forms::detail::PreparedTextPaintFailure(result.status);
     }
@@ -105,14 +103,9 @@ void exercise(const std::span<const std::byte> bytes) {
     }
     require(ink, "prepared frame contains ink");
 
-    (*control).fail = true;
-    (*control).background = {255, 0, 0, 255};
-    (*control).invalidate(Dirty::paint);
-    window.update();
-    require_preserved(window, initial_pixels, initial, lease.presented_revision);
-    require(capture(window, 180, 96) == initial_server, "exception exposure presents only previous coherent pixels");
-    (*control).fail = false;
-    (*control).background = {255, 255, 255, 255};
+    // A throwing paint is no longer contained (owner, 2026-11-11: it ends
+    // the process at the fail-fast boundary, the X event loop), so the
+    // injected-throw case is gone, as in the macOS fixture.
 
     (*session).cancel();
     (*control).invalidate(Dirty::paint);
