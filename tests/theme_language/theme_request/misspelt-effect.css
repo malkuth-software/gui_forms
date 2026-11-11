@@ -1,0 +1,2 @@
+/* A user sheet whose effect name is misspelt (progress-stripes): E417. */
+progress-bar::part(fill) { effect: progress-stirpes }
