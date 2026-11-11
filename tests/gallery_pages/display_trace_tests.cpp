@@ -593,11 +593,17 @@ struct PageDigest final {
 // the marching stripes as filled bands inside the fill's rim, anchored to
 // the track start. Recorded again: ranges-and-progress, in both tables.
 //
+// cp29 (block 3): the basics page's lifecycle card paints its plate as its
+// themed face part (dark-card-plate) where it filled a literal colour, and
+// a part the built-in recipe draws keeps its authored material
+// (part-rules-reach-paint). Recorded again: basics, in both tables; no page
+// with fill or selection rules moved.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
 constexpr std::array<PageDigest, 39> expected_digests{{
-    {"basics", 0xa717b8811e877190ULL},
+    {"basics", 0xdd6d1a8b7dce17f7ULL},
     {"values", 0xe9dc6462db0cb202ULL},
     {"retained-rows", 0x00a62d0893b2b805ULL},
     {"instrument", 0x3a98c86700922cbeULL},
@@ -652,7 +658,7 @@ constexpr std::array<PageDigest, 39> expected_digests{{
 // left out (zero): it shows a RuntimeId, which counts every control made
 // before it in the process, and this pass runs after the one above.
 constexpr std::array<PageDigest, 39> professional_digests{{
-    {"basics", 0x5e866339c6e6da77ULL},
+    {"basics", 0x72c3bcc32f2c569aULL},
     {"values", 0x57a560b4f8c726cdULL},
     {"retained-rows", 0x2bf5b0b0ee2d29b0ULL},
     {"instrument", 0xa1e332af0bdda02eULL},
