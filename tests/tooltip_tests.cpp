@@ -739,6 +739,66 @@ void test_typed_text_fields_show_hints() {
             "resting the pointer on a field still shows its bubble");
 }
 
+// The colours a tooltip bubble drew: its text ink and whether it filled a
+// plate in `forbidden` (the bubble is the control whose stable ID ends in
+// ".bubble").
+struct BubbleColours final {
+    bool found{};
+    bool text_drawn{};
+    bool text_black{};
+    bool forbidden_fill{};
+};
+
+BubbleColours bubble_colours(Window& window, Color forbidden) {
+    window.perform_layout();
+    NullPainter painter;
+    const Size client = window.client_size();
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, client.width, client.height}));
+    VisualInspectionOptions options{};
+    options.include_text = true;
+    const VisualInspectionSnapshot snapshot = window.visual_inspection_snapshot(options);
+    BubbleColours colours{};
+    const std::string_view suffix = ".bubble";
+    for (const VisualControlInspection& control : snapshot.controls) {
+        const std::string_view id = control.stable_id;
+        if (id.size() < suffix.size() || id.substr(id.size() - suffix.size()) != suffix) continue;
+        colours.found = true;
+        colours.text_black = true;
+        for (const VisualPaintOperationSnapshot& operation : control.display_operations) {
+            if (operation.operation == VisualPaintOperation::draw_text) {
+                colours.text_drawn = true;
+                colours.text_black = colours.text_black && operation.color == Color::rgba(0, 0, 0);
+            }
+            const bool fill = operation.operation == VisualPaintOperation::fill_rect ||
+                              operation.operation == VisualPaintOperation::fill_rounded_rect;
+            if (fill && operation.color == forbidden) colours.forbidden_fill = true;
+        }
+    }
+    return colours;
+}
+
+// cp29 (owner mandate 2026-11-11): tooltip text is black on the light
+// plate, and a tooltip ignores the ForeColor and BackColor the window or
+// its panels authored: its ink and plate are the tool_tip role's.
+void test_tooltip_ink_is_black_and_ignores_inherited_colours() {
+    Fixture fixture;
+    const Color white = Color::rgba(255, 255, 255);
+    const Color night = Color::rgba(32, 34, 40);
+    (*fixture.root).fore_color = white;
+    (*fixture.root).back_color = night;
+    ToolTip tips(fixture.window);
+    tips.initial_delay = 30ms;
+    tips.auto_pop_delay = 2000ms;
+    tips.set_tool_tip(fixture.button, "Sample rate");
+    hover(fixture.window, {60.0, 60.0});
+    fire_next(fixture.window);
+    require(tips.visible(), "a due hover opens the tooltip");
+    const BubbleColours colours = bubble_colours(fixture.window, night);
+    require(colours.found && colours.text_drawn, "the tooltip bubble draws its text");
+    require(colours.text_black, "tooltip text is black, not the window's authored white ForeColor");
+    require(!colours.forbidden_fill, "the tooltip plate is not the window's authored BackColor");
+}
+
 } // namespace
 
 int main() {
@@ -758,6 +818,7 @@ int main() {
         test_strip_item_tooltips();
         test_tab_header_tooltips();
         test_typed_text_fields_show_hints();
+        test_tooltip_ink_is_black_and_ignores_inherited_colours();
         std::cout << "tooltip tests passed\n";
         return 0;
     } catch (const std::exception& error) {

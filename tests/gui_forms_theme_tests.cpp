@@ -420,9 +420,16 @@ void fill_progress_family(ControlRoleRecipes& result) {
 }
 
 // Tooltips: windows-professional's pale yellow plate (owner decision RB-38)
-// with this theme's text colours.
+// with this theme's glyph and muted colours and black text in every enabled
+// state (owner mandate 2026-11-11); disabled text stays the disabled ink.
 void fill_tool_tip_family(ControlRoleRecipes& result) {
     fill_stock_family(result, Color::rgba(255, 255, 225), Color::rgba(104, 111, 118), 0.0);
+    const Color black = Color::rgba(0, 0, 0);
+    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
+        if (static_cast<ControlSurfaceState>(index) == ControlSurfaceState::disabled) continue;
+        result.ordinary[index].text = black;
+        result.selected[index].text = black;
+    }
 }
 
 // Badges (T4, W-4): the accent blue chip with white text in every state

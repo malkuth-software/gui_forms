@@ -1892,6 +1892,12 @@ gui_forms::Control
 
       *Protected.*
 
+   .. cpp:function:: void stop_inherited_colours()
+
+      *Protected.*
+
+      Stops the application colours an ancestor authored (back_color and fore_color, the ambient colours paint_part applies) at this control: it and its descendants then take only their own authored colours and the theme's. For a layer drawn over the window rather than in it, such as a tooltip's (cp29: a tooltip's ink and plate are the tool_tip role's, as a Windows Forms ToolTip, which is no child control, inherits no ForeColor). Called from the layer's constructor; it advances the inherited-value generation, so a later call also holds.
+
    .. cpp:function:: void set_font_from_code(bool from_code) noexcept
 
       *Protected.*

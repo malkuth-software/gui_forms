@@ -3230,8 +3230,8 @@ const Control::InheritedValues& Control::inherited_values() const noexcept {
     if (visual_parent) {
         const InheritedValues& above = (*visual_parent).inherited_values();
         if (computed.theme_override == nullptr) computed.theme_override = above.theme_override;
-        if (!computed.back_color) computed.back_color = above.back_color;
-        if (!computed.fore_color) computed.fore_color = above.fore_color;
+        if (!computed.back_color && !stops_inherited_colours_) computed.back_color = above.back_color;
+        if (!computed.fore_color && !stops_inherited_colours_) computed.fore_color = above.fore_color;
         computed.cursor = cursor.read() ? *cursor.read() : above.cursor;
         computed.direction = own_direction != LayoutDirection::inherit ? own_direction : above.direction;
         computed.visible = computed.visible && above.visible;
@@ -3245,6 +3245,13 @@ const Control::InheritedValues& Control::inherited_values() const noexcept {
     computed.generation = now;
     inherited_ = computed;
     return inherited_;
+}
+
+void Control::stop_inherited_colours() {
+    if (stops_inherited_colours_) return;
+    stops_inherited_colours_ = true;
+    advance_inherited_generation();
+    invalidate_subtree(Dirty::paint);
 }
 
 bool Control::effectively_visible() const noexcept {

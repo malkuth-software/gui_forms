@@ -1129,6 +1129,15 @@ protected:
     virtual void on_tab_stop_changed();
 
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
+    // Stops the application colours an ancestor authored (back_color and
+    // fore_color, the ambient colours paint_part applies) at this control:
+    // it and its descendants then take only their own authored colours and
+    // the theme's. For a layer drawn over the window rather than in it, such
+    // as a tooltip's (cp29: a tooltip's ink and plate are the tool_tip
+    // role's, as a Windows Forms ToolTip, which is no child control,
+    // inherits no ForeColor). Called from the layer's constructor; it
+    // advances the inherited-value generation, so a later call also holds.
+    void stop_inherited_colours();
     // Whether code set the control's primary font (T4 fonts): a control's
     // set_font marks it, after validating the font, and a clear_font that
     // returns to the control's default unmarks it. Marked, text_font is
@@ -1596,6 +1605,9 @@ private:
     };
     // Written only by inherited_values(), on the control's thread.
     mutable InheritedValues inherited_{};
+    // Set by stop_inherited_colours: the parent's back_color and fore_color
+    // are not inherited here.
+    bool stops_inherited_colours_{};
     [[nodiscard]] const InheritedValues& inherited_values() const noexcept;
     Window* window_{};
     SurfaceRoot* surface_root_{};

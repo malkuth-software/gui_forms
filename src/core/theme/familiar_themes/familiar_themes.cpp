@@ -81,6 +81,7 @@ constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 2000 lo
   background: #ffffe1;
   border: 1px solid #000000;
   border-radius: 0;
+  color: #000000;
 }
 :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
 :family(notice):state(selected), :family(tool-tip):state(selected) {
@@ -297,6 +298,7 @@ constexpr std::string_view modern_flat_sheet = R"css(/* modern-flat: a flat mode
 }
 :family(tool-tip) {
   border-radius: 2px;
+  color: #000000;
 }
 :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
 :family(notice):state(selected), :family(tool-tip):state(selected) {
@@ -501,6 +503,7 @@ constexpr std::string_view xp_style_sheet = R"css(/* xp-style: a Luna-like look 
   background: #ffffe1;
   border: 1px solid #000000;
   border-radius: 0;
+  color: #000000;
 }
 :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
 :family(notice):state(selected), :family(tool-tip):state(selected) {
@@ -810,6 +813,7 @@ constexpr std::string_view windows7_style_sheet = R"css(/* windows7-style: an Ae
   background: linear-gradient(to bottom, #ffffff, #e4e5f0);
   border: 1px solid #767676;
   border-radius: 3px;
+  color: #000000;
 }
 :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
 :family(notice):state(selected), :family(tool-tip):state(selected) {
@@ -1197,7 +1201,7 @@ constexpr std::string_view macos_style_sheet = R"css(/* macos-style, light: a ma
   border: 1px solid #949494;
   border-radius: 6px;
   box-shadow: 0 2px 8px #00000033, 0 0 2px #00000066;
-  color: #1a1a1a;
+  color: #000000;
   glyph-color: #1a1a1a;
 }
 :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
