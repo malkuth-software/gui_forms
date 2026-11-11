@@ -1,8 +1,66 @@
 #include "gui_forms/static_tree.hpp"
 
+#include "../../../algorithm/tree_teardown.hpp"
+
+#include <cstddef>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace gui_forms {
+
+namespace {
+
+// A source description and the copy being filled from it.
+struct StaticCopyStep final {
+    const StaticNode* source{nullptr};
+    StaticNode* destination{nullptr};
+};
+
+} // namespace
+
+StaticNode::StaticNode(std::string node_type, std::string node_stable_id, Rect node_requested_bounds,
+                       std::vector<StaticNode> node_children)
+    : type(std::move(node_type)),
+      stable_id(std::move(node_stable_id)),
+      requested_bounds(node_requested_bounds),
+      children(std::move(node_children)) {}
+
+StaticNode::StaticNode(const StaticNode& other)
+    : type(other.type), stable_id(other.stable_id), requested_bounds(other.requested_bounds) {
+    // Each step fills one destination's children with copies of the
+    // source's own fields, then queues each child pair; the child list is
+    // reserved first, so the queued pointers into it stay valid.
+    std::vector<StaticCopyStep> pending{};
+    pending.push_back(StaticCopyStep{&other, this});
+    while (!pending.empty()) {
+        const StaticCopyStep step = pending.back();
+        pending.pop_back();
+        const std::vector<StaticNode>& source_children = (*step.source).children;
+        std::vector<StaticNode>& destination_children = (*step.destination).children;
+        destination_children.reserve(source_children.size());
+        for (const StaticNode& source_child : source_children) {
+            destination_children.push_back(
+                StaticNode(source_child.type, source_child.stable_id, source_child.requested_bounds));
+        }
+        for (std::size_t index = 0U; index < source_children.size(); ++index) {
+            if (source_children[index].children.empty()) continue;
+            pending.push_back(StaticCopyStep{&source_children[index], &destination_children[index]});
+        }
+    }
+}
+
+StaticNode& StaticNode::operator=(const StaticNode& other) {
+    StaticNode copy(other);
+    *this = std::move(copy);
+    return *this;
+}
+
+StaticNode::~StaticNode() {
+    if (!children.empty()) {
+        detail::release_children_iteratively<StaticNode, &StaticNode::children>(children);
+    }
+}
 
 void ControlFactory::register_type(std::string type, Creator creator) {
     if (type.empty() || !creator) {
