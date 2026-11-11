@@ -70,7 +70,7 @@ public:
     [[nodiscard]] std::size_t inked_fills() const {
         std::size_t inked = 0U;
         for (const Color& color : fills) {
-            if (color.alpha() != 0U) ++inked;
+            if (color.alpha != 0U) ++inked;
         }
         return inked;
     }
