@@ -1214,7 +1214,7 @@ public static unsafe class Layout
         {
             gf_help_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_help_table size", sizeof(gf_help_table), 80);
+            failures += expect(output, "gf_help_table size", sizeof(gf_help_table), 128);
             failures += expect(output, "gf_help_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_help_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_help_table.attach offset", (long)((byte*)&value.attach - start), 8);
@@ -1226,6 +1226,12 @@ public static unsafe class Layout
             failures += expect(output, "gf_help_table.resolve offset", (long)((byte*)&value.resolve - start), 56);
             failures += expect(output, "gf_help_table.enter_help_mode offset", (long)((byte*)&value.enter_help_mode - start), 64);
             failures += expect(output, "gf_help_table.cancel_help_mode offset", (long)((byte*)&value.cancel_help_mode - start), 72);
+            failures += expect(output, "gf_help_table.load_translation offset", (long)((byte*)&value.load_translation - start), 80);
+            failures += expect(output, "gf_help_table.load_user_overrides offset", (long)((byte*)&value.load_user_overrides - start), 88);
+            failures += expect(output, "gf_help_table.clear_user_overrides offset", (long)((byte*)&value.clear_user_overrides - start), 96);
+            failures += expect(output, "gf_help_table.use_built_in_language offset", (long)((byte*)&value.use_built_in_language - start), 104);
+            failures += expect(output, "gf_help_table.export_template offset", (long)((byte*)&value.export_template - start), 112);
+            failures += expect(output, "gf_help_table.read_field offset", (long)((byte*)&value.read_field - start), 120);
         }
         {
             gf_windows_paint_endpoint_table value = default;

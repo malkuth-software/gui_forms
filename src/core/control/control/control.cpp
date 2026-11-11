@@ -902,6 +902,39 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         accessible_description.bindable = false;
         return accessible_description;
     }
+    case RegisteredProperty::help_line: {
+        PropertyDescriptor help_line;
+        help_line.name = "help_line";
+        help_line.kind = BindingValueKind::text;
+        help_line.category = "Help";
+        help_line.description = "One sentence of help: What's This, the window help card and the contents line.";
+        help_line.default_value = BindingValue{std::string{}};
+        help_line.invalidation_effects = Dirty::semantics;
+        help_line.bindable = false;
+        return help_line;
+    }
+    case RegisteredProperty::help: {
+        PropertyDescriptor help;
+        help.name = "help";
+        help.kind = BindingValueKind::text;
+        help.category = "Help";
+        help.description = "The full help body: markdown with stable-ID topic links.";
+        help.default_value = BindingValue{std::string{}};
+        help.invalidation_effects = Dirty::semantics;
+        help.bindable = false;
+        return help;
+    }
+    case RegisteredProperty::keywords: {
+        PropertyDescriptor keywords;
+        keywords.name = "keywords";
+        keywords.kind = BindingValueKind::text;
+        keywords.category = "Help";
+        keywords.description = "Help index keywords: ';' between keywords, ',' before a subkeyword.";
+        keywords.default_value = BindingValue{std::string{}};
+        keywords.invalidation_effects = Dirty::semantics;
+        keywords.bindable = false;
+        return keywords;
+    }
     case RegisteredProperty::name: {
         // The default is the stable ID, which differs per control: the
         // entry's should_serialize and origin compare with it
@@ -1075,6 +1108,12 @@ const std::array<PropertyEntry, Control::control_property_count>& Control::contr
          &write_registered<RegisteredProperty::accessible_name>, nullptr, nullptr, nullptr, nullptr},
         {"accessible_description", &describe_registered<RegisteredProperty::accessible_description>, &read_registered<RegisteredProperty::accessible_description>,
          &write_registered<RegisteredProperty::accessible_description>, nullptr, nullptr, nullptr, nullptr},
+        {"help_line", &describe_registered<RegisteredProperty::help_line>, &read_registered<RegisteredProperty::help_line>,
+         &write_registered<RegisteredProperty::help_line>, nullptr, nullptr, nullptr, nullptr},
+        {"help", &describe_registered<RegisteredProperty::help>, &read_registered<RegisteredProperty::help>,
+         &write_registered<RegisteredProperty::help>, nullptr, nullptr, nullptr, nullptr},
+        {"keywords", &describe_registered<RegisteredProperty::keywords>, &read_registered<RegisteredProperty::keywords>,
+         &write_registered<RegisteredProperty::keywords>, nullptr, nullptr, nullptr, nullptr},
     }};
     static_assert(property_names_distinct(entries), "Control's property table names a property twice");
     return entries;
@@ -1577,6 +1616,53 @@ void Control::write_view(const decltype(tag)&, std::any incoming) {
 
 std::any Control::read_view(const decltype(tag)&) const {
     std::any held = tag_;
+    return held;
+}
+
+void Control::write_help_field(std::string detail::ControlHelpFields::* slot, LocaleField field,
+                               std::string incoming) {
+    require_mutable();
+    const std::optional<LocaleRefusal> refusal = check_locale_value(field, incoming);
+    if (refusal.has_value()) {
+        throw std::invalid_argument("GUI.Forms " + std::string(locale_field_name(field)) +
+                                    " refused: " + std::string(locale_refusal_name(*refusal)));
+    }
+    if (help_fields_ == nullptr) {
+        if (incoming.empty()) return;
+        help_fields_ = std::make_unique<detail::ControlHelpFields>();
+    }
+    std::string& stored = (*help_fields_).*slot;
+    if (stored == incoming) return;
+    stored = std::move(incoming);
+    const detail::ControlHelpFields& fields = *help_fields_;
+    if (fields.help_line.empty() && fields.help.empty() && fields.keywords.empty()) help_fields_.reset();
+    invalidate(Dirty::semantics);
+}
+
+void Control::write_view(const decltype(help_line)&, std::string incoming) {
+    write_help_field(&detail::ControlHelpFields::help_line, LocaleField::help_line, std::move(incoming));
+}
+
+std::string Control::read_view(const decltype(help_line)&) const {
+    std::string held = help_fields_ != nullptr ? (*help_fields_).help_line : std::string{};
+    return held;
+}
+
+void Control::write_view(const decltype(help)&, std::string incoming) {
+    write_help_field(&detail::ControlHelpFields::help, LocaleField::help, std::move(incoming));
+}
+
+std::string Control::read_view(const decltype(help)&) const {
+    std::string held = help_fields_ != nullptr ? (*help_fields_).help : std::string{};
+    return held;
+}
+
+void Control::write_view(const decltype(keywords)&, std::string incoming) {
+    write_help_field(&detail::ControlHelpFields::keywords, LocaleField::keywords, std::move(incoming));
+}
+
+std::string Control::read_view(const decltype(keywords)&) const {
+    std::string held = help_fields_ != nullptr ? (*help_fields_).keywords : std::string{};
     return held;
 }
 
@@ -4210,8 +4296,8 @@ void Control::apply_provider_semantics(SemanticDescriptor& descriptor) const {
     }
     for (const std::pair<const std::uint64_t, std::string>& provider_help :
          provider_help_) {
-        const std::string& help = provider_help.second;
-        append_semantic_description(descriptor, {}, help);
+        const std::string& description = provider_help.second;
+        append_semantic_description(descriptor, {}, description);
     }
 }
 
@@ -4484,15 +4570,15 @@ void Control::clear_provider_error(std::uint64_t provider_id) {
     }
 }
 
-void Control::set_provider_help(std::uint64_t provider_id, std::string help) {
+void Control::set_provider_help(std::uint64_t provider_id, std::string description) {
     require_mutable();
-    if (help.empty()) {
+    if (description.empty()) {
         clear_provider_help(provider_id);
         return;
     }
     const ProviderTextMap::iterator found = provider_help_.find(provider_id);
-    if (found != provider_help_.end() && (*found).second == help) return;
-    provider_help_[provider_id] = std::move(help);
+    if (found != provider_help_.end() && (*found).second == description) return;
+    provider_help_[provider_id] = std::move(description);
     invalidate(Dirty::semantics | Dirty::accessibility);
 }
 

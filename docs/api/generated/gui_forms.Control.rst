@@ -152,6 +152,15 @@ gui_forms::Control
       **accessible_description** : ``std::string``
          A longer description for assistive technology. Empty by default.
 
+      **help_line** : ``std::string``
+         The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+      **help** : ``std::string``
+         The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+      **keywords** : ``std::string``
+         The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.
+
       **ceremonial** : ``bool``, default ``false``
          Whether the application marks the control's surface ceremonial, as an
          installer's or a first run's world (T2, decision B3-1). On it and its
@@ -893,6 +902,18 @@ gui_forms::Control
    .. cpp:member:: std::string accessible_description
 
       A longer description for assistive technology. Empty by default.
+
+   .. cpp:member:: std::string help_line
+
+      The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+   .. cpp:member:: std::string help
+
+      The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+   .. cpp:member:: std::string keywords
+
+      The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.
 
    .. cpp:member:: bool ceremonial
 
@@ -2150,4 +2171,4 @@ gui_forms::Control
 
    .. cpp:member:: constexpr std::size_t control_property_count
 
-      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``29U``.
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``32U``.

@@ -3755,6 +3755,32 @@ typedef uint32_t gf_help_navigator;
 #define GF_HELP_NAVIGATOR_INDEX 1u
 #define GF_HELP_NAVIGATOR_SEARCH 2u
 
+/* gf_locale_field (since 1.2): a field of a language file's text record,
+ * as help.read_field names it; the values are the C++ LocaleField's. */
+typedef uint32_t gf_locale_field;
+#define GF_LOCALE_FIELD_TEXT 0u
+#define GF_LOCALE_FIELD_TOOL_TIP 1u
+#define GF_LOCALE_FIELD_ACCESS_KEY 2u
+#define GF_LOCALE_FIELD_TITLE 3u
+#define GF_LOCALE_FIELD_PLACEHOLDER 4u
+#define GF_LOCALE_FIELD_HEADER 5u
+#define GF_LOCALE_FIELD_ACCESSIBLE_NAME 6u
+#define GF_LOCALE_FIELD_ACCESSIBLE_DESCRIPTION 7u
+#define GF_LOCALE_FIELD_HELP_LINE 8u
+#define GF_LOCALE_FIELD_HELP 9u
+#define GF_LOCALE_FIELD_KEYWORDS 10u
+
+/* gf_locale_origin (since 1.2): the layer a field read by help.read_field
+ * came from: none (no layer gives it), the built-in locale file, a value
+ * the program set on a control in code, the translation, or the user's
+ * override. */
+typedef uint32_t gf_locale_origin;
+#define GF_LOCALE_ORIGIN_NONE 0u
+#define GF_LOCALE_ORIGIN_BUILT_IN 1u
+#define GF_LOCALE_ORIGIN_PROGRAM 2u
+#define GF_LOCALE_ORIGIN_TRANSLATION 3u
+#define GF_LOCALE_ORIGIN_USER 4u
+
 /*
  * GF_TABLE_HELP (since 1.2; roadmap row 3.7): a help book system's viewer,
  * popup, F1 resolution and What's This mode. system is a help_book_system
@@ -3783,6 +3809,31 @@ typedef uint32_t gf_help_navigator;
  *   BUFFER_TOO_SMALL rule) and home 1 when it is the home page.
  * - enter_help_mode starts What's This on window (entered 1 when it
  *   started); cancel_help_mode ends it, if active.
+ *
+ * Since 1.2 as well, the language files (roadmap row 2.13, help H1). A
+ * control's help fields are the ordinary text properties help_line, help
+ * and keywords (properties.set and get); the program values the attached
+ * windows' controls hold join the built-in text.
+ * - load_translation reads locale_xml as the shipped translation of its
+ *   language, replacing an earlier one (user overrides for another
+ *   language go); load_user_overrides reads the user's own file for the
+ *   language in force, which wins per field. A refused file, or a user
+ *   file for another language, gives GF_STATUS_INVALID_ARGUMENT and changes
+ *   nothing. clear_user_overrides drops the user's file.
+ * - use_built_in_language is the untranslatable way back: while
+ *   built_in_only is 1 only the built-in text shows; 0 restores the rest.
+ *   Any other value is GF_STATUS_INVALID_ARGUMENT.
+ * - export_template writes the template a translator starts from (every
+ *   record's built-in text and, when language is the translation's, its
+ *   translations over it; never the user's overrides; an empty language is
+ *   the built-in one) as a locale file into buffer (the BUFFER_TOO_SMALL
+ *   rule). A language that is not a language tag is
+ *   GF_STATUS_INVALID_ARGUMENT; a template past the locale file's bounds
+ *   GF_STATUS_LIMIT_EXCEEDED.
+ * - read_field writes one field of record stable_id as it shows now into
+ *   buffer (the BUFFER_TOO_SMALL rule) and the layer it came from into
+ *   origin (GF_LOCALE_ORIGIN_NONE with an empty text when no layer gives
+ *   it). A field past GF_LOCALE_FIELD_KEYWORDS is GF_STATUS_INVALID_ARGUMENT.
  */
 typedef struct gf_help_table {
     uint32_t struct_size;
@@ -3798,6 +3849,14 @@ typedef struct gf_help_table {
                                  uint64_t* required, uint32_t* home);
     gf_status (GF_CALL* enter_help_mode)(gf_object system, gf_object window, uint32_t* entered);
     gf_status (GF_CALL* cancel_help_mode)(gf_object system);
+    gf_status (GF_CALL* load_translation)(gf_object system, gf_utf8_view locale_xml);
+    gf_status (GF_CALL* load_user_overrides)(gf_object system, gf_utf8_view locale_xml);
+    gf_status (GF_CALL* clear_user_overrides)(gf_object system);
+    gf_status (GF_CALL* use_built_in_language)(gf_object system, uint32_t built_in_only);
+    gf_status (GF_CALL* export_template)(gf_object system, gf_utf8_view language, char* buffer, uint64_t capacity,
+                                         uint64_t* required);
+    gf_status (GF_CALL* read_field)(gf_object system, gf_utf8_view stable_id, gf_locale_field field, char* buffer,
+                                    uint64_t capacity, uint64_t* required, gf_locale_origin* origin);
 } gf_help_table;
 
 /*

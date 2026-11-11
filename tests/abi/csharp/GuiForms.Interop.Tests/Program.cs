@@ -635,6 +635,109 @@ internal static unsafe class Program
         expect(listening.id == 0u, "set_provider with no callbacks releases the provider");
     }
 
+    // GF_TABLE_HELP's language files (since 1.2, roadmap row 2.13): a help
+    // field set as a property, the template export, a user override read
+    // back with its origin, and the way back.
+    private const string help_built_in =
+        "<locale xml:lang=\"en\"><controls><control name=\"csharp\"><control name=\"help\" text=\"Help\" " +
+        "help-line=\"The C# help panel.\"><help keywords=\"help; csharp\">The panel C# reads.</help>" +
+        "</control></control></controls></locale>";
+
+    private const string help_user =
+        "<locale xml:lang=\"en\"><controls><control name=\"csharp\"><control name=\"help\" " +
+        "help-line=\"The user's own words.\"/></control></controls></locale>";
+
+    private static gf_status help_load(delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_status> load,
+                                       gf_object system, string xml)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(xml);
+        fixed (byte* data = bytes)
+        {
+            return load(system, Utf8.view(data, bytes.Length));
+        }
+    }
+
+    private static string help_field(in gf_help_table table, gf_object system, string stable_id,
+                                     gf_locale_field field, out gf_locale_origin origin)
+    {
+        byte[] id = Encoding.UTF8.GetBytes(stable_id);
+        byte[] text = new byte[512];
+        ulong required = 0;
+        gf_locale_origin found = 99u;
+        fixed (byte* id_data = id)
+        fixed (byte* text_data = text)
+        {
+            Abi.check(table.read_field(system, Utf8.view(id_data, id.Length), field, text_data, (ulong)text.Length,
+                                       &required, &found));
+        }
+        origin = found;
+        return Encoding.UTF8.GetString(text, 0, checked((int)required));
+    }
+
+    private static void help_language_files()
+    {
+        Abi.check(Exports.get_help_table(out gf_help_table table));
+        expect(table.struct_size >= (uint)sizeof(gf_help_table), "the help table carries the language-file slots");
+        using ObjectHandle system = ObjectHandle.create("help_book_system"u8, "csharp.help.system"u8);
+        using ObjectHandle root = ObjectHandle.create("panel"u8, "csharp.help"u8);
+        using ObjectHandle label = ObjectHandle.create("label"u8, "csharp.help.caption"u8);
+        Abi.check(Abi.objects.insert_child(root.value, label.value, 0u));
+        gf_object made = 0;
+        Abi.check(Abi.windows.create(root.value, &made));
+        using ObjectHandle window = ObjectHandle.adopt(made);
+        Abi.check(table.attach(system.value, window.value));
+        Abi.check(help_load(table.load_built_in, system.value, help_built_in));
+
+        byte[] line = Encoding.UTF8.GetBytes("Set from C#.");
+        gf_value value = default;
+        value.struct_size = (uint)sizeof(gf_value);
+        value.kind = Constants.GF_VALUE_KIND_TEXT;
+        fixed (byte* line_data = line)
+        fixed (byte* property = "help_line"u8)
+        {
+            value.text = Utf8.view(line_data, line.Length);
+            Abi.check(Abi.properties.set(label.value, Utf8.view(property, 9), &value));
+        }
+        string caption = help_field(table, system.value, "csharp.help.caption", Constants.GF_LOCALE_FIELD_HELP_LINE,
+                                    out gf_locale_origin caption_origin);
+        expect(caption == "Set from C#." && caption_origin == Constants.GF_LOCALE_ORIGIN_PROGRAM,
+               "a help line set as a property is the program's value (" + caption + ")");
+
+        ulong required = 0;
+        byte[] empty = Array.Empty<byte>();
+        fixed (byte* none = empty)
+        {
+            gf_status sized = table.export_template(system.value, Utf8.view(none, 0), null, 0u, &required);
+            expect(sized == Constants.GF_STATUS_BUFFER_TOO_SMALL && required > 0u, "the template's size comes first");
+        }
+        byte[] exported = new byte[checked((int)required)];
+        fixed (byte* none = empty)
+        fixed (byte* data = exported)
+        {
+            Abi.check(table.export_template(system.value, Utf8.view(none, 0), data, required, &required));
+        }
+        string template = Encoding.UTF8.GetString(exported);
+        expect(template.Contains("help-line=\"The C# help panel.\"") && template.Contains("Set from C#.") &&
+                   template.Contains("keywords=\"help; csharp\""),
+               "the template lists the built-in and program help fields");
+
+        Abi.check(help_load(table.load_user_overrides, system.value, help_user));
+        string overridden = help_field(table, system.value, "csharp.help", Constants.GF_LOCALE_FIELD_HELP_LINE,
+                                       out gf_locale_origin user_origin);
+        expect(overridden == "The user's own words." && user_origin == Constants.GF_LOCALE_ORIGIN_USER,
+               "the user's override reads back");
+        Abi.check(table.use_built_in_language(system.value, 1u));
+        string rescued = help_field(table, system.value, "csharp.help", Constants.GF_LOCALE_FIELD_HELP_LINE,
+                                    out gf_locale_origin rescued_origin);
+        expect(rescued == "The C# help panel." && rescued_origin == Constants.GF_LOCALE_ORIGIN_BUILT_IN,
+               "the way back shows the built-in text");
+        Abi.check(table.use_built_in_language(system.value, 0u));
+        Abi.check(table.clear_user_overrides(system.value));
+        gf_status refused = help_load(table.load_translation, system.value, "<locale/>");
+        expect(refused == Constants.GF_STATUS_INVALID_ARGUMENT, "a translation without a language is refused");
+        Abi.check(table.detach(system.value, window.value));
+    }
+
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -652,6 +755,7 @@ internal static unsafe class Program
         subsurfaces();
         binding_list();
         binding_moves_and_filters();
+        help_language_files();
         expect(unhandled_raised == 0, "no failure in these checks ran under an event loop");
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");

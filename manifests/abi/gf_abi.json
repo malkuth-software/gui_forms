@@ -2339,6 +2339,86 @@
       "type": "uint32"
     },
     {
+      "name": "GF_LOCALE_FIELD_TEXT",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_FIELD_TOOL_TIP",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_FIELD_ACCESS_KEY",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_FIELD_TITLE",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_FIELD_PLACEHOLDER",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_FIELD_HEADER",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_FIELD_ACCESSIBLE_NAME",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_FIELD_ACCESSIBLE_DESCRIPTION",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_FIELD_HELP_LINE",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_FIELD_HELP",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_FIELD_KEYWORDS",
+      "value": 10,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_ORIGIN_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_ORIGIN_BUILT_IN",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_ORIGIN_PROGRAM",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_ORIGIN_TRANSLATION",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LOCALE_ORIGIN_USER",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"
@@ -2647,6 +2727,14 @@
     },
     {
       "name": "gf_help_navigator",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_locale_field",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_locale_origin",
       "type": "uint32_t"
     },
     {
@@ -11991,7 +12079,7 @@
     {
       "name": "gf_help_table",
       "kind": "table",
-      "size": 80,
+      "size": 128,
       "align": 8,
       "fields": [
         {
@@ -12217,6 +12305,154 @@
               {
                 "name": "system",
                 "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "load_translation",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "locale_xml",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "load_user_overrides",
+          "type": "function",
+          "offset": 88,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "locale_xml",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "clear_user_overrides",
+          "type": "function",
+          "offset": 96,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "use_built_in_language",
+          "type": "function",
+          "offset": 104,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "built_in_only",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "export_template",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "language",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "read_field",
+          "type": "function",
+          "offset": 120,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "stable_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "field",
+                "type": "gf_locale_field"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              },
+              {
+                "name": "origin",
+                "type": "gf_locale_origin*"
               }
             ]
           },

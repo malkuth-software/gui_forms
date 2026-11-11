@@ -190,6 +190,10 @@ Related types
      - A grid-template-columns or -rows value.
    * - :cpp:class:`GridTrackSize <gui_forms::GridTrackSize>`
      - A track size: one breadth (both ends equal, except that a lone ``<n>fr`` is CSS's ``minmax(auto, <n>fr)``), ``minmax(minimum, maximum)``, or ``fit-content(<length-percentage>)``, whose limit is ``fit_content_limit`` with minimum ``auto`` and maximum ``max-content``.
+   * - :cpp:class:`HelpCapability <gui_forms::HelpCapability>`
+     - The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links.
+   * - :cpp:class:`HelpLineCapability <gui_forms::HelpLineCapability>`
+     - The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents.
    * - :cpp:class:`HitTestTransparentCapability <gui_forms::HitTestTransparentCapability>`
      - Whether pointer hit testing passes through the control to what is under it.
    * - :cpp:class:`HoldsGridSpans <gui_forms::HoldsGridSpans>`
@@ -206,6 +210,8 @@ Related types
      - Position of an item system in its control type's declaration list.
    * - :cpp:class:`JustifySelfCapability <gui_forms::JustifySelfCapability>`
      - Where the control sits across its layout region's inline axis (CSS justify-self).
+   * - :cpp:class:`KeywordsCapability <gui_forms::KeywordsCapability>`
+     - The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword.
    * - :cpp:class:`LayoutConstraint <gui_forms::LayoutConstraint>`
      - A measure query on both axes.
    * - :cpp:class:`LayoutDiagnostic <gui_forms::LayoutDiagnostic>`
@@ -982,7 +988,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>, public CeremonialCapability<Declaring>, public TagCapability<Declaring>, public FocusableCapability<Declaring>, public DoubleBufferedCapability<Declaring>, public ClassesCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>, public HelpLineCapability<Declaring>, public HelpCapability<Declaring>, public KeywordsCapability<Declaring>, public CeremonialCapability<Declaring>, public TagCapability<Declaring>, public FocusableCapability<Declaring>, public DoubleBufferedCapability<Declaring>, public ClassesCapability<Declaring>
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
 
@@ -1090,6 +1096,18 @@ Related types
    .. cpp:member:: std::string accessible_description
 
       The description assistive technology announces.
+
+   .. cpp:member:: std::string help_line
+
+      The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+   .. cpp:member:: std::string help
+
+      The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+   .. cpp:member:: std::string keywords
+
+      The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.
 
    .. cpp:member:: bool ceremonial
 
@@ -2014,6 +2032,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> HelpCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(HelpCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const HelpCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, HelpCapability<Declaring>> help
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> HelpLineCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(HelpLineCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const HelpLineCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, HelpLineCapability<Declaring>> help_line
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> HitTestTransparentCapability
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
@@ -2125,6 +2177,23 @@ Related types
    .. cpp:member:: PropertyCell<SelfAlignment, JustifySelfCapability<Declaring>> justify_self
 
       Default: ``{SelfAlignment::automatic}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> KeywordsCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(KeywordsCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const KeywordsCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, KeywordsCapability<Declaring>> keywords
 
 .. cpp:namespace:: gui_forms
 

@@ -11,6 +11,7 @@
 #include "gui_forms/help/help_records/help_records.hpp"
 #include "gui_forms/help/helpbook_section/helpbook_section.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/text/locale_file/locale_file.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -67,6 +68,9 @@ struct HelpBookSystemOptions final {
     // The prefix of every stable ID the system makes (its window, viewer
     // and popups).
     std::string stable_id{"help"};
+    // The language tag of the program's built-in locale file; load_built_in
+    // refuses a file for another language.
+    std::string built_in_language{"en"};
     GUI_FORMS_LOCALIZABLE(text) std::string window_title{"Help"};
     Size window_size{900.0, 640.0};
     // The home page; empty takes the contents' first page.
@@ -102,10 +106,11 @@ struct HelpBookSystemSnapshot final {
 };
 
 // HelpBookSystem: the program's help (help system study, sections 1 to 8).
-// It holds the help catalog (the built-in locale file's help fields, a
-// translation and the user's overrides), compiles the helpbook section from
-// it, the attached windows' structure and the declared HelpTopics, and
-// presents it:
+// It holds the program's language-file catalog (LocaleCatalog: the built-in
+// locale file, the help fields the attached windows' controls hold in code,
+// a translation and the user's overrides) and its help view (HelpCatalog),
+// compiles the helpbook section from that view, the attached windows'
+// structure and the declared HelpTopics, and presents it:
 //
 // - F1 shows the focused control's page, walking up to the window's page
 //   and then home when the control has none (resolve);
@@ -129,15 +134,41 @@ public:
     explicit HelpBookSystem(HelpBookSystemOptions options = {});
     ~HelpBookSystem() override;
 
+    // The help view of locale(). Every load and the way back replace it
+    // from locale() (HelpCatalog::adopt_locale), so a direct edit lasts only
+    // until the next one.
     [[nodiscard]] HelpCatalog& catalog() noexcept { return catalog_; }
+    // The language files' text: every field the loaded files give, and the
+    // program layer as of the last compile, section(), export or
+    // resolve_field. Declared HelpTopics are not in it; they join the help
+    // view at each compile and the template export.
+    [[nodiscard]] const LocaleCatalog& locale() const noexcept { return locale_; }
     [[nodiscard]] const HelpBookSystemOptions& options() const noexcept { return options_; }
-    // Reads a locale file's help fields: into the built-in layer (the
-    // embedded built-in locale file) or as the translation. A refused file
-    // changes nothing; rejected fields are left out and listed.
-    HelpLocaleReadResult load_built_in(std::string_view locale_xml);
-    HelpLocaleReadResult load_translation(std::string_view locale_xml);
-    // The untranslatable way back: help in the built-in language only.
+    // Reads a locale file: merged into the built-in layer (the embedded
+    // built-in locale file, which must be for options().built_in_language),
+    // or as the translation (user overrides for another language go). A
+    // refused file changes nothing; rejected fields are left out and listed.
+    LocaleReadResult load_built_in(std::string_view locale_xml);
+    LocaleReadResult load_translation(std::string_view locale_xml);
+    // The user's own `locales-<tag>.xml` for the language in force: wins
+    // over the translation and the built-in text per field. A file for
+    // another language is refused (language_mismatch) and changes nothing.
+    LocaleReadResult load_user_overrides(std::string_view locale_xml);
+    // Drops the user's overrides (one way back: the file is removed).
+    void clear_user_overrides();
+    // The untranslatable way back: help in the built-in language only,
+    // whatever the translation and the user's file say. The viewer's
+    // built-in-language link turns it on.
     void use_built_in_language(bool built_in_only);
+    // The template export (translation design 7): the declared topics, the
+    // built-in file and the attached windows' program values, with the
+    // built-in text as values and, when `language` is the translation's,
+    // its translations over them; never the user's overrides. `language`
+    // empty exports the built-in language. The error is the XML writer's.
+    [[nodiscard]] XmlWriteResult export_template(std::string_view language);
+    // One field of a record as it shows now, with the layer it came from:
+    // the attached windows' program values are read first.
+    [[nodiscard]] LocaleResolvedField resolve_field(std::string_view stable_id, LocaleField field);
 
     // Compiles the section from the catalog, the attached windows' structure
     // and the declared topics, and shows it in the viewers. The result keeps
@@ -223,8 +254,15 @@ private:
     void on_popup_close();
     void on_popup_dismissed(OverlayDismissReason reason);
     [[nodiscard]] Attachment* find_attachment(const Window& window) noexcept;
+    // Reads the attached windows' program values into locale_ and, when
+    // they changed, the help view. Returns whether they changed.
+    bool refresh_program_values();
+    // The help view from locale_.
+    void refresh_catalog();
 
     HelpBookSystemOptions options_;
+    // After options_, whose built_in_language it is made with.
+    LocaleCatalog locale_;
     HelpCatalog catalog_{};
     HelpBookCompileResult compiled_{};
     std::shared_ptr<const HelpBookSection> section_{};

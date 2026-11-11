@@ -471,5 +471,21 @@ public static class Constants
     public const uint GF_HELP_NAVIGATOR_CONTENTS = 0u;
     public const uint GF_HELP_NAVIGATOR_INDEX = 1u;
     public const uint GF_HELP_NAVIGATOR_SEARCH = 2u;
+    public const uint GF_LOCALE_FIELD_TEXT = 0u;
+    public const uint GF_LOCALE_FIELD_TOOL_TIP = 1u;
+    public const uint GF_LOCALE_FIELD_ACCESS_KEY = 2u;
+    public const uint GF_LOCALE_FIELD_TITLE = 3u;
+    public const uint GF_LOCALE_FIELD_PLACEHOLDER = 4u;
+    public const uint GF_LOCALE_FIELD_HEADER = 5u;
+    public const uint GF_LOCALE_FIELD_ACCESSIBLE_NAME = 6u;
+    public const uint GF_LOCALE_FIELD_ACCESSIBLE_DESCRIPTION = 7u;
+    public const uint GF_LOCALE_FIELD_HELP_LINE = 8u;
+    public const uint GF_LOCALE_FIELD_HELP = 9u;
+    public const uint GF_LOCALE_FIELD_KEYWORDS = 10u;
+    public const uint GF_LOCALE_ORIGIN_NONE = 0u;
+    public const uint GF_LOCALE_ORIGIN_BUILT_IN = 1u;
+    public const uint GF_LOCALE_ORIGIN_PROGRAM = 2u;
+    public const uint GF_LOCALE_ORIGIN_TRANSLATION = 3u;
+    public const uint GF_LOCALE_ORIGIN_USER = 4u;
     public const uint GF_PAINT_ENDPOINT_MAXIMUM_SIDE = 32768u;
 }

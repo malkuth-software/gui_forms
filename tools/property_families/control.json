@@ -492,6 +492,69 @@
       ]
     },
     {
+      "name": "help_line",
+      "capability": "HelpLine",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": "help_line",
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::string(\"Pastes the clipboard.\")",
+      "storage": "view",
+      "hand": [
+        "a view onto the control's lazily made help record (help_fields_), so a control without help pays one pointer; write_view checks the value as the locale file's reader does (check_locale_value)"
+      ]
+    },
+    {
+      "name": "help",
+      "capability": "Help",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": "help",
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::string(\"Pastes the clipboard.\")",
+      "storage": "view",
+      "hand": [
+        "a view onto the control's lazily made help record (help_fields_), so a control without help pays one pointer; write_view checks the value as the locale file's reader does (check_locale_value)"
+      ]
+    },
+    {
+      "name": "keywords",
+      "capability": "Keywords",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": "keywords",
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::string(\"clipboard; paste, image\")",
+      "storage": "view",
+      "hand": [
+        "a view onto the control's lazily made help record (help_fields_), so a control without help pays one pointer; write_view checks the value as the locale file's reader does (check_locale_value)"
+      ]
+    },
+    {
       "name": "ceremonial",
       "capability": "Ceremonial",
       "value": "bool",

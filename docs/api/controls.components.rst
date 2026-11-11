@@ -577,6 +577,10 @@ Related types
 
       The prefix of every stable ID the system makes (its window, viewer and popups). Default: ``{"help"}``.
 
+   .. cpp:member:: std::string built_in_language
+
+      The language tag of the program's built-in locale file; load_built_in refuses a file for another language. Default: ``{"en"}``.
+
    .. cpp:member:: std::string window_title
 
       Default: ``{"Help"}``.

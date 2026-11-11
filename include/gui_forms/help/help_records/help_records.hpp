@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
 #include <cstddef>
@@ -28,10 +29,11 @@ namespace gui_forms {
 // layer, a translation and a user's overrides and resolves each field from
 // the highest layer that gives it.
 //
-// The full language-file implementation (control text, tooltips, plurals)
-// is not built yet. These types hold the help fields only and read and
-// write them in the locale XML format of the translation design, so the
-// language-file reader can take them over without a format change.
+// These types are the help view of the language files
+// (text/locale_file/locale_file.hpp): the same records, keeping the four
+// help fields only. read_help_locale and write_help_locale are read_locale
+// and write_locale projected onto them, so there is one reader and one
+// format; HelpCatalog::adopt_locale takes a LocaleCatalog's layers.
 
 enum class HelpField : std::uint8_t { title, help_line, help, keywords };
 
@@ -90,6 +92,12 @@ enum class HelpEntryRefusal : std::uint8_t {
     broken_link,
     // An image names no PNG resource of the program (the helpbook pass).
     missing_image,
+    // The value holds a C0 control other than tab and line feed, or DEL
+    // (LocaleRefusal::control_character).
+    control_character,
+    // A bidirectional control is not closed in its line
+    // (LocaleRefusal::unbalanced_bidi).
+    unbalanced_bidi,
 };
 
 [[nodiscard]] std::string_view help_entry_refusal_name(HelpEntryRefusal refusal) noexcept;
@@ -149,10 +157,7 @@ struct HelpKeyword final {
 // An empty or all-space field has no keywords and is valid.
 [[nodiscard]] bool parse_help_keywords(std::string_view field, std::vector<HelpKeyword>& keywords);
 
-// The `<help>` element's character data as a help body: a leading line end
-// and the trailing white space go, and the indentation every non-blank line
-// shares is removed, so a body indented to sit under its `<control>` reads
-// as written. `body` is replaced.
+// normalize_locale_help_body, under its help name.
 void normalize_help_body(std::string_view raw, std::string& body);
 
 // Why a whole locale file was refused; none when it was read (some entries
@@ -167,6 +172,10 @@ enum class HelpLocaleError : std::uint8_t {
     no_language,
     // The file holds more records than HelpFieldLimits::maximum_records.
     too_many_records,
+    // `xml:lang` is not a language tag (LocaleFileError::invalid_language).
+    invalid_language,
+    // `direction` is neither "ltr" nor "rtl".
+    invalid_direction,
 };
 
 [[nodiscard]] std::string_view help_locale_error_name(HelpLocaleError error) noexcept;
@@ -199,21 +208,26 @@ struct HelpLocaleReadResult final {
 //
 // `<control>` elements nest by stable-ID segment; `text` is the record's
 // title, `help-line` an attribute, and the body the `<help>` child's
-// character data (normalize_help_body), with `keywords` on it. Other
-// attributes and elements (the rest of the language file) are ignored.
-// The document nests at most 67 elements deep (locale, controls, 64
-// control levels and a help child), whatever xml_limits allows: a deeper
-// file is refused as HelpLocaleError::xml with XmlError::depth_exceeded.
+// character data (normalize_help_body), with `keywords` on it. This is
+// read_locale with the other fields left out (their rejections too). The
+// document nests at most 67 elements deep (locale, controls, 64 control
+// levels and a help child), whatever xml_limits allows: a deeper file is
+// refused as HelpLocaleError::xml with XmlError::depth_exceeded.
 // Expected faults never throw.
 [[nodiscard]] HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits = {},
-                                                    const XmlLimits& xml_limits = {});
+                                                    const XmlLimits& xml_limits = locale_xml_limits());
 
 // Writes `records` as a locale file read_help_locale accepts: the template
 // export when `records` is the built-in layer (every field with the
 // built-in text as its value), or a translation. Records nest by segment
 // in stable-ID order. The result's error is the XML writer's.
 [[nodiscard]] XmlWriteResult write_help_locale(const HelpRecordLayer& records, std::string_view language,
-                                               const XmlLimits& xml_limits = {});
+                                               const XmlLimits& xml_limits = locale_xml_limits());
+
+// Fills `target` (cleared first) with the help fields of `source`: its
+// `text` as the title, `help-line`, `help` and `keywords`. Records with
+// none of them are left out.
+void project_help_fields(const LocaleLayer& source, HelpRecordLayer& target);
 
 // The layers of a HelpCatalog, lowest first.
 enum class HelpLayer : std::uint8_t {
@@ -259,6 +273,12 @@ public:
     void set_translation(HelpRecordLayer records, std::string language);
     // Replaces the user layer. Bumps the revision.
     void set_user_overrides(HelpRecordLayer records);
+    // Takes every layer from a language-file catalog (the help view of it):
+    // its built-in and program layers become the built-in layer (program
+    // values over the file's), its translation and user layers these, and
+    // its language and way-back switch these. Replaces what built_in(),
+    // set_translation and set_user_overrides put in. Bumps the revision.
+    void adopt_locale(const LocaleCatalog& locale);
     // The untranslatable way back (translation design): while set, only the
     // built-in layer resolves, whatever the translation and user files say.
     void set_built_in_only(bool built_in_only) noexcept;
