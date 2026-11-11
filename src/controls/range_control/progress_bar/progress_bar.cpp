@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <stdexcept>
 #include <utility>
 
@@ -674,18 +675,27 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     fill_part.role = PartRole::fill;
     fill_part.states = states;
     fill_part.states.insert(AnatomyState::selected);
+    // Every fill is the anatomy's `fill` part, so that a sheet's
+    // `progress-bar::part(fill)` reaches it. Each block of the blocks style
+    // is the same part, told apart by its position along the bar (the key's
+    // item index), so that each keeps its own engine record and damage.
     if (visual_style.read() == ProgressBarVisualStyle::blocks) {
         constexpr double gap = 2.0;
         constexpr double block = 9.0;
+        std::size_t block_index = 0U;
         if (orientation.read() == Orientation::horizontal) {
             for (double x = fill.x; x + block <= fill.x + fill.width; x += block + gap) {
                 fill_part.bounds = {x, fill.y, block, fill.height};
+                fill_part.key = PartKey{"fill", {}, block_index};
                 paint_part(painter, *this, fill_part);
+                block_index = block_index + 1U;
             }
         } else {
             for (double y = fill.y + fill.height - block; y >= fill.y; y -= block + gap) {
                 fill_part.bounds = {fill.x, y, fill.width, block};
+                fill_part.key = PartKey{"fill", {}, block_index};
                 paint_part(painter, *this, fill_part);
+                block_index = block_index + 1U;
             }
         }
     } else {
