@@ -379425,7 +379425,7 @@
       "comment": "",
       "header": "gui_forms/control/control/control.hpp",
       "source": "include/gui_forms/control/control/control.hpp",
-      "line": 2218,
+      "line": 2219,
       "page": "gui-forms-make-control-std-shared-ptr-controltype-stableid-arguments-ab49b15c88.html"
     },
     {
@@ -390619,9 +390619,9 @@
       "page": "gui-forms-paint-part-from-recipe-void-painter-const-partpaint-const-controlvisualrecipe-controlvisualcontext-da92d03958.html"
     },
     {
-      "id": "gui_forms::paint_part_with_built_in_recipe|void (Painter &, const gui_forms::Control &, const PartPaint &)",
+      "id": "gui_forms::paint_part_with_built_in_recipe|void (Painter &, const gui_forms::Control &, const PartPaint &, const SurfaceMaterial *)",
       "name": "paint_part_with_built_in_recipe",
-      "type": "void (Painter &, const Control &, const PartPaint &)",
+      "type": "void (Painter &, const Control &, const PartPaint &, const SurfaceMaterial *)",
       "namespace": "gui_forms",
       "kind": "FunctionDecl",
       "access": "public",
@@ -390640,14 +390640,19 @@
           "name": "part",
           "type": "const PartPaint &",
           "declaration": "const PartPaint& part"
+        },
+        {
+          "name": "resolved_material",
+          "type": "const SurfaceMaterial *",
+          "declaration": "const SurfaceMaterial* resolved_material"
         }
       ],
-      "declaration": "friend void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part)",
+      "declaration": "friend void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part, const SurfaceMaterial* resolved_material)",
       "comment": "",
       "header": "gui_forms/control/control/control.hpp",
       "source": "include/gui_forms/control/control/control.hpp",
       "line": 1549,
-      "page": "gui-forms-paint-part-with-built-in-recipe-void-painter-const-gui-forms-control-const-partpaint-dd3fa3ba2c.html",
+      "page": "gui-forms-paint-part-with-built-in-recipe-void-painter-const-gui-forms-control-const-partpaint-const-surfacema-dc9956c663.html",
       "associated_type": "gui_forms::Control"
     },
     {
