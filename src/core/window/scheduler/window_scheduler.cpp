@@ -30,7 +30,8 @@ std::optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
             continue;
         }
         if ((*request).kind == detail::FrameRequestKind::ui_timer) {
-            if (!result || (*request).deadline < *result) {
+            const bool resting = occluded_ && (*request).rests_while_occluded;
+            if (!resting && (!result || (*request).deadline < *result)) {
                 result = (*request).deadline;
             }
             continue;
@@ -121,6 +122,16 @@ FrameRequestToken SurfaceRoot::schedule_ui_timer(
     return FrameRequestToken(request);
 }
 
+FrameRequestToken SurfaceRoot::schedule_resting_ui_timer(
+    Component& owner, FrameInterval interval, FrameTime first_deadline,
+    std::function<void(FrameTime)> callback) {
+    FrameRequestToken token = schedule_ui_timer(owner, interval, first_deadline, std::move(callback));
+    // schedule_ui_timer appends its request last; it returned, so the
+    // request is there.
+    (*frame_requests_.back()).rests_while_occluded = true;
+    return token;
+}
+
 FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
     require_root_thread("frame schedule polling");
     if (in_frame_poll_) {
@@ -159,6 +170,10 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
             continue;
         }
         if ((*request).kind == detail::FrameRequestKind::ui_timer) {
+            if (occluded_ && (*request).rests_while_occluded) {
+                result.suppressed_by_occlusion = true;
+                continue;
+            }
             ++result.ui_timer_ticks;
             const FrameInterval lateness = now - (*request).deadline;
             const FrameInterval::rep skipped =
@@ -272,6 +287,14 @@ void SurfaceRoot::set_occluded(bool occluded, FrameTime transition_time) {
     // value jumps to its end now, and none is scheduled while it stays so.
     if (occluded) motion_clock_.finish_all(MotionStepCause::occluded);
     if (!occluded) {
+        // A resting UI timer (the caret blink) restarts its cadence: a
+        // deadline that passed while hidden moves to one interval from now,
+        // so it is neither polled late nor run as a burst.
+        const FrameTime shown = FrameClock::now();
+        for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
+            const bool resting = (*request).connected() && (*request).rests_while_occluded;
+            if (resting && (*request).deadline < shown) (*request).deadline = shown + (*request).interval;
+        }
         // Ambient effects stopped while hidden resume with their parts'
         // next paint (E7).
         resume_engine_ambient();

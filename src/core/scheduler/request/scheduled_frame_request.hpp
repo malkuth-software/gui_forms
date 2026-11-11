@@ -37,6 +37,11 @@ public:
     FrameTime deadline;
     FrameInterval interval;
     std::function<void(FrameTime)> callback;
+    // A UI timer that rests while its window is occluded: no tick and no
+    // wake until the window is shown again, when its cadence restarts
+    // (SurfaceRoot::schedule_resting_ui_timer, the caret blink). Other
+    // UI timers run while the window is hidden.
+    bool rests_while_occluded{};
 
 private:
     bool connected_{true};
