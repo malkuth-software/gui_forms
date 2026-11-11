@@ -40,8 +40,8 @@ using namespace gui_forms;
 // Ruling 2: the ordinary build compiles to the plain views, member types
 // and accessors alike.
 static_assert(std::is_same_v<decltype(std::declval<const Control&>().children()), std::span<const Control::Ptr>>);
-static_assert(std::is_same_v<decltype(std::declval<const Control&>().window()), Window*>);
-static_assert(std::is_same_v<decltype(std::declval<const Control&>().surface_root()), SurfaceRoot*>);
+static_assert(std::is_same_v<decltype(std::declval<const Control&>().attached_window()), Window*>);
+static_assert(std::is_same_v<decltype(std::declval<const Control&>().attached_surface_root()), SurfaceRoot*>);
 static_assert(std::is_same_v<decltype(std::declval<const ListView&>().items()), std::span<const ListViewItem>>);
 static_assert(std::is_same_v<decltype(std::declval<const SurfaceRoot&>().presenting_window()), Window*>);
 static_assert(std::is_same_v<detail::LendingVector<Control::Ptr>, std::vector<Control::Ptr>>);
@@ -92,10 +92,10 @@ int plain_mode() {
     const std::span<const Control::Ptr> plain_children = (*root).children();
     if (plain_children.size() != 2U) return fail("plain children differ");
 
-    const BorrowedPointer<Window> attached = (*first).window();
+    const BorrowedPointer<Window> attached = (*first).attached_window();
     Window* const attached_plain = attached;
     if (attached_plain != &window) return fail("window back link differs");
-    SurfaceRoot* const root_plain = (*first).surface_root();
+    SurfaceRoot* const root_plain = (*first).attached_surface_root();
     if (root_plain == nullptr) return fail("surface root back link missing");
     Window* const presented = window.presenting_window();
     if (presented != &window) return fail("presenting window differs");
@@ -134,7 +134,7 @@ void back_link_mode() {
     std::shared_ptr<Control> child = make_control<Control>(StableId("borrow.child"));
     (*root).add_child(child);
     Window window(root, {120.0, 80.0});
-    const BorrowedPointer<Window> attached = (*child).window();
+    const BorrowedPointer<Window> attached = (*child).attached_window();
     static_cast<void>((*root).remove_child((*child).runtime_id()));
     Window* const stale = attached;
     std::printf("read %s\n", stale != nullptr ? "a window" : "nothing");

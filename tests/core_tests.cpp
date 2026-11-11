@@ -997,12 +997,12 @@ static_assert(!valid_stable_id("") && !valid_stable_id("list_view") && !valid_st
               !valid_stable_id("a.-b") && !valid_stable_id("a b") && !valid_stable_id("caf\xc3\xa9"));
 
 void test_stable_id_rule() {
-    require(StableId(std::string("list-view.item.7")).value() == "list-view.item.7",
-            "a valid runtime stable ID keeps its spelling");
+    const StableId runtime_string(std::string("list-view.item.7"));
+    require(runtime_string.value() == "list-view.item.7", "a valid runtime stable ID keeps its spelling");
     require(StableId("paint.editor") == StableId(std::string("paint.editor")),
             "a literal and a runtime string with one spelling are one stable ID");
-    require(StableId(std::string_view("tab-page.panel")).value() == "tab-page.panel",
-            "a runtime std::string_view is checked like a std::string");
+    const StableId runtime_view(std::string_view("tab-page.panel"));
+    require(runtime_view.value() == "tab-page.panel", "a runtime std::string_view is checked like a std::string");
     for (const char* invalid : {"", "list_view", "Upper", "a..b", "trailing.", "a--b", "tab\tid"}) {
         bool refused = false;
         try {
