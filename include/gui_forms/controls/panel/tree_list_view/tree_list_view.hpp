@@ -98,6 +98,66 @@ struct TreeListColumnMove final {
     std::size_t display_position{};
 };
 
+// A change of a virtual tree's rows (TreeListRowSource): the `removed` rows
+// at `first` were replaced by `inserted` rows. Expanding row r with k shown
+// descendants is {r + 1, 0, k}; collapsing it is {r + 1, k, 0}.
+struct TreeListRowSplice final {
+    std::size_t first{};
+    std::size_t removed{};
+    std::size_t inserted{};
+};
+
+// The application's rows for a virtual TreeListView (audit N94, owner ruling
+// D10 b): the view keeps no nodes, only the row count and each row's height
+// in a height-indexed tree, and asks the source for the rows it shows. Rows
+// are the shown nodes in order (a collapsed node's descendants are not
+// rows); each row's node carries its depth, expandable and expanded flags.
+//
+// The view calls the source on its own thread, during layout, paint, input
+// and semantics. retrieve_row and row_height are called only for rows below
+// row_count(); set_row_expanded only for an expandable row whose expanded
+// flag differs, and it must return the splice it made, after which
+// row_count() is the old count - removed + inserted (otherwise the view
+// throws std::logic_error and keeps its old rows). The source outlives
+// nothing: the view holds it by shared_ptr until set_row_source replaces it.
+class TreeListRowSource {
+public:
+    virtual ~TreeListRowSource() {}
+    [[nodiscard]] virtual std::size_t row_count() const = 0;
+    // Fills `node` (which holds the previous row's values) with the row's
+    // node. An invalid ID is shown as "#row"; invalid UTF-8 is shown empty.
+    virtual void retrieve_row(std::size_t row, TreeListNode& node) const = 0;
+    // Expands or collapses the row's node in the application's model and
+    // returns the rows that change.
+    [[nodiscard]] virtual TreeListRowSplice set_row_expanded(std::size_t row, bool expanded) = 0;
+    // The row's height in logical units at text scale 1, asked once when the
+    // row is first shown (the height is kept until splice_rows or
+    // refresh_rows drops it). Until then the row counts as `estimated`, the
+    // view's own row height; returning it (the default), zero or a value that
+    // is not finite keeps that.
+    [[nodiscard]] virtual double row_height(std::size_t row, double estimated) const {
+        static_cast<void>(row);
+        return estimated;
+    }
+    // The row showing a node, for lookups by ID outside the rows in view
+    // (selected_id, ensure_visible, semantic actions); none by default.
+    [[nodiscard]] virtual std::optional<std::size_t> find_row(std::string_view node_id) const {
+        static_cast<void>(node_id);
+        return std::nullopt;
+    }
+    // Type-ahead: the first enabled row at or after `start` (wrapping) whose
+    // text starts with `folded_prefix` (ASCII case folded); none by default,
+    // so a virtual view has no type-ahead unless the source provides it.
+    [[nodiscard]] virtual std::optional<std::size_t> find_prefix(std::string_view folded_prefix,
+                                                                 std::size_t start) const {
+        static_cast<void>(folded_prefix);
+        static_cast<void>(start);
+        return std::nullopt;
+    }
+};
+
+class RowHeightIndex;
+
 // A tree with tabular columns: TreeView's flat model of visible rows with
 // the details columns of ListView and ObjectView. Nodes are records, not
 // child controls, kept and found by stable ID; only the rows in view are
@@ -112,8 +172,17 @@ struct TreeListColumnMove final {
 // collapsed node, as TreeView does. Sorting orders siblings by one column's
 // text and keeps the tree structure. Columns are resized by dragging a
 // header's divider and moved by dragging a header; the tree column stays
-// first. Multiple selection, check boxes, label editing, owner drawing and a
-// virtual node source are not supported yet.
+// first. Multiple selection, check boxes, label editing and owner drawing
+// are not supported yet.
+//
+// Virtual mode (set_row_source): the rows come from a TreeListRowSource and
+// their heights live in a height-indexed tree, so a jump anywhere, a
+// re-measure and a bulk splice cost O(log n) and nothing measures every row.
+// The selection and the current node are kept by row and follow splices; the
+// node-model calls (set_nodes, nodes, index_of, set_cell_text) are refused or
+// empty; sorting raises sort_changed and re-reads the rows (the source sorts
+// in its handler); ensure_visible and selected_id find rows through
+// find_row and do not expand ancestors.
 class TreeListView final : public Control, public TreeListViewCapabilities<TreeListView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
@@ -176,13 +245,33 @@ public:
     // key), raising expansion_changed for each in preorder.
     void expand_subtree(std::string_view node_id);
 
+    // -- virtual rows ------------------------------------------------------------
+    // Shows the source's rows instead of nodes (a null source returns to an
+    // empty node model). Drops the nodes, the selection (raising
+    // selection_changed when there was one) and the scroll. Throws
+    // std::invalid_argument when the source has more than maximum_nodes rows.
+    void set_row_source(std::shared_ptr<TreeListRowSource> source);
+    [[nodiscard]] bool virtual_mode() const noexcept { return row_source_ != nullptr; }
+    // Tells the view the source replaced `removed` rows at `first` with
+    // `inserted` rows (a bulk insertion or removal the application made).
+    // Selection, current row and scroll follow their rows; those inside the
+    // removed range are dropped. Throws std::logic_error outside virtual mode
+    // or when the source's count does not match, std::out_of_range for a
+    // range past the rows.
+    void splice_rows(std::size_t first, std::size_t removed, std::size_t inserted);
+    // Re-reads the row count and drops every kept height (the rows were
+    // rebuilt). Selection and current row stay by row when below the count.
+    // Throws std::logic_error outside virtual mode.
+    void refresh_rows();
+
     // -- rows ------------------------------------------------------------------
     // The rows: the nodes not hidden under a collapsed node, in sorted order.
-    [[nodiscard]] std::size_t row_count() const noexcept { return visible_.size(); }
+    [[nodiscard]] std::size_t row_count() const noexcept;
     // The row showing a node, or none when it is hidden.
     [[nodiscard]] std::optional<std::size_t> row_of(std::string_view node_id) const;
     // The ID of the node a row shows. Throws std::out_of_range for a row
-    // past the end. The view is borrowed until its nodes change.
+    // past the end. The view is borrowed until its nodes change (in virtual
+    // mode, until the next call of row_node_id).
     [[nodiscard]] std::string_view row_node_id(std::size_t row) const;
     // The first row in view.
     [[nodiscard]] std::size_t top_row() const;
@@ -363,6 +452,29 @@ private:
 
     // Model structure, rebuilt when the nodes, the sort or the expansion
     // change. See rebuild_structure(), rebuild_order() and rebuild_rows().
+    // Rows in both modes: a row's node is nodes_[visible_[row]], or the
+    // source's row read into `scratch` (returned) in virtual mode.
+    [[nodiscard]] std::size_t shown_count() const noexcept;
+    [[nodiscard]] const TreeListNode& row_node(std::size_t row, TreeListNode& scratch) const;
+    [[nodiscard]] bool row_can_expand(std::size_t row, const TreeListNode& node) const noexcept;
+    [[nodiscard]] std::optional<std::size_t> selected_row() const noexcept;
+    [[nodiscard]] std::optional<std::size_t> current_row() const noexcept;
+    void place_selection(std::size_t row);
+    void place_current(std::size_t row);
+    void toggle_row(std::size_t row, bool expanded);
+    [[nodiscard]] std::optional<std::size_t> parent_row(std::size_t row) const;
+    // Virtual mode: the row geometry from the height index (logical units
+    // there, scaled here), lazy measuring, and splices.
+    [[nodiscard]] double row_top(const Layout& placed, std::size_t row) const noexcept;
+    [[nodiscard]] double row_extent(const Layout& placed, std::size_t row) const noexcept;
+    void measure_rows(std::size_t top, double viewport_height, double scale, double estimate) const;
+    void measure_rows_above(std::size_t row, double viewport_height, double scale) const;
+    void measure_row(std::size_t row, double estimate) const;
+    [[nodiscard]] std::size_t row_after_offset(double offset) const noexcept;
+    void set_virtual_row_expanded(std::size_t row, bool expanded);
+    void validate_splice(const TreeListRowSplice& splice) const;
+    void apply_splice(const TreeListRowSplice& splice, std::optional<std::size_t> lift_to);
+
     void rebuild_structure();
     void rebuild_order();
     void rebuild_rows();
@@ -483,6 +595,18 @@ private:
     // Model indices.
     std::optional<std::size_t> selected_node_{};
     std::optional<std::size_t> current_node_{};
+    // Virtual mode (set_row_source). The source is shared with the
+    // application. The height index is owned here; layout, a const query,
+    // writes into it (lazy measuring and a new estimate are caches of the
+    // source's answers, not state a caller sees change). Selection and the
+    // current position are rows; the current row's ID is kept so current_id
+    // can lend it.
+    std::shared_ptr<TreeListRowSource> row_source_{};
+    std::unique_ptr<RowHeightIndex> row_heights_{};
+    std::optional<std::size_t> selected_row_{};
+    std::optional<std::size_t> current_row_{};
+    std::string current_row_id_{};
+    mutable std::string row_id_scratch_{};
     // Rows and columns.
     std::optional<std::size_t> hot_row_{};
     std::optional<std::size_t> hot_column_{};

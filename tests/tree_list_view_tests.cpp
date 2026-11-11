@@ -5,7 +5,9 @@
 
 #include "gui_forms/gui_forms.hpp"
 
+#include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <cstdlib>
 #include <iostream>
@@ -642,6 +644,219 @@ void refusals() {
 
 } // namespace
 
+// A synthetic tree for the virtual source: roots, each with `children`
+// leaves, every root expanded at first. Root records can be removed and
+// inserted in bulk by the application (then splice_rows is called).
+class SyntheticTreeSource final : public TreeListRowSource {
+public:
+    struct Root final {
+        std::size_t number{};
+        bool expanded{true};
+    };
+
+    SyntheticTreeSource(std::size_t roots, std::size_t children) : children_(children) {
+        roots_.reserve(roots);
+        for (std::size_t root = 0; root < roots; ++root) roots_.push_back({root, true});
+        next_number_ = roots;
+        recount();
+    }
+
+    [[nodiscard]] std::size_t row_count() const override { return starts_.back(); }
+
+    void retrieve_row(std::size_t row, TreeListNode& node) const override {
+        ++retrievals;
+        const std::size_t root = root_of(row);
+        const std::size_t offset = row - starts_[root];
+        const std::size_t number = roots_[root].number;
+        node.cells.clear();
+        node.image_key.clear();
+        node.enabled = true;
+        if (offset == 0U) {
+            node.stable_id = "root-" + std::to_string(number);
+            node.text = "Root " + std::to_string(number);
+            node.depth = 0U;
+            node.expandable = true;
+            node.expanded = roots_[root].expanded;
+        } else {
+            node.stable_id = "leaf-" + std::to_string(number) + "-" + std::to_string(offset - 1U);
+            node.text = "Leaf " + std::to_string(offset - 1U);
+            node.depth = 1U;
+            node.expandable = false;
+            node.expanded = false;
+        }
+    }
+
+    [[nodiscard]] TreeListRowSplice set_row_expanded(std::size_t row, bool expanded) override {
+        const std::size_t root = root_of(row);
+        roots_[root].expanded = expanded;
+        recount();
+        TreeListRowSplice splice{row + 1U, expanded ? 0U : children_, expanded ? children_ : 0U};
+        return splice;
+    }
+
+    // Every seventh leaf is tall (a two-line row); the rest keep the view's
+    // estimate.
+    [[nodiscard]] double row_height(std::size_t row, double estimated) const override {
+        ++measurements;
+        const std::size_t offset = row - starts_[root_of(row)];
+        if (offset != 0U && (offset - 1U) % 7U == 0U) return tall_height;
+        return estimated;
+    }
+
+    [[nodiscard]] std::optional<std::size_t> find_row(std::string_view node_id) const override {
+        if (!node_id.starts_with("root-")) return std::nullopt;
+        const std::string digits(node_id.substr(5U));
+        const std::size_t number = static_cast<std::size_t>(std::stoull(digits));
+        for (std::size_t root = 0; root < roots_.size(); ++root) {
+            if (roots_[root].number == number) return starts_[root];
+        }
+        return std::nullopt;
+    }
+
+    // Removes `count` roots from `first`: returns the rows they held.
+    std::size_t remove_roots(std::size_t first, std::size_t count) {
+        const std::size_t rows = starts_[first + count] - starts_[first];
+        roots_.erase(roots_.begin() + static_cast<std::ptrdiff_t>(first),
+                     roots_.begin() + static_cast<std::ptrdiff_t>(first + count));
+        recount();
+        return rows;
+    }
+
+    // Inserts `count` new expanded roots before root `first`: returns rows.
+    std::size_t insert_roots(std::size_t first, std::size_t count) {
+        std::vector<Root> added{};
+        for (std::size_t root = 0; root < count; ++root) added.push_back({next_number_ + root, true});
+        next_number_ += count;
+        roots_.insert(roots_.begin() + static_cast<std::ptrdiff_t>(first), added.begin(), added.end());
+        recount();
+        const std::size_t rows = count * (children_ + 1U);
+        return rows;
+    }
+
+    static constexpr double tall_height = 40.0;
+    mutable std::size_t retrievals{};
+    mutable std::size_t measurements{};
+
+private:
+    void recount() {
+        starts_.assign(roots_.size() + 1U, 0U);
+        for (std::size_t root = 0; root < roots_.size(); ++root) {
+            const std::size_t rows = roots_[root].expanded ? children_ + 1U : 1U;
+            starts_[root + 1U] = starts_[root] + rows;
+        }
+    }
+
+    [[nodiscard]] std::size_t root_of(std::size_t row) const {
+        const std::vector<std::size_t>::const_iterator after = std::upper_bound(starts_.begin(), starts_.end(), row);
+        const std::size_t root = static_cast<std::size_t>(after - starts_.begin()) - 1U;
+        return root;
+    }
+
+    std::size_t children_{};
+    std::size_t next_number_{};
+    std::vector<Root> roots_{};
+    std::vector<std::size_t> starts_{};
+};
+
+// Audit N94, owner ruling D10 b: a million-row virtual tree on the height
+// index; jump anywhere, re-measure lazily, expand and collapse as splices,
+// bulk insert and delete through splice_rows.
+void virtual_million_rows() {
+    std::shared_ptr<SyntheticTreeSource> source = std::make_shared<SyntheticTreeSource>(1000U, 999U);
+    std::shared_ptr<TreeListView> view = make_control<TreeListView>(StableId("virtual-tree"));
+    (*view).set_columns(sample_columns());
+    (*view).set_row_source(source);
+    Window window(view, {400.0, 300.0});
+    window.perform_layout();
+    require((*view).virtual_mode() && (*view).row_count() == 1'000'000U && (*view).nodes().empty(),
+            "a virtual tree takes its rows from the source");
+    std::vector<TreeListView::Row> rows = (*view).realized_rows();
+    require(!rows.empty() && rows.size() < 40U && rows[0].stable_id == "root-0",
+            "a virtual tree realizes a screenful");
+    require((*source).measurements < 60U, "only the shown rows are measured");
+    // Leaf 0 of every root is tall: the row at index 1.
+    require(rows.size() > 2U && rows[1].parts.row.bounds.height == SyntheticTreeSource::tall_height &&
+                rows[2].parts.row.bounds.height < SyntheticTreeSource::tall_height,
+            "a measured row keeps its own height");
+    require(rows[2].parts.row.bounds.y == rows[1].parts.row.bounds.y + SyntheticTreeSource::tall_height,
+            "the next row starts below the tall one");
+
+    // Jump anywhere.
+    (*view).set_top_row(654'321U);
+    rows = (*view).realized_rows();
+    require(rows[0].row == 654'321U && rows[0].stable_id == (*view).row_node_id(654'321U),
+            "a jump shows the row asked for at the top");
+    require((*source).measurements < 120U, "a jump measures only the new screenful");
+    RecordingPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 400.0, 300.0}));
+    require(!painter.texts.empty(), "the jumped-to rows paint");
+
+    // Select a leaf under root 500, then collapse root 500: the selection
+    // moves to the collapsed root and the rows splice.
+    std::vector<std::string> selections;
+    std::vector<std::string> expansions;
+    SubscriptionToken selected = (*view).selection_changed().subscribe(RecordSelection{&selections});
+    SubscriptionToken expanded = (*view).expansion_changed().subscribe(RecordExpansion{&expansions});
+    const std::size_t root_row = 500U * 1000U;
+    (*view).set_top_row(root_row);
+    window.perform_layout();
+    (*view).selected_id = std::string("leaf-500-3");
+    require((*view).selected_id.read() == std::optional<std::string>("leaf-500-3"), "a shown leaf is selected by ID");
+    (*view).set_expanded("root-500", false);
+    require((*view).row_count() == 1'000'000U - 999U && expansions.size() == 1U && expansions[0] == "-root-500" &&
+                (*view).selected_id.read() == std::optional<std::string>("root-500") &&
+                (*view).row_node_id(root_row + 1U) == "root-501",
+            "a collapse splices the rows and lifts the selection to the collapsed node");
+    (*view).set_expanded("root-500", true);
+    require((*view).row_count() == 1'000'000U && (*view).row_node_id(root_row + 1U) == "leaf-500-0" &&
+                (*view).selected_id.read() == std::optional<std::string>("root-500"),
+            "an expansion splices the rows back");
+
+    // Bulk delete 300 roots (300,000 rows) and insert 250 roots (250,000).
+    const std::size_t removed = (*source).remove_roots(0U, 300U);
+    (*view).splice_rows(0U, removed, 0U);
+    require((*view).row_count() == 700'000U && (*view).row_node_id(0U) == "root-300" &&
+                (*view).selected_id.read() == std::optional<std::string>("root-500") &&
+                (*view).row_of("root-500") == 200'000U,
+            "a bulk removal shifts the selection with its row");
+    const std::size_t inserted = (*source).insert_roots(0U, 250U);
+    (*view).splice_rows(0U, 0U, inserted);
+    require((*view).row_count() == 950'000U && (*view).row_node_id(0U) == "root-1000" &&
+                (*view).row_of("root-500") == 450'000U,
+            "a bulk insertion shifts the selection with its row");
+    window.perform_layout();
+    rows = (*view).realized_rows();
+    require(!rows.empty() && rows[0].row <= 450'000U, "the view keeps showing the selected row's place");
+
+    // A splice the source does not match is refused and changes nothing.
+    bool threw = false;
+    try {
+        (*view).splice_rows(0U, 1U, 0U);
+    } catch (const std::logic_error&) {
+        threw = true;
+    }
+    require(threw && (*view).row_count() == 950'000U, "a mismatched splice is refused");
+
+    // The keyboard reaches the end.
+    require(window.request_focus(view) && key(window, PhysicalKey::end) &&
+                (*view).current_id() == std::optional<std::string_view>((*view).row_node_id(949'999U)),
+            "End reaches the last virtual row");
+    window.perform_layout();
+    rows = (*view).realized_rows();
+    require(rows.back().row == 949'999U, "the view scrolls to the last row");
+    bool refused = false;
+    try {
+        (*view).set_nodes({});
+    } catch (const std::logic_error&) {
+        refused = true;
+    }
+    require(refused, "a virtual tree refuses nodes");
+    (*view).set_row_source(nullptr);
+    require(!(*view).virtual_mode() && (*view).row_count() == 0U, "a null source returns to an empty node model");
+    static_cast<void>(selected);
+    static_cast<void>(expanded);
+}
+
 int main() {
     parts_states_and_paint();
     expansion_with_virtualization();
@@ -651,6 +866,7 @@ int main() {
     selection_kept_by_id();
     semantics();
     refusals();
+    virtual_million_rows();
     std::cout << "TreeListView: parts, expansion with virtualization, sorting within siblings, column layout, "
                  "keyboard, selection by ID, semantics and refusals passed\n";
     return 0;

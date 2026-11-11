@@ -261,11 +261,7 @@ protected:
         // The end reserve (set_end_reserve), at the strip's far end.
         Rect end_reserve{};
     };
-    // The kept layout for the strip's client rectangle, recomputed only
-    // when its key changes (audit S5, N98). The reference is valid until the
-    // next call that may lay the strip out again; callers copy what they
-    // keep across application code.
-    [[nodiscard]] const Layout& layout() const;
+    [[nodiscard]] Layout layout() const;
     [[nodiscard]] Layout layout_for(Rect surface) const;
     [[nodiscard]] bool status_layout() const noexcept { return status_layout_; }
     // Checks items before set_items changes anything. ToolStrip accepts every
@@ -323,52 +319,8 @@ private:
     void on_command_state(const CommandState& state);
     [[nodiscard]] std::vector<MenuItemSpec> overflow_menu() const;
 
-    // What the item widths are measured from: everything but the surface.
-    struct MeasureKey final {
-        double scale{};
-        std::uint64_t revision{};
-        FontSpec font{};
-        bool vertical{};
-
-        friend bool operator==(const MeasureKey& left, const MeasureKey& right) noexcept {
-            const bool equal = left.scale == right.scale && left.revision == right.revision &&
-                               left.font == right.font && left.vertical == right.vertical;
-            return equal;
-        }
-    };
-    // What the kept layout was made from.
-    struct LayoutKey final {
-        Size surface{};
-        MeasureKey measure{};
-        double end_reserve{};
-        bool grip{};
-        bool sizing_grip{};
-
-        friend bool operator==(const LayoutKey& left, const LayoutKey& right) noexcept {
-            const bool equal = left.surface == right.surface && left.measure == right.measure &&
-                               left.end_reserve == right.end_reserve && left.grip == right.grip &&
-                               left.sizing_grip == right.sizing_grip;
-            return equal;
-        }
-    };
-    [[nodiscard]] MeasureKey measure_key() const;
-    // Each item's main-axis width from item_size (0 for a hidden item), kept
-    // under measure_key: a resize or a scroll shapes no label again.
-    [[nodiscard]] const std::vector<double>& measured_widths() const;
-
     std::vector<ToolStripItemSpec> items_{};
     std::vector<ItemState> item_states_{};
-    // Moves with every change to the items or their commands' state; part
-    // of the kept layout's key.
-    std::uint64_t layout_revision_{};
-    // The kept layout and measured widths (audit S5): caches only, rebuilt
-    // from the items when their keys differ.
-    mutable Layout kept_layout_{};
-    mutable LayoutKey kept_layout_key_{};
-    mutable bool kept_layout_valid_{};
-    mutable std::vector<double> kept_widths_{};
-    mutable MeasureKey kept_widths_key_{};
-    mutable bool kept_widths_valid_{};
     std::unique_ptr<ContextMenu> overlay_{};
     // The item whose menu is open; none with the overflow menu or no menu.
     std::optional<std::size_t> open_index_{};

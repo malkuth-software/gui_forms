@@ -3320,6 +3320,9 @@ if(GUI_FORMS_BUILD_TESTS)
     # The corpus is stx's (stx_rtf2md/tests/corpus), installed with the stx package.
     add_test(NAME gui_forms_markdown_tests
         COMMAND gui_forms_markdown_tests ${GUI_FORMS_STX_BUILD_PREFIX_DIR}/share/stx_text/rtf2md_corpus)
+    add_executable(gui_forms_rtf_conversion_failure_tests tests/rtf_conversion_failure_tests.cpp)
+    target_link_libraries(gui_forms_rtf_conversion_failure_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_rtf_conversion_failure_tests COMMAND gui_forms_rtf_conversion_failure_tests)
     add_executable(gui_forms_markdown_fuzz_tests fuzz/markdown_fuzz.cpp)
     target_link_libraries(gui_forms_markdown_fuzz_tests PRIVATE gui_forms_core)
     target_compile_definitions(gui_forms_markdown_fuzz_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)

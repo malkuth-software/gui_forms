@@ -73,6 +73,8 @@ gui_forms::TreeListView
          preorder (the first node at depth 0, each next node at most one level
          deeper); the old nodes then stay.
 
+      **virtual_mode** : ``bool``, read-only
+
       **row_count** : ``std::size_t``, read-only
          The number of rows: the nodes not hidden under a collapsed node.
 
@@ -152,6 +154,10 @@ gui_forms::TreeListView
         - Whether a node is expanded.
       * - :cpp:func:`expand_subtree <gui_forms::TreeListView::expand_subtree>`
         - Expands a node and every expandable node under it.
+      * - :cpp:func:`splice_rows <gui_forms::TreeListView::splice_rows>`
+        - Tells the view the source replaced ``removed`` rows at ``first`` with ``inserted`` rows (a bulk insertion or removal the application made).
+      * - :cpp:func:`refresh_rows <gui_forms::TreeListView::refresh_rows>`
+        - Re-reads the row count and drops every kept height (the rows were rebuilt).
       * - :cpp:func:`row_of <gui_forms::TreeListView::row_of>`
         - The row showing a node, or none when it is hidden or unknown.
       * - :cpp:func:`row_node_id <gui_forms::TreeListView::row_node_id>`
@@ -166,6 +172,8 @@ gui_forms::TreeListView
         - Edits one cell (column 0 is the node's text).
       * - :cpp:func:`set_expanded <gui_forms::TreeListView::set_expanded>`
         - Expands or collapses one node; a node that cannot be expanded is left alone.
+      * - :cpp:func:`set_row_source <gui_forms::TreeListView::set_row_source>`
+        - -- virtual rows ------------------------------------------------------------ Shows the source's rows instead of nodes (a null source returns to an empty node model).
       * - :cpp:func:`set_sort <gui_forms::TreeListView::set_sort>`
         - Orders every node's children, and the roots, by one column's text (ASCII case folded, then byte order; equal texts keep the order given), or returns to the order given with no column or :cpp:enumerator:`TreeListSortOrder::none <gui_forms::TreeListSortOrder::none>`.
 
@@ -317,6 +325,8 @@ gui_forms::TreeListView
 
       Sets :cpp:func:`nodes <gui_forms::TreeListView::nodes>`; see the property's description above.
 
+   .. cpp:function:: bool virtual_mode() const noexcept
+
    .. cpp:function:: std::size_t row_count() const noexcept
 
       The number of rows: the nodes not hidden under a collapsed node.
@@ -427,6 +437,14 @@ gui_forms::TreeListView
 
       Expands a node and every expandable node under it.
 
+   .. cpp:function:: void splice_rows(std::size_t first, std::size_t removed, std::size_t inserted)
+
+      Tells the view the source replaced ``removed`` rows at ``first`` with ``inserted`` rows (a bulk insertion or removal the application made). Selection, current row and scroll follow their rows; those inside the removed range are dropped. Throws std::logic_error outside virtual mode or when the source's count does not match, std::out_of_range for a range past the rows.
+
+   .. cpp:function:: void refresh_rows()
+
+      Re-reads the row count and drops every kept height (the rows were rebuilt). Selection and current row stay by row when below the count. Throws std::logic_error outside virtual mode.
+
    .. cpp:function:: std::optional<std::size_t> row_of(std::string_view node_id) const
 
       The row showing a node, or none when it is hidden or unknown.
@@ -460,6 +478,10 @@ gui_forms::TreeListView
 
       Expands or collapses one node; a node that cannot be expanded is left
       alone. Throws ``std::out_of_range`` for an unknown node.
+
+   .. cpp:function:: void set_row_source(std::shared_ptr<TreeListRowSource> source)
+
+      -- virtual rows ------------------------------------------------------------ Shows the source's rows instead of nodes (a null source returns to an empty node model). Drops the nodes, the selection (raising selection_changed when there was one) and the scroll. Throws std::invalid_argument when the source has more than maximum_nodes rows.
 
    .. cpp:function:: void set_sort(std::optional<std::size_t> column, TreeListSortOrder order)
 

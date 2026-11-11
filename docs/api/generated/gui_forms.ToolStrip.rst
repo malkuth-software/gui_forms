@@ -375,11 +375,9 @@ gui_forms::ToolStrip
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
 
-   .. cpp:function:: const Layout& layout() const
+   .. cpp:function:: Layout layout() const
 
       *Protected.*
-
-      The kept layout for the strip's client rectangle, recomputed only when its key changes (audit S5, N98). The reference is valid until the next call that may lay the strip out again; callers copy what they keep across application code.
 
    .. cpp:function:: Layout layout_for(Rect surface) const
 

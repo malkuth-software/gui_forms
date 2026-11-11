@@ -4,6 +4,7 @@
 #include "support/named_callbacks.hpp"
 #include "support/typography_painter.hpp"
 
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -871,6 +872,46 @@ void test_menu_font_controls_geometry_paint_and_hit_testing() {
 
 } // namespace
 
+// Audit N111: a menu row's gutters, marks and label position follow the
+// text scale, as its font and height do.
+double scaled_menu_label_x(double scale, double& panel_width) {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("scaled.root"));
+    std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("scaled.owner"), "Menu");
+    (*owner).set_requested_bounds({4.0, 4.0, 80.0, 30.0});
+    (*root).add_child(owner);
+    Window window(root, {600.0, 400.0});
+    window.set_text_scale(scale);
+    window.perform_layout();
+    require(window.request_focus(owner), "the scaled menu owner takes focus");
+    const std::shared_ptr<Command> command = std::make_shared<Command>("scaled.open", "Open");
+    ContextMenu menu("scaled.menu");
+    menu.set_items({{"open", MenuItemKind::check, command}});
+    menu.show(owner, {20.0, 20.0});
+    window.perform_layout();
+    const Control::Ptr row = window.find("scaled.menu.overlay.row.open");
+    const Control::Ptr panel = window.find("scaled.menu.overlay.panel.0");
+    require(row != nullptr && panel != nullptr, "the scaled menu shows its row");
+    panel_width = (*panel).absolute_bounds().width;
+    test_support::TypographyPainter painter{};
+    const Rect bounds = (*row).absolute_bounds();
+    (*row).on_paint(painter, {0.0, 0.0, bounds.width, bounds.height});
+    const test_support::PaintedText* label = painter.find("Open");
+    require(label != nullptr, "the scaled menu paints its label");
+    const double x = (*label).origin.x;
+    menu.close();
+    return x;
+}
+
+void test_menu_row_insets_follow_the_text_scale() {
+    double single_width = 0.0;
+    double double_width = 0.0;
+    const double single = scaled_menu_label_x(1.0, single_width);
+    const double doubled = scaled_menu_label_x(2.0, double_width);
+    require(single > 0.0 && std::abs(doubled - single * 2.0) < 0.01,
+            "at text scale 2 the label starts twice as far in");
+    require(double_width > single_width * 1.8, "at text scale 2 the menu's gutters widen with its text");
+}
+
 int main() {
     try {
         test_context_menu_command_snapshot_keyboard_nesting_and_restore();
@@ -881,6 +922,7 @@ int main() {
         test_menu_mnemonics_strip_markers_and_overlay_activation();
         test_menu_plain_letter_mnemonics();
         test_menu_font_controls_geometry_paint_and_hit_testing();
+        test_menu_row_insets_follow_the_text_scale();
         std::cout << "gui_forms_menu_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

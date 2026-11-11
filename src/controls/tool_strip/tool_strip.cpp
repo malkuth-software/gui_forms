@@ -208,7 +208,6 @@ void ToolStrip::apply_items(std::vector<ToolStripItemSpec> items, bool merged) {
     }
     items_ = std::move(items);
     item_states_ = std::move(next_states);
-    ++layout_revision_;
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (!hosted(items_[index].kind)) continue;
         if (!item_states_[index].hosted) {
@@ -274,8 +273,6 @@ std::shared_ptr<ProgressBar> ToolStrip::progress_bar(std::string_view item_id) c
 }
 
 void ToolStrip::on_command_state(const CommandState&) {
-    // A command's text or visibility may change an item's width.
-    ++layout_revision_;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -315,7 +312,6 @@ void ToolStrip::set_item_text(std::string_view item_id, std::string text) {
     if (!validate_utf8(text).valid()) throw std::invalid_argument("ToolStrip item text must be valid UTF-8");
     if (items_[*index].text == text) return;
     items_[*index].text = std::move(text);
-    ++layout_revision_;
     if (item_states_[*index].hosted) (*item_states_[*index].hosted).accessible_name = items_[*index].text;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -366,8 +362,9 @@ Size ToolStrip::measure(Size available) {
     }
     // A vertical strip is as wide as its widest visible item.
     double widest = 0.0;
-    const std::vector<double>& measured = measured_widths();
-    for (const double width : measured) widest = std::max(widest, width);
+    for (const ToolStripItemSpec& item : items_) {
+        if (item_visible(item)) widest = std::max(widest, item_size(item).width);
+    }
     const double width = std::max(preferred, widest + edge_inset * scale * 2.0);
     const Size result{.width = std::min(available.width, width), .height = available.height};
     return result;
@@ -380,11 +377,9 @@ double ToolStrip::content_length() const {
     if (!status_layout_ && grip_visible.read()) length += edge_inset * scale + grip_width * scale;
     if (status_layout_ && sizing_grip_visible.read()) length += sizing_grip_size * scale;
     if (!status_layout_) length += end_reserve.read() * scale;
-    const std::vector<double>& measured = measured_widths();
-    for (std::size_t index = 0; index < items_.size(); ++index) {
-        const ToolStripItemSpec& item = items_[index];
+    for (const ToolStripItemSpec& item : items_) {
         if (!item_visible(item)) continue;
-        double extent = measured[index];
+        double extent = item_size(item).width;
         if (along_height && item.kind != ToolStripItemKind::separator) extent = vertical_item_extent * scale;
         length += extent;
     }
@@ -437,40 +432,8 @@ Size ToolStrip::item_size(const ToolStripItemSpec& item) const {
     return {width, 0.0};
 }
 
-ToolStrip::MeasureKey ToolStrip::measure_key() const {
-    MeasureKey key{};
-    key.scale = effective_text_scale();
-    key.revision = layout_revision_;
-    key.font = text_font(font.read());
-    key.vertical = vertical();
-    return key;
-}
-
-const std::vector<double>& ToolStrip::measured_widths() const {
-    const MeasureKey key = measure_key();
-    if (kept_widths_valid_ && kept_widths_key_ == key && kept_widths_.size() == items_.size()) return kept_widths_;
-    kept_widths_.assign(items_.size(), 0.0);
-    for (std::size_t index = 0; index < items_.size(); ++index) {
-        if (item_visible(items_[index])) kept_widths_[index] = item_size(items_[index]).width;
-    }
-    kept_widths_key_ = key;
-    kept_widths_valid_ = true;
-    return kept_widths_;
-}
-
-const ToolStrip::Layout& ToolStrip::layout() const {
-    const Rect surface = client_rectangle();
-    LayoutKey key{};
-    key.surface = Size{surface.width, surface.height};
-    key.measure = measure_key();
-    key.end_reserve = end_reserve.read();
-    key.grip = grip_visible.read();
-    key.sizing_grip = sizing_grip_visible.read();
-    if (kept_layout_valid_ && kept_layout_key_ == key) return kept_layout_;
-    kept_layout_ = layout_for(surface);
-    kept_layout_key_ = key;
-    kept_layout_valid_ = true;
-    return kept_layout_;
+ToolStrip::Layout ToolStrip::layout() const {
+    return layout_for(client_rectangle());
 }
 
 ToolStrip::Layout ToolStrip::layout_for(Rect surface) const {
@@ -502,14 +465,13 @@ ToolStrip::Layout ToolStrip::layout_for(Rect surface) const {
         end -= reserve;
         result.end_reserve = axis_rect(along_height, end, reserve, inset, item_cross);
     }
-    const std::vector<double>& measured = measured_widths();
     std::vector<double> widths(count, 0.0);
     std::vector<bool> shown(count, false);
     double total = 0.0;
     for (std::size_t index = 0; index < count; ++index) {
         shown[index] = item_visible(items_[index]);
         if (!shown[index]) continue;
-        widths[index] = measured[index];
+        widths[index] = item_size(items_[index]).width;
         if (along_height && items_[index].kind != ToolStripItemKind::separator) {
             widths[index] = vertical_item_extent * scale;
         }
@@ -741,7 +703,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
 }
 
 void ToolStrip::on_paint(Painter& painter, Rect) {
-    const Layout& placed = layout();
+    const Layout placed = layout();
     PartPaint strip;
     strip.family = ControlVisualRole::panel;
     strip.role = PartRole::face;
@@ -787,7 +749,7 @@ std::optional<std::size_t> ToolStrip::index_at(Point window_point, ItemZone& zon
     const Rect absolute = absolute_bounds();
     if (!absolute.contains(window_point)) return std::nullopt;
     const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
-    const Layout& placed = layout();
+    const Layout placed = layout();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (placed.items[index].empty() || !placed.items[index].contains(local)) continue;
         const ItemParts parts = item_parts(index, placed.items[index]);
@@ -832,7 +794,7 @@ std::string ToolStrip::focused_item_id() const {
 }
 
 std::optional<std::size_t> ToolStrip::next_interactive(std::size_t start, int direction) const {
-    const Layout& placed = layout();
+    const Layout placed = layout();
     const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(items_.size());
     if (count == 0) return std::nullopt;
     for (std::ptrdiff_t step = 1; step <= count; ++step) {
@@ -998,7 +960,7 @@ bool ToolStrip::show_drop_down(std::string_view item_id, MenuOpenMode mode) {
 
 std::vector<MenuItemSpec> ToolStrip::overflow_menu() const {
     std::vector<MenuItemSpec> menu;
-    const Layout& placed = layout();
+    const Layout placed = layout();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (!placed.overflowed[index]) continue;
         const ToolStripItemSpec& item = items_[index];
@@ -1056,7 +1018,7 @@ bool ToolStrip::show_overflow(MenuOpenMode mode) {
 
 std::vector<std::string> ToolStrip::overflow_item_ids() const {
     std::vector<std::string> ids;
-    const Layout& placed = layout();
+    const Layout placed = layout();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (placed.overflowed[index]) ids.push_back(items_[index].stable_id);
     }
@@ -1122,7 +1084,7 @@ SemanticDescriptor ToolStrip::semantic_descriptor() const {
 std::vector<SemanticNode> ToolStrip::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
     const Rect absolute = absolute_bounds();
-    const Layout& placed = layout();
+    const Layout placed = layout();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         const Rect bounds = placed.items[index];
         if (bounds.empty()) continue;
@@ -1283,7 +1245,7 @@ const ControlAnatomy& ToolStrip::anatomy() const noexcept {
 }
 
 ToolStrip::Parts ToolStrip::strip_parts() const {
-    const Layout& placed = layout();
+    const Layout placed = layout();
     const Rect surface = client_rectangle();
     Parts record;
     record.region = PartGeometry::from_bounds(surface);
@@ -1317,7 +1279,7 @@ ToolStrip::Parts ToolStrip::parts() const {
 }
 
 std::size_t ToolStrip::realized_item_index(std::size_t item) const {
-    const Layout& placed = layout();
+    const Layout placed = layout();
     std::size_t seen = 0U;
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (placed.items[index].empty()) continue;
@@ -1328,7 +1290,7 @@ std::size_t ToolStrip::realized_item_index(std::size_t item) const {
 }
 
 std::size_t ToolStrip::realized_item_count() const {
-    const Layout& placed = layout();
+    const Layout placed = layout();
     std::size_t count = 0U;
     for (const Rect& bounds : placed.items) {
         if (!bounds.empty()) ++count;

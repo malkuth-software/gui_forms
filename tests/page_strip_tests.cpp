@@ -771,6 +771,47 @@ void no_allocation_per_tab_while_painting() {
     require(many_dark == 0U, "painting the dark variant from the cached layout allocates nothing");
 }
 
+// Counts the tab labels a strip measures ("Page n").
+class CountingLabelMetrics final : public TextMetricsProvider {
+public:
+    [[nodiscard]] ResolvedTextLayout resolve_text_layout_utf8(std::string_view text, FontSpec font) override {
+        if (text.starts_with("Page ")) ++labels;
+        ResolvedTextLayout result = estimate_text_layout_utf8(text, font);
+        return result;
+    }
+
+    std::size_t labels{};
+};
+
+// Audit N112: a resize lays the tabs out again from their kept natural
+// widths; new pages measure again.
+void measured_widths_are_kept() {
+    CountingLabelMetrics metrics{};
+    PageSet pages{};
+    add_pages(pages, 12U);
+    std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("kept"), pages);
+    Window window(strip, {900.0, 26.0});
+    window.set_text_metrics_provider(&metrics);
+    window.perform_layout();
+    static_cast<void>((*strip).realized_items());
+    const std::size_t first = metrics.labels;
+    require(first >= 12U, "the first layout measures every label");
+    window.resize({300.0, 26.0});
+    window.perform_layout();
+    static_cast<void>((*strip).realized_items());
+    window.resize({700.0, 26.0});
+    window.perform_layout();
+    const std::vector<PageStrip::Item> items = (*strip).realized_items();
+    require(metrics.labels == first && !items.empty(), "a resize measures no label again");
+    PageRecord added{};
+    added.id = PageId{"p-new"};
+    added.title = "Page new";
+    require(pages.insert(added, PagePlacement::end_of_group()) == PageEditStatus::applied, "a page is added");
+    window.perform_layout();
+    static_cast<void>((*strip).realized_items());
+    require(metrics.labels > first, "a new page measures again");
+}
+
 } // namespace
 
 int main() {
@@ -784,6 +825,7 @@ int main() {
     semantics();
     release_and_refusals();
     no_allocation_per_tab_while_painting();
+    measured_widths_are_kept();
     std::cout << "PageStrip: anatomy, geometry tables, overflow, the selected tab kept visible, keys, mnemonics, "
                  "pointer, list, semantics, release and paint allocation passed\n";
     return 0;
