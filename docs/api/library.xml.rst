@@ -182,7 +182,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::uint32_t xml_depth_ceiling
 
-   The largest maximum_depth accepted. A tree is destroyed recursively, so a deeper limit is refused with XmlError::invalid_limits. Value: ``1024``.
+   The largest maximum_depth accepted; a deeper limit is refused with XmlError::invalid_limits. Nothing recurses per level: the reader and the writer keep one entry per open element in explicit storage, at most maximum_depth of them, and copying, comparing and destroying an element walk it in work lists (XmlElement), whatever its depth. Value: ``1024``.
 
 .. cpp:namespace:: gui_forms
 

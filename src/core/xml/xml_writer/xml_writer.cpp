@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 
@@ -76,7 +77,7 @@ public:
         if (options_.declaration) {
             output_.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         }
-        const XmlError error = write_element(root, 1);
+        const XmlError error = write_tree(root);
         if (error != XmlError::none) {
             result.error = error;
             return result;
@@ -121,8 +122,47 @@ private:
         output_.append(spaces, ' ');
     }
 
-    // depth is the element's own depth; the root is at depth 1.
-    XmlError write_element(const XmlElement& element, std::uint32_t depth) {
+    // One element whose children are being written: its depth (the root
+    // is at depth 1) and the next child to write.
+    struct WriteFrame final {
+        const XmlElement* element{nullptr};
+        std::size_t next_child{0U};
+        std::uint32_t depth{0U};
+    };
+
+    // Writes the tree in explicit work storage, one frame per open element
+    // with children, so no call nests per level (HOUSE_STYLE section 1).
+    // The frames are at most maximum_depth (at most xml_depth_ceiling),
+    // reserved before the walk.
+    XmlError write_tree(const XmlElement& root) {
+        std::vector<WriteFrame> open{};
+        open.reserve(limits_.maximum_depth);
+        const XmlError first = open_element(root, 1U);
+        if (first != XmlError::none) return first;
+        if (!root.children.empty()) open.push_back(WriteFrame{&root, 0U, 1U});
+        while (!open.empty()) {
+            WriteFrame& frame = open.back();
+            const std::vector<XmlElement>& children = (*frame.element).children;
+            if (frame.next_child == children.size()) {
+                close_element(*frame.element, frame.depth);
+                open.pop_back();
+                continue;
+            }
+            const XmlElement& child = children[frame.next_child];
+            ++frame.next_child;
+            const std::uint32_t depth = frame.depth + 1U;
+            const XmlError written = open_element(child, depth);
+            if (written != XmlError::none) return written;
+            if (!child.children.empty()) open.push_back(WriteFrame{&child, 0U, depth});
+        }
+        return XmlError::none;
+    }
+
+    // Validates `element` and writes its start tag. An element without
+    // children is written whole (self-closed, or with its text and end
+    // tag); one with children is left open for close_element. The depth is
+    // checked first, so no element past maximum_depth is written.
+    XmlError open_element(const XmlElement& element, std::uint32_t depth) {
         if (depth > limits_.maximum_depth) return XmlError::depth_exceeded;
         ++element_count_;
         if (element_count_ > limits_.maximum_elements) return XmlError::element_limit_exceeded;
@@ -151,18 +191,21 @@ private:
         output_.push_back('>');
         if (element.children.empty()) {
             append_escaped_text(output_, element.text);
-        } else {
-            output_.push_back('\n');
-            for (const XmlElement& child : element.children) {
-                const XmlError written = write_element(child, depth + 1U);
-                if (written != XmlError::none) return written;
-            }
-            indent(depth);
+            output_.append("</");
+            output_.append(element.name);
+            output_.append(">\n");
+            return XmlError::none;
         }
+        output_.push_back('\n');
+        return XmlError::none;
+    }
+
+    // The end tag of an element open_element left open.
+    void close_element(const XmlElement& element, std::uint32_t depth) {
+        indent(depth);
         output_.append("</");
         output_.append(element.name);
         output_.append(">\n");
-        return XmlError::none;
     }
 
     const XmlWriteOptions& options_;
