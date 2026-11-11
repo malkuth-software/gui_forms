@@ -8,7 +8,10 @@
 // the default gui-forms theme and looks for the authored colour where the
 // part lands: the centre of an engine raster, or the top layer of a
 // material, or a plain fill. Without the user theme no such colour is
-// painted, so each case proves the sheet changed the part.
+// painted, so each case proves the sheet changed the part. A layered user
+// theme's findings are its own sheet's: the stock floor compiled beneath it
+// is the colour authority and reports no W201, while the user's own literal
+// edge colour does.
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
@@ -108,10 +111,9 @@ private:
     }
 };
 
-// A user sheet compiled as a layered user theme into `resources` and
-// selected; `sheet` empty selects none.
-void select_user_sheet(ApplicationResources& resources, std::string_view sheet) {
-    if (sheet.empty()) return;
+// `sheet` compiled as a layered user theme (its header implied) by
+// `resources`.
+ThemeCompileResult compile_user_sheet(ApplicationResources& resources, std::string_view sheet) {
     UserThemeFiles files{};
     files.name = "fill-selection";
     files.main_sheet = std::string(sheet);
@@ -120,10 +122,18 @@ void select_user_sheet(ApplicationResources& resources, std::string_view sheet) 
     options.controls = stock_control_anatomies();
     options.effects = &built_in_effect_registry();
     const ThemeLibrary library{};
-    const ThemeCompileResult compiled = resources.compile_user_theme(files, library, options);
+    ThemeCompileResult compiled = resources.compile_user_theme(files, library, options);
     for (const ThemeCompileDiagnostic& diagnostic : compiled.diagnostics()) {
         std::cerr << "  " << format_theme_diagnostic(diagnostic) << '\n';
     }
+    return compiled;
+}
+
+// A user sheet compiled as a layered user theme into `resources` and
+// selected; `sheet` empty selects none.
+void select_user_sheet(ApplicationResources& resources, std::string_view sheet) {
+    if (sheet.empty()) return;
+    const ThemeCompileResult compiled = compile_user_sheet(resources, sheet);
     require(compiled.succeeded(), "the user sheet compiles");
     require(compiled.diagnostics().empty(), "the user sheet compiles without findings");
     resources.set_user_theme(compiled.theme());
@@ -198,9 +208,29 @@ void test_list_selection() {
             "list: list-box::role(selection) recolours the selected row");
 }
 
+void test_findings_are_the_users() {
+    // No floor finding: the stock sheet beneath is the colour authority.
+    ApplicationResources resources{};
+    const ThemeCompileResult clean = compile_user_sheet(resources, fill_by_part);
+    require(clean.succeeded() && clean.diagnostics().empty(),
+            "a layered user theme reports none of the stock floor's W201 findings");
+    // The user's own literal edge colour is reported, at the user's sheet.
+    const ThemeCompileResult edged =
+        compile_user_sheet(resources, "progress-bar::part(fill) { border: 1px solid #123456 }\n");
+    require(edged.succeeded(), "a literal edge colour is a warning, not a refusal");
+    std::size_t unremappable = 0U;
+    for (const ThemeCompileDiagnostic& diagnostic : edged.diagnostics()) {
+        if (diagnostic.code != "W201") continue;
+        unremappable = unremappable + 1U;
+        require(diagnostic.file.find("gui-forms/") != 0U, "the W201 names the user's sheet, not the floor");
+    }
+    require(unremappable == 1U, "the user's own literal edge colour is reported once (W201)");
+}
+
 } // namespace
 
 int main() {
+    test_findings_are_the_users();
     test_progress_fill(ProgressBarVisualStyle::continuous, "continuous");
     test_progress_fill(ProgressBarVisualStyle::blocks, "blocks");
     test_blocks_each_recoloured();
