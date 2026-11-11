@@ -17,7 +17,7 @@ public:
     // there as a part raster (material_raster.hpp). Without one it records
     // the material's layers.
     RecordingPainter(TextMetricsProvider* text_metrics, DeviceScale raster_scale)
-        : text_metrics_(text_metrics), raster_scale_(raster_scale) {}
+        : raster_scale_(raster_scale), text_metrics_(text_metrics) {}
     void save() override;
     void restore() override;
     void translate(Point offset) override;

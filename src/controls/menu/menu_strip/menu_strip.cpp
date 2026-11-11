@@ -553,24 +553,24 @@ void MenuStrip::on_dispose() noexcept {
 namespace {
 
 constexpr std::array<PartField<MenuStrip::Parts>, 5> menu_strip_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &MenuStrip::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &MenuStrip::Parts::face},
-    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &MenuStrip::Parts::divider},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &MenuStrip::Parts::focus},
-    {.declaration = {.name = "gutter", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "gutter", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &MenuStrip::Parts::gutter},
 }};
 
 constexpr std::array<PartField<MenuStrip::ItemParts>, 3> menu_strip_item_part_fields{{
-    {.declaration = {.name = "menu_item", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "menu_item", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &MenuStrip::ItemParts::menu_item},
-    {.declaration = {.name = "menu_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "menu_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &MenuStrip::ItemParts::menu_label},
-    {.declaration = {.name = "menu_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "menu_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &MenuStrip::ItemParts::menu_focus},
 }};
 

@@ -1267,13 +1267,7 @@ std::optional<AccentFill> primitive_accent_fill(const Control& control, const Pa
     return fill;
 }
 
-void paint_primitive_accent(Painter& painter, const Control& control, const PartPaint& part) {
-    const std::optional<AccentFill> fill = primitive_accent_fill(control, part);
-    if (!fill) return;
-    painter.fill_rounded_rect(part.bounds, (*fill).radius, (*fill).color);
-}
-
-// paint_primitive_accent under each of `clips`, or once without any.
+// Fills the part's accent under each of `clips`, or once without any.
 void paint_primitive_accent_clipped(Painter& painter, const Control& control, const PartPaint& part,
                                     const std::span<const Rect> clips) {
     // Resolved once; a part with no accent records nothing, as before.

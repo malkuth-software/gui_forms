@@ -521,13 +521,13 @@ Size ProgressBar::measure(Size available) {
 namespace {
 
 constexpr std::array<PartField<ProgressBar::Parts>, 4> progress_bar_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ProgressBar::Parts::region},
-    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &ProgressBar::Parts::track},
-    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}},
+    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}, .states = {}},
      .member = &ProgressBar::Parts::fill},
-    {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}},
+    {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}, .states = {}},
      .member = &ProgressBar::Parts::activity},
 }};
 
@@ -549,6 +549,7 @@ constexpr ControlAnatomy progress_bar_anatomy{
     .parts = progress_bar_parts,
     .states = progress_bar_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
