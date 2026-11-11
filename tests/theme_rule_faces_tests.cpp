@@ -376,10 +376,11 @@ void test_dock_site_parts() {
 
     // The caption grip (cp29): drawn in every theme in the grip mark's muted
     // ink (owner, 2026-11-11); a rule recolours it, and a transparent ink
-    // hides it. A literal colour in a text position warns (W201), though
-    // it still applies.
-    window.set_theme(theme_from_sheet(":root { ink-on-paper: #3060a0 on #ffffff; }\n"
-                                      "dock-site::part(caption-grip) { muted-color: role(ink-on-paper); }\n"));
+    // hides it. muted-color takes no role (E405), and a literal colour in a
+    // text position warns (W201) though it still applies, so both sheets
+    // admit W201.
+    window.set_theme(
+        theme_from_sheet_with_literal_inks("dock-site::part(caption-grip) { muted-color: #3060a0; }\n"));
     window.perform_layout();
     ColourPainter gripped{};
     window.paint(gripped);
@@ -388,8 +389,6 @@ void test_dock_site_parts() {
     window.perform_layout();
     ColourPainter plain{};
     window.paint(plain);
-    // A role cannot be transparent, so the sheet hiding the grip writes the
-    // literal and takes its W201.
     window.set_theme(
         theme_from_sheet_with_literal_inks("dock-site::part(caption-grip) { muted-color: transparent; }\n"));
     window.perform_layout();
