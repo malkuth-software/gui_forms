@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -1185,6 +1186,85 @@ void panel_tab() {
 
 } // namespace
 
+// A command's placed rectangle: its hosted field's part, else its face.
+Rect placed_bounds(const Ribbon::CommandItem& item) {
+    const Ribbon::CommandParts& parts = item.parts;
+    if (parts.command_numeric_up_down.present) return parts.command_numeric_up_down.bounds;
+    if (parts.command_text_box.present) return parts.command_text_box.bounds;
+    if (parts.command_combo_box.present) return parts.command_combo_box.bounds;
+    if (parts.command_check_box.present) return parts.command_check_box.bounds;
+    return parts.command_face.bounds;
+}
+
+// Two-row groups of text labels above unlabelled fields, after a combo box
+// and before check boxes or a button (the shape of an application's note
+// settings): each label stands above its field in one column, even where
+// filling columns down would put the label in a column's last row and its
+// field at the top of the next.
+void labels_keep_their_fields() {
+    FixedMetrics metrics;
+    std::vector<RibbonTabSpec> tabs;
+    RibbonTabSpec note{.stable_id = "note", .text = "&Note"};
+    const RibbonGroupLayout paired = layout_of(RibbonGroupSize::large, 2U);
+    RibbonGroupSpec font{.stable_id = "font", .caption = "Font"};
+    font.commands.push_back({.stable_id = "family", .kind = RibbonCommandKind::combo_box, .text = "Family",
+                             .choices = {"Serif", "Sans"}, .width = 200.0});
+    font.commands.push_back(small_button("size-label", "Font size", 0U));
+    font.commands.push_back(
+        {.stable_id = "size", .kind = RibbonCommandKind::numeric_up_down, .text = "Font size", .show_label = false});
+    font.commands.push_back({.stable_id = "bold", .kind = RibbonCommandKind::check_box, .text = "Bold"});
+    font.commands.push_back({.stable_id = "italic", .kind = RibbonCommandKind::check_box, .text = "Italic"});
+    font.commands.push_back({.stable_id = "wrap", .kind = RibbonCommandKind::check_box, .text = "Wrap"});
+    font.layouts = {paired};
+    RibbonGroupSpec paper{.stable_id = "paper", .caption = "Paper"};
+    paper.commands.push_back({.stable_id = "texture", .kind = RibbonCommandKind::combo_box, .text = "Texture",
+                              .choices = {"Laid", "Wove"}, .width = 180.0});
+    paper.commands.push_back(small_button("padding-label", "Padding", 0U));
+    paper.commands.push_back(
+        {.stable_id = "padding", .kind = RibbonCommandKind::numeric_up_down, .text = "Padding", .show_label = false});
+    paper.commands.push_back(small_button("color-label", "Paper color", 0U));
+    paper.commands.push_back({.stable_id = "color", .kind = RibbonCommandKind::text_box, .text = "Paper color",
+                              .show_label = false, .width = 96.0});
+    paper.layouts = {paired};
+    RibbonGroupSpec size{.stable_id = "size-group", .caption = "Size"};
+    size.commands.push_back(small_button("width-label", "Width (px)", 0U));
+    size.commands.push_back(
+        {.stable_id = "width", .kind = RibbonCommandKind::numeric_up_down, .text = "Width", .show_label = false});
+    size.commands.push_back(small_button("height-label", "Height (px)", 0U));
+    size.commands.push_back(
+        {.stable_id = "height", .kind = RibbonCommandKind::numeric_up_down, .text = "Height", .show_label = false});
+    size.commands.push_back(small_button("new-paper", "New paper"));
+    size.layouts = {paired};
+    note.groups.push_back(std::move(font));
+    note.groups.push_back(std::move(paper));
+    note.groups.push_back(std::move(size));
+    tabs.push_back(std::move(note));
+    Fixture fixture = make_fixture(std::move(tabs), {1280.0, 400.0}, metrics);
+    Ribbon& ribbon = *fixture.ribbon;
+    const std::vector<Ribbon::CommandItem> items = ribbon.realized_commands();
+    std::map<std::string, Rect> placed;
+    for (const Ribbon::CommandItem& item : items) placed[item.stable_id] = placed_bounds(item);
+    const char* const pairs[][2] = {{"size-label", "size"},       {"padding-label", "padding"},
+                                    {"color-label", "color"},     {"width-label", "width"},
+                                    {"height-label", "height"}};
+    const double top = placed["family"].y;
+    for (const char* const* pair : pairs) {
+        require(placed.count(pair[0]) == 1U && placed.count(pair[1]) == 1U,
+                (std::string("the label and field are placed: ") + pair[0]).c_str());
+        const Rect label = placed[pair[0]];
+        const Rect field = placed[pair[1]];
+        require(label.x == field.x && label.y == top && field.y == top + 22.0,
+                (std::string("a text label stands above its field in one column: ") + pair[0]).c_str());
+    }
+    require(placed["family"].x < placed["size-label"].x && placed["bold"].x > placed["size"].x &&
+                placed["bold"].y == top && placed["italic"].y == top + 22.0,
+            "the combo box keeps a column to itself and the check boxes fill the columns after the field");
+    require(placed["texture"].x < placed["padding-label"].x && placed["padding-label"].x < placed["color-label"].x,
+            "a combo box, then two label and field columns");
+    require(placed["new-paper"].x > placed["height"].x && placed["new-paper"].y == top,
+            "the button after the last field starts a column of its own");
+}
+
 int main() {
     generated_layouts();
     authored_layouts_collapse();
@@ -1200,10 +1280,11 @@ int main() {
     group_overlay();
     caches();
     field_labels();
+    labels_keep_their_fields();
     panel_tab();
     std::cout << "Ribbon scaling: generated layouts, authored layouts collapse, the default cycle, the authored order, refusals, gallery "
                  "columns, the WordPad ladders, golden layouts at text scales 1 and 1.5, labels kept, scrolling at "
-                 "any width, the hide rule with hysteresis, group overlays, caches, theme following, field labels "
-                 "and panel tabs passed\n";
+                 "any width, the hide rule with hysteresis, group overlays, caches, theme following, field labels, "
+                 "labels kept above their fields and panel tabs passed\n";
     return 0;
 }

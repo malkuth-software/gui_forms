@@ -888,6 +888,13 @@ private:
     // is measured in the CheckBox's own text font, not the ribbon's.
     [[nodiscard]] CommandMetrics measure_command(const RibbonCommandSpec& command, const CheckBox* box) const;
     [[nodiscard]] bool field_labelled(const RibbonCommandSpec& command) const;
+    // Whether command `command` of `group` in `group_layout` is a small text
+    // label for the field after it: a small button-family command with a
+    // label and no image (or a label command), followed by a visible hosted
+    // command other than a check box (which carries its own label) or a
+    // gallery, not beside it.
+    [[nodiscard]] bool labels_next_field(const RibbonGroupSpec& group, const RibbonGroupLayout& group_layout,
+                                         std::size_t command) const;
     [[nodiscard]] double hosted_field_width(const RibbonCommandSpec& command) const;
     [[nodiscard]] FieldSplit split_field(const RibbonCommandSpec& command, Rect bounds) const;
     [[nodiscard]] TabParts tab_parts(const Layout& placed, std::size_t tab) const;
