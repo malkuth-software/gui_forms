@@ -1582,18 +1582,61 @@ void Control::set_visual_status(ControlVisualStatus status) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
+namespace {
+
+bool anatomy_declares(const ControlAnatomy& anatomy, AnatomyState state) noexcept {
+    for (const AnatomyState declared : anatomy.states) {
+        if (declared == state) return true;
+    }
+    return false;
+}
+
+// The custom state indices an AnatomyStateSet can hold (its custom bits).
+constexpr std::size_t custom_state_capacity = maximum_custom_states;
+static_assert(custom_state_capacity <= 16U, "AnatomyStateSet holds 16 custom states");
+
+} // namespace
+
+// Validates the whole set against the declaration before storing it.
+void Control::set_specimen_states(AnatomyStateSet shown) {
+    require_mutable();
+    const ControlAnatomy& declared = anatomy();
+    const std::size_t standard_count = static_cast<std::size_t>(AnatomyState::count);
+    for (std::size_t index = 0; index < standard_count; ++index) {
+        const AnatomyState state = static_cast<AnatomyState>(index);
+        if (!shown.contains(state) || anatomy_declares(declared, state)) continue;
+        std::string message = "specimen state is not declared by the control: ";
+        message += anatomy_state_name(state);
+        throw std::invalid_argument(message);
+    }
+    const std::size_t custom_count = declared.custom_states.size();
+    for (std::size_t index = custom_count; index < custom_state_capacity; ++index) {
+        const CustomStateIndex state{static_cast<std::uint8_t>(index)};
+        if (shown.contains(state)) {
+            throw std::invalid_argument("specimen custom state is not declared by the control");
+        }
+    }
+    if (specimen_states_ == shown) return;
+    specimen_states_ = shown;
+    invalidate(Dirty::paint);
+}
+
 ControlVisualContext Control::visual_context(VisualInteraction interaction) const noexcept {
-    const bool hovered = interaction.hovered;
-    const bool pressed = interaction.pressed;
+    // Specimen states (set_specimen_states) join the control's own.
+    const bool hovered = interaction.hovered || specimen_states_.contains(AnatomyState::hot);
+    const bool pressed = interaction.pressed || specimen_states_.contains(AnatomyState::pressed);
+    const bool shown_disabled = specimen_states_.contains(AnatomyState::disabled);
+    const bool shown_deactivated = specimen_states_.contains(AnatomyState::deactivated);
     ControlVisualContext result;
-    result.selected = interaction.selected;
-    result.focused = interaction.focused;
+    result.selected = interaction.selected || specimen_states_.contains(AnatomyState::selected);
+    result.focused = interaction.focused || specimen_states_.contains(AnatomyState::focused) ||
+                     specimen_states_.contains(AnatomyState::focus_visible);
     result.defaulted = interaction.defaulted;
     result.high_contrast = surface_root_ != nullptr &&
                            (*surface_root_).presentation_settings().high_contrast;
     result.dark = surface_root_ != nullptr &&
                   (*surface_root_).presentation_settings().colour_scheme == ColourScheme::dark;
-    if (!effectively_enabled()) {
+    if (!effectively_enabled() || shown_disabled) {
         result.surface = ControlSurfaceState::disabled;
     } else if (visual_status_ == ControlVisualStatus::invalid) {
         result.surface = ControlSurfaceState::invalid;
@@ -1603,7 +1646,7 @@ ControlVisualContext Control::visual_context(VisualInteraction interaction) cons
         result.surface = ControlSurfaceState::pressed;
     } else if (hovered) {
         result.surface = ControlSurfaceState::hot;
-    } else if (surface_root_ != nullptr && !(*surface_root_).active()) {
+    } else if (shown_deactivated || (surface_root_ != nullptr && !(*surface_root_).active())) {
         result.surface = ControlSurfaceState::deactivated;
     }
     return result;
@@ -4520,6 +4563,21 @@ AnatomyStateSet Control::base_anatomy_states() const {
             }
         }
     }
+    // Specimen states (set_specimen_states), validated against the
+    // declaration when they were set.
+    const AnatomyStateSet empty_set{};
+    if (specimen_states_ == empty_set) return states;
+    const std::size_t standard_count = static_cast<std::size_t>(AnatomyState::count);
+    for (std::size_t index = 0; index < standard_count; ++index) {
+        const AnatomyState state = static_cast<AnatomyState>(index);
+        if (specimen_states_.contains(state)) states.insert(state);
+    }
+    for (std::size_t index = 0; index < custom_state_capacity; ++index) {
+        const CustomStateIndex state{static_cast<std::uint8_t>(index)};
+        if (specimen_states_.contains(state)) states.insert(state);
+    }
+    if (specimen_states_.contains(AnatomyState::disabled)) states.erase(AnatomyState::enabled);
+    if (specimen_states_.contains(AnatomyState::focus_visible)) states.insert(AnatomyState::focused);
     return states;
 }
 

@@ -267,6 +267,71 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
     return capture;
 }
 
+// capture_window's sequence over one subtree: validate; record the
+// backplane under the area and the subtree's planes; replay offscreen; copy
+// the pixels out.
+std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& control,
+                                                         const ControlCaptureOptions& options) {
+    require_root_thread("capture_control");
+    if (in_paint_ || framebuffer_painter_ == nullptr || !control) return std::nullopt;
+    const double scale = options.scale == 0.0 ? scale_ : options.scale;
+    if (!std::isfinite(scale) || scale <= 0.0 || scale > 8.0) return std::nullopt;
+    if (!std::isfinite(options.margin) || options.margin < 0.0) return std::nullopt;
+    ensure_layout(true);
+    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).effectively_visible()) return std::nullopt;
+    const Rect bounds = absolute_bounds_of(*control);
+    if (bounds.empty() || !bounds.finite()) return std::nullopt;
+    // The control's bounds grown by the margin, clipped to the window.
+    const double left = std::max(0.0, bounds.x - options.margin);
+    const double top = std::max(0.0, bounds.y - options.margin);
+    const double right = std::min(client_size_.width, bounds.x + bounds.width + options.margin);
+    const double bottom = std::min(client_size_.height, bounds.y + bounds.height + options.margin);
+    if (right <= left || bottom <= top) return std::nullopt;
+    const Rect area{left, top, right - left, bottom - top};
+    const Size logical{area.width, area.height};
+    const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
+    if (!framebuffer) return std::nullopt;
+    detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
+    std::uint64_t visited_nodes = 0;
+    std::uint64_t painted_controls = 0;
+    std::uint64_t consumed_invalidations = 0;
+    std::uint64_t chunks_rebuilt = 0;
+    std::uint64_t chunks_reused = 0;
+    std::uint64_t commands_replayed = 0;
+    candidate.save();
+    candidate.translate({-area.x, -area.y});
+    if (options.include_backplane) {
+        ControlVisualContext backplane_context;
+        backplane_context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
+        backplane_context.high_contrast = presentation_settings_.high_contrast;
+        backplane_context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
+        const SurfaceMaterial backplane = backplane_base(backplane_context);
+        const bool starts_clear = backdrop_grant_.granted != WindowBackdrop::opaque;
+        paint_backplane_rectangle(candidate, area, backplane, starts_clear);
+    }
+    for (std::size_t index = 0; index < paint_plane_count; ++index) {
+        const PaintPlane plane = static_cast<PaintPlane>(index);
+        paint_recursive(control, parent_origin_of(*control), candidate, area, plane, visited_nodes, painted_controls,
+                        consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
+    }
+    candidate.restore();
+    const Rect local{0.0, 0.0, logical.width, logical.height};
+    const std::shared_ptr<const detail::DisplayChunk> recorded =
+        candidate.finish(display_generation_, PaintPlane::control, local);
+    // Rebuilt chunks consumed their paint dirt without reaching the screen.
+    if (consumed_invalidations > 0U && (*control).is_alive()) mark_subtree_dirty(*control, Dirty::paint);
+    if (!(*framebuffer).begin(image_resources(), local)) return std::nullopt;
+    static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
+    (*framebuffer).end();
+    WindowCapture capture{};
+    if (!detail::copy_framebuffer_bgra(*framebuffer, capture.bgra)) return std::nullopt;
+    capture.logical_size = logical;
+    capture.scale = scale;
+    capture.pixel_width = (*framebuffer).width();
+    capture.pixel_height = (*framebuffer).height();
+    return capture;
+}
+
 bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png) {
     png.clear();
     const std::uint64_t row = static_cast<std::uint64_t>(capture.pixel_width) * 4U;

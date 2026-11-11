@@ -1,4 +1,5 @@
 #include "linux_host_internal.hpp"
+#include "../../offscreen_font_lookup.hpp"
 #include "../../../core/failure/fail_fast.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
@@ -2205,6 +2206,12 @@ void NativeWindow::write_minimum_hint() {
 #include "linux_splashscreen.inc"
 } // namespace gui_forms::host::linux_detail
 namespace gui_forms::host {
+
+// OffscreenRaster::create's lookup (offscreen_font_lookup.hpp): the windows' own places.
+std::filesystem::path offscreen_bundled_font_directory() {
+  const std::filesystem::path directory = linux_detail::fonts_directory();
+  return directory;
+}
 std::unique_ptr<gui_forms::detail::SplashscreenSurface> open_platform_splashscreen(const Size size) {
   std::unique_ptr<gui_forms::detail::SplashscreenSurface> surface = linux_detail::open_x11_splashscreen(size);
   return surface;

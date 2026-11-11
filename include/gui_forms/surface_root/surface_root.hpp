@@ -382,6 +382,22 @@ struct WindowCaptureOptions final {
     double scale{};
 };
 
+// What Window::capture_control draws (owner request 2026-11-11, the theme
+// palette): one control and its descendants as the window lays them out.
+struct ControlCaptureOptions final {
+    // Device pixels per logical unit; 0 takes the window's own scale.
+    double scale{};
+    // Logical units added around the control's bounds on every side, for
+    // what it draws outside them (focus and default rings, shadows); the
+    // area is clipped to the window. Negative or not finite is refused.
+    double margin{};
+    // The window's backplane (the theme's window material) under the
+    // control, as capture_window draws it, so the picture is what the
+    // window shows there; off, what the subtree does not paint stays
+    // transparent, as snapshot_control leaves it.
+    bool include_backplane{true};
+};
+
 // A window's picture (Window::capture_window): its logical size, the scale
 // it was drawn at and its pixels, `pixel_height` rows of `pixel_width`
 // premultiplied BGRA pixels, tightly packed (pixel_width * 4 bytes a row).
@@ -568,6 +584,25 @@ public:
     // them; chunks the replay had to rebuild are marked for the next real
     // paint. On the UI thread (std::logic_error elsewhere).
     [[nodiscard]] std::optional<WindowCapture> capture_window(const WindowCaptureOptions& options = {});
+    // One control and its descendants as the window presents them (owner
+    // request 2026-11-11, the theme palette): after any pending layout, the
+    // backplane (unless `options` leaves it out) and every paint plane of
+    // the subtree over the control's bounds grown by `options.margin` and
+    // clipped to the window, replayed into an offscreen framebuffer of the
+    // window's CPU raster, as capture_window does; the capture owns its
+    // pixels (no image is registered, unlike snapshot_control). Siblings,
+    // ancestors' own paint and overlays are not drawn. `logical_size` is
+    // the area's size. None, changing nothing, while no framebuffer
+    // painter is installed (a headless window without an
+    // OffscreenAttachment, a host whose fonts are not ready), during a
+    // paint, for a control of another window or not shown, for an empty
+    // area, for a scale outside (0, 8] or a refused margin, or when the
+    // framebuffer refuses. Cost: one replay of the subtree into the area's
+    // device pixels and one copy of them; chunks the replay had to rebuild
+    // are marked for the next real paint. On the UI thread
+    // (std::logic_error elsewhere).
+    [[nodiscard]] std::optional<WindowCapture> capture_control(const Control::Ptr& control,
+                                                             const ControlCaptureOptions& options = {});
 
     // The invalidation overlay (owner request 2026-11-09; see
     // invalidation_overlay.hpp). The window's own setting: on, off, or none

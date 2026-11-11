@@ -1,4 +1,5 @@
 #include "gui_forms/paint_framebuffer.hpp"
+#include "../../offscreen_font_lookup.hpp"
 #include "windows_host.hpp"
 #include "../accessibility/windows_accessibility.hpp"
 #include "../services/windows_clipboard_image.hpp"
@@ -4158,6 +4159,12 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPAR
 #endif
 
 } // namespace
+
+// OffscreenRaster::create's lookup (offscreen_font_lookup.hpp): the windows' own places.
+std::filesystem::path offscreen_bundled_font_directory() {
+    const std::filesystem::path directory = bundled_font_directory();
+    return directory;
+}
 
 #if defined(GUI_FORMS_DIB_LIFECYCLE_TEST)
 void run_windows_dib_lifecycle_fixture() {
