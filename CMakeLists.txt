@@ -3203,6 +3203,11 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_user_layer_tests tests/theme_user_layer_tests.cpp)
     target_link_libraries(gui_forms_theme_user_layer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_user_layer_tests COMMAND gui_forms_theme_user_layer_tests)
+
+    add_executable(gui_forms_theme_user_fill_selection_tests tests/theme_user_fill_selection_tests.cpp)
+    target_link_libraries(gui_forms_theme_user_fill_selection_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_user_fill_selection_tests COMMAND gui_forms_theme_user_fill_selection_tests)
+
     add_executable(gui_forms_effect_program_tests tests/effect_program_tests.cpp)
     target_link_libraries(gui_forms_effect_program_tests PRIVATE gui_forms_controls)
     if(GUI_FORMS_EFFECTS_VERIFIED)
