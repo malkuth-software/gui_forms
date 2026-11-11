@@ -12,6 +12,10 @@ namespace {
 
 // The node among `nodes` and their children whose stable ID is `stable_id`,
 // or null. The pointer is borrowed from `nodes`.
+// Recurses once per semantic level. Control levels are bounded by
+// maximum_control_tree_depth (control.hpp); the virtual item levels a
+// control publishes below itself are not yet (an open target of the
+// depth rule, owner 2026-11-11).
 [[nodiscard]] const SemanticNode* node_with_id(const std::vector<SemanticNode>& nodes, std::string_view stable_id) {
     for (const SemanticNode& node : nodes) {
         if (node.stable_id == stable_id) return &node;

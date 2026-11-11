@@ -8,6 +8,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "../../display/chunk/display_chunk.hpp"
+#include "control_tree_walk.hpp"
 #include "../../theme/theme_compiler/control_inline_style.hpp"
 #include "../../theme/theme/kept_resolutions.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
@@ -29,11 +30,13 @@ namespace gui_forms {
 namespace {
 
 // Every content region of `control`'s subtree folded (redraw_all), as the
-// union of their folded kinds.
+// union of their folded kinds, in pre-order, walked in fixed storage (the
+// depth rule): folding a region's pending items changes no child list.
 Dirty fold_subtree_regions(Control& control) noexcept {
-    Dirty folded = control.fold_content_regions();
-    for (const Control::Ptr& child : control.children()) {
-        if (child) folded |= fold_subtree_regions(*child);
+    Dirty folded = Dirty::none;
+    detail::SubtreeWalk walk(control);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        folded |= (*current).fold_content_regions();
     }
     return folded;
 }
@@ -1087,11 +1090,68 @@ Control::~Control() {
     // One destroyed while still attached is forgotten here, so no window
     // registry keeps its address (owner, 2026-11-05).
     if (surface_root_ != nullptr) (*surface_root_).forget_destroyed_subtree(*this);
-    // A child another owner still holds outlives this parent: its observing
-    // link is cleared, as its weak parent_ expires, so an ancestor walk
-    // (absolute_bounds) stops at it instead of reading freed memory.
-    for (const Ptr& child : children_) {
+    // The children go one level at a time, never through a destructor
+    // call per level (the depth rule, maximum_control_tree_depth).
+    if (!children_.empty()) release_children_iteratively(children_);
+}
+
+// A dying control's children, released without recursion. A child this
+// list holds last gives its own children to the next frame before it is
+// destroyed, so its destructor finds none; a grandchild is released when
+// its frame reaches it, by then held by nothing but the frame (the dying
+// child's members that also held it have gone with the child). A child
+// another owner still holds keeps its children and outlives this parent.
+// Either way each released child's observing link is cleared, as its weak
+// parent_ expires, so an ancestor walk (absolute_bounds) stops at it
+// instead of reading freed memory.
+//
+// Order: each list is released in painter order, and a child's own
+// children after the child, where they used to go inside its destructor,
+// before it. A dying control's weak links have expired either way, and no
+// Control destructor reads its children, so nothing observes the change.
+// use_count() is exact here: a control is owned and released on its
+// window's root thread. A weak pointer locked on another thread at this
+// instant could keep a child the count called last; that child is then
+// left without its children, which go with their dying ancestor.
+//
+// The storage is one frame per level, maximum_control_tree_depth of them;
+// a child found at the last frame with children (which attach_child never
+// builds) is released with its children, through its destructor.
+void Control::release_children_iteratively(ChildList& children) noexcept {
+    struct TeardownFrame final {
+        ChildList children;
+        std::size_t next_child{0U};
+    };
+    std::array<TeardownFrame, maximum_control_tree_depth> frames{};
+    frames[0].children = std::move(children);
+    children.clear();
+    std::size_t depth = 1U;
+    while (depth > 0U) {
+        TeardownFrame& frame = frames[depth - 1U];
+        if (frame.next_child == frame.children.size()) {
+            // Every element is already empty; the list's storage goes.
+            frame.children.clear();
+            frame.children.shrink_to_fit();
+            frame.next_child = 0U;
+            --depth;
+            continue;
+        }
+        Ptr child = std::move(frame.children[frame.next_child]);
+        ++frame.next_child;
+        if (!child) continue;
         (*child).parent_link_ = nullptr;
+        const bool last_owner = child.use_count() == 1;
+        if (last_owner && !(*child).children_.empty() && depth < frames.size()) {
+            TeardownFrame& below = frames[depth];
+            below.children = std::move((*child).children_);
+            (*child).children_.clear();
+            below.next_child = 0U;
+            for (const Ptr& grandchild : below.children) {
+                if (grandchild) (*grandchild).parent_link_ = nullptr;
+            }
+            ++depth;
+        }
+        child.reset();
     }
 }
 
@@ -1308,16 +1368,25 @@ void Control::clear_theme_override() {
 bool Control::collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
                                       std::vector<ThemeCompileDiagnostic>& diagnostics) {
     const std::uint64_t serial = theme.engine().rules().serial();
-    if (inline_style_ != nullptr && (*inline_style_).theme_bound && (*inline_style_).rules.theme_serial() != serial) {
-        const std::string file = "inline:" + std::string(stable_id().value());
+    // This control and, in pre-order, every descendant that takes the
+    // theme (a subtree under its own override is skipped whole), walked in
+    // fixed storage (the depth rule); compiling changes no child list.
+    detail::SubtreeWalk walk(*this);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        Control& control = *current;
+        if (current != this && control.theme_override_) {
+            walk.skip_children();
+            continue;
+        }
+        if (control.inline_style_ == nullptr || !(*control.inline_style_).theme_bound ||
+            (*control.inline_style_).rules.theme_serial() == serial) {
+            continue;
+        }
+        const std::string file = "inline:" + std::string(control.stable_id().value());
         std::shared_ptr<const detail::ControlInlineStyle> compiled = detail::compile_inline_style(
-            (*inline_style_).text, anatomy(), stable_id().value(), file, theme, diagnostics);
+            (*control.inline_style_).text, control.anatomy(), control.stable_id().value(), file, theme, diagnostics);
         if (compiled == nullptr) return false;
-        restyles.push_back(detail::InlineRestyle{.control = this, .style = std::move(compiled)});
-    }
-    for (const Ptr& child : children_) {
-        if ((*child).theme_override_) continue;
-        if (!(*child).collect_inline_restyles(theme, restyles, diagnostics)) return false;
+        restyles.push_back(detail::InlineRestyle{.control = current, .style = std::move(compiled)});
     }
     return true;
 }
@@ -2133,10 +2202,14 @@ void Control::attach_child(Ptr child, std::size_t index) {
             throw std::logic_error("GUI.Forms cannot mutate the visual tree during lifecycle notification");
         }
     }
+    // The ancestor walk is also this control's depth, in levels, the root
+    // being one: the depth check below needs it.
+    std::size_t depth = 0U;
     for (std::shared_ptr<gui_forms::Control> ancestor = shared_from_this(); ancestor; ancestor = (*ancestor).parent()) {
         if (ancestor == child) {
             throw std::logic_error("GUI.Forms control tree cannot contain a cycle");
         }
+        ++depth;
     }
     if ((*child).parent().get() == this) {
         return;
@@ -2144,6 +2217,7 @@ void Control::attach_child(Ptr child, std::size_t index) {
     if ((*child).surface_root_ && (*child).surface_root_ != surface_root_) {
         throw std::logic_error("GUI.Forms control belongs to another window");
     }
+    require_nesting_room(*child, depth);
     // Audit A9: the stable identities are checked before the child leaves
     // its previous parent, so a clash leaves it where it was. A failure
     // later in the attachment (an attachment hook that throws) returns it
@@ -2174,6 +2248,8 @@ void Control::attach_child(Ptr child, std::size_t index) {
                      child);
     ++children_revision_;
     (*child).added_at_revision_ = children_revision_;
+    // A rollback below leaves the raised bounds high, which they may be.
+    raise_height_bounds((*child).subtree_height_bound_);
     advance_inherited_generation();
     if (surface_root_) {
         try {
@@ -2193,6 +2269,73 @@ void Control::attach_child(Ptr child, std::size_t index) {
         }
     }
     invalidate_declared(invalidation::visual_tree);
+}
+
+void Control::require_nesting_room(Control& child, std::size_t depth) {
+    // The child's levels start one below this control's. The kept bound
+    // answers without a walk while it fits; otherwise the subtree is
+    // measured, since the bound may be stale high after a removal.
+    if (depth + child.subtree_height_bound_ <= maximum_control_tree_depth) return;
+    const std::size_t height = measure_subtree_height(child);
+    if (depth + height <= maximum_control_tree_depth) return;
+    throw ControlTreeDepthError("GUI.Forms control tree cannot nest deeper than " +
+                                std::to_string(maximum_control_tree_depth) + " levels");
+}
+
+std::size_t Control::measure_subtree_height(Control& root) noexcept {
+    // A post-order walk: a frame's height is complete once its last child
+    // has been taken, and then passes one more level to the frame below.
+    struct HeightFrame final {
+        Control* control{nullptr};
+        std::size_t next_child{0U};
+        // The frame's subtree height found so far, in levels.
+        std::size_t height{1U};
+    };
+    std::array<HeightFrame, maximum_control_tree_depth> frames{};
+    frames[0] = HeightFrame{&root, 0U, 1U};
+    std::size_t depth = 1U;
+    std::size_t result = 1U;
+    while (depth > 0U) {
+        HeightFrame& frame = frames[depth - 1U];
+        const ChildList& children = (*frame.control).children_;
+        if (frame.next_child < children.size()) {
+            Control* const child = children[frame.next_child].get();
+            ++frame.next_child;
+            if (child == nullptr) continue;
+            if ((*child).children_.empty()) {
+                (*child).subtree_height_bound_ = 1U;
+                frame.height = std::max(frame.height, std::size_t{2U});
+                continue;
+            }
+            if (depth == frames.size()) {
+                // Deeper than any tree attach_child builds: the caller
+                // refuses on this height.
+                return maximum_control_tree_depth + 1U;
+            }
+            frames[depth] = HeightFrame{child, 0U, 1U};
+            ++depth;
+            continue;
+        }
+        (*frame.control).subtree_height_bound_ = frame.height;
+        result = frame.height;
+        --depth;
+        if (depth > 0U) {
+            HeightFrame& below = frames[depth - 1U];
+            below.height = std::max(below.height, frame.height + 1U);
+        }
+    }
+    return result;
+}
+
+void Control::raise_height_bounds(std::size_t child_height) noexcept {
+    // The observing parent links (audit A7): an ancestor walk that runs no
+    // callback. Bounded by the depth limit attach_child has just checked.
+    std::size_t covered = child_height + 1U;
+    for (Control* ancestor = this; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
+        if ((*ancestor).subtree_height_bound_ >= covered) return;
+        (*ancestor).subtree_height_bound_ = covered;
+        ++covered;
+    }
 }
 
 // After a failed reparent: the child goes back to the parent it left, at
@@ -3013,6 +3156,8 @@ bool Control::tab_order_less(const Ptr& left, const Ptr& right) noexcept {
     return (*left).tab_index.read() < (*right).tab_index.read();
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void Control::collect_tab_order_controls(const Control& owner,
                                          std::vector<Ptr>& ordered) {
     std::vector<Ptr> children(owner.children_.begin(), owner.children_.end());
@@ -3095,11 +3240,16 @@ bool Control::reads_ancestors() const noexcept {
 }
 
 void Control::restyle_descendants() {
-    // The tree is finite and acyclic, so the walk ends; each child's own
-    // font is resolved again, as the classes capability does for the control itself.
+    // Each descendant's own font is resolved again, as the classes
+    // capability does for the control itself, in pre-order, walked in
+    // fixed storage (the depth rule): marking changes no child list.
     for (const Ptr& child : children_) {
-        (*child).invalidate(Dirty::paint | (*child).refresh_text_font());
-        (*child).restyle_descendants();
+        if (!child) continue;
+        detail::SubtreeWalk walk(*child);
+        for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+            const Dirty font_dirty = (*current).refresh_text_font();
+            (*current).invalidate(Dirty::paint | font_dirty);
+        }
     }
 }
 
@@ -3437,6 +3587,8 @@ void Control::invalidate_subtree(Dirty requested_dirty) {
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void Control::apply_subtree_dirty(Control& control, Dirty requested_dirty) {
     control.add_dirty(requested_dirty);
     control.subtree_dirty_ |= requested_dirty;
@@ -3978,6 +4130,8 @@ bool Control::process_mnemonic(char32_t character) {
     return false;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void Control::collect_mnemonic_candidates(const Ptr& control,
                                           char32_t character,
                                           std::vector<Ptr>& candidates) {
@@ -4343,9 +4497,15 @@ void Control::clear_provider_help(std::uint64_t provider_id) {
 }
 
 std::uint64_t Control::subtree_size() const noexcept {
-    std::uint64_t result = 1;
+    // Each child's subtree is walked in fixed storage (the depth rule);
+    // the walks only count.
+    std::uint64_t result = 1U;
     for (const Ptr& child : children_) {
-        result += (*child).subtree_size();
+        if (!child) continue;
+        detail::SubtreeWalk walk(*child);
+        for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+            ++result;
+        }
     }
     return result;
 }
@@ -4424,6 +4584,11 @@ void Control::on_dispose() noexcept {
     ++children_revision_;
     display_chunk_.reset();
     detail::advance_style_epoch();
+    // Disposal recurses once per control level (dispose, on_dispose, the
+    // child's dispose): bounded by maximum_control_tree_depth (control.hpp),
+    // within its stack budget of 4 KiB per level. It stays recursive
+    // because each override of on_dispose runs its own work around this
+    // base call, in an order the overrides rely on.
     for (const std::shared_ptr<gui_forms::Control>& child : visual_children) {
         (*child).parent_.reset();
         (*child).parent_link_ = nullptr;

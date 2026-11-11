@@ -323,6 +323,32 @@ constexpr ControlStyles& operator|=(ControlStyles& left,
     return (value & flag) != GetChildAtPointSkip::none;
 }
 
+// The deepest a control tree may nest, in levels, the root counted as one:
+// a root with one child is two levels deep. Control::add_child and
+// Control::insert_child (and through them the form loader, the static-tree
+// builder and the C ABI's insert_child) refuse with ControlTreeDepthError,
+// before changing anything, an attachment whose target's depth plus the
+// attached subtree's height would pass it. A window or overlay root is
+// attached at level one, so every tree it can take is within the limit.
+//
+// The stack budget (house rule, owner 2026-11-11: recursion over
+// runtime-shaped data needs an enforced depth): the walks over the tree
+// that still recurse once per level (layout, paint, hit testing, semantic
+// publication, focus order, disposal) run on the window's root thread.
+// The smallest such stack the supported hosts give is a macOS secondary
+// thread's 512 KiB; Windows' main thread reserves 1 MiB, macOS and Linux
+// main threads 8 MiB. Half of 512 KiB, 256 KiB, is given to the deepest
+// recursive walk, at 4 KiB per level: layout recurses through several
+// frames per level (the root's measure pass, the container's layout
+// engine, the child's measure override), each a few hundred bytes, and
+// 4 KiB leaves room for an application override's own frame. 256 KiB at
+// 4 KiB per level is 64 levels. (A sanitizer build's larger frames run on
+// the 8 MiB main threads of macOS and Linux.) Win32 itself copes badly
+// with child windows nested past about 50, so no Windows Forms layout
+// relies on deeper trees. Destruction does not recurse per level
+// (Control::release_children_iteratively).
+inline constexpr std::size_t maximum_control_tree_depth = 64U;
+
 class Control : public Component,
                 public std::enable_shared_from_this<Control>,
                 public ControlCapabilities<Control> {
@@ -359,10 +385,14 @@ public:
     [[nodiscard]] std::uint64_t children_revision() const noexcept { return children_revision_; }
     [[nodiscard]] bool attached() const noexcept { return surface_root_ != nullptr; }
 
+    // Refuses, before any change, a null child, this control, a disposed
+    // child, a cycle, a child of another window, and (ControlTreeDepthError)
+    // a child whose subtree would end deeper than maximum_control_tree_depth.
     void add_child(Ptr child);
     // Adds child at index counted from the top (zero is topmost), in one
     // validated mutation; a child already here moves as
     // set_child_index_from_top moves it. On failure the tree is unchanged.
+    // The refusals are add_child's.
     void insert_child(Ptr child, std::size_t index);
     [[nodiscard]] Ptr remove_child(RuntimeId child);
     // Windows Forms' z-order index, counted from the top (index 0 is the
@@ -1503,6 +1533,25 @@ private:
     void disconnect_control_events() noexcept;
     static void restore_to_previous_parent(const Ptr& child, const Ptr& previous_parent,
                                            std::optional<std::size_t> previous_index) noexcept;
+    // attach_child's depth check, after its cycle check and before any
+    // change: throws ControlTreeDepthError when `child`'s subtree, put
+    // under this control at `depth` levels (this control's own level, the
+    // root being one), would pass maximum_control_tree_depth.
+    void require_nesting_room(Control& child, std::size_t depth);
+    // The exact height of `root`'s subtree, in levels (a leaf is one),
+    // walked in fixed storage of one frame per level; refreshes every
+    // visited control's subtree_height_bound_ to its exact height. A
+    // subtree deeper than the storage (which attach_child never builds)
+    // reports maximum_control_tree_depth + 1.
+    [[nodiscard]] static std::size_t measure_subtree_height(Control& root) noexcept;
+    // After a child of height `child_height` joins this control: raises
+    // this control's and its ancestors' subtree_height_bound_ where the
+    // child makes it higher, stopping at the first that already covers it.
+    void raise_height_bounds(std::size_t child_height) noexcept;
+    // The destructor's teardown of `children`, a dying control's child
+    // list, one level at a time in fixed storage, so destroying a tree
+    // never nests a destructor call per level (control.cpp).
+    static void release_children_iteratively(ChildList& children) noexcept;
     [[nodiscard]] static bool tab_order_less(const Ptr& left,
                                              const Ptr& right) noexcept;
     static void collect_tab_order_controls(const Control& owner,
@@ -1568,6 +1617,15 @@ private:
     // no callbacks step through it instead of locking parent_ per level.
     Control* parent_link_{};
     ChildList children_;
+    // An upper bound on this control's subtree height in levels (a leaf is
+    // one), so attach_child can check the depth limit without walking the
+    // child's subtree. Written on the control's thread only, by
+    // attach_child (raise_height_bounds raises the new parent's chain) and
+    // by measure_subtree_height (exact, for the subtree it walks). A
+    // removal, a disposal or a re-parent leaves the old chain's bounds
+    // high rather than walking it; a stale bound only sends the next
+    // attachment's check to the exact measurement, never past the limit.
+    std::size_t subtree_height_bound_{1U};
     // See children_revision(); advanced with every change of children_.
     std::uint64_t children_revision_{};
     // The parent's children_revision_ at this control's add_child: a child

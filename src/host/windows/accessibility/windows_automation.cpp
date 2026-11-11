@@ -1388,6 +1388,10 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelectionRequired(BOOL* out) {
 // index, since a row publishes only its own cells, and does not descend
 // into a cell, so one call visits the rows and the wanted row's cells
 // rather than every cell of the grid (audit P4).
+// Recurses once per semantic level. Control levels are bounded by
+// maximum_control_tree_depth (control.hpp); the virtual item levels a
+// control publishes below itself are not yet (an open target of the
+// depth rule, owner 2026-11-11).
 bool find_grid_item(const SemanticLocation& at, std::size_t row_index, std::size_t column_index,
                     SemanticLocation& found) noexcept {
     const SemanticNode& node = *at.node;
@@ -1552,6 +1556,10 @@ struct PublishedNodeBefore final {
     }
 };
 
+// Recurses once per semantic level. Control levels are bounded by
+// maximum_control_tree_depth (control.hpp); the virtual item levels a
+// control publishes below itself are not yet (an open target of the
+// depth rule, owner 2026-11-11).
 void collect_published(const SemanticLocation& at, SemanticElementId parent, bool has_parent,
                        std::vector<PublishedNode>& nodes) {
     nodes.push_back(PublishedNode{at.id, at.node, parent, has_parent});

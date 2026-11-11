@@ -633,7 +633,10 @@ typedef struct gf_objects_table {
                                    uint64_t* required);
     /* Puts child, which has no parent, under parent at index (at most the
      * child count; the count appends). Children are ordered back to front:
-     * the last one paints on top. A child cannot be its own ancestor. This
+     * the last one paints on top. A child cannot be its own ancestor. A
+     * tree nests at most 64 levels, the root counted as one: a child whose
+     * subtree would end deeper gives GF_STATUS_LIMIT_EXCEEDED, changing
+     * nothing. This
      * is the ABI's one child order (K4), painter order: index 0 is the
      * bottom-most child. A Windows Forms binding, whose Controls collection
      * puts index 0 on top (z-order), reverses the index at its boundary. */

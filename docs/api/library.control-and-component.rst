@@ -100,6 +100,8 @@ Related types
      - Every Control capability, in the order the declaring class takes them.
    * - :cpp:class:`ControlFactory <gui_forms::ControlFactory>`
      - ControlFactory maps explicit type names to construction callbacks, rejects duplicates/unknown types, and recursively creates retained trees without a bundled scripting runtime.
+   * - :cpp:class:`ControlTreeDepthError <gui_forms::ControlTreeDepthError>`
+     - Thrown, before any change, when an attachment would nest a control tree deeper than maximum_control_tree_depth (control.hpp).
    * - :cpp:class:`ControlValidationEvent <gui_forms::ControlValidationEvent>`
      - ControlValidationEvent carries source, destination, bulk-validation intent, and mutable cancellation through one validation turn.
    * - :cpp:class:`CursorCapability <gui_forms::CursorCapability>`
@@ -1125,6 +1127,19 @@ Related types
    .. cpp:function:: Control::Ptr create(std::string_view type, StableId stable_id) const
 
    .. cpp:type:: Creator = std::function<Control::Ptr(StableId)>
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ControlTreeDepthError final : public std::length_error
+
+   ``#include <gui_forms/component/failures/component_failures.hpp>``
+
+   Thrown, before any change, when an attachment would nest a control tree deeper than maximum_control_tree_depth (control.hpp). A limit, so a std::length_error, which is also the std::logic_error the cycle refusal throws; the C ABI reports it as GF_STATUS_LIMIT_EXCEEDED.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit ControlTreeDepthError(const std::string& message)
 
 .. cpp:namespace:: gui_forms
 
@@ -3754,6 +3769,10 @@ Functions, constants and aliases
 .. cpp:function:: constexpr bool has_child_skip(GetChildAtPointSkip value, GetChildAtPointSkip flag) noexcept
 
 .. cpp:function:: template <typename ControlType, typename... Arguments> std::shared_ptr<ControlType> make_control(StableId stable_id, Arguments&&... arguments)
+
+.. cpp:var:: constexpr std::size_t maximum_control_tree_depth
+
+   The deepest a control tree may nest, in levels, the root counted as one: a root with one child is two levels deep. Control::add_child and Control::insert_child (and through them the form loader, the static-tree builder and the C ABI's insert_child) refuse with ControlTreeDepthError, before changing anything, an attachment whose target's depth plus the attached subtree's height would pass it. A window or overlay root is attached at level one, so every tree it can take is within the limit. The stack budget (house rule, owner 2026-11-11: recursion over runtime-shaped data needs an enforced depth): the walks over the tree that still recurse once per level (layout, paint, hit testing, semantic publication, focus order, disposal) run on the window's root thread. The smallest such stack the supported hosts give is a macOS secondary thread's 512 KiB; Windows' main thread reserves 1 MiB, macOS and Linux main threads 8 MiB. Half of 512 KiB, 256 KiB, is given to the deepest recursive walk, at 4 KiB per level: layout recurses through several frames per level (the root's measure pass, the container's layout engine, the child's measure override), each a few hundred bytes, and 4 KiB leaves room for an application override's own frame. 256 KiB at 4 KiB per level is 64 levels. (A sanitizer build's larger frames run on the 8 MiB main threads of macOS and Linux.) Win32 itself copes badly with child windows nested past about 50, so no Windows Forms layout relies on deeper trees. Destruction does not recurse per level (Control::release_children_iteratively). Value: ``64U``.
 
 .. cpp:namespace:: gui_forms
 

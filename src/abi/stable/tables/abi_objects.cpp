@@ -320,6 +320,9 @@ gf_status GF_CALL objects_insert_child(gf_object parent, gf_object child, std::u
         // The core counts from the top, as WinForms does: position index
         // among count + 1 children is top index count - index. One core
         // mutation, so a failure leaves the parent's children as they were.
+        // The core refuses a tree nested past maximum_control_tree_depth
+        // with ControlTreeDepthError, a std::length_error, which
+        // fail_with_current_exception reports as GF_STATUS_LIMIT_EXCEEDED.
         const std::size_t from_top = static_cast<std::size_t>(count - index);
         (*parent_control).insert_child(child_control, from_top);
         return GF_STATUS_OK;
