@@ -95,6 +95,11 @@ public:
         PartGeometry face;
         PartGeometry divider;
         PartGeometry focus;
+        // The icon gutter down the left of each menu the strip opens (a
+        // drop-down's band behind the icons and check marks). The strip
+        // itself has none, so its geometry here is empty; the drop-down
+        // panels paint it as `menu-strip::part(gutter)`.
+        PartGeometry gutter;
     };
     [[nodiscard]] Parts parts() const;
     struct ItemParts final {

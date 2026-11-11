@@ -61,7 +61,7 @@ inline constexpr std::string_view message_prefix = "correspondence.message.";
 [[nodiscard]] std::string folder_id(Folder folder);
 [[nodiscard]] std::string message_id(std::uint32_t id);
 
-// The shared palette copied from the Gallery house style (page_style() in
+// The palette the Gallery pages once wrote as their page style (in
 // src/controls/gallery_pages.cpp); the demo invents no theme.
 [[nodiscard]] BasicControlStyle correspondence_style();
 

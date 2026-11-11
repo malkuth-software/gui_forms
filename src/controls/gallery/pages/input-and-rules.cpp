@@ -160,12 +160,6 @@ void InputAndRulesPage::mount_document(const std::shared_ptr<Surface>& body) {
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
-        document_.gallery_input_target_group, document_.gallery_input_rules_group,
-        document_.gallery_input_log_group};
-    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_style(page_style());
-    }
 }
 
 // Copy and Paste, a separator, then Zoom, a submenu of three rows.

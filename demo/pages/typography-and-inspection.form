@@ -9,7 +9,7 @@
    where each is placed by its bounds in design coordinates. Behaviour stays
    in the page (src/controls/gallery/pages/typography-and-inspection.cpp):
    the shared overlay Command, the bound Values (inspection target,
-   adornments, wrapped size), the ChoiceGroup's items and the page style. */
+   adornments, wrapped size) and the ChoiceGroup's items. */
 scaled-panel gallery.typography.document {
   design-size: 1000 660;
 

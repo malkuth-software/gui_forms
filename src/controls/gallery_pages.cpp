@@ -110,15 +110,6 @@ std::shared_ptr<PageContext> retained_page_context(const Window& window) {
     return *retained;
 }
 
-// A shell label's ink from the Gallery theme's text role `role_class`
-// (gallery.theme.css), in place of a code colour, so that it follows the
-// window's scheme. The roles' light inks are the shell colours the labels
-// used before (shell_blue_dark is `heading`, muted is `muted`).
-void ink_from_theme(Label& shell_label, std::string_view role_class) {
-    shell_label.fore_color = std::nullopt;
-    static_cast<void>(shell_label.add_class(role_class));
-}
-
 } // namespace
 
 void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> compiled) {
@@ -127,7 +118,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     // Pages capture the status line while they are built; the form made it.
     (*context).status = window.gallery_status_text;
     (*(*context).status).font = FontSpec{FontRole::content, 11.0, 600, false};
-    ink_from_theme(*(*context).status, "heading");
+    static_cast<void>((*(*context).status).add_class("heading"));
     // The form lays the shell out (demo/gallery.form): nothing scales with
     // the window, so a resize moves or resizes only the docked parts it
     // reaches and repaints only what changed (resize R-8).
@@ -169,7 +160,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
             std::shared_ptr<Label> heading = make_control<Label>(
                 StableId("gallery.sidebar.group." + std::to_string(group_index)), std::string(entry.group));
             static_cast<void>((*heading).add_class("heading"));
-            (*heading).font = FontSpec{FontRole::control, 10.0, 700, false, 0.24};
+            static_cast<void>((*heading).add_class("navigation-heading"));
             (*heading).set_bounds({18.0, navigation_y, 180.0, 16.0});
             sidebar.add_child(heading);
             navigation_y += 18.0;
@@ -178,9 +169,11 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         std::shared_ptr<gui_forms::Button> navigation = make_control<Button>(
             StableId(std::string(navigation_id_prefix) + std::string((*entry.page).id)),
             std::string((*entry.page).title));
-        (*navigation).font = {FontRole::control, 12.0, 400, false, 0.24};
+        // The row's type and colours are the theme's: the Gallery theme's
+        // `control-body` class sizes it, and the window's theme draws it as a
+        // command, checked while its page is open (PageContext::select_page).
+        static_cast<void>((*navigation).add_class("control-body"));
         (*navigation).visual_style = ButtonVisualStyle::command;
-        (*navigation).set_style(page_style());
         (*navigation).set_bounds({16.0, navigation_y, 190.0, 24.0});
         sidebar.add_child(navigation);
         navigation_y += 24.0;
@@ -231,21 +224,18 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         static_cast<void>((*page).add_class("shell-canvas"));
         (*viewport).add_child(page);
         std::shared_ptr<Label> title = label(surface_id + ".title", std::string(spec.title),
-                                             15.0, 700, shell_blue_dark);
-        ink_from_theme(*title, "heading");
+                                             15.0, 700, "heading");
         (*title).font = FontSpec{FontRole::control, 15.0, 700, false};
         (*page).add_at(title, {0.0, 4.0, 1000.0, 22.0});
         if (demonstrated.empty()) {
             std::shared_ptr<Label> summary = label(surface_id + ".summary",
-                                                   std::string(spec.summary), 10.0, 400, muted);
-            ink_from_theme(*summary, "muted");
+                                                   std::string(spec.summary), 10.0, 400, "muted");
             (*page).add_at(summary, {0.0, 28.0, 1000.0, header_line_pitch});
         }
         for (std::size_t line = 0; line < demonstrated.size(); ++line) {
             std::shared_ptr<Label> control_line = label(
                 surface_id + ".control." + std::to_string(line),
-                page_control_line(*demonstrated[line]), 10.0, 400, muted);
-            ink_from_theme(*control_line, "muted");
+                page_control_line(*demonstrated[line]), 10.0, 400, "muted");
             (*page).add_at(control_line,
                            {0.0, 28.0 + header_line_pitch * static_cast<double>(line), 1000.0,
                             header_line_pitch});
@@ -296,6 +286,72 @@ bool select_gallery_page(Window& window, std::string_view page_id) {
             (*context).select_page(index);
             return true;
         }
+    }
+    return false;
+}
+
+namespace {
+
+// The control under `control` (itself included) whose stable id is
+// `stable_id`, depth first, or null.
+Control::Ptr find_gallery_control(const Control::Ptr& control, std::string_view stable_id) {
+    if ((*control).stable_id().value() == stable_id) return control;
+    for (const Control::Ptr& child : (*control).children()) {
+        Control::Ptr found = find_gallery_control(child, stable_id);
+        if (found) return found;
+    }
+    return nullptr;
+}
+
+} // namespace
+
+bool reveal_gallery_control(Window& window, std::string_view stable_id) {
+    const std::shared_ptr<PageContext> context = retained_page_context(window);
+    if (!context || (*context).selected_page >= (*context).pages.size()) return false;
+    const std::shared_ptr<ScrollableControl> viewport =
+        std::dynamic_pointer_cast<ScrollableControl>((*context).pages[(*context).selected_page]);
+    if (!viewport) return false;
+    const Control::Ptr target = find_gallery_control(viewport, stable_id);
+    if (!target || target == viewport) return false;
+    // The pages are drawn at their design size, unscaled, so the target's
+    // offset in the viewport's content is the sum of its requested origins
+    // up to the viewport.
+    double offset = 0.0;
+    Control::Ptr step = target;
+    while (step && step != viewport) {
+        offset += (*step).requested_bounds().y;
+        step = (*step).parent();
+    }
+    const double target_y = std::max(0.0, offset - 8.0);
+    static_cast<void>((*viewport).scroll_to({0.0, target_y}));
+    const bool reached = (*viewport).scroll_position().y == target_y;
+    return reached;
+}
+
+bool open_gallery_menu(Window& window, std::string_view stable_id, std::string_view item) {
+    const Control::Ptr root = window.root();
+    if (!root) return false;
+    const Control::Ptr target = find_gallery_control(root, stable_id);
+    if (!target) return false;
+    const std::shared_ptr<MenuStrip> menu = std::dynamic_pointer_cast<MenuStrip>(target);
+    if (menu) {
+        std::size_t index = 0U;
+        for (const char digit : item) {
+            if (digit < '0' || digit > '9') return false;
+            index = index * 10U + static_cast<std::size_t>(digit - '0');
+        }
+        const bool opened = (*menu).open(index);
+        return opened;
+    }
+    const std::shared_ptr<ToolStrip> strip = std::dynamic_pointer_cast<ToolStrip>(target);
+    if (strip) {
+        const bool opened = (*strip).show_drop_down(item);
+        return opened;
+    }
+    const std::shared_ptr<Ribbon> ribbon = std::dynamic_pointer_cast<Ribbon>(target);
+    if (ribbon) {
+        const bool opened = (*ribbon).show_drop_down(item);
+        return opened;
     }
     return false;
 }

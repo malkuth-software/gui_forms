@@ -9,7 +9,7 @@
    in design coordinates. The page keeps in code the pickers' values,
    formats, ranges, modes and provider, the CommandBar's items and Commands,
    the calendar's dates, range, dimensions and bold dates, every event
-   handler, the status lines' reports and the page style. */
+   handler and the status lines' reports. */
 scaled-panel gallery.date.document {
   design-size: 1000 940;
 

@@ -6,6 +6,7 @@
 
 #include "gui_forms/gui_forms.hpp"
 
+#include <array>
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
@@ -111,12 +112,32 @@ void test_unscheduled_close_and_absent_smoke() {
             "without --smoke-test the host's code must pass through");
 }
 
+// The Gallery's capture-staging and runtime-sheet options parse into their
+// fields; a missing value is refused.
+void test_theme_sheet_and_staging_options_parse() {
+    std::array<char*, 9> arguments{const_cast<char*>("gallery"), const_cast<char*>("--theme-sheet"),
+                                   const_cast<char*>("candidate.theme.css"), const_cast<char*>("--reveal"),
+                                   const_cast<char*>("gallery.commands.ribbon"), const_cast<char*>("--open-menu"),
+                                   const_cast<char*>("gallery.commands.menu/0"), const_cast<char*>("--scheme"),
+                                   const_cast<char*>("dark")};
+    const std::optional<demo::ProgramOptions> parsed =
+        demo::parse_program_options(static_cast<int>(arguments.size()), arguments.data());
+    require(parsed.has_value() && (*parsed).theme_sheet == "candidate.theme.css" &&
+                (*parsed).reveal == "gallery.commands.ribbon" && (*parsed).open_menu == "gallery.commands.menu/0" &&
+                (*parsed).scheme == "dark",
+            "--theme-sheet, --reveal, --open-menu and --scheme parse into their fields");
+    std::array<char*, 2> missing{const_cast<char*>("gallery"), const_cast<char*>("--theme-sheet")};
+    require(!demo::parse_program_options(static_cast<int>(missing.size()), missing.data()).has_value(),
+            "--theme-sheet without a path is refused");
+}
+
 } // namespace
 
 int main() {
     test_deadline_without_a_presented_frame_fails();
     test_presented_frame_passes();
     test_unscheduled_close_and_absent_smoke();
+    test_theme_sheet_and_staging_options_parse();
     std::cout << "GUI.Forms program options tests passed\n";
     return 0;
 }

@@ -9,8 +9,8 @@
    gallery.layout.document is a declared boundary only: the page moves its
    children into the shell's page body (a 1000 x 660 design surface). The
    page keeps in code the shared Value<double> the slider and the progress
-   bar bind, the check box's Value<bool>, the note that reports them and
-   the page style. The Gallery theme styles the classes. */
+   bar bind, the check box's Value<bool> and the note that reports them. The
+   Gallery theme styles the classes. */
 scaled-panel gallery.layout.document {
   design-size: 1000 660;
 

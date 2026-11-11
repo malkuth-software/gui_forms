@@ -8520,7 +8520,8 @@
         {"name": "region", "role": "region", "composed_from": null, "states": []},
         {"name": "face", "role": "face", "composed_from": null, "states": []},
         {"name": "divider", "role": "divider", "composed_from": null, "states": []},
-        {"name": "focus", "role": "focus", "composed_from": null, "states": []}
+        {"name": "focus", "role": "focus", "composed_from": null, "states": []},
+        {"name": "gutter", "role": "well", "composed_from": null, "states": []}
       ],
       "states": ["normal", "enabled", "disabled", "focused", "focus_visible"],
       "custom_states": [],

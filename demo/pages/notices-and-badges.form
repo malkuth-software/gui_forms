@@ -8,8 +8,7 @@
    surface), where each is placed by its bounds in design coordinates.
    Behaviour stays in the page (src/controls/gallery/pages/
    notices-and-badges.cpp): the banners' and the empty state's action
-   buttons, the Commands that show a toast and closed banners again, and the page
-   style. */
+   buttons and the Commands that show a toast and closed banners again. */
 scaled-panel gallery.notices-and-badges.document {
   design-size: 1000 660;
 

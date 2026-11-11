@@ -101,21 +101,14 @@ void StatesPage::mount_document(const std::shared_ptr<Surface>& body) {
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    (*document_.gallery_states_lifecycle).set_style(page_style());
-    (*document_.gallery_states_dispatcher).set_style(page_style());
     status_ = document_.gallery_dispatcher_status;
 }
 
-// The retained-runtime card (a MetricsView): its title and colours.
+// The retained-runtime card (a MetricsView): its title; the theme gives
+// its colours.
 void StatesPage::build_diagnostics() {
     DiagnosticsCard& diagnostics = *document_.gallery_states_diagnostics;
     diagnostics.title = std::string("RETAINED RUNTIME");
-    BasicControlStyle diagnostics_style = page_style();
-    diagnostics_style.text = Color::rgba(28, 39, 50);
-    diagnostics_style.face = Color::rgba(175, 203, 221);
-    diagnostics_style.face_light = Color::rgba(226, 238, 246);
-    diagnostics_style.accent = green;
-    diagnostics.set_style(diagnostics_style);
 }
 
 // The panels' border styles are in the document; their alternating

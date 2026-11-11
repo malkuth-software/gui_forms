@@ -8,8 +8,7 @@
    children into the shell's page body, where each is placed by its bounds
    in design coordinates. The DockSite needs its workspace to be made, so
    the page makes it and places it first in the group; the page also keeps
-   the workspace, its panels' factory, every event handler and the page
-   style in code. */
+   the workspace, its panels' factory and every event handler in code. */
 scaled-panel gallery.docking.document {
   design-size: 1000 670;
 

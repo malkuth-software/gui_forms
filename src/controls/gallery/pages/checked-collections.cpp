@@ -41,12 +41,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        const std::array<std::shared_ptr<ScaledGroupBox>, 4> groups{
-            document_.gallery_checked_deliberate, document_.gallery_checked_immediate,
-            document_.gallery_checked_commands, document_.gallery_checked_list_view};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
         immediate_ = document_.gallery_checked_immediate_list;
         list_view_ = document_.gallery_checked_list_view_list;
         mark_toggle_ = document_.gallery_checked_list_view_mark;
@@ -81,15 +75,11 @@ private:
 
     void build_commands() {
         CommandBar& bar = *document_.gallery_checked_command;
-        bar.set_style(page_style());
         bar.set_items({
             {.id = command_check_all, .label = "Check all"},
             {.id = command_clear_all, .label = "Clear all"},
             {.id = command_set_mixed, .label = "Set mixed"},
         });
-        for (int index = 0; index < static_cast<int>(bar.items().size()); ++index) {
-            bar.item(index).set_style(page_style());
-        }
         bar.item(0).visual_style = ButtonVisualStyle::accent;
         on(bar.invoked(), *this, &CheckedCollectionsPage::on_command);
     }
@@ -119,7 +109,6 @@ private:
         on((*list_view_).item_checked(), *this, &CheckedCollectionsPage::on_list_view_checked);
         (*list_view_).label_edit = true;
         on((*list_view_).after_label_edit(), *this, &CheckedCollectionsPage::on_list_view_renamed);
-        (*mark_toggle_).set_style(page_style());
         on((*mark_toggle_).clicked(), *this, &CheckedCollectionsPage::on_mark_toggled);
     }
 

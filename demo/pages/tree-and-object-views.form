@@ -9,8 +9,8 @@
    children into the shell's page body, where each is placed by its bounds
    in design coordinates. The page keeps in code the fixture and every item,
    column and row drawn from it, the trail's appearance, the view mode's
-   items and Value, the views' cell sizes and modes, every event handler,
-   the status line's reports and the page style. */
+   items and Value, the views' cell sizes and modes, every event handler
+   and the status line's reports. */
 scaled-panel gallery.tree.document {
   design-size: 1000 1240;
 

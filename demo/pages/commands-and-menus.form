@@ -10,8 +10,7 @@
    bounds in design coordinates. The page keeps in code the Commands, each
    surface's items, menus, tabs and galleries, the strips joined into the
    container's panels, the run button's split mode, the Values the check
-   boxes bind, the menu bar's font, every event handler and the page
-   style. */
+   boxes bind, the menu bar's font and every event handler. */
 scaled-panel gallery.commands.document {
   design-size: 1000 1830;
 

@@ -100,9 +100,6 @@ LiveSurfacesPage::LiveSurfacesPage(const std::shared_ptr<Surface>& body) {
     build_producer();
     document_.initialize_component(*this);
     mount_form_children(*document_.gallery_live_surfaces_document, *body);
-    (*document_.gallery_live_surfaces_presenter).set_style(page_style());
-    (*document_.gallery_live_surfaces_producer).set_style(page_style());
-    (*document_.gallery_live_surfaces_sub_surface).set_style(page_style());
     build_presenter();
     reconfigure_button_ = document_.gallery_live_surfaces_reconfigure;
     (*document_.gallery_live_surfaces_sub_surface_host).set_content(std::make_unique<SubSurfaceSample>(), true);

@@ -9,8 +9,7 @@
    its bounds in design coordinates. The page keeps in code the surface,
    the presenter's paint callback, the sub-surface's content, the Timer, the
    Commands the producer buttons bind, the interval Value the track bar
-   binds, the status and telemetry texts, every event handler and the page
-   style. */
+   binds, the status and telemetry texts and every event handler. */
 scaled-panel gallery.live-surfaces.document {
   design-size: 1000 800;
 

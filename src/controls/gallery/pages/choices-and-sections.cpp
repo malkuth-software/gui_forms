@@ -49,7 +49,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        (*document_.gallery_choices_ring_group).set_style(page_style());
         ring_row_ = document_.gallery_choices_ring;
         ring_status_ = document_.gallery_choices_ring_status;
         sections_ = document_.gallery_choices_sections;
@@ -73,7 +72,7 @@ private:
 
     [[nodiscard]] static std::shared_ptr<Label> section_body(std::string id, std::string text,
                                                              const double height) {
-        std::shared_ptr<Label> body = label(std::move(id), std::move(text), 11.0, 400, ink);
+        std::shared_ptr<Label> body = label(std::move(id), std::move(text), 11.0, 400, "ink");
         (*body).text_wrapping = TextWrapping::word;
         (*body).vertical_alignment = VerticalAlignment::near;
         (*body).set_requested_bounds({0.0, 0.0, 0.0, height});
@@ -102,20 +101,17 @@ private:
     // The toggles' indicator style and placement are in the document; each
     // binds one section's open state.
     void build_state() {
-        (*state_).set_style(page_style());
         bind_toggle(*document_.gallery_choices_state_checklist, checklist_open_);
         bind_toggle(*document_.gallery_choices_state_notes, notes_open_);
         bind_toggle(*document_.gallery_choices_state_history, history_open_);
     }
 
     static void bind_toggle(CheckBox& toggle, Value<bool>& model) {
-        toggle.set_style(page_style());
         toggle.bind(model);
     }
 
     // The switches report through the group's status line.
     void build_switches() {
-        (*document_.gallery_choices_switches).set_style(page_style());
         on((*document_.gallery_choices_switches_auto_deploy).checked_changed(), *this,
            &ChoicesPage::switch_changed);
         on((*document_.gallery_choices_switches_notify).checked_changed(), *this, &ChoicesPage::switch_changed);
@@ -134,13 +130,13 @@ private:
         (*card_).interactive = true;
         (*card_).selection_behavior = CardSelectionBehavior::select_on_activation;
         static_cast<void>((*card_).set_header(
-            label("gallery.choices.card.title", "Rollout plan", 12.0, 700, shell_blue_dark)));
-        card_body_ = label("gallery.choices.card.body", "", 11.0, 400, ink);
+            label("gallery.choices.card.title", "Rollout plan", 12.0, 700, "heading")));
+        card_body_ = label("gallery.choices.card.body", "", 11.0, 400, "ink");
         (*card_body_).text_wrapping = TextWrapping::word;
         (*card_body_).vertical_alignment = VerticalAlignment::near;
         static_cast<void>((*card_).set_body(card_body_));
         card_footer_ = label("gallery.choices.card.footer", "Click or press Space to select",
-                             10.0, 600, muted);
+                             10.0, 600, "muted");
         static_cast<void>((*card_).set_footer(card_footer_));
     }
 

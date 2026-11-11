@@ -37,13 +37,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        const std::array<std::shared_ptr<ScaledGroupBox>, 6> groups{
-            document_.gallery_layout_flow_group,  document_.gallery_layout_flow_card_0,
-            document_.gallery_layout_flow_card_1, document_.gallery_layout_flow_card_2,
-            document_.gallery_layout_flow_card_3, document_.gallery_layout_table_group};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
         note_ = document_.gallery_layout_note;
     }
 
