@@ -518,7 +518,7 @@ public unsafe struct gf_theme_diagnostic
     public uint column;
 }
 
-/// <summary>gf_themes_table (table, 120 bytes).</summary>
+/// <summary>gf_themes_table (table, 136 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_themes_table
 {
@@ -538,6 +538,8 @@ public unsafe struct gf_themes_table
     public delegate* unmanaged[Cdecl]<ulong, gf_status> remove_image;
     public delegate* unmanaged[Cdecl]<byte*, uint, uint, ulong, ulong*, gf_status> load_pixels;
     public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_utf8_view, gf_theme_report*, gf_status> load_sheet;
+    public delegate* unmanaged[Cdecl]<gf_user_theme_policy, gf_status> set_user_theme_policy;
+    public delegate* unmanaged[Cdecl]<gf_theme_request_outcome*, gf_status> theme_request;
 }
 
 /// <summary>gf_host_capabilities (extensible, 32 bytes).</summary>

@@ -27,16 +27,11 @@
 //                       one to three WindowBackdrop names, comma-separated,
 //                       preferred first (e.g. window_material,transparent).
 //                       Other programs ignore it.
-//   --theme <id>        The Gallery compiles its project theme onto this
+//   --theme-base <id>   The Gallery compiles its project theme onto this
 //                       base: gui-forms (the default) or
 //                       windows-professional, as its Theme settings page
 //                       does. Other programs ignore it.
 //   --scheme light|dark The window's colour-scheme override.
-//   --theme-sheet <path>
-//                       The Gallery compiles this CSS theme sheet at start
-//                       up as one more package above its own, onto the
-//                       --theme base (theme work without a rebuild). An
-//                       error in it stops the program with its line.
 //   --reveal <id>       The Gallery scrolls its page so the control with
 //                       this stable id is at the top (capture staging).
 //                       Other programs ignore it.
@@ -47,9 +42,16 @@
 //                       ToolStrip's or a Ribbon's drop-down <item>. Other
 //                       programs ignore it.
 //
+// The user-theme options every GUI.Forms program takes (--theme
+// <name|built-in|path.css> and --export-themes [folder];
+// gui_forms/application/user_themes) are the library's: they are passed
+// over here (program_arguments), and the application settles --theme
+// itself.
+//
 // Header-only so every demo executable can include it without a new library.
 // It is demo-facing code: no host, renderer or platform type appears here.
 
+#include "gui_forms/application/user_themes/user_themes.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/window.hpp"
@@ -65,6 +67,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::demo {
 
@@ -76,22 +79,24 @@ struct ProgramOptions final {
     double scale_hint{};
     std::string page;
     std::string backdrop;
-    std::string theme;
+    std::string theme_base;
     // --scheme light|dark: the window's colour-scheme override; empty
     // follows the host's setting.
     std::string scheme;
     // --reveal and --open-menu (capture staging); empty when not given.
     std::string reveal;
     std::string open_menu;
-    // --theme-sheet: the CSS file's path; empty when not given.
-    std::string theme_sheet;
 };
 
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
                  "usage: %s [--automation] [--smoke-test] [--capture <path.png>] "
-                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme <id>] "
-                 "[--scheme light|dark] [--theme-sheet <path>] [--reveal <id>] [--open-menu <id>[/<item>]]\n",
+                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme-base <id>]
+"
+                 "       [--scheme light|dark] [--reveal <id>] [--open-menu <id>[/<item>]]
+"
+                 "       [--theme <name|built-in|path.css>]
+",
                  program != nullptr && *program != '\0' ? program : "gui-forms-demo");
 }
 
@@ -131,12 +136,19 @@ inline bool parse_size(std::string_view text, Size& size) {
 inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv) {
     ProgramOptions options;
     const char* program = argc > 0 && argv != nullptr ? argv[0] : "";
+    std::vector<std::string_view> given{};
     for (int index = 1; index < argc; ++index) {
         if (argv[index] == nullptr) {
             print_program_usage(program);
             return std::nullopt;
         }
-        const std::string_view argument(argv[index]);
+        given.push_back(std::string_view(argv[index]));
+    }
+    // The user-theme options are the library's (see above).
+    const std::vector<std::string_view> arguments = program_arguments(given);
+    const std::size_t argument_count = arguments.size();
+    for (std::size_t index = 0U; index < argument_count; ++index) {
+        const std::string_view argument = arguments[index];
         if (argument == "--automation") {
             options.automation = true;
             continue;
@@ -147,18 +159,19 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
         }
         const bool wants_value = argument == "--capture" || argument == "--size" ||
                                  argument == "--scale" || argument == "--page" ||
-                                 argument == "--backdrop" || argument == "--theme" ||
+                                 argument == "--backdrop" || argument == "--theme-base" ||
                                  argument == "--scheme" || argument == "--reveal" ||
-                                 argument == "--open-menu" || argument == "--theme-sheet";
+                                 argument == "--open-menu";
         if (!wants_value) {
             print_program_usage(program);
             return std::nullopt;
         }
-        if (index + 1 >= argc || argv[index + 1] == nullptr) {
+        if (index + 1U >= argument_count) {
             print_program_usage(program);
             return std::nullopt;
         }
-        const std::string_view value(argv[++index]);
+        index = index + 1U;
+        const std::string_view value = arguments[index];
         if (argument == "--capture") {
             if (value.empty()) {
                 print_program_usage(program);
@@ -177,24 +190,18 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                 return std::nullopt;
             }
             options.backdrop = std::string(value);
-        } else if (argument == "--theme") {
+        } else if (argument == "--theme-base") {
             if (value.empty()) {
                 print_program_usage(program);
                 return std::nullopt;
             }
-            options.theme = std::string(value);
+            options.theme_base = std::string(value);
         } else if (argument == "--scheme") {
             if (value != "light" && value != "dark") {
                 print_program_usage(program);
                 return std::nullopt;
             }
             options.scheme = std::string(value);
-        } else if (argument == "--theme-sheet") {
-            if (value.empty()) {
-                print_program_usage(program);
-                return std::nullopt;
-            }
-            options.theme_sheet = std::string(value);
         } else if (argument == "--reveal" || argument == "--open-menu") {
             if (value.empty()) {
                 print_program_usage(program);

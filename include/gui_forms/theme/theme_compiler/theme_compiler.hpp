@@ -271,6 +271,10 @@ struct UserThemeFiles final {
     std::string name{};
     std::string main_sheet{};
     std::vector<ThemePackageFile> files{};
+    // A sheet named on the command line or in GUI_FORMS_THEME_SHEET is a
+    // theme by being named: its `@theme` header is implied (no engine
+    // bound, version or author), and one it has is read as usual.
+    bool header_implied{};
 };
 
 // A user theme's limits (USER_THEMES.md section 2): its folder holds at

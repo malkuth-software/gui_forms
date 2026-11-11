@@ -3606,6 +3606,69 @@ if(GUI_FORMS_BUILD_TESTS)
     gui_forms_add_fuzz_test(form_document SOURCE fuzz/form_document_fuzz.cpp LIBRARIES gui_forms_controls)
     gui_forms_add_fuzz_test(dock_layout SOURCE fuzz/dock_layout_fuzz.cpp LIBRARIES gui_forms_core)
     gui_forms_add_fuzz_test(clipboard_image SOURCE fuzz/clipboard_image_fuzz.cpp LIBRARIES gui_forms_core)
+    # The theme a process is started with (--theme, GUI_FORMS_THEME_SHEET;
+    # gui_forms/application/user_themes): in process, then programs with no
+    # theme code of their own launched with each request (the C ABI's in
+    # cmake/CAbi.cmake). A program's expectation and policy come from its
+    # environment, so its command line holds only what a user would type.
+    add_executable(gui_forms_theme_request_tests tests/theme_language/theme_request_tests.cpp)
+    target_link_libraries(gui_forms_theme_request_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_request_tests COMMAND gui_forms_theme_request_tests)
+    set(GUI_FORMS_THEME_REQUEST_FIXTURES "${CMAKE_CURRENT_SOURCE_DIR}/tests/theme_language/theme_request")
+    # gui_forms_theme_request_case(<test> PROGRAM <target> EXPECT <outcome>
+    #     [POLICY refused|replaces] [SHEET_ENV <path>] [APPLICATION] [ARGS <arguments>...])
+    function(gui_forms_theme_request_case test)
+        cmake_parse_arguments(PARSE_ARGV 1 CASE "APPLICATION" "PROGRAM;EXPECT;POLICY;SHEET_ENV" "ARGS")
+        add_test(NAME ${test} COMMAND ${CASE_PROGRAM} ${CASE_ARGS})
+        set(_modification "GF_EXPECT_THEME_REQUEST=set:${CASE_EXPECT}")
+        if(CASE_POLICY)
+            list(APPEND _modification "GF_TEST_POLICY=set:${CASE_POLICY}")
+        else()
+            list(APPEND _modification "GF_TEST_POLICY=unset:")
+        endif()
+        if(CASE_SHEET_ENV)
+            list(APPEND _modification "GUI_FORMS_THEME_SHEET=set:${CASE_SHEET_ENV}")
+        else()
+            list(APPEND _modification "GUI_FORMS_THEME_SHEET=unset:")
+        endif()
+        if(CASE_APPLICATION)
+            list(APPEND _modification "GF_TEST_APPLICATION=set:1")
+        else()
+            list(APPEND _modification "GF_TEST_APPLICATION=unset:")
+        endif()
+        set_tests_properties(${test} PROPERTIES ENVIRONMENT_MODIFICATION "${_modification}")
+    endfunction()
+    # The cases every launched program runs, its tests named <prefix>_<case>.
+    function(gui_forms_theme_request_cases prefix program)
+        set(_fixtures "${GUI_FORMS_THEME_REQUEST_FIXTURES}")
+        gui_forms_theme_request_case(${prefix}_none PROGRAM ${program} EXPECT none)
+        gui_forms_theme_request_case(${prefix}_sheet PROGRAM ${program} EXPECT applied
+            ARGS --theme "${_fixtures}/good.css")
+        gui_forms_theme_request_case(${prefix}_built_in PROGRAM ${program} EXPECT built_in ARGS --theme built-in)
+        gui_forms_theme_request_case(${prefix}_name PROGRAM ${program} EXPECT applied ARGS --theme harbour)
+        gui_forms_theme_request_case(${prefix}_unknown_name PROGRAM ${program} EXPECT unknown_name
+            ARGS --theme dusk)
+        gui_forms_theme_request_case(${prefix}_bad_sheet PROGRAM ${program} EXPECT refused
+            ARGS --theme "${_fixtures}/bad.css")
+        gui_forms_theme_request_case(${prefix}_missing_sheet PROGRAM ${program} EXPECT unreadable
+            ARGS --theme "${_fixtures}/absent.css")
+        gui_forms_theme_request_case(${prefix}_policy_refused PROGRAM ${program} EXPECT ignored_by_policy
+            POLICY refused ARGS --theme "${_fixtures}/good.css")
+        gui_forms_theme_request_case(${prefix}_policy_replaces PROGRAM ${program} EXPECT applied
+            POLICY replaces ARGS --theme "${_fixtures}/good.css")
+        gui_forms_theme_request_case(${prefix}_environment PROGRAM ${program} EXPECT applied
+            SHEET_ENV "${_fixtures}/good.css")
+        gui_forms_theme_request_case(${prefix}_command_line_wins PROGRAM ${program} EXPECT refused
+            SHEET_ENV "${_fixtures}/good.css" ARGS --theme "${_fixtures}/bad.css")
+        gui_forms_theme_request_case(${prefix}_malformed PROGRAM ${program} EXPECT malformed ARGS --theme)
+    endfunction()
+    add_executable(gui_forms_theme_request_app tests/theme_language/theme_request_app.cpp)
+    target_link_libraries(gui_forms_theme_request_app PRIVATE gui_forms_controls)
+    # The user theme `harbour`, in the `themes` folder beside the program.
+    add_custom_command(TARGET gui_forms_theme_request_app POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${GUI_FORMS_THEME_REQUEST_FIXTURES}/harbour.css"
+            "$<TARGET_FILE_DIR:gui_forms_theme_request_app>/themes/harbour.css")
+    gui_forms_theme_request_cases(gui_forms_theme_request_app gui_forms_theme_request_app)
 
     add_executable(gui_forms_dock_layout_tests tests/dock_layout_tests.cpp)
     target_link_libraries(gui_forms_dock_layout_tests PRIVATE gui_forms_core)

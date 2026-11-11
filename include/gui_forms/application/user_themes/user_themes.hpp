@@ -117,6 +117,168 @@ enum class ThemeSelection : std::uint8_t {
 [[nodiscard]] ThemeSelection select_user_theme(ApplicationResources& resources, const UserThemeScan& scan,
                                                const ThemeChoice& choice);
 
+// -- The theme every program takes from its start (USER_THEMES.md 5, 8) -----
+//
+// Every GUI.Forms program, C++ or through the C ABI, takes a theme from the
+// command line it was started with, with no code of its own:
+//
+//   --theme built-in        no user theme (the way back, never translated);
+//   --theme <name>          the user theme of that name, from the folder
+//                           beside the program or the per-user one;
+//   --theme <path.css>      that sheet, read as a user theme.
+//
+// A value ending in `.css` (any case) or holding `/` or a backslash is a
+// path; any other but `built-in` is a name. The environment variable
+// GUI_FORMS_THEME_SHEET takes the same values, usually a sheet's path, for
+// a program started without --theme. The command line wins over the environment, and both
+// over the program's own choice (set_user_theme, such as its saved
+// setting) for that run. The program's UserThemePolicy holds over all of
+// them: refused, the request is ignored with a warning.
+//
+// The request is read when the application is made (Application::create,
+// the C ABI's application.create, or the C ABI library's own resources)
+// and settled when the first window is made with its resources, after the
+// program has chosen its policy and theme. A request that cannot be met (no
+// theme of that name, a file that does not read, a sheet that does not
+// compile, a misformed command line) is never applied: its findings,
+// `file:line:column: error code ...`, go to stderr and the report
+// (ApplicationResources::theme_request_report), and the program runs on its
+// own theme.
+//
+// The options stay in the process's arguments: the platform hands a
+// program its argument vector before any library code runs, and GUI.Forms
+// does not rewrite it. program_arguments gives the arguments without them,
+// for a program that parses its own.
+
+// The environment variable naming a theme sheet for a program started
+// without --theme.
+inline constexpr std::string_view theme_sheet_environment_variable = "GUI_FORMS_THEME_SHEET";
+
+enum class ThemeRequestSource : std::uint8_t { none, command_line, environment };
+
+enum class ThemeRequestKind : std::uint8_t {
+    none,
+    // `built-in`: no user theme.
+    built_in,
+    // A user theme by name.
+    named,
+    // A sheet by its path.
+    sheet,
+};
+
+struct ThemeRequest final {
+    ThemeRequestSource source{ThemeRequestSource::none};
+    ThemeRequestKind kind{ThemeRequestKind::none};
+    // The theme's name, or the sheet's path, as given.
+    std::string value{};
+    // Set when the command line's --theme cannot be read (no value, or
+    // given twice); the request is then none, with source command_line.
+    std::string error{};
+};
+
+// The request of `arguments` (after the program's own name) and of
+// `environment_sheet`, the environment variable's value (empty where
+// unset): the command line's --theme when given, else the environment's
+// sheet.
+[[nodiscard]] ThemeRequest read_theme_request(std::span<const std::string_view> arguments,
+                                              std::string_view environment_sheet);
+
+// The request the process was started with: read_theme_request over its
+// own arguments and GUI_FORMS_THEME_SHEET.
+[[nodiscard]] ThemeRequest process_theme_request();
+
+// `arguments` without the user-theme options (`--theme <value>` and
+// `--export-themes [folder]`), in order: what a program parses as its own.
+// The views borrow `arguments`' text.
+[[nodiscard]] std::vector<std::string_view> program_arguments(std::span<const std::string_view> arguments);
+
+// The process's own arguments after its name, as UTF-8 (Windows: its
+// command line split as the C runtime splits it; Linux:
+// /proc/self/cmdline; macOS: the C runtime's argument vector). Empty where
+// the platform gives none.
+[[nodiscard]] std::vector<std::string> process_arguments();
+
+// The folders a process reads user themes from: `themes` beside its
+// executable, and the per-user folder of the program named by the
+// executable's file name without its extension (per_user_theme_folder).
+// Either is empty where the platform names none.
+[[nodiscard]] UserThemeFolders process_theme_folders();
+
+// What a request compiles against. Its library is shared, so a request
+// held for the first window keeps what it needs alive.
+struct ThemeRequestContext final {
+    UserThemeFolders folders{};
+    // The program's installed packages, which a user theme may `@import`.
+    // Null: none.
+    std::shared_ptr<const ThemeLibrary> library{};
+    // The base a replacing theme is compiled onto (the program's).
+    ThemeBase base{default_theme_base};
+    // The control types a selector may name: the stock ones and the
+    // program's own. Empty: the stock ones alone.
+    std::vector<ControlAnatomy> controls{};
+    // The program's published values.
+    std::vector<std::string> published_values{};
+    // The effects a theme's `effect` may name; it must outlive the request.
+    // Null: only the names' form is checked.
+    const EffectRegistry* effects{};
+};
+
+enum class ThemeRequestOutcome : std::uint8_t {
+    // No request.
+    none,
+    // `built-in`: no user theme, the program's choice included.
+    built_in,
+    // The theme was compiled and selected.
+    applied,
+    // The program's policy refuses user themes; nothing changed.
+    ignored_by_policy,
+    // No user theme of that name was found; nothing changed.
+    unknown_name,
+    // The sheet, or the user theme of that name, does not compile; nothing
+    // changed.
+    refused,
+    // The sheet's file does not read (missing, over 1 MiB, unreadable).
+    unreadable,
+    // The command line's --theme cannot be read; nothing changed.
+    malformed,
+};
+
+// What a request did, kept by the resources it was settled on.
+struct ThemeRequestReport final {
+    ThemeRequest request{};
+    ThemeRequestOutcome outcome{ThemeRequestOutcome::none};
+    // The compile's findings: a refusal's diagnostics, or an applied
+    // theme's warnings.
+    std::vector<ThemeCompileDiagnostic> findings{};
+    // The lines written to stderr, in order.
+    std::vector<std::string> log{};
+};
+
+// A request held by resources until their first window
+// (ApplicationResources::hold_theme_request).
+struct DeferredThemeRequest final {
+    ThemeRequest request{};
+    ThemeRequestContext context{};
+};
+
+// Settles `request` on `resources` now, writing the report's log lines to
+// stderr: under the refused policy, ignored with a warning; `built-in`
+// selects no user theme; a name selects the theme of that name found in
+// the context's folders; a sheet is read (at most 1 MiB) and compiled as a
+// user theme whose header is implied (named `theme-sheet`), at the levels
+// the policy needs, onto the context's base. Nothing is selected when the
+// request cannot be met, so the program's own choice stands.
+// std::logic_error once a window shares `resources` (as set_user_theme).
+// UI thread.
+[[nodiscard]] ThemeRequestReport apply_theme_request(ApplicationResources& resources, const ThemeRequest& request,
+                                                     const ThemeRequestContext& context);
+
+// Holds the process's request (process_theme_request) on `resources` with
+// `context`, for their first window to settle; replaces a request held
+// already. Nothing is held for a process started with none.
+// std::logic_error once a window shares `resources`. UI thread.
+void hold_process_theme_request(ApplicationResources& resources, ThemeRequestContext context);
+
 // What an export did: the files written, those already there (left as they
 // were) and those that could not be written, by path; and the package
 // resources and icons that a user theme cannot hold.

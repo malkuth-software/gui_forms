@@ -283,10 +283,28 @@ static void check_tooltip(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(button), GF_STATUS_OK, "release the tooltip's button");
 }
 
+/* The theme the process was started with (--theme, GUI_FORMS_THEME_SHEET):
+ * the kit is started with none, so the request reads NONE. The launched
+ * cases are gf_abi_theme_request_app.c's. A policy is checked before the
+ * resources are touched, and chosen only before their first window. */
+static void check_theme_request(gf_kit* kit) {
+    gf_theme_request_outcome outcome = GF_THEME_REQUEST_MALFORMED + 1u;
+    gf_kit_status(kit, (*kit).themes.theme_request(&outcome), GF_STATUS_OK, "read the theme request");
+    gf_kit_check(kit, outcome == GF_THEME_REQUEST_NONE, "a process started without a theme has no request");
+    gf_kit_status(kit, (*kit).themes.theme_request(NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "theme_request needs its output");
+    gf_kit_status(kit, (*kit).themes.set_user_theme_policy(GF_USER_THEME_POLICY_REFUSED + 1u),
+                  GF_STATUS_INVALID_ARGUMENT, "an unknown policy is refused");
+    const gf_status chosen = (*kit).themes.set_user_theme_policy(GF_USER_THEME_POLICY_LAYERED);
+    gf_kit_check(kit, chosen == GF_STATUS_OK || chosen == GF_STATUS_INVALID_STATE,
+                 "the layered policy is chosen, or refused once a window shares the resources");
+}
+
 void gf_kit_themes(gf_kit* kit) {
     check_load(kit);
     check_load_sheet(kit);
     check_published(kit);
     check_library(kit);
     check_tooltip(kit);
+    check_theme_request(kit);
 }

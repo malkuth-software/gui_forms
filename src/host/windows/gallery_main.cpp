@@ -3,9 +3,6 @@
 #include "program_options.hpp"
 
 #include <cstdio>
-#include <fstream>
-#include <sstream>
-#include <stdexcept>
 #include <memory>
 #include <optional>
 #include <string>
@@ -15,31 +12,15 @@ int main(int argc, char** argv) {
     const std::optional<gui_forms::demo::ProgramOptions> program =
         gui_forms::demo::parse_program_options(argc, argv);
     if (!program) return 2;
-    const std::optional<gui_forms::ThemeBase> base = gui_forms::gallery::gallery_theme_base((*program).theme);
+    const std::optional<gui_forms::ThemeBase> base = gui_forms::gallery::gallery_theme_base((*program).theme_base);
     if (!base) {
-        std::fprintf(stderr, "unknown Gallery theme: %s\n", (*program).theme.c_str());
+        std::fprintf(stderr, "unknown Gallery theme base: %s\n", (*program).theme_base.c_str());
         return 2;
     }
     // The program's application before any window (APP_WINDOW_RULES_DESIGN
     // A.5): the Gallery window joins it and takes the theme it sets.
-    std::string sheet;
-    if (!(*program).theme_sheet.empty()) {
-        std::ifstream file((*program).theme_sheet, std::ios::binary);
-        if (!file) {
-            std::fprintf(stderr, "cannot read theme sheet: %s\n", (*program).theme_sheet.c_str());
-            return 2;
-        }
-        std::ostringstream text;
-        text << file.rdbuf();
-        sheet = text.str();
-    }
-    std::unique_ptr<gui_forms::Application> application;
-    try {
-        application = gui_forms::gallery::create_gallery_application(*base, sheet, (*program).theme_sheet);
-    } catch (const std::runtime_error& refused) {
-        std::fprintf(stderr, "theme sheet refused: %s\n", refused.what());
-        return 2;
-    }
+    const std::unique_ptr<gui_forms::Application> application =
+        gui_forms::gallery::create_gallery_application(*base);
     gui_forms::host::WindowsHostOptions options;
     options.title = std::string(gui_forms::gallery::gallery_program_name);
     options.initial_size = gui_forms::gallery::gallery_default_size;

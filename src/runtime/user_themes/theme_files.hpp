@@ -49,6 +49,13 @@ enum class FileOutcome : std::uint8_t {
 // `bytes` cleared and nothing read, for a file over `maximum_bytes`.
 [[nodiscard]] FileOutcome read_file(std::string_view path, std::size_t maximum_bytes, std::string& bytes);
 
+// Reads the file a user named at `path`, following a link, into `bytes`
+// (replaced): a block at a time, so a file whose size the platform does not
+// report (Linux's /proc) reads whole; over_limit, with `bytes` cleared,
+// past `maximum_bytes`; missing where nothing is there; failed for a folder
+// or a read that fails.
+[[nodiscard]] FileOutcome read_named_file(std::string_view path, std::size_t maximum_bytes, std::string& bytes);
+
 // Writes `bytes` as a new file at `path`, making the folders above it; a
 // file already there is `exists` and keeps its bytes (never overwritten).
 // On failed, a partly written file may remain.
@@ -62,5 +69,30 @@ enum class FileOutcome : std::uint8_t {
 // elsewhere `$XDG_CONFIG_HOME/<program>` or `~/.config/<program>`), from
 // the environment; empty where the environment names none.
 [[nodiscard]] std::string program_configuration_folder(std::string_view program);
+
+// The environment variable `name`'s value as UTF-8; empty where it is unset.
+[[nodiscard]] std::string environment_value(std::string_view name);
+
+// The running program's own file as an absolute UTF-8 path (Windows: the
+// process's module; Linux: /proc/self/exe; macOS: _NSGetExecutablePath);
+// empty where the platform names none.
+[[nodiscard]] std::string executable_path();
+
+// The arguments the process was started with, after the program's own
+// name, as UTF-8 (Windows: the process's command line split as the C
+// runtime splits it, split_windows_command_line; Linux:
+// /proc/self/cmdline; macOS: the C runtime's argument vector); empty where
+// the platform gives none.
+[[nodiscard]] std::vector<std::string> process_arguments();
+
+// A Windows command line, UTF-8, split into its arguments by the C
+// runtime's rules (the program's name first): the first argument runs to
+// the first space or tab outside quotes, and a quote there only toggles
+// quoting; in the others, 2n backslashes and a quote are n backslashes and
+// a toggle, 2n+1 backslashes and a quote are n backslashes and a literal
+// quote, other backslashes are literal, and inside quotes `""` is a
+// literal quote. Every byte of a multi-byte UTF-8 character is above 0x7F,
+// so splitting the UTF-8 text is splitting the UTF-16 one.
+[[nodiscard]] std::vector<std::string> split_windows_command_line(std::string_view line);
 
 } // namespace gui_forms::detail::theme_files
