@@ -4571,23 +4571,20 @@ if(GUI_FORMS_BUILD_TESTS)
         list(GET _gui_fail_fast_fields 0 _gui_fail_fast_mode)
         list(GET _gui_fail_fast_fields 1 _gui_fail_fast_site)
         list(GET _gui_fail_fast_fields 2 _gui_fail_fast_text)
-        # Each mode ends the process with std::abort (SIGABRT outside Windows),
-        # which CTest counts as a failure whatever the output; the runner
-        # turns the abnormal end into exit 0 so the expressions decide.
+        # fail_fast() aborts: SIGABRT on Linux and macOS, which CTest counts as a failure
+        # whatever the output says, so the mode runs through cmake/expect_fail_fast.cmake.
         add_test(NAME gui_forms_fail_fast_${_gui_fail_fast_mode}
-                 COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_expecting_abort.py $<TARGET_FILE:gui_forms_fail_fast_tests>
-                         ${_gui_fail_fast_mode})
-        set_tests_properties(gui_forms_fail_fast_${_gui_fail_fast_mode} PROPERTIES
-            PASS_REGULAR_EXPRESSION "GUI.Forms: fatal exception at ${_gui_fail_fast_site}: ${_gui_fail_fast_text}"
-            FAIL_REGULAR_EXPRESSION "survived")
+                 COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_fail_fast_tests>
+                         -DMODE=${_gui_fail_fast_mode}
+                         "-DEXPECTED=GUI.Forms: fatal exception at ${_gui_fail_fast_site}: ${_gui_fail_fast_text}"
+                         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
     endforeach()
     # The report prints the failure snapshot's shadow frames: the event frame
     # the target threw in, closed by unwinding before the boundary caught it.
     add_test(NAME gui_forms_fail_fast_shadow_frames
-             COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_expecting_abort.py $<TARGET_FILE:gui_forms_fail_fast_tests> shadow_frames)
-    set_tests_properties(gui_forms_fail_fast_shadow_frames PROPERTIES
-        PASS_REGULAR_EXPRESSION "GUI.Forms: shadow frames \\(1 open, 1 recorded\\):[\r\n]+  #0 kind 3 fail-fast.frame click 0"
-        FAIL_REGULAR_EXPRESSION "survived")
+             COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_fail_fast_tests> -DMODE=shadow_frames
+                     "-DEXPECTED=GUI.Forms: shadow frames \\(1 open, 1 recorded\\):[^#]*#0 kind 3 fail-fast.frame click 0"
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
 
     # Borrowed views (borrow sanitizer): `plain` uses fresh views and passes
     # in both builds; in the checked build each stale mode must end the
@@ -4606,12 +4603,12 @@ if(GUI_FORMS_BUILD_TESTS)
             string(REPLACE "|" ";" _gui_borrow_fields "${_gui_borrow_case}")
             list(GET _gui_borrow_fields 0 _gui_borrow_mode)
             list(GET _gui_borrow_fields 1 _gui_borrow_text)
+            # Each mode ends in fail_fast's abort (cmake/expect_fail_fast.cmake).
             add_test(NAME gui_forms_borrowed_view_${_gui_borrow_mode}
-                     COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_expecting_abort.py $<TARGET_FILE:gui_forms_borrowed_view_tests>
-                             ${_gui_borrow_mode})
-            set_tests_properties(gui_forms_borrowed_view_${_gui_borrow_mode} PROPERTIES
-                PASS_REGULAR_EXPRESSION "GUI.Forms borrow sanitizer: a borrowed view was ${_gui_borrow_text}"
-                FAIL_REGULAR_EXPRESSION "survived")
+                     COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_borrowed_view_tests>
+                             -DMODE=${_gui_borrow_mode}
+                             "-DEXPECTED=GUI.Forms borrow sanitizer: a borrowed view was ${_gui_borrow_text}"
+                             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
         endforeach()
     endif()
 
