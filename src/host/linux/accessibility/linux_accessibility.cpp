@@ -558,6 +558,7 @@ gboolean answer_contains(AtkComponent* object, gint x, gint y, AtkCoordType coor
 gboolean contains(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
     return gui_forms::detail::call_failing_fast("linux.atk.contains", &answer_contains, object, x, y, coordinates);
 }
+AtkObject* at_point(AtkComponent* object, gint x, gint y, AtkCoordType coordinates);
 AtkObject* answer_at_point(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
     const NodeData& value = data(object);
     for (std::size_t i = value.children.size(); i > 0; --i) {
