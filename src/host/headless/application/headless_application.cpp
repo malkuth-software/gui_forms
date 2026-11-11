@@ -620,6 +620,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     // Before the session is bound (stage T5).
     if (window.options.non_opaque) static_cast<void>((*window.model).declare_non_opaque());
     window.host = std::make_unique<HeadlessHost>(*window.model);
+    if (refuse_popup_alpha_ && popup.has_value()) (*window.host).headless_services().refuse_backdrops();
     const HostDispatchResult attached = (*window.host).dispatch(
         HostAttachEvent{window.options.initial_size, 1.0}, next_timestamp());
     if (!attached.accepted()) {

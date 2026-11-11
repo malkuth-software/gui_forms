@@ -12,6 +12,7 @@
 
 #include "../src/core/engine/primitives/material/overlay_shadow_primitive.hpp"
 
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -124,6 +125,16 @@ bool shadow_raster(const VisualPaintOperationSnapshot& operation, Size size) {
     return placed && covers;
 }
 
+// Whether two rectangles agree to within rounding: a clip is an
+// intersection, whose width is a difference of edges.
+bool same_rect(Rect left, Rect right) {
+    constexpr double tolerance = 1e-9;
+    const bool same = std::fabs(left.x - right.x) < tolerance && std::fabs(left.y - right.y) < tolerance &&
+                      std::fabs(left.width - right.width) < tolerance &&
+                      std::fabs(left.height - right.height) < tolerance;
+    return same;
+}
+
 // `overlay` cast the window theme's overlay shadow from its own rect, before
 // anything else it painted, as the engine's raster with no host box shadow,
 // and reports its reach unclipped by its layer.
@@ -139,7 +150,7 @@ void require_cast_shadow(const VisualControlInspection& overlay, const Theme& th
                       shadow_raster(overlay.display_operations[0], size);
     const Insets reach = box_shadow_visual_outsets(layers);
     const bool reported = overlay.layout.visual_outsets == reach && !overlay.layout.clipped_by_ancestor &&
-                          overlay.layout.effective_clip == overlay.layout.visual_bounds;
+                          same_rect(overlay.layout.effective_clip, overlay.layout.visual_bounds);
     require(cast && reported, message);
 }
 

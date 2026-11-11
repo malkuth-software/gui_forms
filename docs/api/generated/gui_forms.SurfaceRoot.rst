@@ -337,6 +337,9 @@ gui_forms::SurfaceRoot
       **active_changed** : ``Event<bool>``
          Raised after :cpp:func:`active <gui_forms::SurfaceRoot::active>` changes, with the new value.
 
+      **frame_moved** : ``Event<>``
+         Raised when the host reports that the native window moved on the screen or began a native move or size loop: what is placed against the window from outside it (a menu's Popup windows) closes. Host only: report_frame_moved. UI thread.
+
       **backdrop_changed** : ``Event<const WindowBackdropGrant&>``
          Raised on the UI thread after the grant's backdrop, reason or request changes (not for a new generation alone), once per change. When the granted backdrop changes, the backplane's generation has advanced and the window is marked for repaint before it is raised. A handler may call request_backdrop; its change raises its own event within this one, and later handlers of this emission still see this emission's grant.
 
@@ -430,6 +433,8 @@ gui_forms::SurfaceRoot
       * - :cpp:func:`fill_line_break_opportunities_utf8 <gui_forms::SurfaceRoot::fill_line_break_opportunities_utf8>`
         - The installed provider's line-break opportunities (TextMetricsProvider::fill_line_break_opportunities_utf8), or the estimate without one.
       * - :cpp:func:`shares_resources_with <gui_forms::SurfaceRoot::shares_resources_with>`
+        -  
+      * - :cpp:func:`report_frame_moved <gui_forms::SurfaceRoot::report_frame_moved>`
         -  
       * - :cpp:func:`declare_non_opaque <gui_forms::SurfaceRoot::declare_non_opaque>`
         - Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/ PLAN.md §2).
@@ -1042,6 +1047,10 @@ gui_forms::SurfaceRoot
 
       Raised after :cpp:func:`active <gui_forms::SurfaceRoot::active>` changes, with the new value.
 
+   .. cpp:function:: Event<>& frame_moved() noexcept
+
+      Raised when the host reports that the native window moved on the screen or began a native move or size loop: what is placed against the window from outside it (a menu's Popup windows) closes. Host only: report_frame_moved. UI thread.
+
    .. cpp:function:: Event<const WindowBackdropGrant&>& backdrop_changed() noexcept
 
       Raised on the UI thread after the grant's backdrop, reason or request changes (not for a new generation alone), once per change. When the granted backdrop changes, the backplane's generation has advanced and the window is marked for repaint before it is raised. A handler may call request_backdrop; its change raises its own event within this one, and later handlers of this emission still see this emission's grant.
@@ -1208,6 +1217,8 @@ gui_forms::SurfaceRoot
       The installed provider's line-break opportunities (TextMetricsProvider::fill_line_break_opportunities_utf8), or the estimate without one.
 
    .. cpp:function:: bool shares_resources_with(const SurfaceRoot& other) const noexcept
+
+   .. cpp:function:: void report_frame_moved()
 
    .. cpp:function:: bool declare_non_opaque()
 

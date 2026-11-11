@@ -26,6 +26,9 @@ public:
     PopupStandby& operator=(const PopupStandby&) = delete;
 
     [[nodiscard]] bool show(std::size_t slot, const Control::Ptr& content, Rect bounds);
+    // Opens the slot's window hidden when it has none; false when the run
+    // refuses (Window::prepare_popup_window).
+    [[nodiscard]] bool prepare(std::size_t slot);
     [[nodiscard]] bool move(std::size_t slot, Rect bounds);
     void hide(std::size_t slot) noexcept;
     [[nodiscard]] Window* model(std::size_t slot) const noexcept;

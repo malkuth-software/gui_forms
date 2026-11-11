@@ -22,6 +22,9 @@ class PopupLiftFrame final : public Control {
 public:
     explicit PopupLiftFrame(StableId id) : Control(std::move(id)) {
         set_paint_plane(PaintPlane::overlay);
+        // The shadow round the face takes no input: the host passes a
+        // point there to the window beneath.
+        hit_test_transparent = true;
     }
 
     // Makes `content` the frame's one child; `shadow` says whether the frame
@@ -94,6 +97,8 @@ bool PopupLift::lift(Window& window, const Control::Ptr& content, const Rect fac
     release();
     if (!content || !window.popup_windows_available()) return false;
     if (!frame_) frame_ = make_control<detail::PopupLiftFrame>(StableId("popup.lift.frame"));
+    // The window first, so the shadow follows what it was granted.
+    static_cast<void>(window.prepare_popup_window(Window::picker_popup_window_slot));
     const Insets insets = (*frame_).hold(content, window.popup_windows_translucent());
     (*frame_).place(Size{face.width, face.height});
     const Rect bounds{face.x - insets.left, face.y - insets.top, face.width + insets.left + insets.right,

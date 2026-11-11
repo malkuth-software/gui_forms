@@ -59,6 +59,23 @@ std::string hosted_key(const RibbonCommandSpec& command) {
     return key;
 }
 
+// The drop-down menu's outside press while it shows a two-pane submenu: the
+// press dismisses the two-pane menu too (as choosing a command does), so a
+// press away from both, the File tab's included, closes every menu. The
+// flags are the ribbon's, which owns the menu; the press still closes the
+// submenu (false).
+struct TwoPaneOutsidePress final {
+    const bool* application_open{};
+    const bool* application_overlay_open{};
+    bool* dismiss_two_pane{};
+    bool operator()(const PointerEvent& event) const {
+        const bool press = event.phase == EventPhase::target && event.action == PointerAction::down &&
+                           event.button != PointerButton::none;
+        if (press && *application_open && *application_overlay_open) *dismiss_two_pane = true;
+        return false;
+    }
+};
+
 } // namespace
 
 // -- construction --------------------------------------------------------------
@@ -71,6 +88,8 @@ Ribbon::Ribbon(StableId ribbon_id) : Control(std::move(ribbon_id)) {
         *this, Delegate<const MenuItemInvocation&>::bind<Ribbon, &Ribbon::on_overlay_item_invoked>(*this));
     overlay_changed_ = (*overlay_).open_changed().subscribe(
         *this, Delegate<bool>::bind<Ribbon, &Ribbon::on_overlay_open_changed>(*this));
+    (*overlay_).set_outside_pointer_handler(
+        TwoPaneOutsidePress{&application_open_, &application_overlay_open_, &application_submenu_invoked_});
 }
 
 // A live ribbon is disposed (closing its overlays) before it is destroyed;
@@ -2296,7 +2315,8 @@ void Ribbon::on_overlay_open_changed(bool open) {
     open_command_.reset();
     if (application_overlay_) (*application_overlay_).submenu_closed();
     if (application_panel_) (*application_panel_).submenu_closed();
-    // A two-pane submenu's command ran: the two-pane menu closes after it.
+    // A two-pane submenu's command ran, or a press away from it dismissed
+    // it: the two-pane menu closes after it.
     if (application_submenu_invoked_) {
         application_submenu_invoked_ = false;
         close_application_overlay();

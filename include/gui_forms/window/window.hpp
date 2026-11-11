@@ -191,7 +191,14 @@ public:
     // Whether this window's popup windows are translucent now: false on a
     // run whose host draws them opaque (X11 without a compositing manager),
     // where content shown in them casts no shadow and does not fade.
+    // The answer follows what this run's popup windows were really granted
+    // once one has opened: open the slot first (prepare_popup_window) so
+    // that content sized for its shadow fits the window that shows it.
     [[nodiscard]] bool popup_windows_translucent() const;
+    // Opens `slot`'s Popup window now, hidden, when it is not open yet (it
+    // stays warm for the slot's shows). False when the run cannot open one.
+    // std::out_of_range for a slot out of range. UI thread.
+    bool prepare_popup_window(std::size_t slot);
     [[nodiscard]] bool show_popup_window(std::size_t slot, const Control::Ptr& content, Rect bounds);
     [[nodiscard]] bool move_popup_window(std::size_t slot, Rect bounds);
     void hide_popup_window(std::size_t slot) noexcept;

@@ -102,6 +102,8 @@ bool Ribbon::show_application_overlay(MenuOpenMode mode) {
         application_overlay_revoked_ =
             (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_application_overlay_revoked>(*this));
     }
+    application_owner_moved_ = (*window).frame_moved().subscribe(
+        *this, Delegate<>::bind<Ribbon, &Ribbon::on_application_owner_moved>(*this));
     application_scope_ = (*window).begin_focus_scope(application_overlay_, application_overlay_);
     // Where the run has Popup windows the panel shows in the picker Popup
     // below the File tab, reaching past the owner's edges where it must;
@@ -142,9 +144,22 @@ bool Ribbon::open_application_submenu(const MenuItemSpec& item, const Control& p
     return application_open_;
 }
 
+// The two-pane menu's submenus show in the drop-down menu; it serves them
+// only while the two-pane menu is open.
+void Ribbon::close_application_submenus() noexcept {
+    if (!overlay_ || !(*overlay_).is_open()) return;
+    try {
+        (*overlay_).close();
+    } catch (...) {
+    }
+}
+
 void Ribbon::close_application_overlay() noexcept {
     if (!application_overlay_open_) return;
     application_overlay_open_ = false;
+    // Its submenus first, deepest first (the menu closes its own chain),
+    // then the panel: no submenu outlives the menu that opened it.
+    close_application_submenus();
     application_lift_.release();
     application_submenu_invoked_ = false;
     Window* const window = attached_window();
@@ -156,6 +171,7 @@ void Ribbon::close_application_overlay() noexcept {
     }
     application_scope_ = {};
     application_overlay_revoked_.disconnect();
+    application_owner_moved_.disconnect();
     application_overlay_token_.disconnect();
     if (!is_alive()) return;
     try {
@@ -168,12 +184,20 @@ void Ribbon::close_application_overlay() noexcept {
 void Ribbon::on_application_overlay_revoked() {
     if (!application_overlay_open_) return;
     application_overlay_open_ = false;
+    close_application_submenus();
     application_lift_.release();
     application_submenu_invoked_ = false;
     application_scope_ = {};
     application_overlay_revoked_.disconnect();
+    application_owner_moved_.disconnect();
     invalidate(Dirty::semantics);
     repaint_part(Hit::Kind::application, 0U, {});
+}
+
+// The owner moved under the menu's Popup windows: the menu and its
+// submenus close.
+void Ribbon::on_application_owner_moved() {
+    close_menus();
 }
 
 // -- Backstage -----------------------------------------------------------------

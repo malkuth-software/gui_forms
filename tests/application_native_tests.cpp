@@ -3,6 +3,7 @@
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
 
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cwchar>
@@ -363,6 +364,11 @@ void check_wheel_messages() {
 // requested and read, the pointer, the window at a point and ordering. The
 // runtime window stays hidden; nothing here needs the desktop's attention.
 struct RuntimeWindowsProbe final {
+    // The tooltip's Splash window on the real host: whether one showed and
+    // its client size in logical units.
+    bool tool_tip_window{};
+    Size tool_tip_client{};
+    std::string tool_tip_windows{};
     ApplicationWindowHandle floating{};
     unsigned floating_ready{};
     unsigned floating_closed{};
@@ -495,6 +501,45 @@ void check_splash_window(RuntimeWindowsProbe& state, HWND owner) {
     state.splash_transparent = hit == HTTRANSPARENT;
 }
 #endif
+#if defined(_WIN32)
+// Shows a short tooltip through the window's presenter, the path a WinForms
+// ToolTip takes through the C ABI (overlays.show_tool_tip, ToolTip::show,
+// Window::show_tool_tip), and reads the size of the one visible Splash
+// window the main window owns: the bubble and at most its shadow, never a
+// canvas around it (owner, 2026-11-09 and 2026-11-10: SDR#).
+void show_tool_tip_window(RuntimeWindowsProbe& state, Window& window) {
+    const Control::Ptr anchor = make_control<Control>(StableId("native.tooltip.anchor"));
+    (*anchor).set_requested_bounds(Rect{10.0, 10.0, 80.0, 24.0});
+    (*anchor).tool_tip_text = "Main Menu";
+    (*window.root()).add_child(anchor);
+    window.perform_layout();
+    window.show_tool_tip(anchor, std::chrono::milliseconds(0));
+    const HWND main_window = FindWindowW(nullptr, L"GUI.Forms runtime windows fixture");
+    if (main_window == nullptr || !window.tool_tip_visible()) {
+        state.tool_tip_windows = "no tooltip showed";
+        static_cast<void>((*window.root()).remove_child((*anchor).runtime_id()));
+        return;
+    }
+    PopupWindows popups{};
+    popups.owner = main_window;
+    static_cast<void>(GetClassNameW(main_window, popups.owner_class, 128));
+    EnumThreadWindows(GetCurrentThreadId(), &collect_popup_window, reinterpret_cast<LPARAM>(&popups));
+    const double scale = static_cast<double>(GetDpiForWindow(main_window)) / 96.0;
+    std::size_t visible = 0U;
+    for (std::size_t index = 0U; index < popups.count; ++index) {
+        if (!IsWindowVisible(popups.found[index])) continue;
+        RECT client{};
+        if (!GetClientRect(popups.found[index], &client)) continue;
+        visible = visible + 1U;
+        state.tool_tip_client = Size{static_cast<double>(client.right - client.left) / scale,
+                                     static_cast<double>(client.bottom - client.top) / scale};
+    }
+    state.tool_tip_window = visible == 1U;
+    state.tool_tip_windows = "visible " + std::to_string(visible) + ";" + popups.listed;
+    window.hide_tool_tip();
+    static_cast<void>((*window.root()).remove_child((*anchor).runtime_id()));
+}
+#endif
 // Opens a hidden tooltip Splash window owned by the main window, checks it
 // and destroys it.
 void open_splash_window(RuntimeWindowsProbe& state, const ApplicationWindows& windows) {
@@ -615,6 +660,9 @@ struct RuntimeMainReady final {
             }
             open_native_popups(state, window);
             open_splash_window(state, windows);
+#if defined(_WIN32)
+            show_tool_tip_window(state, window);
+#endif
         }
         require(handle.request_close().accepted(), "runtime fixture close failed");
     }
@@ -670,6 +718,13 @@ void check_runtime_windows() {
     require(probe.splash_open.accepted(), "Win32 opens a tooltip Splash window");
     require(probe.splash_styles, "the Splash window is a topmost, non-activating tool");
     require(probe.splash_transparent, "the Splash window is transparent to the pointer");
+    require(probe.tool_tip_window, "a tooltip shows in one Splash window: " + probe.tool_tip_windows);
+    // "Main Menu" in one line: a face of about 70 by 22 units, and a shadow
+    // of a few units on each side when the window is translucent.
+    require(probe.tool_tip_client.width >= 30.0 && probe.tool_tip_client.width <= 160.0 &&
+                probe.tool_tip_client.height >= 14.0 && probe.tool_tip_client.height <= 70.0,
+            "the tooltip's window is its bubble and shadow, not a canvas: " +
+                std::to_string(probe.tool_tip_client.width) + " x " + std::to_string(probe.tool_tip_client.height));
 #elif defined(__APPLE__)
     // AppKit opens popup windows as borderless, non-activating panels
     // (phase (d)); their native record is not readable from this C++ test.
@@ -691,6 +746,110 @@ void check_runtime_windows() {
 #endif
     require(probe.passive_closed, "disconnecting closes the popup");
 }
+#if defined(_WIN32)
+// Owner, 2026-11-10: automation (an agent's probe) and input at once. An
+// automation command sent while the UI thread is inside model code (here,
+// from inside another command's activation, as a cross-process send is
+// delivered whenever the thread waits in a send) waits until that code
+// returns, then runs whole: the order is the same whichever arrives first.
+constexpr wchar_t automation_fixture_title[] = L"GUI.Forms automation interleaving fixture";
+
+struct AutomationOrder final {
+    std::vector<std::string> events{};
+    LRESULT nested_result{};
+    ApplicationWindowHandle handle{};
+};
+
+LRESULT send_automation(const char* const command) {
+    const HWND target = FindWindowW(nullptr, automation_fixture_title);
+    if (target == nullptr) return FALSE;
+    const std::string message = std::string("GUI.Forms.Automation/1 ") + command;
+    COPYDATASTRUCT data{};
+    data.cbData = static_cast<DWORD>(message.size());
+    data.lpData = const_cast<char*>(message.data());
+    const LRESULT result = SendMessageW(target, WM_COPYDATA, 0, reinterpret_cast<LPARAM>(&data));
+    return result;
+}
+
+// Activating "first" sends the automation command that activates "second"
+// and records both ends of its own activation; "second" ends the run.
+class AutomationTarget final : public Control {
+public:
+    AutomationTarget(StableId id, AutomationOrder& order, bool first)
+        : Control(std::move(id)), order_(order), first_(first) {}
+    void on_activate() override {
+        if (first_) {
+            order_.events.push_back("first-begin");
+            order_.nested_result = send_automation("activate native.automation.second");
+            order_.events.push_back("first-end");
+            return;
+        }
+        order_.events.push_back("second");
+        static_cast<void>(order_.handle.request_close());
+    }
+
+private:
+    AutomationOrder& order_;
+    bool first_{};
+};
+
+// The first command is sent from a thread timer once the run pumps (the
+// ready callback runs while the window is still being made, before it
+// answers messages). One fixture runs at a time; the timer reads it here.
+AutomationOrder* automation_order = nullptr;
+
+void CALLBACK send_first_command(HWND, UINT, UINT_PTR timer, DWORD) {
+    KillTimer(nullptr, timer);
+    if (automation_order == nullptr) return;
+    if (send_automation("activate native.automation.first") == FALSE) {
+        (*automation_order).events.push_back("refused");
+        static_cast<void>((*automation_order).handle.request_close());
+    }
+}
+
+struct AutomationReady final {
+    AutomationOrder* order{};
+    void operator()(Window&, ApplicationWindowHandle handle) const {
+        (*order).handle = handle;
+        automation_order = order;
+        if (SetTimer(nullptr, 0, 1, send_first_command) == 0) {
+            (*order).events.push_back("no-timer");
+            static_cast<void>(handle.request_close());
+        }
+    }
+};
+
+void check_automation_interleaving() {
+    if (_putenv_s("GUI_FORMS_WINDOWS_AUTOMATION", "1") != 0) throw std::runtime_error("environment refused");
+    AutomationOrder order{};
+    const std::shared_ptr<Control> root = make_control<Control>(StableId("native.automation.root"));
+    const std::shared_ptr<AutomationTarget> first =
+        make_control<AutomationTarget>(StableId("native.automation.first"), order, true);
+    const std::shared_ptr<AutomationTarget> second =
+        make_control<AutomationTarget>(StableId("native.automation.second"), order, false);
+    (*first).set_requested_bounds(Rect{10.0, 10.0, 60.0, 24.0});
+    (*second).set_requested_bounds(Rect{10.0, 40.0, 60.0, 24.0});
+    (*root).add_child(first);
+    (*root).add_child(second);
+    ApplicationWindowOptions options{};
+    options.title = "GUI.Forms automation interleaving fixture";
+    options.initial_size = {200, 120};
+    options.print_metrics_on_close = false;
+    options.ready = AutomationReady{&order};
+    const ApplicationResult result =
+        test_application().run(std::make_unique<Window>(root, Size{200.0, 120.0}), std::move(options));
+    static_cast<void>(_putenv_s("GUI_FORMS_WINDOWS_AUTOMATION", ""));
+    automation_order = nullptr;
+    if (result.callback_exception) std::rethrow_exception(result.callback_exception);
+    require(result.accepted(), "automation fixture failed");
+    std::string seen;
+    for (const std::string& event : order.events) seen += event + " ";
+    require(order.events.size() == 3U && order.events[0] == "first-begin" && order.events[1] == "first-end" &&
+                order.events[2] == "second",
+            "an automation command sent inside model code runs after it, whole: " + seen);
+    require(order.nested_result == TRUE, "the waiting command is accepted");
+}
+#endif
 #if defined(__APPLE__)
 struct ForeignShutdown final {
     ApplicationResult* result{};
@@ -755,6 +914,9 @@ void run_checks() {
     require(failed_dispatch.error == ApplicationError::callback_failure && failed_dispatch.callback_exception,
             "dispatch exception escaped the portable application boundary");
     check_runtime_windows();
+#if defined(_WIN32)
+    check_automation_interleaving();
+#endif
     check_shutdown();
     std::cout << "portable application API: native attach, cancel/retry, close, expiry, recursion, exception containment, runtime windows and shutdown passed\n";
 }

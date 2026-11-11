@@ -54,6 +54,12 @@ struct ApplicationRunState final {
     std::vector<ApplicationRunWindow> windows{};
     // The router's subscription to HostWindowing::frame_changed.
     SubscriptionToken frame_subscription{};
+    // Whether the run's last popup or Splash window that the host had
+    // reported to was granted a clear backdrop (note_popup_backdrop); none
+    // before one was. A host can promise translucent popups and still
+    // refuse one its alpha (Wine's DWM stubs refuse blur behind), and the
+    // content's shadow follows what the window really shows.
+    std::optional<bool> popup_alpha{};
 };
 
 struct ApplicationHandleAccess final {
