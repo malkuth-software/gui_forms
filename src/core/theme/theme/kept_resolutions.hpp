@@ -9,9 +9,13 @@
 // - the control's own facts (type, stable id, classes, inline style), its
 //   ancestors' (type, id, classes, and the text colour and font they pass
 //   down), the theme and user rules and the window's presentation. Every
-//   change to these raises Dirty::style on some control, or moves a control
-//   in the tree; both advance the process's style epoch (style_epoch), and a
-//   table filled under another epoch is cleared before it is read;
+//   change to these marks Dirty::paint on some control (owner ruling D4 took
+//   Dirty::style away; every style mark carried paint, so paint is the
+//   nearest mark that is never missed), or moves a control in the tree; both
+//   advance the process's style epoch (style_epoch), and a table filled under
+//   another epoch is cleared before it is read. A paint mark that changes no
+//   style fact (hover, a caret) clears the tables too: within a frame they
+//   still resolve each part once;
 // - the window, its media facts, its text scale and the control's effective
 //   theme, which each entry also holds, so that a control moved between
 //   windows, or a window whose scale changes, never reads another's result;
@@ -43,7 +47,7 @@ class Theme;
 
 namespace gui_forms::detail {
 
-// The process's style epoch: advanced on every Dirty::style mark and every
+// The process's style epoch: advanced on every Dirty::paint mark and every
 // change of a control's parent. Never zero, so a new table (epoch 0) is
 // always stale.
 [[nodiscard]] std::uint64_t style_epoch() noexcept;

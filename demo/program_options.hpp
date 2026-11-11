@@ -91,12 +91,9 @@ struct ProgramOptions final {
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
                  "usage: %s [--automation] [--smoke-test] [--capture <path.png>] "
-                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme-base <id>]
-"
-                 "       [--scheme light|dark] [--reveal <id>] [--open-menu <id>[/<item>]]
-"
-                 "       [--theme <name|built-in|path.css>]
-",
+                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme-base <id>]\n"
+                 "       [--scheme light|dark] [--reveal <id>] [--open-menu <id>[/<item>]]\n"
+                 "       [--theme <name|built-in|path.css>]\n",
                  program != nullptr && *program != '\0' ? program : "gui-forms-demo");
 }
 

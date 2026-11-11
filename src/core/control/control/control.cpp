@@ -3307,7 +3307,7 @@ void Control::invalidate(Dirty requested_dirty) {
     if (initialization_depth_ != 0) {
         pending_initialization_dirty_ |= requested_dirty;
         // A resolution read before the deferred mark lands is not kept past it.
-        if (has_dirty(requested_dirty, Dirty::style)) detail::advance_style_epoch();
+        if (has_dirty(requested_dirty, Dirty::paint)) detail::advance_style_epoch();
         return;
     }
     if (surface_root_) {
@@ -3387,7 +3387,7 @@ void Control::invalidate_subtree(Dirty requested_dirty) {
     if (initialization_depth_ != 0) {
         pending_initialization_dirty_ |= requested_dirty;
         pending_initialization_subtree_ = true;
-        if (has_dirty(requested_dirty, Dirty::style)) detail::advance_style_epoch();
+        if (has_dirty(requested_dirty, Dirty::paint)) detail::advance_style_epoch();
         return;
     }
     if (surface_root_) {
@@ -4260,7 +4260,7 @@ void Control::clear_dirty(Dirty cleared) noexcept {
 void Control::add_dirty(Dirty added) noexcept {
     dirty_ |= added;
     ++layout_revision_;
-    if (has_dirty(added, Dirty::style)) detail::advance_style_epoch();
+    if (has_dirty(added, Dirty::paint)) detail::advance_style_epoch();
     if (has_dirty(added, Dirty::measure)) {
         advance_measure_generation();
     }
