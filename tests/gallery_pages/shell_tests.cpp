@@ -1,5 +1,6 @@
 #include "support.hpp"
 #include "../../src/core/theme/contrast/theme_contrast.hpp"
+#include "gui_forms/prepared_text/types/prepared_text_types.hpp"
 
 #include <cstddef>
 #include <cstdint>
