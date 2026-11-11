@@ -86,6 +86,7 @@ class MessageBoxHelpRoute;
 class InteractionState;
 struct InteractionHoverWake;
 struct BandFlashWake;
+struct CaretBlinkSchedule;
 
 // The WinForms mouse events raise_mouse_events offers the window's rules
 // before raising them (SurfaceRoot::offer_mouse_rules_). The rules library
@@ -1393,6 +1394,17 @@ private:
     // Reaches joined windows through their lifetime records.
     friend class Application;
     friend class MotionClock;
+    friend struct detail::CaretBlinkSchedule;
+    // Called through detail::CaretBlinkSchedule (the text controls' caret
+    // blink): schedule_ui_timer's timer, except that it rests while this
+    // window is occluded. It neither ticks nor holds a wake then, so a host
+    // that rearms its wake timer on the occlusion transition stops waking
+    // at once; when the window is shown again, a deadline already past
+    // moves to one interval after that (set_occluded). Throws as
+    // schedule_ui_timer does.
+    [[nodiscard]] FrameRequestToken schedule_resting_ui_timer(
+        Component& owner, FrameInterval interval, FrameTime first_deadline,
+        std::function<void(FrameTime)> callback);
     // Called by the motion clock: its single frame request, first due at
     // `first_deadline` and then every motion_frame_interval. Each frame
     // calls the clock's advance; the clock disconnects the request when

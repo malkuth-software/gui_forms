@@ -698,15 +698,21 @@ void localized_caret_blinks() {
         require(metrics.display_chunks_rebuilt == 2U && metrics.measure_passes == 0U &&
                     metrics.arrange_passes == 0U && metrics.painted_damage_area < 400.0,
                 "blink keeps chunk rebuilding but bounds raster damage without layout");
-        // The blink timer runs on while the window is covered, but the caret
-        // is paint-gated: one blink damages it, and the next finds it
-        // unpainted and stops until a paint.
+        // The blink timer rests while the window is occluded: the window
+        // holds no caret wake from the transition on (it used to run until
+        // its paint gate stopped it, up to two phases later, which the macOS
+        // idle-visibility probe counted as a hidden wake), and a poll long
+        // after the deadline runs no tick. Shown again, it blinks on, its
+        // next tick no earlier than the transition.
         fixture.window.set_occluded(true, FrameClock::now());
-        for (std::size_t tick = 0U; tick < 2U && fixture.window.next_wake().has_value(); ++tick) {
-            static_cast<void>(fixture.window.poll_frame_schedule(*fixture.window.next_wake()));
-        }
-        require(!fixture.window.next_wake().has_value(),
-                "an occluded caret stops after one unpainted blink");
+        require(!fixture.window.next_wake().has_value(), "an occluded caret holds no wake");
+        const FramePollResult hidden_poll =
+            fixture.window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(5));
+        require(hidden_poll.ui_timer_ticks == 0U, "an occluded caret does not tick");
+        const FrameTime shown = FrameClock::now();
+        fixture.window.set_occluded(false, shown);
+        const std::optional<FrameTime> resumed = fixture.window.next_wake();
+        require(resumed.has_value() && *resumed >= shown, "a shown caret blinks again");
     }
 
     Fixture fixture{};
