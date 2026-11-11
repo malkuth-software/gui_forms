@@ -95,6 +95,14 @@ void accept_field(LocaleWalk& walk, HelpRecordEntry& entry, HelpField field, std
     help_entry_field(entry, field) = std::move(value);
 }
 
+// The deepest locale document read: <locale>, <controls>, one <control>
+// per stable-ID segment and a <help> child. Stable IDs mirror the control
+// tree, whose nesting is limited to 64 levels (maximum_control_tree_depth),
+// so 2 + 64 + 1. read_children and read_control recurse once per <control>
+// level, a few hundred bytes of stack each (a HelpRecordEntry and the
+// walk's references), so at most about 64 KiB.
+constexpr std::uint32_t help_locale_maximum_depth = 67U;
+
 void read_control(LocaleWalk& walk, const XmlElement& element);
 
 void read_children(LocaleWalk& walk, const XmlElement& element) {
@@ -410,7 +418,12 @@ void normalize_help_body(std::string_view raw, std::string& body) {
 HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits,
                                       const XmlLimits& xml_limits) {
     HelpLocaleReadResult result{};
-    const XmlReadResult document = read_xml(utf8, xml_limits);
+    // read_control recurses once per <control> level, so the document's
+    // depth is capped before it is read (HOUSE_STYLE section 1): the
+    // caller's limit, at most help_locale_maximum_depth.
+    XmlLimits bounded_limits = xml_limits;
+    bounded_limits.maximum_depth = std::min(xml_limits.maximum_depth, help_locale_maximum_depth);
+    const XmlReadResult document = read_xml(utf8, bounded_limits);
     if (!document) {
         result.error = HelpLocaleError::xml;
         result.xml_error = document.error;

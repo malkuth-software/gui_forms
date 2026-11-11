@@ -201,6 +201,9 @@ struct HelpLocaleReadResult final {
 // title, `help-line` an attribute, and the body the `<help>` child's
 // character data (normalize_help_body), with `keywords` on it. Other
 // attributes and elements (the rest of the language file) are ignored.
+// The document nests at most 67 elements deep (locale, controls, 64
+// control levels and a help child), whatever xml_limits allows: a deeper
+// file is refused as HelpLocaleError::xml with XmlError::depth_exceeded.
 // Expected faults never throw.
 [[nodiscard]] HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits = {},
                                                     const XmlLimits& xml_limits = {});
