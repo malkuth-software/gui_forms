@@ -366,9 +366,9 @@ def settle(program, tooltip_ms):
     """Ends every gesture and menu, then reads the invariants; returns the broken ones."""
     width, height = program.client_size()
     user32.PostMessageW(program.main, WM_LBUTTONUP, 0, pack(width // 2, height // 2))
-    # The pointer leaves for the client's far corner: a tooltip stays while
-    # the pointer rests on its control, as it should.
-    user32.PostMessageW(program.main, WM_MOUSEMOVE, 0, pack(width - 2, height - 2))
+    # The pointer leaves the window (a pointer bubble stays while the
+    # pointer rests on its thing, as it should); the Escapes below dismiss
+    # a keyboard bubble.
     user32.PostMessageW(program.main, WM_MOUSELEAVE, 0, 0)
     for _ in range(4):
         program.automation('key-focused %d' % KEY_ESCAPE)
@@ -412,6 +412,7 @@ def run(program_path, steps, options, log_path=None):
                 break
             if not program.answers():
                 failure = {'reason': 'the program did not answer within %d ms' % options.answer_ms}
+                failure.update(stalled(program, options))
                 break
             if not accepted:
                 failure = {'reason': 'a snapshot command was refused'}
@@ -428,6 +429,24 @@ def run(program_path, steps, options, log_path=None):
         if log:
             log.close()
     return failure, index, program
+
+
+def stalled(program, options):
+    """Tells a slow UI thread from a hung one: three minidumps a second apart
+    (the hung thread's stack stays put) and whether it answers within a
+    further `--grace-ms`."""
+    folder = os.path.join(options.out, 'seed-%d' % options.seed)
+    os.makedirs(folder, exist_ok=True)
+    dumps = []
+    for index in range(3):
+        path = os.path.abspath(os.path.join(folder, 'stall-%d.dmp' % index))
+        dumps.append(path if program.minidump(path) else None)
+        time.sleep(1.0)
+    deadline = time.monotonic() + options.grace_ms / 1000.0
+    recovered = False
+    while not recovered and time.monotonic() < deadline and program.alive():
+        recovered = program.answers()
+    return {'stall_dumps': dumps, 'recovered_within_grace': recovered, 'alive': program.alive()}
 
 
 def keep_evidence(program, folder):
@@ -478,6 +497,8 @@ def main():
     parser.add_argument('--settle-every', type=int, default=20)
     parser.add_argument('--answer-ms', type=int, default=3000)
     parser.add_argument('--tooltip-ms', type=int, default=3000)
+    parser.add_argument('--grace-ms', type=int, default=20000,
+                        help='after a missed answer, how long the program may take to recover (slow, not hung)')
     parser.add_argument('--scale', default='1')
     parser.add_argument('--profile', default='gallery')
     parser.add_argument('--out', default='contention-fuzz')

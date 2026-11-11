@@ -101,7 +101,7 @@ Related types
    * - :cpp:class:`ContextMenuCapabilities <gui_forms::ContextMenuCapabilities>`
      - Every ContextMenu capability, in the order the declaring class takes them.
    * - :cpp:class:`ContextMenuPreferredWidthCapability <gui_forms::ContextMenuPreferredWidthCapability>`
-     - The menu's width in logical units at text scale 1, 120 to 1024 (default 268).
+     - The menu's width in logical units at text scale 1, 120 to 1024 (default 120): the narrowest a panel is; a panel is as wide as its widest row needs.
    * - :cpp:class:`FontChoice <gui_forms::FontChoice>`
      - A font as a font control shows and chooses it: a family name and a size in points.
    * - :cpp:class:`GalleryPreview <gui_forms::GalleryPreview>`
@@ -535,7 +535,7 @@ Related types
 
    .. cpp:member:: double preferred_width
 
-      The menu's width in logical units at text scale 1, 120 to 1024 (default 268). A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
+      The menu's width in logical units at text scale 1, 120 to 1024 (default 120): the narrowest a panel is; a panel is as wide as its widest row needs. A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
 
 .. cpp:namespace:: gui_forms
 
@@ -543,7 +543,7 @@ Related types
 
    ``#include <gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>``
 
-   The menu's width in logical units at text scale 1, 120 to 1024 (default 268). A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
+   The menu's width in logical units at text scale 1, 120 to 1024 (default 120): the narrowest a panel is; a panel is as wide as its widest row needs. A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
 
 
    .. rubric:: Methods
@@ -552,7 +552,7 @@ Related types
 
    .. cpp:member:: PropertyCell<double, ContextMenuPreferredWidthCapability<Declaring>> preferred_width
 
-      Default: ``{268.0}``.
+      Default: ``{120.0}``.
 
 .. cpp:namespace:: gui_forms
 

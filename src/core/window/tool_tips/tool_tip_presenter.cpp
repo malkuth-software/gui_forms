@@ -600,6 +600,22 @@ void ToolTipPresenter::key_handled() {
     raise(std::move(change));
 }
 
+void ToolTipPresenter::escape_pressed() {
+    // The focused thing is the keyboard's subject now, so a later key on the
+    // same thing does not wait on it again (key_handled).
+    const Control::Ptr focused = window_.focused_control();
+    if (focused) keyboard_subject_ = resolve_focus_subject(focused, window_.tool_tip_settings(), covers_);
+    // As a press: a showing bubble closes (the pointer's settles, not
+    // again until the pointer leaves its thing), and a pointer wait
+    // settles the same way.
+    pointer_pressed();
+    // A keyboard or program wait ends too.
+    if (std::holds_alternative<Waiting>(state_)) {
+        state_ = Idle{};
+        wake_.disconnect();
+    }
+}
+
 void ToolTipPresenter::root_arranged() {
     Showing* showing = std::get_if<Showing>(&state_);
     // In the Splash window nothing closes the bubble with its control, as

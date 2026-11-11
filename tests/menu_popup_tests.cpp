@@ -305,10 +305,47 @@ void panels_fit_their_rows() {
     require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the File menu opens");
     const std::shared_ptr<Control> panel = panel_of(*desk.model, 0U);
     const double width = (*panel).requested_bounds().width;
-    require(width > 268.0, "a long label widens the panel past its preferred width");
+    require(width > 268.0, "a long label widens the panel");
     const ResolvedTextLayout label = (*desk.model).resolve_text_layout_utf8(
         "Open a picture from a folder far away on the network", FontSpec{FontRole::control, 11.0, 400, false, 0.12});
     require(width >= 30.0 + label.logical_size.width + 25.0, "the label fits between the gutter and the chevron");
+    (*desk.strip).close();
+}
+
+// Plan Paint's Paste menu (two short rows) and its three-row Fill/Tile/Center
+// submenu were 268 units wide whatever their rows (the old default
+// minimum, 532 px at 2x). A panel is as wide as its widest row, at least
+// the 120-unit minimum.
+void a_short_menu_is_as_wide_as_its_rows() {
+    Desk desk(true);
+    Commands commands;
+    std::vector<MenuItemSpec> paste;
+    paste.emplace_back("paste.here", MenuItemKind::command, commands.open, "Paste");
+    paste.emplace_back("paste.new", MenuItemKind::command, commands.save, "Paste as new");
+    std::vector<MenuItemSpec> placing;
+    placing.emplace_back("place.fill", MenuItemKind::command, commands.fill, "Fill");
+    placing.emplace_back("place.tile", MenuItemKind::command, commands.tile, "Tile");
+    placing.emplace_back("place.center", MenuItemKind::command, commands.quit, "Center");
+    std::vector<MenuItemSpec> short_items;
+    short_items.emplace_back("short.paste", MenuItemKind::submenu, std::shared_ptr<Command>{}, "Paste",
+                             std::move(paste));
+    short_items.emplace_back("short.place", MenuItemKind::submenu, std::shared_ptr<Command>{}, "Place",
+                             std::move(placing));
+    std::vector<MenuStripItemSpec> items;
+    MenuStripItemSpec entry{};
+    entry.stable_id = "edit";
+    entry.text = "&Edit";
+    entry.items = std::move(short_items);
+    items.push_back(std::move(entry));
+    (*desk.strip).set_items(std::move(items));
+    require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the Edit menu opens");
+    const double top_width = (*panel_of(*desk.model, 0U)).requested_bounds().width;
+    require(top_width >= 120.0 && top_width < 200.0, "a two-row menu is as wide as its rows, at least the minimum");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches Paste");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches Place");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), "Right opens the Place submenu");
+    const double child_width = (*panel_of(*desk.model, 1U)).requested_bounds().width;
+    require(child_width >= 120.0 && child_width < 200.0, "a three-row submenu is as wide as its rows");
     (*desk.strip).close();
 }
 
@@ -590,6 +627,7 @@ int main() {
         the_popup_backplane_is_clear_round_the_panel();
         rows_take_the_designed_hover();
         panels_fit_their_rows();
+        a_short_menu_is_as_wide_as_its_rows();
         the_keyboard_drives_submenu_popups();
         the_two_pane_menu_lifts_and_opens_submenus();
         the_application_menu_opens_and_closes_repeatedly();
