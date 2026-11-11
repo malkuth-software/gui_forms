@@ -10,15 +10,18 @@
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::abi1 {
 namespace {
@@ -35,6 +38,7 @@ constexpr SlotIdentity set_position_slot{GF_TABLE_BINDINGS, 8U};
 constexpr SlotIdentity position_slot{GF_TABLE_BINDINGS, 9U};
 constexpr SlotIdentity current_field_slot{GF_TABLE_BINDINGS, 10U};
 constexpr SlotIdentity set_current_field_slot{GF_TABLE_BINDINGS, 11U};
+constexpr SlotIdentity add_records_slot{GF_TABLE_BINDINGS, 12U};
 
 constexpr std::uint32_t arguments_size_1_0 = 96U;
 constexpr std::uint32_t record_size_1_0 = 40U;
@@ -264,6 +268,111 @@ gf_status GF_CALL bindings_add_record(gf_object source, const gf_binding_record*
     }
 }
 
+// Everything BindingSource::add would refuse for a batch, checked before
+// the first record goes in so a refusal adds none: additions disabled, a
+// stable id that breaks the StableId rule, two fields with one canonical
+// name, or a stable id repeated within the batch or already in the source.
+gf_status check_batch(const BindingSource& source, const std::vector<BindingRecord>& batch, SlotIdentity slot) {
+    if (!source.allow_new()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the source's additions are disabled");
+    }
+    std::set<std::string> identities;
+    for (const BindingRecord& existing : source.records()) {
+        identities.insert(existing.stable_id);
+    }
+    for (const BindingRecord& record : batch) {
+        if (!valid_stable_id(record.stable_id)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's stable id breaks the StableId rule");
+        }
+        if (!identities.insert(record.stable_id).second) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's stable id is repeated or already present");
+        }
+        std::set<std::string> names;
+        for (const std::pair<const std::string, BindingValue>& field : record.fields) {
+            const std::string canonical = canonical_binding_name(field.first);
+            if (!names.insert(canonical).second) {
+                return fail(GF_STATUS_INVALID_ARGUMENT, slot, "two of a record's fields share a canonical name");
+            }
+        }
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL bindings_add_records(gf_object source, const gf_binding_record* records, std::uint64_t count,
+                                       std::uint64_t* first) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(add_records_slot.table_id, add_records_slot.slot_index);
+        if (first == nullptr || (records == nullptr && count != 0U)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot, "add_records needs records and a first output");
+        }
+        if (count > GF_BINDING_MAXIMUM_RECORDS_PER_CALL) {
+            return fail(GF_STATUS_LIMIT_EXCEEDED, add_records_slot,
+                        "add_records takes at most GF_BINDING_MAXIMUM_RECORDS_PER_CALL records");
+        }
+        // The array rule: the caller's sizeof is the stride, at least the
+        // 1.0 size and a multiple of 8, so a later minor's larger record
+        // still steps right.
+        std::size_t stride = 0U;
+        if (count != 0U) {
+            stride = static_cast<std::size_t>((*records).struct_size);
+            if (stride < record_size_1_0 || stride % 8U != 0U) {
+                return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot,
+                            "a record's struct_size is at least 40 and a multiple of 8");
+            }
+        }
+        // Every record is read and validated before the source changes.
+        std::vector<BindingRecord> converted;
+        converted.reserve(static_cast<std::size_t>(count));
+        const unsigned char* cursor = reinterpret_cast<const unsigned char*>(records);
+        for (std::uint64_t index = 0U; index < count; ++index) {
+            const gf_binding_record* record = reinterpret_cast<const gf_binding_record*>(cursor);
+            if ((*record).struct_size != (*records).struct_size) {
+                return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot,
+                            "every record repeats the first one's struct_size");
+            }
+            BindingRecord one;
+            const gf_status read = read_record(record, add_records_slot, one);
+            if (read != GF_STATUS_OK) {
+                return read;
+            }
+            converted.push_back(std::move(one));
+            cursor += stride;
+        }
+        std::shared_ptr<BindingSource> typed;
+        const gf_status entered = enter_typed_component(source, add_records_slot, not_source, typed);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        const gf_status checked = check_batch(*typed, converted, add_records_slot);
+        if (checked != GF_STATUS_OK) {
+            return checked;
+        }
+        const std::uint64_t start = static_cast<std::uint64_t>((*typed).count());
+        // One reset for the call: the per-record list changes are held
+        // while the records go in, then the source resets its bindings
+        // once, as Windows Forms' RaiseListChangedEvents = false then
+        // ResetBindings does.
+        const bool raising = (*typed).raise_list_changed_events();
+        (*typed).set_raise_list_changed_events(false);
+        try {
+            for (BindingRecord& record : converted) {
+                static_cast<void>((*typed).add(std::move(record)));
+            }
+        } catch (...) {
+            (*typed).set_raise_list_changed_events(raising);
+            throw;
+        }
+        (*typed).set_raise_list_changed_events(raising);
+        if (raising && count != 0U) {
+            (*typed).reset_bindings();
+        }
+        *first = start;
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(add_records_slot);
+    }
+}
+
 gf_status GF_CALL bindings_insert_record(gf_object source, std::uint64_t index,
                                          const gf_binding_record* record) noexcept {
     try {
@@ -438,6 +547,7 @@ constexpr gf_bindings_table table{
     .position = &bindings_position,
     .current_field = &bindings_current_field,
     .set_current_field = &bindings_set_current_field,
+    .add_records = &bindings_add_records,
 };
 
 } // namespace

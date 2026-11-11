@@ -214,6 +214,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_TABLE_HELP",
+      "value": 23,
+      "type": "uint32"
+    },
+    {
       "name": "GF_TABLE_WINDOWS_PAINT_ENDPOINT",
       "value": 256,
       "type": "uint32"
@@ -1429,6 +1434,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_BINDING_MAXIMUM_RECORDS_PER_CALL",
+      "value": 65536,
+      "type": "uint32"
+    },
+    {
       "name": "GF_SUBSURFACE_STATE_STOPPED",
       "value": 0,
       "type": "uint32"
@@ -2124,6 +2134,21 @@
       "type": "uint32"
     },
     {
+      "name": "GF_HELP_NAVIGATOR_CONTENTS",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HELP_NAVIGATOR_INDEX",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HELP_NAVIGATOR_SEARCH",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"
@@ -2404,6 +2429,10 @@
     },
     {
       "name": "gf_dock_refusal",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_help_navigator",
       "type": "uint32_t"
     },
     {
@@ -3483,7 +3512,7 @@
     {
       "name": "gf_properties_table",
       "kind": "table",
-      "size": 48,
+      "size": 64,
       "align": 8,
       "fields": [
         {
@@ -3657,6 +3686,66 @@
               {
                 "name": "text_required",
                 "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "get_at",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "value",
+                "type": "gf_value*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "set_at",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "value",
+                "type": "const gf_value*"
               }
             ]
           },
@@ -8289,7 +8378,7 @@
     {
       "name": "gf_bindings_table",
       "kind": "table",
-      "size": 104,
+      "size": 112,
       "align": 8,
       "fields": [
         {
@@ -8579,6 +8668,34 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "add_records",
+          "type": "function",
+          "offset": 104,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "source",
+                "type": "gf_object"
+              },
+              {
+                "name": "records",
+                "type": "const gf_binding_record*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              },
+              {
+                "name": "first",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
         }
       ]
     },
@@ -10867,6 +10984,242 @@
               {
                 "name": "required",
                 "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        }
+      ]
+    },
+    {
+      "name": "gf_help_table",
+      "kind": "table",
+      "size": 80,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "attach",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "window",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "detach",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "window",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "load_built_in",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "locale_xml",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "show",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "stable_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "shown",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "show_navigator",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "navigator",
+                "type": "gf_help_navigator"
+              },
+              {
+                "name": "text",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "shown",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "show_popup",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "stable_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "anchor",
+                "type": "gf_object"
+              },
+              {
+                "name": "shown",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "resolve",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "control",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              },
+              {
+                "name": "home",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "enter_help_mode",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
+              },
+              {
+                "name": "window",
+                "type": "gf_object"
+              },
+              {
+                "name": "entered",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "cancel_help_mode",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "system",
+                "type": "gf_object"
               }
             ]
           },

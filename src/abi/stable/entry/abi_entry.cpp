@@ -204,6 +204,10 @@ TableBytes find_table(gf_table_id table_id) noexcept {
         found.data = &gui_forms::abi1::fonts_table();
         found.size = sizeof(gf_fonts_table);
         break;
+    case GF_TABLE_HELP:
+        found.data = &gui_forms::abi1::help_table();
+        found.size = sizeof(gf_help_table);
+        break;
 #if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
     case GF_TABLE_WINDOWS_PAINT_ENDPOINT:
         found.data = &gui_forms::abi1::windows_paint_endpoint_table();

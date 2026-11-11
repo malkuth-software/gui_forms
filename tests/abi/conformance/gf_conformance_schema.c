@@ -81,6 +81,49 @@ static void lookups(gf_kit* kit) {
         }
     }
     gf_kit_check(kit, dock < button_record.property_count, "a button has a dock property");
+
+    /* Properties by schema index (N19): resolve "text" once, then reach it
+     * by its position. */
+    uint64_t text_index = button_record.property_count;
+    for (index = 0u; index < button_record.property_count; ++index) {
+        gf_schema_property property;
+        memset(&property, 0, sizeof(property));
+        property.struct_size = (uint32_t)sizeof(property);
+        if ((*kit).schema.property_at(button, index, &property) == GF_STATUS_OK &&
+            gf_kit_view_equals(property.name, "text")) {
+            text_index = index;
+        }
+    }
+    gf_kit_check(kit, text_index < button_record.property_count, "a button has a text property");
+    const gf_object pressed = gf_kit_create(kit, "button", "kit.schema.indexed");
+    gf_value written;
+    memset(&written, 0, sizeof(written));
+    written.struct_size = (uint32_t)sizeof(written);
+    written.kind = GF_VALUE_KIND_TEXT;
+    written.text = gf_kit_text("Indexed");
+    gf_kit_status(kit, (*kit).properties.set_at(pressed, text_index, &written), GF_STATUS_OK,
+                  "set a property by its schema index");
+    gf_value read;
+    memset(&read, 0, sizeof(read));
+    read.struct_size = (uint32_t)sizeof(read);
+    char text[16];
+    uint64_t required = 0u;
+    gf_kit_status(kit, (*kit).properties.get(pressed, gf_kit_text("text"), &read, text, sizeof(text), &required),
+                  GF_STATUS_OK, "read it back by name");
+    gf_kit_check(kit, read.kind == GF_VALUE_KIND_TEXT && gf_kit_view_equals(read.text, "Indexed"),
+                 "set_at wrote the property the index names");
+    memset(&read, 0, sizeof(read));
+    read.struct_size = (uint32_t)sizeof(read);
+    gf_kit_status(kit, (*kit).properties.get_at(pressed, text_index, &read, text, sizeof(text), &required),
+                  GF_STATUS_OK, "read it by index");
+    gf_kit_check(kit, read.kind == GF_VALUE_KIND_TEXT && gf_kit_view_equals(read.text, "Indexed"),
+                 "get_at reads the property the index names");
+    gf_kit_status(kit, (*kit).properties.get_at(pressed, button_record.property_count, &read, text, sizeof(text),
+                                                &required),
+                  GF_STATUS_INVALID_ARGUMENT, "an index past the type's properties is refused");
+    gf_kit_status(kit, (*kit).properties.set_at(pressed, button_record.property_count, &written),
+                  GF_STATUS_INVALID_ARGUMENT, "set_at past the list is refused");
+    gf_kit_status(kit, (*kit).objects.release(pressed), GF_STATUS_OK, "release the indexed button");
     gf_schema_choice choice;
     memset(&choice, 0, sizeof(choice));
     choice.struct_size = (uint32_t)sizeof(choice);

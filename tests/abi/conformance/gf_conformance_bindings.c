@@ -164,6 +164,37 @@ void gf_kit_bindings(gf_kit* kit) {
     gf_kit_status(kit, (*kit).bindings.remove_record(source, 0u, &removed), GF_STATUS_OK, "remove a record");
     gf_kit_check(kit, removed == 1u, "the record is removed");
 
+    /* N31: records in bulk, validated whole, so a repeated id adds none. */
+    const char* bulk_ids[3] = {"fourth", "fifth", "sixth"};
+    const gf_value bulk_title = text_value("Bulk");
+    gf_binding_field bulk_field;
+    bulk_field.name = gf_kit_text("title");
+    bulk_field.value = &bulk_title;
+    gf_binding_record bulk[3];
+    memset(bulk, 0, sizeof(bulk));
+    for (uint32_t index = 0u; index < 3u; ++index) {
+        bulk[index].struct_size = (uint32_t)sizeof(gf_binding_record);
+        bulk[index].editable = 1u;
+        bulk[index].stable_id = gf_kit_text(bulk_ids[index]);
+        bulk[index].fields = &bulk_field;
+        bulk[index].field_count = 1u;
+    }
+    uint64_t first = 99u;
+    gf_kit_status(kit, (*kit).bindings.add_records(source, bulk, 3u, &first), GF_STATUS_OK, "add records in bulk");
+    gf_kit_status(kit, (*kit).bindings.position(source, &position, &count), GF_STATUS_OK, "read the bulk count");
+    gf_kit_check(kit, first == 2u && count == 5u, "the bulk records follow the two");
+    bulk[0].stable_id = gf_kit_text("seventh");
+    bulk[1].stable_id = gf_kit_text("fifth");
+    gf_kit_status(kit, (*kit).bindings.add_records(source, bulk, 2u, &first), GF_STATUS_INVALID_ARGUMENT,
+                  "a stable id already present refuses the batch");
+    bulk[1].stable_id = gf_kit_text("seventh");
+    gf_kit_status(kit, (*kit).bindings.add_records(source, bulk, 2u, &first), GF_STATUS_INVALID_ARGUMENT,
+                  "a stable id repeated in the batch refuses it");
+    gf_kit_status(kit, (*kit).bindings.position(source, &position, &count), GF_STATUS_OK, "read the count again");
+    gf_kit_check(kit, count == 5u, "a refused batch adds none");
+    gf_kit_status(kit, (*kit).bindings.add_records(source, bulk, 0u, &first), GF_STATUS_OK, "an empty batch");
+    gf_kit_check(kit, first == 5u, "an empty batch writes first");
+
     gf_kit_status(kit, (*kit).bindings.unbind(binding), GF_STATUS_OK, "unbind");
     gf_kit_status(kit, (*kit).bindings.unbind(binding), GF_STATUS_DISPOSED, "unbinding disposes the binding");
     gf_kit_status(kit, (*kit).bindings.read_value(box, &updated), GF_STATUS_WRONG_HANDLE_KIND,

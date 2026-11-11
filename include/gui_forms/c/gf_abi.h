@@ -116,6 +116,7 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_DATA_GRID 20u
 #define GF_TABLE_DOCKING 21u
 #define GF_TABLE_FONTS 22u
+#define GF_TABLE_HELP 23u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -695,6 +696,16 @@ typedef struct gf_properties_table {
     gf_status (GF_CALL* read_elements)(gf_object object, gf_utf8_view name, uint64_t first, uint64_t count,
                                        gf_value* values, char* text_buffer, uint64_t text_capacity,
                                        uint64_t* text_required);
+    /* Since 1.2 (N19). get and set by the property's position in the
+     * object's schema type, as schema.property_at lists it (for a window,
+     * the window type's): a binding resolves a name once, then reaches it
+     * by index. A control of a type the schema does not list, or an
+     * application subclass, uses its nearest schema type's list (its own
+     * extra properties are reached by name). An index past the list gives
+     * GF_STATUS_INVALID_ARGUMENT; otherwise as get and set. */
+    gf_status (GF_CALL* get_at)(gf_object object, uint64_t index, gf_value* value, char* text_buffer,
+                                uint64_t text_capacity, uint64_t* text_required);
+    gf_status (GF_CALL* set_at)(gf_object object, uint64_t index, const gf_value* value);
 } gf_properties_table;
 
 /* The most elements one properties.read_elements call reads (since 1.2). */
@@ -2400,6 +2411,8 @@ typedef struct gf_binding_record {
 } gf_binding_record;
 
 #define GF_BINDING_MAXIMUM_FIELDS 1024u
+/* The most records one bindings.add_records call takes (since 1.2). */
+#define GF_BINDING_MAXIMUM_RECORDS_PER_CALL 65536u
 
 typedef struct gf_bindings_table {
     uint32_t struct_size;
@@ -2440,6 +2453,15 @@ typedef struct gf_bindings_table {
      * record or it, or the source, allows no edit. */
     gf_status (GF_CALL* set_current_field)(gf_object source, gf_utf8_view field, const gf_value* value,
                                            uint32_t* accepted);
+    /* Since 1.2 (N31). Appends count records (the array rule: the stride
+     * is records[0].struct_size), validated whole before any is added, so
+     * a refusal adds none; first receives the first one's position. The
+     * source raises one reset list change for the call instead of one per
+     * record (when it raises list changes at all). More than
+     * GF_BINDING_MAXIMUM_RECORDS_PER_CALL records give
+     * GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes first. */
+    gf_status (GF_CALL* add_records)(gf_object source, const gf_binding_record* records, uint64_t count,
+                                     uint64_t* first);
 } gf_bindings_table;
 
 /*
@@ -3404,6 +3426,59 @@ typedef struct gf_fonts_table {
     gf_status (GF_CALL* family_id)(gf_utf8_view name, uint32_t* family);
     gf_status (GF_CALL* family_name)(uint32_t family, char* buffer, uint64_t capacity, uint64_t* required);
 } gf_fonts_table;
+
+/* gf_help_navigator: what help.show_navigator opens (Windows Forms'
+ * HelpNavigator): the contents, the keyword index at text, or a search for
+ * text. */
+typedef uint32_t gf_help_navigator;
+#define GF_HELP_NAVIGATOR_CONTENTS 0u
+#define GF_HELP_NAVIGATOR_INDEX 1u
+#define GF_HELP_NAVIGATOR_SEARCH 2u
+
+/*
+ * GF_TABLE_HELP (since 1.2; roadmap row 3.7): a help book system's viewer,
+ * popup, F1 resolution and What's This mode. system is a help_book_system
+ * component (objects.create, schema type "help_book_system"); its records
+ * come from a language file's help fields, given whole to load_built_in
+ * (the <locale> document the C++ HelpBookSystem::load_built_in reads), so
+ * a C program declares its topics as that file declares them. Every
+ * function runs on the UI thread; text is borrowed for the call; a system
+ * that is not a help_book_system is GF_STATUS_WRONG_HANDLE_KIND, a
+ * disposed one GF_STATUS_DISPOSED.
+ *
+ * - attach makes window (a window object) one the system serves: its F1,
+ *   Shift+F1 and help requests reach the system, and the viewer opens over
+ *   it. detach undoes it.
+ * - load_built_in reads locale_xml as the program's own help text and
+ *   merges it over what earlier calls loaded (a field it gives replaces
+ *   the earlier one); a file the reader refuses gives
+ *   GF_STATUS_INVALID_ARGUMENT and leaves the records as they were.
+ * - show, show_navigator and show_popup open the viewer at a record, at
+ *   the contents, index or search, or the paper popup at a record beside
+ *   anchor (a control in an attached window); shown receives 1 when it
+ *   opened, 0 when there was nothing to open (an unknown record, no
+ *   attached window).
+ * - resolve writes the record F1 on control would open (the control's own,
+ *   else the nearest ancestor's, else the home page) into buffer (the
+ *   BUFFER_TOO_SMALL rule) and home 1 when it is the home page.
+ * - enter_help_mode starts What's This on window (entered 1 when it
+ *   started); cancel_help_mode ends it, if active.
+ */
+typedef struct gf_help_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    gf_status (GF_CALL* attach)(gf_object system, gf_object window);
+    gf_status (GF_CALL* detach)(gf_object system, gf_object window);
+    gf_status (GF_CALL* load_built_in)(gf_object system, gf_utf8_view locale_xml);
+    gf_status (GF_CALL* show)(gf_object system, gf_utf8_view stable_id, uint32_t* shown);
+    gf_status (GF_CALL* show_navigator)(gf_object system, gf_help_navigator navigator, gf_utf8_view text,
+                                        uint32_t* shown);
+    gf_status (GF_CALL* show_popup)(gf_object system, gf_utf8_view stable_id, gf_object anchor, uint32_t* shown);
+    gf_status (GF_CALL* resolve)(gf_object system, gf_object control, char* buffer, uint64_t capacity,
+                                 uint64_t* required, uint32_t* home);
+    gf_status (GF_CALL* enter_help_mode)(gf_object system, gf_object window, uint32_t* entered);
+    gf_status (GF_CALL* cancel_help_mode)(gf_object system);
+} gf_help_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability
