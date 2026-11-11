@@ -29,7 +29,10 @@ namespace gui_forms::detail {
 // nodes are not merged, so the node count is bounded by the elements plus
 // the erasures since the last assign. The owner (BindingView) rebuilds with
 // assign when that grows past twice the full-tree size. One thread; the
-// value is owned by its view.
+// value is owned by its view. The recursive walks (count_nodes, the edits)
+// are bounded by the depth: a split leaves both halves at least 16 entries
+// of 32, so the tree is at most 1 + log16 of the most elements it has held
+// deep, 9 levels for 2^32 (HOUSE_STYLE section 1).
 class BindingOrderTree final {
 public:
     static constexpr std::size_t node_capacity = 32U;
