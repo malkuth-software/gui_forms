@@ -5,8 +5,13 @@
 // item's property; an IBindingList's ListChanged becomes the source's
 // notifications, from whatever thread raised it; sorting is delegated to an
 // IBindingList that sorts (IBindingListView for several keys), and the
-// source keeps its own index otherwise. Filtering is always the source's:
-// IBindingListView.Filter is a string the provider cannot form faithfully.
+// source keeps its own index otherwise. Filtering is delegated to an
+// IBindingListView that filters: the structured predicates become a filter
+// string in the DataView RowFilter grammar (a DataView is the framework's
+// filtering list); a predicate that grammar cannot state, or a list that
+// refuses the string, leaves the filter to the source's own index. A
+// DataView compares text by its table's CaseSensitive and Locale, which
+// may differ from the source's code-point case folding for some scripts.
 //
 // Lifetime: bind() hands the library a GCHandle to this provider and a
 // native text buffer; the library calls release exactly once when the
@@ -111,6 +116,10 @@ public sealed unsafe class BindingListProvider
     public void notify_removed(int index, int count) =>
         notify(Constants.GF_BINDING_NOTIFY_REMOVED, checked((ulong)index), checked((ulong)count), 0u);
 
+    /// <summary>Reports count items at index moved so the first now stands at target.</summary>
+    public void notify_moved(int index, int count, int target) =>
+        notify(Constants.GF_BINDING_NOTIFY_MOVED, checked((ulong)index), checked((ulong)count), checked((ulong)target));
+
     /// <summary>Reports a change to the item at index (every property).</summary>
     public void notify_changed(int index) =>
         notify(Constants.GF_BINDING_NOTIFY_CHANGED, checked((ulong)index), 0u, Constants.GF_BINDING_WHOLE_ROW);
@@ -172,6 +181,9 @@ public sealed unsafe class BindingListProvider
     private bool sorts =>
         binding_list != null && binding_list.SupportsSorting;
 
+    private bool filters =>
+        binding_list is IBindingListView view && view.SupportsFiltering;
+
     private bool inserts_and_removes =>
         !list.IsReadOnly && !list.IsFixedSize && (item_type.IsValueType || item_type.GetConstructor(Type.EmptyTypes) != null);
 
@@ -197,6 +209,7 @@ public sealed unsafe class BindingListProvider
         gf_binding_provider_callbacks callbacks = default;
         callbacks.struct_size = (uint)sizeof(gf_binding_provider_callbacks);
         callbacks.flags = (sorts ? Constants.GF_BINDING_PROVIDER_SORTS : 0u) |
+                          (filters ? Constants.GF_BINDING_PROVIDER_FILTERS : 0u) |
                           (inserts_and_removes ? Constants.GF_BINDING_PROVIDER_INSERTS | Constants.GF_BINDING_PROVIDER_REMOVES : 0u);
         callbacks.context = (void*)GCHandle.ToIntPtr(self);
         callbacks.row_count = &row_count_thunk;
@@ -206,6 +219,10 @@ public sealed unsafe class BindingListProvider
         if (sorts)
         {
             callbacks.apply_sort = &apply_sort_thunk;
+        }
+        if (filters)
+        {
+            callbacks.apply_filter = &apply_filter_thunk;
         }
         if (inserts_and_removes)
         {
@@ -348,7 +365,8 @@ public sealed unsafe class BindingListProvider
         }
         object? item = list[(int)row];
         object? held = item == null ? null : properties[(int)column].GetValue(item);
-        if (held == null)
+        // A DataRowView answers DBNull for a null field.
+        if (held == null || held is DBNull)
         {
             (*value).kind = Constants.GF_VALUE_KIND_NULL;
             return Constants.GF_STATUS_OK;
@@ -477,6 +495,139 @@ public sealed unsafe class BindingListProvider
         }
         // Several keys and no advanced sorting: the source sorts.
         return Constants.GF_STATUS_UNSUPPORTED_CAPABILITY;
+    }
+
+    private gf_status filter(gf_binding_predicate* predicates, ulong count)
+    {
+        if (binding_list is not IBindingListView view || !view.SupportsFiltering)
+        {
+            return Constants.GF_STATUS_UNSUPPORTED_CAPABILITY;
+        }
+        if (count == 0u)
+        {
+            view.RemoveFilter();
+            return Constants.GF_STATUS_OK;
+        }
+        StringBuilder expression = new StringBuilder();
+        for (ulong index = 0u; index < count; ++index)
+        {
+            gf_binding_predicate* predicate = predicates + index;
+            string name = Encoding.UTF8.GetString((*predicate).column.data, checked((int)(*predicate).column.size));
+            PropertyDescriptor? property = find_property(name);
+            if (property == null)
+            {
+                return Constants.GF_STATUS_NOT_FOUND;
+            }
+            string? clause = filter_clause(property.Name, (*predicate).op, (*predicate).operand);
+            if (clause == null)
+            {
+                // Not stated in the grammar: the source filters.
+                return Constants.GF_STATUS_UNSUPPORTED_CAPABILITY;
+            }
+            if (index > 0u)
+            {
+                expression.Append(" AND ");
+            }
+            expression.Append(clause);
+        }
+        // A list with another grammar throws here; the thunk turns that into
+        // a refusal and the source filters.
+        view.Filter = expression.ToString();
+        return Constants.GF_STATUS_OK;
+    }
+
+    // One predicate as a DataView RowFilter clause, or null when the grammar
+    // cannot state it (an operand the comparison has no literal for).
+    private static string? filter_clause(string column, gf_binding_predicate_operator op, gf_value* operand)
+    {
+        string name = "[" + column.Replace("\\", "\\\\").Replace("]", "\\]") + "]";
+        if (op == Constants.GF_BINDING_PREDICATE_IS_NULL)
+        {
+            return name + " IS NULL";
+        }
+        if (op == Constants.GF_BINDING_PREDICATE_IS_NOT_NULL)
+        {
+            return name + " IS NOT NULL";
+        }
+        if (operand == null || (*operand).kind == Constants.GF_VALUE_KIND_NULL)
+        {
+            return null;
+        }
+        if (op == Constants.GF_BINDING_PREDICATE_CONTAINS || op == Constants.GF_BINDING_PREDICATE_STARTS_WITH)
+        {
+            if ((*operand).kind != Constants.GF_VALUE_KIND_TEXT)
+            {
+                return null;
+            }
+            string text = Encoding.UTF8.GetString((*operand).text.data, checked((int)(*operand).text.size));
+            string pattern = like_escaped(text);
+            return op == Constants.GF_BINDING_PREDICATE_CONTAINS ? name + " LIKE '%" + pattern + "%'"
+                                                                 : name + " LIKE '" + pattern + "%'";
+        }
+        string? literal = filter_literal(operand);
+        if (literal == null)
+        {
+            return null;
+        }
+        string? comparison = null;
+        if (op == Constants.GF_BINDING_PREDICATE_EQUAL) comparison = " = ";
+        else if (op == Constants.GF_BINDING_PREDICATE_NOT_EQUAL) comparison = " <> ";
+        else if (op == Constants.GF_BINDING_PREDICATE_LESS) comparison = " < ";
+        else if (op == Constants.GF_BINDING_PREDICATE_LESS_OR_EQUAL) comparison = " <= ";
+        else if (op == Constants.GF_BINDING_PREDICATE_GREATER) comparison = " > ";
+        else if (op == Constants.GF_BINDING_PREDICATE_GREATER_OR_EQUAL) comparison = " >= ";
+        if (comparison == null)
+        {
+            return null;
+        }
+        return name + comparison + literal;
+    }
+
+    private static string? filter_literal(gf_value* operand)
+    {
+        System.Globalization.CultureInfo invariant = System.Globalization.CultureInfo.InvariantCulture;
+        gf_value_kind kind = (*operand).kind;
+        if (kind == Constants.GF_VALUE_KIND_BOOLEAN) return (*operand).boolean != 0u ? "true" : "false";
+        if (kind == Constants.GF_VALUE_KIND_SIGNED) return (*operand).signed_integer.ToString(invariant);
+        if (kind == Constants.GF_VALUE_KIND_UNSIGNED) return (*operand).unsigned_integer.ToString(invariant);
+        if (kind == Constants.GF_VALUE_KIND_NUMBER)
+        {
+            double number = (*operand).number;
+            if (double.IsNaN(number) || double.IsInfinity(number))
+            {
+                return null;
+            }
+            return number.ToString("R", invariant);
+        }
+        if (kind == Constants.GF_VALUE_KIND_TEXT)
+        {
+            string text = Encoding.UTF8.GetString((*operand).text.data, checked((int)(*operand).text.size));
+            return "'" + text.Replace("'", "''") + "'";
+        }
+        return null;
+    }
+
+    // Text for inside a LIKE pattern: quotes doubled, and the wildcards and
+    // brackets taken literally by bracketing them.
+    private static string like_escaped(string text)
+    {
+        StringBuilder escaped = new StringBuilder(text.Length + 8);
+        foreach (char character in text)
+        {
+            if (character == '*' || character == '%' || character == '[' || character == ']')
+            {
+                escaped.Append('[').Append(character).Append(']');
+            }
+            else if (character == '\'')
+            {
+                escaped.Append("''");
+            }
+            else
+            {
+                escaped.Append(character);
+            }
+        }
+        return escaped.ToString();
     }
 
     // A column's descriptor by a name in any case (the source's spelling is
@@ -669,6 +820,22 @@ public sealed unsafe class BindingListProvider
         try
         {
             return provider.sort(keys, count);
+        }
+        catch (Exception exception)
+        {
+            provider.last_failure = exception;
+            return Constants.GF_STATUS_INVALID_STATE;
+        }
+    }
+
+    [DebuggerStepThrough]
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static gf_status apply_filter_thunk(void* context, gf_binding_predicate* predicates, ulong count)
+    {
+        BindingListProvider provider = from(context);
+        try
+        {
+            return provider.filter(predicates, count);
         }
         catch (Exception exception)
         {

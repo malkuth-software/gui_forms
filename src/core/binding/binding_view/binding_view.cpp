@@ -303,29 +303,47 @@ void BindingView::remove_rows(std::size_t row, std::size_t count, std::vector<st
     compact_text();
 }
 
-void BindingView::move_rows(std::size_t row, std::size_t count, std::size_t target, BindingKeyReader& reader) {
-    std::vector<std::uint32_t> slots;
-    slots.reserve(count);
-    for (std::size_t index = 0U; index < count; ++index) {
-        slots.push_back(source_order_.select(row + index));
-    }
-    for (const std::uint32_t slot : slots) {
-        source_order_.erase(slot);
-    }
-    for (std::size_t index = 0U; index < count; ++index) {
-        source_order_.insert_at(target + index, slots[index]);
-    }
-    // Equal keys follow the source order, so the moved members are placed
-    // again. Their keys are unchanged; the reader is not needed for them.
-    static_cast<void>(reader);
-    const ViewOrder order{this};
-    for (const std::uint32_t slot : slots) {
-        if (member_[slot] != 0U) {
-            view_order_.erase(slot);
-            view_order_.insert_ordered(slot, order);
+void append_block_move_steps(std::size_t row, std::size_t count, std::size_t target,
+                             std::vector<BindingRowMove>& steps) {
+    if (target < row) {
+        for (std::size_t index = 0U; index < count; ++index) {
+            steps.push_back(BindingRowMove{row + index, target + index});
+        }
+    } else if (target > row) {
+        const std::size_t last = target + count - 1U;
+        for (std::size_t index = 0U; index < count; ++index) {
+            steps.push_back(BindingRowMove{row, last});
         }
     }
-    erasures_since_build_ = erasures_since_build_ + count;
+}
+
+void BindingView::move_rows(std::size_t row, std::size_t count, std::size_t target,
+                            std::vector<BindingRowMove>& moves) {
+    std::vector<BindingRowMove> steps;
+    steps.reserve(count);
+    append_block_move_steps(row, count, target, steps);
+    // One source row at a time, so the view stays consistent with the
+    // source order (its tie-break) after every step. Keys are unchanged.
+    const ViewOrder order{this};
+    for (const BindingRowMove& step : steps) {
+        const std::uint32_t slot = source_order_.select(step.from);
+        const bool shown = member_[slot] != 0U;
+        std::size_t before = 0U;
+        if (shown) {
+            before = view_order_.rank(slot);
+        }
+        source_order_.erase(slot);
+        source_order_.insert_at(step.to, slot);
+        if (shown) {
+            view_order_.erase(slot);
+            view_order_.insert_ordered(slot, order);
+            const std::size_t after = view_order_.rank(slot);
+            if (after != before) {
+                moves.push_back(BindingRowMove{before, after});
+            }
+        }
+    }
+    erasures_since_build_ = erasures_since_build_ + steps.size();
 }
 
 BindingView::RowChange BindingView::change_row(std::size_t row, std::size_t column, BindingKeyReader& reader) {

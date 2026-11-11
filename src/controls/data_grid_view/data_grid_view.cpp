@@ -2,6 +2,7 @@
 #include "gui_forms/window/window.hpp"
 
 #include "../panel/input_control_utilities.hpp"
+#include "data_grid_view_bound_index.hpp"
 #include "../scrollable_control/scrolling_utilities.hpp"
 
 #include "gui_forms/binding/binding_source/binding_source.hpp"
@@ -651,6 +652,18 @@ void DataGridView::reset_row_state() {
 void DataGridView::rebuild_row_index() {
     // The new row is found by its own ID (find_row), not through the index.
     const std::size_t count = data_row_count();
+    if (row_source_ == DataGridViewRowSource::binding_source) {
+        std::vector<std::string> ids;
+        ids.reserve(count);
+        for (std::size_t position = 0; position < count; ++position) {
+            const DataGridViewRowPosition row{position};
+            ids.push_back(row_id_text(row));
+        }
+        if (!bound_index_) bound_index_ = std::make_unique<detail::DataGridViewBoundIndex>();
+        (*bound_index_).assign(ids);
+        row_positions_.clear();
+        return;
+    }
     RowPositions index{};
     index.reserve(count);
     for (std::size_t position = 0; position < count; ++position) {
@@ -674,13 +687,19 @@ std::optional<std::size_t> DataGridView::find_row(std::string_view row_id) const
         if (new_row_shown() && row_id == new_row_.stable_id.value) return data_row_count();
         return std::nullopt;
     }
-    const RowPositions::const_iterator found = row_positions_.find(row_id);
-    if (found == row_positions_.end()) {
+    std::optional<std::size_t> indexed{};
+    if (row_source_ == DataGridViewRowSource::binding_source) {
+        if (bound_index_) indexed = (*bound_index_).find(row_id);
+    } else {
+        const RowPositions::const_iterator found = row_positions_.find(row_id);
+        if (found != row_positions_.end()) indexed = (*found).second;
+    }
+    if (!indexed) {
         // The new row is last; a data row that took its ID is found first.
         if (new_row_shown() && row_id == new_row_.stable_id.value) return data_row_count();
         return std::nullopt;
     }
-    const std::size_t position = (*found).second;
+    const std::size_t position = *indexed;
     // A binding source that changed without raising list_changed leaves the
     // index behind its records; a position now holding another row is not
     // this row.
@@ -697,9 +716,15 @@ DataGridViewRowPosition DataGridView::event_position(std::string_view row_id) co
         if (new_row_shown() && row_id == new_row_.stable_id.value) position.value = data_row_count();
         return position;
     }
-    const RowPositions::const_iterator found = row_positions_.find(row_id);
-    if (found != row_positions_.end()) {
-        position.value = (*found).second;
+    std::optional<std::size_t> indexed{};
+    if (row_source_ == DataGridViewRowSource::binding_source) {
+        if (bound_index_) indexed = (*bound_index_).find(row_id);
+    } else {
+        const RowPositions::const_iterator found = row_positions_.find(row_id);
+        if (found != row_positions_.end()) indexed = (*found).second;
+    }
+    if (indexed) {
+        position.value = *indexed;
     } else if (row_id == new_row_.stable_id.value) {
         position.value = data_row_count();
     }
@@ -1166,6 +1191,23 @@ std::string DataGridView::generated_row_id(const RowPositions& used) {
     }
 }
 
+std::string DataGridView::generated_row_id() {
+    for (;;) {
+        std::string candidate = "row." + std::to_string(next_row_number_);
+        ++next_row_number_;
+        if (!row_id_taken(candidate) && candidate != new_row_.stable_id.value) return candidate;
+    }
+}
+
+bool DataGridView::row_id_taken(std::string_view id) const {
+    if (row_source_ == DataGridViewRowSource::binding_source) {
+        const bool taken = bound_index_ && (*bound_index_).contains(id);
+        return taken;
+    }
+    const bool taken = row_positions_.contains(id);
+    return taken;
+}
+
 void DataGridView::validate_row_text(const DataGridViewRow& row) const {
     // A row's ID names its semantic node, so a given one follows the
     // StableId segment rule.
@@ -1492,6 +1534,8 @@ void DataGridView::detach_data_source() noexcept {
     source_list_changed_.disconnect();
     source_position_changed_.disconnect();
     data_source_.reset();
+    bound_index_.reset();
+    bound_removed_current_.reset();
 }
 
 std::shared_ptr<BindingSource> DataGridView::read_view(const decltype(data_source)&) const {
@@ -1527,31 +1571,50 @@ void DataGridView::write_view(const decltype(data_source)&, std::shared_ptr<Bind
 
 void DataGridView::on_source_list_changed(const BindingListChange& change) {
     if (row_source_ != DataGridViewRowSource::binding_source) return;
-    const bool structural = change.kind == BindingListChangeKind::item_added ||
-                            change.kind == BindingListChangeKind::item_removed ||
-                            change.kind == BindingListChangeKind::reset;
-    if (!structural) {
+    const bool added = change.kind == BindingListChangeKind::item_added;
+    const bool removed = change.kind == BindingListChangeKind::item_removed;
+    const bool moved = change.kind == BindingListChangeKind::item_moved;
+    const bool reset = change.kind == BindingListChangeKind::reset;
+    if (!added && !removed && !moved && !reset) {
         // A changed field or position changes no geometry.
         values_changed();
         return;
     }
+    if (!bound_index_) rebuild_row_index();
     // The source has changed already; the index has not, so it still holds
-    // the current row's position before the change.
+    // the current row's position before this change. The changes of one
+    // notification come one by one, each relative to the list the ones
+    // before it left (BindingListChange), which is the order the index
+    // follows them in.
     std::optional<std::size_t> former{};
-    if (current_) {
-        const RowPositions::const_iterator found = row_positions_.find((*current_).row_id);
-        if (found != row_positions_.end()) former = (*found).second;
+    if (current_) former = (*bound_index_).find((*current_).row_id);
+    const bool current_removed = removed && former && change.index >= 0 &&
+                                 *former == static_cast<std::size_t>(change.index);
+    if (editing_ && current_ && (current_removed || reset)) cancel_edit();
+    if (current_removed) bound_removed_current_ = former;
+    bool followed = false;
+    if (added && change.index >= 0) {
+        followed = (*bound_index_).insert(static_cast<std::size_t>(change.index), change.stable_id);
+    } else if (removed && change.index >= 0) {
+        followed = (*bound_index_).erase(static_cast<std::size_t>(change.index));
+    } else if (moved && change.index >= 0 && change.to_index >= 0) {
+        followed = (*bound_index_).move(static_cast<std::size_t>(change.index),
+                                        static_cast<std::size_t>(change.to_index));
     }
-    if (editing_ && current_) {
-        const bool current_removed = change.kind == BindingListChangeKind::item_removed &&
-                                     change.stable_id == (*current_).row_id;
-        if (current_removed || change.kind == BindingListChangeKind::reset) cancel_edit();
+    if (!followed) rebuild_row_index();
+    // Part way through one notification's additions or removals the index
+    // holds a different number of rows than the source, and the positions
+    // after the change are not yet the source's: rows are dropped only once
+    // it holds every row again. A move drops none.
+    const bool settled = !moved && (*bound_index_).size() == data_row_count();
+    if (settled) {
+        // A record that took the new row's ID, other than the one
+        // add_new_row is adding, moves the new row to another ID.
+        if (!adding_row_ && row_id_taken(new_row_.stable_id.value)) renew_new_row_id(true);
+        const std::optional<std::size_t> held = bound_removed_current_ ? bound_removed_current_ : former;
+        bound_removed_current_.reset();
+        drop_missing_rows(held);
     }
-    rebuild_row_index();
-    // A record that took the new row's ID, other than the one add_new_row
-    // is adding, moves the new row to another ID.
-    if (!adding_row_ && row_positions_.contains(new_row_.stable_id.value)) renew_new_row_id(true);
-    drop_missing_rows(former);
     rows_changed();
 }
 
@@ -2934,7 +2997,7 @@ void DataGridView::renew_new_row_id(bool force) {
     if (!force && !new_row_.stable_id.value.empty()) return;
     const std::string former = new_row_.stable_id.value;
     // generated_row_id skips the new row's present ID, which a row may hold.
-    std::string next = generated_row_id(row_positions_);
+    std::string next = generated_row_id();
     new_row_.stable_id.value = next;
     if (!former.empty()) rekey_row(former, next);
 }
@@ -3027,7 +3090,7 @@ bool DataGridView::add_new_row() {
     }
     // A new row appears after the row the user added, which keeps the ID the
     // current cell and the selection hold.
-    new_row_.stable_id.value = generated_row_id(row_positions_);
+    new_row_.stable_id.value = generated_row_id();
     new_row_.cells.clear();
     new_row_.cells.resize(columns_.size());
     added_row_ = row_id;

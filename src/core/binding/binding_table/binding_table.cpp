@@ -123,6 +123,32 @@ std::size_t BindingTable::remove(std::size_t row, std::size_t count_requested) {
     return removed;
 }
 
+void BindingTable::move(std::size_t row, std::size_t count_requested, std::size_t target) {
+    const std::size_t rows = count();
+    if (count_requested == 0U || row > rows || count_requested > rows - row || target > rows - count_requested) {
+        throw std::out_of_range("GUI.Forms binding table move is past the rows");
+    }
+    if (target == row) {
+        return;
+    }
+    // A rotation of the range the block crosses, in every per-row array;
+    // nothing allocates, so nothing fails part way.
+    const std::size_t low = std::min(row, target);
+    const std::size_t high = std::max(row, target) + count_requested;
+    const std::size_t pivot = target < row ? row : row + count_requested;
+    const std::ptrdiff_t cell_low = static_cast<std::ptrdiff_t>(low * width());
+    const std::ptrdiff_t cell_pivot = static_cast<std::ptrdiff_t>(pivot * width());
+    const std::ptrdiff_t cell_high = static_cast<std::ptrdiff_t>(high * width());
+    std::rotate(cells_.begin() + cell_low, cells_.begin() + cell_pivot, cells_.begin() + cell_high);
+    std::rotate(stable_ids_.begin() + static_cast<std::ptrdiff_t>(low),
+                stable_ids_.begin() + static_cast<std::ptrdiff_t>(pivot),
+                stable_ids_.begin() + static_cast<std::ptrdiff_t>(high));
+    std::rotate(editable_.begin() + static_cast<std::ptrdiff_t>(low),
+                editable_.begin() + static_cast<std::ptrdiff_t>(pivot),
+                editable_.begin() + static_cast<std::ptrdiff_t>(high));
+    link_.moved(row, count_requested, target);
+}
+
 void BindingTable::clear() {
     cells_.clear();
     stable_ids_.clear();

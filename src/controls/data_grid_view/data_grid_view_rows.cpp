@@ -102,7 +102,7 @@ void DataGridView::prepare_rows_insertion(const CollectionEdit& edit, std::span<
     try {
         for (DataGridViewRow& row : incoming) {
             row.cells.resize(columns_.size());
-            if (row.stable_id.value.empty()) row.stable_id.value = generated_row_id(row_positions_);
+            if (row.stable_id.value.empty()) row.stable_id.value = generated_row_id();
             row_positions_.emplace(row.stable_id.value, edit.index() + indexed);
             ++indexed;
         }

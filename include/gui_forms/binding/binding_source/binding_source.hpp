@@ -119,6 +119,15 @@ public:
     // the provider refuses throws std::invalid_argument.
     std::optional<std::size_t> add(BindingRow row);
     std::optional<std::size_t> insert(std::size_t index, BindingRow row);
+    // Adds rows at the end of the provider's rows, all or none. A row the
+    // provider refuses removes the rows added before it again and throws
+    // std::invalid_argument with the refusal, leaving the rows as they
+    // were; if the provider then refuses that removal too, the source
+    // resets to what the provider holds and throws std::runtime_error.
+    // More than one row needs a provider that removes rows (std::logic_error
+    // otherwise, before anything changes). One inserted notification is
+    // applied for the batch.
+    void add_rows(std::vector<BindingRow> rows);
     bool remove_at(std::size_t index);
     bool remove_current();
     void clear();

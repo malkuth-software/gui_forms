@@ -32,8 +32,8 @@ table
     The provider when it is a `BindingTable`, otherwise null. Changing the
     table changes the source: `assign` replaces every row (the row with the
     previous current stable ID stays current, otherwise the first row
-    becomes current), and `append`, `insert`, `remove` and `set_value`
-    raise the matching list changes.
+    becomes current), and `append`, `insert`, `remove`, `move` and
+    `set_value` raise the matching list changes.
 schema
     The provider's columns, as last read: on binding and on every reset.
     `column_of(name)` finds a column by any spelling of its name.
@@ -104,13 +104,17 @@ Events
 ------
 list_changed
     Raised after every change to the list, with a `BindingListChange` giving
-    its `kind`: `reset` after `set_provider`, a provider's reset, a move,
-    a change of more than 64 rows at once, `clear`, `resume_binding` or a
-    reset request, `item_added` and `item_removed` with the index and stable ID,
-    `item_changed` with the index, stable ID and, for a field change, the
-    field name, and `position_changed`. It is raised after the bound
-    controls have been updated, and is not raised while
-    `raise_list_changed_events` is false.
+    its `kind`: `reset` after `set_provider`, a provider's reset, a change
+    of more than 64 rows at once, `clear`, `resume_binding` or a reset
+    request; `item_added` with the index and stable ID and `item_removed`
+    with the index; `item_moved` (Windows Forms' `ItemMoved`) with the
+    index the row left and the `to_index` it now stands at, one per row
+    whose shown position a provider's move changed; `item_changed` with the
+    index, stable ID and, for a field change, the field name; and
+    `position_changed`. The changes one provider notification makes are
+    raised in order, each relative to the list the ones before it left. It
+    is raised after the bound controls have been updated, and is not raised
+    while `raise_list_changed_events` is false.
 position_changed
     Raised with the current position whenever the position or the current
     row changes: when `position` is set or moved, and when `set_provider`,
@@ -186,6 +190,13 @@ set_current_field
     is unchanged or the provider refuses it.
 add
     Appends a row through the provider; see `insert`.
+add_rows
+    Appends several rows through the provider, all or none: when the
+    provider refuses one, the rows added before it are removed again and
+    `std::invalid_argument` names the refusal. Several rows need a provider
+    that removes rows (`std::logic_error` otherwise, before anything
+    changes); a provider that refuses the undo too leaves its rows, the
+    source resets to them, and `std::runtime_error` says so.
 insert
     `insert(index, row)` asks the provider to insert a `BindingRow` (values
     by column position) before the row shown at `index`, and returns the

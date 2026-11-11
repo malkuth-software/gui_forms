@@ -48,8 +48,8 @@ gui_forms::BindingSource
          The provider when it is a :cpp:class:`BindingTable <gui_forms::BindingTable>`, otherwise null. Changing the
          table changes the source: ``assign`` replaces every row (the row with the
          previous current stable ID stays current, otherwise the first row
-         becomes current), and ``append``, :cpp:func:`insert <gui_forms::BindingSource::insert>`, ``remove`` and ``set_value``
-         raise the matching list changes.
+         becomes current), and ``append``, :cpp:func:`insert <gui_forms::BindingSource::insert>`, ``remove``, ``move`` and
+         ``set_value`` raise the matching list changes.
 
       **schema** : ``BindingSchema``, read-only
          The provider's columns, as last read: on binding and on every reset.
@@ -145,13 +145,17 @@ gui_forms::BindingSource
 
       **list_changed** : ``Event<const BindingListChange&>``
          Raised after every change to the list, with a :cpp:class:`BindingListChange <gui_forms::BindingListChange>` giving
-         its ``kind``: ``reset`` after :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>`, a provider's reset, a move,
-         a change of more than 64 rows at once, :cpp:func:`clear <gui_forms::BindingSource::clear>`, :cpp:func:`resume_binding <gui_forms::BindingSource::resume_binding>` or a
-         reset request, ``item_added`` and ``item_removed`` with the index and stable ID,
-         ``item_changed`` with the index, stable ID and, for a field change, the
-         field name, and :cpp:func:`position_changed <gui_forms::BindingSource::position_changed>`. It is raised after the bound
-         controls have been updated, and is not raised while
-         :cpp:func:`raise_list_changed_events <gui_forms::BindingSource::raise_list_changed_events>` is false.
+         its ``kind``: ``reset`` after :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>`, a provider's reset, a change
+         of more than 64 rows at once, :cpp:func:`clear <gui_forms::BindingSource::clear>`, :cpp:func:`resume_binding <gui_forms::BindingSource::resume_binding>` or a reset
+         request; ``item_added`` with the index and stable ID and ``item_removed``
+         with the index; ``item_moved`` (Windows Forms' ``ItemMoved``) with the
+         index the row left and the ``to_index`` it now stands at, one per row
+         whose shown position a provider's move changed; ``item_changed`` with the
+         index, stable ID and, for a field change, the field name; and
+         :cpp:func:`position_changed <gui_forms::BindingSource::position_changed>`. The changes one provider notification makes are
+         raised in order, each relative to the list the ones before it left. It
+         is raised after the bound controls have been updated, and is not raised
+         while :cpp:func:`raise_list_changed_events <gui_forms::BindingSource::raise_list_changed_events>` is false.
 
       **current_changed** : ``Event<>``
          Raised just after each :cpp:func:`position_changed <gui_forms::BindingSource::position_changed>`.
@@ -228,6 +232,8 @@ gui_forms::BindingSource
         - Appends a row through the provider; see :cpp:func:`insert <gui_forms::BindingSource::insert>`.
       * - :cpp:func:`insert <gui_forms::BindingSource::insert>`
         - ``insert(index, row)`` asks the provider to insert a :cpp:class:`BindingRow <gui_forms::BindingRow>` (values by column position) before the row shown at ``index``, and returns the new row's position, or an empty optional when the filter hides it.
+      * - :cpp:func:`add_rows <gui_forms::BindingSource::add_rows>`
+        - Appends several rows through the provider, all or none: when the provider refuses one, the rows added before it are removed again and ``std::invalid_argument`` names the refusal.
       * - :cpp:func:`remove_at <gui_forms::BindingSource::remove_at>`
         - Removes the row at an index through the provider and returns true, or returns false past the end.
       * - :cpp:func:`remove_current <gui_forms::BindingSource::remove_current>`
@@ -375,8 +381,8 @@ gui_forms::BindingSource
       The provider when it is a :cpp:class:`BindingTable <gui_forms::BindingTable>`, otherwise null. Changing the
       table changes the source: ``assign`` replaces every row (the row with the
       previous current stable ID stays current, otherwise the first row
-      becomes current), and ``append``, :cpp:func:`insert <gui_forms::BindingSource::insert>`, ``remove`` and ``set_value``
-      raise the matching list changes.
+      becomes current), and ``append``, :cpp:func:`insert <gui_forms::BindingSource::insert>`, ``remove``, ``move`` and
+      ``set_value`` raise the matching list changes.
 
    .. cpp:function:: const BindingSchema& schema() const noexcept
 
@@ -525,13 +531,17 @@ gui_forms::BindingSource
    .. cpp:function:: Event<const BindingListChange&>& list_changed() noexcept
 
       Raised after every change to the list, with a :cpp:class:`BindingListChange <gui_forms::BindingListChange>` giving
-      its ``kind``: ``reset`` after :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>`, a provider's reset, a move,
-      a change of more than 64 rows at once, :cpp:func:`clear <gui_forms::BindingSource::clear>`, :cpp:func:`resume_binding <gui_forms::BindingSource::resume_binding>` or a
-      reset request, ``item_added`` and ``item_removed`` with the index and stable ID,
-      ``item_changed`` with the index, stable ID and, for a field change, the
-      field name, and :cpp:func:`position_changed <gui_forms::BindingSource::position_changed>`. It is raised after the bound
-      controls have been updated, and is not raised while
-      :cpp:func:`raise_list_changed_events <gui_forms::BindingSource::raise_list_changed_events>` is false.
+      its ``kind``: ``reset`` after :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>`, a provider's reset, a change
+      of more than 64 rows at once, :cpp:func:`clear <gui_forms::BindingSource::clear>`, :cpp:func:`resume_binding <gui_forms::BindingSource::resume_binding>` or a reset
+      request; ``item_added`` with the index and stable ID and ``item_removed``
+      with the index; ``item_moved`` (Windows Forms' ``ItemMoved``) with the
+      index the row left and the ``to_index`` it now stands at, one per row
+      whose shown position a provider's move changed; ``item_changed`` with the
+      index, stable ID and, for a field change, the field name; and
+      :cpp:func:`position_changed <gui_forms::BindingSource::position_changed>`. The changes one provider notification makes are
+      raised in order, each relative to the list the ones before it left. It
+      is raised after the bound controls have been updated, and is not raised
+      while :cpp:func:`raise_list_changed_events <gui_forms::BindingSource::raise_list_changed_events>` is false.
 
    .. cpp:function:: Event<>& current_changed() noexcept
 
@@ -657,6 +667,15 @@ gui_forms::BindingSource
       ``std::logic_error`` when the provider cannot insert, and
       ``std::invalid_argument`` when it refuses the row (a duplicate stable ID,
       for one).
+
+   .. cpp:function:: void add_rows(std::vector<BindingRow> rows)
+
+      Appends several rows through the provider, all or none: when the
+      provider refuses one, the rows added before it are removed again and
+      ``std::invalid_argument`` names the refusal. Several rows need a provider
+      that removes rows (``std::logic_error`` otherwise, before anything
+      changes); a provider that refuses the undo too leaves its rows, the
+      source resets to them, and ``std::runtime_error`` says so.
 
    .. cpp:function:: bool remove_at(std::size_t index)
 

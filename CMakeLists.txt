@@ -831,6 +831,7 @@ add_library(gui_forms_controls STATIC
     src/controls/data_grid_view/data_grid_view.cpp
     src/controls/data_grid_view/data_grid_view_parts.cpp
     src/controls/data_grid_view/data_grid_view_rows.cpp
+    src/controls/data_grid_view/data_grid_view_bound_index.cpp
     src/controls/data_grid_view/data_grid_view_row_heights.cpp
     src/controls/data_grid_view/data_grid_view_row_order.cpp
     src/controls/data_grid_view/data_grid_view_cells.cpp

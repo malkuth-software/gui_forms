@@ -52,6 +52,20 @@ protected:
     BindingKeyReader& operator=(const BindingKeyReader&) = default;
 };
 
+// One row moving from one position to another; a block move is a run of
+// these, each relative to the order the ones before it left.
+struct BindingRowMove final {
+    std::size_t from{};
+    std::size_t to{};
+};
+
+// Appends the single-row steps that move rows [row, row + count) so the
+// first stands at target afterwards (target <= rows - count): rows moving
+// up go first to last, rows moving down each go from row to the block's
+// last place. Nothing when target == row.
+void append_block_move_steps(std::size_t row, std::size_t count, std::size_t target,
+                             std::vector<BindingRowMove>& steps);
+
 // A sort key resolved to its column.
 struct BindingViewKey final {
     std::size_t column{};
@@ -98,7 +112,10 @@ public:
     // positions before the removal, descending, to removed.
     void remove_rows(std::size_t row, std::size_t count, std::vector<std::size_t>& removed);
     // Rows [row, row + count) moved so the first is at target afterwards.
-    void move_rows(std::size_t row, std::size_t count, std::size_t target, BindingKeyReader& reader);
+    // Appends the shown rows' moves in the view, as single-row steps in
+    // order (each relative to the view the steps before it left), to moves;
+    // a shown row whose view position does not change adds none.
+    void move_rows(std::size_t row, std::size_t count, std::size_t target, std::vector<BindingRowMove>& moves);
     // A cell (or the whole row, binding_whole_row) changed.
     RowChange change_row(std::size_t row, std::size_t column, BindingKeyReader& reader);
 

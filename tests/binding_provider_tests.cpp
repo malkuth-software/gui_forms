@@ -2,8 +2,9 @@
 // the cp28 queue entry for claude/cp28-binding, accepted 2026-11-10): a
 // million-row provider read through the bounded row cache, generations,
 // hostile providers, revocation, notifications from another thread, the
-// built-in BindingTable, and sort and filter views checked against a brute
-// force under inserts, removes and changes.
+// built-in BindingTable, sort and filter views checked against a brute
+// force under inserts, removes and changes, the published list changes
+// (moves among them) replayed against the view, and add_rows all or none.
 
 #include "gui_forms/gui_forms.hpp"
 
@@ -14,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <initializer_list>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -21,6 +23,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <variant>
 #include <vector>
 
 namespace {
@@ -519,6 +522,214 @@ void test_sort_and_filter_views_match_brute_force_under_changes() {
             "no sort and no filter show the provider's order");
 }
 
+// ---------------------------------------------------------------------------
+// List changes replayed: a mirror of the shown IDs, changed only by the list
+// changes the source publishes (each relative to the list the ones before
+// it left), matches the view after every provider change.
+
+struct ListMirror final : Component {
+    const BindingSource* source{};
+    std::vector<std::string> ids;
+    std::size_t resets{};
+    std::size_t moves{};
+    bool failed{};
+
+    void on_change(const BindingListChange& change) {
+        const std::size_t size = ids.size();
+        const std::ptrdiff_t index = change.index;
+        if (change.kind == BindingListChangeKind::reset) {
+            ++resets;
+            ids = shown_view(*source);
+        } else if (change.kind == BindingListChangeKind::item_added) {
+            if (index < 0 || static_cast<std::size_t>(index) > size) {
+                failed = true;
+                return;
+            }
+            ids.insert(ids.begin() + index, change.stable_id);
+        } else if (change.kind == BindingListChangeKind::item_removed) {
+            if (index < 0 || static_cast<std::size_t>(index) >= size) {
+                failed = true;
+                return;
+            }
+            ids.erase(ids.begin() + index);
+        } else if (change.kind == BindingListChangeKind::item_moved) {
+            ++moves;
+            const std::ptrdiff_t to = change.to_index;
+            if (index < 0 || to < 0 || static_cast<std::size_t>(index) >= size || static_cast<std::size_t>(to) >= size ||
+                index == to) {
+                failed = true;
+                return;
+            }
+            const std::string moved = ids[static_cast<std::size_t>(index)];
+            ids.erase(ids.begin() + index);
+            ids.insert(ids.begin() + to, moved);
+        }
+    }
+};
+
+// Replays random inserts, removes, block moves and changes through one view
+// (none, a filter, or a sort and a filter).
+void replay_changes(std::size_t views) {
+    Host host;
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(host.window);
+    BindingTable& table = *(*source).table();
+    static_cast<void>(table.add_column(BindingColumn{"group", BindingValueKind::signed_integer}));
+    static_cast<void>(table.add_column(BindingColumn{"word", BindingValueKind::text}));
+    const std::size_t amount = table.add_column(BindingColumn{"amount", BindingValueKind::number});
+    Generator generator;
+    generator.state = generator.state + views;
+    std::size_t serial = 0U;
+    std::vector<BindingRow> rows;
+    for (; serial < 120U; ++serial) rows.push_back(random_row(generator, serial));
+    table.assign(std::move(rows));
+    if (views >= 1U) {
+        (*source).set_filter(BindingFilter{{BindingPredicate{"amount", BindingPredicateOperator::greater, 0.25}}});
+    }
+    if (views >= 2U) {
+        (*source).set_sort({BindingSortKey{"group", BindingSortDirection::ascending}});
+    }
+    ListMirror mirror;
+    mirror.source = source.get();
+    mirror.ids = shown_view(*source);
+    on((*source).list_changed(), mirror, &ListMirror::on_change);
+    for (std::size_t step = 0U; step < 500U; ++step) {
+        const std::size_t action = generator.below(4U);
+        if (action == 0U || table.count() < 30U) {
+            static_cast<void>(table.insert(generator.below(table.count() + 1U), random_row(generator, serial)));
+            ++serial;
+        } else if (action == 1U) {
+            static_cast<void>(table.remove(generator.below(table.count()), 1U + generator.below(3U)));
+        } else if (action == 2U) {
+            const std::size_t count = 1U + generator.below(4U);
+            const std::size_t first = generator.below(table.count() - count + 1U);
+            table.move(first, count, generator.below(table.count() - count + 1U));
+        } else {
+            const BindingRow changed = random_row(generator, serial);
+            static_cast<void>(table.set_value(generator.below(table.count()), amount, changed.values[amount]));
+        }
+        if (mirror.failed || mirror.ids != shown_view(*source)) {
+            throw std::runtime_error("the replayed list changes diverged from the view at step " + std::to_string(step) +
+                                     " (views " + std::to_string(views) + ")");
+        }
+    }
+    require(mirror.moves > 0U, "block moves publish moved changes");
+    require(mirror.resets == 0U, "a move, insertion, removal or change publishes no reset");
+}
+
+void test_list_changes_replay_to_the_view_and_moves_are_not_resets() {
+    replay_changes(0U);
+    replay_changes(1U);
+    replay_changes(2U);
+}
+
+// ---------------------------------------------------------------------------
+// add_rows over a provider that refuses part way: all or none.
+
+class RefusingProvider final : public BindingProvider {
+public:
+    BindingSchema schema() const override {
+        BindingSchema made(std::vector<BindingColumn>{BindingColumn{"value", BindingValueKind::signed_integer}});
+        return made;
+    }
+    BindingProviderCapabilities capabilities() const override {
+        BindingProviderCapabilities made;
+        made.inserts = true;
+        made.removes = removes;
+        return made;
+    }
+    std::size_t row_count() override { return values.size(); }
+    bool read_cell(std::size_t row, std::size_t column, BindingValue& value) override {
+        static_cast<void>(column);
+        if (row >= values.size()) return false;
+        value = values[row];
+        return true;
+    }
+    bool read_stable_id(std::size_t row, std::string& stable_id) override {
+        if (row >= values.size()) return false;
+        stable_id = "v." + std::to_string(values[row]);
+        return true;
+    }
+    BindingWriteResult write_cell(std::size_t row, std::size_t column, const BindingValue& value) override {
+        static_cast<void>(row);
+        static_cast<void>(column);
+        static_cast<void>(value);
+        return BindingWriteResult{BindingWriteStatus::refused, "read only data"};
+    }
+    BindingWriteResult insert_row(std::size_t row, const BindingRow& row_values) override {
+        const std::int64_t value = std::get<std::int64_t>(row_values.values.at(0U));
+        if (value == refused_value) return BindingWriteResult{BindingWriteStatus::refused, "the value is refused"};
+        values.insert(values.begin() + static_cast<std::ptrdiff_t>(row), value);
+        return BindingWriteResult{BindingWriteStatus::accepted, {}};
+    }
+    BindingWriteResult remove_rows(std::size_t row, std::size_t count) override {
+        if (refuse_removal) return BindingWriteResult{BindingWriteStatus::refused, "removals are refused"};
+        values.erase(values.begin() + static_cast<std::ptrdiff_t>(row),
+                     values.begin() + static_cast<std::ptrdiff_t>(row + count));
+        return BindingWriteResult{BindingWriteStatus::accepted, {}};
+    }
+
+    std::vector<std::int64_t> values{1, 2};
+    std::int64_t refused_value{-1};
+    bool removes{true};
+    bool refuse_removal{};
+};
+
+std::vector<BindingRow> value_rows(std::initializer_list<std::int64_t> values) {
+    std::vector<BindingRow> rows;
+    for (const std::int64_t value : values) {
+        BindingRow row;
+        row.stable_id = "v." + std::to_string(value);
+        row.values.push_back(value);
+        rows.push_back(std::move(row));
+    }
+    return rows;
+}
+
+void test_add_rows_is_all_or_none() {
+    Host host;
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(host.window);
+    std::shared_ptr<RefusingProvider> provider = std::make_shared<RefusingProvider>();
+    (*source).set_provider(provider);
+
+    (*source).add_rows(value_rows({3, 4}));
+    require((*source).count() == 4U && (*provider).values.size() == 4U, "accepted rows are all added");
+
+    (*provider).refused_value = 7;
+    ListCounter counter;
+    on((*source).list_changed(), counter, &ListCounter::on_change);
+    bool refused = false;
+    try {
+        (*source).add_rows(value_rows({5, 6, 7, 8}));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*source).count() == 4U && (*provider).values.size() == 4U && counter.changes == 0U,
+            "a refusal part way removes the rows added before it and publishes nothing");
+
+    (*provider).refuse_removal = true;
+    bool kept = false;
+    try {
+        (*source).add_rows(value_rows({5, 7}));
+    } catch (const std::runtime_error&) {
+        kept = true;
+    }
+    require(kept && (*provider).values.size() == 5U && (*source).count() == 5U && counter.resets == 1U,
+            "a refused undo resets the source to what the provider kept and says so");
+
+    std::shared_ptr<RefusingProvider> fixed = std::make_shared<RefusingProvider>();
+    (*fixed).removes = false;
+    (*source).set_provider(fixed);
+    bool unsafe = false;
+    try {
+        (*source).add_rows(value_rows({5, 6}));
+    } catch (const std::logic_error&) {
+        unsafe = true;
+    }
+    require(unsafe && (*fixed).values.size() == 2U, "several rows need a provider that can undo them");
+    (*source).add_rows(value_rows({5}));
+    require((*fixed).values.size() == 3U, "one row needs no undo");
+}
+
 void test_text_compares_ignoring_case_by_code_point() {
     require(compare_binding_keys(std::string("apple"), std::string("APPLE")) == 0 &&
                 compare_binding_keys(std::string("apple"), std::string("Banana")) < 0 &&
@@ -578,6 +789,8 @@ int main() {
         test_cross_thread_notifications_apply_at_a_safe_point();
         test_binding_table_checks_whole_and_keeps_errors_by_id();
         test_sort_and_filter_views_match_brute_force_under_changes();
+        test_list_changes_replay_to_the_view_and_moves_are_not_resets();
+        test_add_rows_is_all_or_none();
         test_text_compares_ignoring_case_by_code_point();
         test_order_tree_matches_a_vector();
         std::cout << "gui_forms_binding_provider_tests: all tests passed\n";

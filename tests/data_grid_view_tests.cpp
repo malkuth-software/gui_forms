@@ -3261,6 +3261,108 @@ void million_row_heights() {
               << " ms" << std::endl;
 }
 
+namespace {
+
+// Every row's ID is found at its own position (the identity index agrees
+// with the source).
+void require_index_agrees(const DataGridView& grid, const BindingSource& source, std::size_t step) {
+    const std::size_t count = source.count();
+    for (std::size_t position = 0U; position < count; ++position) {
+        const DataGridViewRowId identity{source.stable_id(position)};
+        const std::optional<DataGridViewRowPosition> found = grid.row_position(identity);
+        if (!found || (*found).value != position) {
+            throw std::runtime_error("the bound identity index disagrees with the source at step " +
+                                     std::to_string(step));
+        }
+    }
+}
+
+// N31 batch 2: a bound grid's identity index follows the source's list
+// changes one by one (insertions, removals, block moves, and moves in a
+// sorted view) instead of rebuilding for each, and the current cell and the
+// selection stay on their rows.
+void bound_identity_follows_list_changes() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.bound-identity"));
+    (*grid).set_columns({{.name = "name", .header_text = "Name", .data_property_name = "Name"}});
+    (*grid).selection_mode = DataGridViewSelectionMode::full_row_select;
+    (*grid).multi_select = true;
+    Window window(grid, {360.0, 200.0});
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
+    BindingTable& table = *(*source).table();
+    static_cast<void>(table.add_column(BindingColumn{"Name", BindingValueKind::text}));
+    static_cast<void>(table.add_column(BindingColumn{"Rank", BindingValueKind::signed_integer}));
+    std::vector<BindingRow> rows;
+    for (std::size_t index = 0U; index < 200U; ++index) {
+        BindingRow row;
+        row.stable_id = "b." + std::to_string(index);
+        row.values.push_back("n" + std::to_string(index));
+        row.values.push_back(static_cast<std::int64_t>((index * 7U) % 13U));
+        rows.push_back(std::move(row));
+    }
+    table.assign(std::move(rows));
+    (*grid).data_source = source;
+    window.perform_layout();
+    require((*grid).set_current_cell(cell_at(50U, 0U)), "a current cell on a bound row");
+    (*grid).set_row_selected(row_at(10U), true);
+    (*grid).set_row_selected(row_at(120U), true);
+    const std::string current = (*source).stable_id(50U);
+    const std::string first_selected = (*source).stable_id(10U);
+    const std::string second_selected = (*source).stable_id(120U);
+
+    std::uint64_t state = 0x2545F4914F6CDD1DULL;
+    for (std::size_t step = 0U; step < 300U; ++step) {
+        state = state * 6364136223846793005ULL + 1442695040888963407ULL;
+        const std::size_t pick = static_cast<std::size_t>(state >> 33U);
+        const std::size_t count = table.count();
+        const std::size_t action = pick % 3U;
+        if (action == 0U || count < 40U) {
+            BindingRow row;
+            row.stable_id = "c." + std::to_string(step);
+            row.values.push_back("added");
+            row.values.push_back(static_cast<std::int64_t>(pick % 13U));
+            static_cast<void>(table.insert((pick / 3U) % (count + 1U), std::move(row)));
+        } else if (action == 1U) {
+            const std::size_t at = (pick / 3U) % count;
+            const std::string& removed = table.stable_id(at);
+            if (removed != current && removed != first_selected && removed != second_selected) {
+                static_cast<void>(table.remove(at, 1U));
+            }
+        } else {
+            const std::size_t block = 1U + (pick / 3U) % 3U;
+            const std::size_t first = (pick / 9U) % (count - block + 1U);
+            const std::size_t target = (pick / 17U) % (count - block + 1U);
+            table.move(first, block, target);
+        }
+        require_index_agrees(*grid, *source, step);
+        const std::optional<DataGridViewCellAddress> cell = (*grid).current_cell();
+        const std::optional<std::size_t> current_row = table.find(current);
+        require(cell && current_row && (*cell).row.value == *current_row, "the current cell stays on its row");
+        require((*grid).is_row_selected(row_at(*table.find(first_selected))) &&
+                    (*grid).is_row_selected(row_at(*table.find(second_selected))) &&
+                    (*grid).selected_rows().size() == 2U,
+                "the selection stays on its rows");
+    }
+
+    // A sorted view: moves among equal keys reach the grid as moves too.
+    (*source).set_sort({BindingSortKey{"Rank", BindingSortDirection::ascending}});
+    require_index_agrees(*grid, *source, 1000U);
+    for (std::size_t step = 0U; step < 60U; ++step) {
+        const std::size_t count = table.count();
+        table.move((step * 31U) % (count - 2U), 2U, (step * 17U) % (count - 2U));
+        require_index_agrees(*grid, *source, 1000U + step);
+    }
+    // A removal of the current row moves the current cell to the row now at
+    // its position.
+    const std::size_t shown = (*(*grid).row_position(DataGridViewRowId{current})).value;
+    static_cast<void>(table.remove(*table.find(current), 1U));
+    const std::optional<DataGridViewCellAddress> after = (*grid).current_cell();
+    require(after && (*after).row.value == std::min(shown, (*source).count() - 1U),
+            "a removed current row leaves the current cell at its position");
+    require_index_agrees(*grid, *source, 2000U);
+}
+
+} // namespace
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -3303,6 +3405,7 @@ int main() {
     virtual_new_row();
     error_glyph_tool_tips();
     million_row_heights();
+    bound_identity_follows_list_changes();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";
