@@ -1,6 +1,7 @@
 #include "xsettings_parse.hpp"
 
 #include <cstddef>
+#include <optional>
 
 namespace gui_forms::host::linux_detail {
 namespace {
@@ -58,6 +59,67 @@ bool read_card32(PropertyCursor &cursor, std::uint32_t &value) noexcept {
   value = assembled;
   cursor.offset += 4U;
   return true;
+}
+
+// A blank inside a resource database line: a space or a tab.
+bool resource_blank(char character) noexcept {
+  const bool blank = character == ' ' || character == '\t';
+  return blank;
+}
+
+// `line` without its leading and trailing blanks.
+std::string_view trim_blanks(std::string_view line) noexcept {
+  std::size_t first = 0U;
+  while (first < line.size() && resource_blank(line[first]))
+    ++first;
+  std::size_t last = line.size();
+  while (last > first && resource_blank(line[last - 1U]))
+    --last;
+  const std::string_view trimmed = line.substr(first, last - first);
+  return trimmed;
+}
+
+// A decimal number, digits with an optional fraction ("192", "96.5"), and
+// nothing else; nullopt for any other text. At most 9 digits before the
+// point and 9 after it, so the value stays exact in a double.
+std::optional<double> parse_decimal(std::string_view text) noexcept {
+  if (text.empty())
+    return std::nullopt;
+  std::size_t index = 0U;
+  double whole = 0.0;
+  std::size_t whole_digits = 0U;
+  while (index < text.size() && text[index] >= '0' && text[index] <= '9') {
+    whole = whole * 10.0 + static_cast<double>(text[index] - '0');
+    ++whole_digits;
+    ++index;
+  }
+  if (whole_digits == 0U || whole_digits > 9U)
+    return std::nullopt;
+  if (index == text.size())
+    return whole;
+  if (text[index] != '.')
+    return std::nullopt;
+  ++index;
+  double fraction = 0.0;
+  double place = 1.0;
+  std::size_t fraction_digits = 0U;
+  while (index < text.size() && text[index] >= '0' && text[index] <= '9') {
+    place = place / 10.0;
+    fraction = fraction + place * static_cast<double>(text[index] - '0');
+    ++fraction_digits;
+    ++index;
+  }
+  if (index != text.size() || fraction_digits > 9U)
+    return std::nullopt;
+  const double value = whole + fraction;
+  return value;
+}
+
+// A density within (0, maximum_x11_dpi], else nullopt.
+std::optional<double> usable_dpi(std::optional<double> dpi) noexcept {
+  if (!dpi.has_value() || !(*dpi > 0.0) || *dpi > maximum_x11_dpi)
+    return std::nullopt;
+  return dpi;
 }
 
 // The padding that brings `length` to a multiple of 4.
@@ -159,6 +221,58 @@ CaretSettings xsettings_caret(XSettingsInteger blink, XSettingsInteger cycle) no
   caret.blink_milliseconds = phase;
   caret.origin = SettingOrigin::host;
   return caret;
+}
+
+std::optional<double> xsettings_dpi(XSettingsInteger xft_dpi) noexcept {
+  if (xft_dpi.lookup != XSettingsLookup::found || xft_dpi.value <= 0)
+    return std::nullopt;
+  const double dots = static_cast<double>(xft_dpi.value) / 1024.0;
+  const std::optional<double> dpi = usable_dpi(dots);
+  return dpi;
+}
+
+std::optional<double> resource_database_dpi(std::string_view resources) noexcept {
+  constexpr std::string_view wanted = "Xft.dpi";
+  std::optional<double> last{};
+  std::size_t start = 0U;
+  while (start < resources.size()) {
+    std::size_t end = resources.find('\n', start);
+    if (end == std::string_view::npos)
+      end = resources.size();
+    const std::string_view line = trim_blanks(resources.substr(start, end - start));
+    start = end + 1U;
+    if (line.empty() || line.front() == '!')
+      continue;
+    const std::size_t colon = line.find(':');
+    if (colon == std::string_view::npos)
+      continue;
+    const std::string_view name = trim_blanks(line.substr(0U, colon));
+    if (name != wanted)
+      continue;
+    const std::string_view value = trim_blanks(line.substr(colon + 1U));
+    // An unusable entry still replaces an earlier one: the database holds
+    // the newest value, and that value is not a density.
+    last = usable_dpi(parse_decimal(value));
+  }
+  return last;
+}
+
+double x11_scale_for_dpi(std::optional<double> dpi) noexcept {
+  if (!dpi.has_value())
+    return 1.0;
+  double scale = *dpi / x11_reference_dpi;
+  if (scale < 1.0)
+    scale = 1.0;
+  if (scale > maximum_x11_scale)
+    scale = maximum_x11_scale;
+  return scale;
+}
+
+double x11_desktop_scale(std::optional<double> manager_dpi,
+                         std::optional<double> resource_dpi) noexcept {
+  const std::optional<double> dpi = manager_dpi.has_value() ? manager_dpi : resource_dpi;
+  const double scale = x11_scale_for_dpi(dpi);
+  return scale;
 }
 
 } // namespace gui_forms::host::linux_detail

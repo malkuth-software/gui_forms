@@ -7,6 +7,7 @@
 #include "../compositor/x11_compositor.hpp"
 #include "../settings/xsettings_watch.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
+#include "gui_forms/host/windowing/desktop_coordinates.hpp"
 #include "gui_forms/platform/linux_host.hpp"
 #include <X11/Xlib.h>
 #include <signal.h>
@@ -19,13 +20,27 @@
 #include <cstdint>
 #include <optional>
 #include <thread>
+#include <cmath>
+#include <vector>
 
 namespace gui_forms::host::linux_detail {
 class Runtime;
 class NativeWindow;
+// The device pixels a logical extent covers at `scale`, rounded to the
+// nearest and at least 1 (an X window has no empty side), at most 32768.
+[[nodiscard]] inline unsigned device_extent(double logical, double scale) noexcept {
+  const double device = std::round(logical * scale);
+  if (!(device >= 1.0))
+    return 1U;
+  if (device > 32768.0)
+    return 32768U;
+  const unsigned pixels = static_cast<unsigned>(device);
+  return pixels;
+}
 // Application-scope windowing on X11 (stage DK phase W0, decisions 6 and 7;
-// x11_windowing.cpp). The X server's desktop is in device pixels and this
-// host runs at scale 1, so desktop logical units are pixels. Window
+// x11_windowing.cpp). The X server's desktop is in device pixels; desktop
+// logical units map through each monitor's scale (desktop_coordinates.hpp),
+// with the run's monitors cached in Runtime::device_monitors. Window
 // positions are requests a window manager may adjust; XWayland's handling is
 // measured, not assumed (notes:planning/stages/DK-docking/PLAN.md, W0).
 class X11Windowing final : public HostWindowing {
@@ -226,13 +241,35 @@ public:
   // written non-zero, else the size the window opened with.
   [[nodiscard]] Size minimum_size() const noexcept;
   HostDialogResult dialog(const HostDialogRequest &request);
-  // The window's frame in desktop units (pixels): the client area at its
-  // root position, and the outer frame from _NET_FRAME_EXTENTS when the
-  // window manager publishes it.
+  // The window's frame in desktop logical units: the client area at its
+  // root position (desktop_logical_point over the run's monitors) and its
+  // logical size, and the outer frame from _NET_FRAME_EXTENTS (device
+  // pixels, divided by the window's scale) when the window manager
+  // publishes it.
   HostWindowFrame frame() const;
-  // Asks the window manager for a client rectangle (static gravity, so the
-  // position is the client area's, not the frame's).
+  // Asks the window manager for a client rectangle in desktop logical units
+  // (static gravity, so the position is the client area's, not the
+  // frame's): the origin through desktop_device_point, the extent at the
+  // scale of the monitor it lands on.
   HostServiceStatus request_frame(Rect content);
+  // The device scale for the window where it now is: the scale of the
+  // monitor holding its client area's centre (Runtime::scale_at).
+  [[nodiscard]] double scale_here() const;
+  // Moves the window to `next` scale (audit N66, option a): a
+  // HostScaleEvent, the raster re-rastered at the next update over the
+  // whole window, the minimum size hint and the accessibility extents
+  // rescaled, and a native resize that keeps the logical size (the
+  // macOS and Windows rule; WM_DPICHANGED's suggested rectangle). A window
+  // the window manager holds full screen or maximized keeps its device size
+  // and reports the logical size that gives. Nothing for an unchanged scale.
+  void apply_scale(double next);
+  // The input settings for this window in its logical units: the desktop's
+  // pixel distances (drag rectangle, double-click distance) divided by the
+  // window's scale where the desktop set them.
+  [[nodiscard]] HostInputSettingsEvent input_settings_event() const;
+  // Writes WM_NORMAL_HINTS' minimum (minimum_size at the window's scale),
+  // keeping the hints' other fields.
+  void write_minimum_hint();
   Runtime &runtime;
   LinuxApplicationWindow entry;
   // The window's identity in the run (X11Windowing).
@@ -259,7 +296,16 @@ public:
   CompositorGeneration compositor_generation{};
   GC gc{};
   XIC input{};
+  // The client area in logical units: the device size divided by `scale`.
   Size size;
+  // The window's device scale (audit N66, option a): logical units to X
+  // pixels. Set at creation from the monitor it opens on, and changed only
+  // by apply_scale.
+  double scale{1.0};
+  // The client area in X pixels as the server last reported it
+  // (ConfigureNotify), or as created.
+  int device_width{};
+  int device_height{};
   bool closed{};
   bool visible{};
   // Holds the X input focus (FocusIn without a grab); the run is active
@@ -309,14 +355,17 @@ public:
   // The last press, for the computed click count (linux_input_rules.hpp).
   LinuxClickHistory click_history{};
   std::vector<char> presentation;
+  // A present's rectangles in device pixels (the logical damage times the
+  // window's scale), reused across presents.
+  std::vector<Rect> present_device;
   // The shared-memory image presents use where MIT-SHM is available
   // (audit G4/N67); released in ~NativeWindow, before the display closes.
   X11SharedImage shared_image;
   // The invalidation overlay's present-time storage (gui_forms/diagnostics/
   // invalidation_overlay), reused: the scratch frame the outlines are
   // composited in (sized on first use), the device areas they cover now and
-  // those they covered at the last present, and the rectangles a present
-  // copies with them. Window pixels are device pixels here (scale 1).
+  // those they covered at the last present, and the device rectangles a
+  // present copies with them.
   std::vector<std::byte> overlay_scratch;
   std::vector<DevicePixelRect> overlay_regions;
   std::vector<DevicePixelRect> overlay_drawn;
@@ -381,9 +430,23 @@ public:
   [[nodiscard]] std::uint32_t double_click_milliseconds() const noexcept;
   // The desktop's double-click distance (XSettingsWatch), or the default.
   [[nodiscard]] double double_click_distance() const noexcept;
-  // Reports the current monitors to every attached window
-  // (HostDisplayEvent) after RandR announced a screen change (audit N66).
+  // Refreshes device_monitors, then reports them to every attached window
+  // (HostDisplayEvent, device units) after RandR announced a screen change
+  // or the desktop's scale changed (audit N66), and moves each window to
+  // the scale of the monitor it is on (NativeWindow::apply_scale).
   void report_displays();
+  // The desktop's device scale (XSettingsWatch::scale), or 1 before the
+  // watch exists. X11 states one density for the whole desktop, so every
+  // monitor carries it.
+  [[nodiscard]] double desktop_scale() const noexcept;
+  // The scale of the monitor holding `point`, or of the nearest one
+  // (nearest_device_monitor over device_monitors); the desktop's scale
+  // while no monitor is known.
+  [[nodiscard]] double scale_at(DesktopDevicePoint point) const noexcept;
+  // The run's monitors in device units (query_x11_monitors), read at
+  // construction and again by report_displays. The coordinate conversions
+  // of the windowing seam and scale_at read it.
+  std::vector<HostMonitor> device_monitors;
   void dispatch(XEvent &event);
   Atom atom(const char *name) const;
   // RandR's first event number, where the build has Xrandr and the server
@@ -434,7 +497,8 @@ HostDialogResult retained_dialog(NativeWindow &owner,
 // The display's monitors into `result` (audit N66): RandR 1.5 monitors where
 // the build has Xrandr and the server offers them, otherwise the default
 // screen as one monitor; each work area is the frame within _NET_WORKAREA.
-// Every scale is 1, the X11 host's rendering scale. UI thread.
+// Every scale is the desktop's (Runtime::desktop_scale, from Xft.dpi). Device
+// units. UI thread.
 void query_x11_monitors(const Runtime &runtime, HostMonitorResult &result);
 // The run's open operation (LinuxOpenWindow). Only the UI thread reaches the
 // windowing, and only while the run lives.

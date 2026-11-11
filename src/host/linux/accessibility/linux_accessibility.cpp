@@ -859,6 +859,9 @@ struct LinuxAccessibility::Impl {
     Display* display = nullptr;
     ::Window native{};
     Window* model = nullptr;
+    // The window's device scale (LinuxAccessibility::set_scale): node bounds
+    // and text boxes are logical, AT-SPI extents are X pixels.
+    double scale = 1.0;
     AtkObject* frame = nullptr;
     // Owns one reference to each published object.
     std::map<NodeKey, AtkObject*> objects;
@@ -956,8 +959,8 @@ struct LinuxAccessibility::Impl {
         std::vector<AtkObject*> previous = std::move(frame_data.children);
         frame_data.children.clear();
         // The frame covers the content rectangle: the client less a declared
-        // outer band, which hits nothing (owner, 2026-11-08). The X11 host
-        // runs at scale 1, so logical units are pixels.
+        // outer band, which hits nothing (owner, 2026-11-08). Logical units,
+        // taken to X pixels when a client asks for extents (pixel_scale).
         frame_data.node.bounds = (*model).content_rect();
         frame_data.node.states = SemanticState::enabled | SemanticState::visible;
         for (std::size_t i = 0; i < snapshot.roots.size(); ++i) { sync(snapshot.roots[i], frame, static_cast<int>(i), 0U); }
@@ -1027,26 +1030,38 @@ gboolean perform(gpointer object, SemanticAction action, const std::string& valu
     g_object_unref(accessible);
     return result;
 }
+// The scale from `node`'s logical units to X pixels: its window's, or 1
+// for an object with no window.
+double pixel_scale(const NodeData& node) {
+    if (!node.owner) { return 1.0; }
+    const double scale = (*node.owner).scale;
+    return scale;
+}
 // Where window client coordinates (the coordinates of node bounds and text
-// layout boxes) put their origin in `coordinates`: the window's place on the
-// screen, the client origin itself, or minus the place of `node`'s parent.
+// layout boxes, at pixel_scale) put their origin in `coordinates`, in X
+// pixels: the window's place on the screen, the client origin itself, or
+// minus the place of `node`'s parent.
 void coordinate_origin(const NodeData& node, AtkCoordType coordinates, int& left, int& top) {
     left = 0; top = 0;
     if (node.owner && coordinates == ATK_XY_SCREEN) {
         ::Window child{};
         XTranslateCoordinates((*node.owner).display, (*node.owner).native, DefaultRootWindow((*node.owner).display), 0, 0, &left, &top, &child);
     } else if (node.parent && coordinates == ATK_XY_PARENT) {
-        left = -static_cast<int>(data(node.parent).node.bounds.x); top = -static_cast<int>(data(node.parent).node.bounds.y);
+        const double scale = pixel_scale(node);
+        const Rect parent = data(node.parent).node.bounds;
+        left = -static_cast<int>(parent.x * scale); top = -static_cast<int>(parent.y * scale);
     }
 }
 void answer_extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
     const NodeData& node = data(object);
     int left = 0, top = 0;
     coordinate_origin(node, coordinates, left, top);
-    if (x) { *x = left + static_cast<int>(node.node.bounds.x); }
-    if (y) { *y = top + static_cast<int>(node.node.bounds.y); }
-    if (width) { *width = node.live ? static_cast<int>(node.node.bounds.width) : 0; }
-    if (height) { *height = node.live ? static_cast<int>(node.node.bounds.height) : 0; }
+    const double scale = pixel_scale(node);
+    const Rect bounds = node.node.bounds;
+    if (x) { *x = left + static_cast<int>(bounds.x * scale); }
+    if (y) { *y = top + static_cast<int>(bounds.y * scale); }
+    if (width) { *width = node.live ? static_cast<int>(bounds.width * scale) : 0; }
+    if (height) { *height = node.live ? static_cast<int>(bounds.height * scale) : 0; }
 }
 void extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
     gui_forms::detail::call_failing_fast("linux.atk.extents", &answer_extents, object, x, y, width, height, coordinates);
@@ -1239,10 +1254,12 @@ void answer_character_extents(AtkText* object, gint offset, gint* x, gint* y, gi
                 if (grapheme.range.start.value() != low) continue;
                 int left = 0, top = 0;
                 coordinate_origin(node, coordinates, left, top);
-                if (x) { *x = left + static_cast<int>(std::lround(grapheme.bounds.x)); }
-                if (y) { *y = top + static_cast<int>(std::lround(grapheme.bounds.y)); }
-                if (width) { *width = static_cast<int>(std::lround(grapheme.bounds.width)); }
-                if (height) { *height = static_cast<int>(std::lround(grapheme.bounds.height)); }
+                const double scale = pixel_scale(node);
+                const Rect box = grapheme.bounds;
+                if (x) { *x = left + static_cast<int>(std::lround(box.x * scale)); }
+                if (y) { *y = top + static_cast<int>(std::lround(box.y * scale)); }
+                if (width) { *width = static_cast<int>(std::lround(box.width * scale)); }
+                if (height) { *height = static_cast<int>(std::lround(box.height * scale)); }
                 break;
             }
         }
@@ -1261,8 +1278,10 @@ gint answer_offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordi
         const NodeData& node = data(accessible);
         int left = 0, top = 0;
         coordinate_origin(node, coordinates, left, top);
-        const double client_x = static_cast<double>(x - left);
-        const double client_y = static_cast<double>(y - top);
+        // X pixels back to logical units.
+        const double scale = pixel_scale(node);
+        const double client_x = static_cast<double>(x - left) / scale;
+        const double client_y = static_cast<double>(y - top) / scale;
         for (const SemanticTextGrapheme& grapheme : (*node.owner).text_layout.graphemes) {
             const Rect box = grapheme.bounds;
             if (client_x >= box.x && client_x < box.x + box.width && client_y >= box.y && client_y < box.y + box.height) {
@@ -1306,6 +1325,10 @@ LinuxAccessibility::LinuxAccessibility(Display* display, ::Window native, Window
     // No snapshot yet: the first client query publishes the tree.
 }
 LinuxAccessibility::~LinuxAccessibility() { detach(); }
+void LinuxAccessibility::set_scale(double scale) {
+    if (!std::isfinite(scale) || scale <= 0.0) return;
+    (*impl_).scale = scale;
+}
 void LinuxAccessibility::set_title(const std::string& title) {
     if (!(*impl_).model || !(*impl_).frame) return;
     NodeData& frame = data((*impl_).frame);

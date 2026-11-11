@@ -156,7 +156,8 @@ bool NativeWindow::drag_message(const XClientMessageEvent &message) {
         drag.items.push_back(std::move(files));
       }
     }
-    drag.position = {static_cast<double>(x), static_cast<double>(y)};
+    // Window device pixels to logical units, at the boundary.
+    drag.position = {static_cast<double>(x) / scale, static_cast<double>(y) / scale};
     drag.action = entering ? DragAction::enter : DragAction::over;
     drag.accepted_effect = DragEffect::none;
     drag.handled = false;
