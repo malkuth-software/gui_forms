@@ -344,6 +344,34 @@ void test_dock_site_parts() {
     require(painter.filled(caption_blue), "dock-site::part(caption) paints the tool stacks' captions");
 }
 
+constexpr Color thumb_amber = Color::rgba(0xd0, 0x90, 0x10);
+
+// Whether a scrolled panel's own vertical bar paints its thumb in amber
+// under `v-scroll-bar::part(thumb)`, with or without a back colour the
+// program set on the panel (an authored colour, as SDR#'s panels set).
+bool embedded_thumb_amber(bool authored_back) {
+    const std::shared_ptr<Panel> panel = make_control<Panel>(StableId("probe.scrolled"));
+    const std::shared_ptr<Button> child = make_control<Button>(StableId("probe.scrolled.child"), "Content");
+    (*child).set_requested_bounds({10.0, 10.0, 60.0, 300.0});
+    (*panel).add_child(child);
+    (*panel).auto_scroll = true;
+    if (authored_back) (*panel).back_color = Color::rgba(0x19, 0x19, 0x19);
+    Window window(panel, Size{120.0, 100.0});
+    window.set_theme(theme_from_sheet("v-scroll-bar::part(thumb) { background: #d09010 !important; }\n"));
+    window.perform_layout();
+    ColourPainter painter{};
+    window.paint(painter);
+    const bool filled = painter.filled(thumb_amber);
+    return filled;
+}
+
+// A scrollable control's built-in bars are styled as the stock bars
+// (PartPaint::control_type), so a sheet's v-scroll-bar rule reaches them.
+void test_embedded_scroll_bar_rules() {
+    require(embedded_thumb_amber(false), "v-scroll-bar::part(thumb) paints a panel's own thumb");
+    require(embedded_thumb_amber(true), "an important thumb rule stands over the panel's own back colour");
+}
+
 } // namespace
 
 int main() {
@@ -353,6 +381,7 @@ int main() {
     test_container_grounds();
     test_unknown_part_in_a_list();
     test_dock_site_parts();
+    test_embedded_scroll_bar_rules();
     if (failures != 0) {
         std::cerr << failures << " theme rule face check(s) failed\n";
         return 1;
