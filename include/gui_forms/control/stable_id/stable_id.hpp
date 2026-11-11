@@ -48,7 +48,8 @@ public:
             detail::stable_id_literal_is_not_dot_separated_lowercase_dash_segments();
         }
     }
-    [[nodiscard]] constexpr std::string_view value() const noexcept { return value_; }
+    [[nodiscard]] constexpr std::string_view value() const& noexcept { return value_; }
+    std::string_view value() const&& = delete;
 
 private:
     std::string_view value_;
@@ -72,7 +73,8 @@ public:
     explicit StableId(Text&& value) : value_(std::forward<Text>(value)) {
         require_valid();
     }
-    [[nodiscard]] std::string_view value() const noexcept { return value_; }
+    [[nodiscard]] std::string_view value() const& noexcept { return value_; }
+    std::string_view value() const&& = delete;
     friend bool operator==(const StableId& left,
                            const StableId& right) noexcept {
         return left.value_ == right.value_;

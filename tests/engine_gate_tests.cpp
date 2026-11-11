@@ -1259,10 +1259,11 @@ public:
     }
 
     // The composited image: premultiplied BGRA bytes, row after row.
-    [[nodiscard]] std::span<const std::byte> image_bytes() const {
+    [[nodiscard]] std::span<const std::byte> image_bytes() const& {
         const std::vector<std::uint32_t>& pixels = layers_.front().pixels;
         return std::as_bytes(std::span<const std::uint32_t>(pixels.data(), pixels.size()));
     }
+    std::span<const std::byte> image_bytes() const&& = delete;
 
 private:
     struct State final {

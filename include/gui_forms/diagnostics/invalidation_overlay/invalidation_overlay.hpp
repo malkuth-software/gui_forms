@@ -143,7 +143,8 @@ public:
     void clear() noexcept;
     [[nodiscard]] bool empty() const noexcept { return outlines_.empty(); }
     // Oldest first.
-    [[nodiscard]] std::span<const InvalidationOutline> outlines() const noexcept { return outlines_; }
+    [[nodiscard]] std::span<const InvalidationOutline> outlines() const& noexcept { return outlines_; }
+    std::span<const InvalidationOutline> outlines() const&& = delete;
     // Every outline recorded, by cause, since the overlay was made.
     [[nodiscard]] const std::array<std::uint64_t, invalidation_cause_count>& recorded() const noexcept {
         return recorded_;

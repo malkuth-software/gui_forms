@@ -16,9 +16,10 @@ public:
 
     void add(Component::Ptr component);
     [[nodiscard]] Component::Ptr remove(const Component& component);
-    [[nodiscard]] std::span<const Component::Ptr> components() const noexcept {
+    [[nodiscard]] std::span<const Component::Ptr> components() const& noexcept {
         return components_;
     }
+    std::span<const Component::Ptr> components() const&& = delete;
     [[nodiscard]] bool contains(const Component& component) const noexcept;
     void dispose();
     [[nodiscard]] bool is_disposed() const noexcept { return disposed_; }

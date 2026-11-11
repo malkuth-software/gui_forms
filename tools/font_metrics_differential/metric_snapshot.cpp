@@ -55,7 +55,7 @@ public:
     explicit SnapshotReader(std::string_view text) : remaining_(text) {}
 
     // The next line that is not a comment, without its newline.
-    [[nodiscard]] std::string_view line() {
+    [[nodiscard]] std::string_view line() & {
         while (!remaining_.empty()) {
             const std::size_t end = remaining_.find('\n');
             if (end == std::string_view::npos) throw InputRejected("the snapshot does not end with a newline");
@@ -67,6 +67,7 @@ public:
         }
         throw InputRejected("the snapshot ends early");
     }
+    std::string_view line() && = delete;
 
     // The rest of a line after its label and one space.
     [[nodiscard]] std::string_view labelled(std::string_view label) {

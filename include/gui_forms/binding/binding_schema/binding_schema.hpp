@@ -57,7 +57,8 @@ public:
     explicit BindingSchema(std::vector<BindingColumn> columns);
 
     [[nodiscard]] std::size_t size() const noexcept { return columns_.size(); }
-    [[nodiscard]] std::span<const BindingColumn> columns() const noexcept { return columns_; }
+    [[nodiscard]] std::span<const BindingColumn> columns() const& noexcept { return columns_; }
+    std::span<const BindingColumn> columns() const&& = delete;
     // The column at index (below size()).
     [[nodiscard]] const BindingColumn& column(std::size_t index) const { return columns_.at(index); }
     // The index of the column named name in any spelling that folds to it,

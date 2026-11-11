@@ -17,7 +17,8 @@ public:
     void clear() noexcept;
 
     [[nodiscard]] bool empty() const noexcept { return rectangles_.empty(); }
-    [[nodiscard]] std::span<const Rect> rectangles() const noexcept { return rectangles_; }
+    [[nodiscard]] std::span<const Rect> rectangles() const& noexcept { return rectangles_; }
+    std::span<const Rect> rectangles() const&& = delete;
     [[nodiscard]] std::size_t rectangle_count() const noexcept { return rectangles_.size(); }
     [[nodiscard]] std::uint64_t compaction_count() const noexcept { return compaction_count_; }
     [[nodiscard]] std::uint64_t collapse_count() const noexcept { return collapse_count_; }

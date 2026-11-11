@@ -103,9 +103,10 @@ public:
     [[nodiscard]] std::shared_ptr<ContextMenu> context_menu() const noexcept {
         return context_menu_;
     }
-    [[nodiscard]] std::span<const std::shared_ptr<Command>> commands() const noexcept {
+    [[nodiscard]] std::span<const std::shared_ptr<Command>> commands() const& noexcept {
         return commands_;
     }
+    std::span<const std::shared_ptr<Command>> commands() const&& = delete;
     [[nodiscard]] std::string about_text() const;
 
 private:

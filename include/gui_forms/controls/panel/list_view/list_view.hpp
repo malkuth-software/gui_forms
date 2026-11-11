@@ -201,7 +201,8 @@ public:
     ~ListView() override;
     void initialize_control_tree();
 
-    [[nodiscard]] std::span<const ListViewColumn> columns() const noexcept { return columns_; }
+    [[nodiscard]] std::span<const ListViewColumn> columns() const& noexcept { return columns_; }
+    std::span<const ListViewColumn> columns() const&& = delete;
     // Replaces the columns. Throws std::invalid_argument for an empty or
     // duplicate ID, invalid UTF-8, a width outside the minimum and maximum
     // column widths, or more than maximum_columns columns. Clears the sort
@@ -212,7 +213,8 @@ public:
     void set_column_width(std::size_t column, double width);
 
     // The items of an ordinary view; empty in virtual mode.
-    [[nodiscard]] std::span<const ListViewItem> items() const noexcept { return items_; }
+    [[nodiscard]] std::span<const ListViewItem> items() const& noexcept { return items_; }
+    std::span<const ListViewItem> items() const&& = delete;
     // Replaces the items. Throws std::invalid_argument for an empty or
     // duplicate ID or invalid UTF-8, and std::logic_error in virtual mode.
     void set_items(std::vector<ListViewItem> items);
@@ -232,7 +234,8 @@ public:
     // not collapse. set_groups throws std::invalid_argument for an empty or
     // repeated ID, invalid UTF-8, an unknown alignment, or more than
     // maximum_groups groups.
-    [[nodiscard]] std::span<const ListViewGroup> groups() const noexcept { return groups_; }
+    [[nodiscard]] std::span<const ListViewGroup> groups() const& noexcept { return groups_; }
+    std::span<const ListViewGroup> groups() const&& = delete;
     void set_groups(std::vector<ListViewGroup> groups);
     // Whether the items are shown in groups now.
     [[nodiscard]] bool grouped() const noexcept;

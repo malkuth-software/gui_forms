@@ -49,13 +49,15 @@ public:
     explicit TreeView(StableId stable_id);
     ~TreeView() override;
 
-    [[nodiscard]] std::span<const TreeViewItem> items() const noexcept {
+    [[nodiscard]] std::span<const TreeViewItem> items() const& noexcept {
         return items_;
     }
+    std::span<const TreeViewItem> items() const&& = delete;
     void set_items(std::vector<TreeViewItem> items);
-    [[nodiscard]] std::string_view active_id() const noexcept {
+    [[nodiscard]] std::string_view active_id() const& noexcept {
         return active_id_;
     }
+    std::string_view active_id() const&& = delete;
     [[nodiscard]] bool expanded(std::string_view stable_id) const;
     void set_expanded(std::string_view stable_id, bool expanded);
     [[nodiscard]] std::size_t top_row() const noexcept { return top_row_; }

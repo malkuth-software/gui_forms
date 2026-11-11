@@ -115,7 +115,8 @@ public:
     // the mask, or an empty culture symbol. An empty mask has no positions.
     explicit MaskedTextProvider(std::string mask = {}, MaskCulture culture = {});
 
-    [[nodiscard]] std::string_view mask() const noexcept { return mask_; }
+    [[nodiscard]] std::string_view mask() const& noexcept { return mask_; }
+    std::string_view mask() const&& = delete;
     [[nodiscard]] const MaskCulture& culture() const noexcept { return culture_; }
     // The number of slots, literal and editable.
     [[nodiscard]] std::size_t length() const noexcept { return slots_.size(); }

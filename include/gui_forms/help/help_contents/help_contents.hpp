@@ -39,7 +39,8 @@ public:
     [[nodiscard]] static HelpPlace parse(std::string_view text);
 
     [[nodiscard]] HelpPlaceKind kind() const noexcept { return kind_; }
-    [[nodiscard]] std::string_view anchor() const noexcept { return anchor_; }
+    [[nodiscard]] std::string_view anchor() const& noexcept { return anchor_; }
+    std::string_view anchor() const&& = delete;
 
 private:
     HelpPlace(HelpPlaceKind kind, std::string_view anchor) : kind_(kind), anchor_(anchor) {}

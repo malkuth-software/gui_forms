@@ -134,12 +134,14 @@ public:
     [[nodiscard]] std::span<const GridSpan> spans() const& noexcept { return spans_; }
     std::span<const GridSpan> spans() const&& = delete;
 
-    [[nodiscard]] std::span<const TableLayoutStyle> column_styles() const noexcept {
+    [[nodiscard]] std::span<const TableLayoutStyle> column_styles() const& noexcept {
         return column_styles_;
     }
-    [[nodiscard]] std::span<const TableLayoutStyle> row_styles() const noexcept {
+    std::span<const TableLayoutStyle> column_styles() const&& = delete;
+    [[nodiscard]] std::span<const TableLayoutStyle> row_styles() const& noexcept {
         return row_styles_;
     }
+    std::span<const TableLayoutStyle> row_styles() const&& = delete;
     void set_column_style(std::size_t column, TableLayoutStyle style);
     void set_row_style(std::size_t row, TableLayoutStyle style);
     // Replaces every column's style; the count becomes the number of
@@ -161,12 +163,14 @@ public:
     [[nodiscard]] Control::Ptr control_from_position(std::size_t column,
                                                      std::size_t row) const;
 
-    [[nodiscard]] std::span<const double> column_widths() const noexcept {
+    [[nodiscard]] std::span<const double> column_widths() const& noexcept {
         return column_widths_;
     }
-    [[nodiscard]] std::span<const double> row_heights() const noexcept {
+    std::span<const double> column_widths() const&& = delete;
+    [[nodiscard]] std::span<const double> row_heights() const& noexcept {
         return row_heights_;
     }
+    std::span<const double> row_heights() const&& = delete;
     [[nodiscard]] bool layout_overflowed() const noexcept {
         return layout_overflowed_;
     }

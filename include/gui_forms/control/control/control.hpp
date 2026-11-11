@@ -352,7 +352,8 @@ public:
     [[nodiscard]] Ptr parent() const noexcept { return parent_.lock(); }
     // Back to front (painter order, as the C ABI's insert_child and
     // child_at count): index 0 paints first, the last child paints on top.
-    [[nodiscard]] std::span<const Ptr> children() const noexcept { return children_; }
+    [[nodiscard]] std::span<const Ptr> children() const& noexcept { return children_; }
+    std::span<const Ptr> children() const&& = delete;
     // Advances whenever the child list changes (an add, a removal, a new
     // order, a disposal), so a walk that indexes the live list instead of
     // copying it can tell that a callback changed it meanwhile (audit N84).
@@ -530,9 +531,10 @@ public:
     [[nodiscard]] std::optional<Color> ambient_back_color() const noexcept;
     [[nodiscard]] std::optional<Color> ambient_fore_color() const noexcept;
     [[nodiscard]] std::span<const OwnerDecorationRecipe>
-    owned_decorations() const noexcept {
+    owned_decorations() const& noexcept {
         return owned_decorations_;
     }
+    std::span<const OwnerDecorationRecipe> owned_decorations() const&& = delete;
     void set_owned_decorations(const OwnerDecorationRecipe* decorations,
                                std::size_t decoration_count);
     void clear_owned_decorations();

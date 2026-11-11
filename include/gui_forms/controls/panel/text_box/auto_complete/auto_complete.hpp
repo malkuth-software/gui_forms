@@ -82,7 +82,8 @@ public:
     AutoCompleteStringCollection(const AutoCompleteStringCollection&) = delete;
     AutoCompleteStringCollection& operator=(const AutoCompleteStringCollection&) = delete;
 
-    [[nodiscard]] std::span<const std::string> items() const noexcept { return items_; }
+    [[nodiscard]] std::span<const std::string> items() const& noexcept { return items_; }
+    std::span<const std::string> items() const&& = delete;
     [[nodiscard]] std::size_t size() const noexcept { return items_.size(); }
     [[nodiscard]] bool empty() const noexcept { return items_.empty(); }
     // Throws std::out_of_range for an index past the end.

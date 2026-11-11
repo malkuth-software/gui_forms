@@ -138,7 +138,8 @@ public:
         for_each_pixel(area, {}, raster.get(), Point{origin.x + state_.offset.x, origin.y + state_.offset.y});
     }
 
-    [[nodiscard]] std::span<std::uint8_t> pixels() noexcept { return pixels_; }
+    [[nodiscard]] std::span<std::uint8_t> pixels() & noexcept { return pixels_; }
+    std::span<std::uint8_t> pixels() && = delete;
     [[nodiscard]] std::uint32_t width() const noexcept { return width_; }
     [[nodiscard]] std::uint32_t height() const noexcept { return height_; }
 

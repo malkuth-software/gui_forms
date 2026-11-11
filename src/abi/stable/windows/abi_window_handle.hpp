@@ -27,7 +27,8 @@ public:
     // Whether the handle still owns its window (it has not been run).
     [[nodiscard]] bool owns_window() const noexcept { return owned_ != nullptr; }
     // The root's stable id, which is the window's.
-    [[nodiscard]] std::string_view stable_id() const noexcept { return (*root_).stable_id().value(); }
+    [[nodiscard]] std::string_view stable_id() const& noexcept { return (*root_).stable_id().value(); }
+    std::string_view stable_id() const&& = delete;
 
     // Hands the window to a run; window() still observes it until end_run.
     [[nodiscard]] std::unique_ptr<Window> take_for_run() noexcept;

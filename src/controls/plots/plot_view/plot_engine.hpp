@@ -163,9 +163,10 @@ public:
     [[nodiscard]] std::string table_text(std::span<const PlotEngineSeries> series) const;
     [[nodiscard]] std::size_t table_row_count(std::span<const PlotEngineSeries> series) const;
     // The legend's entries as last painted, and the series each names.
-    [[nodiscard]] std::span<const plots::LegendEntryLayout> legend_entries() const noexcept {
+    [[nodiscard]] std::span<const plots::LegendEntryLayout> legend_entries() const& noexcept {
         return std::span<const plots::LegendEntryLayout>(legend_entries_.data(), legend_count_);
     }
+    std::span<const plots::LegendEntryLayout> legend_entries() const&& = delete;
 
     // Each series' colour: an accent of `theme`'s ramp by its position.
     [[nodiscard]] static Color series_color(const Control& owner, std::size_t position) noexcept;

@@ -58,7 +58,8 @@ public:
 
     explicit BackstageView(StableId stable_id);
 
-    [[nodiscard]] std::span<const BackstageItemSpec> items() const noexcept { return items_; }
+    [[nodiscard]] std::span<const BackstageItemSpec> items() const& noexcept { return items_; }
+    std::span<const BackstageItemSpec> items() const&& = delete;
     // Replaces the column. The selection stays on a topic with the same ID,
     // else the first topic. Throws std::invalid_argument, keeping the old
     // items, for an empty or repeated ID, invalid UTF-8, a command without a

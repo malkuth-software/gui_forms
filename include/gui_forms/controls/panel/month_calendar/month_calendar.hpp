@@ -62,17 +62,20 @@ public:
     // a day of every month (only the day of a monthly date counts, and only
     // the month and day of an annual one). Invalid dates throw
     // std::invalid_argument.
-    [[nodiscard]] std::span<const DateTimeValue> bolded_dates() const noexcept { return bolded_; }
+    [[nodiscard]] std::span<const DateTimeValue> bolded_dates() const& noexcept { return bolded_; }
+    std::span<const DateTimeValue> bolded_dates() const&& = delete;
     void set_bolded_dates(std::vector<DateTimeValue> dates);
     void add_bolded_date(DateTimeValue date);
     void remove_bolded_date(DateTimeValue date);
     void remove_all_bolded_dates();
-    [[nodiscard]] std::span<const DateTimeValue> annually_bolded_dates() const noexcept { return annually_bolded_; }
+    [[nodiscard]] std::span<const DateTimeValue> annually_bolded_dates() const& noexcept { return annually_bolded_; }
+    std::span<const DateTimeValue> annually_bolded_dates() const&& = delete;
     void set_annually_bolded_dates(std::vector<DateTimeValue> dates);
     void add_annually_bolded_date(DateTimeValue date);
     void remove_annually_bolded_date(DateTimeValue date);
     void remove_all_annually_bolded_dates();
-    [[nodiscard]] std::span<const DateTimeValue> monthly_bolded_dates() const noexcept { return monthly_bolded_; }
+    [[nodiscard]] std::span<const DateTimeValue> monthly_bolded_dates() const& noexcept { return monthly_bolded_; }
+    std::span<const DateTimeValue> monthly_bolded_dates() const&& = delete;
     void set_monthly_bolded_dates(std::vector<DateTimeValue> dates);
     void add_monthly_bolded_date(DateTimeValue date);
     void remove_monthly_bolded_date(DateTimeValue date);

@@ -84,9 +84,10 @@ public:
     // Provisional development admission guard, not measured product capacity.
     static constexpr std::size_t maximum_details_text_bytes = 64U * 1024U * 1024U;
 
-    [[nodiscard]] std::span<const ObjectViewItem> items() const noexcept {
+    [[nodiscard]] std::span<const ObjectViewItem> items() const& noexcept {
         return items_;
     }
+    std::span<const ObjectViewItem> items() const&& = delete;
     // Maps a root-client pointer position back to the retained stable item.
     // This is presentation identity only; applications retain all domain and
     // transfer authority.
@@ -102,27 +103,31 @@ public:
     void set_details_model(std::vector<ObjectDetailsColumn> columns,
                            std::vector<ObjectViewItem> items,
                            ObjectDetailsSort accepted_sort);
-    [[nodiscard]] std::span<const ObjectDetailsColumn> details_columns() const noexcept {
+    [[nodiscard]] std::span<const ObjectDetailsColumn> details_columns() const& noexcept {
         return details_columns_;
     }
+    std::span<const ObjectDetailsColumn> details_columns() const&& = delete;
     void set_details_column_width(const ObjectColumnId& column, double width);
     [[nodiscard]] Event<const ObjectDetailsSort&>& sort_requested() noexcept { return sort_requested_; }
     void set_horizontal_offset(double offset);
     [[nodiscard]] double horizontal_offset() const noexcept { return horizontal_offset_; }
     [[nodiscard]] ObjectDetailsPaintWork details_paint_work() const noexcept { return details_paint_work_; }
-    [[nodiscard]] std::span<const std::string> selected_ids() const noexcept {
+    [[nodiscard]] std::span<const std::string> selected_ids() const& noexcept {
         return selected_ids_;
     }
+    std::span<const std::string> selected_ids() const&& = delete;
     void set_selected_ids(std::vector<std::string> stable_ids,
                           std::string_view primary_id = {});
     void clear_selection();
     void select_all();
-    [[nodiscard]] std::string_view selection_anchor_id() const noexcept {
+    [[nodiscard]] std::string_view selection_anchor_id() const& noexcept {
         return selection_anchor_id_;
     }
-    [[nodiscard]] std::string_view focused_id() const noexcept {
+    std::string_view selection_anchor_id() const&& = delete;
+    [[nodiscard]] std::string_view focused_id() const& noexcept {
         return focused_id_;
     }
+    std::string_view focused_id() const&& = delete;
     [[nodiscard]] std::size_t top_row() const noexcept { return top_row_; }
     void set_top_row(std::size_t row);
 

@@ -65,8 +65,10 @@ public:
     [[nodiscard]] RibbonGalleryForm form() const noexcept { return form_; }
 
     // -- model -----------------------------------------------------------
-    [[nodiscard]] std::span<const RibbonGalleryCategory> categories() const noexcept { return categories_; }
-    [[nodiscard]] std::span<const RibbonGalleryItem> items() const noexcept { return items_; }
+    [[nodiscard]] std::span<const RibbonGalleryCategory> categories() const& noexcept { return categories_; }
+    std::span<const RibbonGalleryCategory> categories() const&& = delete;
+    [[nodiscard]] std::span<const RibbonGalleryItem> items() const& noexcept { return items_; }
+    std::span<const RibbonGalleryItem> items() const&& = delete;
     // Replaces the categories and items. Items show without a category
     // first, then category by category in category order, each in the order
     // given. Throws std::invalid_argument for an empty or repeated ID, an

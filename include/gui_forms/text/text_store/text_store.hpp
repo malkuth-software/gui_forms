@@ -16,7 +16,8 @@ class TextStore final {
 public:
     explicit TextStore(std::string_view text = {}, TextStoreLimits limits = {});
 
-    [[nodiscard]] std::string_view utf8() const noexcept { return text_; }
+    [[nodiscard]] std::string_view utf8() const& noexcept { return text_; }
+    std::string_view utf8() const&& = delete;
     [[nodiscard]] Utf8Offset utf8_size() const noexcept {
         return Utf8Offset(text_.size());
     }
@@ -36,9 +37,10 @@ public:
     [[nodiscard]] const TextStoreLimits& limits() const noexcept {
         return limits_;
     }
-    [[nodiscard]] std::span<const TextStyleSpan> style_spans() const noexcept {
+    [[nodiscard]] std::span<const TextStyleSpan> style_spans() const& noexcept {
         return style_spans_;
     }
+    std::span<const TextStyleSpan> style_spans() const&& = delete;
 
     void set_text(std::string_view text);
     [[nodiscard]] TextEditResult replace(

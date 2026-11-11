@@ -76,16 +76,19 @@ class CorrespondenceView final : public Panel, public CorrespondenceViewCapabili
 public:
     explicit CorrespondenceView(StableId stable_id);
 
-    [[nodiscard]] std::span<const CorrespondenceItem> items() const noexcept {
+    [[nodiscard]] std::span<const CorrespondenceItem> items() const& noexcept {
         return items_;
     }
+    std::span<const CorrespondenceItem> items() const&& = delete;
     void set_items(std::vector<CorrespondenceItem> items);
-    [[nodiscard]] std::string_view focused_id() const noexcept {
+    [[nodiscard]] std::string_view focused_id() const& noexcept {
         return focused_id_;
     }
-    [[nodiscard]] std::string_view hovered_id() const noexcept {
+    std::string_view focused_id() const&& = delete;
+    [[nodiscard]] std::string_view hovered_id() const& noexcept {
         return hovered_id_;
     }
+    std::string_view hovered_id() const&& = delete;
     [[nodiscard]] bool expanded(std::string_view stable_id) const;
     [[nodiscard]] double content_height() const noexcept;
     [[nodiscard]] std::size_t realized_count() const noexcept;

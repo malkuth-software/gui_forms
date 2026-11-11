@@ -168,9 +168,10 @@ public:
     track_child_property_entries() noexcept;
     [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
 
-    [[nodiscard]] std::span<const ResponsiveTrackSpec> track_specs() const noexcept {
+    [[nodiscard]] std::span<const ResponsiveTrackSpec> track_specs() const& noexcept {
         return track_specs_;
     }
+    std::span<const ResponsiveTrackSpec> track_specs() const&& = delete;
     void set_track_specs(std::vector<ResponsiveTrackSpec> specs);
     void set_track_spec(std::size_t track, ResponsiveTrackSpec spec);
 

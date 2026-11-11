@@ -36,12 +36,14 @@ public:
 
     // The families offered, in order. Throws std::invalid_argument for an
     // empty, repeated or invalid name, or more than maximum_families.
-    [[nodiscard]] std::span<const std::string> families() const noexcept { return families_; }
+    [[nodiscard]] std::span<const std::string> families() const& noexcept { return families_; }
+    std::span<const std::string> families() const&& = delete;
     void set_families(std::vector<std::string> families);
     // The sizes offered, in points, ascending; 8 to 72 by default. Throws
     // std::invalid_argument for sizes that are not ascending or outside
     // FontCommand's range, or more than maximum_sizes.
-    [[nodiscard]] std::span<const double> sizes() const noexcept { return sizes_; }
+    [[nodiscard]] std::span<const double> sizes() const& noexcept { return sizes_; }
+    std::span<const double> sizes() const&& = delete;
     void set_sizes(std::vector<double> sizes);
     // The two fields' widths in logical units at text scale 1 (defaults 120
     // and 44). Throws std::invalid_argument outside 16 to 512.

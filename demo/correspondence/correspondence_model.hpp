@@ -63,7 +63,8 @@ class CorrespondenceModel final {
 public:
     CorrespondenceModel();
 
-    [[nodiscard]] std::span<const Message> messages() const noexcept { return messages_; }
+    [[nodiscard]] std::span<const Message> messages() const& noexcept { return messages_; }
+    std::span<const Message> messages() const&& = delete;
     [[nodiscard]] const Message* find(std::uint32_t id) const noexcept;
 
     [[nodiscard]] Folder selected_folder() const noexcept { return folder_; }

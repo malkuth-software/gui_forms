@@ -152,7 +152,8 @@ public:
     }
 
     // The read.
-    [[nodiscard]] std::span<const Element> read() const noexcept { return elements_; }
+    [[nodiscard]] std::span<const Element> read() const& noexcept { return elements_; }
+    std::span<const Element> read() const&& = delete;
 
     // The element at `index`; std::out_of_range past the end.
     [[nodiscard]] const Element& operator[](std::size_t index) const {
@@ -292,7 +293,8 @@ private:
     [[nodiscard]] std::uint64_t revision() const noexcept { return revision_; }
     // The elements, writable in place. Call mark_replaced (or mark_all)
     // before writing, so a failed mark leaves the elements unchanged.
-    [[nodiscard]] std::span<Element> owner_elements() noexcept { return elements_; }
+    [[nodiscard]] std::span<Element> owner_elements() & noexcept { return elements_; }
+    std::span<Element> owner_elements() && = delete;
     // Records a write about to happen to the element at `index` (index
     // below the length). Reserves the dirty record: may throw, before the
     // write.

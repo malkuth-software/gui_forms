@@ -22,9 +22,10 @@ public:
     explicit SemanticFeedback(Window& window, Clock clock = {});
 
     [[nodiscard]] SemanticFeedbackRecord emit(SemanticFeedbackKind kind);
-    [[nodiscard]] std::span<const SemanticFeedbackRecord> records() const noexcept {
+    [[nodiscard]] std::span<const SemanticFeedbackRecord> records() const& noexcept {
         return records_;
     }
+    std::span<const SemanticFeedbackRecord> records() const&& = delete;
     [[nodiscard]] std::uint64_t dropped_record_count() const noexcept {
         return dropped_record_count_;
     }

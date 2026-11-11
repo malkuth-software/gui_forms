@@ -349,10 +349,11 @@ public:
     // character boundary.
     void assign(std::string_view text) noexcept;
     void clear() noexcept { length_ = 0U; }
-    [[nodiscard]] std::string_view view() const noexcept {
+    [[nodiscard]] std::string_view view() const& noexcept {
         const std::string_view text(bytes_.data(), length_);
         return text;
     }
+    std::string_view view() const&& = delete;
 
 private:
     std::array<char, maximum_drag_announcement_bytes> bytes_{};
@@ -530,7 +531,8 @@ public:
     [[nodiscard]] DragInputMode mode() const noexcept { return mode_; }
     [[nodiscard]] DragEpoch epoch() const noexcept { return epoch_; }
     [[nodiscard]] const DragSelection& selection() const noexcept { return selection_; }
-    [[nodiscard]] std::string_view announcement() const noexcept { return announcement_.view(); }
+    [[nodiscard]] std::string_view announcement() const& noexcept { return announcement_.view(); }
+    std::string_view announcement() const&& = delete;
     [[nodiscard]] const DragStatistics& statistics() const noexcept { return statistics_; }
     // Whether `client` runs the current session (any phase but idle).
     [[nodiscard]] bool runs(const DragClient& client) const noexcept;
