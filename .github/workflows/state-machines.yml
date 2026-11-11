@@ -79,16 +79,22 @@ jobs:
       - name: Nothing to check
         if: steps.scope.outputs.scope == 'none'
         run: echo "No C or C++ file changed; the gate passes without a tree."
+      # The compiler and Ninja come from the toolkit profile, through the shared Linux
+      # package cache the native jobs fill on main (harness/install_linux_ci_packages.sh):
+      # an Ubuntu mirror outage then only matters when that cache is rebuilt.
+      - name: Name the Linux package cache
+        id: linux-image
+        if: steps.scope.outputs.scope != 'none'
+        run: echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v4
+        if: steps.scope.outputs.scope != 'none'
+        with:
+          path: ${{ runner.temp }}/apt-archives
+          key: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-${{ steps.linux-image.outputs.image }}
+          restore-keys: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-
       - name: Install LLVM 22 and Ninja
         if: steps.scope.outputs.scope != 'none'
-        run: |
-          curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key -o "$RUNNER_TEMP/llvm-key.asc"
-          sudo install -m 0644 "$RUNNER_TEMP/llvm-key.asc" /usr/share/keyrings/apt-llvm.asc
-          echo 'deb [signed-by=/usr/share/keyrings/apt-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-22 main' \
-            | sudo tee /etc/apt/sources.list.d/llvm-22.list
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang-22 ninja-build
-          echo /usr/lib/llvm-22/bin >> "$GITHUB_PATH"
+        run: sh template_harness/harness/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
       # Configure only: the checker runs the front end (-fsyntax-only) over the
       # tree's compile commands and builds just the generated headers.
       # The form-compiler test is off: its header is generated at build time,
