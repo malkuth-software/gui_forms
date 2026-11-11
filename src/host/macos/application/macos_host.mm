@@ -9,6 +9,9 @@
 
 #include "macos_host.hpp"
 #include "../../../core/failure/fail_fast.hpp"
+#if defined(GUI_FORMS_PREPARED_TEXT)
+#include "../../../core/text/prepared/prepared_storage.hpp"
+#endif
 #include "application_menu.hpp"
 #include "front_reuse.hpp"
 #include "live_surface_damage.hpp"
@@ -3359,7 +3362,19 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
         // opposite corners cost their own areas, not the strip between them.
         _raster.save();
         _raster.clip_damage(_pendingDamage);
+#if defined(GUI_FORMS_PREPARED_TEXT)
+        // A control's exception is not caught here (the fail-fast boundary
+        // ends the process); core's typed prepared-text refusal (a stale or
+        // cancelled layout) is an expected alternative: no receipt, so the
+        // candidate is aborted below and the presented front stays.
+        try {
+            receipt = (*_model).paint(_raster, _pendingDamage.rectangles());
+        } catch (const gui_forms::detail::PreparedTextPaintFailure&) {
+            receipt.reset();
+        }
+#else
         receipt = (*_model).paint(_raster, _pendingDamage.rectangles());
+#endif
         _raster.restore();
         const std::chrono::steady_clock::time_point paintEnded =
             std::chrono::steady_clock::now();
