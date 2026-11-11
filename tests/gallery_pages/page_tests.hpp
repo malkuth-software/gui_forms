@@ -10,6 +10,7 @@ namespace gallery_pages_tests {
 void test_catalog_pages_resolve_and_headers_describe_pages();
 void test_page_contract_and_rendering();
 void test_gallery_semantic_surface();
+void test_basics_card_dark_contrast();
 void test_anatomy_coverage();
 void test_schema_export();
 void test_every_page_scrolls_to_its_end();
