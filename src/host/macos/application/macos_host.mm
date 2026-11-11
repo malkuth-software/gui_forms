@@ -1,4 +1,5 @@
 #include "display_link_trace.hpp"
+#include "../../offscreen_font_lookup.hpp"
 #import <AppKit/AppKit.h>
 // kAEQuitReason and the session-end reasons (AERegistry.h); constants only.
 #import <CoreServices/CoreServices.h>
@@ -782,6 +783,12 @@ static std::shared_ptr<gui_forms::detail::BundledFontSet> bundle_font_set() {
     const std::shared_ptr<gui_forms::detail::BundledFontSet> set =
         gui_forms::detail::shared_bundled_font_set(directory, gui_forms::host::posix_sealed_pages());
     return set;
+}
+
+// OffscreenRaster::create's lookup (offscreen_font_lookup.hpp): the windows' own places.
+std::filesystem::path gui_forms::host::offscreen_bundled_font_directory() {
+    const std::filesystem::path directory = bundle_font_directory();
+    return directory;
 }
 
 namespace {

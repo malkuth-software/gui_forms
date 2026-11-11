@@ -540,6 +540,27 @@ public:
         return visual_status_;
     }
     void set_visual_status(ControlVisualStatus status);
+    // Specimen states (theme palettes and tests only; owner request
+    // 2026-11-11): shows `shown` among the control's published states
+    // (base_anatomy_states, so anatomy_states and the parts' states, and
+    // visual_context) on top of what its input, focus and values give it,
+    // so that a palette can draw a control hot, pressed or focused without
+    // sending input. Nothing else changes: no event is raised; focus,
+    // pointer capture, values and semantics stay as they are; and real
+    // input still adds its own states. A shown disabled replaces enabled,
+    // and a shown focus_visible adds focused. Every standard state in
+    // `shown` must be one anatomy().states declares and every custom index
+    // one anatomy().custom_states declares; otherwise std::invalid_argument
+    // naming the first other, changing nothing. An empty set ends the
+    // presentation. Repaints the control. UI thread.
+    //
+    // A palette reaches value states (checked, selected, read_only,
+    // invalid, disabled) through the control's real values instead:
+    // show_specimen_state (gui_forms/capture/specimen_states) chooses the
+    // route per state. A control whose paint reads its own flags rather
+    // than its published states draws a shown state as its rest state.
+    void set_specimen_states(AnatomyStateSet shown);
+    [[nodiscard]] AnatomyStateSet specimen_states() const noexcept { return specimen_states_; }
     [[nodiscard]] ControlVisualContext visual_context(VisualInteraction interaction = {}) const noexcept;
     [[nodiscard]] bool invoke_required() const noexcept;
     [[nodiscard]] DispatchOperation begin_invoke(std::function<void()> callback);
@@ -1679,6 +1700,8 @@ private:
     bool font_from_code_{};
     std::vector<OwnerDecorationRecipe> owned_decorations_;
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};
+    // set_specimen_states: empty unless a palette or test shows states.
+    AnatomyStateSet specimen_states_{};
     ToolTipPresentation tool_tip_presentation_{ToolTipPresentation::bubble};
     bool publishes_item_tool_tips_{};
     std::shared_ptr<CommandTarget> command_target_;

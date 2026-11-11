@@ -5,6 +5,7 @@
 #include "gui_forms/binding.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/canvas.hpp"
+#include "gui_forms/capture.hpp"
 #include "gui_forms/collection_controls.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/composition_controls.hpp"

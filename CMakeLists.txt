@@ -456,6 +456,7 @@ add_library(gui_forms_core STATIC
     src/core/window/typography/window_typography.cpp
     src/core/window/update_scope/update_scope.cpp
     src/core/window/presentation/window_presentation.cpp
+    src/core/capture/specimen_states/specimen_states.cpp
     src/core/window/scheduler/window_scheduler.cpp
     src/core/window/engine_inputs/window_engine_inputs.cpp
     src/core/window/engine_motion/window_engine_motion.cpp
@@ -937,6 +938,7 @@ add_library(gui_forms_controls STATIC
     src/controls/metrics_view/metrics_view.cpp
     src/controls/visual_inspector_view/visual_inspector_view.cpp
     src/controls/typography_specimen/typography_specimen.cpp
+    src/controls/specimen/stock_specimens/stock_specimens.cpp
     src/controls/easing_preview/easing_preview.cpp
     src/controls/panel/text_box/text_box.cpp
     src/controls/panel/text_editing/text_editing_engine.cpp
@@ -1218,6 +1220,9 @@ if(GUI_FORMS_ENABLE_SKIA)
     add_library(gui_forms_skia STATIC
         src/render/skia/raster/skia_raster.cpp
         src/render/skia/raster/skia_splash_bake.cpp
+        # OffscreenRaster's renderer half (capture/offscreen_raster); its
+        # font lookup half is src/runtime/offscreen, in the application.
+        src/render/skia/offscreen/offscreen_raster.cpp
     )
     target_include_directories(gui_forms_skia
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/raster
@@ -1373,6 +1378,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     add_library(gui_forms_application SHARED
         src/runtime/application_bundle.cpp
         src/runtime/application/application.cpp
+        src/runtime/offscreen/offscreen_raster_create.cpp
     )
     add_library(GUIForms::Application ALIAS gui_forms_application)
     set_target_properties(gui_forms_application PROPERTIES
@@ -1475,7 +1481,8 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xext)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1)
     endif()
-    add_library(gui_forms_application SHARED src/runtime/application_bundle.cpp src/runtime/application/application.cpp)
+    add_library(gui_forms_application SHARED src/runtime/application_bundle.cpp src/runtime/application/application.cpp
+        src/runtime/offscreen/offscreen_raster_create.cpp)
     add_library(GUIForms::Application ALIAS gui_forms_application)
     set_target_properties(gui_forms_application PROPERTIES EXPORT_NAME Application OUTPUT_NAME gui_forms_application VERSION 0.1.0 SOVERSION 0)
     target_include_directories(gui_forms_application PUBLIC
@@ -1560,7 +1567,8 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     if(MINGW)
         add_library(gui_forms_application SHARED
             src/runtime/application_bundle.cpp
-            src/runtime/application/application.cpp)
+            src/runtime/application/application.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp)
         add_library(GUIForms::Application ALIAS gui_forms_application)
         set_target_properties(gui_forms_application PROPERTIES
             EXPORT_NAME Application OUTPUT_NAME gui_forms_application
@@ -5210,6 +5218,18 @@ if(GUI_FORMS_BUILD_TESTS)
             target_link_libraries(gui_forms_specimen_sheet PRIVATE gui_forms_gallery_model gui_forms_skia)
             add_test(NAME gui_forms_specimen_sheet_tests COMMAND gui_forms_specimen_sheet --smoke)
         endif()
+
+        # Windowless capture (owner request 2026-11-11, the theme palette):
+        # OffscreenRaster with the bundled fonts named, Window::capture_control,
+        # specimen states, and the stock specimen catalogue's completeness
+        # against stock_control_anatomies().
+        add_executable(gui_forms_offscreen_capture_tests tests/offscreen_capture_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_offscreen_capture_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_offscreen_capture_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_offscreen_capture_tests COMMAND gui_forms_offscreen_capture_tests)
 
         add_executable(gui_forms_canvas_raster_tests tests/canvas_raster_tests.cpp)
         target_link_libraries(gui_forms_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
