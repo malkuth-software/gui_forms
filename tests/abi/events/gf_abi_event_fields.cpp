@@ -540,13 +540,16 @@ double allocations_per_key_down(const Tables& tables, int subscribers) {
 }
 
 // N12: what one emission through the ABI forwarder allocates, beside the
-// route's own cost (no subscriber), printed for the record.
+// route's own cost (no subscriber). Each subscription reuses its fields, so
+// after its first emission a subscriber adds no allocation (before the
+// reuse: +11 per subscriber per key_down).
 void emission_allocations(const Tables& tables) {
     const double none = allocations_per_key_down(tables, 0);
     const double one = allocations_per_key_down(tables, 1);
     const double four = allocations_per_key_down(tables, 4);
     std::cout << "N12 key_down allocations per dispatch: route " << none << ", 1 subscriber +" << (one - none)
               << ", 4 subscribers +" << (four - none) << '\n';
+    require(one == none && four == none, "an ABI subscriber adds no allocation per emission once warmed");
 }
 
 // The status a core failure reaches the C ABI as (N6): the core's own
