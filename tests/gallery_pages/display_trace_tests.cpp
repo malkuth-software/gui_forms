@@ -572,6 +572,10 @@ struct PageDigest final {
 // take the package's text role classes, the navigation rows and menu type
 // are classes) and gave menu drop-downs an icon gutter. Recorded again:
 // every page.
+// The cp28 assembly put the windows-professional rework beside the
+// WheelScrolls binding descriptor: values-and-spinners' property grid gains
+// the row (the rows below move), and states-and-diagnostics and
+// images-and-drawing follow. Recorded again: those three, in both tables.
 //
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
@@ -585,11 +589,11 @@ constexpr std::array<PageDigest, 39> expected_digests{{
     {"ranges-and-progress", 0x9be996aa5ebb1a51ULL},
     {"containers-and-focus", 0x8170bdd707e8acd7ULL},
     {"animation-laboratory", 0x5816f65f03dca827ULL},
-    {"states-and-diagnostics", 0x8ff39cb83a312bc8ULL},
+    {"states-and-diagnostics", 0xb7f75e105c264cd2ULL},
     {"text-and-input", 0xc3cf4b809999112bULL},
     {"collections-and-overlays", 0x1a88199d35f9097aULL},
-    {"values-and-spinners", 0xd2bd65ff24a47895ULL},
-    {"images-and-drawing", 0x355b9122ef1914cdULL},
+    {"values-and-spinners", 0x59698ecc4a34014bULL},
+    {"images-and-drawing", 0xafca6aace72561fdULL},
     {"tabs-and-pages", 0xa77310c4a6f8ded2ULL},
     {"checked-collections", 0xb7b004feba008164ULL},
     {"timing-and-tooltips", 0x7cfcaf7648215ef9ULL},
@@ -624,49 +628,53 @@ constexpr std::array<PageDigest, 39> expected_digests{{
 // between cp22 and the default switch but the base, so a window switched to
 // windows-professional must still record them. Recorded again for the
 // windows-professional rework (2026-11-10; candidate DX's palette, light and
-// dark, and the pages' inline styles taken off). typography-and-inspection is
+// dark, and the pages' inline styles taken off), and again for the cp28
+// assembly: a box shadow reaches the 3.5 deviations it draws (1.75 blur
+// radii, owner 2026-11-10) where it reached 3 radii, which moves every page's
+// cards; values-and-spinners gains the WheelScrolls row; docking-workspace's
+// dock site parts carry their names. typography-and-inspection is
 // left out (zero): it shows a RuntimeId, which counts every control made
 // before it in the process, and this pass runs after the one above.
 constexpr std::array<PageDigest, 39> professional_digests{{
-    {"basics", 0xa605ec57d6ee4c07ULL},
-    {"values", 0x0a275ffa5d8a6b64ULL},
-    {"retained-rows", 0x6b531bf6478aa2d7ULL},
-    {"instrument", 0x890a1f54fbdef24fULL},
-    {"control-spectrum", 0xf9a2f5dcb34f1ec6ULL},
-    {"ranges-and-progress", 0xe222d8a0b36a49eaULL},
-    {"containers-and-focus", 0xd3880f838d21d4b2ULL},
-    {"animation-laboratory", 0xad7598ba1b234a5dULL},
+    {"basics", 0x5e866339c6e6da77ULL},
+    {"values", 0x57a560b4f8c726cdULL},
+    {"retained-rows", 0x2bf5b0b0ee2d29b0ULL},
+    {"instrument", 0xa1e332af0bdda02eULL},
+    {"control-spectrum", 0x6fe66343c5f4101bULL},
+    {"ranges-and-progress", 0xbfae41b026907c4dULL},
+    {"containers-and-focus", 0x283ce1b15dec6b72ULL},
+    {"animation-laboratory", 0x0ffae5880275bbb8ULL},
     {"states-and-diagnostics", 0x0000000000000000ULL},
-    {"text-and-input", 0x59a940fd90078fbeULL},
-    {"collections-and-overlays", 0x5c64e6f4e363baceULL},
-    {"values-and-spinners", 0xbca508b9adcf6d30ULL},
-    {"images-and-drawing", 0x40a72e9847964670ULL},
-    {"tabs-and-pages", 0xf84e1dce14841becULL},
-    {"checked-collections", 0x22d8407f594a8ca8ULL},
-    {"timing-and-tooltips", 0xd376eda47291aefdULL},
-    {"dates-and-calendar", 0xf599429fe0b3f8c5ULL},
-    {"dialogs-and-host-services", 0x8d86a113317db064ULL},
-    {"css-layout-panels", 0x986a9a6d97fd456cULL},
-    {"retained-layout-panels", 0x4dae771bc6b8ee8eULL},
-    {"dock-and-anchor", 0x6e2e71be6f824456ULL},
-    {"docking-workspace", 0x7ee20d8ef8962bd5ULL},
-    {"commands-and-menus", 0xea3f70d7efdc42c0ULL},
-    {"tree-and-object-views", 0x3f1a917a14367eb1ULL},
-    {"choices-and-sections", 0x2db45ebee385592fULL},
-    {"value-editors", 0xd44abfb0757e5bc1ULL},
-    {"responsive-layouts", 0x2018b6940e9bd292ULL},
-    {"anchored-overlays", 0x804e5f932120588bULL},
-    {"live-surfaces", 0xd285f21b8fa51bf2ULL},
+    {"text-and-input", 0xeea32066cb790e5eULL},
+    {"collections-and-overlays", 0x8169f36da6f0527bULL},
+    {"values-and-spinners", 0xd9ae82629be76710ULL},
+    {"images-and-drawing", 0xc2d76e1acad2e17dULL},
+    {"tabs-and-pages", 0xc04bdfcbd27f8e4bULL},
+    {"checked-collections", 0xb337d70176b432e1ULL},
+    {"timing-and-tooltips", 0x97fca6d09b85a8caULL},
+    {"dates-and-calendar", 0x07501626c67e0fd9ULL},
+    {"dialogs-and-host-services", 0x0ae9717c451eb8bcULL},
+    {"css-layout-panels", 0xf7ccc44f4f88a584ULL},
+    {"retained-layout-panels", 0x4505b058b26b7997ULL},
+    {"dock-and-anchor", 0xe2086750f8c9a5f3ULL},
+    {"docking-workspace", 0x215fe1d36660e11aULL},
+    {"commands-and-menus", 0xc9e72b81b92c392dULL},
+    {"tree-and-object-views", 0x3caebcf4b042dd8bULL},
+    {"choices-and-sections", 0xfa56d3663725de1aULL},
+    {"value-editors", 0x73d9486f932736f8ULL},
+    {"responsive-layouts", 0x224f02ee276ceec5ULL},
+    {"anchored-overlays", 0xc7a7950aa583ef79ULL},
+    {"live-surfaces", 0x727918d91e9e89ffULL},
     {"typography-and-inspection", 0x0000000000000000ULL},
-    {"semantic-feedback", 0x45fca35836be75fdULL},
-    {"notices-and-badges", 0x86c210583318c6c2ULL},
-    {"input-and-rules", 0x5621900b70d56bb9ULL},
-    {"theme-settings", 0x17a49b4a2554ded0ULL},
-    {"spinners-and-rings", 0x9c840ead41bd4f44ULL},
-    {"instruments", 0x7864ad1aa7557dcdULL},
-    {"guided-tasks", 0xbed3cd999e79d99fULL},
-    {"help-book", 0x4a5a263ac8b5708bULL},
-    {"controls-inspection", 0x2b4d0c3424876720ULL},
+    {"semantic-feedback", 0x803c061d7802ef3eULL},
+    {"notices-and-badges", 0x974cb3434c07546bULL},
+    {"input-and-rules", 0xf146eb74ddfc5374ULL},
+    {"theme-settings", 0xe40d3550682ddeadULL},
+    {"spinners-and-rings", 0x70d2b7d24c12a025ULL},
+    {"instruments", 0x3cb35b07120d23b4ULL},
+    {"guided-tasks", 0x006ff6b22bdaf776ULL},
+    {"help-book", 0x1b926f95509ebe61ULL},
+    {"controls-inspection", 0x5461e90be4f721f0ULL},
 }};
 
 // The Gallery theme compiled onto `base`, as the Theme settings page
