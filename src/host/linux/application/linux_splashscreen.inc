@@ -5,6 +5,13 @@
 // paint_splashscreen draws each frame into a CPU raster with the bundled
 // fonts; present puts it with XPutImage and syncs. Included by
 // linux_host.cpp inside gui_forms::host::linux_detail.
+//
+// The window takes the desktop's density as every run window does (audit
+// N66, option a): the scale XSettingsWatch reads from Xft.dpi when the
+// splash opens (the settings manager's Xft/DPI, then the root window's
+// RESOURCE_MANAGER, else 1), read once, since a splash outlives no density
+// change worth following. The window and the raster are the logical size
+// times that scale in device pixels; frames are painted in logical units.
 
 namespace {
 
@@ -38,12 +45,18 @@ public:
       return false;
     }
     const int screen = DefaultScreen(display_);
+    {
+      // Read once on this connection and destroyed before it closes; it
+      // selects the manager's events, which this connection never reads.
+      const XSettingsWatch density(display_, screen);
+      scale_ = density.scale();
+    }
     XVisualInfo visual{};
     if (XMatchVisualInfo(display_, screen, 24, TrueColor, &visual) == 0) return false;
     visual_ = visual.visual;
     depth_ = visual.depth;
-    width_ = static_cast<unsigned>(std::ceil(size.width));
-    height_ = static_cast<unsigned>(std::ceil(size.height));
+    width_ = static_cast<unsigned>(std::ceil(size.width * scale_));
+    height_ = static_cast<unsigned>(std::ceil(size.height * scale_));
     const int x = (DisplayWidth(display_, screen) - static_cast<int>(width_)) / 2;
     const int y = (DisplayHeight(display_, screen) - static_cast<int>(height_)) / 2;
     const ::Window root = RootWindow(display_, screen);
@@ -76,7 +89,9 @@ public:
   bool present(const gui_forms::detail::SplashscreenFrame& frame) override {
     if (display_ == nullptr || window_ == 0) return false;
     if (frame.images != nullptr && !raster_.synchronize_images(*frame.images)) return false;
-    static_cast<void>(raster_.resize(frame.size, 1.0));
+    // The raster's device pixels cover the window: the logical size times
+    // the splash's scale; the damage and the paint stay logical.
+    static_cast<void>(raster_.resize(frame.size, scale_));
     DamageRegion whole;
     whole.add(Rect{0.0, 0.0, frame.size.width, frame.size.height});
     raster_.begin_frame(whole);
@@ -120,6 +135,9 @@ private:
   ::Window window_{};
   GC gc_{};
   XImage *image_{};
+  // The desktop's device scale when the splash opened, in [1, maximum_x11_scale].
+  double scale_{1.0};
+  // The window's size in device pixels.
   unsigned width_{};
   unsigned height_{};
   std::vector<std::uint32_t> frame_{};
