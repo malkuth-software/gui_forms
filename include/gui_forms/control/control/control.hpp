@@ -687,6 +687,23 @@ public:
     // chunk remains the authoritative complete presentation, while host
     // damage and replay stay clipped to this bounded region.
     void invalidate(Rect local_damage);
+    // Declares that what this control painted inside `area` (client
+    // coordinates) has moved by `offset` logical units, as a pan of its
+    // content does. The window then moves those pixels with a scroll copy
+    // (SurfaceRoot::request_content_scroll) and repaints only the band the
+    // move exposed and what is drawn over the area (this control's
+    // children, later siblings, overlays); the control's display chunk is
+    // recorded again. The caller's promise: the next paint draws, inside
+    // the area and outside the exposed band, exactly the pixels it drew
+    // before, moved by `offset`; paint that stays in place (a marker at a
+    // fixed spot) is the caller's to invalidate where it is and where the
+    // copy moved it. Returns false and invalidates the area instead when
+    // the window cannot copy: copies are off, the visible area or the
+    // offset is not whole device pixels, the offset is not smaller than the
+    // area, the control or an ancestor is hidden, or its last paint did not
+    // report an opaque cover of the visible area (report_opaque_cover).
+    // Not during a paint.
+    bool scroll_content(Rect area, Point offset);
     void invalidate_subtree(Dirty dirty);
     void invalidate_declared(Dirty declared_effects);
     // A redraw of this control and everything in it (property-capabilities

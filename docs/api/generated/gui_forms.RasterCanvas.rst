@@ -363,3 +363,9 @@ gui_forms::RasterCanvas
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: void declare_paint_follows_view(bool follows) noexcept
+
+      *Protected.*
+
+      Whether everything the last paint drew moves with the view's origin, so that a pan can copy it. RasterCanvas::on_paint declares it for its own paint (except an automatic transparency cell size, which follows the visible area); a subclass that paints instead declares it from its own on_paint. Until declared, a pan repaints.

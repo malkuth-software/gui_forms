@@ -21,6 +21,10 @@ public:
 
     void clear_bitmap();
 
+    // A change of origin alone moves the painted canvas by a scroll copy
+    // (Control::scroll_content) when the last paint follows the view
+    // (declare_paint_follows_view) and the view is exact (pan_copies_exactly);
+    // otherwise, and for a change of zoom, the canvas is repainted.
     void set_view(double zoom, gui_drawing::PointF origin);
 
     void set_transparency_colors(Color first, Color second);
@@ -33,6 +37,9 @@ public:
     }
     [[nodiscard]] bool synchronize_bitmap();
 
+    // Bitmap pixels to client coordinates: (pixel - view_origin) * zoom, or,
+    // when the zoom and the device scale are powers of two, from the
+    // bitmap's origin at content_offset.
     [[nodiscard]] Rect bitmap_to_client(gui_drawing::RectI pixels) const noexcept;
     [[nodiscard]] gui_drawing::PointF client_to_bitmap(Point client) const noexcept;
     [[nodiscard]] gui_drawing::RectF visible_bitmap_bounds() const;
@@ -63,6 +70,12 @@ protected:
     void on_detached_from_window() noexcept override;
     void on_dispose() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
+    // Whether everything the last paint drew moves with the view's origin,
+    // so that a pan can copy it. RasterCanvas::on_paint declares it for its
+    // own paint (except an automatic transparency cell size, which follows
+    // the visible area); a subclass that paints instead declares it from
+    // its own on_paint. Until declared, a pan repaints.
+    void declare_paint_follows_view(bool follows) noexcept { paint_follows_view_ = follows; }
 
 private:
     struct Tile final {
@@ -73,7 +86,27 @@ private:
     [[nodiscard]] bool publish_full_bitmap();
     void release_tiles(SurfaceRoot& owner) noexcept;
     [[nodiscard]] Rect damage_to_client(gui_drawing::RectI pixels) const noexcept;
-    void paint_transparency_grid(Painter& painter, Rect bounds) const;
+    // The checker over `bounds`, its cells counted from `anchor` (the
+    // bitmap's origin in client coordinates), so that it moves with a pan.
+    void paint_transparency_grid(Painter& painter, Rect bounds, Point anchor) const;
+    // The window's device scale, or 1 detached.
+    [[nodiscard]] double device_scale() const noexcept;
+    // Whether the zoom and the device scale are powers of two: the inverse
+    // placement the renderer samples through is then exact.
+    [[nodiscard]] bool binary_view() const noexcept;
+    // The bits of a device pixel count that the painted coordinates may
+    // reach: twice the bitmap's extent, from 10 to 23.
+    [[nodiscard]] int offset_reach_bits() const noexcept;
+    // The bitmap's origin in client coordinates: -view_origin * zoom, in a
+    // binary view snapped to the device fraction single precision keeps
+    // beside the reach (2^-(23 - offset_reach_bits)). A pan by whole device
+    // pixels then moves every coordinate the canvas paints by exactly that.
+    [[nodiscard]] Point content_offset() const noexcept;
+    // Whether a copied pan keeps exactly the pixels a repaint draws: a
+    // binary view whose painted coordinates stay within the reach.
+    [[nodiscard]] bool pan_copies_exactly() const noexcept;
+    // Where the visible part of the bitmap is drawn, in client coordinates.
+    [[nodiscard]] Rect visible_destination() const noexcept;
 
     std::shared_ptr<gui_drawing::Bitmap> bitmap_;
     std::vector<Tile> tiles_;
@@ -83,6 +116,7 @@ private:
     Color transparency_first_{Color::rgba(246, 247, 249)};
     Color transparency_second_{Color::rgba(211, 215, 220)};
     ImageResourceError last_resource_error_{ImageResourceError::none};
+    bool paint_follows_view_{};
     // property_codemod begin RasterCanvas (tools/property_families/raster_canvas.json; generated, do not edit)
 private:
     friend struct RasterCanvasBitmapCapability<RasterCanvas>;

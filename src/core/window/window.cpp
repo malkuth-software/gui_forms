@@ -3795,9 +3795,55 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
     // viewport ends the search beneath: what that control paints over its
     // fill inside the viewport is its children's.
     scroll_overlay_crossings_.clear();
-    const Control* node = &scroller;
-    bool covered = opaque_fill_covers(scroller, clip);
-    for (Control::Ptr parent = scroller.parent(); parent; parent = (*parent).parent()) {
+    const bool covered = opaque_fill_covers(scroller, clip);
+    return accept_scroll_copy(scroller, clip, offset, covered, true);
+}
+
+bool SurfaceRoot::request_content_scroll(Control& owner, Rect local_area, Point offset) {
+    require_root_thread("scroll copy mutation");
+    // The bound request_scroll_copy keeps on one host frame's copies.
+    constexpr std::size_t copy_limit = 16U;
+    if (!scroll_copies_supported_ || in_paint_ || owner.surface_root_ != this || !owner.is_alive() ||
+        !owner.visible.read() || scroll_translating_ != nullptr || scroll_copies_.size() >= copy_limit) {
+        return false;
+    }
+    if (!local_area.finite() || !whole_device_pixels(offset.x, scale_) ||
+        !whole_device_pixels(offset.y, scale_) || offset == Point{}) {
+        return false;
+    }
+    // Damage marked before the move lies where the pixels were: place it
+    // now, so that the copy moves it with them.
+    settle_dirty();
+    // The visible part of the area: within the control, each ancestor's
+    // child viewport and the client area.
+    const Rect bounds = absolute_bounds_of(owner);
+    const Rect area = Rect::intersection(local_area, owner.client_rectangle());
+    Rect clip = Rect::intersection({bounds.x + area.x, bounds.y + area.y, area.width, area.height},
+                                   {0.0, 0.0, client_size_.width, client_size_.height});
+    for (Control::Ptr ancestor = owner.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this || !(*ancestor).visible.read()) {
+            return false;
+        }
+        clip = Rect::intersection(clip, absolute_child_viewport_of(*ancestor));
+    }
+    if (clip.empty() || !device_aligned_rect(clip, scale_) || std::abs(offset.x) >= clip.width ||
+        std::abs(offset.y) >= clip.height) {
+        return false;
+    }
+    // The owner's last paint must leave the area opaque, so that nothing
+    // beneath it shows through the moved pixels.
+    if (!opaque_fill_covers(owner, clip)) return false;
+    // Its children are drawn over its paint and stay where they are: they
+    // are repainted like overlays, where they are and where the copy moved
+    // their pixels.
+    scroll_overlay_crossings_.clear();
+    for (const Control::Ptr& child : owner.children_) collect_overlay_paint(child, clip, scroll_overlay_crossings_);
+    return accept_scroll_copy(owner, clip, offset, true, false);
+}
+
+bool SurfaceRoot::accept_scroll_copy(Control& source, Rect clip, Point offset, bool covered, bool translating) {
+    const Control* node = &source;
+    for (Control::Ptr parent = source.parent(); parent; parent = (*parent).parent()) {
         bool after = false;
         for (const Control::Ptr& sibling : (*parent).children_) {
             if (sibling.get() == node) {
@@ -3822,7 +3868,7 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
     // Other paint planes are composed before or after this one.
     // Overlays drawn into the viewport are repainted over it, where they
     // are and where the copy moves their pixels.
-    if (other_plane_crosses(root_, scroller, clip, covered, scroll_overlay_crossings_)) return false;
+    if (other_plane_crosses(root_, source, clip, covered, scroll_overlay_crossings_)) return false;
     for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
         if (overlay) collect_overlay_paint((*overlay).overlay(), clip, scroll_overlay_crossings_);
     }
@@ -3833,11 +3879,13 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
         plane = damage_after_scroll_copy(plane, clip, offset);
     }
     scroll_copies_.push_back(ScrollCopy{clip, offset});
-    const DamageCauseScope cause(*this, InvalidationCause::scroll_copy, &scroller);
+    const DamageCauseScope cause(*this, InvalidationCause::scroll_copy, &source);
     sync_invalidation_overlay();
     if (invalidation_overlay_ != nullptr) note_damage_cause(clip, true);
-    scroll_translating_ = &scroller;
-    scroll_translation_ = offset;
+    if (translating) {
+        scroll_translating_ = &source;
+        scroll_translation_ = offset;
+    }
     const double band_x = offset.x < 0.0 ? clip.x + clip.width + offset.x : clip.x;
     const double band_y = offset.y < 0.0 ? clip.y + clip.height + offset.y : clip.y;
     if (offset.x != 0.0) add_damage_all_planes(Rect{band_x, clip.y, std::abs(offset.x), clip.height});
