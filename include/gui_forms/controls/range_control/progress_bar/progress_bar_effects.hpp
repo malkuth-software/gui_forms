@@ -18,6 +18,48 @@ namespace gui_forms {
 
 class EffectRegistry;
 
+// The way a progress bar's fill grows: from its start edge toward its
+// leading edge. A horizontal bar grows left to right, mirrored right to
+// left for a right-to-left bar; a vertical bar grows bottom to top.
+enum class ProgressFillDirection : std::uint8_t { left_to_right, right_to_left, bottom_to_top, top_to_bottom };
+
+// The marching stripes' geometry and colours (the barber pole, owner
+// rulings of 2026-11-11), resolved by the bar from the fill part's stripe
+// properties (ControlStripePattern) before the frame runs. Lengths are
+// logical units in bar space: along the fill direction and across it.
+struct ProgressStripeView final {
+    // The distance from one band to the next, along the fill direction.
+    double pitch{16.0};
+    // The pale band's width, a minority of the pitch: the fill colour
+    // between the bands dominates.
+    double band{6.4};
+    // How far a band's far side (across the bar) runs ahead of its near
+    // side, along the fill direction: positive leans the band back from the
+    // leading edge (Rule 1), negative leans it forward.
+    double slant{16.0};
+    // Whether the bands travel toward the leading edge (Rule 2); false
+    // travels them back toward the start edge.
+    bool forward{true};
+    ProgressFillDirection direction{ProgressFillDirection::left_to_right};
+    // The fill's inner shape the bands are clipped to: the fill inside its
+    // rim, with its rounded ends.
+    Rect clip{};
+    double clip_radius{};
+    // The pale band's colour, and the opaque ground painted under the bands
+    // where the theme sets `stripe-ground` (alpha 0: the fill as painted
+    // shows between the bands).
+    Color colour{};
+    Color ground{};
+    // Whether a gloss is drawn over a painted ground, standing for the
+    // fill's shading it covers.
+    bool gloss{true};
+    // Seconds for the bands to travel one pitch; 0 holds them.
+    double period_seconds{1.25};
+    // Whether the bands are hidden rather than held while motion is reduced
+    // (`stripe-reduced-motion: none`).
+    bool hidden{};
+};
+
 // What a progress bar's effects may read: a snapshot taken when the frame
 // runs. Geometry is in part-local logical units: the part is the whole bar,
 // `interior` the track inside its frame, and `fill` the filled length (or
@@ -32,7 +74,9 @@ struct EffectView<ProgressBar> final {
     Rect fill{};
     bool vertical{};
     ProgressBarAnimationAppearance appearance{};
+    // The woven stripes' width; the marching stripes follow `stripes`.
     double stripe_width{7.0};
+    ProgressStripeView stripes{};
     // The bar's animation period, in seconds: one cycle of an effect's phase.
     double period_seconds{1.4};
     // The phase an effect shows while still (the bar's reduced-motion pose).
@@ -40,11 +84,17 @@ struct EffectView<ProgressBar> final {
 };
 
 // Marching diagonal stripes over the fill (ProgressBarVisualStyle::
-// marching_stripes and the moving-stripes overlay).
+// marching_stripes and the moving-stripes overlay): filled bands clipped to
+// the fill's inner shape, leaning back from the leading edge and travelling
+// toward it, anchored to the track's start edge so a growing fill does not
+// shift them. Each band is one four-point polygon; the bar keeps the pitch
+// at least the fill's length over maximum_stripes less the margin bands, so
+// run's bound (256 passes of about 110: a polygon 72, its points and the
+// pass's arithmetic) stays under the 40,000 budget.
 class ProgressStripes final {
 public:
     using parent_type = ProgressBar;
-    static constexpr std::size_t maximum_stripes = 1024U;
+    static constexpr std::size_t maximum_stripes = 256U;
     static constexpr EffectDeclaration declaration{
         .name = "progress_stripes",
         .engine_version = 1U,

@@ -90,6 +90,7 @@ public:
     void fill_polygon(std::span<const Point> points, Color, PolygonFillRule) override {
         polygons = polygons + 1;
         last_batch = points.size();
+        if (!points.empty()) polygon_starts.push_back(points[0]);
     }
     void fill_band(std::span<const Point> upper, std::span<const Point>, Color) override {
         bands = bands + 1;
@@ -138,6 +139,7 @@ public:
     std::vector<Rect> clips{};
     std::vector<Point> radial_centers{};
     std::vector<Point> line_starts{};
+    std::vector<Point> polygon_starts{};
     std::vector<Rect> corner_boxes{};
     std::vector<PaintCornerRadii> corner_clips{};
     std::vector<std::shared_ptr<const PartRaster>> part_rasters{};
@@ -159,6 +161,17 @@ EffectView<ProgressBar> bar_view(double fraction) {
     view.stripe_width = 7.0;
     view.period_seconds = 1.4;
     view.still_phase = 0.5;
+    // The marching stripes as the bar resolves them by default: inside the
+    // fill's one-unit rim, the pitch the interior's thickness, the pale band
+    // 0.4 of it, leaning 45 degrees back, 0.8 pitches a second forward.
+    view.stripes.clip = Rect{1.0, 1.0, 196.0 * fraction - 2.0, 14.0};
+    view.stripes.pitch = 16.0;
+    view.stripes.band = 6.4;
+    view.stripes.slant = 14.0;
+    view.stripes.forward = true;
+    view.stripes.direction = ProgressFillDirection::left_to_right;
+    view.stripes.colour = Color::rgba(224, 241, 252, 116);
+    view.stripes.period_seconds = 1.25;
     return view;
 }
 
@@ -410,11 +423,34 @@ void stripes_pulse_laser() {
     EffectInstance stripe_instance;
     stripe_instance.attach(built_in("progress_stripes"), 1U, start);
     stripe_instance.paint(stripes, part, 1.0, false, view);
-    // The legacy count: x from fill.x − h − pitch to fill.x + w + h + pitch.
-    const double pitch = 14.0;
-    const int expected = static_cast<int>((98.0 + 16.0 + 14.0 - (-16.0 - 14.0)) / pitch) + 1;
-    require(stripes.lines == expected, "the stripes draw the legacy count of lines");
+    // Bands anchored to the track's start, every 16 from −32 (the first
+    // whose far side, 6.4 + 14 on, could reach the clip at 1) to 96 (the
+    // last starting before the clip's end at 97): nine four-point polygons.
+    require(stripes.polygons == 9 && stripes.last_batch == 4U && stripes.lines == 0,
+            "the stripes draw nine filled bands");
     require(stripe_instance.last_meter().refused == 0U, "the stripes stay within budget");
+    // A quarter second at 0.8 pitches a second moves them 0.2 of 16 = 3.2
+    // units forward, stepped to 3 whole device pixels.
+    static_cast<void>(stripe_instance.advance(at_milliseconds(250)));
+    RecordingPainter moved;
+    stripe_instance.paint(moved, part, 1.0, false, view);
+    const bool travelled = !stripes.polygon_starts.empty() && !moved.polygon_starts.empty() &&
+                           moved.polygon_starts[0].x - stripes.polygon_starts[0].x == 3.0;
+    require(travelled, "the stripes travel forward, toward the leading edge, in whole device pixels");
+    // Mirrored for a right-to-left fill: the bands travel left.
+    EffectView<ProgressBar> mirrored = view;
+    mirrored.stripes.direction = ProgressFillDirection::right_to_left;
+    mirrored.stripes.clip = Rect{99.0, 1.0, 96.0, 14.0};
+    EffectInstance mirrored_instance;
+    mirrored_instance.attach(built_in("progress_stripes"), 1U, start);
+    RecordingPainter mirrored_first;
+    mirrored_instance.paint(mirrored_first, part, 1.0, false, mirrored);
+    static_cast<void>(mirrored_instance.advance(at_milliseconds(250)));
+    RecordingPainter mirrored_moved;
+    mirrored_instance.paint(mirrored_moved, part, 1.0, false, mirrored);
+    const bool leftward = !mirrored_first.polygon_starts.empty() && !mirrored_moved.polygon_starts.empty() &&
+                          mirrored_moved.polygon_starts[0].x - mirrored_first.polygon_starts[0].x == -3.0;
+    require(leftward, "a right-to-left fill's stripes travel left");
 
     RecordingPainter pulse;
     EffectInstance pulse_instance;

@@ -1077,7 +1077,7 @@ bool part_length_field(RecipeField field) noexcept {
                         field == RecipeField::padding_inline || field == RecipeField::gap ||
                         field == RecipeField::margin_block_start || field == RecipeField::margin_block_end ||
                         field == RecipeField::taper || field == RecipeField::flare ||
-                        field == RecipeField::edge_shadow_width;
+                        field == RecipeField::edge_shadow_width || field == RecipeField::stripe_pitch;
     return length;
 }
 
@@ -1812,7 +1812,9 @@ constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "glyph",       "default_outline_width", "default_outline_colour", "fill_text", "stroke_width",
     "needle_shape", "scrim_colour", "block_size", "minimum_inline_size",
     "padding_inline", "gap", "margin_block_start", "margin_block_end", "taper", "taper_colour", "flare",
-    "flare_colour", "edge_shadow_width", "edge_shadow_colour",
+    "flare_colour", "edge_shadow_width", "edge_shadow_colour", "stripe_pitch", "stripe_ratio", "stripe_angle",
+    "stripe_lean", "stripe_direction", "stripe_speed", "stripe_colour", "stripe_ground_colour", "stripe_gloss",
+    "stripe_reduced_motion",
 };
 
 } // namespace
@@ -1823,8 +1825,11 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::muted_text:
     case RecipeField::glyph:
     case RecipeField::fill_text: return ColourPosition::text;
-    // A scrim is a fill over what lies behind.
-    case RecipeField::scrim_colour: return ColourPosition::fill;
+    // A scrim is a fill over what lies behind, and the stripe colours fill
+    // their bands.
+    case RecipeField::scrim_colour:
+    case RecipeField::stripe_colour:
+    case RecipeField::stripe_ground_colour: return ColourPosition::fill;
     case RecipeField::outline_colour:
     case RecipeField::default_outline_colour:
     case RecipeField::taper_colour:
@@ -1851,6 +1856,14 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::edge_shadow_width:
     case RecipeField::stroke_width:
     case RecipeField::needle_shape:
+    case RecipeField::stripe_pitch:
+    case RecipeField::stripe_ratio:
+    case RecipeField::stripe_angle:
+    case RecipeField::stripe_lean:
+    case RecipeField::stripe_direction:
+    case RecipeField::stripe_speed:
+    case RecipeField::stripe_gloss:
+    case RecipeField::stripe_reduced_motion:
     case RecipeField::count:
     default: return ColourPosition::none;
     }
@@ -1873,7 +1886,26 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::scrim_colour:
     case RecipeField::taper_colour:
     case RecipeField::flare_colour:
-    case RecipeField::edge_shadow_colour: return true;
+    case RecipeField::edge_shadow_colour:
+    case RecipeField::stripe_colour:
+    case RecipeField::stripe_ground_colour: return true;
+    // A pitch of 0 is `auto`.
+    case RecipeField::stripe_pitch:
+        return declaration.number == 0.0 ||
+               in_range(declaration.number, minimum_stripe_pitch, maximum_stripe_pitch);
+    case RecipeField::stripe_ratio:
+        return in_range(declaration.number, minimum_stripe_ratio, maximum_stripe_ratio);
+    case RecipeField::stripe_angle:
+        return in_range(declaration.number, minimum_stripe_angle, maximum_stripe_angle);
+    case RecipeField::stripe_speed: return in_range(declaration.number, 0.0, maximum_stripe_speed);
+    case RecipeField::stripe_lean:
+    case RecipeField::stripe_direction:
+        return declaration.stripe_sense == StripeSense::forward || declaration.stripe_sense == StripeSense::backward;
+    case RecipeField::stripe_gloss:
+        return declaration.stripe_gloss == StripeGloss::automatic || declaration.stripe_gloss == StripeGloss::none;
+    case RecipeField::stripe_reduced_motion:
+        return declaration.stripe_reduced_motion == StripeReducedMotion::still ||
+               declaration.stripe_reduced_motion == StripeReducedMotion::none;
     case RecipeField::stroke_width: return in_range(declaration.number, 0.0, maximum_recipe_stroke_width);
     case RecipeField::needle_shape:
         return declaration.needle_shape == NeedleShape::line || declaration.needle_shape == NeedleShape::tapered ||

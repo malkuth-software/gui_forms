@@ -166,6 +166,11 @@ public:
     // Narrows the clip to `rect` (in the current offset's coordinates).
     GUI_FORMS_EFFECT_VOCABULARY(4, 0)
     void clip_rect(Rect rect) noexcept;
+    // Narrows the clip to `rect` with every corner rounded by `radius`
+    // (clamped to half the shorter side; 0 is a plain clip_rect), in the
+    // current offset's coordinates: a fill's inner shape, inside its rim.
+    GUI_FORMS_EFFECT_VOCABULARY(6, 0)
+    void clip_rounded_rect(Rect rect, double radius) noexcept;
     GUI_FORMS_EFFECT_VOCABULARY(2, 0)
     void translate(Point offset) noexcept;
     // Narrows the clip to the part's own shape (EP-6): its box with the

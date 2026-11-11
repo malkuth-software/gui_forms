@@ -111,6 +111,33 @@ struct ControlTextShadow final {
 // to edge_shadow_colour), each unset where no rule sets it: the control then
 // keeps its own metric and the part its rectangle. Lengths are logical
 // units; a taper, flare or edge shadow of zero draws nothing.
+// A part's stripe pattern (RecipeField::stripe_pitch to
+// stripe_reduced_motion; the barber pole, owner rulings of 2026-11-11), each
+// unset where no rule sets it, when the stripe effect keeps its own value:
+// pitch auto (the fill's inner thickness, at least 8), a pale share of 0.4,
+// 45 degrees, a backward lean travelling forward at 0.8 pitches a second,
+// the fill as the theme paints it under translucent pale bands, a gloss
+// over opaque stripe colours, and still bands under reduced motion. A pitch
+// of 0 is `auto`.
+struct ControlStripePattern final {
+    std::optional<double> pitch{};
+    std::optional<double> ratio{};
+    std::optional<double> angle_degrees{};
+    std::optional<StripeSense> lean{};
+    std::optional<StripeSense> direction{};
+    std::optional<double> speed{};
+    std::optional<Color> colour{};
+    std::optional<Color> ground{};
+    std::optional<StripeGloss> gloss{};
+    std::optional<StripeReducedMotion> reduced_motion{};
+    friend bool operator==(const ControlStripePattern& left, const ControlStripePattern& right) noexcept {
+        return left.pitch == right.pitch && left.ratio == right.ratio && left.angle_degrees == right.angle_degrees &&
+               left.lean == right.lean && left.direction == right.direction && left.speed == right.speed &&
+               left.colour == right.colour && left.ground == right.ground && left.gloss == right.gloss &&
+               left.reduced_motion == right.reduced_motion;
+    }
+};
+
 struct ControlPartMetrics final {
     std::optional<double> block_size{};
     std::optional<double> minimum_inline_size{};
@@ -124,6 +151,7 @@ struct ControlPartMetrics final {
     std::optional<Color> flare_colour{};
     double edge_shadow_width{};
     Color edge_shadow_colour{};
+    ControlStripePattern stripes{};
     friend bool operator==(const ControlPartMetrics& left, const ControlPartMetrics& right) noexcept {
         return left.block_size == right.block_size && left.minimum_inline_size == right.minimum_inline_size &&
                left.padding_inline == right.padding_inline && left.gap == right.gap &&
@@ -131,7 +159,7 @@ struct ControlPartMetrics final {
                left.margin_block_end == right.margin_block_end && left.taper == right.taper &&
                left.taper_colour == right.taper_colour && left.flare == right.flare &&
                left.flare_colour == right.flare_colour && left.edge_shadow_width == right.edge_shadow_width &&
-               left.edge_shadow_colour == right.edge_shadow_colour;
+               left.edge_shadow_colour == right.edge_shadow_colour && left.stripes == right.stripes;
     }
 };
 

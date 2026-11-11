@@ -38,7 +38,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 69> material_properties{{
+constexpr std::array<NamedMaterialProperty, 79> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -104,6 +104,16 @@ constexpr std::array<NamedMaterialProperty, 69> material_properties{{
     {.name = "padding-inline", .property = MaterialProperty::padding_inline},
     {.name = "reflection", .property = MaterialProperty::reflection},
     {.name = "scrim-color", .property = MaterialProperty::scrim_color},
+    {.name = "stripe-angle", .property = MaterialProperty::stripe_angle},
+    {.name = "stripe-color", .property = MaterialProperty::stripe_color},
+    {.name = "stripe-direction", .property = MaterialProperty::stripe_direction},
+    {.name = "stripe-gloss", .property = MaterialProperty::stripe_gloss},
+    {.name = "stripe-ground", .property = MaterialProperty::stripe_ground},
+    {.name = "stripe-lean", .property = MaterialProperty::stripe_lean},
+    {.name = "stripe-pitch", .property = MaterialProperty::stripe_pitch},
+    {.name = "stripe-ratio", .property = MaterialProperty::stripe_ratio},
+    {.name = "stripe-reduced-motion", .property = MaterialProperty::stripe_reduced_motion},
+    {.name = "stripe-speed", .property = MaterialProperty::stripe_speed},
     {.name = "stroke-width", .property = MaterialProperty::stroke_width},
     {.name = "surface-finish", .property = MaterialProperty::surface_finish},
     {.name = "taper", .property = MaterialProperty::taper},
@@ -116,7 +126,7 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 23> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 33> recipe_longhands{{
     {.property = MaterialProperty::height, .field = RecipeField::block_size},
     {.property = MaterialProperty::min_width, .field = RecipeField::minimum_inline_size},
     {.property = MaterialProperty::padding_inline, .field = RecipeField::padding_inline},
@@ -140,6 +150,16 @@ constexpr std::array<RecipeLonghand, 23> recipe_longhands{{
     {.property = MaterialProperty::needle_shape, .field = RecipeField::needle_shape},
     {.property = MaterialProperty::scrim_color, .field = RecipeField::scrim_colour},
     {.property = MaterialProperty::stroke_width, .field = RecipeField::stroke_width},
+    {.property = MaterialProperty::stripe_pitch, .field = RecipeField::stripe_pitch},
+    {.property = MaterialProperty::stripe_ratio, .field = RecipeField::stripe_ratio},
+    {.property = MaterialProperty::stripe_angle, .field = RecipeField::stripe_angle},
+    {.property = MaterialProperty::stripe_lean, .field = RecipeField::stripe_lean},
+    {.property = MaterialProperty::stripe_direction, .field = RecipeField::stripe_direction},
+    {.property = MaterialProperty::stripe_speed, .field = RecipeField::stripe_speed},
+    {.property = MaterialProperty::stripe_color, .field = RecipeField::stripe_colour},
+    {.property = MaterialProperty::stripe_ground, .field = RecipeField::stripe_ground_colour},
+    {.property = MaterialProperty::stripe_gloss, .field = RecipeField::stripe_gloss},
+    {.property = MaterialProperty::stripe_reduced_motion, .field = RecipeField::stripe_reduced_motion},
 }};
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
@@ -441,6 +461,12 @@ private:
     bool lower_outline_width();
     bool lower_outline_offset();
     bool lower_part_length(RecipeField field, double minimum, double maximum);
+    bool lower_stripe_pitch();
+    bool lower_stripe_number(RecipeField field, double minimum, double maximum);
+    bool lower_stripe_angle();
+    bool lower_stripe_sense(RecipeField field);
+    bool lower_stripe_gloss();
+    bool lower_stripe_reduced_motion();
     bool lower_part_shape(RecipeField length_field, RecipeField colour_field, bool colour_required);
     bool lower_text_shadow();
     bool lower_font_family();
@@ -2469,6 +2495,127 @@ bool MaterialReader::lower_part_length(RecipeField field, double minimum, double
     return true;
 }
 
+// `stripe-pitch`: `auto` (lowered as 0: the fill's inner thickness) or one
+// length from minimum_stripe_pitch to maximum_stripe_pitch.
+bool MaterialReader::lower_stripe_pitch() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "auto or one length");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_pitch);
+    if (keyword(0U, "auto")) {
+        declaration.number = 0.0;
+        lowering_.recipe_fields.push_back(declaration);
+        return true;
+    }
+    BoxLength length{};
+    if (!read_length(0U, false, false, length)) return false;
+    if (length.units < minimum_stripe_pitch || length.units > maximum_stripe_pitch) {
+        const ValueComponent& component = value_.components[0U];
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    declaration.number = length.units;
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stripe-ratio` and `stripe-speed`: one plain number within the field's
+// range.
+bool MaterialReader::lower_stripe_number(RecipeField field, double minimum, double maximum) {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one number");
+    }
+    const ValueComponent& component = value_.components[0U];
+    const bool plain = component.kind == ValueComponentKind::number && component.unit == ValueUnit::none;
+    if (!plain) return fail(DiagnosticCode::value_wrong_kind, component.token, "a number");
+    if (!(component.number >= minimum && component.number <= maximum)) {
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    RecipeDeclaration declaration = recipe_declaration(field);
+    declaration.number = component.number;
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stripe-angle`: one angle from minimum_stripe_angle to
+// maximum_stripe_angle degrees.
+bool MaterialReader::lower_stripe_angle() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one angle");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_angle);
+    if (!read_angle(0U, declaration.number)) return false;
+    if (!(declaration.number >= minimum_stripe_angle && declaration.number <= maximum_stripe_angle)) {
+        const ValueComponent& component = value_.components[0U];
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stripe-lean` and `stripe-direction`: `forward` or `backward`
+// (StripeSense).
+bool MaterialReader::lower_stripe_sense(RecipeField field) {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "forward or backward");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "forward or backward");
+    }
+    RecipeDeclaration declaration = recipe_declaration(field);
+    if (keyword(0U, "forward")) {
+        declaration.stripe_sense = StripeSense::forward;
+    } else if (keyword(0U, "backward")) {
+        declaration.stripe_sense = StripeSense::backward;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stripe-gloss`: `auto` or `none` (StripeGloss).
+bool MaterialReader::lower_stripe_gloss() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "auto or none");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "auto or none");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_gloss);
+    if (keyword(0U, "auto")) {
+        declaration.stripe_gloss = StripeGloss::automatic;
+    } else if (keyword(0U, "none")) {
+        declaration.stripe_gloss = StripeGloss::none;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stripe-reduced-motion`: `still` or `none` (StripeReducedMotion).
+bool MaterialReader::lower_stripe_reduced_motion() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "still or none");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "still or none");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_reduced_motion);
+    if (keyword(0U, "still")) {
+        declaration.stripe_reduced_motion = StripeReducedMotion::still;
+    } else if (keyword(0U, "none")) {
+        declaration.stripe_reduced_motion = StripeReducedMotion::none;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
 // A part's shape: `taper` and `flare` (a length and an optional colour) and
 // `edge-shadow` (a length and a colour), each at most once and in any
 // order. An omitted colour takes its `initial` (none: the part's own).
@@ -2813,6 +2960,24 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::edge_shadow:
         static_cast<void>(lower_part_shape(RecipeField::edge_shadow_width, RecipeField::edge_shadow_colour, true));
         return;
+    case MaterialProperty::stripe_pitch: static_cast<void>(lower_stripe_pitch()); return;
+    case MaterialProperty::stripe_ratio:
+        static_cast<void>(lower_stripe_number(RecipeField::stripe_ratio, minimum_stripe_ratio, maximum_stripe_ratio));
+        return;
+    case MaterialProperty::stripe_angle: static_cast<void>(lower_stripe_angle()); return;
+    case MaterialProperty::stripe_lean: static_cast<void>(lower_stripe_sense(RecipeField::stripe_lean)); return;
+    case MaterialProperty::stripe_direction:
+        static_cast<void>(lower_stripe_sense(RecipeField::stripe_direction));
+        return;
+    case MaterialProperty::stripe_speed:
+        static_cast<void>(lower_stripe_number(RecipeField::stripe_speed, 0.0, maximum_stripe_speed));
+        return;
+    case MaterialProperty::stripe_color: static_cast<void>(lower_recipe_colour(RecipeField::stripe_colour)); return;
+    case MaterialProperty::stripe_ground:
+        static_cast<void>(lower_recipe_colour(RecipeField::stripe_ground_colour));
+        return;
+    case MaterialProperty::stripe_gloss: static_cast<void>(lower_stripe_gloss()); return;
+    case MaterialProperty::stripe_reduced_motion: static_cast<void>(lower_stripe_reduced_motion()); return;
     // A value outside the enumeration names no property: nothing is lowered.
     default: return;
     }
@@ -2938,7 +3103,17 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::margin_bottom:
     case MaterialProperty::taper:
     case MaterialProperty::flare:
-    case MaterialProperty::edge_shadow: return;
+    case MaterialProperty::edge_shadow:
+    case MaterialProperty::stripe_angle:
+    case MaterialProperty::stripe_color:
+    case MaterialProperty::stripe_direction:
+    case MaterialProperty::stripe_gloss:
+    case MaterialProperty::stripe_ground:
+    case MaterialProperty::stripe_lean:
+    case MaterialProperty::stripe_pitch:
+    case MaterialProperty::stripe_ratio:
+    case MaterialProperty::stripe_reduced_motion:
+    case MaterialProperty::stripe_speed: return;
     // A value outside the enumeration names no property: it sets no field.
     default: return;
     }
@@ -2947,6 +3122,24 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
 bool recipe_property(MaterialProperty property) noexcept {
     const RecipePropertyFields fields = recipe_property_fields(property);
     return fields.count != 0U;
+}
+
+bool stripe_property(MaterialProperty property) noexcept {
+    switch (property) {
+    case MaterialProperty::stripe_angle:
+    case MaterialProperty::stripe_color:
+    case MaterialProperty::stripe_direction:
+    case MaterialProperty::stripe_gloss:
+    case MaterialProperty::stripe_ground:
+    case MaterialProperty::stripe_lean:
+    case MaterialProperty::stripe_pitch:
+    case MaterialProperty::stripe_ratio:
+    case MaterialProperty::stripe_reduced_motion:
+    case MaterialProperty::stripe_speed: return true;
+    // Every other property, and a value outside the enumeration, is not a
+    // stripe property.
+    default: return false;
+    }
 }
 
 RecipePropertyFields recipe_property_fields(MaterialProperty property) noexcept {

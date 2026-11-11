@@ -1138,6 +1138,26 @@ enum class RecipeField : std::uint8_t {
     flare_colour,
     edge_shadow_width,
     edge_shadow_colour,
+    // A progress fill's stripe pattern (the barber pole; owner rulings of
+    // 2026-11-11), admitted on a named part (`progress-bar::part(fill)`,
+    // `::part(activity)`) and read by the stripe effect
+    // (ControlStripePattern): `stripe-pitch` (a length; 0 is `auto`, the
+    // fill's inner thickness), `stripe-ratio` (the pale band's share of the
+    // pitch), `stripe-angle` (degrees from the bar's cross axis),
+    // `stripe-lean` and `stripe-direction` (StripeSense), `stripe-speed`
+    // (pitches per second), `stripe-color` and `stripe-ground` (the fill
+    // band's and the pale band's colours), `stripe-gloss` (StripeGloss) and
+    // `stripe-reduced-motion` (StripeReducedMotion).
+    stripe_pitch,
+    stripe_ratio,
+    stripe_angle,
+    stripe_lean,
+    stripe_direction,
+    stripe_speed,
+    stripe_colour,
+    stripe_ground_colour,
+    stripe_gloss,
+    stripe_reduced_motion,
     count,
 };
 
@@ -1163,6 +1183,21 @@ enum class RecipeOutlineStyle : std::uint8_t { ring, solid, none, dotted };
 // hub one and a half stroke widths across.
 enum class NeedleShape : std::uint8_t { line, tapered, dot };
 
+// A stripe's sense along its bar (`stripe-lean`, `stripe-direction`): toward
+// the leading edge, where the fill grows (`forward`), or away from it
+// (`backward`). A band leaning `backward` has its top edge trailing behind
+// its bottom edge ("\" in a left-to-right bar); the owner's ruling of
+// 2026-11-11 is a backward lean travelling forward.
+enum class StripeSense : std::uint8_t { forward, backward };
+
+// Whether the stripe effect draws a gloss over opaque stripe colours
+// (`stripe-gloss: auto | none`).
+enum class StripeGloss : std::uint8_t { automatic, none };
+
+// What reduced motion shows of the stripes (`stripe-reduced-motion`): the
+// bands standing still, or no bands.
+enum class StripeReducedMotion : std::uint8_t { still, none };
+
 // What a recipe admits (valid_recipe): an outline at most 16 logical units
 // wide, offset at most 64 either way; a text shadow offset at most 16 on
 // each axis and blurred by at most 8.
@@ -1178,6 +1213,16 @@ inline constexpr double maximum_text_shadow_offset = 16.0;
 inline constexpr double maximum_part_metric = 512.0;
 inline constexpr double maximum_part_margin = 64.0;
 inline constexpr double maximum_part_shape = 64.0;
+// What a stripe pattern admits (RecipeField::stripe_pitch to stripe_speed):
+// a pitch of 0 (auto) or 4 to 64 logical units, a pale share of 0.1 to 0.9,
+// an angle of 15 to 75 degrees and a speed of 0 to 3 pitches per second.
+inline constexpr double minimum_stripe_pitch = 4.0;
+inline constexpr double maximum_stripe_pitch = 64.0;
+inline constexpr double minimum_stripe_ratio = 0.1;
+inline constexpr double maximum_stripe_ratio = 0.9;
+inline constexpr double minimum_stripe_angle = 15.0;
+inline constexpr double maximum_stripe_angle = 75.0;
+inline constexpr double maximum_stripe_speed = 3.0;
 // What a font field admits (T4 fonts): a size of 4 to 96 logical units
 // once its em part is resolved, a weight of 100 to 900, and a letter
 // spacing valid_font_spec admits at the size.
@@ -1209,6 +1254,11 @@ struct RecipeDeclaration final {
     double number{};
     RecipeOutlineStyle outline_style{RecipeOutlineStyle::ring};
     NeedleShape needle_shape{NeedleShape::tapered};
+    // The stripe pattern's keywords (stripe_lean and stripe_direction,
+    // stripe_gloss, stripe_reduced_motion).
+    StripeSense stripe_sense{StripeSense::forward};
+    StripeGloss stripe_gloss{StripeGloss::automatic};
+    StripeReducedMotion stripe_reduced_motion{StripeReducedMotion::still};
     bool shadowed{};
     Point shadow_offset{};
     double shadow_blur{};
@@ -1231,7 +1281,9 @@ struct RecipeDeclaration final {
                left.font_role == right.font_role && left.font_family == right.font_family &&
                left.italic == right.italic &&
                left.number == right.number && left.outline_style == right.outline_style &&
-               left.needle_shape == right.needle_shape &&
+               left.needle_shape == right.needle_shape && left.stripe_sense == right.stripe_sense &&
+               left.stripe_gloss == right.stripe_gloss &&
+               left.stripe_reduced_motion == right.stripe_reduced_motion &&
                left.shadowed == right.shadowed && left.shadow_offset == right.shadow_offset &&
                left.shadow_blur == right.shadow_blur && left.origin == right.origin &&
                left.em_lengths == right.em_lengths && left.inherit == right.inherit &&

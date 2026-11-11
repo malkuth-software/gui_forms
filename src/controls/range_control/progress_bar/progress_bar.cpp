@@ -33,6 +33,82 @@ std::shared_ptr<const PropertyEnumDescriptor> progress_bar_visual_style_enum() {
     return value;
 }
 
+// The marching stripes' defaults (owner rulings of 2026-11-11): the pale
+// band 0.4 of the pitch, leaning 45 degrees back from the leading edge,
+// travelling 0.8 pitches a second toward it.
+constexpr double default_stripe_ratio = 0.4;
+constexpr double default_stripe_angle = 45.0;
+constexpr double default_stripe_speed = 0.8;
+constexpr double stripe_degrees_to_radians = 3.14159265358979323846 / 180.0;
+// The smallest automatic pitch, so a thin bar's bands stay visible.
+constexpr double minimum_automatic_stripe_pitch = 8.0;
+// Bands drawn beyond the fill's length at most: the two ends' partial bands
+// and the slant's reach (ProgressStripes::maximum_stripes).
+constexpr double stripe_margin_bands = 8.0;
+
+// The fill's thickness across the bar and the track's length along it.
+struct StripeSpan final {
+    double thickness{};
+    double length{};
+};
+
+StripeSpan stripe_span(const Rect& interior, bool vertical) noexcept {
+    StripeSpan span{};
+    span.thickness = vertical ? interior.width : interior.height;
+    span.length = vertical ? interior.height : interior.width;
+    return span;
+}
+
+// How far a band's far side runs ahead of its near side: tan(angle) times
+// the thickness, positive when it leans back (the default).
+double stripe_slant(const ControlStripePattern& pattern, double thickness) noexcept {
+    const double angle = pattern.angle_degrees.value_or(default_stripe_angle);
+    const double reach = std::tan(angle * stripe_degrees_to_radians) * thickness;
+    const bool backward = pattern.lean.value_or(StripeSense::backward) == StripeSense::backward;
+    const double slant = backward ? reach : -reach;
+    return slant;
+}
+
+// The pitch: the theme's, or the fill's thickness rounded (never under
+// minimum_automatic_stripe_pitch); raised where the track would need more
+// than ProgressStripes::maximum_stripes bands.
+double stripe_pitch(const ControlStripePattern& pattern, const StripeSpan& span, double slant) noexcept {
+    const double authored = pattern.pitch.value_or(0.0);
+    const double automatic = std::max(minimum_automatic_stripe_pitch, std::round(span.thickness));
+    const double chosen = authored > 0.0 ? authored : automatic;
+    const double bands = static_cast<double>(ProgressStripes::maximum_stripes) - stripe_margin_bands;
+    const double least = (span.length + std::abs(slant)) / bands;
+    const double pitch = std::max(chosen, least);
+    return pitch;
+}
+
+// The stripes' view for a fill in `interior`, from the fill part's pattern
+// and corner radius. `colour` is the pale band's colour where the theme
+// sets none; `speed_scale` is the motion policy's.
+ProgressStripeView stripe_view(const ControlStripePattern& pattern, double corner_radius, const Rect& interior,
+                               const Rect& fill, bool vertical, Color colour, double speed_scale) noexcept {
+    ProgressStripeView view{};
+    // Inside the fill's one-unit rim, with its rounded ends.
+    view.clip = Rect{fill.x + 1.0, fill.y + 1.0, std::max(0.0, fill.width - 2.0), std::max(0.0, fill.height - 2.0)};
+    view.clip_radius = std::max(0.0, corner_radius - 1.0);
+    const StripeSpan span = stripe_span(interior, vertical);
+    const double across = vertical ? view.clip.width : view.clip.height;
+    view.slant = stripe_slant(pattern, across);
+    view.pitch = stripe_pitch(pattern, span, view.slant);
+    view.band = view.pitch * pattern.ratio.value_or(default_stripe_ratio);
+    view.forward = pattern.direction.value_or(StripeSense::forward) == StripeSense::forward;
+    // No control-level right-to-left flow exists yet: a horizontal bar
+    // grows left to right, a vertical one bottom to top.
+    view.direction = vertical ? ProgressFillDirection::bottom_to_top : ProgressFillDirection::left_to_right;
+    view.colour = pattern.colour.value_or(colour);
+    view.ground = pattern.ground.value_or(Color::rgba(0, 0, 0, 0));
+    view.gloss = pattern.gloss.value_or(StripeGloss::automatic) == StripeGloss::automatic;
+    const double speed = pattern.speed.value_or(default_stripe_speed) * speed_scale;
+    view.period_seconds = speed > 0.0 ? 1.0 / speed : 0.0;
+    view.hidden = pattern.reduced_motion.value_or(StripeReducedMotion::still) == StripeReducedMotion::none;
+    return view;
+}
+
 } // namespace
 
 namespace {
@@ -414,18 +490,29 @@ FrameInterval ProgressBar::animation_interval() const noexcept {
         // effect whose interval is clamped after.
         travel = 0.0;
     }
-    if (visual_style.read() == ProgressBarVisualStyle::marching_stripes ||
-        overlay_style.read() == ProgressBarOverlayStyle::moving_stripes) {
-        travel = std::max(travel, stripe_width.read() * 2.0);
-    }
     const MotionPolicy policy = effective_motion_policy();
     // Reduced motion halves the travel (MotionPolicy::presentation_phase)
     // and scales the speed.
     const double presented_travel = policy.reduced ? travel * 0.5 : travel;
     const double period = std::chrono::duration<double>(animation_period.read()).count();
     const double scale = window() != nullptr ? (*window()).scale() : 1.0;
-    const double device_speed = period > 0.0
+    double device_speed = period > 0.0
         ? presented_travel * scale * policy.speed_scale() / period : 0.0;
+    // The stripes travel their own pace: their speed in pitches a second,
+    // on the motion clock.
+    if (visual_style.read() == ProgressBarVisualStyle::marching_stripes ||
+        overlay_style.read() == ProgressBarOverlayStyle::moving_stripes) {
+        const FillStripes stripes = fill_stripes();
+        const bool vertical = !horizontal;
+        const Rect bounds = local_bounds();
+        const Rect track_interior{2.0, 2.0, std::max(0.0, bounds.width - 4.0), std::max(0.0, bounds.height - 4.0)};
+        const StripeSpan span = stripe_span(track_interior, vertical);
+        const double slant = stripe_slant(stripes.pattern, span.thickness);
+        const double pitch = stripe_pitch(stripes.pattern, span, slant);
+        const double pitches = stripes.pattern.speed.value_or(default_stripe_speed);
+        const double stripe_speed = pitch * pitches * scale * policy.speed_scale();
+        device_speed = std::max(device_speed, stripe_speed);
+    }
     const FrameInterval interval =
         policy.frame_interval(animation_interval_for_travel(device_speed));
     return interval;
@@ -585,6 +672,20 @@ Rect ProgressBar::indicator_bounds() const noexcept {
     return fill;
 }
 
+ProgressBar::FillStripes ProgressBar::fill_stripes() const {
+    FillStripes result{};
+    if (attached_window() == nullptr) return result;
+    AnatomyStateSet states = anatomy_states();
+    states.insert(AnatomyState::selected);
+    const ControlVisualContext context = part_visual_context(*this, states);
+    const ResolvedControlRecipe resolved =
+        effective_theme().resolve(*this, ControlVisualRole::progress, context, states, "fill");
+    const ControlVisualRecipe& recipe = resolved.recipe();
+    result.pattern = recipe.part_metrics.stripes;
+    result.corner_radius = recipe.material.corner_radius;
+    return result;
+}
+
 const ControlAnatomy& ProgressBar::anatomy() const noexcept {
     return progress_bar_anatomy;
 }
@@ -723,6 +824,9 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     }
     view.stripe_width = stripe_width.read();
     view.period_seconds = speed > 0.0 ? period / speed : period;
+    const FillStripes stripes = fill_stripes();
+    view.stripes = stripe_view(stripes.pattern, stripes.corner_radius, interior, fill, view.vertical,
+                               view.appearance.stripe_color, speed);
     const bool suppressed = window() != nullptr && (*window()).motion_clock().ambient_suppressed();
     const bool still = !animation_enabled.read() || policy.reduced || suppressed;
     const double scale = window() != nullptr ? (*window()).scale() : 1.0;

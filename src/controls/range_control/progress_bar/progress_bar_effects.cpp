@@ -41,24 +41,95 @@ Color with_alpha(Color color, std::uint32_t alpha) noexcept {
     return result;
 }
 
+// A point in bar space (`along` the fill direction from the track's start
+// edge `start`, `across` from the clip's near_edge side) on the canvas.
+Point stripe_point(ProgressFillDirection direction, double start, const Rect& clip, double along,
+                   double across) noexcept {
+    switch (direction) {
+    case ProgressFillDirection::right_to_left: return Point{start - along, clip.y + across};
+    case ProgressFillDirection::bottom_to_top: return Point{clip.x + across, start - along};
+    case ProgressFillDirection::top_to_bottom: return Point{clip.x + across, start + along};
+    case ProgressFillDirection::left_to_right:
+    // A value outside the enumeration draws as the left-to-right bar.
+    default: return Point{start + along, clip.y + across};
+    }
+}
+
 } // namespace
 
 void ProgressStripes::run(const EffectView<ProgressBar>& parent, const EffectFrame& frame, EffectCanvas& canvas) {
-    if (!frame.still) phase_ = advanced_phase(phase_, frame.ticks, parent.period_seconds);
-    const Rect fill = parent.fill;
-    if (fill.empty() || !(parent.stripe_width > 0.0)) return;
+    const ProgressStripeView& stripes = parent.stripes;
+    if (!frame.still) phase_ = advanced_phase(phase_, frame.ticks, stripes.period_seconds);
+    const Rect clip = stripes.clip;
+    if (clip.empty() || !(stripes.pitch > 0.0) || !(stripes.band > 0.0)) return;
+    if (frame.still && stripes.hidden) return;
+
+    // The track's start edge and the clip's extent along the fill
+    // direction, in bar space.
+    const Rect interior = parent.interior;
+    const ProgressFillDirection direction = stripes.direction;
+    double start = interior.x;
+    double near_edge = clip.x - interior.x;
+    double length = clip.width;
+    double thickness = clip.height;
+    if (direction == ProgressFillDirection::right_to_left) {
+        start = interior.x + interior.width;
+        near_edge = start - (clip.x + clip.width);
+    } else if (direction == ProgressFillDirection::bottom_to_top) {
+        start = interior.y + interior.height;
+        near_edge = start - (clip.y + clip.height);
+        length = clip.height;
+        thickness = clip.width;
+    } else if (direction == ProgressFillDirection::top_to_bottom) {
+        start = interior.y;
+        near_edge = clip.y - interior.y;
+        length = clip.height;
+        thickness = clip.width;
+    }
+    const double far_edge = near_edge + length;
+
+    // The travel, whole device pixels toward the leading edge (or back), so
+    // a band's edges land on the same pixel phase every frame.
     const double phase = frame.still ? 0.0 : phase_;
-    const double pitch = parent.stripe_width * 2.0;
-    const double travel = phase * pitch;
-    const double begin = fill.x - fill.height - pitch + travel;
-    const double end = fill.x + fill.width + fill.height + pitch;
-    const std::size_t count = static_cast<std::size_t>((end - begin) / pitch) + 1U;
+    const double device = phase * stripes.pitch * frame.scale + 0.5;
+    const double rounded = device - effect_fraction(device);
+    const double travel = frame.scale > 0.0 ? rounded / frame.scale : 0.0;
+    const double shift = stripes.forward ? travel : -travel;
+
+    // The bands that reach the clip: a band at `along` spans along to
+    // along + band on the near_edge side and runs `slant` further on the far_edge.
+    const double lead = stripes.slant < 0.0 ? stripes.slant : 0.0;
+    const double trail = stripes.slant > 0.0 ? stripes.slant : 0.0;
+    const double first = (near_edge - stripes.band - trail - shift) / stripes.pitch;
+    const double whole = first - effect_fraction(first);
+    const double begin = shift + whole * stripes.pitch;
+    const double span = far_edge - lead - begin;
+    const std::size_t count = span > 0.0 ? static_cast<std::size_t>(span / stripes.pitch) + 1U : 0U;
+
     canvas.save();
-    canvas.clip_rect(fill);
+    canvas.clip_rounded_rect(clip, stripes.clip_radius);
+    const bool grounded = stripes.ground.alpha != 0U;
+    if (grounded) canvas.fill_rect(clip, stripes.ground);
     for (const std::size_t index : bounded_range<maximum_stripes>(count)) {
-        const double x = begin + static_cast<double>(index) * pitch;
-        canvas.stroke_line({x, fill.y + fill.height}, {x + fill.height, fill.y}, parent.appearance.stripe_color,
-                           parent.stripe_width);
+        const double along = begin + static_cast<double>(index) * stripes.pitch;
+        EffectPoints quad{};
+        quad.items[0] = stripe_point(direction, start, clip, along, 0.0);
+        quad.items[1] = stripe_point(direction, start, clip, along + stripes.band, 0.0);
+        quad.items[2] = stripe_point(direction, start, clip, along + stripes.band + stripes.slant, thickness);
+        quad.items[3] = stripe_point(direction, start, clip, along + stripes.slant, thickness);
+        quad.count = 4U;
+        canvas.fill_polygon(quad, stripes.colour, PolygonFillRule::nonzero);
+    }
+    // A painted ground covers the fill's shading; the gloss stands for it:
+    // a light fading from the near_edge side to the middle.
+    if (grounded && stripes.gloss) {
+        EffectGradient gloss{};
+        gloss.stops[0] = GradientStop{0.0, Color::rgba(255, 255, 255, 72)};
+        gloss.stops[1] = GradientStop{1.0, Color::rgba(255, 255, 255, 0)};
+        gloss.count = 2U;
+        const Point from = stripe_point(direction, start, clip, near_edge, 0.0);
+        const Point to = stripe_point(direction, start, clip, near_edge, thickness * 0.5);
+        canvas.fill_linear_gradient(clip, from, to, gloss, false);
     }
     canvas.restore();
 }
