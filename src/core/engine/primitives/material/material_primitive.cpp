@@ -2105,6 +2105,10 @@ PixelSpan repeating_span(const AxisReach& reach, const double box_start, const d
 
 BakeSpans bake_spans(const SurfaceMaterial& material, const PrimitiveTarget& target, const MaterialLook& look,
                      const double outset, const PartShapeKind shape, const DeviceExtent extent) noexcept {
+    // An inscribed circle curves all along both axes: axis_reach measures
+    // its corners against the whole box, so a box longer than it is wide
+    // would repeat pixels inside the curve. Nothing repeats.
+    if (shape == PartShapeKind::circle) return BakeSpans{};
     const AxisReach across = axis_reach(material, target, true, outset, shape);
     const AxisReach down = axis_reach(material, target, false, outset, shape);
     const PixelSpan columns = repeating_span(across, look.box.x, look.box.right(), extent.width);

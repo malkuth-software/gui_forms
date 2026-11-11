@@ -4571,15 +4571,20 @@ if(GUI_FORMS_BUILD_TESTS)
         list(GET _gui_fail_fast_fields 0 _gui_fail_fast_mode)
         list(GET _gui_fail_fast_fields 1 _gui_fail_fast_site)
         list(GET _gui_fail_fast_fields 2 _gui_fail_fast_text)
+        # Each mode ends the process with std::abort (SIGABRT outside Windows),
+        # which CTest counts as a failure whatever the output; the runner
+        # turns the abnormal end into exit 0 so the expressions decide.
         add_test(NAME gui_forms_fail_fast_${_gui_fail_fast_mode}
-                 COMMAND gui_forms_fail_fast_tests ${_gui_fail_fast_mode})
+                 COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_expecting_abort.py $<TARGET_FILE:gui_forms_fail_fast_tests>
+                         ${_gui_fail_fast_mode})
         set_tests_properties(gui_forms_fail_fast_${_gui_fail_fast_mode} PROPERTIES
             PASS_REGULAR_EXPRESSION "GUI.Forms: fatal exception at ${_gui_fail_fast_site}: ${_gui_fail_fast_text}"
             FAIL_REGULAR_EXPRESSION "survived")
     endforeach()
     # The report prints the failure snapshot's shadow frames: the event frame
     # the target threw in, closed by unwinding before the boundary caught it.
-    add_test(NAME gui_forms_fail_fast_shadow_frames COMMAND gui_forms_fail_fast_tests shadow_frames)
+    add_test(NAME gui_forms_fail_fast_shadow_frames
+             COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_expecting_abort.py $<TARGET_FILE:gui_forms_fail_fast_tests> shadow_frames)
     set_tests_properties(gui_forms_fail_fast_shadow_frames PROPERTIES
         PASS_REGULAR_EXPRESSION "GUI.Forms: shadow frames \\(1 open, 1 recorded\\):[\r\n]+  #0 kind 3 fail-fast.frame click 0"
         FAIL_REGULAR_EXPRESSION "survived")
@@ -4602,7 +4607,8 @@ if(GUI_FORMS_BUILD_TESTS)
             list(GET _gui_borrow_fields 0 _gui_borrow_mode)
             list(GET _gui_borrow_fields 1 _gui_borrow_text)
             add_test(NAME gui_forms_borrowed_view_${_gui_borrow_mode}
-                     COMMAND gui_forms_borrowed_view_tests ${_gui_borrow_mode})
+                     COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_expecting_abort.py $<TARGET_FILE:gui_forms_borrowed_view_tests>
+                             ${_gui_borrow_mode})
             set_tests_properties(gui_forms_borrowed_view_${_gui_borrow_mode} PROPERTIES
                 PASS_REGULAR_EXPRESSION "GUI.Forms borrow sanitizer: a borrowed view was ${_gui_borrow_text}"
                 FAIL_REGULAR_EXPRESSION "survived")
