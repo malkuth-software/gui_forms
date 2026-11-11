@@ -316,6 +316,9 @@ void SemanticSource::release_trees() noexcept {
     current.reset();
     current_key = SemanticTreeKey{};
     published.reset();
+    text_layout_tree.reset();
+    text_layout_control = 0U;
+    text_layout.reset();
 }
 
 bool SemanticSource::perform(const SemanticLocation& location, SemanticAction action,

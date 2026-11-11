@@ -322,8 +322,9 @@ struct SubSurfaceStatistics final {
     std::uint64_t outcomes_received{};
     std::uint64_t outcomes_stale{};
     // Accessibility (design note section 5): semantic snapshots published
-    // (one per turn in which the tree's semantic generation moved), and the
-    // posted semantic actions the tree performed and refused.
+    // (one per turn in which the tree's semantic generation moved and a
+    // snapshot was wanted: see take_semantics), and the posted semantic
+    // actions the tree performed and refused.
     std::uint64_t semantic_snapshots_published{};
     std::uint64_t semantic_actions_performed{};
     std::uint64_t semantic_actions_refused{};
@@ -444,7 +445,11 @@ public:
     // section 5: an immutable snapshot, shared and never mutated across the
     // threads; its nodes are in the sub-surface's own coordinates and
     // runtime identities); null before the first. Taking it re-arms the
-    // notice: the next publication posts a new one.
+    // notice: the next publication posts a new one. A snapshot walks the
+    // whole tree, so after the first the sub-surface builds the next only
+    // once this one is taken (or a listener is set): changes in between
+    // build nothing, and the snapshot taken then may be stale, in which case
+    // taking it has the newest built and published (with its notice).
     [[nodiscard]] std::shared_ptr<const SemanticSnapshot> take_semantics();
     // Where the notice of the thread ending on its own goes: posted through
     // `parent` to `target`, held weakly, as set_key_return. Replaces any

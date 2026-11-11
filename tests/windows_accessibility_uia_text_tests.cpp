@@ -434,6 +434,20 @@ void check_units(ClientContext& context, IUIAutomation& automation, IUIAutomatio
     expect(context, SUCCEEDED((*range.get()).ExpandToEnclosingUnit(TextUnit_Document)) &&
                         range_text(*range.get()) == wide(single_text),
            "the Document unit is the whole text");
+    // N109: one search finds a position's place, then each unit is one step,
+    // in both directions; more units than the text holds cross exactly what
+    // there is ("Cafe" + combining acute + " au lait": twelve characters).
+    ComReference<IUIAutomationTextRange> walker;
+    require(collapsed_start(*document.get(), walker), "a degenerate range at the start");
+    expect(context, SUCCEEDED((*walker.get()).Move(TextUnit_Character, 100, &moved)) && moved == 12 &&
+                        range_text(*walker.get()).empty(),
+           "a degenerate range crosses the text's twelve characters and no more");
+    expect(context, SUCCEEDED((*walker.get()).Move(TextUnit_Character, -100, &moved)) && moved == -12,
+           "and back across all twelve to the start");
+    expect(context, SUCCEEDED((*walker.get()).Move(TextUnit_Character, 4, &moved)) && moved == 4 &&
+                        SUCCEEDED((*walker.get()).ExpandToEnclosingUnit(TextUnit_Character)) &&
+                        range_text(*walker.get()) == L" ",
+           "four characters in, the enclosing character is the space after the combining sequence");
 
     ComReference<IUIAutomationElement> multi_element;
     ComReference<IUIAutomationTextPattern> multi;

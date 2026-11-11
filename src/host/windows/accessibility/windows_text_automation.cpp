@@ -35,29 +35,61 @@ const IID iid_gui_forms_text_range = {
 // -- one call's view of the text --------------------------------------------
 
 // A text node as one call reads it: the shared snapshot, the node's location
-// in it (which borrows the tree `client` keeps alive), the node's layout,
-// and scratch storage for unit boundaries.
+// in it (which borrows the tree `client` keeps alive), the node's layout
+// when the call needs one (null otherwise; shared with the source's cache,
+// see SemanticSource::text_layout), and scratch storage for unit
+// boundaries.
 struct TextRead final {
     SemanticTreeRef client;
     SemanticLocation self;
-    SemanticTextLayout layout;
+    std::shared_ptr<const SemanticTextLayout> layout;
     std::vector<Utf8Offset> boundaries;
 
     [[nodiscard]] const std::string& value() const noexcept { return (*self.node).value; }
 };
 
-// Fills `read` for the element `id`: a fresh snapshot and the node's
-// layout. Throws std::bad_alloc when memory runs out.
-HRESULT read_text(SemanticSource& source, SemanticElementId id, TextRead& read) {
+// Fills `read`'s snapshot and location for the element `id`, without the
+// layout: what a call that reads only the value, the selection or the
+// states needs (S8). Throws std::bad_alloc when memory runs out.
+HRESULT locate_text(SemanticSource& source, SemanticElementId id, TextRead& read) {
     if (!source.snapshot(read.client)) return element_not_available;
     if (!locate_semantic_element(*read.client, id, read.self)) return element_not_available;
     if (read.self.parent == nullptr || !text_pattern(*read.self.node)) return invalid_operation;
     if (source.model == nullptr) return element_not_available;
-    const RuntimeId control{(*read.self.node).runtime_id};
-    const SemanticTextResult result = (*source.model).semantic_text_layout(control, read.layout);
+    return S_OK;
+}
+
+// Fills `read`'s layout, `read` being located: the source's cached layout
+// when it was read under the same tree for the same control, else a new
+// one, which becomes the cached one (N109). Throws std::bad_alloc when
+// memory runs out; a refused query leaves the cache as it was.
+HRESULT lay_out_text(SemanticSource& source, TextRead& read) {
+    const std::uint64_t control_id = (*read.self.node).runtime_id;
+    const bool same_tree = source.text_layout_tree && source.text_layout_tree == read.client;
+    if (same_tree && source.text_layout_control == control_id && source.text_layout) {
+        ++source.text_layouts_reused;
+        read.layout = source.text_layout;
+        return S_OK;
+    }
+    std::shared_ptr<SemanticTextLayout> built = std::make_shared<SemanticTextLayout>();
+    const SemanticTextResult result = (*source.model).semantic_text_layout(RuntimeId{control_id}, *built);
     if (result == SemanticTextResult::stale_identity) return element_not_available;
     if (result != SemanticTextResult::done) return invalid_operation;
+    ++source.text_layouts_built;
+    source.text_layout_tree = read.client;
+    source.text_layout_control = control_id;
+    source.text_layout = built;
+    read.layout = std::move(built);
     return S_OK;
+}
+
+// Fills `read` for the element `id`: a snapshot, the node and its layout.
+// Throws std::bad_alloc when memory runs out.
+HRESULT read_text(SemanticSource& source, SemanticElementId id, TextRead& read) {
+    const HRESULT located = locate_text(source, id, read);
+    if (FAILED(located)) return located;
+    const HRESULT laid_out = lay_out_text(source, read);
+    return laid_out;
 }
 
 // `offset` moved into `value`: to its end, then back to the start of a
@@ -89,35 +121,63 @@ SemanticTextUnit semantic_unit(TextUnit unit) noexcept {
     }
 }
 
+// The boundary lists (fill_semantic_text_boundaries) are ascending and
+// distinct, so the searches below are binary (N109): an offset's place is
+// the index of the first boundary after it.
+
+// Orders an offset before a boundary it lies before (std::upper_bound).
+struct OffsetBeforeBoundary final {
+    bool operator()(std::size_t offset, Utf8Offset boundary) const noexcept {
+        return offset < boundary.value();
+    }
+};
+
+// Orders a boundary before an offset it lies before (std::lower_bound).
+struct BoundaryBeforeOffset final {
+    bool operator()(Utf8Offset boundary, std::size_t offset) const noexcept {
+        return boundary.value() < offset;
+    }
+};
+
+// The index of the first boundary after `offset` (the list's size when none
+// is).
+std::size_t first_after(const std::vector<Utf8Offset>& boundaries, std::size_t offset) noexcept {
+    const std::vector<Utf8Offset>::const_iterator found =
+        std::upper_bound(boundaries.begin(), boundaries.end(), offset, OffsetBeforeBoundary{});
+    const std::size_t index = static_cast<std::size_t>(found - boundaries.begin());
+    return index;
+}
+
+// The index of the first boundary at or after `offset`.
+std::size_t first_at_or_after(const std::vector<Utf8Offset>& boundaries, std::size_t offset) noexcept {
+    const std::vector<Utf8Offset>::const_iterator found =
+        std::lower_bound(boundaries.begin(), boundaries.end(), offset, BoundaryBeforeOffset{});
+    const std::size_t index = static_cast<std::size_t>(found - boundaries.begin());
+    return index;
+}
+
 // The first boundary after `offset`, or none.
 std::optional<std::size_t> boundary_after(const std::vector<Utf8Offset>& boundaries,
                                           std::size_t offset) noexcept {
-    for (const Utf8Offset boundary : boundaries) {
-        if (boundary.value() > offset) return boundary.value();
-    }
-    return std::nullopt;
+    const std::size_t index = first_after(boundaries, offset);
+    if (index == boundaries.size()) return std::nullopt;
+    return boundaries[index].value();
 }
 
 // The last boundary before `offset`, or none.
 std::optional<std::size_t> boundary_before(const std::vector<Utf8Offset>& boundaries,
                                            std::size_t offset) noexcept {
-    std::optional<std::size_t> found;
-    for (const Utf8Offset boundary : boundaries) {
-        if (boundary.value() >= offset) break;
-        found = boundary.value();
-    }
-    return found;
+    const std::size_t index = first_at_or_after(boundaries, offset);
+    if (index == 0U) return std::nullopt;
+    return boundaries[index - 1U].value();
 }
 
 // The unit that holds `offset`: from the last boundary at or before it to
 // the next. At the end of non-empty text, the last unit.
 void enclosing_unit(const std::vector<Utf8Offset>& boundaries, std::size_t size, std::size_t offset,
                     std::size_t& start, std::size_t& end) noexcept {
-    std::size_t low = 0U;
-    for (const Utf8Offset boundary : boundaries) {
-        if (boundary.value() > offset) break;
-        low = boundary.value();
-    }
+    const std::size_t after = first_after(boundaries, offset);
+    std::size_t low = after == 0U ? 0U : boundaries[after - 1U].value();
     if (low == size && size > 0U) {
         const std::optional<std::size_t> before = boundary_before(boundaries, size);
         low = before.value_or(0U);
@@ -129,20 +189,28 @@ void enclosing_unit(const std::vector<Utf8Offset>& boundaries, std::size_t size,
 
 // Moves `offset` across `count` boundaries (backward when negative) and
 // returns how many it crossed. `stop_before_end` keeps it off the end of
-// the text, where no unit starts (a non-degenerate range's Move).
+// the text, where no unit starts (a non-degenerate range's Move). One
+// search finds the offset's place; each unit moved is then one step along
+// the list.
 int move_across(const std::vector<Utf8Offset>& boundaries, std::size_t size, int count,
                 bool stop_before_end, std::size_t& offset) noexcept {
     int moved = 0;
-    while (moved < count) {
-        const std::optional<std::size_t> next = boundary_after(boundaries, offset);
-        if (!next || (stop_before_end && *next >= size)) break;
-        offset = *next;
-        ++moved;
+    if (count > 0) {
+        std::size_t next = first_after(boundaries, offset);
+        while (moved < count && next < boundaries.size()) {
+            const std::size_t boundary = boundaries[next].value();
+            if (stop_before_end && boundary >= size) break;
+            offset = boundary;
+            ++next;
+            ++moved;
+        }
+        return moved;
     }
-    while (moved > count) {
-        const std::optional<std::size_t> previous = boundary_before(boundaries, offset);
-        if (!previous) break;
-        offset = *previous;
+    // The boundaries before `offset` are those below this index.
+    std::size_t below = first_at_or_after(boundaries, offset);
+    while (moved > count && below > 0U) {
+        --below;
+        offset = boundaries[below].value();
         --moved;
     }
     return moved;
@@ -168,13 +236,13 @@ void range_boxes(const TextRead& read, std::size_t start, std::size_t end, doubl
                  std::vector<Rect>& boxes) {
     boxes.clear();
     const Rect visible = (*read.self.node).bounds;
-    const std::vector<SemanticTextLine>& lines = read.layout.lines;
+    const std::vector<SemanticTextLine>& lines = (*read.layout).lines;
     if (start == end) {
         if (lines.empty()) return;
         std::size_t line = 0U;
         double x = lines[0].bounds.x;
         bool placed = false;
-        for (const SemanticTextGrapheme& grapheme : read.layout.graphemes) {
+        for (const SemanticTextGrapheme& grapheme : (*read.layout).graphemes) {
             if (grapheme.range.start.value() == start) {
                 line = grapheme.line.value();
                 x = grapheme.bounds.x;
@@ -183,7 +251,7 @@ void range_boxes(const TextRead& read, std::size_t start, std::size_t end, doubl
             }
         }
         if (!placed) {
-            for (const SemanticTextGrapheme& grapheme : read.layout.graphemes) {
+            for (const SemanticTextGrapheme& grapheme : (*read.layout).graphemes) {
                 if (grapheme.range.end.value() == start) {
                     line = grapheme.line.value();
                     x = grapheme.bounds.x + grapheme.bounds.width;
@@ -198,7 +266,7 @@ void range_boxes(const TextRead& read, std::size_t start, std::size_t end, doubl
     }
     for (std::size_t line = 0U; line < lines.size(); ++line) {
         std::optional<Rect> united;
-        for (const SemanticTextGrapheme& grapheme : read.layout.graphemes) {
+        for (const SemanticTextGrapheme& grapheme : (*read.layout).graphemes) {
             if (grapheme.line.value() != line) continue;
             if (grapheme.range.start.value() < start || grapheme.range.end.value() > end) continue;
             united = united ? Rect::united(*united, grapheme.bounds) : grapheme.bounds;
@@ -266,6 +334,9 @@ private:
     // Reads the text into `read` and clamps this range to it. Throws
     // std::bad_alloc when memory runs out.
     HRESULT read(TextRead& read);
+    // As read, without the layout (S8): for the calls that need only the
+    // value, the selection or the states.
+    HRESULT locate(TextRead& read);
     // The UiaTextRange behind `range` when it is one of this element's,
     // with a reference the caller releases; null otherwise.
     UiaTextRange* same_element_range(ITextRangeProvider* range) const noexcept;
@@ -324,6 +395,15 @@ HRESULT range_array(std::vector<ITextRangeProvider*>& ranges, SAFEARRAY** out) n
 
 HRESULT UiaTextRange::read(TextRead& read) {
     const HRESULT status = read_text(*source_, id_, read);
+    if (FAILED(status)) return status;
+    start_ = clamp_offset(read.value(), start_);
+    end_ = clamp_offset(read.value(), end_);
+    if (end_ < start_) end_ = start_;
+    return S_OK;
+}
+
+HRESULT UiaTextRange::locate(TextRead& read) {
+    const HRESULT status = locate_text(*source_, id_, read);
     if (FAILED(status)) return status;
     start_ = clamp_offset(read.value(), start_);
     end_ = clamp_offset(read.value(), end_);
@@ -414,7 +494,7 @@ HRESULT UiaTextRange::expand(TextUnit unit) {
     TextRead text;
     const HRESULT status = read(text);
     if (FAILED(status)) return status;
-    fill_semantic_text_boundaries(text.layout, text.value(), semantic_unit(unit), text.boundaries);
+    fill_semantic_text_boundaries(*text.layout, text.value(), semantic_unit(unit), text.boundaries);
     enclosing_unit(text.boundaries, text.value().size(), start_, start_, end_);
     return S_OK;
 }
@@ -438,7 +518,7 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::FindAttribute(TEXTATTRIBUTEID attribute,
     if (attribute != UIA_IsReadOnlyAttributeId || value.vt != VT_BOOL) return S_OK;
     try {
         TextRead text;
-        const HRESULT status = read(text);
+        const HRESULT status = locate(text);
         if (FAILED(status)) return status;
         const bool read_only = has_semantic_state((*text.self.node).states, SemanticState::read_only);
         const bool wanted = value.boolVal != VARIANT_FALSE;
@@ -453,7 +533,7 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::FindAttribute(TEXTATTRIBUTEID attribute,
 
 HRESULT UiaTextRange::find_text(BSTR text, BOOL backward, BOOL ignore_case, ITextRangeProvider** out) {
     TextRead read_back;
-    const HRESULT status = read(read_back);
+    const HRESULT status = locate(read_back);
     if (FAILED(status)) return status;
     const std::wstring_view wanted_wide(text, SysStringLen(text));
     std::string wanted;
@@ -493,7 +573,7 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::GetAttributeValue(TEXTATTRIBUTEID attrib
     }
     try {
         TextRead text;
-        const HRESULT status = read(text);
+        const HRESULT status = locate(text);
         if (FAILED(status)) return status;
         const bool read_only = has_semantic_state((*text.self.node).states, SemanticState::read_only);
         (*out).vt = VT_BOOL;
@@ -549,7 +629,7 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::GetEnclosingElement(IRawElementProviderS
     *out = nullptr;
     try {
         TextRead text;
-        const HRESULT status = read(text);
+        const HRESULT status = locate(text);
         if (FAILED(status)) return status;
     } catch (const std::bad_alloc&) {
         return E_OUTOFMEMORY;
@@ -564,7 +644,7 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::GetEnclosingElement(IRawElementProviderS
 
 HRESULT UiaTextRange::text(int max_length, BSTR* out) {
     TextRead read_back;
-    const HRESULT status = read(read_back);
+    const HRESULT status = locate(read_back);
     if (FAILED(status)) return status;
     const std::string_view within = std::string_view(read_back.value()).substr(start_, end_ - start_);
     BSTR whole = nullptr;
@@ -606,7 +686,7 @@ HRESULT UiaTextRange::move(TextUnit unit, int count, int* out) {
     const HRESULT status = read(text);
     if (FAILED(status)) return status;
     const std::size_t size = text.value().size();
-    fill_semantic_text_boundaries(text.layout, text.value(), semantic_unit(unit), text.boundaries);
+    fill_semantic_text_boundaries(*text.layout, text.value(), semantic_unit(unit), text.boundaries);
     const bool degenerate = start_ == end_;
     std::size_t position = start_;
     if (!degenerate) {
@@ -641,7 +721,7 @@ HRESULT UiaTextRange::move_endpoint(TextPatternRangeEndpoint which, TextUnit uni
     TextRead text;
     const HRESULT status = read(text);
     if (FAILED(status)) return status;
-    fill_semantic_text_boundaries(text.layout, text.value(), semantic_unit(unit), text.boundaries);
+    fill_semantic_text_boundaries(*text.layout, text.value(), semantic_unit(unit), text.boundaries);
     std::size_t position = endpoint_offset(which);
     const int moved = move_across(text.boundaries, text.value().size(), count, false, position);
     set_endpoint(which, position);
@@ -684,7 +764,7 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::MoveEndpointByRange(TextPatternRangeEndp
 HRESULT STDMETHODCALLTYPE UiaTextRange::Select() {
     try {
         TextRead text;
-        const HRESULT status = read(text);
+        const HRESULT status = locate(text);
         if (FAILED(status)) return status;
         const RuntimeId control{(*text.self.node).runtime_id};
         const SemanticTextSelection selection{Utf8Offset{start_}, Utf8Offset{end_}};
@@ -716,7 +796,7 @@ HRESULT UiaTextRange::scroll_into_view() {
     const HRESULT status = read(text);
     if (FAILED(status)) return status;
     const Rect visible = (*text.self.node).bounds;
-    for (const SemanticTextGrapheme& grapheme : text.layout.graphemes) {
+    for (const SemanticTextGrapheme& grapheme : (*text.layout).graphemes) {
         if (grapheme.range.start.value() < start_ || grapheme.range.end.value() > end_) continue;
         const Rect shown = Rect::intersection(grapheme.bounds, visible);
         if (!(shown == grapheme.bounds)) return invalid_operation;
@@ -745,7 +825,7 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::GetChildren(SAFEARRAY** out) {
 // The grapheme edge nearest the logical point (x, y): the line whose band
 // holds y, or the nearest line, then the edge of its grapheme nearest x.
 std::size_t offset_at_point(const TextRead& text, double x, double y) noexcept {
-    const std::vector<SemanticTextLine>& lines = text.layout.lines;
+    const std::vector<SemanticTextLine>& lines = (*text.layout).lines;
     if (lines.empty()) return 0U;
     std::size_t line = 0U;
     double best = std::numeric_limits<double>::infinity();
@@ -761,7 +841,7 @@ std::size_t offset_at_point(const TextRead& text, double x, double y) noexcept {
     }
     std::size_t result = lines[line].range.start.value();
     double nearest = std::numeric_limits<double>::infinity();
-    for (const SemanticTextGrapheme& grapheme : text.layout.graphemes) {
+    for (const SemanticTextGrapheme& grapheme : (*text.layout).graphemes) {
         if (grapheme.line.value() != line) continue;
         const double left = std::abs(x - grapheme.bounds.x);
         const double right = std::abs(x - (grapheme.bounds.x + grapheme.bounds.width));
@@ -780,7 +860,7 @@ std::size_t offset_at_point(const TextRead& text, double x, double y) noexcept {
 HRESULT selection_ranges(const std::shared_ptr<SemanticSource>& source, SemanticElementId id,
                          SAFEARRAY** out) {
     TextRead text;
-    const HRESULT status = read_text(*source, id, text);
+    const HRESULT status = locate_text(*source, id, text);
     if (FAILED(status)) return status;
     std::vector<ITextRangeProvider*> ranges;
     const std::optional<SemanticTextSelection>& selection = (*text.self.node).text_selection;
@@ -803,7 +883,7 @@ HRESULT visible_ranges(const std::shared_ptr<SemanticSource>& source, SemanticEl
     const Rect visible = (*text.self.node).bounds;
     std::optional<std::size_t> first;
     std::size_t last = 0U;
-    for (const SemanticTextGrapheme& grapheme : text.layout.graphemes) {
+    for (const SemanticTextGrapheme& grapheme : (*text.layout).graphemes) {
         const Rect shown = Rect::intersection(grapheme.bounds, visible);
         if (shown.empty()) continue;
         if (!first) first = grapheme.range.start.value();
@@ -835,7 +915,7 @@ HRESULT range_from_point(const std::shared_ptr<SemanticSource>& source, Semantic
 HRESULT document_range(const std::shared_ptr<SemanticSource>& source, SemanticElementId id,
                        ITextRangeProvider** out) {
     TextRead text;
-    const HRESULT status = read_text(*source, id, text);
+    const HRESULT status = locate_text(*source, id, text);
     if (FAILED(status)) return status;
     return make_range(source, id, 0U, text.value().size(), out);
 }
@@ -843,7 +923,7 @@ HRESULT document_range(const std::shared_ptr<SemanticSource>& source, SemanticEl
 HRESULT caret_range(const std::shared_ptr<SemanticSource>& source, SemanticElementId id, BOOL* active,
                     ITextRangeProvider** out) {
     TextRead text;
-    const HRESULT status = read_text(*source, id, text);
+    const HRESULT status = locate_text(*source, id, text);
     if (FAILED(status)) return status;
     const SemanticNode& node = *text.self.node;
     const std::size_t caret = node.text_selection

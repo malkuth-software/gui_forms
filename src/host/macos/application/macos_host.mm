@@ -1106,6 +1106,9 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 // Each returns NO when the window has gone or the control refuses.
 - (BOOL)readSemanticTextLayout:(std::uint64_t)control layout:(SemanticTextLayout&)layout;
 - (BOOL)selectSemanticText:(std::uint64_t)control selection:(SemanticTextSelection)selection;
+// The window's accessibility tree key now (read_accessibility_tree_key);
+// NO when the window has gone.
+- (BOOL)readAccessibilityTreeKey:(MacAccessibilityTreeKey&)key;
 // A point in screen coordinates (AppKit's, origin at the bottom left) in
 // the view's semantic coordinates.
 - (NSPoint)semanticPointForScreenPoint:(NSPoint)point;
@@ -1169,9 +1172,16 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     // The virtual child's stable identity; empty for a control's own node.
     std::string _virtualChild;
     NSArray* _semanticChildren;
-    // A text node's layout, read again by every text attribute
-    // (readSemanticText) into this one storage.
+    // A text node's layout (readSemanticText), kept while the window's
+    // accessibility tree key reads as it did after the layout was read
+    // (N101): the key moves with the semantic generation, the content
+    // revision and the display generation, so the value and the layout
+    // pass are then unchanged. Every text attribute reads it, so VoiceOver
+    // reading a character at a time no longer lays the text out for each
+    // attribute.
     SemanticTextLayout _textLayout;
+    MacAccessibilityTreeKey _textLayoutKey;
+    BOOL _textLayoutCurrent;
 }
 - (instancetype)initWithNode:(const SemanticNode&)node
                        owner:(GUIFormsView*)owner
@@ -1297,14 +1307,22 @@ static bool utf8_range(std::string_view value, NSRange range, std::size_t& start
     return true;
 }
 
-// The visual line that holds byte `offset`: the last line starting at or
-// before it, so a line break belongs to the line it ends.
-static std::size_t line_of_offset(const SemanticTextLayout& layout, std::size_t offset) noexcept {
-    std::size_t found = 0U;
-    for (std::size_t index = 0U; index < layout.lines.size(); ++index) {
-        if (layout.lines[index].range.start.value() > offset) break;
-        found = index;
+// Orders an offset before a line that starts after it (std::upper_bound
+// over the lines, which run in text order).
+struct OffsetBeforeLine final {
+    bool operator()(std::size_t offset, const SemanticTextLine& line) const noexcept {
+        return offset < line.range.start.value();
     }
+};
+
+// The visual line that holds byte `offset`: the last line starting at or
+// before it, so a line break belongs to the line it ends. A binary search
+// (N101): the lines start in ascending order.
+static std::size_t line_of_offset(const SemanticTextLayout& layout, std::size_t offset) noexcept {
+    const std::vector<SemanticTextLine>::const_iterator after =
+        std::upper_bound(layout.lines.begin(), layout.lines.end(), offset, OffsetBeforeLine{});
+    const std::size_t past = static_cast<std::size_t>(after - layout.lines.begin());
+    const std::size_t found = past == 0U ? 0U : past - 1U;
     return found;
 }
 
@@ -1655,9 +1673,10 @@ static bool contains_live_region(const SemanticNode& node) {
     static_cast<void>([self performNodeAction:SemanticAction::set_value value:text]);
 }
 
-// Brings this element's node up to date and reads its layout into
-// _textLayout. Returns NO when the node publishes no text ranges, its
-// control has left the window or the window has gone.
+// Brings this element's node up to date and makes _textLayout its current
+// layout: the one kept, while the tree key reads the same, else read again.
+// Returns NO when the node publishes no text ranges, its control has left
+// the window or the window has gone.
 - (BOOL)readSemanticText {
     if (_owner == nil || !publishes_text_ranges(_node)) return NO;
     try {
@@ -1665,7 +1684,15 @@ static bool contains_live_region(const SemanticNode& node) {
         // moved, which updates this element's node in place.
         static_cast<void>([_owner accessibilityChildren]);
         if (!publishes_text_ranges(_node)) return NO;
-        return [_owner readSemanticTextLayout:_control layout:_textLayout];
+        MacAccessibilityTreeKey key;
+        if (![_owner readAccessibilityTreeKey:key]) return NO;
+        if (_textLayoutCurrent && key == _textLayoutKey) return YES;
+        _textLayoutCurrent = NO;
+        if (![_owner readSemanticTextLayout:_control layout:_textLayout]) return NO;
+        // The key after the read, in case the query itself settled a layout.
+        if (![_owner readAccessibilityTreeKey:_textLayoutKey]) return NO;
+        _textLayoutCurrent = YES;
+        return YES;
     } catch (...) {
         return NO;
     }
@@ -2456,6 +2483,12 @@ void post_perform_close(NSWindow* window) {
     const gui_forms::RuntimeId identity{control};
     const gui_forms::SemanticTextResult result = (*_model).semantic_text_layout(identity, layout);
     return result == gui_forms::SemanticTextResult::done ? YES : NO;
+}
+
+- (BOOL)readAccessibilityTreeKey:(MacAccessibilityTreeKey&)key {
+    if (!_model) return NO;
+    key = read_accessibility_tree_key(*_model);
+    return YES;
 }
 
 - (BOOL)selectSemanticText:(std::uint64_t)control selection:(SemanticTextSelection)selection {

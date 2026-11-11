@@ -185,6 +185,19 @@ struct SemanticSource final {
     // current one instead (diagnostics; never reset).
     std::uint64_t trees_built{};
     std::uint64_t trees_reused{};
+    // The newest text layout the TextPattern read (N109), the tree it was
+    // read under and the runtime ID of its control. It is reused while
+    // snapshot hands out that same tree for the same control: the tree's key
+    // holds the semantic generation, content revision and display
+    // generation, so the value and the layout pass are unchanged. A range
+    // holds the layout it reads by its own reference, so a newer one
+    // replacing it here frees nothing in use. Released with the trees;
+    // counted as the trees are.
+    SemanticTreeRef text_layout_tree{};
+    std::uint64_t text_layout_control{};
+    std::shared_ptr<const SemanticTextLayout> text_layout{};
+    std::uint64_t text_layouts_built{};
+    std::uint64_t text_layouts_reused{};
 
     // Sets `client` to the window's client node: the snapshot's roots under
     // one node named by the window title and covering the client area. The
