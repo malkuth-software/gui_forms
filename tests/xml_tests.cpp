@@ -48,6 +48,7 @@ void operator delete[](void* address, std::size_t) noexcept { std::free(address)
 
 namespace {
 
+using gui_forms::xml_depth_ceiling;
 using gui_forms::XmlAttribute;
 using gui_forms::XmlElement;
 using gui_forms::XmlError;
