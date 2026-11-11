@@ -28,7 +28,7 @@
       "reviewed": false,
       "summary": "Returns the durable semantic identity for a valid row."
     },
-    "gui_forms::ListBox::selected_indices|std::span<const std::size_t> () const noexcept": {
+    "gui_forms::ListBox::selected_indices|std::span<const std::size_t> () const & noexcept": {
       "reviewed": false,
       "summary": "Returns selected row indexes in ascending order."
     },

@@ -20,11 +20,11 @@
       "reviewed": false,
       "summary": "Constructs a one-by-one table that may add rows during automatic placement."
     },
-    "gui_forms::TableLayoutPanelCompat::column_styles|std::span<const TableLayoutStyle> () const noexcept": {
+    "gui_forms::TableLayoutPanelCompat::column_styles|std::span<const TableLayoutStyle> () const & noexcept": {
       "reviewed": false,
       "summary": "Returns a read-only span over current authored column track policies."
     },
-    "gui_forms::TableLayoutPanelCompat::row_styles|std::span<const TableLayoutStyle> () const noexcept": {
+    "gui_forms::TableLayoutPanelCompat::row_styles|std::span<const TableLayoutStyle> () const & noexcept": {
       "reviewed": false,
       "summary": "Returns a read-only span over current authored row track policies."
     },
@@ -44,11 +44,11 @@
       "reviewed": false,
       "summary": "Returns the live control whose resolved cell/span covers the requested coordinate."
     },
-    "gui_forms::TableLayoutPanelCompat::column_widths|std::span<const double> () const noexcept": {
+    "gui_forms::TableLayoutPanelCompat::column_widths|std::span<const double> () const & noexcept": {
       "reviewed": false,
       "summary": "Returns the most recently resolved logical track widths for inspection."
     },
-    "gui_forms::TableLayoutPanelCompat::row_heights|std::span<const double> () const noexcept": {
+    "gui_forms::TableLayoutPanelCompat::row_heights|std::span<const double> () const & noexcept": {
       "reviewed": false,
       "summary": "Returns the most recently resolved logical track heights for inspection."
     },

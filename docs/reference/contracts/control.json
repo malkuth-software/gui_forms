@@ -75,7 +75,7 @@
       "reviewed": false,
       "summary": "Returns the weakly held parent, or null when detached from any parent."
     },
-    "gui_forms::Control::children|std::span<const Ptr> () const noexcept": {
+    "gui_forms::Control::children|BorrowedSpan<Ptr> () const & noexcept": {
       "reviewed": false,
       "summary": "Returns the strongly held direct children in z-order (index zero topmost)."
     },
@@ -195,7 +195,7 @@
       "reviewed": false,
       "summary": "Moves this control to the bottom of its parent's z-order."
     },
-    "gui_forms::Control::attached_window|Window *() const noexcept": {
+    "gui_forms::Control::attached_window|BorrowedPointer<Window> () const noexcept": {
       "reviewed": false,
       "summary": "Returns the owning Window, or null when detached."
     },
@@ -243,7 +243,7 @@
       "reviewed": false,
       "summary": "Removes the explicit surface material and resumes theme resolution."
     },
-    "gui_forms::Control::owned_decorations|std::span<const OwnerDecorationRecipe> () const noexcept": {
+    "gui_forms::Control::owned_decorations|std::span<const OwnerDecorationRecipe> () const & noexcept": {
       "reviewed": false,
       "summary": "Returns the retained owner-decoration recipe."
     },

@@ -20,7 +20,7 @@
       "reviewed": false,
       "summary": "Constructs a focusable hierarchical selector with stable selection, expansion, type-selection, and virtual accessibility state."
     },
-    "gui_forms::TreeView::items|std::span<const TreeViewItem> () const noexcept": {
+    "gui_forms::TreeView::items|BorrowedSpan<TreeViewItem> () const & noexcept": {
       "reviewed": false,
       "summary": "Returns the authored flat hierarchy records in caller order."
     },
@@ -28,7 +28,7 @@
       "reviewed": false,
       "summary": "Validates stable identities and parent relationships, rebuilds the visible preorder, and reconciles selection, focus, and scrolling."
     },
-    "gui_forms::TreeView::active_id|std::string_view () const noexcept": {
+    "gui_forms::TreeView::active_id|std::string_view () const & noexcept": {
       "reviewed": false,
       "summary": "Returns the keyboard-active visible item independently of selection."
     },
