@@ -1417,7 +1417,7 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     part.text = {};
     // The grip (cp29: SDR#'s dotted caption grip), in every theme: the grip
     // mark in the caption's muted ink. A sheet hides it with a transparent
-    // ink, `dock-site::part(caption_grip) { muted-color: transparent; }`
+    // ink, `dock-site::part(caption-grip) { muted-color: transparent; }`
     // (owner, 2026-11-11).
     const Rect grip = caption_grip(slot, placed);
     if (!grip.empty()) {

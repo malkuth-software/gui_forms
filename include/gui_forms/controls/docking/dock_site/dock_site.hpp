@@ -596,7 +596,7 @@ public:
         PartGeometry caption_key;
         PartGeometry caption_label;
         // The dotted grip between the title and the buttons (cp29), painted
-        // in every theme; dock-site::part(caption_grip) { muted-color:
+        // in every theme; dock-site::part(caption-grip) { muted-color:
         // transparent; } hides it.
         PartGeometry caption_grip;
         PartGeometry caption_menu;
