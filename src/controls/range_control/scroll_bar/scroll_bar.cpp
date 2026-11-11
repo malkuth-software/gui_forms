@@ -137,8 +137,12 @@ void ScrollBar::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const Rect thumb = thumb_bounds();
     Parts record;
     record.region = PartGeometry::from_bounds(local_bounds());
-    record.decrement_arrow = PartGeometry::from_bounds(decrement_button_bounds());
-    record.increment_arrow = PartGeometry::from_bounds(increment_button_bounds());
+    const Rect decrement_button = decrement_button_bounds();
+    const Rect increment_button = increment_button_bounds();
+    record.decrement_arrow = PartGeometry::from_bounds(decrement_button);
+    record.increment_arrow = PartGeometry::from_bounds(increment_button);
+    record.decrement_glyph = PartGeometry::from_bounds(scroll_bar_detail::arrow_mark_bounds(decrement_button));
+    record.increment_glyph = PartGeometry::from_bounds(scroll_bar_detail::arrow_mark_bounds(increment_button));
     record.track = PartGeometry::from_bounds(track_bounds());
     record.thumb = PartGeometry::from_bounds(thumb);
     // The scroll bar shows focus on its thumb.
@@ -169,6 +173,9 @@ void ScrollBar::publish_part_geometry(std::span<PartGeometry> geometry) const {
     } else if (hot_part_ == ScrollBarPart::thumb) {
         record.thumb.states.insert(AnatomyState::hot);
     }
+    // Each mark takes its button's states.
+    record.decrement_glyph.states = record.decrement_arrow.states;
+    record.increment_glyph.states = record.increment_arrow.states;
     write_parts(anatomy(), scroll_bar_detail::part_fields, record, geometry);
 }
 
@@ -573,9 +580,9 @@ void paint_arrow_button(Painter& painter, const Control& control, const ScrollBa
     actuator.key = PartKey{incrementing ? "increment_arrow" : "decrement_arrow", drawn.item, {}};
     actuator.control_type = drawn.control_type;
     paint_part(painter, control, actuator);
-    if (button.width < scroll_arrow_mark_extent || button.height < scroll_arrow_mark_extent) return;
+    const Rect mark = arrow_mark_bounds(button);
+    if (mark.empty()) return;
     const bool horizontal = drawn.orientation == Orientation::horizontal;
-    const double half = scroll_arrow_mark_extent * 0.5;
     PartPaint arrow;
     arrow.family = ControlVisualRole::button;
     arrow.role = PartRole::glyph;
@@ -584,15 +591,23 @@ void paint_arrow_button(Painter& painter, const Control& control, const ScrollBa
     } else {
         arrow.mark = incrementing ? PartMark::arrow_down : PartMark::arrow_up;
     }
-    arrow.bounds = {std::floor(button.x + button.width * 0.5) - half,
-                    std::floor(button.y + button.height * 0.5) - half,
-                    scroll_arrow_mark_extent, scroll_arrow_mark_extent};
+    arrow.bounds = mark;
     arrow.states = states;
+    arrow.key = PartKey{incrementing ? "increment_glyph" : "decrement_glyph", drawn.item, {}};
     arrow.control_type = drawn.control_type;
     paint_part(painter, control, arrow);
 }
 
 } // namespace
+
+Rect arrow_mark_bounds(Rect button) noexcept {
+    if (button.width < scroll_arrow_mark_extent || button.height < scroll_arrow_mark_extent) return Rect{};
+    const double half = scroll_arrow_mark_extent * 0.5;
+    const Rect mark{std::floor(button.x + button.width * 0.5) - half,
+                    std::floor(button.y + button.height * 0.5) - half,
+                    scroll_arrow_mark_extent, scroll_arrow_mark_extent};
+    return mark;
+}
 
 void paint_scroll_bar_parts(Painter& painter, const Control& control, const ScrollBarPaintParts& drawn) {
     PartPaint trough;

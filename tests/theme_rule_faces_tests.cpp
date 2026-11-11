@@ -344,12 +344,12 @@ void test_dock_site_parts() {
     require(painter.filled(caption_blue), "dock-site::part(caption) paints the tool stacks' captions");
 }
 
-constexpr Color thumb_amber = Color::rgba(0xd0, 0x90, 0x10);
+constexpr Color bar_amber = Color::rgba(0xd0, 0x90, 0x10);
 
-// Whether a scrolled panel's own vertical bar paints its thumb in amber
-// under `v-scroll-bar::part(thumb)`, with or without a back colour the
-// program set on the panel (an authored colour, as SDR#'s panels set).
-bool embedded_thumb_amber(bool authored_back) {
+// Whether a scrolled panel's own vertical bar paints `bar_amber` under
+// `sheet`, with or without a back colour the program set on the panel (an
+// authored colour, as SDR#'s panels set).
+bool embedded_bar_amber(std::string_view sheet, bool authored_back) {
     const std::shared_ptr<Panel> panel = make_control<Panel>(StableId("probe.scrolled"));
     const std::shared_ptr<Button> child = make_control<Button>(StableId("probe.scrolled.child"), "Content");
     (*child).set_requested_bounds({10.0, 10.0, 60.0, 300.0});
@@ -357,19 +357,43 @@ bool embedded_thumb_amber(bool authored_back) {
     (*panel).auto_scroll = true;
     if (authored_back) (*panel).back_color = Color::rgba(0x19, 0x19, 0x19);
     Window window(panel, Size{120.0, 100.0});
-    window.set_theme(theme_from_sheet("v-scroll-bar::part(thumb) { background: #d09010 !important; }\n"));
+    window.set_theme(theme_from_sheet(sheet));
     window.perform_layout();
     ColourPainter painter{};
     window.paint(painter);
-    const bool filled = painter.filled(thumb_amber);
+    const bool filled = painter.filled(bar_amber);
+    return filled;
+}
+
+// Whether a stand-alone vertical scroll bar paints `bar_amber` under `sheet`.
+bool standalone_bar_amber(std::string_view sheet) {
+    const std::shared_ptr<VScrollBar> bar = make_control<VScrollBar>(StableId("probe.bar"));
+    Window window(bar, Size{17.0, 120.0});
+    window.set_theme(theme_from_sheet(sheet));
+    window.perform_layout();
+    ColourPainter painter{};
+    window.paint(painter);
+    const bool filled = painter.filled(bar_amber);
     return filled;
 }
 
 // A scrollable control's built-in bars are styled as the stock bars
-// (PartPaint::control_type), so a sheet's v-scroll-bar rule reaches them.
+// (PartPaint::control_type), so a sheet's v-scroll-bar rule reaches them;
+// the arrow marks are the bars' increment-glyph and decrement-glyph parts.
 void test_embedded_scroll_bar_rules() {
-    require(embedded_thumb_amber(false), "v-scroll-bar::part(thumb) paints a panel's own thumb");
-    require(embedded_thumb_amber(true), "an important thumb rule stands over the panel's own back colour");
+    constexpr std::string_view thumb_rule = "v-scroll-bar::part(thumb) { background: #d09010 !important; }\n";
+    require(embedded_bar_amber(thumb_rule, false), "v-scroll-bar::part(thumb) paints a panel's own thumb");
+    require(embedded_bar_amber(thumb_rule, true), "an important thumb rule stands over the panel's own back colour");
+    constexpr std::string_view glyph_rule =
+        ":root { chrome-highlight: #d09010; }\n"
+        "v-scroll-bar::part(increment-glyph), v-scroll-bar::part(decrement-glyph) { glyph-color: role(chrome-highlight); }\n";
+    require(!embedded_bar_amber("", false), "no amber without the rule");
+    require(embedded_bar_amber(glyph_rule, false), "the glyph parts colour a panel's own arrow marks");
+    require(standalone_bar_amber(glyph_rule), "the glyph parts colour a stand-alone bar's arrow marks");
+    constexpr std::string_view actuator_rule =
+        ":root { chrome-highlight: #d09010; }\n"
+        "v-scroll-bar::part(increment-arrow) { glyph-color: role(chrome-highlight); }\n";
+    require(!standalone_bar_amber(actuator_rule), "an arrow button's rule leaves its mark to the glyph part");
 }
 
 } // namespace
