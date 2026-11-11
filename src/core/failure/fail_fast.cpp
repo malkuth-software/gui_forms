@@ -1,4 +1,5 @@
 #include "fail_fast.hpp"
+#include "failure_snapshot.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -76,15 +77,41 @@ void write_stack() noexcept {
 #endif
 }
 
+// The snapshot's shadow frames, outermost first, one line each: the kind's
+// number, the C ABI function for a library call, the subject, the name and
+// the sequence. Frame texts are at most 48 and 32 bytes, so they fit an int
+// precision.
+void write_shadow_frames(const FailureSnapshot& snapshot) noexcept {
+    std::fprintf(stderr, "GUI.Forms: shadow frames (%u open, %u recorded):\n", static_cast<unsigned>(snapshot.depth),
+                 static_cast<unsigned>(snapshot.frame_count));
+    for (std::uint32_t index = 0U; index < snapshot.frame_count; ++index) {
+        const ShadowFrame& frame = snapshot.frames[index];
+        std::fprintf(stderr, "  #%u kind %u", static_cast<unsigned>(index), static_cast<unsigned>(frame.kind));
+        if (frame.kind == ShadowFrameKind::library_call) {
+            std::fprintf(stderr, " table %u slot %u", static_cast<unsigned>(frame.interface_id),
+                         static_cast<unsigned>(frame.function_index));
+        }
+        std::fprintf(stderr, " %.*s %.*s %llu\n", static_cast<int>(frame.subject_size), frame.subject.data(),
+                     static_cast<int>(frame.name_size), frame.name.data(),
+                     static_cast<unsigned long long>(frame.sequence));
+    }
+}
+
 } // namespace
 
 void fail_fast(std::string_view site, std::exception_ptr failure) noexcept {
+    // The snapshot first, while the unwind mark is as the boundary's catch
+    // left it; a debugger or a dump finds it in the thread's storage too.
+    const FailureBoundary boundary{site, failure_native_exception_status, 0U, 0U};
+    record_failure_snapshot(boundary, failure);
     // %.*s takes an int precision; a site is a short literal, and a longer
     // one is cut at maximum_site_characters.
     const std::size_t shown = std::min(site.size(), maximum_site_characters);
     std::fprintf(stderr, "GUI.Forms: fatal exception at %.*s: ", static_cast<int>(shown), site.data());
     write_exception_text(failure);
-    std::fputs("\nGUI.Forms: stack:\n", stderr);
+    std::fputs("\n", stderr);
+    write_shadow_frames(thread_failure_snapshot());
+    std::fputs("GUI.Forms: stack:\n", stderr);
     write_stack();
     std::fflush(stderr);
     std::abort();

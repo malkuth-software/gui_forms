@@ -600,14 +600,34 @@ public static unsafe class Layout
             failures += expect(output, "gf_shadow_stack_info.dropped offset", (long)((byte*)&value.dropped - start), 16);
         }
         {
+            gf_failure_snapshot value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_failure_snapshot size", sizeof(gf_failure_snapshot), 104);
+            failures += expect(output, "gf_failure_snapshot.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_failure_snapshot.status offset", (long)((byte*)&value.status - start), 4);
+            failures += expect(output, "gf_failure_snapshot.table_id offset", (long)((byte*)&value.table_id - start), 8);
+            failures += expect(output, "gf_failure_snapshot.slot_index offset", (long)((byte*)&value.slot_index - start), 12);
+            failures += expect(output, "gf_failure_snapshot.sequence offset", (long)((byte*)&value.sequence - start), 16);
+            failures += expect(output, "gf_failure_snapshot.frame_count offset", (long)((byte*)&value.frame_count - start), 24);
+            failures += expect(output, "gf_failure_snapshot.depth offset", (long)((byte*)&value.depth - start), 28);
+            failures += expect(output, "gf_failure_snapshot.site_size offset", (long)((byte*)&value.site_size - start), 32);
+            failures += expect(output, "gf_failure_snapshot.message_size offset", (long)((byte*)&value.message_size - start), 36);
+            failures += expect(output, "gf_failure_snapshot.site offset", (long)((byte*)value.site - start), 40);
+        }
+        {
             gf_diagnostics_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_diagnostics_table size", sizeof(gf_diagnostics_table), 32);
+            failures += expect(output, "gf_diagnostics_table size", sizeof(gf_diagnostics_table), 72);
             failures += expect(output, "gf_diagnostics_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_diagnostics_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_diagnostics_table.shadow_frames offset", (long)((byte*)&value.shadow_frames - start), 8);
             failures += expect(output, "gf_diagnostics_table.set_invalidation_overlay offset", (long)((byte*)&value.set_invalidation_overlay - start), 16);
             failures += expect(output, "gf_diagnostics_table.invalidation_overlay offset", (long)((byte*)&value.invalidation_overlay - start), 24);
+            failures += expect(output, "gf_diagnostics_table.failure_snapshot offset", (long)((byte*)&value.failure_snapshot - start), 32);
+            failures += expect(output, "gf_diagnostics_table.clear_failure_snapshot offset", (long)((byte*)&value.clear_failure_snapshot - start), 40);
+            failures += expect(output, "gf_diagnostics_table.set_exception_reflection offset", (long)((byte*)&value.set_exception_reflection - start), 48);
+            failures += expect(output, "gf_diagnostics_table.exception_reflection offset", (long)((byte*)&value.exception_reflection - start), 56);
+            failures += expect(output, "gf_diagnostics_table.raise_native_exception offset", (long)((byte*)&value.raise_native_exception - start), 64);
         }
         {
             gf_layout_transaction value = default;

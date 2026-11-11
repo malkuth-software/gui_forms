@@ -639,7 +639,23 @@ public unsafe struct gf_shadow_stack_info
     public ulong dropped;
 }
 
-/// <summary>gf_diagnostics_table (table, 32 bytes).</summary>
+/// <summary>gf_failure_snapshot (extensible, 104 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_failure_snapshot
+{
+    public uint struct_size;
+    public gf_status status;
+    public gf_table_id table_id;
+    public uint slot_index;
+    public ulong sequence;
+    public uint frame_count;
+    public uint depth;
+    public uint site_size;
+    public uint message_size;
+    public fixed byte site[64];
+}
+
+/// <summary>gf_diagnostics_table (table, 72 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_diagnostics_table
 {
@@ -648,6 +664,11 @@ public unsafe struct gf_diagnostics_table
     public delegate* unmanaged[Cdecl]<gf_shadow_frame*, ulong, ulong*, gf_shadow_stack_info*, gf_status> shadow_frames;
     public delegate* unmanaged[Cdecl]<uint, gf_status> set_invalidation_overlay;
     public delegate* unmanaged[Cdecl]<uint*, gf_status> invalidation_overlay;
+    public delegate* unmanaged[Cdecl]<gf_failure_snapshot*, gf_shadow_frame*, ulong, ulong*, byte*, ulong, ulong*, gf_status> failure_snapshot;
+    public delegate* unmanaged[Cdecl]<gf_status> clear_failure_snapshot;
+    public delegate* unmanaged[Cdecl]<uint, gf_status> set_exception_reflection;
+    public delegate* unmanaged[Cdecl]<uint*, gf_status> exception_reflection;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> raise_native_exception;
 }
 
 /// <summary>gf_layout_transaction (extensible, 32 bytes).</summary>

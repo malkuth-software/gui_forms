@@ -104,6 +104,11 @@
       "type": "int32"
     },
     {
+      "name": "GF_STATUS_NATIVE_EXCEPTION",
+      "value": 16,
+      "type": "int32"
+    },
+    {
       "name": "GF_TABLE_RUNTIME",
       "value": 1,
       "type": "uint32"
@@ -1291,6 +1296,16 @@
     {
       "name": "GF_SHADOW_STACK_CAPACITY",
       "value": 64,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_FAILURE_SITE_CAPACITY",
+      "value": 64,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_FAILURE_MESSAGE_CAPACITY",
+      "value": 512,
       "type": "uint32"
     },
     {
@@ -6634,9 +6649,77 @@
       ]
     },
     {
+      "name": "gf_failure_snapshot",
+      "kind": "extensible",
+      "size": 104,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "status",
+          "type": "gf_status",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "table_id",
+          "type": "gf_table_id",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "slot_index",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "sequence",
+          "type": "uint64_t",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "frame_count",
+          "type": "uint32_t",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "depth",
+          "type": "uint32_t",
+          "offset": 28,
+          "size": 4
+        },
+        {
+          "name": "site_size",
+          "type": "uint32_t",
+          "offset": 32,
+          "size": 4
+        },
+        {
+          "name": "message_size",
+          "type": "uint32_t",
+          "offset": 36,
+          "size": 4
+        },
+        {
+          "name": "site",
+          "type": "uint8_t[64]",
+          "offset": 40,
+          "size": 64
+        }
+      ]
+    },
+    {
       "name": "gf_diagnostics_table",
       "kind": "table",
-      "size": 32,
+      "size": 72,
       "align": 8,
       "fields": [
         {
@@ -6706,6 +6789,105 @@
               {
                 "name": "enabled",
                 "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "failure_snapshot",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "snapshot",
+                "type": "gf_failure_snapshot*"
+              },
+              {
+                "name": "frames",
+                "type": "gf_shadow_frame*"
+              },
+              {
+                "name": "frame_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "frames_required",
+                "type": "uint64_t*"
+              },
+              {
+                "name": "message_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "message_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "message_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "clear_failure_snapshot",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": []
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "set_exception_reflection",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "enabled",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "exception_reflection",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "enabled",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "raise_native_exception",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "message",
+                "type": "gf_utf8_view"
               }
             ]
           },

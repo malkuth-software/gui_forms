@@ -4,6 +4,7 @@
 // if the process was not ended; CTest passes a mode when its report line
 // appears and "survived" does not.
 
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/gui_forms.hpp"
 #include "headless_host.hpp"
 #include "../src/core/failure/fail_fast.hpp"
@@ -48,6 +49,14 @@ int throw_injected(int value) {
     return value;
 }
 
+// Throws under one shadow frame, which unwinding closes before the boundary
+// catches; the report must still print it (the failure snapshot).
+int throw_in_frame(int value) {
+    const ShadowFrameScope frame(ShadowFrameKind::event_callback, "fail-fast.frame", "click", 0U);
+    if (value != 0) throw std::runtime_error("injected framed failure");
+    return value;
+}
+
 class ThrowingTick final {
 public:
     void operator()(FrameTime) const { throw std::runtime_error("injected timer failure"); }
@@ -73,6 +82,11 @@ protected:
 
 void direct_mode() {
     const int result = gui_forms::detail::call_failing_fast("test.direct", &throw_injected, 1);
+    std::printf("returned %d\n", result);
+}
+
+void shadow_frames_mode() {
+    const int result = gui_forms::detail::call_failing_fast("test.frames", &throw_in_frame, 1);
     std::printf("returned %d\n", result);
 }
 
@@ -112,7 +126,7 @@ void host_dispatch_mode() {
 
 int main(int argc, char** argv) {
     if (argc != 2) {
-        std::fprintf(stderr, "usage: gui_forms_fail_fast_tests direct|ui_timer|motion_listener|host_dispatch\n");
+        std::fprintf(stderr, "usage: gui_forms_fail_fast_tests direct|ui_timer|motion_listener|host_dispatch|shadow_frames\n");
         return EXIT_FAILURE;
     }
     quiet_crash_reporting();
@@ -121,6 +135,7 @@ int main(int argc, char** argv) {
     else if (mode == "ui_timer") ui_timer_mode();
     else if (mode == "motion_listener") motion_listener_mode();
     else if (mode == "host_dispatch") host_dispatch_mode();
+    else if (mode == "shadow_frames") shadow_frames_mode();
     else {
         std::fprintf(stderr, "unknown mode\n");
         return EXIT_FAILURE;

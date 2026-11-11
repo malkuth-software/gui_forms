@@ -103,7 +103,9 @@ public static unsafe class Abi
 
     /// <summary>
     /// Throws when status is not OK, with the failing thread's error detail
-    /// and, in its Data["callback_failures"], any managed callback failures
+    /// (for GF_STATUS_NATIVE_EXCEPTION, a NativeException carrying the
+    /// thread's failure snapshot) and, in its Data["callback_failures"], any
+    /// managed callback failures
     /// the call carried through, so they do not attach to a later, unrelated
     /// call; otherwise rethrows a managed callback's exception that the
     /// library's call carried through (CallbackFailure), so it surfaces at
@@ -111,6 +113,20 @@ public static unsafe class Abi
     /// </summary>
     public static void check(gf_status status)
     {
+        if (status == Constants.GF_STATUS_NATIVE_EXCEPTION)
+        {
+            // Reflection is on (the library gives this status only then):
+            // the thread's failure snapshot becomes the managed exception,
+            // thrown through the named frames.
+            NativeException native = NativeException.read(status);
+            CallbackFailure[] carried_under = CallbackFailure.take_pending();
+            if (carried_under.Length != 0)
+            {
+                native.Data["callback_failures"] = carried_under;
+            }
+            NativeFrames.raise(native);
+            return;
+        }
         if (status != Constants.GF_STATUS_OK)
         {
             GuiFormsException refused = new GuiFormsException(status, error_message());
@@ -130,6 +146,11 @@ public static unsafe class Abi
     /// </summary>
     public static void check_status(gf_status status)
     {
+        if (status == Constants.GF_STATUS_NATIVE_EXCEPTION)
+        {
+            NativeFrames.raise(NativeException.read(status));
+            return;
+        }
         if (status != Constants.GF_STATUS_OK)
         {
             throw new GuiFormsException(status, error_message());
@@ -170,8 +191,11 @@ public static unsafe class Abi
     }
 }
 
-/// <summary>A call the library refused: its status and the thread's error detail.</summary>
-public sealed class GuiFormsException : Exception
+/// <summary>
+/// A call the library refused: its status and the thread's error detail. A
+/// native exception under reflection is the derived NativeException.
+/// </summary>
+public class GuiFormsException : Exception
 {
     public gf_status status { get; }
 

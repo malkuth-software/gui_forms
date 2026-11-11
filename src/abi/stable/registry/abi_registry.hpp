@@ -332,7 +332,10 @@ private:
 [[nodiscard]] HandleRegistry& registry() noexcept;
 
 // The status and message for the exception being handled; for use inside a
-// catch block of a slot, which is the subsystem boundary.
+// catch block of a slot, which is the subsystem boundary, before anything
+// opens a shadow frame. Takes the thread's failure snapshot (C ABI 1.2), and
+// gives an exception with no status of its own GF_STATUS_NATIVE_EXCEPTION
+// when exception reflection is on, GF_STATUS_INTERNAL when it is off.
 gf_status fail_with_current_exception(SlotIdentity slot) noexcept;
 
 // The failure message for a stable id that breaks the rule

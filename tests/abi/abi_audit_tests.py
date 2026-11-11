@@ -48,6 +48,15 @@ MINOR_BUMPED: str = "#define GF_ABI_MINOR 2u"
 EXPORT: str = "GF_ABI_EXPORT gf_status GF_CALL gf_abi_get_table("
 TABLE: str = "typedef struct gf_sample_table {"
 WIDE_RECORD: str = "typedef struct gf_wide {\n    double a;\n    double b;\n    double c;\n} gf_wide;\n\n"
+# The shape of a failure snapshot (C ABI 1.2, gf_failure_snapshot): a new
+# status, a new extensible record holding a fixed text field, and a slot
+# that copies it out, appended to an existing table.
+STATUS: str = "#define GF_ERROR_INVALID_ARGUMENT 1\n"
+STATUS_ADDED: str = STATUS + "#define GF_ERROR_NATIVE_EXCEPTION 2\n"
+SNAPSHOT_RECORD: str = ("typedef struct gf_sample_snapshot {\n    uint32_t struct_size;\n    gf_status status;\n"
+                        "    uint64_t sequence;\n    uint8_t site[16];\n} gf_sample_snapshot;\n\n")
+SLOT_SNAPSHOT: str = ("    gf_status (GF_CALL* snapshot)(gf_sample_snapshot* snapshot, uint64_t capacity, "
+                      "uint64_t* required);\n")
 
 CASES: tuple[Case, ...] = (
     Case("unchanged", (), ""),
@@ -62,6 +71,15 @@ CASES: tuple[Case, ...] = (
          (("(void* context, uint32_t value)", "(void* context, uint64_t value)"),), "break"),
     Case("field type changed", ((FLAGS_FIELD, "    int32_t flags;\n"),), "break"),
     Case("field inserted in the middle", ((FLAGS_FIELD, FLAGS_FIELD + "    uint64_t inserted;\n"),), "break"),
+    Case("failure snapshot shape added with a minor bump",
+         ((STATUS, STATUS_ADDED), (TABLE, SNAPSHOT_RECORD + TABLE), (SLOT_SECOND, SLOT_SECOND + SLOT_SNAPSHOT),
+          (MINOR, MINOR_BUMPED)), ""),
+    Case("failure snapshot shape added without a minor bump",
+         ((STATUS, STATUS_ADDED), (TABLE, SNAPSHOT_RECORD + TABLE), (SLOT_SECOND, SLOT_SECOND + SLOT_SNAPSHOT)),
+         "version"),
+    Case("failure snapshot slot inserted before an existing slot",
+         ((TABLE, SNAPSHOT_RECORD + TABLE), (SLOT_SECOND, SLOT_SNAPSHOT + SLOT_SECOND), (MINOR, MINOR_BUMPED)),
+         "break"),
     Case("fixed record grown", (("    double y;\n", "    double y;\n    double z;\n"), (MINOR, MINOR_BUMPED)), "break"),
     Case("constant value changed",
          (("#define GF_ERROR_INVALID_ARGUMENT 1", "#define GF_ERROR_INVALID_ARGUMENT 2"),), "break"),

@@ -2626,6 +2626,10 @@ Functions, constants and aliases
 
    Copies the calling thread's recorded frames, outermost first, into the leading elements of frames (at most frames.size()), and its state into state. Returns the number of recorded frames, which may exceed the number copied. Never throws or allocates.
 
+.. cpp:function:: std::size_t copy_failure_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept
+
+   As copy_shadow_frames, but for a boundary that has just caught an exception: the frames open where the exception was thrown, the frames it unwound included, when no frame has been opened or closed by a return since its last unwinding pop; otherwise (no exception unwound a frame, or the thread has moved on) the frames open now. state.depth is the depth copied from; pushed and dropped are the thread's. Never throws or allocates. The mark cannot tell two unwindings apart when nothing opens or closes a frame between them: an exception caught and handled inside a frame, then another thrown from that frame or an outer one, shows the first's deeper frames above the second's. The outer frames are the second's either way.
+
 .. cpp:var:: constexpr std::size_t shadow_frame_subject_capacity
 
    The bytes a frame keeps of its subject and of its name. Value: ``48U``.
