@@ -1,6 +1,7 @@
 #import <AppKit/AppKit.h>
 
 #include "prepared_text_test_support.hpp"
+#include "../src/core/text/prepared/prepared_storage.hpp"
 #include "gui_forms/platform/macos_host.hpp"
 #include "gui_forms/gui_forms.hpp"
 
@@ -32,7 +33,12 @@ protected:
         painter.fill_rect(bounds, background);
         if (!layout.empty()) {
             const PreparedTextPaintResult result = painter.draw_prepared_text(layout, layout.authority(), {12, 40}, {0, 0, 0, 255});
-            require(result.status == PreparedTextStatus::success, "prepared command recording failed");
+            // A stale layout (a replacement submitted, a resize) is refused with
+            // core's typed refusal, which the host contains, as the Linux and
+            // Windows fixtures do.
+            if (result.status != PreparedTextStatus::success) {
+                throw gui_forms::detail::PreparedTextPaintFailure(result.status);
+            }
             ++prepared_paints;
         }
     }
