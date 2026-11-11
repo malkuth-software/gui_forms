@@ -43,6 +43,7 @@ constexpr SlotIdentity published_value_slot{GF_TABLE_THEMES, 9U};
 constexpr SlotIdentity load_image_slot{GF_TABLE_THEMES, 10U};
 constexpr SlotIdentity remove_image_slot{GF_TABLE_THEMES, 11U};
 constexpr SlotIdentity load_pixels_slot{GF_TABLE_THEMES, 12U};
+constexpr SlotIdentity load_sheet_slot{GF_TABLE_THEMES, 13U};
 
 // The 1.0 size of gf_theme_package: a caller passes at least this much.
 static_assert(sizeof(gf_theme_package) == theme_package_size_1_0);
@@ -154,6 +155,33 @@ gf_status read_published_name(gf_utf8_view view, SlotIdentity slot, std::string_
     return GF_STATUS_OK;
 }
 
+// Compiles `made` and, when it compiles, makes it the theme: load's and
+// load_sheet's common path, entered on the UI thread by the caller's slot.
+gf_status load_made_package(const ThemePackage& made, SlotIdentity slot, gf_theme_report* report) {
+    const gf_status entered = registry().enter_ui(slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    EngineState& state = engine();
+    ApplicationResources& resources = state.resources();
+    ThemeCompileOptions options;
+    options.controls = state.controls();
+    options.published_values = state.published_names();
+    options.icons = resources.icon_declarations();
+    const ThemeCompileResult result = resources.compile_theme_package(made, state.library(), options);
+    if (result.succeeded()) {
+        try {
+            resources.set_theme(result.theme());
+        } catch (const std::invalid_argument& refusal) {
+            return fail(GF_STATUS_INVALID_STATE, slot, refusal.what());
+        }
+    }
+    state.replace_diagnostics(result.diagnostics());
+    const gf_theme_outcome outcome = result.succeeded() ? GF_THEME_OUTCOME_APPLIED : GF_THEME_OUTCOME_REFUSED;
+    write_theme_report(outcome, state.diagnostics().size(), report);
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL themes_load(const gf_theme_package* package, gf_theme_report* report) noexcept {
     try {
         const ShadowFrameScope shadow_frame(load_slot.table_id, load_slot.slot_index);
@@ -166,30 +194,38 @@ gf_status GF_CALL themes_load(const gf_theme_package* package, gf_theme_report* 
         if (read != GF_STATUS_OK) {
             return read;
         }
-        const gf_status entered = registry().enter_ui(load_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EngineState& state = engine();
-        ApplicationResources& resources = state.resources();
-        ThemeCompileOptions options;
-        options.controls = state.controls();
-        options.published_values = state.published_names();
-        options.icons = resources.icon_declarations();
-        const ThemeCompileResult result = resources.compile_theme_package(made, state.library(), options);
-        if (result.succeeded()) {
-            try {
-                resources.set_theme(result.theme());
-            } catch (const std::invalid_argument& refusal) {
-                return fail(GF_STATUS_INVALID_STATE, load_slot, refusal.what());
-            }
-        }
-        state.replace_diagnostics(result.diagnostics());
-        const gf_theme_outcome outcome = result.succeeded() ? GF_THEME_OUTCOME_APPLIED : GF_THEME_OUTCOME_REFUSED;
-        write_theme_report(outcome, state.diagnostics().size(), report);
-        return GF_STATUS_OK;
+        const gf_status loaded = load_made_package(made, load_slot, report);
+        return loaded;
     } catch (...) {
         return fail_with_current_exception(load_slot);
+    }
+}
+
+gf_status GF_CALL themes_load_sheet(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(load_sheet_slot.table_id, load_sheet_slot.slot_index);
+        const gf_status checked = check_record(report, load_sheet_slot);
+        if (checked != GF_STATUS_OK) {
+            return checked;
+        }
+        std::string_view sheet_text;
+        const gf_status sheet_read = read_text(sheet, load_sheet_slot, sheet_text);
+        if (sheet_read != GF_STATUS_OK) {
+            return sheet_read;
+        }
+        if (sheet_text.size() > maximum_package_bytes) {
+            return fail(GF_STATUS_LIMIT_EXCEEDED, load_sheet_slot, "a theme sheet holds at most 16 MiB");
+        }
+        std::string_view name_text;
+        const gf_status name_read = read_text(name, load_sheet_slot, name_text);
+        if (name_read != GF_STATUS_OK) {
+            return name_read;
+        }
+        const ThemePackage made = theme_sheet_package(sheet_text, name_text);
+        const gf_status loaded = load_made_package(made, load_sheet_slot, report);
+        return loaded;
+    } catch (...) {
+        return fail_with_current_exception(load_sheet_slot);
     }
 }
 
@@ -598,6 +634,7 @@ constexpr gf_themes_table table{
     .load_image = &themes_load_image,
     .remove_image = &themes_remove_image,
     .load_pixels = &themes_load_pixels,
+    .load_sheet = &themes_load_sheet,
 };
 
 } // namespace

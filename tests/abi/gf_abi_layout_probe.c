@@ -329,7 +329,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_theme_diagnostic, struct_size) == 0, "gf_theme_diag
 GF_LAYOUT_ASSERT(offsetof(gf_theme_diagnostic, severity) == 4, "gf_theme_diagnostic.severity offset");
 GF_LAYOUT_ASSERT(offsetof(gf_theme_diagnostic, line) == 8, "gf_theme_diagnostic.line offset");
 GF_LAYOUT_ASSERT(offsetof(gf_theme_diagnostic, column) == 12, "gf_theme_diagnostic.column offset");
-GF_LAYOUT_ASSERT(sizeof(gf_themes_table) == 112, "gf_themes_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_themes_table) == 120, "gf_themes_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_themes_table, struct_size) == 0, "gf_themes_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_themes_table, abi_minor) == 4, "gf_themes_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_themes_table, load) == 8, "gf_themes_table.load offset");
@@ -345,6 +345,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_themes_table, published_value) == 80, "gf_themes_ta
 GF_LAYOUT_ASSERT(offsetof(gf_themes_table, load_image) == 88, "gf_themes_table.load_image offset");
 GF_LAYOUT_ASSERT(offsetof(gf_themes_table, remove_image) == 96, "gf_themes_table.remove_image offset");
 GF_LAYOUT_ASSERT(offsetof(gf_themes_table, load_pixels) == 104, "gf_themes_table.load_pixels offset");
+GF_LAYOUT_ASSERT(offsetof(gf_themes_table, load_sheet) == 112, "gf_themes_table.load_sheet offset");
 GF_LAYOUT_ASSERT(sizeof(gf_host_capabilities) == 32, "gf_host_capabilities size");
 GF_LAYOUT_ASSERT(offsetof(gf_host_capabilities, struct_size) == 0, "gf_host_capabilities.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_host_capabilities, protocol_version) == 4, "gf_host_capabilities.protocol_version offset");

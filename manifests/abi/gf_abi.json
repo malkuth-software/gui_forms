@@ -5594,7 +5594,7 @@
     {
       "name": "gf_themes_table",
       "kind": "table",
-      "size": 112,
+      "size": 120,
       "align": 8,
       "fields": [
         {
@@ -5887,6 +5887,30 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "load_sheet",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "sheet",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "report",
+                "type": "gf_theme_report*"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },
