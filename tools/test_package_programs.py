@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import dataclasses
 import io
 import json
 import contextlib
@@ -46,8 +47,42 @@ class ManifestTests(unittest.TestCase):
     def test_font_lists_match_the_asset_directory(self) -> None:
         manifest = pp.load_manifest()
         source = pp.ROOT / manifest.fonts["source"][0]
-        for name in manifest.fonts["files"] + manifest.fonts["notices"]:
+        for name in manifest.fonts["files"] + manifest.fonts["notices"] + manifest.fallback_font_names():
             self.assertTrue((source / name).is_file(), name)
+
+    def test_fallback_fonts_are_the_seven_noto_faces_and_a_per_program_choice(self) -> None:
+        manifest = pp.load_manifest()
+        self.assertEqual(len(manifest.fonts["fallback_files"]), 7)
+        self.assertTrue(all(name.startswith("Noto") for name in manifest.fonts["fallback_files"]))
+        self.assertTrue(all(name.startswith("OFL-Noto") for name in manifest.fonts["fallback_notices"]))
+        self.assertFalse(any("Noto" in name for name in manifest.fonts["files"] + manifest.fonts["notices"]))
+        gallery = manifest.program("gallery")
+        self.assertTrue(gallery.fallback_fonts)
+        self.assertIn("NotoEmoji-Regular.ttf", manifest.font_files(gallery))
+        self.assertIn("OFL-NotoEmoji.txt", manifest.font_notices(gallery))
+        without = dataclasses.replace(gallery, fallback_fonts=False)
+        self.assertNotIn("NotoEmoji-Regular.ttf", manifest.font_files(without))
+        self.assertEqual(manifest.font_notices(without), manifest.fonts["notices"])
+
+    def test_a_package_without_fallback_fonts_drops_the_builds_copies(self) -> None:
+        manifest = pp.load_manifest()
+        without = dataclasses.replace(manifest.program("gallery"), fallback_fonts=False)
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            fonts = root / "fonts"
+            fonts.mkdir()
+            # What a build's post-build copy or a macOS bundle already holds.
+            (fonts / "NotoEmoji-Regular.ttf").write_bytes(b"face")
+            (fonts / "OFL-Noto.txt").write_text("licence", encoding="utf-8")
+            packager = pp.Packager(manifest, "windows-x64", root, "0.1.7", root, "abc", False, None, None, True,
+                                   log=lambda *_: None)
+            packager.copy_fonts(fonts, without)
+            names = {path.name for path in fonts.iterdir()}
+            self.assertFalse(names & set(manifest.fallback_font_names()))
+            self.assertTrue(set(manifest.font_files(without)) <= names)
+            packager.copy_fonts(fonts, manifest.program("gallery"))
+            names = {path.name for path in fonts.iterdir()}
+            self.assertTrue(set(manifest.fallback_font_names()) <= names)
 
     def test_notice_list_is_well_formed(self) -> None:
         data = json.loads(pp.LICENSES_PATH.read_text(encoding="utf-8"))
@@ -127,6 +162,9 @@ class ManifestTests(unittest.TestCase):
         self.assert_rejected(lambda d: d["programs"][0].pop("automation_flag"), "automation_flag")
         self.assert_rejected(lambda d: d["programs"][0]["smoke"].__setitem__("mode", "pray"), "extra_arguments")
         self.assert_rejected(lambda d: d["programs"][0].__setitem__("enabled", "yes"), "enabled")
+        self.assert_rejected(lambda d: d["programs"][0].pop("fallback_fonts"), "fallback_fonts")
+        self.assert_rejected(lambda d: d["fonts"].pop("fallback_files"), "fallback_files")
+        self.assert_rejected(lambda d: d["fonts"]["files"].append("NotoEmoji-Regular.ttf"), "also listed")
 
 
 class ArtifactNameTests(unittest.TestCase):

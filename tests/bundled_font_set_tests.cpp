@@ -406,6 +406,21 @@ bool font_directory_lookup() {
                                    after_found.last_source == BundledFontSource::library_module,
                                "a successful lookup was not counted as found");
     passed = passed && require(gui_forms::bundled_font_refusal().empty(), "a successful lookup left a refusal");
+    // The fallback faces are an optional install component: a directory without them is
+    // accepted, counted and noted, never refused.
+    std::uint32_t fallback_total{};
+    for (const gui_forms::detail::BundledFaceUse& use : gui_forms::detail::bundled_face_uses()) {
+        if (!use.role && !use.required) ++fallback_total;
+    }
+    passed = passed && require(fallback_total == 7U, "the library does not know the seven fallback faces");
+    passed = passed && require(after_found.fallback_faces_expected == fallback_total &&
+                                   after_found.fallback_faces_found == 0U,
+                               "a directory without the fallback faces was not counted as lacking them");
+    const std::string notice = gui_forms::bundled_font_notice();
+    passed = passed && require(notice.find("0 of 7") != std::string::npos &&
+                                   notice.find("NotoEmoji-Regular.ttf") != std::string::npos &&
+                                   notice.find("fallback_fonts") != std::string::npos,
+                               "the notice does not name the absent fallback faces and the component");
 
     candidates[2].directory = root / "nowhere";
     const BundledFontLocation missing = gui_forms::detail::locate_bundled_fonts(candidates);
@@ -430,11 +445,24 @@ bool font_directory_lookup() {
                                    std::string::npos,
                                "the metrics JSON leaves out the lookups without a source");
 
+    passed = passed && require(gui_forms::bundled_font_diagnostics().fallback_faces_found == 0U &&
+                                   gui_forms::bundled_font_notice().empty(),
+                               "a lookup without a directory reported fallback faces or kept the notice");
+
+    // With the fallback component installed, every face is counted and nothing is noted.
+    for (const gui_forms::detail::BundledFaceUse& use : gui_forms::detail::bundled_face_uses()) {
+        if (!use.role && !use.required) write_file(complete / use.file_name, "face");
+    }
     candidates[2].directory = complete;
     const BundledFontLocation again = gui_forms::detail::locate_bundled_fonts(candidates);
     passed = passed && require(again.source == BundledFontSource::library_module &&
                                    gui_forms::bundled_font_refusal().empty(),
                                "a later successful lookup kept the old refusal");
+    const BundledFontDiagnostics after_again = gui_forms::bundled_font_diagnostics();
+    passed = passed && require(after_again.fallback_faces_found == fallback_total &&
+                                   after_again.fallback_faces_expected == fallback_total &&
+                                   gui_forms::bundled_font_notice().empty(),
+                               "a directory with every fallback face was not counted as complete");
     passed = passed && require(gui_forms::bundled_font_source_name(BundledFontSource::library_module) ==
                                    "library_module",
                                "the library module source is misnamed");

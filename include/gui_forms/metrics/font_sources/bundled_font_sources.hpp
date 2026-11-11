@@ -38,6 +38,14 @@ struct BundledFontDiagnostics final {
     std::uint64_t lookups_without_source{};
     // The most recent lookup's answer; none before the first lookup.
     BundledFontSource last_source{BundledFontSource::none};
+    // The bundled fallback faces (the Noto faces for CJK, emoji, Arabic, Hebrew, Devanagari,
+    // Bengali and Gurmukhi) that the most recent lookup's directory holds, of how many the
+    // library knows. They are optional: an install or app package may leave out their
+    // component (fallback_fonts, GUI_FORMS_INSTALL_FALLBACK_FONTS), and text only they cover
+    // then falls back as for any missing face (missing-glyph boxes). Found is 0 when the
+    // lookup found no directory; bundled_font_notice names the absent faces.
+    std::uint32_t fallback_faces_found{};
+    std::uint32_t fallback_faces_expected{};
 };
 [[nodiscard]] BundledFontDiagnostics bundled_font_diagnostics() noexcept;
 
@@ -45,5 +53,12 @@ struct BundledFontDiagnostics final {
 // line of UTF-8. Empty when that lookup found a source, or before the first lookup. A copy; any
 // thread.
 [[nodiscard]] std::string bundled_font_refusal();
+
+// The most recent lookup's note on absent fallback faces: which of them its directory lacks
+// and what that means for text, as one line of UTF-8. Empty when every fallback face is
+// present, when that lookup found no directory (bundled_font_refusal says why), or before the
+// first lookup. Only recorded, never written to stderr, since leaving the faces out is an
+// install's or a package's choice. A copy; any thread.
+[[nodiscard]] std::string bundled_font_notice();
 
 } // namespace gui_forms
