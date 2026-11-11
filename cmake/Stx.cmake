@@ -177,6 +177,30 @@ else()
     if(EXISTS "${_gui_stx_package}/${_gui_stx_stamp_name}")
         file(READ "${_gui_stx_package}/${_gui_stx_stamp_name}" _gui_stx_recorded)
     endif()
+    # A package dir another live build tree built (its GUI_FORMS_STX_PACKAGE_DIR
+    # pointed here too) is never rebuilt with this tree's choices: two trees
+    # with different options would take turns replacing each other's package
+    # (2026-11-10: a sanitized tree, Skia and audio off, rebuilt the
+    # integrator's package in place, and every tree linking it lost
+    # libstx_skia.a). Give this tree its own GUI_FORMS_STX_PACKAGE_DIR, or link
+    # the other one read-only with GUI_FORMS_STX_PREFIX.
+    set(_gui_stx_owner_name "gui-forms-stx-package.owner")
+    set(_gui_stx_owner "")
+    if(EXISTS "${_gui_stx_package}/${_gui_stx_owner_name}")
+        file(READ "${_gui_stx_package}/${_gui_stx_owner_name}" _gui_stx_owner)
+        string(STRIP "${_gui_stx_owner}" _gui_stx_owner)
+    endif()
+    if(NOT _gui_stx_recorded STREQUAL _gui_stx_stamp AND NOT _gui_stx_recorded STREQUAL "" AND
+       NOT _gui_stx_owner STREQUAL "" AND NOT _gui_stx_owner STREQUAL "${CMAKE_BINARY_DIR}" AND
+       EXISTS "${_gui_stx_owner}/CMakeCache.txt")
+        message(FATAL_ERROR "the stx package at ${_gui_stx_package} belongs to the build tree ${_gui_stx_owner}, "
+                            "which built it as
+${_gui_stx_recorded}but this configuration needs
+${_gui_stx_stamp}"
+                            "Rebuilding it here would replace that tree's package. Give this build its own "
+                            "GUI_FORMS_STX_PACKAGE_DIR, or link that package as is with GUI_FORMS_STX_PREFIX "
+                            "(only when the choices match).")
+    endif()
     if(_gui_stx_overridden OR NOT _gui_stx_recorded STREQUAL _gui_stx_stamp)
         _gui_stx_fetch_source()
         file(REMOVE "${_gui_stx_package}/${_gui_stx_stamp_name}")
@@ -210,6 +234,8 @@ else()
             endif()
         endforeach()
         file(WRITE "${_gui_stx_package}/${_gui_stx_stamp_name}" "${_gui_stx_stamp}")
+        file(WRITE "${_gui_stx_package}/${_gui_stx_owner_name}" "${CMAKE_BINARY_DIR}
+")
         # tools/ci_build.py reports whether this configure built the package.
         file(WRITE "${CMAKE_BINARY_DIR}/stx-package-built.txt" "${_gui_stx_package}\n")
     else()
