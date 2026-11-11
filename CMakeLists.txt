@@ -3771,6 +3771,10 @@ if(GUI_FORMS_BUILD_TESTS)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${GUI_FORMS_THEME_REQUEST_FIXTURES}/harbour.css"
             "$<TARGET_FILE_DIR:gui_forms_theme_request_app>/themes/harbour.css")
     gui_forms_theme_request_cases(gui_forms_theme_request_app gui_forms_theme_request_app)
+    # A user sheet naming an effect the built-in registry does not hold is
+    # refused (E417), as a program package naming one is.
+    gui_forms_theme_request_case(gui_forms_theme_request_app_misspelt_effect PROGRAM gui_forms_theme_request_app
+        EXPECT refused ARGS --theme "${GUI_FORMS_THEME_REQUEST_FIXTURES}/misspelt-effect.css")
 
     add_executable(gui_forms_dock_layout_tests tests/dock_layout_tests.cpp)
     target_link_libraries(gui_forms_dock_layout_tests PRIVATE gui_forms_core)
