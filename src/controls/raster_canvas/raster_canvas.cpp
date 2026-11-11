@@ -328,14 +328,15 @@ void RasterCanvas::paint_transparency_grid(Painter& painter, Rect bounds, Point 
         ? std::max(8.0, std::ceil(std::sqrt(area / 2048.0)))
         : transparency_cell_size.read();
     // The cells crossing `bounds`, numbered from the anchor's cell; the
-    // second colour fills those whose row and column sum to an odd number.
+    // second colour fills the anchor's own cell and those whose row and
+    // column sum to an even number with it.
     const std::int64_t first_column = static_cast<std::int64_t>(std::floor((bounds.x - anchor.x) / tile));
     const std::int64_t end_column = static_cast<std::int64_t>(std::ceil((bounds.right() - anchor.x) / tile));
     const std::int64_t first_row = static_cast<std::int64_t>(std::floor((bounds.y - anchor.y) / tile));
     const std::int64_t end_row = static_cast<std::int64_t>(std::ceil((bounds.bottom() - anchor.y) / tile));
     for (std::int64_t row = first_row; row < end_row; ++row) {
-        const std::int64_t odd_start = ((first_column + row) % 2 == 0) ? first_column + 1 : first_column;
-        for (std::int64_t column = odd_start; column < end_column; column += 2) {
+        const std::int64_t even_start = ((first_column + row) % 2 == 0) ? first_column : first_column + 1;
+        for (std::int64_t column = even_start; column < end_column; column += 2) {
             const Rect cell{anchor.x + static_cast<double>(column) * tile,
                             anchor.y + static_cast<double>(row) * tile, tile, tile};
             const Rect shown = Rect::intersection(cell, bounds);
