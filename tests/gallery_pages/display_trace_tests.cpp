@@ -589,6 +589,10 @@ struct PageDigest final {
 // Recorded again: values-and-spinners in both tables, states-and-diagnostics
 // in the first (the second leaves it out).
 //
+// cp29 (block 2): the barber-pole rework (owner rulings 2026-11-11) draws
+// the marching stripes as filled bands inside the fill's rim, anchored to
+// the track start. Recorded again: ranges-and-progress, in both tables.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -598,7 +602,7 @@ constexpr std::array<PageDigest, 39> expected_digests{{
     {"retained-rows", 0x00a62d0893b2b805ULL},
     {"instrument", 0x3a98c86700922cbeULL},
     {"control-spectrum", 0x82bf07d5cb57676fULL},
-    {"ranges-and-progress", 0x9be996aa5ebb1a51ULL},
+    {"ranges-and-progress", 0x86e18e844a8f1d68ULL},
     {"containers-and-focus", 0x8170bdd707e8acd7ULL},
     {"animation-laboratory", 0x5816f65f03dca827ULL},
     {"states-and-diagnostics", 0x1415083ea68d09e1ULL},
@@ -653,7 +657,7 @@ constexpr std::array<PageDigest, 39> professional_digests{{
     {"retained-rows", 0x2bf5b0b0ee2d29b0ULL},
     {"instrument", 0xa1e332af0bdda02eULL},
     {"control-spectrum", 0x6fe66343c5f4101bULL},
-    {"ranges-and-progress", 0xbfae41b026907c4dULL},
+    {"ranges-and-progress", 0xdb956f925c777894ULL},
     {"containers-and-focus", 0x283ce1b15dec6b72ULL},
     {"animation-laboratory", 0x0ffae5880275bbb8ULL},
     {"states-and-diagnostics", 0x0000000000000000ULL},
