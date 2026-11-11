@@ -366,6 +366,81 @@ inline constexpr std::string_view windows_professional_floor_sheet =
   muted-color: #676765;
   glyph-color: #676765;
 }
+
+/* The original accents (owner, 2026-11-10, candidate DX): blue buttons,
+   selection, links, progress fill and scroll-thumb hover. */
+:family(window):state(selected), :family(panel):state(selected), :family(card):state(selected), :family(notice):state(selected), :family(tool-tip):state(selected) {
+  background: #dbeafa;
+  border-color: #336fb3;
+}
+:family(button):hover {
+  background: linear-gradient(to bottom, #f4f9ff, #d5e6f9);
+  border-color: #3a78c2;
+  keylines: #ffffff #b3cdea #b3cdea #ffffff;
+  box-shadow: 0 1px 3px #2a5fa040;
+}
+:family(button):state(selected) {
+  background: linear-gradient(to bottom, #d3e4f7, #c2d8f2);
+  border-color: #2f6db6;
+  keylines: #9fb9d9 #ffffff80 #ffffff80 #9fb9d9;
+  box-shadow: none;
+}
+:family(accent-button) {
+  background: linear-gradient(to bottom, #3773c0, #2e6bb5 40%, #255fa6 41%, #2c66ad);
+  border: 1px solid #12336f;
+  border-radius: 2px;
+  keylines: #ffffff40 #0a1e4650 #0a1e4650 #ffffff40;
+  box-shadow: 0 1px 1px #1d335533;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+  outline-color: #ffffff;
+}
+:family(accent-button):hover {
+  background: linear-gradient(to bottom, #3672bf, #3270bb 40%, #2964ad 41%, #2f6ab2);
+  border-color: #0c285c;
+  box-shadow: 0 1px 3px #1d335555;
+}
+:family(accent-button):active {
+  background: linear-gradient(to bottom, #1f528f, #255fa6);
+  keylines: #0a1e4660 #ffffff30 #ffffff30 #0a1e4660;
+  box-shadow: none;
+}
+:family(accent-button):state(pending) {
+  border-color: #9a6316;
+}
+:family(accent-button):invalid {
+  border-color: #b23636;
+}
+:family(progress):state(selected) {
+  background: linear-gradient(to bottom, #3773c0, #2e6bb5 40%, #255fa6 41%, #2c66ad);
+  border-color: #12336f;
+  box-shadow: none;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+}
+:family(selection):hover {
+  background: linear-gradient(to bottom, #f0f7fe, #dfedfc);
+  border-color: #3f7fc4;
+}
+:family(selection):active, :family(selection):state(selected) {
+  background: linear-gradient(to bottom, #dbeafa, #c7def7);
+  border-color: #336fb3;
+}
+:family(link), :family(visited-link) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 0;
+}
+:family(link) {
+  color: #1f4f8f;
+  glyph-color: #1f4f8f;
+}
+:family(visited-link) {
+  color: #6a3d99;
+  glyph-color: #6a3d99;
+}
 )css";
 
 // The floor (dark): the same vocabulary on graphite. The highlight stays
@@ -421,13 +496,13 @@ inline constexpr std::string_view windows_professional_dark_floor_sheet =
   box-shadow: 0 1px 1px #00000066;
 }
 :family(button):hover {
-  background: linear-gradient(to bottom, #60605e, #585856 46%, #4e4e4c 54%, #464644);
+  background: linear-gradient(to bottom, #4a6284, #435a7a 46%, #3a506e 54%, #344863);
   border-color: #6aa5ea;
   keylines: #ffffff30 #00000050 #00000060 #ffffff30;
   box-shadow: 0 1px 3px #00000099;
 }
 :family(button):active {
-  background: linear-gradient(to bottom, #333331, #3d3d3b 50%, #444442);
+  background: linear-gradient(to bottom, #263446, #2e3e54 50%, #34465e);
   border-color: #5f9be0;
   keylines: #00000070 #ffffff18 #ffffff18 #00000070;
   box-shadow: none;
@@ -439,11 +514,11 @@ inline constexpr std::string_view windows_professional_dark_floor_sheet =
   box-shadow: none;
 }
 :family(button):state(pending) {
-  background: linear-gradient(to bottom, #444442, #383836);
+  background: linear-gradient(to bottom, #4a4330, #3d3727);
   border-color: #e0aa45;
 }
 :family(button):invalid {
-  background: linear-gradient(to bottom, #3c3c3a, #323230);
+  background: linear-gradient(to bottom, #4d3434, #3f2b2b);
   border-color: #e07070;
 }
 :family(button):disabled, :family(button):state(selected):disabled {
@@ -479,11 +554,11 @@ inline constexpr std::string_view windows_professional_dark_floor_sheet =
   box-shadow: none;
 }
 :family(command-button):state(pending) {
-  background: linear-gradient(to bottom, #444442, #383836);
+  background: linear-gradient(to bottom, #4a4330, #3d3727);
   border-color: #e0aa45;
 }
 :family(command-button):invalid {
-  background: linear-gradient(to bottom, #3c3c3a, #323230);
+  background: linear-gradient(to bottom, #4d3434, #3f2b2b);
   border-color: #e07070;
 }
 :family(command-button):disabled, :family(command-button):state(selected):disabled {
@@ -542,25 +617,25 @@ inline constexpr std::string_view windows_professional_dark_floor_sheet =
   background: #222220;
 }
 :family(choice):hover {
-  background: linear-gradient(to bottom, #292927, #2f2f2d);
+  background: linear-gradient(to bottom, #1f2a38, #262f3b);
   border-color: #5f9be0;
 }
 :family(editor):hover {
   border-color: #5f9be0;
 }
 :family(choice):active {
-  background: linear-gradient(to bottom, #233753, #3b3b39);
+  background: linear-gradient(to bottom, #233753, #2a3d55);
   border-color: #5f9be0;
 }
 :family(editor):active {
   border-color: #5f9be0;
 }
 :family(choice):state(pending), :family(editor):state(pending) {
-  background: #2b2b29;
+  background: #2e2a20;
   border-color: #e0aa45;
 }
 :family(choice):invalid, :family(editor):invalid {
-  background: #272725;
+  background: #2f2222;
   border-color: #e07070;
 }
 :family(choice):disabled, :family(editor):disabled {
@@ -613,7 +688,7 @@ inline constexpr std::string_view windows_professional_dark_floor_sheet =
   border-radius: 0;
 }
 :family(selection):hover {
-  background: linear-gradient(to bottom, #434341, #3c3c3a);
+  background: linear-gradient(to bottom, #344459, #2e3d51);
   border-color: #4f8fd6;
 }
 :family(selection):active, :family(selection):state(selected) {
@@ -657,6 +732,80 @@ inline constexpr std::string_view windows_professional_dark_floor_sheet =
   muted-color: #939391;
   glyph-color: #939391;
 }
+
+/* The original accents (owner, 2026-11-10, candidate DX): blue buttons,
+   selection, links, progress fill and scroll-thumb hover. */
+:family(window):state(selected), :family(panel):state(selected), :family(card):state(selected), :family(notice):state(selected), :family(tool-tip):state(selected) {
+  background: #264f78;
+  border-color: #4f8fd6;
+}
+:family(button):hover {
+  background: linear-gradient(to bottom, #415572, #36475f);
+  border-color: #5f9be0;
+  keylines: #ffffff22 #00000040 #00000040 #ffffff22;
+  box-shadow: 0 1px 3px #00000080;
+}
+:family(button):state(selected) {
+  background: linear-gradient(to bottom, #2f4560, #2a3d55);
+  border-color: #5f9be0;
+  keylines: #00000060 #ffffff14 #ffffff14 #00000060;
+  box-shadow: none;
+}
+:family(accent-button) {
+  background: linear-gradient(to bottom, #2f6fc0, #2a66b2 40%, #235ba2 41%, #2862aa);
+  border: 1px solid #5f9be0;
+  border-radius: 2px;
+  keylines: #ffffff30 #00000040 #00000040 #ffffff30;
+  box-shadow: 0 1px 1px #00000066;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+  outline-color: #ffffff;
+}
+:family(accent-button):hover {
+  background: linear-gradient(to bottom, #2c6bbb, #2864ae 40%, #2259a0 41%, #2660a8);
+  box-shadow: 0 1px 3px #00000080;
+}
+:family(accent-button):active {
+  background: linear-gradient(to bottom, #1d4f8e, #235ba2);
+  keylines: #00000060 #ffffff20 #ffffff20 #00000060;
+  box-shadow: none;
+}
+:family(accent-button):state(pending) {
+  border-color: #e0aa45;
+}
+:family(accent-button):invalid {
+  border-color: #e07070;
+}
+:family(progress):state(selected) {
+  background: linear-gradient(to bottom, #2f6fc0, #2a66b2 40%, #235ba2 41%, #2862aa);
+  border-color: #5f9be0;
+  box-shadow: none;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+}
+:family(selection):hover {
+  background: linear-gradient(to bottom, #344459, #2e3d51);
+  border-color: #4f8fd6;
+}
+:family(selection):active, :family(selection):state(selected) {
+  background: linear-gradient(to bottom, #2a5583, #264f78);
+  border-color: #4f8fd6;
+}
+:family(link), :family(visited-link) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 0;
+}
+:family(link) {
+  color: #8fc0ff;
+  glyph-color: #8fc0ff;
+}
+:family(visited-link) {
+  color: #c9a6ff;
+  glyph-color: #c9a6ff;
+}
 )css";
 
 // The parts the engine paints, light and dark: strips, tabs, the ribbon,
@@ -665,6 +814,12 @@ inline constexpr std::string_view windows_professional_dark_floor_sheet =
 // (ThemeBase::windows_professional).
 inline constexpr std::string_view windows_professional_parts_sheet =
     R"css(/* windows-professional: parts (owner, 2026-11-10). */
+/* The theme has a light and a dark variant (T4 theme variants): the
+   dark media rules below apply in a dark window. */
+:root {
+  color-scheme: light dark;
+}
+
 * {
   font-family: Selawik;
   font-size: 12px;
@@ -915,72 +1070,6 @@ window {
 
 /* The original accents (owner, 2026-11-10, candidate DX): blue buttons,
    selection, links, progress fill and scroll-thumb hover. */
-:family(window):state(selected), :family(panel):state(selected), :family(card):state(selected), :family(notice):state(selected), :family(tool-tip):state(selected) {
-  background: #dbeafa;
-  border-color: #336fb3;
-}
-:family(button):state(selected) {
-  background: linear-gradient(to bottom, #d3e4f7, #c2d8f2);
-  border-color: #2f6db6;
-  keylines: #9fb9d9 #ffffff80 #ffffff80 #9fb9d9;
-  box-shadow: none;
-}
-:family(accent-button) {
-  background: linear-gradient(to bottom, #3773c0, #2e6bb5 40%, #255fa6 41%, #2c66ad);
-  border: 1px solid #12336f;
-  border-radius: 2px;
-  keylines: #ffffff40 #0a1e4650 #0a1e4650 #ffffff40;
-  box-shadow: 0 1px 1px #1d335533;
-  color: #ffffff;
-  muted-color: #ffffff;
-  glyph-color: #ffffff;
-  outline-color: #ffffff;
-}
-:family(accent-button):hover {
-  background: linear-gradient(to bottom, #3672bf, #3270bb 40%, #2964ad 41%, #2f6ab2);
-  border-color: #0c285c;
-  box-shadow: 0 1px 3px #1d335555;
-}
-:family(accent-button):active {
-  background: linear-gradient(to bottom, #1f528f, #255fa6);
-  keylines: #0a1e4660 #ffffff30 #ffffff30 #0a1e4660;
-  box-shadow: none;
-}
-:family(accent-button):state(pending) {
-  border-color: #9a6316;
-}
-:family(accent-button):invalid {
-  border-color: #b23636;
-}
-:family(progress):state(selected) {
-  background: linear-gradient(to bottom, #3773c0, #2e6bb5 40%, #255fa6 41%, #2c66ad);
-  border-color: #12336f;
-  box-shadow: none;
-  color: #ffffff;
-  muted-color: #ffffff;
-  glyph-color: #ffffff;
-}
-:family(selection):hover {
-  background: linear-gradient(to bottom, #f0f7fe, #dfedfc);
-  border-color: #3f7fc4;
-}
-:family(selection):active, :family(selection):state(selected) {
-  background: linear-gradient(to bottom, #dbeafa, #c7def7);
-  border-color: #336fb3;
-}
-:family(link), :family(visited-link) {
-  background: #ffffff00;
-  border: 1px solid #ffffff00;
-  border-radius: 0;
-}
-:family(link) {
-  color: #1f4f8f;
-  glyph-color: #1f4f8f;
-}
-:family(visited-link) {
-  color: #6a3d99;
-  glyph-color: #6a3d99;
-}
 h-scroll-bar::part(thumb):hover {
   background: linear-gradient(to bottom, #f0f6fe, #d3e3f6);
   border-color: #6f97c9;
@@ -1017,7 +1106,7 @@ h-scroll-bar::part(thumb):active, v-scroll-bar::part(thumb):active {
     box-shadow: inset 0 1px 0 #ffffff12;
   }
   tab-control::part(tab):hover, page-strip::part(tab):hover {
-    background: linear-gradient(to bottom, #4a4a48, #3e3e3c);
+    background: linear-gradient(to bottom, #594827, #4a3c20);
     border-color: #c08a36;
   }
   tab-control::part(tab):state(selected), page-strip::part(tab):state(selected) {
@@ -1037,7 +1126,7 @@ h-scroll-bar::part(thumb):active, v-scroll-bar::part(thumb):active {
     background: linear-gradient(to bottom, #383836, #31312f);
   }
   ribbon::part(tab):hover {
-    background: linear-gradient(to bottom, #4a4a48, #3e3e3c);
+    background: linear-gradient(to bottom, #594827, #4a3c20);
     border-color: #c08a36;
   }
   ribbon::part(tab):state(selected) {
@@ -1067,25 +1156,25 @@ h-scroll-bar::part(thumb):active, v-scroll-bar::part(thumb):active {
     background: linear-gradient(to right, #222220, #2a2a28);
   }
   h-scroll-bar::part(thumb), h-scroll-bar::part(increment-arrow):hover, h-scroll-bar::part(decrement-arrow):hover {
-    background: linear-gradient(to bottom, #636361, #555553 50%, #4a4a48);
-    border-color: #7c7c7a;
+    background: linear-gradient(to bottom, #5c6370, #4e5560 50%, #444a54);
+    border-color: #737c8b;
     keylines: #ffffff22 #ffffff00 #ffffff00 #ffffff22;
   }
   v-scroll-bar::part(thumb), v-scroll-bar::part(increment-arrow):hover, v-scroll-bar::part(decrement-arrow):hover {
-    background: linear-gradient(to right, #636361, #555553 50%, #4a4a48);
-    border-color: #7c7c7a;
+    background: linear-gradient(to right, #5c6370, #4e5560 50%, #444a54);
+    border-color: #737c8b;
     keylines: #ffffff22 #ffffff00 #ffffff00 #ffffff22;
   }
   h-scroll-bar::part(thumb):hover {
-    background: linear-gradient(to bottom, #626260, #545452);
+    background: linear-gradient(to bottom, #4c6585, #405672);
     border-color: #5f9be0;
   }
   v-scroll-bar::part(thumb):hover {
-    background: linear-gradient(to right, #626260, #545452);
+    background: linear-gradient(to right, #4c6585, #405672);
     border-color: #5f9be0;
   }
   h-scroll-bar::part(thumb):active, v-scroll-bar::part(thumb):active {
-    background: #4f4f4d;
+    background: #3a5272;
     border-color: #5f9be0;
   }
   h-scroll-bar:disabled::part(thumb), v-scroll-bar:disabled::part(thumb) {
@@ -1107,13 +1196,13 @@ h-scroll-bar::part(thumb):active, v-scroll-bar::part(thumb):active {
   combo-box::part(drop-down):hover, numeric-up-down::part(increment-arrow):hover,
   numeric-up-down::part(decrement-arrow):hover, domain-up-down::part(up-arrow):hover,
   domain-up-down::part(down-arrow):hover {
-    background: linear-gradient(to bottom, #535351, #464644);
+    background: linear-gradient(to bottom, #415572, #36475f);
     border-color: #5f9be0;
   }
   combo-box::part(drop-down):active, numeric-up-down::part(increment-arrow):active,
   numeric-up-down::part(decrement-arrow):active, domain-up-down::part(up-arrow):active,
   domain-up-down::part(down-arrow):active {
-    background: linear-gradient(to bottom, #393937, #434341);
+    background: linear-gradient(to bottom, #2b3a50, #33445c);
     border-color: #5f9be0;
   }
   combo-box:disabled::part(drop-down), numeric-up-down:disabled::part(increment-arrow),
@@ -1133,7 +1222,7 @@ h-scroll-bar::part(thumb):active, v-scroll-bar::part(thumb):active {
   }
   list-view::part(column-header):hover, tree-list-view::part(column-header):hover,
   data-grid-view::part(column-header):hover, object-view::part(column-header):hover {
-    background: linear-gradient(to bottom, #494947, #3f3f3d);
+    background: linear-gradient(to bottom, #3c4a5c, #344052);
   }
   property-list::part(group-header), list-view::part(group-band) {
     background: linear-gradient(to bottom, #3b3b39, #353533);
@@ -1184,71 +1273,6 @@ h-scroll-bar::part(thumb):active, v-scroll-bar::part(thumb):active {
   }
 
   /* The original dark accents, as in light (candidate DX). */
-  :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected), :family(notice):state(selected), :family(tool-tip):state(selected) {
-    background: #264f78;
-    border-color: #4f8fd6;
-  }
-  :family(button):state(selected) {
-    background: linear-gradient(to bottom, #2f4560, #2a3d55);
-    border-color: #5f9be0;
-    keylines: #00000060 #ffffff14 #ffffff14 #00000060;
-    box-shadow: none;
-  }
-  :family(accent-button) {
-    background: linear-gradient(to bottom, #2f6fc0, #2a66b2 40%, #235ba2 41%, #2862aa);
-    border: 1px solid #5f9be0;
-    border-radius: 2px;
-    keylines: #ffffff30 #00000040 #00000040 #ffffff30;
-    box-shadow: 0 1px 1px #00000066;
-    color: #ffffff;
-    muted-color: #ffffff;
-    glyph-color: #ffffff;
-    outline-color: #ffffff;
-  }
-  :family(accent-button):hover {
-    background: linear-gradient(to bottom, #2c6bbb, #2864ae 40%, #2259a0 41%, #2660a8);
-    box-shadow: 0 1px 3px #00000080;
-  }
-  :family(accent-button):active {
-    background: linear-gradient(to bottom, #1d4f8e, #235ba2);
-    keylines: #00000060 #ffffff20 #ffffff20 #00000060;
-    box-shadow: none;
-  }
-  :family(accent-button):state(pending) {
-    border-color: #e0aa45;
-  }
-  :family(accent-button):invalid {
-    border-color: #e07070;
-  }
-  :family(progress):state(selected) {
-    background: linear-gradient(to bottom, #2f6fc0, #2a66b2 40%, #235ba2 41%, #2862aa);
-    border-color: #5f9be0;
-    box-shadow: none;
-    color: #ffffff;
-    muted-color: #ffffff;
-    glyph-color: #ffffff;
-  }
-  :family(selection):hover {
-    background: linear-gradient(to bottom, #344459, #2e3d51);
-    border-color: #4f8fd6;
-  }
-  :family(selection):active, :family(selection):state(selected) {
-    background: linear-gradient(to bottom, #2a5583, #264f78);
-    border-color: #4f8fd6;
-  }
-  :family(link), :family(visited-link) {
-    background: #ffffff00;
-    border: 1px solid #ffffff00;
-    border-radius: 0;
-  }
-  :family(link) {
-    color: #8fc0ff;
-    glyph-color: #8fc0ff;
-  }
-  :family(visited-link) {
-    color: #c9a6ff;
-    glyph-color: #c9a6ff;
-  }
   h-scroll-bar::part(thumb):hover {
     background: linear-gradient(to bottom, #4c6585, #405672);
     border-color: #5f9be0;

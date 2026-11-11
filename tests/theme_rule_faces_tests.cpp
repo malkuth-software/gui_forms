@@ -162,6 +162,9 @@ void test_rule_faces() {
     (*root).add_child(group);
 
     Window window(root, Size{300.0, 160.0});
+    // The floor: the same base with no rules of the package's own.
+    window.set_theme(theme_from_sheet(""));
+    window.perform_layout();
     const Color floor_text = (*plain).foreground();
     const Color floor_face = (*paper).background();
     // The text colour is a role, so forced high contrast can replace it by

@@ -820,6 +820,23 @@ void test_menu_font_controls_geometry_paint_and_hit_testing() {
 
 } // namespace
 
+// The menu strip anatomy declares the drop-downs' icon gutter as a well
+// part, so that a theme can style `menu-strip::part(gutter)`; the strip
+// itself has no gutter and publishes the part absent (the drop-down panels
+// paint it).
+void test_menu_strip_declares_the_drop_down_gutter() {
+    const std::shared_ptr<MenuStrip> strip = make_control<MenuStrip>(StableId("gutter.strip"));
+    const ControlAnatomy& anatomy = (*strip).anatomy();
+    bool declared = false;
+    for (const PartDeclaration& part : anatomy.parts) {
+        if (part.name == "gutter") declared = part.role == PartRole::well;
+    }
+    require(declared, "the menu strip anatomy must declare the gutter as a well part");
+    const MenuStrip::Parts parts = (*strip).parts();
+    require(!parts.gutter.present, "the menu strip itself must publish its gutter absent");
+    require(parts.gutter.bounds.empty(), "an absent gutter must publish empty bounds");
+}
+
 int main() {
     try {
         test_context_menu_command_snapshot_keyboard_nesting_and_restore();
@@ -829,6 +846,7 @@ int main() {
         test_menu_mnemonics_strip_markers_and_overlay_activation();
         test_menu_plain_letter_mnemonics();
         test_menu_font_controls_geometry_paint_and_hit_testing();
+        test_menu_strip_declares_the_drop_down_gutter();
         std::cout << "gui_forms_menu_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

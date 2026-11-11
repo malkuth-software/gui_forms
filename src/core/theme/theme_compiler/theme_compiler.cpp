@@ -337,6 +337,31 @@ bool order_names(std::span<const VerifiedThemePack* const> order, std::string_vi
 // first reached: a pack a later root imports again keeps its earlier
 // place. Two roots of one name are refused (E601). With no roots the theme
 // is the base alone.
+// Whether `controls` holds an anatomy for `control_id`.
+bool names_control(std::span<const ControlAnatomy> controls, std::string_view control_id) {
+    for (const ControlAnatomy& control : controls) {
+        if (control.control_id == control_id) return true;
+    }
+    return false;
+}
+
+// The anatomies a closure's selectors resolve against: the caller's, then,
+// onto windows-professional, each stock control the caller did not name,
+// since that base's parts sheet speaks the stock controls' vocabulary
+// whatever the caller compiles for. Fills `storage` only in that case.
+std::span<const ControlAnatomy> closure_vocabulary(const ThemeCompileOptions& options,
+                                                   std::vector<ControlAnatomy>& storage) {
+    if (options.base == ThemeBase::gui_forms) return options.controls;
+    const std::span<const ControlAnatomy> stock = stock_control_anatomies();
+    storage.reserve(options.controls.size() + stock.size());
+    storage.insert(storage.end(), options.controls.begin(), options.controls.end());
+    for (const ControlAnatomy& control : stock) {
+        if (!names_control(options.controls, control.control_id)) storage.push_back(control);
+    }
+    const std::span<const ControlAnatomy> merged(storage);
+    return merged;
+}
+
 ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roots,
                                    const theme_language::InstalledThemeIndex& index, ImageRegistry& images,
                                    ThemeImageShares& shares, const ThemeCompileOptions& options, ThemeRuleSet set,
@@ -450,9 +475,11 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
     }
     const theme_language::ThemeSource source{.file = closure_file, .text = text};
     const PrimitiveRegistry& registry = builtin_primitive_registry();
+    std::vector<ControlAnatomy> vocabulary_storage{};
+    const std::span<const ControlAnatomy> vocabulary = closure_vocabulary(options, vocabulary_storage);
     const theme_language::ThemeCompileInput input{.source = source,
                                                   .registry = registry,
-                                                  .vocabulary = theme_language::SelectorVocabulary{options.controls},
+                                                  .vocabulary = theme_language::SelectorVocabulary{vocabulary},
                                                   .published_values = published,
                                                   .resources = names,
                                                   .images = loaded,
@@ -520,7 +547,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
             .resource = icon.identifier, .image = (*lease).image(), .pixel_size = (*lease).pixel_size()});
         held.push_back(lease);
     }
-    (*record).controls.assign(options.controls.begin(), options.controls.end());
+    (*record).controls.assign(vocabulary.begin(), vocabulary.end());
     (*record).requires_engine = requires_engine;
     std::shared_ptr<const detail::ThemeSourceRecord> kept(std::move(record));
     std::shared_ptr<const Theme> theme =

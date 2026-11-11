@@ -362,8 +362,12 @@ void test_base_theme() {
     require(plain.succeeded() && plain.diagnostics().empty(), "a package compiles onto windows-professional");
     if (plain.succeeded()) {
         const ThemeDefinition& definition = (*plain.theme()).definition();
-        require(definition.dark_variant == ThemeDarkVariant::none &&
-                    definition.compatibility.face == windows_professional_theme_definition().compatibility.face,
+        // The base is the familiar theme's floor (its light and dark floor
+        // sheets over the structural definition), with an authored dark
+        // variant.
+        const ThemeDefinition& floor = (*familiar_theme(FamiliarTheme::windows_professional)).definition();
+        require(definition.dark_variant == ThemeDarkVariant::authored &&
+                    definition.compatibility.face == floor.compatibility.face,
                 "with windows_professional, the base is windows-professional's recipes");
     }
     ThemeCompileOptions onto = options();
@@ -451,7 +455,7 @@ void test_application_theme() {
     const ThemeCompileResult plain =
         compile_theme_packages(std::span<const ThemePackage>{}, library, images, options());
     require(plain.succeeded() && (*plain.theme()).id() == "windows-professional" &&
-                (*plain.theme()).definition().dark_variant == ThemeDarkVariant::none,
+                (*plain.theme()).definition().dark_variant == ThemeDarkVariant::authored,
             "no package onto windows-professional gives it alone");
     const std::array<ThemePackage, 2> twice{{package("same", "#pad {}"), package("same", "#pad {}")}};
     const ThemeCompileResult doubled = compile_theme_packages(twice, library, images, onto);

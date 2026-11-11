@@ -139,7 +139,7 @@ private:
                     "gallery.tabs.variant.content." + std::to_string(index) + "." +
                         std::to_string(page_index),
                     "Retained page " + std::to_string(page_index + 1U), 10.0, 600,
-                    muted);
+                    "muted");
                 (*content).set_requested_bounds({12.0, 14.0, 150.0, 24.0});
                 (*tab_page).add_child(content);
                 tabs.add_page(tab_page);
