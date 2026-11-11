@@ -182,6 +182,17 @@ class BuildRecordTests(unittest.TestCase):
             self.assertFalse(ci_build.build_record_path(tree).exists())
 
 
+def recorder_of_builds(commands: list[list[str]]):
+    """A stand-in for ci_build.build_logged that records the build it would
+    run as the same `cmake --build` command, so the tests see builds and
+    other commands in one list."""
+
+    def record_build(toolkit: Path, sanitize: bool, *arguments: object) -> None:
+        commands.append(['cmake', '--build', str(toolkit), *[str(argument) for argument in arguments]])
+
+    return record_build
+
+
 class InstallOnlyTests(unittest.TestCase):
     """--install-only builds and installs the SDK and runs none of the toolkit's tests."""
 
@@ -194,6 +205,7 @@ class InstallOnlyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as scratch:
             build: Path = Path(scratch)
             with mock.patch.object(ci_build, 'run', side_effect=record), \
+                    mock.patch.object(ci_build, 'build_logged', side_effect=recorder_of_builds(commands)), \
                     mock.patch.object(ci_build, 'configure_tree'), \
                     mock.patch.object(ci_build, 'prepare_host'), \
                     mock.patch.object(ci_build, 'check_installed_notices'), \
@@ -264,6 +276,7 @@ class InstallOnlyTests(unittest.TestCase):
                                        'probe.app/Contents/MacOS/probe': 'CXX_EXECUTABLE_LINKER__probe_',
                                        'package': 'phony'}
             with mock.patch.object(ci_build, 'run', side_effect=record), \
+                    mock.patch.object(ci_build, 'build_logged', side_effect=recorder_of_builds(commands)), \
                     mock.patch.object(ci_build, 'configure_tree'), \
                     mock.patch.object(ci_build, 'prepare_host'), \
                     mock.patch.object(ci_build, 'test_listing', return_value=listing), \
