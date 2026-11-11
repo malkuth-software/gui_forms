@@ -24,7 +24,7 @@ inline constexpr std::array<InteractionFieldsEntry, 172> interaction_fields{{
     {"BindingCompleteEvent", "binding: object, context: enumeration, state: enumeration, error_text: text, cancel: boolean"},
     {"BindingContextChange", "source: object, added: boolean"},
     {"BindingConvertEvent", "value: any, desired_kind: enumeration, handled: boolean"},
-    {"BindingListChange", "kind: enumeration, index: signed_integer, stable_id: text, field: text, metadata_changed: boolean"},
+    {"BindingListChange", "kind: enumeration, index: signed_integer, stable_id: text, field: text, metadata_changed: boolean, to_index: signed_integer"},
     {"BindingNavigatorAddNew", "navigator_id: text, row.stable_id: text optional, row.values: collection optional, row.editable: boolean optional"},
     {"ButtonBase", ""},
     {"CalendarDateRange", "start.year: signed_integer, start.month: unsigned_integer, start.day: unsigned_integer, start.hour: unsigned_integer, start.minute: unsigned_integer, start.second: unsigned_integer, start.millisecond: unsigned_integer, end.year: signed_integer, end.month: unsigned_integer, end.day: unsigned_integer, end.hour: unsigned_integer, end.minute: unsigned_integer, end.second: unsigned_integer, end.millisecond: unsigned_integer"},

@@ -197,12 +197,13 @@ struct EnumerationChoices<BindingCompleteState> {
 template <>
 struct EnumerationChoices<BindingListChangeKind> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 5> choices{{
+    static constexpr std::array<EnumerationChoice, 6> choices{{
         {"reset", static_cast<std::int64_t>(BindingListChangeKind::reset)},
         {"item_added", static_cast<std::int64_t>(BindingListChangeKind::item_added)},
         {"item_changed", static_cast<std::int64_t>(BindingListChangeKind::item_changed)},
         {"item_removed", static_cast<std::int64_t>(BindingListChangeKind::item_removed)},
         {"position_changed", static_cast<std::int64_t>(BindingListChangeKind::position_changed)},
+        {"item_moved", static_cast<std::int64_t>(BindingListChangeKind::item_moved)},
     }};
 };
 
@@ -1238,6 +1239,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Bindi
     append_field(fields, "stable_id", value.stable_id);
     append_field(fields, "field", value.field);
     append_field(fields, "metadata_changed", value.metadata_changed);
+    append_field(fields, "to_index", value.to_index);
     fields.leave(prefix);
 }
 

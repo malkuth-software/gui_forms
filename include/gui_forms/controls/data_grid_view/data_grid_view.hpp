@@ -39,6 +39,10 @@ struct FocusedControlChange;
 class BindingSource;
 class SubSurfaceHost;
 
+namespace detail {
+class DataGridViewBoundIndex;
+} // namespace detail
+
 // One column. `name` is the column's identity: unique within the grid, not
 // empty, and without '.', since a cell's stable ID is its row's ID, '.' and
 // the column's name. `width` and `minimum_width` are logical units at text
@@ -1062,7 +1066,13 @@ private:
     // Throws std::invalid_argument for invalid UTF-8 or more values than
     // columns.
     void validate_row_text(const DataGridViewRow& row) const;
+    // A fresh "row.N" ID no row and not the new row holds; the overload
+    // checks against `used` (rows being assigned) instead of the index.
+    [[nodiscard]] std::string generated_row_id();
     [[nodiscard]] std::string generated_row_id(const RowPositions& used);
+    // Whether a data row holds id, by the index of whichever source holds
+    // the rows (bound rows: bound_index_; unbound: row_positions_).
+    [[nodiscard]] bool row_id_taken(std::string_view id) const;
     // Throws std::invalid_argument for an empty, repeated or invalid UTF-8
     // ID in a virtual order.
     static void validate_virtual_order(const std::vector<DataGridViewRowId>& order);
@@ -1116,11 +1126,12 @@ private:
     void on_source_list_changed(const BindingListChange& change);
     void on_source_position_changed(std::ptrdiff_t position);
 
-    // The identity index. row_positions_ maps every row's ID to its position
-    // and is rebuilt whenever rows are added, removed or reordered; a lookup
-    // is checked against the row at the position it finds.
+    // The identity index. Unbound rows: row_positions_ maps every row's ID
+    // to its position and is rebuilt whenever rows are added, removed or
+    // reordered. Bound rows: bound_index_ follows the source's list changes
+    // one by one (O(log n) each) and is rebuilt on a reset. Either way a
+    // lookup is checked against the row at the position it finds.
     void rebuild_row_index();
-    void reindex_source_change(const BindingListChange& change);
     // Writes the positions of the rows from `first` to the end (unbound).
     void index_rows_from(std::size_t first);
     [[nodiscard]] std::optional<std::size_t> find_row(std::string_view row_id) const;
@@ -1431,8 +1442,14 @@ private:
     SubscriptionToken source_list_changed_{};
     SubscriptionToken source_position_changed_{};
     bool synchronizing_position_{};
-    // The identity index of whichever source holds the rows.
+    // The identity index of unbound rows.
     RowPositions row_positions_{};
+    // The identity index of bound rows (null until a binding source is
+    // set), and the current row's position when a list change removed it
+    // part way through one notification's changes, for drop_missing_rows
+    // once the index holds every row again.
+    std::unique_ptr<detail::DataGridViewBoundIndex> bound_index_{};
+    std::optional<std::size_t> bound_removed_current_{};
 
     std::shared_ptr<TextBox> editor_{};
     std::shared_ptr<VScrollBar> vertical_bar_{};

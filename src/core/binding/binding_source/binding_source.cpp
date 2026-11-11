@@ -802,6 +802,64 @@ std::optional<std::size_t> BindingSource::insert(std::size_t index, BindingRow r
     return position;
 }
 
+void BindingSource::add_rows(std::vector<BindingRow> rows) {
+    require_access("BindingSource insertion");
+    if (!allow_new_) throw std::logic_error("GUI.Forms BindingSource additions are disabled");
+    if (!capabilities_.inserts) {
+        throw std::logic_error("GUI.Forms BindingSource provider does not insert rows");
+    }
+    if (rows.size() > 1U && !capabilities_.removes) {
+        throw std::logic_error("GUI.Forms BindingSource adds several rows only through a provider that removes rows");
+    }
+    if (rows.empty()) {
+        return;
+    }
+    const std::size_t start = provider_count_;
+    std::size_t added = 0U;
+    // Set when a refusal could not be undone: the provider keeps rows.
+    bool kept = false;
+    BindingWriteResult result{BindingWriteStatus::accepted, {}};
+    {
+        const ProviderCallScope scope(provider_depth_);
+        for (const BindingRow& row : rows) {
+            ++provider_reads_;
+            try {
+                result = (*provider_).insert_row(start + added, row);
+            } catch (const std::exception& failure) {
+                result = BindingWriteResult{BindingWriteStatus::refused,
+                                            "the provider failed: " +
+                                                bounded_text(failure.what(), binding_maximum_error_bytes)};
+            } catch (...) {
+                result = BindingWriteResult{BindingWriteStatus::refused, "the provider failed"};
+            }
+            if (!result.accepted()) {
+                break;
+            }
+            ++added;
+        }
+        if (!result.accepted() && added > 0U) {
+            // The rows added before the refusal go again.
+            BindingWriteResult undone{BindingWriteStatus::refused, {}};
+            ++provider_reads_;
+            try {
+                undone = (*provider_).remove_rows(start, added);
+            } catch (...) {
+                undone = BindingWriteResult{BindingWriteStatus::refused, "the provider failed"};
+            }
+            kept = !undone.accepted();
+        }
+    }
+    if (kept) {
+        apply_notification(BindingNotification{BindingNotificationKind::reset, 0U, 0U, 0U});
+        throw std::runtime_error("GUI.Forms BindingSource: the provider refused a row (" + result.reason +
+                                 ") and kept the rows added before it");
+    }
+    if (!result.accepted()) {
+        throw std::invalid_argument("GUI.Forms BindingSource: " + result.reason + "; no row was added");
+    }
+    apply_notification(BindingNotification{BindingNotificationKind::inserted, start, rows.size(), 0U});
+}
+
 bool BindingSource::remove_at(std::size_t index) {
     require_access("BindingSource removal");
     if (!allow_remove_) {
@@ -1244,11 +1302,25 @@ void BindingSource::apply_notification(const BindingNotification& notification) 
                 anchor = remaining;
             }
         }
+        // Single-row moves in the list the controls see, in order; more
+        // than maximum_item_events of them publish a reset instead.
+        std::vector<detail::BindingRowMove> moves;
         if (view_) {
-            (*view_).move_rows(first, rows, notification.target, reader);
+            (*view_).move_rows(first, rows, notification.target, moves);
+        } else if (rows <= maximum_item_events) {
+            detail::append_block_move_steps(first, rows, notification.target, moves);
         }
-        held.push_back(BindingListChange{BindingListChangeKind::reset, -1, {}, {}, false});
-        ++resets_;
+        if (moves.size() > maximum_item_events || (!view_ && rows > maximum_item_events)) {
+            held.push_back(BindingListChange{BindingListChangeKind::reset, -1, {}, {}, false});
+            ++resets_;
+            break;
+        }
+        for (const detail::BindingRowMove& move : moves) {
+            BindingListChange change{BindingListChangeKind::item_moved, static_cast<std::ptrdiff_t>(move.from),
+                                     {}, {}, false};
+            change.to_index = static_cast<std::ptrdiff_t>(move.to);
+            held.push_back(std::move(change));
+        }
         break;
     }
     case BindingNotificationKind::changed: {

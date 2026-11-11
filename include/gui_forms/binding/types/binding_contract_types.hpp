@@ -34,12 +34,20 @@ enum class BindingCompleteState : std::uint8_t {
     exception,
 };
 
+// A list change. The changes one notification makes are published in
+// order, each relative to the list as the ones before it left it:
+// item_added: a row now stands at index; item_removed: the row at index is
+// gone; item_moved (ListChangedType.ItemMoved): the row at index now stands
+// at to_index; item_changed: the row at index changed (field, or every
+// field when empty). stable_id is the row's for item_added and
+// item_changed, empty otherwise.
 enum class BindingListChangeKind : std::uint8_t {
     reset,
     item_added,
     item_changed,
     item_removed,
     position_changed,
+    item_moved,
 };
 
 struct BindingListChange final {
@@ -48,6 +56,8 @@ struct BindingListChange final {
     std::string stable_id;
     std::string field;
     bool metadata_changed{};
+    // item_moved: where the row now stands; -1 otherwise.
+    std::ptrdiff_t to_index{-1};
 };
 
 struct BindingConvertEvent final {

@@ -212,6 +212,10 @@ Types
 
    .. cpp:member:: bool metadata_changed
 
+   .. cpp:member:: std::ptrdiff_t to_index
+
+      item_moved: where the row now stands; -1 otherwise. Default: ``{-1}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: BindingManagerBase
@@ -637,6 +641,10 @@ Types
    .. cpp:function:: std::size_t remove(std::size_t row, std::size_t count)
 
       Removes rows [row, row + count) clamped to the end; returns how many.
+
+   .. cpp:function:: void move(std::size_t row, std::size_t count, std::size_t target)
+
+      Moves rows [row, row + count) so the first stands at target afterwards (target <= count() - count); reports moved. Throws std::out_of_range, changing nothing, for a block or target past the rows.
 
    .. cpp:function:: void clear()
 
@@ -1622,6 +1630,8 @@ Enumerations
    .. cpp:enumerator:: item_removed
 
    .. cpp:enumerator:: position_changed
+
+   .. cpp:enumerator:: item_moved
 
 .. cpp:namespace:: gui_forms
 

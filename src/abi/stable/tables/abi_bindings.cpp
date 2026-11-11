@@ -147,15 +147,21 @@ gf_status read_record(const gf_binding_record* record, SlotIdentity slot, AbiRec
 // the first goes in so a refusal adds none: additions disabled, a provider
 // that cannot insert, a stable id repeated within the batch or already in
 // the source, a field the source has no column for (a BindingTable grows
-// one), or a value not of its column's kind. A provider other than the
-// built-in table may still refuse a record part way; the records before it
-// stay added and the call reports the refusal.
+// one), a value not of its column's kind, or several records for a provider
+// that cannot remove rows (a refusal part way could not be undone). A
+// provider other than the built-in table may still refuse a record part
+// way; BindingSource::add_rows then removes the records added before it.
 gf_status check_batch(const BindingSource& source, const std::vector<AbiRecord>& batch, SlotIdentity slot) {
     if (!source.allow_new()) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the source's additions are disabled");
     }
-    if (!(*source.provider()).capabilities().inserts) {
+    const BindingProviderCapabilities capabilities = (*source.provider()).capabilities();
+    if (!capabilities.inserts) {
         return fail(GF_STATUS_INVALID_STATE, slot, "the source's provider does not insert rows");
+    }
+    if (batch.size() > 1U && !capabilities.removes) {
+        return fail(GF_STATUS_INVALID_STATE, slot,
+                    "several records need a provider that removes rows, so a refusal adds none");
     }
     const std::shared_ptr<BindingTable> table = source.table();
     std::set<std::string_view> identities;
@@ -434,12 +440,20 @@ gf_status GF_CALL bindings_add_records(gf_object source, const gf_binding_record
         // while the records go in, then the source resets its bindings
         // once, as Windows Forms' RaiseListChangedEvents = false then
         // ResetBindings does.
+        // All or none (add_rows): a record the provider refuses removes the
+        // ones before it and the call fails with INVALID_ARGUMENT; a
+        // provider that then refuses the removal leaves its rows, the
+        // source resets to them, and the call fails with INVALID_STATE.
         const bool raising = (*typed).raise_list_changed_events();
         (*typed).set_raise_list_changed_events(false);
         try {
-            for (BindingRow& row : rows) {
-                static_cast<void>((*typed).add(std::move(row)));
+            (*typed).add_rows(std::move(rows));
+        } catch (const std::runtime_error& kept) {
+            (*typed).set_raise_list_changed_events(raising);
+            if (raising) {
+                (*typed).reset_bindings();
             }
+            return fail(GF_STATUS_INVALID_STATE, add_records_slot, kept.what());
         } catch (...) {
             (*typed).set_raise_list_changed_events(raising);
             throw;

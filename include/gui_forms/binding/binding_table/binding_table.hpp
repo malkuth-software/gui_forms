@@ -43,6 +43,10 @@ public:
     std::size_t insert(std::size_t row, BindingRow values);
     // Removes rows [row, row + count) clamped to the end; returns how many.
     std::size_t remove(std::size_t row, std::size_t count);
+    // Moves rows [row, row + count) so the first stands at target afterwards
+    // (target <= count() - count); reports moved. Throws std::out_of_range,
+    // changing nothing, for a block or target past the rows.
+    void move(std::size_t row, std::size_t count, std::size_t target);
     void clear();
     // Replaces every row, checked whole first.
     void assign(std::vector<BindingRow> rows);
