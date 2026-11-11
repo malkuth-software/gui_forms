@@ -1087,6 +1087,12 @@ Control::~Control() {
     // One destroyed while still attached is forgotten here, so no window
     // registry keeps its address (owner, 2026-11-05).
     if (surface_root_ != nullptr) (*surface_root_).forget_destroyed_subtree(*this);
+    // A child another owner still holds outlives this parent: its observing
+    // link is cleared, as its weak parent_ expires, so an ancestor walk
+    // (absolute_bounds) stops at it instead of reading freed memory.
+    for (const Ptr& child : children_) {
+        (*child).parent_link_ = nullptr;
+    }
 }
 
 double Control::effective_text_scale() const noexcept {

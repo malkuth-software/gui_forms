@@ -38,10 +38,26 @@
 // N12's measurement: every allocation of the process is counted, so the
 // cost of one emission through the ABI forwarder is the count across it.
 // Single threaded: the program raises its events on its one thread.
+//
+// Under AddressSanitizer on Windows the replacement collides with the
+// runtime's own operator new and delete (both defined at link time), so the
+// sanitized build keeps the runtime's and skips the count; normal builds
+// still measure and assert it.
+#if defined(_WIN32) && defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define GF_EVENT_FIELDS_COUNT_ALLOCATIONS 0
+#endif
+#endif
+#ifndef GF_EVENT_FIELDS_COUNT_ALLOCATIONS
+#define GF_EVENT_FIELDS_COUNT_ALLOCATIONS 1
+#endif
+
 namespace event_fields_allocation_probe {
 std::uint64_t allocations = 0U;
+constexpr bool counted = GF_EVENT_FIELDS_COUNT_ALLOCATIONS != 0;
 } // namespace event_fields_allocation_probe
 
+#if GF_EVENT_FIELDS_COUNT_ALLOCATIONS
 void* operator new(std::size_t bytes) {
     event_fields_allocation_probe::allocations = event_fields_allocation_probe::allocations + 1U;
     void* memory = std::malloc(bytes == 0U ? 1U : bytes);
@@ -58,6 +74,7 @@ void operator delete(void* memory) noexcept { std::free(memory); }
 void operator delete[](void* memory) noexcept { std::free(memory); }
 void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
 void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
+#endif
 
 namespace {
 
@@ -544,6 +561,10 @@ double allocations_per_key_down(const Tables& tables, int subscribers) {
 // after its first emission a subscriber adds no allocation (before the
 // reuse: +11 per subscriber per key_down).
 void emission_allocations(const Tables& tables) {
+    if (!event_fields_allocation_probe::counted) {
+        std::cout << "N12 key_down allocations: not counted under AddressSanitizer on Windows\n";
+        return;
+    }
     const double none = allocations_per_key_down(tables, 0);
     const double one = allocations_per_key_down(tables, 1);
     const double four = allocations_per_key_down(tables, 4);
