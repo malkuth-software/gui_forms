@@ -5,6 +5,36 @@
 
 namespace gui_forms {
 
+// Housekeeping expectations (owner, 2026-11-11). Housekeeping (the
+// scheduler wake, paint ticks, live-surface drains, damage collection) never
+// throws and is never treated as a fault; its cheap counters are checked
+// against what it should have produced and how long it should have taken.
+// A missed expectation is counted in the snapshot and reported as one
+// rate-limited telemetry line on stderr: the 1st, 2nd, 4th, 8th... miss of
+// each expectation prints, the others are counted only.
+enum class HousekeepingExpectation : std::uint8_t {
+    // A scheduled wake polled its due requests within late_wake_nanoseconds
+    // of their deadline, so the frame it was scheduled for was produced.
+    wake_on_time,
+    // A paint tick (one SurfaceRoot::paint) finished within
+    // paint_budget_nanoseconds.
+    paint_within_budget,
+    // A live-surface drain skipped at most live_drain_skipped_frames of its
+    // producer's published frames since the previous one it presented.
+    live_drain_kept_up,
+    // A damage plane stayed within its rectangle capacity: it was not
+    // collapsed to its bounds.
+    damage_bounded
+};
+
+// What each expectation allows. Defaults are generous: they flag a stall,
+// not an ordinary busy frame.
+struct ExpectationThresholds final {
+    std::uint64_t late_wake_nanoseconds{100'000'000U};
+    std::uint64_t paint_budget_nanoseconds{50'000'000U};
+    std::uint64_t live_drain_skipped_frames{8U};
+};
+
 struct MetricsSnapshot {
     std::uint64_t control_count{};
     std::uint64_t stable_id_count{};
@@ -93,7 +123,13 @@ struct MetricsSnapshot {
     // per frame poll, however many motion values move.
     std::uint64_t motion_clock_ticks{};
     std::uint64_t frame_requests_coalesced{};
-    std::uint64_t frame_callback_faults{};
+    // Missed housekeeping expectations (HousekeepingExpectation), one
+    // counter each, and the telemetry lines printed for them.
+    std::uint64_t wake_expectation_misses{};
+    std::uint64_t paint_budget_misses{};
+    std::uint64_t live_drain_misses{};
+    std::uint64_t damage_bound_misses{};
+    std::uint64_t expectation_telemetry_records{};
     std::uint64_t reentrant_frame_polls_deferred{};
     std::uint64_t occlusion_suspensions{};
     std::uint64_t occlusion_resumes{};

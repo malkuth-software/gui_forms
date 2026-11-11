@@ -282,9 +282,7 @@ void test_repeated_focus_show_hide_reuses_no_stale_overlay_identity() {
             throw std::runtime_error(
                 "tooltip focus cycle " + std::to_string(cycle) +
                 " opened visible=" + (tips.visible() ? "true" : "false") +
-                " count=" + std::to_string(shown) + " frame_faults=" +
-                std::to_string(
-                    fixture.window.metrics_snapshot().frame_callback_faults));
+                " count=" + std::to_string(shown));
         }
         require(fixture.window.request_focus(fixture.other),
                 "focus must leave the repeated tooltip target");

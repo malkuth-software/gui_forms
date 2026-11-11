@@ -393,9 +393,8 @@ void verify_focused_window(FocusedCpuProbe& probe, const std::size_t index,
     focused_require(trace_counts[1] == wakes && trace_counts[2] == collections &&
         trace_counts[3] == draws && trace_counts[4] == draws,
         "causal trace event counts differ from scalar diagnostics");
-    focused_require(counter(after, "native_callback_faults") == 0U &&
-        focused_delta(probe.before[index], after, "display_tick_count") == 0U,
-        "native fault or unexpected display-link work");
+    focused_require(focused_delta(probe.before[index], after, "display_tick_count") == 0U,
+        "unexpected display-link work");
     focused_require(metrics.measure_passes == 0U && metrics.arrange_passes == 0U &&
         metrics.focus_transitions == 0U && metrics.input_events == 0U &&
         metrics.occlusion_suspensions == 0U && metrics.occlusion_resumes == 0U,

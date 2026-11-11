@@ -28,6 +28,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 
 #include "../paint_endpoint/windows_compatibility_paint_endpoint_metrics.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
@@ -188,9 +189,12 @@ struct PostLiveSurfaceWake final {
 // window's HWND; posting to it is all this does, and a window already gone
 // rejects the post. The host stops the wait, and waits for this callback to
 // finish, before it destroys the window.
-void CALLBACK modal_live_clock_signalled(PTP_CALLBACK_INSTANCE, PVOID context, PTP_WAIT, TP_WAIT_RESULT) {
+void post_modal_live_clock(PVOID context) {
     const HWND window = static_cast<HWND>(context);
     static_cast<void>(PostMessageW(window, modal_live_clock_message, 0, 0));
+}
+void CALLBACK modal_live_clock_signalled(PTP_CALLBACK_INSTANCE, PVOID context, PTP_WAIT, TP_WAIT_RESULT) {
+    gui_forms::detail::call_failing_fast("windows.modal_live_clock", &post_modal_live_clock, context);
 }
 constexpr std::size_t maximum_automation_command = 4096;
 
@@ -1200,16 +1204,12 @@ public:
         }
         DamageRegion clip;
         clip.add(presentation.clip);
-        try {
-            if (!begin_frame(clip)) return false;
-            canvas_.save();
-            canvas_.clip_rect(presentation.clip);
-            canvas_.draw_live_surface(presentation.surface, presentation.destination, 1.0);
-            canvas_.restore();
-        } catch (...) {
-            abort_frame();
-            return false;
-        }
+        // A live drain is housekeeping: nothing here is caught.
+        if (!begin_frame(clip)) return false;
+        canvas_.save();
+        canvas_.clip_rect(presentation.clip);
+        canvas_.draw_live_surface(presentation.surface, presentation.destination, 1.0);
+        canvas_.restore();
         canvas_.end_frame();
 #if defined(GUI_FORMS_WINDOWS_PREPARED_TEXT)
         const PreparedTextStatus published = canvas_.commit_prepared_frame(canvas_.prepared_front_receipt());
@@ -1735,13 +1735,9 @@ public:
                     static_cast<LONG>(static_cast<short>(HIWORD(lparam)))};
         if (!ScreenToClient(hwnd_, &point)) return false;
         const Point logical{point.x / scale_, point.y / scale_};
-        try {
-            const Control::Ptr hit = (*model_).hit_test(logical);
-            const bool margin = !hit || hit.get() == (*model_).root().get();
-            return margin;
-        } catch (...) {
-            return false;
-        }
+        const Control::Ptr hit = (*model_).hit_test(logical);
+        const bool margin = !hit || hit.get() == (*model_).root().get();
+        return margin;
     }
     // WM_MOVE: tells the model the window moved when its client origin on
     // the screen changed (not for a Popup or Splash window, which nothing
@@ -2674,20 +2670,10 @@ private:
     }
 
     // A scheduled wake came due (WM_TIMER or the scheduler clock): the model
-    // polls its schedule and its damage is collected. A fault is counted and
-    // logged, as a native callback's.
+    // polls its schedule and its damage is collected. Housekeeping: nothing
+    // is caught here; the window procedure is the fail-fast boundary.
     void scheduled_wake() {
-        try {
-            collect_damage();
-        } catch (const std::exception& error) {
-            ++native_callback_faults_;
-            std::fprintf(stderr, "gui-forms-host=scheduled-wake-fault|what:%s\n", error.what());
-            std::fflush(stderr);
-        } catch (...) {
-            ++native_callback_faults_;
-            std::fprintf(stderr, "gui-forms-host=scheduled-wake-fault|what:unknown\n");
-            std::fflush(stderr);
-        }
+        collect_damage();
     }
 
     // The live clock rests (audit E4): a drain found no new publication, so
@@ -3148,22 +3134,20 @@ private:
         std::optional<PaintReceipt> receipt{};
         bool presented = false;
         std::uint64_t transactional_copy_nanoseconds = 0U;
-        try {
-            prepare_frame_alpha();
-            const bool images_ready = raster_.synchronize_images((*model_).image_resources());
-            const bool begun = images_ready && raster_.begin_frame(pending_damage_);
-            if (begun) receipt = (*model_).paint(raster_.painter(), pending_damage_.rectangles());
-            if (receipt) {
-                const std::chrono::steady_clock::time_point copy_started =
-                    std::chrono::steady_clock::now();
-                presented = raster_.commit_frame(dc, present_rectangles, *receipt);
-                transactional_copy_nanoseconds = static_cast<std::uint64_t>(
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        std::chrono::steady_clock::now() - copy_started).count());
-            }
-        } catch (...) {
-            ++native_callback_faults_;
-            std::fprintf(stderr, "gui-forms-host=transaction-paint-fault\n");
+        // A paint tick is housekeeping: nothing is caught. Its budget is the
+        // model's expectation (paint_within_budget); an exception from a
+        // control's paint ends the process at the window procedure.
+        prepare_frame_alpha();
+        const bool images_ready = raster_.synchronize_images((*model_).image_resources());
+        const bool begun = images_ready && raster_.begin_frame(pending_damage_);
+        if (begun) receipt = (*model_).paint(raster_.painter(), pending_damage_.rectangles());
+        if (receipt) {
+            const std::chrono::steady_clock::time_point copy_started =
+                std::chrono::steady_clock::now();
+            presented = raster_.commit_frame(dc, present_rectangles, *receipt);
+            transactional_copy_nanoseconds = static_cast<std::uint64_t>(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now() - copy_started).count());
         }
         if (!presented) {
             raster_.abort_frame();
@@ -4043,7 +4027,6 @@ private:
     // The control TrackMouseEvent's hover report is armed for (zero for
     // none): each control raises MouseHover once per entry.
     RuntimeId hover_tracked_{};
-    std::uint64_t native_callback_faults_{};
     wchar_t pending_high_surrogate_{};
     bool render_dispatch_pending_{};
     bool presentation_pending_{};
@@ -4142,7 +4125,9 @@ HostServiceStatus RequestClientSize::operator()(const Size client_size) const {
     } catch (...) { return {HostServiceError::backend_failure}; }
 }
 
-LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+// One window message, delivered to the window's host state (bound at
+// WM_NCCREATE). Runs inside the fail-fast boundary (window_procedure).
+LRESULT deliver_window_message(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
     WindowsHostState* state = reinterpret_cast<WindowsHostState*>(
         GetWindowLongPtrW(window, GWLP_USERDATA));
     if (message == WM_NCCREATE) {
@@ -4154,6 +4139,12 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPAR
     }
     if (state != nullptr) return (*state).message(message, wparam, lparam);
     return DefWindowProcW(window, message, wparam, lparam);
+}
+
+LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+    const LRESULT result = gui_forms::detail::call_failing_fast("windows.window_procedure", &deliver_window_message,
+                                                                window, message, wparam, lparam);
+    return result;
 }
 
 #include "windows_application_run.inc"

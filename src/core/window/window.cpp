@@ -3538,6 +3538,12 @@ void SurfaceRoot::add_damage(Rect damage, PaintPlane plane) {
     metrics_.record_damage_region(
         region.rectangle_count(), region.compaction_count() - compactions,
         region.collapse_count() - collapses);
+    // damage_bounded: the plane was collapsed to its bounds because it
+    // outgrew its rectangle capacity.
+    if (region.collapse_count() != collapses) {
+        metrics_.record_expectation_miss(HousekeepingExpectation::damage_bounded, DamageRegion::maximum_rectangles,
+                                         DamageRegion::maximum_rectangles + 1U);
+    }
     // Glass over the damaged backplane shows it changed (E9-B).
     if (plane == PaintPlane::backplane) damage_backplane_readers(&damage);
 }

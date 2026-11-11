@@ -1,12 +1,23 @@
 #include "gui_forms/window.hpp"
 
 #include "../../scheduler/request/scheduled_frame_request.hpp"
+#include "../../failure/fail_fast.hpp"
 
+#include <chrono>
+#include <functional>
 #include <stdexcept>
 #include <unordered_set>
 #include <utility>
 
 namespace gui_forms {
+namespace {
+
+// The named target the fail-fast boundary calls for one UI timer tick.
+void run_ui_timer(std::function<void(FrameTime)>& callback, FrameTime now) {
+    callback(now);
+}
+
+} // namespace
 
 bool SurfaceRoot::needs_frame() const noexcept {
     return paint_pending();
@@ -137,6 +148,8 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
     compact_frame_requests();
 
     FramePollResult result;
+    // The latest a due timer or motion frame was polled after its deadline.
+    FrameInterval worst_lateness = FrameInterval::zero();
     result.suppressed_by_occlusion = occluded_;
     if (occluded_) metrics_.record_occluded_frame_poll();
     frame_poll_invalidated_.clear();
@@ -159,15 +172,10 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
             // back only while the request stays connected and empty.
             std::function<void(FrameTime)> callback = std::move((*request).callback);
             (*request).callback = {};
-            if (callback) {
-                try {
-                    callback(now);
-                } catch (...) {
-                    (*request).disconnect();
-                    ++result.callback_faults;
-                    metrics_.record_frame_callback_fault();
-                }
-            }
+            if (lateness > worst_lateness) worst_lateness = lateness;
+            // The timer's callback is application code: an exception from
+            // it ends the process at the fail-fast boundary.
+            if (callback) gui_forms::detail::call_failing_fast("scheduler.ui_timer", &run_ui_timer, callback, now);
             if ((*request).connected() && !(*request).callback) (*request).callback = std::move(callback);
             continue;
         }
@@ -186,6 +194,7 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
             const FrameInterval::rep skipped = lateness / (*request).interval;
             result.coalesced_requests += static_cast<std::uint64_t>(skipped);
             (*request).deadline += (*request).interval * (skipped + 1);
+            if (lateness > worst_lateness) worst_lateness = lateness;
             metrics_.record_callback_emitted();
             motion_clock_.advance(now);
             continue;
@@ -225,6 +234,14 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
     }
 
     compact_frame_requests();
+    // wake_on_time: the latest due timer or motion frame was polled within
+    // the tolerance of its deadline (one check per poll).
+    const std::uint64_t late_nanoseconds = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(worst_lateness).count());
+    const std::uint64_t tolerance = metrics_.expectation_thresholds().late_wake_nanoseconds;
+    if (late_nanoseconds > tolerance) {
+        metrics_.record_expectation_miss(HousekeepingExpectation::wake_on_time, tolerance, late_nanoseconds);
+    }
     metrics_.record_frame_poll(result.deadlines_fired, result.motion_clock_ticks, result.ui_timer_ticks,
                                result.coalesced_requests);
     result.damage_pending = needs_frame();

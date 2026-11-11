@@ -8,6 +8,7 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 #include "macos_host.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 #include "application_menu.hpp"
 #include "front_reuse.hpp"
 #include "live_surface_damage.hpp"
@@ -993,7 +994,6 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     // semantic change then republishes the tree at once, so that its
     // element posts a changed value or selection when it changes.
     BOOL _publishesTextRanges;
-    std::uint64_t _nativeCallbackFaults;
     BOOL _initialHostOccluded;
     std::uint64_t _scheduledWakeCount;
     std::uint64_t _damageCollectionCount;
@@ -1080,8 +1080,8 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (void)invalidationOverlayTick;
 - (void)setDisplayTraceEnabled:(BOOL)enabled;
 - (MacDisplayLinkTrace)displayTraceSnapshot;
-- (void)recordNativeCallbackFault:(const char*)operation
-                          message:(const char*)message;
+- (void)answerDisplayLinkTick;
+- (void)answerDrainPostedWork;
 - (void)drawRetainedRect:(NSRect)dirtyRect;
 - (void)prepareForShutdown;
 - (BOOL)acceptsWindowRequest;
@@ -2089,6 +2089,20 @@ void post_perform_close(NSWindow* window) {
     WindowWork* const work = new WindowWork{window};
     post_main_work(work, &perform_close_on_main);
 }
+// The named targets the fail-fast boundary calls for GUIFormsView's native
+// entries (call_failing_fast): each sends the entry's own message.
+void run_display_link_tick(GUIFormsView* view) {
+    [view answerDisplayLinkTick];
+}
+void run_posted_work(GUIFormsView* view) {
+    [view answerDrainPostedWork];
+}
+void run_collect_damage(GUIFormsView* view) {
+    [view collectDamage];
+}
+void run_draw_retained(GUIFormsView* view, NSRect dirty) {
+    [view drawRetainedRect:dirty];
+}
 } // namespace
 
 @implementation GUIFormsView
@@ -2114,7 +2128,6 @@ void post_perform_close(NSWindow* window) {
         _hostAttached = NO;
         _lastSemanticGeneration = 0;
         _accessibilityCacheKey = MacAccessibilityTreeKey{};
-        _nativeCallbackFaults = 0;
         _initialHostOccluded = YES;
         _scheduledWakeCount = 0;
         _damageCollectionCount = 0;
@@ -2695,45 +2708,42 @@ void post_perform_close(NSWindow* window) {
     std::optional<MacCpuScope> cpuScope{};
     if (_cpuAttribution.enabled) cpuScope.emplace(_cpuAttribution, 2U);
     ++_damageCollectionCount;
-    try {
-        if (!_model) {
-            return;
-        }
-        const gui_forms::FrameTime pollTime = std::chrono::steady_clock::now();
-        const gui_forms::FramePollResult pollResult = (*_model).poll_frame_schedule(pollTime);
-        if (_causalTrace && (*_causalTrace).enabled) {
-            (*_causalTrace).record_poll(pollTime, pollResult.deadlines_fired, pollResult.next_wake);
-        }
-        const std::uint64_t semanticGeneration = (*_model).semantic_generation();
-        if (semanticGeneration != _lastSemanticGeneration) {
-            _lastSemanticGeneration = semanticGeneration;
-            _semanticAccessibilityChildren = nil;
-            _accessibilityCacheKey = MacAccessibilityTreeKey{};
-            // Republishing posts a changed live region's announcement, and
-            // a text node's changed value or selection, now.
-            if (_publishesLiveRegion == YES || _publishesTextRanges == YES) {
-                static_cast<void>([self accessibilityChildren]);
-            }
-            NSAccessibilityPostNotification(
-                self, NSAccessibilityLayoutChangedNotification);
-        }
-        DamageRegion damage = (*_model).take_damage();
-        const double scale =
-            self.window == nil ? 1.0 : self.window.backingScaleFactor;
-        [self takeScrollCopies];
-        for (GFRect rect : damage.rectangles()) {
-            rect = gui_forms::detail::align_damage_outward(rect, scale);
-            _pendingDamage.add(rect);
-            [self setNeedsDisplayInRect:
-                NSMakeRect(rect.x, rect.y, rect.width, rect.height)];
-        }
-        [self startDisplayLinkIfNeeded];
-        [self armWakeTimer];
-    } catch (const std::exception& error) {
-        [self recordNativeCallbackFault:"collect-damage" message:error.what()];
-    } catch (...) {
-        [self recordNativeCallbackFault:"collect-damage" message:"unknown"];
+    // Housekeeping: nothing is caught. The native entries that call it
+    // (the wake, the display link, posted work, drawing) are the fail-fast
+    // boundary.
+    if (!_model) {
+        return;
     }
+    const gui_forms::FrameTime pollTime = std::chrono::steady_clock::now();
+    const gui_forms::FramePollResult pollResult = (*_model).poll_frame_schedule(pollTime);
+    if (_causalTrace && (*_causalTrace).enabled) {
+        (*_causalTrace).record_poll(pollTime, pollResult.deadlines_fired, pollResult.next_wake);
+    }
+    const std::uint64_t semanticGeneration = (*_model).semantic_generation();
+    if (semanticGeneration != _lastSemanticGeneration) {
+        _lastSemanticGeneration = semanticGeneration;
+        _semanticAccessibilityChildren = nil;
+        _accessibilityCacheKey = MacAccessibilityTreeKey{};
+        // Republishing posts a changed live region's announcement, and
+        // a text node's changed value or selection, now.
+        if (_publishesLiveRegion == YES || _publishesTextRanges == YES) {
+            static_cast<void>([self accessibilityChildren]);
+        }
+        NSAccessibilityPostNotification(
+            self, NSAccessibilityLayoutChangedNotification);
+    }
+    DamageRegion damage = (*_model).take_damage();
+    const double scale =
+        self.window == nil ? 1.0 : self.window.backingScaleFactor;
+    [self takeScrollCopies];
+    for (GFRect rect : damage.rectangles()) {
+        rect = gui_forms::detail::align_damage_outward(rect, scale);
+        _pendingDamage.add(rect);
+        [self setNeedsDisplayInRect:
+            NSMakeRect(rect.x, rect.y, rect.width, rect.height)];
+    }
+    [self startDisplayLinkIfNeeded];
+    [self armWakeTimer];
 }
 
 - (void)startDisplayLinkIfNeeded {
@@ -2857,6 +2867,10 @@ void post_perform_close(NSWindow* window) {
 }
 
 - (void)displayLinkTick {
+    gui_forms::detail::call_failing_fast("macos.display_link", &run_display_link_tick, self);
+}
+
+- (void)answerDisplayLinkTick {
     if (_displayTrace) {
         MacDisplayLinkTrace& trace = *_displayTrace;
         if (trace.count < trace.timestamps.size()) {
@@ -2868,95 +2882,85 @@ void post_perform_close(NSWindow* window) {
             ++trace.count;
         } else trace.overflow = true;
     }
-    try {
-        ++_displayTickCount;
-        if (!_model || self.window == nil || _hostOccluded == YES) {
-            [self stopDisplayLink];
-            return;
-        }
-        // A failed batch needs a fresh composition, including unchanged surfaces.
-        // Reusing cached clips could cover a newly opened overlay or hidden control.
-        const bool retry = !_pendingLivePresentations.empty();
-        bool publicationChanged = false;
-        std::vector<LiveSurfacePresentation> updates =
-            (*_model).take_live_surface_presentations(retry, &publicationChanged);
-        _pendingLivePresentations = std::move(updates);
-        if (!(*_model).has_live_surface_presentations()) {
-            [self stopDisplayLink];
-            return;
-        }
-        if (_pendingLivePresentations.empty()) {
-            // Publication posts CollectDamageWake, which restarts this paused link.
-            // Arm after pausing, then recheck generations to avoid a lost wake.
-            [self stopDisplayLink];
-            (*_model).set_live_surface_idle_waiting(true);
-            return;
-        }
-        const double scale = self.window.backingScaleFactor;
-        // When the raster still holds the previous presentation, ask AppKit to
-        // redraw only where the surface actually changed. Redrawing the whole
-        // clip left every overlay inside it as uncovered damage, so a floating
-        // control was retained-painted on each publication however far away
-        // the change was. drawRetainedRect: re-requests any part of the copied
-        // region the flush did not cover, so a narrower request never leaves
-        // stale pixels presented.
-        const bool rasterReusable = _rasterHasContent == YES && _liveRegionLost == NO &&
-            (*_model).paint_lease_snapshot().state == gui_forms::PaintLeaseState::clean;
-        for (const LiveSurfacePresentation& update : _pendingLivePresentations) {
-            GFRect request = update.clip;
-            if (rasterReusable && update.damage_limited && update.surface) {
-                const gui_forms::LiveSurfaceFrame latest = (*update.surface).acquire_latest();
-                if (latest && latest.opaque() && !latest.damage().empty()) {
-                    const GFRect changed = gui_forms::detail::live_damage_in_window(
-                        latest.damage(), update.destination, latest.width(), latest.height(), scale);
-                    const GFRect narrowed = GFRect::intersection(update.clip, changed);
-                    if (!narrowed.empty()) request = narrowed;
-                }
+    ++_displayTickCount;
+    if (!_model || self.window == nil || _hostOccluded == YES) {
+        [self stopDisplayLink];
+        return;
+    }
+    // A failed batch needs a fresh composition, including unchanged surfaces.
+    // Reusing cached clips could cover a newly opened overlay or hidden control.
+    const bool retry = !_pendingLivePresentations.empty();
+    bool publicationChanged = false;
+    std::vector<LiveSurfacePresentation> updates =
+        (*_model).take_live_surface_presentations(retry, &publicationChanged);
+    _pendingLivePresentations = std::move(updates);
+    if (!(*_model).has_live_surface_presentations()) {
+        [self stopDisplayLink];
+        return;
+    }
+    if (_pendingLivePresentations.empty()) {
+        // Publication posts CollectDamageWake, which restarts this paused link.
+        // Arm after pausing, then recheck generations to avoid a lost wake.
+        [self stopDisplayLink];
+        (*_model).set_live_surface_idle_waiting(true);
+        return;
+    }
+    const double scale = self.window.backingScaleFactor;
+    // When the raster still holds the previous presentation, ask AppKit to
+    // redraw only where the surface actually changed. Redrawing the whole
+    // clip left every overlay inside it as uncovered damage, so a floating
+    // control was retained-painted on each publication however far away
+    // the change was. drawRetainedRect: re-requests any part of the copied
+    // region the flush did not cover, so a narrower request never leaves
+    // stale pixels presented.
+    const bool rasterReusable = _rasterHasContent == YES && _liveRegionLost == NO &&
+        (*_model).paint_lease_snapshot().state == gui_forms::PaintLeaseState::clean;
+    for (const LiveSurfacePresentation& update : _pendingLivePresentations) {
+        GFRect request = update.clip;
+        if (rasterReusable && update.damage_limited && update.surface) {
+            const gui_forms::LiveSurfaceFrame latest = (*update.surface).acquire_latest();
+            if (latest && latest.opaque() && !latest.damage().empty()) {
+                const GFRect changed = gui_forms::detail::live_damage_in_window(
+                    latest.damage(), update.destination, latest.width(), latest.height(), scale);
+                const GFRect narrowed = GFRect::intersection(update.clip, changed);
+                if (!narrowed.empty()) request = narrowed;
             }
-            const GFRect aligned = gui_forms::detail::align_damage_outward(request, scale);
-            [self setNeedsDisplayInRect:
-                NSMakeRect(aligned.x, aligned.y, aligned.width, aligned.height)];
         }
-        // Where a new frame changed pixels beneath an overlay, the model now
-        // holds that share as damage (take_live_surface_presentations). Take
-        // it into this flush so the overlay is retained-painted over the new
-        // frame together with the live copy, not one wake later.
-        const DamageRegion beneathOverlays = (*_model).take_damage();
-        [self takeScrollCopies];
-        for (GFRect rect : beneathOverlays.rectangles()) {
-            rect = gui_forms::detail::align_damage_outward(rect, scale);
-            _pendingDamage.add(rect);
-            [self setNeedsDisplayInRect:
-                NSMakeRect(rect.x, rect.y, rect.width, rect.height)];
-        }
-        // AppKit calls on the main run loop, following this view's screen. Keep
-        // its default variable refresh policy; sample only the newest frame.
-        [self displayIfNeeded];
-        if (!publicationChanged && _pendingLivePresentations.empty()) {
-            // Unchanged surfaces may still need one composition for an overlay
-            // edit. Once presented, a static overlay must not keep us ticking.
-            [self stopDisplayLink];
-            (*_model).set_live_surface_idle_waiting(true);
-        }
-    } catch (const std::exception& error) {
-        [self recordNativeCallbackFault:"display-link" message:error.what()];
+        const GFRect aligned = gui_forms::detail::align_damage_outward(request, scale);
+        [self setNeedsDisplayInRect:
+            NSMakeRect(aligned.x, aligned.y, aligned.width, aligned.height)];
+    }
+    // Where a new frame changed pixels beneath an overlay, the model now
+    // holds that share as damage (take_live_surface_presentations). Take
+    // it into this flush so the overlay is retained-painted over the new
+    // frame together with the live copy, not one wake later.
+    const DamageRegion beneathOverlays = (*_model).take_damage();
+    [self takeScrollCopies];
+    for (GFRect rect : beneathOverlays.rectangles()) {
+        rect = gui_forms::detail::align_damage_outward(rect, scale);
+        _pendingDamage.add(rect);
+        [self setNeedsDisplayInRect:
+            NSMakeRect(rect.x, rect.y, rect.width, rect.height)];
+    }
+    // AppKit calls on the main run loop, following this view's screen. Keep
+    // its default variable refresh policy; sample only the newest frame.
+    [self displayIfNeeded];
+    if (!publicationChanged && _pendingLivePresentations.empty()) {
+        // Unchanged surfaces may still need one composition for an overlay
+        // edit. Once presented, a static overlay must not keep us ticking.
         [self stopDisplayLink];
-    } catch (...) {
-        [self recordNativeCallbackFault:"display-link" message:"unknown"];
-        [self stopDisplayLink];
+        (*_model).set_live_surface_idle_waiting(true);
     }
 }
 
 - (void)drainPostedWork {
-    try {
-        if (!_model) return;
-        static_cast<void>((*_model).drain_posted_work());
-        [self collectDamage];
-    } catch (const std::exception& error) {
-        [self recordNativeCallbackFault:"posted-work" message:error.what()];
-    } catch (...) {
-        [self recordNativeCallbackFault:"posted-work" message:"unknown"];
-    }
+    gui_forms::detail::call_failing_fast("macos.posted_work", &run_posted_work, self);
+}
+
+- (void)answerDrainPostedWork {
+    if (!_model) return;
+    static_cast<void>((*_model).drain_posted_work());
+    [self collectDamage];
 }
 
 - (void)armWakeTimer {
@@ -2993,33 +2997,11 @@ void post_perform_close(NSWindow* window) {
     std::optional<MacCausalWakeScope> causalScope{};
     if (_causalTrace && (*_causalTrace).enabled) causalScope.emplace(*_causalTrace);
     ++_scheduledWakeCount;
-    // Objective-C exceptions do not participate in C++ exception handling.
-    // A raised AppKit exception escaping a libdispatch source terminates the
-    // process, so contain it at the native callback boundary and preserve its
-    // exact name/reason in the same structured fault channel as C++ failures.
-    @try {
-        [self collectDamage];
-    } @catch (NSException* exception) {
-        NSString* name = exception.name == nil ? @"NSException" : exception.name;
-        NSString* reason = exception.reason == nil ? @"no reason" : exception.reason;
-        NSString* diagnostic = [NSString stringWithFormat:@"%@: %@", name, reason];
-        [self recordNativeCallbackFault:"scheduled-wake"
-                                 message:diagnostic.UTF8String];
-    }
+    // A libdispatch source's handler: the fail-fast boundary. On the 64-bit
+    // runtime it catches an Objective-C exception as well as a C++ one.
+    gui_forms::detail::call_failing_fast("macos.scheduled_wake", &run_collect_damage, self);
 }
 
-- (void)recordNativeCallbackFault:(const char*)operation
-                          message:(const char*)message {
-    ++_nativeCallbackFaults;
-    if (_wakeSource != nil) {
-        dispatch_source_set_timer(_wakeSource, DISPATCH_TIME_FOREVER,
-                                  DISPATCH_TIME_FOREVER, 0);
-    }
-    std::fprintf(stderr, "gui-forms-host=%s-fault|what:%s\n",
-                 operation == nullptr ? "native-callback" : operation,
-                 message == nullptr ? "unknown" : message);
-    std::fflush(stderr);
-}
 
 - (BOOL)acceptsWindowRequest {
     if (_hostSession == nullptr) return NO;
@@ -3103,29 +3085,7 @@ void post_perform_close(NSWindow* window) {
 
 - (void)drawRect:(NSRect)dirtyRect {
     ++_nativeDrawCount;
-    try {
-        [self drawRetainedRect:dirtyRect];
-    } catch (const std::exception& error) {
-        _raster.end_frame();
-        _liveFrames.clear();
-        _liveRegionLost = YES;
-        for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
-        _appliedCopyClips.clear();
-#if defined(GUI_FORMS_PREPARED_TEXT)
-        _raster.abort_prepared_frame();
-#endif
-        [self recordNativeCallbackFault:"draw" message:error.what()];
-    } catch (...) {
-        _raster.end_frame();
-        _liveFrames.clear();
-        _liveRegionLost = YES;
-        for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
-        _appliedCopyClips.clear();
-#if defined(GUI_FORMS_PREPARED_TEXT)
-        _raster.abort_prepared_frame();
-#endif
-        [self recordNativeCallbackFault:"draw" message:"unknown"];
-    }
+    gui_forms::detail::call_failing_fast("macos.draw", &run_draw_retained, self, dirtyRect);
 }
 
 - (void)drawRetainedRect:(NSRect)dirtyRect {
@@ -4100,9 +4060,7 @@ void post_perform_close(NSWindow* window) {
         ",\"last_frame_damage_bounds_area\":" + std::to_string(_lastFrameDamageBoundsArea) +
         ",\"last_cg_destination_area\":" + std::to_string(_lastCGDestinationArea) +
         ",\"last_cg_clip_bounds_area\":" + std::to_string(_lastCGClipBoundsArea) +
-        ",\"last_cg_source_bytes\":" + std::to_string(_lastCGSourceBytes) +
-        ",\"native_callback_faults\":" +
-        std::to_string(_nativeCallbackFaults) + "}";
+        ",\"last_cg_source_bytes\":" + std::to_string(_lastCGSourceBytes) + "}";
 }
 
 @end
@@ -4186,6 +4144,18 @@ void finish_run(MacRunEnd& end) {
 }
 
 } // namespace gui_forms::host
+
+namespace {
+// The named targets the fail-fast boundary calls for the run's application
+// callbacks (windowWillClose:, application:openURLs:).
+void run_closed_handler(std::function<void()>& callback) {
+    callback();
+}
+void run_open_files(const std::function<void(std::vector<std::string>)>& open_files,
+                    std::vector<std::string>& paths) {
+    open_files(std::move(paths));
+}
+} // namespace
 
 @interface GUIFormsWindowDelegate : NSObject <NSWindowDelegate> {
     __weak GUIFormsView* _view;
@@ -4273,7 +4243,8 @@ void finish_run(MacRunEnd& end) {
     if (_closedHandler) {
         std::function<void()> callback = std::move(_closedHandler);
         _closedHandler = {};
-        callback();
+        // Application code (audit P1): through the fail-fast boundary.
+        gui_forms::detail::call_failing_fast("macos.window_will_close", &run_closed_handler, callback);
     }
     gui_forms::host::mac_run_close_finished(_run, _windowId);
     if (!_stopsApplicationOnClose) return;
@@ -4389,7 +4360,8 @@ void finish_run(MacRunEnd& end) {
         paths.emplace_back(path);
     }
     if (paths.empty()) return;
-    (*_openFiles)(std::move(paths));
+    // Application code (audit P1): through the fail-fast boundary.
+    gui_forms::detail::call_failing_fast("macos.open_urls", &run_open_files, *_openFiles, paths);
 }
 // The reason of the quit request being handled: session_end when the quit
 // Apple event says the session is ending (log out, restart, shut down, with

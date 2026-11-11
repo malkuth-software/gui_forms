@@ -285,8 +285,7 @@ int main(const int argc, char** const argv) {
     windows.push_back(std::move(child));
     const int result = gui_forms::host::run_macos_application(std::move(windows));
     probe.timer.disconnect();
-    if (result != 0 || !probe.completed || probe.closed_count != 2 || !probe.failure.empty() ||
-        probe.final_snapshot.find("\"native_callback_faults\":0") == std::string::npos) {
+    if (result != 0 || !probe.completed || probe.closed_count != 2 || !probe.failure.empty()) {
         std::fprintf(stderr, "idle visibility probe failed: %s\n", probe.failure.c_str());
         return 1;
     }

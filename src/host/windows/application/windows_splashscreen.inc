@@ -17,7 +17,7 @@ struct SplashscreenFrame final {
     int height{};
 };
 
-LRESULT CALLBACK splashscreen_window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+LRESULT answer_splashscreen_window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
     if (message == WM_NCCREATE) {
         const CREATESTRUCTW* create = reinterpret_cast<const CREATESTRUCTW*>(lparam);
         SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>((*create).lpCreateParams));
@@ -49,6 +49,10 @@ LRESULT CALLBACK splashscreen_window_procedure(HWND window, UINT message, WPARAM
     default: break;
     }
     return DefWindowProcW(window, message, wparam, lparam);
+}
+
+LRESULT CALLBACK splashscreen_window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+    return gui_forms::detail::call_failing_fast("windows.splashscreen_window_procedure", &answer_splashscreen_window_procedure, window, message, wparam, lparam);
 }
 
 class WindowsSplashscreenSurface final : public gui_forms::detail::SplashscreenSurface {

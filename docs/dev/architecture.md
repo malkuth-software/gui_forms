@@ -117,12 +117,20 @@ The details are in [Retained tree](../user/retained-tree),
 - Attached state changes only on the window's UI thread. A wrong-thread
   setter throws and is counted; it never partially applies. Other threads
   post with `begin_invoke` or block with `invoke`.
-- Faults are contained where they arise. A throwing paint callback restores
-  the previous chunks, a throwing frame or timer callback is disconnected and
-  counted while its peers continue, and a dispatched callback's exception
-  stays on its operation. The AppKit and Win32 scheduler callbacks contain any
-  exception that still escapes, and the experimental C ABI turns exceptions
-  into error results.
+- Real problems fail fast; housekeeping is not a fault. Every native entry
+  (window procedure, COM method, ATK or X11 callback, AppKit delegate) and
+  every application callback the scheduler, motion clock or host session
+  runs goes through one boundary, `call_failing_fast`, which reports the
+  site, the exception text and a stack, then ends the process
+  (`tools/check_native_boundaries.py` flags an unrouted entry). Scheduler
+  wakes, paint ticks, the motion clock, damage collection and live-surface
+  drains catch nothing: they keep counters against named expectations
+  (a wake on time, a paint within budget, a drain that keeps up, damage
+  that stays bounded), and a missed one adds to `MetricsSnapshot` and
+  prints a rate-limited `gui-forms-telemetry=expectation|...` record. A
+  throwing paint callback still restores the previous chunks before the
+  exception goes on, a dispatched callback's exception stays on its
+  operation, and the experimental C ABI turns exceptions into error results.
 
 ## Host-owned appearance
 

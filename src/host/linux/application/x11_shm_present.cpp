@@ -18,7 +18,7 @@ namespace {
 // it (a remote display answers BadAccess). UI thread only.
 thread_local bool attach_failed = false;
 
-int attach_error(Display *, XErrorEvent *) {
+int attach_error(Display *, XErrorEvent *) noexcept {
   attach_failed = true;
   return 0;
 }

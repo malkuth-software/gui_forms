@@ -29,7 +29,7 @@ struct WindowsRunSlot final {
     std::string capture_path{};
 };
 
-BOOL CALLBACK collect_device_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context) {
+BOOL answer_collect_device_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context) {
     std::vector<HostMonitor>& monitors = *reinterpret_cast<std::vector<HostMonitor>*>(context);
     MONITORINFOEXW info{};
     info.cbSize = sizeof(info);
@@ -51,6 +51,10 @@ BOOL CALLBACK collect_device_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM conte
     return TRUE;
 }
 
+BOOL CALLBACK collect_device_monitor(HMONITOR monitor, HDC unnamed_1, LPRECT unnamed_2, LPARAM context) {
+    return gui_forms::detail::call_failing_fast("windows.collect_device_monitor", &answer_collect_device_monitor, monitor, unnamed_1, unnamed_2, context);
+}
+
 // EnumDisplayMonitors' context for fill_logical_monitor: the records to
 // write in place and how many have been written.
 struct LogicalMonitorFill final {
@@ -62,7 +66,7 @@ struct LogicalMonitorFill final {
 // logical units, reusing the record's id storage: the same monitor as
 // collect_device_monitor followed by logical_monitor, allocating nothing
 // once the records exist.
-BOOL CALLBACK fill_logical_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context) {
+BOOL answer_fill_logical_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context) {
     LogicalMonitorFill& fill = *reinterpret_cast<LogicalMonitorFill*>(context);
     MONITORINFOEXW info{};
     info.cbSize = sizeof(info);
@@ -93,6 +97,9 @@ BOOL CALLBACK fill_logical_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context
     make_logical_monitor(value);
     ++fill.count;
     return TRUE;
+}
+BOOL CALLBACK fill_logical_monitor(HMONITOR monitor, HDC unnamed_1, LPRECT unnamed_2, LPARAM context) {
+    return gui_forms::detail::call_failing_fast("windows.fill_logical_monitor", &answer_fill_logical_monitor, monitor, unnamed_1, unnamed_2, context);
 }
 
 // The monitors in Win32 device desktop units, as HostServices reports them.

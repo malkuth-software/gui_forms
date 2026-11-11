@@ -2436,6 +2436,10 @@ private:
     // Restores the paint pass's checkpoints, re-damages its rectangles and
     // releases the checkpoints (paint_checkpoints_ is left empty).
     void abandon_paint(std::uint64_t generation_before);
+    // paint_rectangles timed against the paint budget
+    // (HousekeepingExpectation::paint_within_budget).
+    std::optional<PaintReceipt> paint_timed(Painter& painter, std::span<const Rect> rectangles,
+                                            bool explicit_request);
     // One paint pass over `rectangles` (window coordinates, disjoint after
     // merging). With `explicit_request`, every plane paints each rectangle;
     // otherwise each plane paints only where it holds damage.

@@ -167,9 +167,9 @@ private:
     void collect_handles();
     void disarm_when_idle() noexcept;
     void publish_moving() noexcept;
-    // One step's invalidation and listener; `handle` is the value's record
-    // if it is still enlisted (a default handle when it is not).
-    void notify(Control& owner, MotionValue& value, const MotionStep& step, MotionRecordHandle handle);
+    // One step's invalidation and listener (through the fail-fast
+    // boundary).
+    void notify(Control& owner, MotionValue& value, const MotionStep& step);
 
     // One ambient effect: its part's record, its frame interval, when its
     // next frame is due, and the paint its last frame was answered by

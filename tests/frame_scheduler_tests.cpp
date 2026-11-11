@@ -35,20 +35,6 @@ public:
     void draw_image(ImageId, Rect, double) override {}
 };
 
-// A UI timer target that counts its calls and throws on each.
-class ThrowingTick final {
-public:
-    explicit ThrowingTick(std::uint64_t& calls) : calls_(&calls) {}
-
-    void operator()(FrameTime) const {
-        ++(*calls_);
-        throw std::runtime_error("intentional frame callback fault");
-    }
-
-private:
-    std::uint64_t* calls_;
-};
-
 // A UI timer target that counts its calls.
 class CountingTick final {
 public:
@@ -224,38 +210,6 @@ void test_ui_timer_skips_catch_up_bursts() {
             "disconnecting the timer must restore quiescence");
 }
 
-void test_throwing_frame_callback_isolated_and_disconnected() {
-    std::shared_ptr<gui_forms::Control> root = make_control<Control>(StableId("scheduler.fault.root"));
-    std::shared_ptr<gui_forms::Control> throwing = make_control<Control>(StableId("scheduler.fault.throwing"));
-    std::shared_ptr<gui_forms::Control> healthy = make_control<Control>(StableId("scheduler.fault.healthy"));
-    (*root).set_requested_bounds({0.0, 0.0, 160.0, 90.0});
-    (*throwing).set_requested_bounds({0.0, 0.0, 70.0, 40.0});
-    (*healthy).set_requested_bounds({80.0, 0.0, 70.0, 40.0});
-    (*root).add_child(throwing);
-    (*root).add_child(healthy);
-    Window window(root, {160.0, 90.0});
-    NullPainter painter;
-    window.paint(painter, window.take_damage().bounds());
-    window.reset_activity_metrics();
-    const FrameTime due = FrameTime{} + 33ms;
-    std::uint64_t bad_calls = 0U;
-    std::uint64_t good_calls = 0U;
-    FrameRequestToken bad = window.schedule_ui_timer(*throwing, 33ms, due, ThrowingTick{bad_calls});
-    FrameRequestToken good = window.schedule_ui_timer(*healthy, 33ms, due, CountingTick{good_calls});
-
-    const FramePollResult result = window.poll_frame_schedule(due);
-    const MetricsSnapshot metrics = window.metrics_snapshot();
-    require(result.ui_timer_ticks == 2U &&
-                result.callback_faults == 1U &&
-                bad_calls == 1U && good_calls == 1U && !bad.connected() &&
-                good.connected() && metrics.frame_callback_faults == 1U,
-            "one throwing timer callback must disconnect itself, report the fault, and preserve a healthy peer");
-    const FramePollResult later = window.poll_frame_schedule(due + 33ms);
-    require(later.callback_faults == 0U && later.ui_timer_ticks == 1U &&
-                bad_calls == 1U && good_calls == 2U && good.connected(),
-            "a faulted timer must not crash or retry on later native timer turns");
-}
-
 void test_frame_callbacks_use_fixed_due_set_and_defer_nested_poll() {
     std::shared_ptr<gui_forms::Control> root = make_control<Control>(StableId("scheduler.reentry.root"));
     Window window(root, {160.0, 90.0});
@@ -404,7 +358,6 @@ int main() {
         test_deadline_is_exact_and_one_shot();
         test_same_target_deadlines_coalesce();
         test_ui_timer_skips_catch_up_bursts();
-        test_throwing_frame_callback_isolated_and_disconnected();
         test_frame_callbacks_use_fixed_due_set_and_defer_nested_poll();
         test_owner_disposal_revokes_ui_timer();
         test_occlusion_holds_paint_deadline();

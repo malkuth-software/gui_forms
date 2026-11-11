@@ -33,6 +33,9 @@ public:
     [[nodiscard]] HostSessionSnapshot snapshot() const;
 
 private:
+    // Delivers an accepted event; dispatch calls it through the fail-fast
+    // boundary.
+    void deliver(HostEvent& event, HostDispatchResult& result);
     void observe_pointer_capture(const PointerCaptureChange& change);
     void observe_modal_transition(const HostModalTransition& transition);
 

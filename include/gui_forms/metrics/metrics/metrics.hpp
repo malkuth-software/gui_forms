@@ -97,7 +97,13 @@ public:
     void record_engine_primitive_refusal() noexcept;
     void record_engine_material_assembly() noexcept;
     void record_paint_group_refusals(std::uint64_t refusals) noexcept;
-    void record_frame_callback_fault() noexcept;
+    // Counts a missed housekeeping expectation and, rate-limited, prints
+    // one telemetry line: `expected` and `observed` are in the
+    // expectation's unit (nanoseconds, frames or rectangles).
+    void record_expectation_miss(HousekeepingExpectation expectation, std::uint64_t expected,
+                                 std::uint64_t observed) noexcept;
+    [[nodiscard]] const ExpectationThresholds& expectation_thresholds() const noexcept;
+    void set_expectation_thresholds(const ExpectationThresholds& thresholds) noexcept;
     void record_reentrant_frame_poll() noexcept;
     void record_occlusion_transition(bool occluded) noexcept;
     void record_occluded_frame_poll() noexcept;
@@ -121,6 +127,7 @@ public:
 
 private:
     MetricsSnapshot values_;
+    ExpectationThresholds thresholds_{};
     std::atomic<std::uint64_t> wrong_thread_rejections_{};
 };
 

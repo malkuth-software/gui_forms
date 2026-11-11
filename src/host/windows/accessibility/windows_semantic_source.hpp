@@ -207,7 +207,7 @@ struct SemanticSource final {
     // one is built and becomes current. Returns false, with `client` null,
     // when the window has gone or the build failed; the current tree is
     // then kept.
-    [[nodiscard]] bool snapshot(SemanticTreeRef& client) noexcept;
+    [[nodiscard]] bool snapshot(SemanticTreeRef& client);
     // Releases the current and announced trees (the window is going).
     void release_trees() noexcept;
     // Performs `action` on the located node through the window, named by
@@ -216,7 +216,7 @@ struct SemanticSource final {
     // replaced control is refused. A virtual node with no scope is named by
     // its stable ID alone. Returns true when the control took it.
     [[nodiscard]] bool perform(const SemanticLocation& location, SemanticAction action,
-                               std::string_view value) noexcept;
+                               std::string_view value);
 };
 
 } // namespace gui_forms::host

@@ -6,6 +6,7 @@
 
 #include "gui_forms/control.hpp"
 #include "gui_forms/window.hpp"
+#include "../../failure/fail_fast.hpp"
 
 #include <limits>
 #include <optional>
@@ -13,6 +14,14 @@
 #include <utility>
 
 namespace gui_forms {
+namespace {
+
+// The named target the fail-fast boundary calls for one listener step.
+void run_motion_listener(const MotionListener& listener, const MotionStep& step) {
+    listener(step);
+}
+
+} // namespace
 
 MotionClock::MotionClock(SurfaceRoot& root) noexcept : window_(&root) {}
 
@@ -307,24 +316,13 @@ void MotionClock::publish_moving() noexcept {
     (*window_).metrics().set_motion_values_moving(static_cast<std::uint64_t>(moving_));
 }
 
-// Runs one value's step: the declared invalidation, then the listener. A
-// throwing listener is a frame callback fault; its value (if it is still
-// enlisted under `handle`) jumps to its end.
-void MotionClock::notify(Control& owner, MotionValue& value, const MotionStep& step, MotionRecordHandle handle) {
+// Runs one value's step: the declared invalidation, then the listener. The
+// listener is application code, called through the fail-fast boundary.
+void MotionClock::notify(Control& owner, MotionValue& value, const MotionStep& step) {
     const Dirty invalidation = value.invalidation_;
     const MotionListener listener = value.listener_;
-    try {
-        if (invalidation != Dirty::none) owner.invalidate(invalidation);
-        listener(step);
-    } catch (...) {
-        (*window_).metrics().record_frame_callback_fault();
-        Record* const record = find(handle);
-        if (record != nullptr) {
-            MotionValue* const faulted = (*record).value;
-            release_slot(handle.slot);
-            (*faulted).stop();
-        }
-    }
+    if (invalidation != Dirty::none) owner.invalidate(invalidation);
+    gui_forms::detail::call_failing_fast("motion_clock.listener", &run_motion_listener, listener, step);
 }
 
 void MotionClock::advance(FrameTime now) {
@@ -358,7 +356,7 @@ void MotionClock::advance(FrameTime now) {
         step.cause = MotionStepCause::advanced;
         // The owner is held for the call, so its members (the value among
         // them) stay alive through the listener.
-        notify(*owner, value, step, handle);
+        notify(*owner, value, step);
     }
     advance_ambient(now);
 }
@@ -383,7 +381,7 @@ void MotionClock::finish_all(MotionStepCause cause) {
         step.current = value.current_;
         step.settled = true;
         step.cause = cause;
-        notify(*owner, value, step, MotionRecordHandle{});
+        notify(*owner, value, step);
     }
     // Ambient effects stop too; each part repaints at its static pose.
     stop_ambient(true);

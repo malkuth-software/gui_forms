@@ -16,6 +16,6 @@ private:
   XErrorHandler previous_;
   ForeignWindowScope *parent_;
   static thread_local ForeignWindowScope *active_;
-  static int handle(Display *display, XErrorEvent *error);
+  static int handle(Display *display, XErrorEvent *error) noexcept;
 };
 } // namespace gui_forms::host::linux_detail

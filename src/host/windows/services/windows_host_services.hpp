@@ -433,7 +433,7 @@ private:
         HCURSOR native;
     };
     std::vector<CursorEntry> cursors_;
-    static BOOL CALLBACK collect_monitor(HMONITOR monitor, HDC, LPRECT,
+    static BOOL answer_collect_monitor(HMONITOR monitor, HDC, LPRECT,
                                          LPARAM context) {
         std::vector<HostMonitor>& monitors =
             *reinterpret_cast<std::vector<HostMonitor>*>(context);
@@ -460,6 +460,9 @@ private:
         value.primary = (info.dwFlags & MONITORINFOF_PRIMARY) != 0U;
         monitors.push_back(std::move(value));
         return TRUE;
+    }
+    static BOOL CALLBACK collect_monitor(HMONITOR monitor, HDC unnamed_1, LPRECT unnamed_2, LPARAM context) {
+        return gui_forms::detail::call_failing_fast("windows.collect_monitor", &answer_collect_monitor, monitor, unnamed_1, unnamed_2, context);
     }
 
     // The chrome fields that are style bits of the owner window.

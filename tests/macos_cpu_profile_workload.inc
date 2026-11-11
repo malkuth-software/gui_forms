@@ -159,8 +159,6 @@ void validate_profile_hold(const CpuProfileWorkload& state) {
             first.metrics.occlusion_suspensions == last.metrics.occlusion_suspensions &&
             first.metrics.occlusion_resumes == last.metrics.occlusion_resumes,
             "hold_activity_changed");
-        profile_require(counter(last.host, "native_callback_faults") == 0U,
-                        "native_callback_fault");
         const bool active = index == 0U && state.focused;
         if (active) {
             profile_require(last.metrics.paint_passes > first.metrics.paint_passes &&
