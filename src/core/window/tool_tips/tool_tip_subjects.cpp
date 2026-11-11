@@ -10,6 +10,9 @@ namespace {
 
 // The deepest node under `point` among `nodes` and their children, or null.
 // The pointer is borrowed from `nodes`.
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 [[nodiscard]] const SemanticNode* node_at(const std::vector<SemanticNode>& nodes, Point point) {
     for (const SemanticNode& node : nodes) {
         if (!contains_point(node.bounds, point)) continue;
@@ -24,6 +27,9 @@ const SemanticNode* node_at(std::vector<SemanticNode>&& nodes, Point point) = de
 
 // The first node among `nodes` and their children whose states hold `state`,
 // or null. The pointer is borrowed from `nodes`.
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 [[nodiscard]] const SemanticNode* node_with_state(const std::vector<SemanticNode>& nodes,
                                                   SemanticState state) {
     for (const SemanticNode& node : nodes) {

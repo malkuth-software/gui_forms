@@ -1568,3 +1568,7 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t semantic_action_count
 
    Value: ``static_cast<std::size_t>(SemanticAction::count)``.
+
+.. cpp:var:: constexpr std::size_t maximum_virtual_semantic_depth
+
+   The deepest a control's virtual semantic children may nest below the control's own node: a child the control publishes directly is at level one. The window refuses a control's virtual children that nest deeper (std::invalid_argument naming the control, as it refuses an invalid virtual stable ID) before they join a snapshot. The stock controls nest at most four levels (a ribbon's tab, group and items; a grid's row, cell and error glyph). With the control nesting limit (64 levels), every snapshot is at most 64 + 16 levels deep, so the walks over it (the snapshot's JSON, the tool-tip and sub-surface lookups, the hosts' accessibility trees) may recurse once per level and a SemanticNode tree is destroyed recursively: at a few hundred bytes per level, at most about 40 KiB of stack. Value: ``16U``.

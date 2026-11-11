@@ -162,36 +162,62 @@ bool cover_spans(const Rect cover, const Rect damage, const double scale, const 
            (*control).parent().get() == expected_parent;
 }
 
-// A virtual child published without a runtime ID takes the one its stable ID
-// gives, so every node of a snapshot has a nonzero runtime ID; hosts keep
-// zero for the window's own object.
-void assign_missing_virtual_runtime_ids(std::vector<SemanticNode>& nodes) {
-    for (SemanticNode& node : nodes) {
-        if (node.runtime_id == 0U) {
-            node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
-        }
-        assign_missing_virtual_runtime_ids(node.children);
-    }
-}
+// One level of a walk over a control's virtual semantic children: the
+// list being walked and the next node in it.
+struct VirtualNodeFrame final {
+    std::vector<SemanticNode>* nodes{nullptr};
+    std::size_t next{0U};
+};
 
-// A virtual child's stable ID, and the panel it names as controlled, follow
-// the StableId segment rule like a control's: hosts and theme selectors
-// address them the same way. Throws std::invalid_argument naming the
-// publishing control.
-void require_valid_virtual_ids(const Control& owner, const std::vector<SemanticNode>& nodes) {
-    for (const SemanticNode& node : nodes) {
-        const bool valid = valid_stable_id(node.stable_id) &&
-                           (node.controlled_panel.empty() || valid_stable_id(node.controlled_panel));
-        if (!valid) {
-            const std::string_view shown = valid_stable_id(node.stable_id) ? std::string_view(node.controlled_panel)
-                                                                           : std::string_view(node.stable_id);
-            throw std::invalid_argument("GUI.Forms control \"" + std::string(owner.stable_id().value()) +
-                                        "\" published a semantic node ID \"" +
-                                        std::string(shown.substr(0U, 80U)) +
-                                        "\" that is not '.'-separated segments of lowercase ASCII letters and "
-                                        "digits joined by single '-'");
+using VirtualNodeFrames = std::array<VirtualNodeFrame, maximum_virtual_semantic_depth>;
+
+// Checks a control's virtual children before they join the snapshot, in
+// fixed storage of one frame per level (HOUSE_STYLE section 1): every
+// stable ID, and the panel a node names as controlled, follow the StableId
+// segment rule like a control's (hosts and theme selectors address them
+// the same way), and no node nests past maximum_virtual_semantic_depth.
+// Then gives each node published with runtime ID zero the one its stable
+// ID gives, so every node of a snapshot has a nonzero runtime ID (hosts
+// keep zero for the window's own object). Throws std::invalid_argument naming the
+// publishing control, before assigning any runtime ID.
+void validate_virtual_children(const Control& owner, std::vector<SemanticNode>& roots) {
+    VirtualNodeFrames frames{};
+    for (int pass = 0; pass < 2; ++pass) {
+        const bool assigning = pass == 1;
+        frames[0] = VirtualNodeFrame{&roots, 0U};
+        std::size_t depth = 1U;
+        while (depth > 0U) {
+            VirtualNodeFrame& frame = frames[depth - 1U];
+            if (frame.next == (*frame.nodes).size()) {
+                --depth;
+                continue;
+            }
+            SemanticNode& node = (*frame.nodes)[frame.next];
+            ++frame.next;
+            if (assigning) {
+                if (node.runtime_id == 0U) node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
+            } else {
+                const bool valid = valid_stable_id(node.stable_id) &&
+                                   (node.controlled_panel.empty() || valid_stable_id(node.controlled_panel));
+                if (!valid) {
+                    const std::string_view shown = valid_stable_id(node.stable_id)
+                        ? std::string_view(node.controlled_panel) : std::string_view(node.stable_id);
+                    throw std::invalid_argument("GUI.Forms control \"" + std::string(owner.stable_id().value()) +
+                                                "\" published a semantic node ID \"" +
+                                                std::string(shown.substr(0U, 80U)) +
+                                                "\" that is not '.'-separated segments of lowercase ASCII letters "
+                                                "and digits joined by single '-'");
+                }
+                if (!node.children.empty() && depth == frames.size()) {
+                    throw std::invalid_argument("GUI.Forms control \"" + std::string(owner.stable_id().value()) +
+                                                "\" published semantic nodes nested deeper than " +
+                                                std::to_string(maximum_virtual_semantic_depth) + " levels");
+                }
+            }
+            if (node.children.empty()) continue;
+            frames[depth] = VirtualNodeFrame{&node.children, 0U};
+            ++depth;
         }
-        require_valid_virtual_ids(owner, node.children);
     }
 }
 
@@ -260,8 +286,7 @@ void append_semantic_nodes(const Control::Ptr& control,
         std::vector<SemanticNode> virtual_children =
             (*control).semantic_virtual_children();
         if (!current_semantic_identity(control, expected_parent, owner)) return;
-        require_valid_virtual_ids(*control, virtual_children);
-        assign_missing_virtual_runtime_ids(virtual_children);
+        validate_virtual_children(*control, virtual_children);
         count += virtual_children.size();
         descendants.insert(descendants.end(),
                             std::make_move_iterator(virtual_children.begin()),

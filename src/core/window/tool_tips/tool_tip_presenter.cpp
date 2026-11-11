@@ -22,6 +22,9 @@ constexpr FontSpec tool_tip_font{FontRole::content, 12.0, 400, false};
 
 // The node among `nodes` and their children whose stable ID is `stable_id`,
 // or null. The pointer is borrowed from `nodes`.
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 [[nodiscard]] const SemanticNode* item_with_id(const std::vector<SemanticNode>& nodes, std::string_view stable_id) {
     for (const SemanticNode& node : nodes) {
         if (node.stable_id == stable_id) return &node;
