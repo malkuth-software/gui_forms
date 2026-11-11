@@ -15605,7 +15605,7 @@
       "kind": "class",
       "header": "gui_forms/application/application.hpp",
       "source": "include/gui_forms/application/application.hpp",
-      "line": 355,
+      "line": 357,
       "declaration": "class Application final",
       "comment": "The application (APP_WINDOW_RULES_DESIGN Part A): made once by `create`, owned by the program, and the current application while it lives. It owns what every window shares: the resources (the image registry and the theme, compiled once at create), the presentation defaults, the keyboard-command keys (DK-44) and the tooltip switch. A top-level Window made on the application's thread while it is current joins it: it shares its resources (unless given its own) and starts from its presentation. Popups, dialogs, menus and tooltips open from a window and take its configuration. With no current application (tests, headless use) a window makes its own resources with the built-in theme. Link GUIForms::Application for `run` and `capabilities`; the rest is part of GUIForms::Core. Window models given to `run` are consumed even on failure. UI thread: every member but the tooltip switch and current().",
       "access": "public",
@@ -15623,7 +15623,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 357,
+          "line": 359,
           "page": "gui-forms-application-maximum-windows-const-std-size-t-ceb6628b0c.html"
         },
         {
@@ -15644,7 +15644,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 363,
+          "line": 365,
           "page": "gui-forms-application-create-applicationcreateresult-applicationconfig-b06c8d8d86.html"
         },
         {
@@ -15659,7 +15659,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 366,
+          "line": 368,
           "page": "gui-forms-application-current-application-noexcept-8c69987662.html"
         },
         {
@@ -15674,7 +15674,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 370,
+          "line": 372,
           "page": "gui-forms-application-application-void-275dae37cf.html"
         },
         {
@@ -15695,7 +15695,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 371,
+          "line": 373,
           "page": "gui-forms-application-application-void-const-application-668c361cb5.html"
         },
         {
@@ -15716,7 +15716,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 372,
+          "line": 374,
           "page": "gui-forms-application-operator-application-const-application-491da5a687.html"
         },
         {
@@ -15737,7 +15737,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 373,
+          "line": 375,
           "page": "gui-forms-application-application-void-application-37c488eb40.html"
         },
         {
@@ -15758,7 +15758,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 374,
+          "line": 376,
           "page": "gui-forms-application-operator-application-application-b307d3a117.html"
         },
         {
@@ -15773,7 +15773,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 381,
+          "line": 383,
           "page": "gui-forms-application-close-applicationresult-44b74901e5.html"
         },
         {
@@ -15788,7 +15788,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 382,
+          "line": 384,
           "page": "gui-forms-application-closed-bool-const-noexcept-6c23781ee2.html"
         },
         {
@@ -15803,7 +15803,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 384,
+          "line": 386,
           "page": "gui-forms-application-window-count-std-size-t-const-noexcept-49c51ef475.html"
         },
         {
@@ -15818,7 +15818,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 386,
+          "line": 388,
           "page": "gui-forms-application-resources-const-std-shared-ptr-applicationresources-const-noexcept-09fd5c747d.html"
         },
         {
@@ -15833,7 +15833,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 389,
+          "line": 391,
           "page": "gui-forms-application-presentation-settings-const-presentationsettings-const-noexcept-419295e7bb.html"
         },
         {
@@ -15854,7 +15854,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 395,
+          "line": 397,
           "page": "gui-forms-application-set-presentation-settings-void-presentationsettings-e2dac45291.html"
         },
         {
@@ -15875,7 +15875,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 403,
+          "line": 405,
           "page": "gui-forms-application-set-theme-void-std-shared-ptr-const-theme-09ea337a4b.html"
         },
         {
@@ -15896,7 +15896,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 405,
+          "line": 407,
           "page": "gui-forms-application-validate-applicationresult-const-std-vector-applicationwindow-6cf91e12c9.html"
         },
         {
@@ -15911,7 +15911,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 407,
+          "line": 409,
           "page": "gui-forms-application-capabilities-hostcapabilities-ca51f0af66.html"
         },
         {
@@ -15926,7 +15926,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 412,
+          "line": 414,
           "page": "gui-forms-application-key-bindings-const-std-shared-ptr-keybindings-const-noexcept-271f3de5c4.html"
         },
         {
@@ -15947,7 +15947,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 418,
+          "line": 420,
           "page": "gui-forms-application-set-tool-tips-shown-void-bool-noexcept-b0fed446af.html"
         },
         {
@@ -15962,7 +15962,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 419,
+          "line": 421,
           "page": "gui-forms-application-tool-tips-shown-bool-const-noexcept-e486e20ff7.html"
         },
         {
@@ -15983,7 +15983,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 431,
+          "line": 433,
           "page": "gui-forms-application-set-invalidation-overlay-void-bool-noexcept-38b2b8413f.html"
         },
         {
@@ -15998,7 +15998,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 432,
+          "line": 434,
           "page": "gui-forms-application-invalidation-overlay-bool-const-noexcept-9010a5ae09.html"
         },
         {
@@ -16013,7 +16013,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 437,
+          "line": 439,
           "page": "gui-forms-application-maximum-pending-open-files-const-std-size-t-cc607a3cd0.html"
         },
         {
@@ -16034,7 +16034,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 451,
+          "line": 453,
           "page": "gui-forms-application-request-open-files-bool-std-vector-std-string-b5cfe85b09.html"
         },
         {
@@ -16049,7 +16049,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 454,
+          "line": 456,
           "page": "gui-forms-application-take-open-files-std-vector-std-string-a5320adc9f.html"
         },
         {
@@ -16064,7 +16064,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 457,
+          "line": 459,
           "page": "gui-forms-application-open-files-requested-event-noexcept-72274b3da1.html"
         },
         {
@@ -16090,7 +16090,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 459,
+          "line": 461,
           "page": "gui-forms-application-run-applicationresult-std-unique-ptr-window-applicationwindowoptions-bb0ed4b25b.html"
         },
         {
@@ -16111,7 +16111,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 461,
+          "line": 463,
           "page": "gui-forms-application-run-applicationresult-std-vector-applicationwindow-0795a4fa98.html"
         },
         {
@@ -16126,7 +16126,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 470,
+          "line": 472,
           "page": "gui-forms-application-shutdown-applicationresult-4a6eeaf0fa.html"
         }
       ],
@@ -16279,7 +16279,7 @@
       "kind": "struct",
       "header": "gui_forms/application/application.hpp",
       "source": "include/gui_forms/application/application.hpp",
-      "line": 307,
+      "line": 309,
       "declaration": "struct ApplicationConfig final",
       "comment": "",
       "access": "public",
@@ -16297,7 +16297,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 308,
+          "line": 310,
           "page": "gui-forms-applicationconfig-theme-applicationthemeconfig-ad99637b47.html"
         },
         {
@@ -16312,7 +16312,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 311,
+          "line": 313,
           "page": "gui-forms-applicationconfig-presentation-std-optional-presentationsettings-157e8f3511.html"
         },
         {
@@ -16327,7 +16327,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 313,
+          "line": 315,
           "page": "gui-forms-applicationconfig-image-limits-imageregistrylimits-880f1d4e3b.html"
         }
       ],
@@ -16341,7 +16341,7 @@
       "kind": "enum",
       "header": "gui_forms/application/application.hpp",
       "source": "include/gui_forms/application/application.hpp",
-      "line": 316,
+      "line": 318,
       "declaration": "enum class ApplicationCreateError : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -16359,7 +16359,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 317,
+          "line": 319,
           "page": "gui-forms-applicationcreateerror-none-gui-forms-applicationcreateerror-136d3216de.html"
         },
         {
@@ -16374,7 +16374,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 319,
+          "line": 321,
           "page": "gui-forms-applicationcreateerror-already-exists-gui-forms-applicationcreateerror-a8b40f0899.html"
         },
         {
@@ -16389,7 +16389,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 321,
+          "line": 323,
           "page": "gui-forms-applicationcreateerror-theme-refused-gui-forms-applicationcreateerror-ebd19b646d.html"
         }
       ],
@@ -16403,7 +16403,7 @@
       "kind": "struct",
       "header": "gui_forms/application/application.hpp",
       "source": "include/gui_forms/application/application.hpp",
-      "line": 329,
+      "line": 331,
       "declaration": "struct ApplicationCreateResult final",
       "comment": "",
       "access": "public",
@@ -16421,7 +16421,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 330,
+          "line": 332,
           "page": "gui-forms-applicationcreateresult-error-applicationcreateerror-187f8630de.html"
         },
         {
@@ -16436,7 +16436,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 331,
+          "line": 333,
           "page": "gui-forms-applicationcreateresult-application-std-unique-ptr-application-544ea44770.html"
         },
         {
@@ -16451,7 +16451,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 332,
+          "line": 334,
           "page": "gui-forms-applicationcreateresult-findings-std-vector-themecompilediagnostic-5f57b322e3.html"
         }
       ],
@@ -17650,7 +17650,7 @@
           "comment": "",
           "header": "gui_forms/application/application.hpp",
           "source": "include/gui_forms/application/application.hpp",
-          "line": 303,
+          "line": 305,
           "page": "gui-forms-applicationthemeconfig-effects-const-effectregistry-f62fcb2b48.html"
         }
       ],
@@ -85715,7 +85715,7 @@
       "kind": "struct",
       "header": "gui_forms/application/user_themes/user_themes.hpp",
       "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-      "line": 259,
+      "line": 261,
       "declaration": "struct DeferredThemeRequest final",
       "comment": "",
       "access": "public",
@@ -85733,7 +85733,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 260,
+          "line": 262,
           "page": "gui-forms-deferredthemerequest-request-themerequest-bc754dfb9a.html"
         },
         {
@@ -85748,7 +85748,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 261,
+          "line": 263,
           "page": "gui-forms-deferredthemerequest-context-themerequestcontext-dc0d829f30.html"
         }
       ],
@@ -108093,7 +108093,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 267,
+      "line": 288,
       "declaration": "struct EffectAdvance final",
       "comment": "",
       "access": "public",
@@ -108111,7 +108111,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 269,
+          "line": 290,
           "page": "gui-forms-effectadvance-pending-std-uint32-t-0cff715216.html"
         },
         {
@@ -108126,7 +108126,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 271,
+          "line": 292,
           "page": "gui-forms-effectadvance-skipped-std-uint32-t-076af7857b.html"
         }
       ],
@@ -110026,7 +110026,7 @@
       "kind": "class",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 285,
+      "line": 306,
       "declaration": "class EffectInstance final",
       "comment": "",
       "access": "public",
@@ -110044,7 +110044,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 287,
+          "line": 308,
           "page": "gui-forms-effectinstance-effectinstance-void-noexcept-f6f98fdba3.html"
         },
         {
@@ -110059,7 +110059,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 288,
+          "line": 309,
           "page": "gui-forms-effectinstance-effectinstance-void-noexcept-40a3562e2a.html"
         },
         {
@@ -110080,7 +110080,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 289,
+          "line": 310,
           "page": "gui-forms-effectinstance-effectinstance-void-const-effectinstance-facd3064fd.html"
         },
         {
@@ -110101,7 +110101,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 290,
+          "line": 311,
           "page": "gui-forms-effectinstance-operator-effectinstance-const-effectinstance-b915919a7e.html"
         },
         {
@@ -110132,7 +110132,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 295,
+          "line": 316,
           "page": "gui-forms-effectinstance-attach-void-const-effectentry-std-uint64-t-frametime-2a2a72172d.html"
         },
         {
@@ -110147,7 +110147,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 297,
+          "line": 318,
           "page": "gui-forms-effectinstance-detach-void-noexcept-9a9e3debff.html"
         },
         {
@@ -110162,7 +110162,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 298,
+          "line": 319,
           "page": "gui-forms-effectinstance-entry-const-effectentry-const-noexcept-797ff724b6.html"
         },
         {
@@ -110183,7 +110183,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 303,
+          "line": 324,
           "page": "gui-forms-effectinstance-advance-effectadvance-frametime-noexcept-c467ab4097.html"
         },
         {
@@ -110204,7 +110204,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 306,
+          "line": 327,
           "page": "gui-forms-effectinstance-rebase-void-frametime-noexcept-8695e2af82.html"
         },
         {
@@ -110230,7 +110230,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 312,
+          "line": 333,
           "page": "gui-forms-effectinstance-queue-input-bool-const-effectinputevent-effectinputkind-noexcept-58cc9f70f1.html"
         },
         {
@@ -110251,7 +110251,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 317,
+          "line": 338,
           "page": "gui-forms-effectinstance-set-input-grant-void-effectinputkind-noexcept-c862d61c6d.html"
         },
         {
@@ -110266,7 +110266,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 318,
+          "line": 339,
           "page": "gui-forms-effectinstance-input-grant-effectinputkind-const-noexcept-a037fec003.html"
         },
         {
@@ -110292,7 +110292,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 328,
+          "line": 349,
           "page": "gui-forms-effectinstance-note-pointer-bool-const-pointerevent-point-noexcept-bbeab4f2a9.html"
         },
         {
@@ -110307,7 +110307,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 330,
+          "line": 351,
           "page": "gui-forms-effectinstance-pointer-effectpointer-const-noexcept-009e6816f0.html"
         },
         {
@@ -110358,7 +110358,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 342,
+          "line": 363,
           "page": "gui-forms-effectinstance-paint-void-painter-rect-double-bool-const-effectview-parent-partshape-const-control-3ad75e0b59.html"
         },
         {
@@ -110379,7 +110379,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 350,
+          "line": 371,
           "page": "gui-forms-effectinstance-set-colours-void-effectcolours-noexcept-4e4662a31d.html"
         },
         {
@@ -110394,7 +110394,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 351,
+          "line": 372,
           "page": "gui-forms-effectinstance-colours-effectcolours-const-noexcept-1d762c5e99.html"
         },
         {
@@ -110409,7 +110409,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 354,
+          "line": 375,
           "page": "gui-forms-effectinstance-state-checksum-std-uint64-t-const-noexcept-9c23c9ecf8.html"
         },
         {
@@ -110424,7 +110424,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 355,
+          "line": 376,
           "page": "gui-forms-effectinstance-counters-const-effectinstancecounters-const-noexcept-cf63a771fc.html"
         },
         {
@@ -110439,7 +110439,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 356,
+          "line": 377,
           "page": "gui-forms-effectinstance-last-meter-const-effectcanvasmeter-const-noexcept-30ea5d8850.html"
         }
       ],
@@ -110453,7 +110453,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 275,
+      "line": 296,
       "declaration": "struct EffectInstanceCounters final",
       "comment": "",
       "access": "public",
@@ -110471,7 +110471,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 276,
+          "line": 297,
           "page": "gui-forms-effectinstancecounters-ticks-std-uint64-t-9e1586b3f2.html"
         },
         {
@@ -110486,7 +110486,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 277,
+          "line": 298,
           "page": "gui-forms-effectinstancecounters-skipped-ticks-std-uint64-t-dfcab3589b.html"
         },
         {
@@ -110501,7 +110501,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 278,
+          "line": 299,
           "page": "gui-forms-effectinstancecounters-frames-std-uint64-t-1ce840495b.html"
         },
         {
@@ -110516,7 +110516,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 279,
+          "line": 300,
           "page": "gui-forms-effectinstancecounters-setups-std-uint64-t-cff254e3c7.html"
         },
         {
@@ -110531,7 +110531,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 280,
+          "line": 301,
           "page": "gui-forms-effectinstancecounters-refused-calls-std-uint64-t-7ca1d3ba8c.html"
         },
         {
@@ -110546,7 +110546,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 282,
+          "line": 303,
           "page": "gui-forms-effectinstancecounters-dropped-input-std-uint64-t-2c0eabdae6.html"
         }
       ],
@@ -110560,7 +110560,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 195,
+      "line": 216,
       "declaration": "struct EffectLoadDiagnostics final",
       "comment": "",
       "access": "public",
@@ -110578,7 +110578,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 196,
+          "line": 217,
           "page": "gui-forms-effectloaddiagnostics-registered-std-uint64-t-0af8b39cd3.html"
         },
         {
@@ -110593,7 +110593,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 197,
+          "line": 218,
           "page": "gui-forms-effectloaddiagnostics-unverified-std-uint64-t-74ef35e349.html"
         },
         {
@@ -110608,7 +110608,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 199,
+          "line": 220,
           "page": "gui-forms-effectloaddiagnostics-refused-std-uint64-t-df9fda53d4.html"
         }
       ],
@@ -111127,7 +111127,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 240,
+      "line": 261,
       "declaration": "struct EffectSelection final",
       "comment": "",
       "access": "public",
@@ -111145,7 +111145,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 241,
+          "line": 262,
           "page": "gui-forms-effectselection-name-std-string-6688939d8e.html"
         },
         {
@@ -111160,7 +111160,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 242,
+          "line": 263,
           "page": "gui-forms-effectselection-source-effectselectionsource-7e4097d774.html"
         },
         {
@@ -111175,7 +111175,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 243,
+          "line": 264,
           "page": "gui-forms-effectselection-outcome-effectselectionoutcome-4683c1b0e0.html"
         }
       ],
@@ -111189,7 +111189,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 211,
+      "line": 232,
       "declaration": "enum class EffectSelectionOutcome : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -111207,7 +111207,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 212,
+          "line": 233,
           "page": "gui-forms-effectselectionoutcome-selected-gui-forms-effectselectionoutcome-47bae92893.html"
         },
         {
@@ -111222,7 +111222,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 214,
+          "line": 235,
           "page": "gui-forms-effectselectionoutcome-none-gui-forms-effectselectionoutcome-8a8f8ba12b.html"
         },
         {
@@ -111237,7 +111237,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 216,
+          "line": 237,
           "page": "gui-forms-effectselectionoutcome-unknown-effect-gui-forms-effectselectionoutcome-6e23403238.html"
         },
         {
@@ -111252,7 +111252,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 218,
+          "line": 239,
           "page": "gui-forms-effectselectionoutcome-parent-mismatch-gui-forms-effectselectionoutcome-8d15ba90eb.html"
         },
         {
@@ -111267,7 +111267,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 222,
+          "line": 243,
           "page": "gui-forms-effectselectionoutcome-over-frame-budget-gui-forms-effectselectionoutcome-10af1c1227.html"
         },
         {
@@ -111282,7 +111282,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 226,
+          "line": 247,
           "page": "gui-forms-effectselectionoutcome-unverified-gui-forms-effectselectionoutcome-84e7b1386c.html"
         }
       ],
@@ -111296,7 +111296,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 207,
+      "line": 228,
       "declaration": "enum class EffectSelectionSource : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -111314,7 +111314,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 207,
+          "line": 228,
           "page": "gui-forms-effectselectionsource-none-gui-forms-effectselectionsource-4960aa9d2d.html"
         },
         {
@@ -111329,7 +111329,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 207,
+          "line": 228,
           "page": "gui-forms-effectselectionsource-application-gui-forms-effectselectionsource-4563bb60a6.html"
         },
         {
@@ -111344,7 +111344,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 207,
+          "line": 228,
           "page": "gui-forms-effectselectionsource-style-gui-forms-effectselectionsource-ae6ccd25d8.html"
         },
         {
@@ -111359,7 +111359,7 @@
           "comment": "",
           "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
           "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-          "line": 207,
+          "line": 228,
           "page": "gui-forms-effectselectionsource-theme-gui-forms-effectselectionsource-08af3242d3.html"
         }
       ],
@@ -286924,7 +286924,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
       "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-      "line": 41,
+      "line": 59,
       "declaration": "struct StockSpecimen final",
       "comment": "",
       "access": "public",
@@ -286942,7 +286942,7 @@
           "comment": "",
           "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
           "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-          "line": 45,
+          "line": 63,
           "page": "gui-forms-stockspecimen-control-id-std-string-view-3eb7231ee2.html"
         },
         {
@@ -286957,7 +286957,7 @@
           "comment": "",
           "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
           "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-          "line": 48,
+          "line": 66,
           "page": "gui-forms-stockspecimen-family-std-string-view-1f11f2e820.html"
         },
         {
@@ -286972,7 +286972,7 @@
           "comment": "",
           "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
           "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-          "line": 50,
+          "line": 68,
           "page": "gui-forms-stockspecimen-size-size-cd70d16cb0.html"
         },
         {
@@ -286987,7 +286987,7 @@
           "comment": "",
           "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
           "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-          "line": 52,
+          "line": 70,
           "page": "gui-forms-stockspecimen-sample-text-std-string-view-7bf8d28bab.html"
         },
         {
@@ -287002,8 +287002,38 @@
           "comment": "",
           "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
           "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-          "line": 53,
+          "line": 71,
           "page": "gui-forms-stockspecimen-make-stockspecimenmaker-a39acfe296.html"
+        },
+        {
+          "id": "gui_forms::StockSpecimen::present|StockSpecimenPresenter",
+          "name": "present",
+          "type": "StockSpecimenPresenter",
+          "namespace": "gui_forms::StockSpecimen",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "StockSpecimenPresenter present{}",
+          "comment": "",
+          "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+          "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+          "line": 73,
+          "page": "gui-forms-stockspecimen-present-stockspecimenpresenter-88b593e834.html"
+        },
+        {
+          "id": "gui_forms::StockSpecimen::blank_reason|std::string_view",
+          "name": "blank_reason",
+          "type": "std::string_view",
+          "namespace": "gui_forms::StockSpecimen",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "std::string_view blank_reason",
+          "comment": "",
+          "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+          "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+          "line": 76,
+          "page": "gui-forms-stockspecimen-blank-reason-std-string-view-433e0b81d8.html"
         }
       ],
       "page": "gui-forms-stockspecimen-13df0e4685.html",
@@ -287016,7 +287046,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
       "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-      "line": 33,
+      "line": 45,
       "declaration": "struct StockSpecimenInstance final",
       "comment": "",
       "access": "public",
@@ -287034,7 +287064,7 @@
           "comment": "",
           "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
           "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-          "line": 34,
+          "line": 46,
           "page": "gui-forms-stockspecimeninstance-root-control-ptr-98c1110a4c.html"
         },
         {
@@ -287049,8 +287079,23 @@
           "comment": "",
           "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
           "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-          "line": 35,
+          "line": 47,
           "page": "gui-forms-stockspecimeninstance-subject-control-ptr-bbf9cab185.html"
+        },
+        {
+          "id": "gui_forms::StockSpecimenInstance::frame|Control::Ptr",
+          "name": "frame",
+          "type": "Control::Ptr",
+          "namespace": "gui_forms::StockSpecimenInstance",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "Control::Ptr frame{}",
+          "comment": "",
+          "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+          "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+          "line": 48,
+          "page": "gui-forms-stockspecimeninstance-frame-control-ptr-343d477c5f.html"
         }
       ],
       "page": "gui-forms-stockspecimeninstance-a7d70755f7.html",
@@ -315044,7 +315089,7 @@
       "kind": "struct",
       "header": "gui_forms/application/user_themes/user_themes.hpp",
       "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-      "line": 285,
+      "line": 287,
       "declaration": "struct ThemeExportReport final",
       "comment": "",
       "access": "public",
@@ -315062,7 +315107,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 286,
+          "line": 288,
           "page": "gui-forms-themeexportreport-written-std-vector-std-string-92a25a9e84.html"
         },
         {
@@ -315077,7 +315122,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 287,
+          "line": 289,
           "page": "gui-forms-themeexportreport-skipped-std-vector-std-string-ee6e65097d.html"
         },
         {
@@ -315092,7 +315137,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 288,
+          "line": 290,
           "page": "gui-forms-themeexportreport-failed-std-vector-std-string-fe37efe20d.html"
         },
         {
@@ -315107,7 +315152,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 289,
+          "line": 291,
           "page": "gui-forms-themeexportreport-omitted-std-vector-std-string-343f796cb3.html"
         }
       ],
@@ -316099,7 +316144,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 223,
+          "line": 225,
           "page": "gui-forms-themerequestcontext-effects-const-effectregistry-3374b6b096.html"
         }
       ],
@@ -316190,7 +316235,7 @@
       "kind": "enum",
       "header": "gui_forms/application/user_themes/user_themes.hpp",
       "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-      "line": 226,
+      "line": 228,
       "declaration": "enum class ThemeRequestOutcome : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -316208,7 +316253,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 228,
+          "line": 230,
           "page": "gui-forms-themerequestoutcome-none-gui-forms-themerequestoutcome-0b06198902.html"
         },
         {
@@ -316223,7 +316268,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 230,
+          "line": 232,
           "page": "gui-forms-themerequestoutcome-built-in-gui-forms-themerequestoutcome-13af1d1087.html"
         },
         {
@@ -316238,7 +316283,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 232,
+          "line": 234,
           "page": "gui-forms-themerequestoutcome-applied-gui-forms-themerequestoutcome-e6f6e40a11.html"
         },
         {
@@ -316253,7 +316298,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 234,
+          "line": 236,
           "page": "gui-forms-themerequestoutcome-ignored-by-policy-gui-forms-themerequestoutcome-055cc9d328.html"
         },
         {
@@ -316268,7 +316313,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 236,
+          "line": 238,
           "page": "gui-forms-themerequestoutcome-unknown-name-gui-forms-themerequestoutcome-2845c09535.html"
         },
         {
@@ -316283,7 +316328,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 239,
+          "line": 241,
           "page": "gui-forms-themerequestoutcome-refused-gui-forms-themerequestoutcome-f8bcaba599.html"
         },
         {
@@ -316298,7 +316343,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 241,
+          "line": 243,
           "page": "gui-forms-themerequestoutcome-unreadable-gui-forms-themerequestoutcome-480c7e1156.html"
         },
         {
@@ -316313,7 +316358,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 243,
+          "line": 245,
           "page": "gui-forms-themerequestoutcome-malformed-gui-forms-themerequestoutcome-066dc6f88b.html"
         }
       ],
@@ -316327,7 +316372,7 @@
       "kind": "struct",
       "header": "gui_forms/application/user_themes/user_themes.hpp",
       "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-      "line": 247,
+      "line": 249,
       "declaration": "struct ThemeRequestReport final",
       "comment": "",
       "access": "public",
@@ -316345,7 +316390,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 248,
+          "line": 250,
           "page": "gui-forms-themerequestreport-request-themerequest-b804d56cc8.html"
         },
         {
@@ -316360,7 +316405,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 249,
+          "line": 251,
           "page": "gui-forms-themerequestreport-outcome-themerequestoutcome-6aaa377206.html"
         },
         {
@@ -316375,7 +316420,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 252,
+          "line": 254,
           "page": "gui-forms-themerequestreport-findings-std-vector-themecompilediagnostic-5f90c730c9.html"
         },
         {
@@ -316390,7 +316435,7 @@
           "comment": "",
           "header": "gui_forms/application/user_themes/user_themes.hpp",
           "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-          "line": 254,
+          "line": 256,
           "page": "gui-forms-themerequestreport-log-std-vector-std-string-36e585a2d7.html"
         }
       ],
@@ -371718,7 +371763,7 @@
       "comment": "",
       "header": "gui_forms/application/user_themes/user_themes.hpp",
       "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-      "line": 273,
+      "line": 275,
       "page": "gui-forms-apply-theme-request-themerequestreport-applicationresources-const-themerequest-const-themerequestcon-837b03adce.html"
     },
     {
@@ -373013,7 +373058,7 @@
       "comment": "",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 255,
+      "line": 276,
       "page": "gui-forms-check-effect-selection-effectselectionoutcome-const-effectregistry-std-string-view-effectselectionso-4db447da09.html"
     },
     {
@@ -375384,7 +375429,7 @@
       "comment": "",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 201,
+      "line": 222,
       "page": "gui-forms-effect-load-diagnostics-effectloaddiagnostics-noexcept-d0597d1230.html"
     },
     {
@@ -375457,7 +375502,7 @@
       "comment": "",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 230,
+      "line": 251,
       "page": "gui-forms-effect-selection-outcome-name-std-string-view-effectselectionoutcome-noexcept-414a73ce6d.html"
     },
     {
@@ -375478,7 +375523,7 @@
       "comment": "",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 229,
+      "line": 250,
       "page": "gui-forms-effect-selection-source-name-std-string-view-effectselectionsource-noexcept-ec0d8c529b.html"
     },
     {
@@ -375582,7 +375627,7 @@
       "comment": "",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 187,
+      "line": 208,
       "page": "gui-forms-effect-verification-recorded-bool-std-string-view-std-size-t-const-void-noexcept-4bd92433ec.html"
     },
     {
@@ -375968,7 +376013,7 @@
       "comment": "",
       "header": "gui_forms/application/user_themes/user_themes.hpp",
       "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-      "line": 297,
+      "line": 299,
       "page": "gui-forms-export-user-themes-themeexportreport-const-themelibrary-const-applicationresources-std-string-view-3b76a247d3.html"
     },
     {
@@ -376636,7 +376681,7 @@
       "comment": "",
       "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
       "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-      "line": 59,
+      "line": 87,
       "page": "gui-forms-find-stock-specimen-const-stockspecimen-std-string-view-noexcept-7a21aac674.html"
     },
     {
@@ -377866,7 +377911,7 @@
       "comment": "",
       "header": "gui_forms/application/user_themes/user_themes.hpp",
       "source": "include/gui_forms/application/user_themes/user_themes.hpp",
-      "line": 280,
+      "line": 282,
       "page": "gui-forms-hold-process-theme-request-void-applicationresources-themerequestcontext-703d5ca1a1.html"
     },
     {
@@ -378524,6 +378569,57 @@
       "source": "include/gui_forms/text/markdown/rtf_conversion.hpp",
       "line": 132,
       "page": "gui-forms-import-rtf-rtfconversionresult-std-span-const-std-byte-std-string-aa33afa102.html"
+    },
+    {
+      "id": "gui_forms::install_built_in_effect_registry|void ()",
+      "name": "install_built_in_effect_registry",
+      "type": "void ()",
+      "namespace": "gui_forms",
+      "kind": "FunctionDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "void install_built_in_effect_registry()",
+      "comment": "",
+      "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
+      "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
+      "line": 201,
+      "page": "gui-forms-install-built-in-effect-registry-void-453929e1a8.html"
+    },
+    {
+      "id": "gui_forms::install_effect_registry|void (const EffectRegistry *) noexcept",
+      "name": "install_effect_registry",
+      "type": "void (const EffectRegistry *) noexcept",
+      "namespace": "gui_forms",
+      "kind": "FunctionDecl",
+      "access": "public",
+      "parameters": [
+        {
+          "name": "registry",
+          "type": "const EffectRegistry *",
+          "declaration": "const EffectRegistry* registry"
+        }
+      ],
+      "declaration": "void install_effect_registry(const EffectRegistry* registry) noexcept",
+      "comment": "",
+      "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
+      "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
+      "line": 193,
+      "page": "gui-forms-install-effect-registry-void-const-effectregistry-noexcept-611d868121.html"
+    },
+    {
+      "id": "gui_forms::installed_effect_registry|const EffectRegistry *() noexcept",
+      "name": "installed_effect_registry",
+      "type": "const EffectRegistry *() noexcept",
+      "namespace": "gui_forms",
+      "kind": "FunctionDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "[[nodiscard]] const EffectRegistry* installed_effect_registry() noexcept",
+      "comment": "",
+      "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
+      "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
+      "line": 194,
+      "page": "gui-forms-installed-effect-registry-const-effectregistry-noexcept-102f457eef.html"
     },
     {
       "id": "gui_forms::interaction_defect_name|std::string_view (InteractionDefect) noexcept",
@@ -379448,7 +379544,7 @@
       "comment": "",
       "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
       "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-      "line": 63,
+      "line": 92,
       "page": "gui-forms-make-stock-specimen-stockspecimeninstance-const-stockspecimen-stableid-54481fd2ae.html"
     },
     {
@@ -380108,7 +380204,7 @@
       "comment": "",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 264,
+      "line": 285,
       "page": "gui-forms-note-effect-refused-void-const-effectselection-noexcept-ed13eff4f0.html"
     },
     {
@@ -383912,7 +384008,7 @@
       "comment": "",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 245,
+      "line": 266,
       "page": "gui-forms-operator-bool-const-gui-forms-effectselection-const-gui-forms-effectselection-noexcept-2f1f4b04b7.html",
       "associated_type": "gui_forms::EffectSelection"
     },
@@ -393664,6 +393760,37 @@
       "page": "gui-forms-port-side-name-std-string-view-portside-noexcept-fd0960eaa0.html"
     },
     {
+      "id": "gui_forms::present_stock_specimen|void (const StockSpecimen &, const StockSpecimenInstance &, Window &)",
+      "name": "present_stock_specimen",
+      "type": "void (const StockSpecimen &, const StockSpecimenInstance &, Window &)",
+      "namespace": "gui_forms",
+      "kind": "FunctionDecl",
+      "access": "public",
+      "parameters": [
+        {
+          "name": "specimen",
+          "type": "const StockSpecimen &",
+          "declaration": "const StockSpecimen& specimen"
+        },
+        {
+          "name": "instance",
+          "type": "const StockSpecimenInstance &",
+          "declaration": "const StockSpecimenInstance& instance"
+        },
+        {
+          "name": "window",
+          "type": "Window &",
+          "declaration": "Window& window"
+        }
+      ],
+      "declaration": "void present_stock_specimen(const StockSpecimen& specimen, const StockSpecimenInstance& instance, Window& window)",
+      "comment": "",
+      "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+      "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+      "line": 95,
+      "page": "gui-forms-present-stock-specimen-void-const-stockspecimen-const-stockspecimeninstance-window-b49859228d.html"
+    },
+    {
       "id": "gui_forms::process_arguments|std::vector<std::string> ()",
       "name": "process_arguments",
       "type": "std::vector<std::string> ()",
@@ -396698,6 +396825,32 @@
       "page": "gui-forms-stock-control-anatomies-std-span-const-controlanatomy-noexcept-518cd3bbef.html"
     },
     {
+      "id": "gui_forms::stock_specimen_dominant_share|double (const WindowCapture &, std::uint32_t)",
+      "name": "stock_specimen_dominant_share",
+      "type": "double (const WindowCapture &, std::uint32_t)",
+      "namespace": "gui_forms",
+      "kind": "FunctionDecl",
+      "access": "public",
+      "parameters": [
+        {
+          "name": "capture",
+          "type": "const WindowCapture &",
+          "declaration": "const WindowCapture& capture"
+        },
+        {
+          "name": "inset_pixels",
+          "type": "std::uint32_t",
+          "declaration": "std::uint32_t inset_pixels"
+        }
+      ],
+      "declaration": "[[nodiscard]] double stock_specimen_dominant_share(const WindowCapture& capture, std::uint32_t inset_pixels)",
+      "comment": "",
+      "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+      "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+      "line": 101,
+      "page": "gui-forms-stock-specimen-dominant-share-double-const-windowcapture-std-uint32-t-4da42a7ff9.html"
+    },
+    {
       "id": "gui_forms::stock_specimens|std::span<const StockSpecimen> () noexcept",
       "name": "stock_specimens",
       "type": "std::span<const StockSpecimen> () noexcept",
@@ -396709,7 +396862,7 @@
       "comment": "",
       "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
       "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-      "line": 57,
+      "line": 85,
       "page": "gui-forms-stock-specimens-std-span-const-stockspecimen-noexcept-a7df255fd2.html"
     },
     {
@@ -399359,8 +399512,23 @@
       "comment": "",
       "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
       "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
-      "line": 39,
+      "line": 52,
       "page": "gui-forms-stockspecimenmaker-stockspecimeninstance-const-stockspecimen-stableid-f9af03f65b.html"
+    },
+    {
+      "id": "gui_forms::StockSpecimenPresenter|void (*)(const StockSpecimenInstance &, Window &)",
+      "name": "StockSpecimenPresenter",
+      "type": "void (*)(const StockSpecimenInstance &, Window &)",
+      "namespace": "gui_forms",
+      "kind": "TypeAliasDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "using StockSpecimenPresenter = void (*)(const StockSpecimenInstance& instance, Window& window)",
+      "comment": "",
+      "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+      "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+      "line": 57,
+      "page": "gui-forms-stockspecimenpresenter-void-const-stockspecimeninstance-window-58ee67f521.html"
     },
     {
       "id": "gui_forms::Utf16Offset|TextUnitIndex<Utf16OffsetTag>",
@@ -401189,7 +401357,7 @@
       "comment": "",
       "header": "gui_forms/engine/effect_registry/effect_registry.hpp",
       "source": "include/gui_forms/engine/effect_registry/effect_registry.hpp",
-      "line": 235,
+      "line": 256,
       "page": "gui-forms-maximum-effect-operations-per-frame-const-std-uint64-t-f4be3d644d.html"
     },
     {
@@ -403801,6 +403969,21 @@
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
       "line": 1616,
       "page": "gui-forms-sheet-diagnostic-const-std-size-t-4eca58acd2.html"
+    },
+    {
+      "id": "gui_forms::stock_specimen_uniform_share|const double",
+      "name": "stock_specimen_uniform_share",
+      "type": "const double",
+      "namespace": "gui_forms",
+      "kind": "VarDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "inline constexpr double stock_specimen_uniform_share = 0.97",
+      "comment": "",
+      "header": "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+      "source": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+      "line": 82,
+      "page": "gui-forms-stock-specimen-uniform-share-const-double-e7d1a55abb.html"
     },
     {
       "id": "gui_forms::text_role_count|const std::size_t",
