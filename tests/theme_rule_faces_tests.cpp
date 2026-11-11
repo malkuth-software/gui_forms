@@ -378,8 +378,8 @@ void test_dock_site_parts() {
     // ink (owner, 2026-11-11); a rule recolours it, and a transparent ink
     // hides it. A literal colour in a text position warns (W201), though
     // it still applies.
-    window.set_theme(theme_from_sheet(":root { grip-ink: #3060a0 on #ffffff; }\n"
-                                      "dock-site::part(caption-grip) { muted-color: role(grip-ink); }\n"));
+    window.set_theme(theme_from_sheet(":root { ink-on-paper: #3060a0 on #ffffff; }\n"
+                                      "dock-site::part(caption-grip) { muted-color: role(ink-on-paper); }\n"));
     window.perform_layout();
     ColourPainter gripped{};
     window.paint(gripped);
