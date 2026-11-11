@@ -492,9 +492,14 @@ class Comparer:
         accessible_id: str = obj.get_accessible_id() or ''
         if accessible_id != node['stable_id']:
             self.mismatch(where, 'accessible id ' + repr(accessible_id) + ', expected ' + repr(node['stable_id']))
+        # Roles compare by value: at-spi2-core renamed some nicks (PUSH_BUTTON
+        # reads back as BUTTON on Alpine 3.24), and the old names stay aliases.
         role: str = obj.get_role().value_nick.upper().replace('-', '_').replace(' ', '_')
-        if role != expected_role(node):
-            self.mismatch(where, 'role ' + role + ', expected ' + expected_role(node) + ' for ' + node['role'])
+        wanted_role: str = expected_role(node)
+        wanted_value: Any = getattr(atspi.Role, wanted_role, None)
+        same_role: bool = obj.get_role() == wanted_value if wanted_value is not None else role == wanted_role
+        if not same_role:
+            self.mismatch(where, 'role ' + role + ', expected ' + wanted_role + ' for ' + node['role'])
         if (obj.get_name() or '') != node['name']:
             self.mismatch(where, 'name ' + repr(obj.get_name()) + ', expected ' + repr(node['name']))
         if (obj.get_description() or '') != node['description']:
