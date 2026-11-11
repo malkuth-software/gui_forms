@@ -271,6 +271,20 @@ StockSpecimenInstance make_gauge_base(const StockSpecimen&, StableId id) {
     return instance;
 }
 
+// A track panel needs 1 to 64 tracks before it lays out: two that share
+// the remaining space.
+StockSpecimenInstance make_responsive_track_panel(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<ResponsiveTrackPanel> control = make_control<ResponsiveTrackPanel>(std::move(id));
+    ResponsiveTrackSpec track{};
+    track.size_mode = ResponsiveTrackSizeMode::remaining;
+    std::vector<ResponsiveTrackSpec> tracks;
+    tracks.push_back(track);
+    tracks.push_back(track);
+    (*control).set_track_specs(std::move(tracks));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
 // -- the table -----------------------------------------------------------------------
 
 const StockSpecimen specimen_table[] = {

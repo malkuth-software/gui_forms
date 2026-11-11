@@ -59,6 +59,7 @@ MAKERS: Mapping[str, str] = {
     "page_strip": "make_page_strip",
     "dock_site": "make_dock_site",
     "gauge_base": "make_gauge_base",
+    "responsive_track_panel": "make_responsive_track_panel",
     "progress_bar": "make_ranged<ProgressBar>",
     "track_bar": "make_ranged<TrackBar>",
     "value_bar": "make_ranged<ValueBar>",

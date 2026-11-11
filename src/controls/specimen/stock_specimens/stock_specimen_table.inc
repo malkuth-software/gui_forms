@@ -74,7 +74,7 @@
     {"block_panel", "Layout", Size{256.0, 160.0}, "Block panel", &make_plain<BlockPanel>},
     {"flow_layout_panel_compat", "Layout", Size{256.0, 160.0}, "Flow layout panel compat", &make_plain<FlowLayoutPanelCompat>},
     {"table_layout_panel_compat", "Layout", Size{256.0, 160.0}, "Table layout panel compat", &make_plain<TableLayoutPanelCompat>},
-    {"responsive_track_panel", "Layout", Size{256.0, 160.0}, "Responsive track panel", &make_plain<ResponsiveTrackPanel>},
+    {"responsive_track_panel", "Layout", Size{256.0, 160.0}, "Responsive track panel", &make_responsive_track_panel},
     {"scaled_panel", "Layout", Size{256.0, 160.0}, "Scaled panel", &make_plain<ScaledPanel>},
     {"split_container", "Layout", Size{256.0, 160.0}, "Split container", &make_plain<SplitContainer>},
     {"splitter_panel", "Layout", Size{256.0, 160.0}, "Splitter panel", &make_plain<SplitterPanel>},

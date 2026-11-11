@@ -15,6 +15,7 @@
 
 #include "gui_forms/gui_forms.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -28,6 +29,15 @@
 
 namespace {
 using namespace gui_forms;
+
+// A stable ID for a specimen of `control_id`: anatomy ids join words with
+// '_', which stable IDs refuse, so they become '-'.
+StableId specimen_id(std::string_view control_id) {
+    std::string segment(control_id);
+    std::replace(segment.begin(), segment.end(), '_', '-');
+    StableId id("specimen." + segment);
+    return id;
+}
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -208,7 +218,7 @@ void stock_catalogue() {
         const ControlAnatomy& declared = anatomies[index];
         for (const AnatomyState state : declared.states) {
             const StockSpecimenInstance instance =
-                make_stock_specimen(row, StableId("specimen." + std::string(row.control_id)));
+                make_stock_specimen(row, specimen_id(row.control_id));
             require(instance.root != nullptr && instance.subject != nullptr, "a maker gives a root and a subject");
             const std::string_view made_id = (*instance.subject).anatomy().control_id;
             require(made_id == row.control_id || made_id == "control",
