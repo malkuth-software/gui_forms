@@ -23,7 +23,7 @@ struct NamedRow final {
     std::string stable_id;
     std::vector<std::pair<std::string, BindingValue>> fields;
     bool editable{true};
-    std::vector<std::pair<std::string, std::string>> errors;
+    std::vector<std::pair<std::string, std::string>> errors{};
 };
 
 // The table behind source; a test that needs one fails without it.

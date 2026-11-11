@@ -938,6 +938,7 @@ struct DeviceArea final {
     int bottom{};
 };
 
+#if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
 // The whole device pixels a logical rectangle touches at `scale`, clamped to a
 // raster of `width` by `height` pixels; the same rounding as the Skia raster's
 // damage clip, so a copy covers every pixel a frame may have changed.
@@ -954,7 +955,6 @@ DeviceArea device_area(const Rect rect, const double scale, const int width, con
     return area;
 }
 
-#if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
 // Copies `area` of a premultiplied BGRA8 raster into a 32-bit top-down DIB of
 // the same extent, byte for byte (SK2: both are BGRA8, so nothing converts).
 // With `opaque`, every copied pixel's alpha byte becomes 255, which is the
@@ -2287,7 +2287,8 @@ private:
     void toggle_full_screen() noexcept {
         if (hwnd_ == nullptr || closed_) return;
         if (!full_screen_) {
-            MONITORINFO monitor{sizeof(MONITORINFO)};
+            MONITORINFO monitor{};
+            monitor.cbSize = sizeof(MONITORINFO);
             restore_placement_.length = sizeof(WINDOWPLACEMENT);
             if (!GetWindowPlacement(hwnd_, &restore_placement_) ||
                 !GetMonitorInfoW(MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONEAREST), &monitor)) return;
