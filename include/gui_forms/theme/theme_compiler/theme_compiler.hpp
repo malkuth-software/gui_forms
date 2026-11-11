@@ -315,6 +315,15 @@ struct ThemePackageExport final {
 // Every package of `library`, in name order, as export writes it.
 [[nodiscard]] std::vector<ThemePackageExport> export_theme_packages(const ThemeLibrary& library);
 
+// A theme package of one sheet: an application's theme as one plain CSS
+// file, edited and read again at start-up without a rebuild. The manifest
+// is made here, naming the package `name` and the sheet
+// `sheet.theme.css` with its sha256 (gui-forms-theme/1, engine >=0.3,
+// version 1.0.0). The name is checked when the package is compiled, as
+// any manifest's is (E601); a quote, backslash or control character in it
+// is escaped, so the manifest is always well-formed JSON.
+[[nodiscard]] ThemePackage theme_sheet_package(std::string_view sheet, std::string_view name);
+
 // As compile_theme_package, for the installed package named `name`; an
 // unknown name is refused (E603).
 [[nodiscard]] ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library,

@@ -1,5 +1,6 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
+#include "gui_forms/integrity/sha256/sha256.hpp"
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
@@ -17,6 +18,7 @@
 #include "theme_source_record.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -810,6 +812,51 @@ std::shared_ptr<const Theme> default_compiled_theme() {
     static const std::shared_ptr<const Theme> theme =
         default_theme_base == ThemeBase::gui_forms ? gui_forms_theme() : default_theme();
     return theme;
+}
+
+namespace {
+
+// `text` as the inside of a JSON string: a quote, a backslash and the
+// control characters escaped; every other byte as it is (UTF-8 passes
+// through).
+std::string json_string_body(std::string_view text) {
+    static constexpr char hex_digits[] = "0123456789abcdef";
+    std::string escaped;
+    escaped.reserve(text.size());
+    for (const char character : text) {
+        const unsigned char byte = static_cast<unsigned char>(character);
+        if (character == '"' || character == '\\') {
+            escaped.push_back('\\');
+            escaped.push_back(character);
+        } else if (byte < 0x20U) {
+            escaped.append("\\u00");
+            escaped.push_back(hex_digits[byte >> 4U]);
+            escaped.push_back(hex_digits[byte & 0x0FU]);
+        } else {
+            escaped.push_back(character);
+        }
+    }
+    return escaped;
+}
+
+} // namespace
+
+ThemePackage theme_sheet_package(std::string_view sheet, std::string_view name) {
+    std::array<char, sha256_hex_digits> digest{};
+    format_sha256_hex(sha256_of_text(sheet), digest);
+    const std::string_view digest_text(digest.data(), digest.size());
+    ThemePackage package{};
+    package.manifest.append("{\"format\": \"gui-forms-theme/1\", \"name\": \"");
+    package.manifest.append(json_string_body(name));
+    package.manifest.append("\", \"version\": \"1.0.0\", \"engine\": \">=0.3\", "
+                            "\"sheet\": {\"path\": \"sheet.theme.css\", \"sha256\": \"");
+    package.manifest.append(digest_text);
+    package.manifest.append("\"}}");
+    ThemePackageFile file{};
+    file.path = "sheet.theme.css";
+    file.bytes = std::string(sheet);
+    package.files.push_back(std::move(file));
+    return package;
 }
 
 ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images,

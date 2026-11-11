@@ -486,7 +486,7 @@ public static unsafe class Layout
         {
             gf_themes_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_themes_table size", sizeof(gf_themes_table), 112);
+            failures += expect(output, "gf_themes_table size", sizeof(gf_themes_table), 120);
             failures += expect(output, "gf_themes_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_themes_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_themes_table.load offset", (long)((byte*)&value.load - start), 8);
@@ -502,6 +502,7 @@ public static unsafe class Layout
             failures += expect(output, "gf_themes_table.load_image offset", (long)((byte*)&value.load_image - start), 88);
             failures += expect(output, "gf_themes_table.remove_image offset", (long)((byte*)&value.remove_image - start), 96);
             failures += expect(output, "gf_themes_table.load_pixels offset", (long)((byte*)&value.load_pixels - start), 104);
+            failures += expect(output, "gf_themes_table.load_sheet offset", (long)((byte*)&value.load_sheet - start), 112);
         }
         {
             gf_host_capabilities value = default;

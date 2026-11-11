@@ -908,6 +908,14 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status load_sheet(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report) const noexcept {
+        if (table_.struct_size < 120u || table_.load_sheet == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.load_sheet(sheet, name, report);
+        return called;
+    }
+
 private:
     gf_themes_table table_;
 };

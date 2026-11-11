@@ -3670,6 +3670,8 @@ Types
 
    .. cpp:member:: gf_status (*load_pixels)(const uint8_t* pixels, uint32_t width, uint32_t height, uint64_t row_bytes, uint64_t* image)
 
+   .. cpp:member:: gf_status (*load_sheet)(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -4374,6 +4376,8 @@ Types
    .. cpp:function:: gf_status remove_image(uint64_t image) const noexcept
 
    .. cpp:function:: gf_status load_pixels(const uint8_t* pixels, uint32_t width, uint32_t height, uint64_t row_bytes, uint64_t* image) const noexcept
+
+   .. cpp:function:: gf_status load_sheet(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

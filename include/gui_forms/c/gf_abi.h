@@ -1389,6 +1389,15 @@ typedef struct gf_themes_table {
      */
     gf_status (GF_CALL* load_pixels)(const uint8_t* pixels, uint32_t width, uint32_t height, uint64_t row_bytes,
                                      uint64_t* image);
+    /* Loads sheet, the UTF-8 text of one CSS theme sheet (at most
+     * GF_THEME_PACKAGE_MAXIMUM_BYTES), as load does a package: the package
+     * of that one sheet named name, its manifest made by the library (the
+     * sheet's sha256 included). An application's theme kept as a plain
+     * file, edited and read again at start-up without a rebuild. A refused
+     * sheet changes nothing; its findings name the file sheet.theme.css
+     * with their line and column. GF_STATUS_INVALID_ARGUMENT for a view
+     * with a size and no data, GF_STATUS_LIMIT_EXCEEDED past the bound. */
+    gf_status (GF_CALL* load_sheet)(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report);
 } gf_themes_table;
 
 /* gf_host_capability: what a host can do, one bit each; a host reports the
