@@ -1287,6 +1287,50 @@ void thread_publishes_semantics() {
             "an identity the tree does not hold is refused");
 }
 
+// N44: after the first, a snapshot is built only once the previous one was
+// taken. Changes nobody asked for build nothing; taking the stale snapshot
+// has the newest built.
+void thread_builds_semantics_only_when_taken() {
+    std::shared_ptr<InputLog> log = std::make_shared<InputLog>();
+    std::shared_ptr<SemanticStops> stops = std::make_shared<SemanticStops>();
+    std::shared_ptr<LiveSurface> surface = LiveSurface::create({100U, 30U});
+    require(static_cast<bool>(surface), "surface");
+    SubSurfaceThread thread(std::make_unique<SemanticContent>(log, stops), surface, default_theme(), nullptr);
+    require(wait_for_state(thread, SubSurfaceState::running), "thread reaches running");
+    thread.configure(configuration_of(1U, 100U, 30U));
+    const std::chrono::steady_clock::time_point first_limit = std::chrono::steady_clock::now() + wait_limit;
+    while (thread.statistics().semantic_snapshots_published < 1U && std::chrono::steady_clock::now() < first_limit) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    require(thread.statistics().semantic_snapshots_published == 1U, "the first snapshot is built untaken");
+
+    // Two changes, neither snapshot taken: each completes on the thread, and
+    // a correct thread builds nothing however long it is given.
+    const DispatchInvokeResult once = thread.dispatcher().invoke(RenameFirst(stops, "once"));
+    const DispatchInvokeResult twice = thread.dispatcher().invoke(RenameFirst(stops, "twice"));
+    require(once == DispatchInvokeResult::completed && twice == DispatchInvokeResult::completed,
+            "both changes complete on the thread");
+    const std::chrono::steady_clock::time_point quiet_until =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    while (std::chrono::steady_clock::now() < quiet_until) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    require(thread.statistics().semantic_snapshots_published == 1U,
+            "changes while the snapshot is untaken build no snapshot");
+
+    std::shared_ptr<const SemanticSnapshot> stale = thread.take_semantics();
+    require(stale && (*find_node((*stale).roots, "sub.first")).name == "first",
+            "the snapshot taken is the one built before the changes");
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (thread.statistics().semantic_snapshots_published < 2U && std::chrono::steady_clock::now() < limit) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    std::shared_ptr<const SemanticSnapshot> newest = thread.take_semantics();
+    require(thread.statistics().semantic_snapshots_published == 2U && newest &&
+                (*find_node((*newest).roots, "sub.first")).name == "twice",
+            "taking a stale snapshot has exactly one newest built");
+}
+
 // The host in a window: the sub-surface's nodes are the host's children in
 // the window's snapshot, translated into the window; actions on them are
 // posted and performed on the sub-surface's thread; focus follows the
@@ -2268,6 +2312,7 @@ int run_all() {
     window_shows_alerts();
     sub_surface_forwards_alerts();
     thread_publishes_semantics();
+    thread_builds_semantics_only_when_taken();
     host_stitches_semantics();
     return 0;
 }

@@ -18,8 +18,10 @@
 //
 // Lifetime and staleness (house style 6 and 9): a range holds a shared
 // reference to its window's SemanticSource and its element's identity, and
-// nothing else; COM reference counting ends its life. Every call reads a
-// fresh snapshot and layout, clamps the range to the text as it now is (to
+// nothing else; COM reference counting ends its life. Every call reads the
+// current snapshot (and, only when it needs boxes or units, the layout,
+// reused while the snapshot is: SemanticSource::text_layout), clamps the
+// range to the text as it now is (to
 // its end, then back to the start of a character), and answers
 // UIA_E_ELEMENTNOTAVAILABLE once the window has gone or the node has left
 // the tree, never another node's text.
