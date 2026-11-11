@@ -10,6 +10,7 @@
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
 #include "gui_forms/pages/page_set/page_set.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -57,9 +58,26 @@ public:
 
 // GaugeBase's constructor is protected: a subclass that adds nothing
 // stands for it (as the schema export does).
+// The stock anatomy registered for `control_id`, or null.
+const ControlAnatomy* stock_anatomy_named(std::string_view control_id) noexcept {
+    for (const ControlAnatomy& anatomy : stock_control_anatomies()) {
+        if (anatomy.control_id == control_id) return &anatomy;
+    }
+    return nullptr;
+}
+
+// GaugeBase draws through its subclasses and keeps its base's anatomy; the
+// specimen stands for the registered gauge_base row, so it reports that
+// anatomy (the catalogue checks each subject is of its row's type).
 class SpecimenGauge final : public GaugeBase {
 public:
     explicit SpecimenGauge(StableId stable_id) : GaugeBase(std::move(stable_id)) {}
+
+    [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override {
+        static const ControlAnatomy* const registered = stock_anatomy_named("gauge_base");
+        if (registered == nullptr) return GaugeBase::anatomy();
+        return *registered;
+    }
 };
 
 // Sets the sample text where the type has a writable `text` property.
