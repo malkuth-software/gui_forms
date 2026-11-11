@@ -321,7 +321,9 @@ void a_short_menu_is_as_wide_as_its_rows() {
     Commands commands;
     std::vector<MenuItemSpec> paste;
     paste.emplace_back("paste.here", MenuItemKind::command, commands.open, "Paste");
-    paste.emplace_back("paste.new", MenuItemKind::command, commands.save, "Paste as new");
+    // Commands without shortcuts: a shortcut column would widen the panel
+    // (Save's is long).
+    paste.emplace_back("paste.new", MenuItemKind::command, commands.tile, "Paste as new");
     std::vector<MenuItemSpec> placing;
     placing.emplace_back("place.fill", MenuItemKind::command, commands.fill, "Fill");
     placing.emplace_back("place.tile", MenuItemKind::command, commands.tile, "Tile");
@@ -341,9 +343,11 @@ void a_short_menu_is_as_wide_as_its_rows() {
     require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the Edit menu opens");
     const double top_width = (*panel_of(*desk.model, 0U)).requested_bounds().width;
     require(top_width >= 120.0 && top_width < 200.0, "a two-row menu is as wide as its rows, at least the minimum");
-    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches Paste");
+    // A keyboard open focuses the first row, Paste.
     require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches Place");
     require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), "Right opens the Place submenu");
+    require((*(*desk.model).popup_window_model(1U)).find("strip.menu.overlay.row.place.center") != nullptr,
+            "the submenu is Place's");
     const double child_width = (*panel_of(*desk.model, 1U)).requested_bounds().width;
     require(child_width >= 120.0 && child_width < 200.0, "a three-row submenu is as wide as its rows");
     (*desk.strip).close();
