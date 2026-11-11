@@ -613,7 +613,7 @@ void families() {
     const ControlVisualRecipe& card = (*theme).resolve(ControlVisualRole::card, normal);
     require(tool_tip.material.fills.front().color == Color::rgba(255, 255, 225) &&
                 tool_tip.material.border && (*tool_tip.material.border).color == Color::rgba(104, 111, 118) &&
-                tool_tip.material.corner_radius == 0.0 && tool_tip.text == Color::rgba(24, 31, 38) &&
+                tool_tip.material.corner_radius == 0.0 && tool_tip.text == Color::rgba(0, 0, 0) &&
                 !(tool_tip.material == card.material),
             "windows-professional's tooltip family keeps the plain tooltip's face, edge and text");
 

@@ -203,12 +203,30 @@ void each_theme_is_its_own() {
             "windows-professional's dark button is its dark sheet's");
 }
 
+// Tooltip text is black on the light tooltip plate (owner mandate
+// 2026-11-11), in every familiar theme's light records, resting and
+// selected, and in the default theme. The dark records (macos-style's and
+// windows-professional's dark sheets draw a dark plate) are the owner's to
+// decide and are not held here.
+void each_light_tooltip_is_black() {
+    const Color black = Color::rgba(0, 0, 0);
+    const ControlVisualContext resting{};
+    for (std::size_t index = 0U; index < familiar_theme_count; ++index) {
+        const std::shared_ptr<const Theme> theme = familiar_theme(static_cast<FamiliarTheme>(index));
+        const ControlVisualRecipe& tool_tip = (*theme).resolve(ControlVisualRole::tool_tip, resting);
+        require(tool_tip.text == black, "a familiar theme's tooltip text is black");
+    }
+    const ControlVisualRecipe& own = (*gui_forms_theme()).resolve(ControlVisualRole::tool_tip, resting);
+    require(own.text == black, "the default theme's tooltip text is black");
+}
+
 } // namespace
 
 int main() {
     each_theme_builds();
     each_theme_contrast();
     each_theme_is_its_own();
+    each_light_tooltip_is_black();
     std::cout << "familiar themes: builds, round trips, contrast and identities passed\n";
     return 0;
 }

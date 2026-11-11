@@ -424,7 +424,10 @@ gui_forms::DockSite
    ``grip_dots`` mark), with hot, captured, focus_visible and disabled. The
    ``stack`` item system has ``stack_area`` and, for a tool stack,
    ``caption``, ``caption_accent`` (present while current), ``caption_key``,
-   ``caption_label``, ``caption_menu`` and ``caption_menu_glyph`` (a
+   ``caption_label``, ``caption_grip`` (the ``grip_dots`` mark in the muted
+   ink, between the title and the buttons, drawn only where a theme rule names
+   it, such as ``dock-site::part(caption_grip) { muted-color: ... }``; the
+   stock themes draw none), ``caption_menu`` and ``caption_menu_glyph`` (a
    ``chevron_down``), ``caption_pin`` and ``caption_pin_glyph`` (the ``pin``
    mark, checked while docked), ``caption_close`` and ``caption_close_glyph``;
    its states

@@ -126,6 +126,14 @@ and fade; elsewhere it is a passive overlay. It takes no input either way.
 `Window::set_tool_tips_shown` and `Application::set_tool_tips_shown` turn
 tooltips off.
 
+A tooltip's colours are the theme's `tool-tip` family: every stock theme
+draws black text on a light plate. The bubble is not a child of the control
+it describes, so a `fore_color` or `back_color` set on the window, a panel or
+the control does not reach it (as a Windows Forms `ToolTip` inherits no
+`ForeColor`). Restyle tooltips in the theme, with a `:family(tool-tip)` rule;
+no `!important` is needed to keep the text black under an authored
+`ForeColor`.
+
 ### The splashscreen
 
 `Splashscreen::show` opens a borderless, centred window that takes no input,

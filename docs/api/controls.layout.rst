@@ -847,6 +847,10 @@ Related types
 
    .. cpp:member:: PartGeometry caption_label
 
+   .. cpp:member:: PartGeometry caption_grip
+
+      The dotted grip between the title and the buttons (cp29): painted only where a theme rule names it (dock-site::part(caption_grip)).
+
    .. cpp:member:: PartGeometry caption_menu
 
    .. cpp:member:: PartGeometry caption_menu_glyph

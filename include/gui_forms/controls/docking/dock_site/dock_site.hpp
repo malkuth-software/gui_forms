@@ -595,6 +595,9 @@ public:
         PartGeometry caption_accent;
         PartGeometry caption_key;
         PartGeometry caption_label;
+        // The dotted grip between the title and the buttons (cp29): painted
+        // only where a theme rule names it (dock-site::part(caption_grip)).
+        PartGeometry caption_grip;
         PartGeometry caption_menu;
         PartGeometry caption_menu_glyph;
         PartGeometry caption_pin;
@@ -803,6 +806,10 @@ private:
     [[nodiscard]] std::vector<DockNodeId> plan_collapse(Size available) const;
     void place(DockNodeId node, Rect bounds, std::span<const DockNodeId> collapsed);
     [[nodiscard]] CaptionGeometry caption_geometry(Rect caption, bool pin, bool close) const;
+    // The caption grip's box in `placed`: the label's free run after the
+    // title's measured width, a gap in, the grip's height centred on the
+    // caption; empty where the run is shorter than one dot pitch.
+    [[nodiscard]] Rect caption_grip(const StackSlot& slot, const CaptionGeometry& placed) const;
     [[nodiscard]] bool seams_moved() const noexcept;
     [[nodiscard]] double caption_height() const;
 

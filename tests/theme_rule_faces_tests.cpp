@@ -345,6 +345,31 @@ void test_dock_site_parts() {
     ColourPainter painter{};
     window.paint(painter);
     require(painter.filled(caption_blue), "dock-site::part(caption) paints the tool stacks' captions");
+
+    // The caption grip (cp29): drawn only where a rule names it, in the
+    // grip mark's muted ink.
+    window.set_theme(theme_from_sheet("dock-site::part(caption_grip) { muted-color: #3060a0; }\n"));
+    window.perform_layout();
+    ColourPainter gripped{};
+    window.paint(gripped);
+    require(gripped.filled(caption_blue), "dock-site::part(caption_grip) paints the captions' dotted grip");
+    window.set_theme(theme_from_sheet("dock-site::part(caption_label) { color: #3060a0; }\n"));
+    window.perform_layout();
+    ColourPainter plain{};
+    window.paint(plain);
+    require(!plain.filled(caption_blue), "no grip is drawn where no rule names it");
+}
+
+// PageView's content well carries its anatomy name (cp29), so a
+// `page-view::part(content)` rule reaches it.
+void test_page_view_content_well() {
+    const std::shared_ptr<PageView> view = make_control<PageView>(StableId("faces.pages"));
+    Window window(view, Size{240.0, 160.0});
+    window.set_theme(theme_from_sheet("page-view::part(content) { background: #d09010; }\n"));
+    window.perform_layout();
+    ColourPainter painter{};
+    window.paint(painter);
+    require(painter.filled(ground_amber), "page-view::part(content) paints the view's content well");
 }
 
 constexpr Color bar_amber = Color::rgba(0xd0, 0x90, 0x10);
@@ -416,6 +441,7 @@ int main() {
     test_container_grounds();
     test_unknown_part_in_a_list();
     test_dock_site_parts();
+    test_page_view_content_well();
     test_embedded_scroll_bar_rules();
     if (failures != 0) {
         std::cerr << failures << " theme rule face check(s) failed\n";

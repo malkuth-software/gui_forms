@@ -7,6 +7,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
@@ -41,6 +42,10 @@ constexpr double glyph_side = 9.0;
 constexpr double label_gap = 4.0;
 // The active caption's accent line (DK-41, T4-3).
 constexpr double accent_height = 2.0;
+// The caption grip (cp29): two rows of the grip mark's two-unit dots on its
+// four-unit pitch, and no grip shorter than one pitch.
+constexpr double caption_grip_height = 7.0;
+constexpr double caption_grip_minimum = 4.0;
 constexpr double extent_tolerance = 1e-9;
 // The drag's motions, run on the window's motion clock: the stamp's is the
 // shared drag curve (drag_gesture.hpp, 220 ms, D1 as corrected); the tiles
@@ -65,6 +70,23 @@ using dock_site_detail::moved;
 using dock_site_detail::seam_bar_thickness;
 using dock_site_detail::strip_extent;
 using dock_site_detail::to_window;
+
+// Whether a theme rule names `keyed`'s part: its recipe resolved with the
+// part's name differs from the recipe without it, which only the rules
+// naming no part reach (a rule on a named part sets its text colours, muted
+// ink and glyphs). The grip mark draws in the muted ink. Under forced high
+// contrast a rule's colours are dropped, so no part is named there.
+bool part_named_by_rule(const Control& control, const PartPaint& keyed) {
+    if (!keyed.key) return false;
+    const Theme& theme = control.effective_theme();
+    const ControlVisualContext context = part_visual_context(control, keyed.states);
+    const ResolvedControlRecipe named =
+        theme.resolve(control, keyed.family, context, keyed.states, (*keyed.key).part, keyed.control_type);
+    const ResolvedControlRecipe broad =
+        theme.resolve(control, keyed.family, context, keyed.states, std::string_view{}, keyed.control_type);
+    const bool differs = !(named.recipe() == broad.recipe());
+    return differs;
+}
 
 std::size_t command_index(DockPositionCommand command) noexcept {
     const std::size_t index = static_cast<std::size_t>(command);
@@ -1232,6 +1254,17 @@ DockSite::CaptionGeometry DockSite::caption_geometry(Rect caption, bool pin, boo
     return placed;
 }
 
+Rect DockSite::caption_grip(const StackSlot& slot, const CaptionGeometry& placed) const {
+    const double scale = effective_text_scale();
+    const ResolvedTextLayout title = resolve_text_layout_utf8(slot.title, caption_font());
+    const double start = placed.label.x + title.logical_size.width + label_gap * scale;
+    const double end = placed.label.x + placed.label.width;
+    if (end - start < caption_grip_minimum * scale) return Rect{};
+    const double height = std::min(placed.caption.height, caption_grip_height * scale);
+    const Rect grip{start, placed.caption.y + (placed.caption.height - height) * 0.5, end - start, height};
+    return grip;
+}
+
 // -- states --------------------------------------------------------------------
 
 bool DockSite::focus_cue() const noexcept {
@@ -1400,6 +1433,15 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     part.text = slot.title;
     paint_part(painter, surface, part);
     part.text = {};
+    // The grip, only where a theme rule names it (cp29: SDR#'s dotted
+    // caption grip); the stock themes draw none.
+    const Rect grip = caption_grip(slot, placed);
+    if (!grip.empty()) {
+        part.role = PartRole::grip;
+        part.bounds = moved(grip, offset);
+        part.key = PartKey{"caption_grip", item, {}};
+        if (part_named_by_rule(surface, part)) paint_part(painter, surface, part);
+    }
     // The buttons: flat at rest with a plate when hot (the menu-item family,
     // as the tool strip's).
     const std::array<Zone, 3> zones{Zone::menu, Zone::pin, Zone::close};
@@ -2573,7 +2615,7 @@ constexpr std::array<AnatomyState, 3> close_button_states{AnatomyState::hot, Ana
 constexpr std::array<AnatomyState, 2> pin_glyph_states{AnatomyState::checked, AnatomyState::disabled};
 constexpr std::array<AnatomyState, 1> glyph_states{AnatomyState::disabled};
 
-constexpr std::array<PartField<DockSite::StackParts>, 11> stack_part_fields{{
+constexpr std::array<PartField<DockSite::StackParts>, 12> stack_part_fields{{
     {.declaration = {.name = "stack_area", .role = PartRole::region, .composed_from = "page_view"},
      .member = &DockSite::StackParts::stack_area},
     {.declaration = {.name = "caption", .role = PartRole::face, .composed_from = {}},
@@ -2587,6 +2629,10 @@ constexpr std::array<PartField<DockSite::StackParts>, 11> stack_part_fields{{
      .member = &DockSite::StackParts::caption_key},
     {.declaration = {.name = "caption_label", .role = PartRole::caption, .composed_from = {}},
      .member = &DockSite::StackParts::caption_label},
+    // The dotted grip after the title (cp29), drawn only where a rule names
+    // it.
+    {.declaration = {.name = "caption_grip", .role = PartRole::grip, .composed_from = {}},
+     .member = &DockSite::StackParts::caption_grip},
     {.declaration = {.name = "caption_menu", .role = PartRole::actuator, .composed_from = "button",
                      .states = menu_button_states},
      .member = &DockSite::StackParts::caption_menu},
@@ -2606,7 +2652,7 @@ constexpr std::array<PartField<DockSite::StackParts>, 11> stack_part_fields{{
                      .states = glyph_states},
      .member = &DockSite::StackParts::caption_close_glyph},
 }};
-constexpr std::array<PartDeclaration, 11> stack_parts_declared = part_declarations(stack_part_fields);
+constexpr std::array<PartDeclaration, 12> stack_parts_declared = part_declarations(stack_part_fields);
 constexpr std::array<StateField<DockSite::StackStates>, 2> stack_state_fields{{
     {AnatomyState::current, &DockSite::StackStates::current},
     {AnatomyState::disabled, &DockSite::StackStates::disabled},
@@ -2726,6 +2772,7 @@ DockSite::StackParts DockSite::stack_parts(const StackSlot& slot, std::size_t in
     if (stack_current(slot)) record.caption_accent = PartGeometry::from_bounds(placed.accent);
     record.caption_key = PartGeometry::from_bounds(placed.key);
     record.caption_label = PartGeometry::from_bounds(placed.label);
+    record.caption_grip = PartGeometry::from_bounds(caption_grip(slot, placed));
     const AnatomyStateSet menu = button_states(index, Zone::menu);
     const AnatomyStateSet pin = button_states(index, Zone::pin);
     const AnatomyStateSet close = button_states(index, Zone::close);

@@ -2133,6 +2133,7 @@ Item system `stack`:
 | `caption_accent` | keyline |  |  |
 | `caption_key` | chip |  |  |
 | `caption_label` | caption |  |  |
+| `caption_grip` | grip |  |  |
 | `caption_menu` | actuator | `button` | hot, pressed, open, disabled |
 | `caption_menu_glyph` | glyph |  | disabled |
 | `caption_pin` | actuator | `button` | hot, pressed, checked, disabled |

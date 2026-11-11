@@ -2303,14 +2303,15 @@ ThemeDefinition windows_professional_theme_definition() {
         selected.muted_text = Color::rgba(255, 255, 255, 130);
     }
     // Tooltips (owner decision RB-38): the face and edge ToolTip drew before
-    // it had a family, a pale yellow square plate with a grey line and
-    // near-black text. A tooltip takes no input, so its hot and pressed
-    // recipes are never reached.
+    // it had a family, a pale yellow square plate with a grey line; the text
+    // is black (owner mandate 2026-11-11: tooltip text is black on the light
+    // tooltip plate in every stock theme). A tooltip takes no input, so its
+    // hot and pressed recipes are never reached.
     fill_professional_role(result.roles[static_cast<std::size_t>(ControlVisualRole::tool_tip)],
         Color::rgba(255, 255, 225),
                           Color::rgba(255, 255, 225),
                           Color::rgba(104, 111, 118),
-                          Color::rgba(24, 31, 38), 0.0);
+                          Color::rgba(0, 0, 0), 0.0);
     fill_link_role(result.roles[static_cast<std::size_t>(ControlVisualRole::link)],
                    result.compatibility.link, result.compatibility.disabled_text);
     fill_link_role(result.roles[static_cast<std::size_t>(ControlVisualRole::visited_link)],

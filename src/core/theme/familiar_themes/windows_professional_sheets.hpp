@@ -81,12 +81,14 @@ inline constexpr std::string_view windows_professional_floor_sheet =
   border-radius: 3px;
   box-shadow: 0 1px 3px #2a2a2824;
 }
-/* Office 2007's tooltip: white deepening to a pale silver. */
+/* Office 2007's tooltip: white deepening to a pale silver, with black text
+   (owner mandate 2026-11-11). */
 :family(tool-tip) {
   background: linear-gradient(to bottom, #ffffff, #efefed);
   border: 1px solid #6b6b69;
   border-radius: 2px;
   box-shadow: 0 2px 4px #2a2a2833;
+  color: #000000;
 }
 :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
 :family(notice):state(selected), :family(tool-tip):state(selected) {

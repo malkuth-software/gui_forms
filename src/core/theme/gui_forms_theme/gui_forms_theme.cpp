@@ -59,7 +59,8 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
 
 /* Flat stock (windows, panels, cards and tooltips): one solid face with a
    quiet line. A selected one takes the pale selection. Tooltips are
-   windows-professional's pale yellow (owner decision RB-38). */
+   windows-professional's pale yellow (owner decision RB-38), with black
+   text (owner mandate 2026-11-11). */
 :family(window), :family(panel), :family(card), :family(tool-tip) {
   color: #1b2733;
   glyph-color: #1b2733;
@@ -83,6 +84,7 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
   background: #ffffe1;
   border: 1px solid #686f76;
   border-radius: 0;
+  color: #000000;
 }
 :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
 :family(tool-tip):state(selected) {
