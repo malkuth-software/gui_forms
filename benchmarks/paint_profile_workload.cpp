@@ -54,7 +54,9 @@
 
 namespace {
 
+using gui_forms::Control;
 using gui_forms::DamageRegion;
+using gui_forms::Dirty;
 using gui_forms::FontRole;
 using gui_forms::MetricsSnapshot;
 using gui_forms::Rect;
