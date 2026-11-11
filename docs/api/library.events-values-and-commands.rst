@@ -271,6 +271,10 @@ Related types
 
    .. cpp:member:: std::uint64_t callbacks_emitted
 
+   .. cpp:member:: std::uint64_t emissions_refused
+
+      Emissions of this event refused because the thread was already maximum_nested_event_emissions emissions deep.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: Rule final
@@ -789,6 +793,10 @@ Functions, constants and aliases
 .. cpp:function:: template <typename Owner, typename Method, typename... Bound, typename... Arguments> void on(Event<Arguments...>& event, Owner& owner, Method method, Bound... bound)
 
    Owner-held named member subscription. Owner must explicitly participate in Component lifecycle; Target may be Owner or one of its bases. A disposed owner is a no-op; a null member is rejected even for a disposed owner. Registration may allocate/throw. Emission adds no allocation or idle work. Owner and publisher obey the existing Event execution-thread contract.
+
+.. cpp:var:: constexpr std::size_t maximum_nested_event_emissions
+
+   The deepest emissions may nest on one thread, across every Event: a handler that raises an event (the same one or another) nests one emission inside its own. An emission that would pass the limit is refused before any handler runs: emit returns at once and counts it in that event's EventStatistics::emissions_refused. Ordinary chains (a property change whose handler sets another property) nest a few levels; a chain that reaches the limit is a handler loop. The budget: each level is emit's frame, the slot's dispatch and the handler, 8 KiB allowed in all, so 32 levels take at most 256 KiB, half of the smallest UI-thread stack among the hosts (a macOS secondary thread's 512 KiB). Value: ``32U``.
 
 .. cpp:namespace:: gui_forms
 
