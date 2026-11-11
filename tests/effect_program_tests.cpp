@@ -430,12 +430,24 @@ void stripes_pulse_laser() {
             "the stripes draw nine filled bands");
     require(stripe_instance.last_meter().refused == 0U, "the stripes stay within budget");
     // A quarter second at 0.8 pitches a second moves them 0.2 of 16 = 3.2
-    // units forward, stepped to 3 whole device pixels.
+    // units forward, stepped to 3 whole device pixels. A frame runs at most
+    // four ticks (the rest are skipped), so the quarter second goes by in
+    // five 50 ms frames of three ticks each.
+    RecordingPainter between;
+    for (std::int64_t step = 1; step < 5; ++step) {
+        static_cast<void>(stripe_instance.advance(at_milliseconds(step * 50)));
+        stripe_instance.paint(between, part, 1.0, false, view);
+    }
     static_cast<void>(stripe_instance.advance(at_milliseconds(250)));
     RecordingPainter moved;
     stripe_instance.paint(moved, part, 1.0, false, view);
     const bool travelled = !stripes.polygon_starts.empty() && !moved.polygon_starts.empty() &&
                            moved.polygon_starts[0].x - stripes.polygon_starts[0].x == 3.0;
+    if (!travelled && !stripes.polygon_starts.empty() && !moved.polygon_starts.empty()) {
+        std::cerr << "  stripes: first band at " << stripes.polygon_starts[0].x << ", then "
+                  << moved.polygon_starts[0].x << " (" << stripes.polygons << " and " << moved.polygons
+                  << " bands)\n";
+    }
     require(travelled, "the stripes travel forward, toward the leading edge, in whole device pixels");
     // Mirrored for a right-to-left fill: the bands travel left.
     EffectView<ProgressBar> mirrored = view;
@@ -445,6 +457,10 @@ void stripes_pulse_laser() {
     mirrored_instance.attach(built_in("progress_stripes"), 1U, start);
     RecordingPainter mirrored_first;
     mirrored_instance.paint(mirrored_first, part, 1.0, false, mirrored);
+    for (std::int64_t step = 1; step < 5; ++step) {
+        static_cast<void>(mirrored_instance.advance(at_milliseconds(step * 50)));
+        mirrored_instance.paint(between, part, 1.0, false, mirrored);
+    }
     static_cast<void>(mirrored_instance.advance(at_milliseconds(250)));
     RecordingPainter mirrored_moved;
     mirrored_instance.paint(mirrored_moved, part, 1.0, false, mirrored);
