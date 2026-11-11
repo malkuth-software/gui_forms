@@ -4,7 +4,7 @@
     "Program manifest consumed by tools/package_programs.py, tools/smoke_package.py and tools/publish_tested_release.py.",
     "Each program lists, per platform, the CMake target and the path pattern of what the build directory produces.",
     "A platform entry marked planned=true names a target another workstream still has to add; packaging logs it as skipped when the build directory lacks it and never fails on it.",
-    "Font and notice lists mirror GUI_FORMS_GALLERY_FONTS / GUI_FORMS_GALLERY_FONT_NOTICES in CMakeLists.txt. macOS bundles embed them in Contents/Resources/fonts at build time; Windows stages them in fonts/ beside the executables (target gui_forms_program_fonts); Linux has no post-build copy yet, so packaging supplies fonts/ from assets/fonts.",
+    "Font and notice lists mirror GUI_FORMS_GALLERY_FONTS / GUI_FORMS_GALLERY_FONT_NOTICES in CMakeLists.txt; fallback_files and fallback_notices are the Noto fallback faces and their licences (GUI_FORMS_FALLBACK_FONT_FILES / GUI_FORMS_FALLBACK_FONT_NOTICES), which a program's package carries only when its fallback_fonts is true. macOS bundles embed them in Contents/Resources/fonts at build time; Windows stages them in fonts/ beside the executables (target gui_forms_program_fonts); Linux has no post-build copy yet, so packaging supplies fonts/ from assets/fonts.",
     "Identifiers: macOS pkg identifier is <vendor.bundle_prefix>.<id>; Debian package is <vendor.deb_prefix>-<id>; Windows uninstall key is <vendor.windows_uninstall_prefix><id> under HKCU."
   ],
   "vendor": {
@@ -31,13 +31,6 @@
       "Cousine-Bold.ttf",
       "Cousine-Italic.ttf",
       "Cousine-BoldItalic.ttf",
-      "NotoSansCJKjp-Regular.otf",
-      "NotoEmoji-Regular.ttf",
-      "NotoSansArabic-Regular.ttf",
-      "NotoSansHebrew-Regular.ttf",
-      "NotoSansDevanagari-Regular.ttf",
-      "NotoSansBengali-Regular.ttf",
-      "NotoSansGurmukhi-Regular.ttf",
       "Selawik-Regular.ttf",
       "Selawik-Semibold.ttf",
       "Selawik-Bold.ttf"
@@ -46,11 +39,22 @@
       "ATTRIBUTION.md",
       "OFL-Carlito.txt",
       "OFL-Cousine.txt",
-      "OFL-Noto.txt",
-      "OFL-NotoSansCJKjp.txt",
-      "OFL-NotoEmoji.txt",
       "OFL-Selawik.txt",
       "LICENSE-PortsmouthRapids.txt"
+    ],
+    "fallback_files": [
+      "NotoSansCJKjp-Regular.otf",
+      "NotoEmoji-Regular.ttf",
+      "NotoSansArabic-Regular.ttf",
+      "NotoSansHebrew-Regular.ttf",
+      "NotoSansDevanagari-Regular.ttf",
+      "NotoSansBengali-Regular.ttf",
+      "NotoSansGurmukhi-Regular.ttf"
+    ],
+    "fallback_notices": [
+      "OFL-Noto.txt",
+      "OFL-NotoSansCJKjp.txt",
+      "OFL-NotoEmoji.txt"
     ]
   },
   "programs": [
@@ -59,6 +63,7 @@
       "display_name": "GUI.Forms Gallery",
       "description": "Native control gallery: twenty pages of stock GUI.Forms controls grouped by function from the control registry, live, with diagnostics.",
       "enabled": true,
+      "fallback_fonts": true,
       "status": "Registry-driven Gallery; the Complete Showcase's sixteen pages migrated into it (decision F.1) and its targets are retired.",
       "required_platforms": [
         "macos-arm64",
@@ -100,6 +105,7 @@
       "display_name": "GUI.Forms Explore (preview)",
       "description": "Fixture-backed file-manager mockup over public GUI.Forms seams (file_manager_demoboard). Preview: STATUS.md records D0-D6 as measured partial and D7/D8/D10 as not started.",
       "enabled": true,
+      "fallback_fonts": true,
       "status": "preview",
       "cmake_option": "GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD",
       "required_platforms": [],
@@ -141,6 +147,7 @@
       "display_name": "GUI.Forms Correspondence",
       "description": "Mail-client mockup over in-memory fixtures (demo/correspondence); no real mail, filesystem or network.",
       "enabled": true,
+      "fallback_fonts": true,
       "status": "preview",
       "required_platforms": [
         "macos-arm64",

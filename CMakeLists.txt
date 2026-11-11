@@ -218,6 +218,43 @@ if(WIN32)
     target_link_options(gui_forms_threading PRIVATE "-Wl,--export-all-symbols")
 endif()
 
+# The bundled fallback faces (owner ruling 2026-11-11): the seven Noto faces and their OFL texts
+# form their own install component, fallback_fonts, installed when GUI_FORMS_INSTALL_FALLBACK_FONTS
+# is ON (the default, so the SDK carries them). An app package chooses for itself
+# ("fallback_fonts" per program in packaging/programs.json). The runtime works without them: they
+# are optional faces, so text only they cover falls back as for any missing face, and
+# bundled_font_diagnostics reports how many the font directory holds. Every other face and notice
+# is the fonts component. gui_forms_install_bundled_fonts() is the one install rule the hosts use.
+option(GUI_FORMS_INSTALL_FALLBACK_FONTS
+       "Install the bundled Noto fallback faces and their licences (install component fallback_fonts)" ON)
+set(GUI_FORMS_FALLBACK_FONT_FILES
+    NotoSansCJKjp-Regular.otf
+    NotoEmoji-Regular.ttf
+    NotoSansArabic-Regular.ttf
+    NotoSansHebrew-Regular.ttf
+    NotoSansDevanagari-Regular.ttf
+    NotoSansBengali-Regular.ttf
+    NotoSansGurmukhi-Regular.ttf)
+set(GUI_FORMS_FALLBACK_FONT_NOTICES
+    OFL-Noto.txt
+    OFL-NotoSansCJKjp.txt
+    OFL-NotoEmoji.txt)
+function(gui_forms_install_bundled_fonts)
+    set(_gf_font_source ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts)
+    set(_gf_font_destination ${CMAKE_INSTALL_DATADIR}/GUIForms/fonts)
+    set(_gf_excluded)
+    set(_gf_fallback)
+    foreach(_gf_name IN LISTS GUI_FORMS_FALLBACK_FONT_FILES GUI_FORMS_FALLBACK_FONT_NOTICES)
+        list(APPEND _gf_excluded PATTERN ${_gf_name} EXCLUDE)
+        list(APPEND _gf_fallback ${_gf_font_source}/${_gf_name})
+    endforeach()
+    install(DIRECTORY ${_gf_font_source}/ DESTINATION ${_gf_font_destination}
+            COMPONENT fonts ${_gf_excluded})
+    if(GUI_FORMS_INSTALL_FALLBACK_FONTS)
+        install(FILES ${_gf_fallback} DESTINATION ${_gf_font_destination} COMPONENT fallback_fonts)
+    endif()
+endfunction()
+
 # The runtime font set's manifest table (src/core/resources/fonts/bundled_font_set.cpp): one
 # record per face of assets/fonts/bundled-fonts.sha256, with its size; regenerated when the
 # manifest changes, and the build fails if a face is missing or does not match its digest.
@@ -1421,8 +1458,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
             FILE GUIFormsApplicationTargets.cmake
             NAMESPACE GUIForms::
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
-    install(DIRECTORY assets/fonts/
-            DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/fonts)
+    gui_forms_install_bundled_fonts()
 endif()
 
 if(GUI_FORMS_ENABLE_LINUX_HOST)
@@ -1502,7 +1538,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(EXPORT GUIFormsApplicationTargets FILE GUIFormsApplicationTargets.cmake
         NAMESPACE GUIForms:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
-    install(DIRECTORY assets/fonts/ DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/fonts)
+    gui_forms_install_bundled_fonts()
 endif()
 
 if(GUI_FORMS_ENABLE_WINDOWS_HOST)
@@ -1586,7 +1622,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         install(EXPORT GUIFormsApplicationTargets FILE GUIFormsApplicationTargets.cmake
             NAMESPACE GUIForms:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
-        install(DIRECTORY assets/fonts/ DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/fonts)
+        gui_forms_install_bundled_fonts()
     endif()
     add_library(gui_forms_win32_compat SHARED
         src/host/windows/win32_compat_shim.cpp

@@ -120,6 +120,9 @@ function(gui_forms_verify_effects target)
 endfunction()
 
 set(GUIForms_FONT_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_DATADIR@/GUIForms/fonts")
+# Whether the producer installed the Noto fallback faces (install component fallback_fonts,
+# GUI_FORMS_INSTALL_FALLBACK_FONTS). Without them the runtime falls back as for any missing face.
+set(GUIForms_FALLBACK_FONTS @GUI_FORMS_INSTALL_FALLBACK_FONTS@)
 
 # Components describe installed targets, not the producer's build options.
 # Set these explicitly so REQUIRED COMPONENTS works and missing hosts fail here.

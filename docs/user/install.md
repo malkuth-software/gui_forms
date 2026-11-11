@@ -115,7 +115,7 @@ consumer built with different settings is not binary compatible.
 | `include/gui_forms/` | Public portable headers |
 | `${CMAKE_INSTALL_LIBDIR}/` (usually `lib/`) | `GUIForms::Core`, `Controls`, `Drawing` (static), `GUIForms::Threading` (shared), `GUIForms::Application` (shared, when a native host is enabled), `GUIForms::Audio` (static, when enabled); Windows runtime DLLs go in `bin/` |
 | `${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms/` | `GUIFormsConfig.cmake` and exported target files |
-| `share/GUIForms/fonts/` | Bundled font set and licences, installed with a native host; exported as `GUIForms_FONT_DIR` |
+| `share/GUIForms/fonts/` | Bundled font set and licences, installed with a native host; exported as `GUIForms_FONT_DIR`. The seven Noto fallback faces and their OFL texts are the separate `fallback_fonts` component, present when `GUI_FORMS_INSTALL_FALLBACK_FONTS` was ON (the default; `GUIForms_FALLBACK_FONTS` says which) |
 | `share/licenses/` | Third-party notices |
 
 Nothing from Skia, AppKit, Win32 or X11 appears in the installed headers;
