@@ -1121,9 +1121,9 @@ struct ThemeEngine::PartPaintRun final {
     SurfaceMaterial* unkept_material{};
     // The material the rules authored for the part, as lent to its
     // primitive (one of the materials here or the window's or record's
-    // assembly), which the built-in recipe draws in place of the floor's
-    // when the primitive refuses the part or no raster is made; null while
-    // the rules author no material field.
+    // assembly) or assembled for a part no primitive draws
+    // (built_in_part_material), which the built-in recipe draws in place
+    // of the floor's; null while the rules author no material field.
     const SurfaceMaterial* resolved_material{};
     std::optional<SurfaceMaterial> authored_ground{};
     std::optional<SurfaceMaterial> unreflected{};
@@ -1142,7 +1142,7 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
     PartPaintRun run{decided};
     note_part_paint(painter, control, part, run);
     if (!run.primitive_draws) {
-        paint_without_primitive(part, run);
+        paint_without_primitive(control, part, run);
     } else if (prepare_part_request(control, part, run) && lend_part_material(control, part, run)) {
         borrow_part_backplane(part, run);
         bake_part(part, run);
@@ -1234,8 +1234,9 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
 }
 
 // A part no primitive draws: its transitions, then the built-in recipe at
-// its presented scale, translation and opacity.
-void ThemeEngine::paint_without_primitive(const PartPaint& part, PartPaintRun& run) const {
+// its presented scale, translation and opacity, in the material its rules
+// author.
+void ThemeEngine::paint_without_primitive(const Control& control, const PartPaint& part, PartPaintRun& run) const {
     if (run.kept != nullptr) stop_ambient(*run.window, *run.kept, *run.record);
     PrimitiveParameterBlock unused{};
     const PresentedProperties presented = run_transitions(run.decided.resolution, run.transitions, nullptr, unused);
@@ -1243,7 +1244,50 @@ void ThemeEngine::paint_without_primitive(const PartPaint& part, PartPaintRun& r
     const double shown_scale = std::min(presented.scale, granted_scale(part.bounds, part.granted_overflow));
     run.shown.bounds = moved_by(run.shown.bounds, granted_translation(part, shown_scale, presented.translation));
     run.opacity = presented.opacity;
+    run.resolved_material = built_in_part_material(control, part, run);
     run.outcome = PartPaintRun::Outcome::built_in;
+}
+
+// A rule of material fields selects the material primitive (owner C7),
+// which paints only some roles: a part of another role (a progress fill, a
+// selected row) resolves to role_mismatch and the built-in recipe draws
+// it, as it draws a part no rule selects a primitive for. The recipe's own
+// material is the floor's alone (Theme::resolve), so the fields the rules
+// author for the part stand in it here, assembled as lend_part_material
+// assembles a primitive's: over the recipe's material, darkened by rule in
+// a theme that derives its dark variant. Forced high contrast keeps the
+// built-in recipe's own records. Borrowed from the part's record or the
+// window's unkept assemblies for this paint.
+const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& control, const PartPaint& part,
+                                                           PartPaintRun& run) const {
+    const CompiledThemeRules::Resolution& resolution = run.decided.resolution;
+    SurfaceRoot* const window = run.window;
+    if (!resolution.materials_authored || window == nullptr) return nullptr;
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    if (context.high_contrast) return nullptr;
+    const Theme& theme = control.effective_theme();
+    const bool darkened = context.dark && derives_dark(theme);
+    ControlVisualContext floor_context = context;
+    if (darkened) floor_context.dark = false;
+    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const ResolvedControlRecipe floor =
+        theme.resolve(control, part.family, floor_context, part.states, part_name, part.control_type);
+    MaterialAssemblyContext relative{};
+    if (material_fields_read_em(resolution.materials)) {
+        relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
+    }
+    if (material_fields_read_current_colour(resolution.materials)) relative.current_colour = floor.recipe().text;
+    UnkeptAssemblies unkept{(*window).engine_unkept_assemblies(), (*window).engine_unkept_next(),
+                            (*window).metrics()};
+    if (darkened) {
+        const std::optional<ControlVisualRole> darkened_role = part.family;
+        const SurfaceMaterial& dark = unkept_assembly(unkept, rules_.serial(), floor.recipe().material, part.bounds,
+                                                      relative, resolution, darkened_role);
+        return &dark;
+    }
+    const SurfaceMaterial& assembled = authored_material(unkept, run.kept, rules_.serial(), floor.recipe().material,
+                                                         part.bounds, relative, resolution, (*window).metrics());
+    return &assembled;
 }
 
 // The raster request: the ambient effect's time, then the inputs, the

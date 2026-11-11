@@ -157,8 +157,13 @@ private:
                        const PartPlan& decided, std::span<const Rect> clips, const PaintGroup* group) const;
     // The part's record, where it lands and its transitions' sources.
     void note_part_paint(Painter& painter, const Control& control, const PartPaint& part, PartPaintRun& run) const;
-    // A part no primitive draws: its transitions; the built-in recipe draws it.
-    void paint_without_primitive(const PartPaint& part, PartPaintRun& run) const;
+    // A part no primitive draws: its transitions; the built-in recipe draws
+    // it, in the material its rules author (built_in_part_material).
+    void paint_without_primitive(const Control& control, const PartPaint& part, PartPaintRun& run) const;
+    // The material the built-in recipe draws a part in where its rules
+    // author material fields; null where they author none.
+    [[nodiscard]] const SurfaceMaterial* built_in_part_material(const Control& control, const PartPaint& part,
+                                                                PartPaintRun& run) const;
     // The raster request and the size the part is shown at; false when the
     // part draws nothing.
     [[nodiscard]] bool prepare_part_request(const Control& control, const PartPaint& part, PartPaintRun& run) const;
