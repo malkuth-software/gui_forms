@@ -357,18 +357,20 @@ void test_dock_site_parts() {
 
     // The caption grip (cp29): drawn in every theme in the grip mark's muted
     // ink (owner, 2026-11-11); a rule recolours it, and a transparent ink
-    // hides it.
-    window.set_theme(theme_from_sheet("dock-site::part(caption-grip) { muted-color: #3060a0; }\n"));
+    // hides it. The inks are roles: a literal colour in a text position
+    // warns (W201), though it still applies.
+    window.set_theme(theme_from_sheet(":root { grip-ink: #3060a0 on #ffffff; }\n"
+                                      "dock-site::part(caption-grip) { muted-color: role(grip-ink); }\n"));
     window.perform_layout();
     ColourPainter gripped{};
     window.paint(gripped);
     require(gripped.filled(caption_blue), "dock-site::part(caption-grip) recolours the captions' dotted grip");
-    window.set_theme(theme_from_sheet("dock-site::part(caption-label) { color: #3060a0; }\n"));
+    window.set_theme(theme_from_sheet(""));
     window.perform_layout();
     ColourPainter plain{};
     window.paint(plain);
-    window.set_theme(theme_from_sheet("dock-site::part(caption-label) { color: #3060a0; }\n"
-                                      "dock-site::part(caption-grip) { muted-color: transparent; }\n"));
+    window.set_theme(theme_from_sheet(":root { grip-none: transparent on #ffffff; }\n"
+                                      "dock-site::part(caption-grip) { muted-color: role(grip-none); }\n"));
     window.perform_layout();
     ColourPainter hidden{};
     window.paint(hidden);
