@@ -10,8 +10,9 @@
 //   show_specimen_state;
 // - the stock specimen catalogue: one row per anatomy of
 //   stock_control_anatomies(), in its order, each row's maker giving a
-//   subject of its type, and every declared state of every subject shown
-//   and captured.
+//   subject of its type, no row near-uniform at rest
+//   (stock_specimen_uniform_share) without its stated blank_reason, and
+//   every declared state of every subject shown and captured.
 
 #include "gui_forms/gui_forms.hpp"
 
@@ -218,7 +219,38 @@ void stock_catalogue() {
     }
     require(find_stock_specimen("no_such_control") == nullptr, "an unknown id has no row");
 
+    WindowCapture flat{};
+    flat.pixel_width = 8U;
+    flat.pixel_height = 8U;
+    flat.bgra.assign(8U * 8U * 4U, std::byte{0x80});
+    require(stock_specimen_dominant_share(flat, 1U) == 1.0, "one colour is a share of one");
+    flat.bgra[(3U * 8U + 3U) * 4U] = std::byte{0x00};
+    require(stock_specimen_dominant_share(flat, 1U) == 35.0 / 36.0, "the share counts the inset region only");
+    require(stock_specimen_dominant_share(flat, 4U) == 1.0, "an empty region is a share of one");
+
     const std::unique_ptr<OffscreenRaster> raster = made_raster();
+    std::string blank{};
+    for (const StockSpecimen& row : rows) {
+        const StockSpecimenInstance instance =
+            make_stock_specimen(row, StableId("specimen." + std::string(row.control_id)));
+        require(instance.root != nullptr && instance.subject != nullptr && instance.frame != nullptr,
+                std::string(row.control_id) + ": a maker gives a root, a subject and a frame");
+        Window window(instance.root, row.size);
+        window.set_active(true);
+        OffscreenAttachment attached(*raster, window);
+        window.perform_layout();
+        present_stock_specimen(row, instance, window);
+        OffscreenCaptureOptions options{};
+        const std::optional<WindowCapture> picture = attached.capture_control(instance.frame, options);
+        require(picture.has_value(), std::string(row.control_id) + ": the specimen at rest captures");
+        // Three pixels in from each edge leave out the subject's own border.
+        const double share = stock_specimen_dominant_share(*picture, 3U);
+        if (share >= stock_specimen_uniform_share && row.blank_reason.empty()) {
+            blank += " " + std::string(row.control_id) + " (" + std::to_string(share) + ")";
+        }
+    }
+    require(blank.empty(), "near-uniform stock specimens without a reason:" + blank);
+
     std::size_t captured = 0U;
     std::size_t shown = 0U;
     for (std::size_t index = 0; index < rows.size(); ++index) {
@@ -234,6 +266,8 @@ void stock_catalogue() {
             Window window(instance.root, row.size);
             window.set_active(true);
             OffscreenAttachment attached(*raster, window);
+            window.perform_layout();
+            present_stock_specimen(row, instance, window);
             const SpecimenStateResult result = show_specimen_state(*instance.subject, state);
             if (result.route != SpecimenStateRoute::not_declared && result.route != SpecimenStateRoute::refused) {
                 shown = shown + 1U;
