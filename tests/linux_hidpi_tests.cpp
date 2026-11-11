@@ -4,11 +4,13 @@
 // logical size, draws its controls at twice their size on the server, takes
 // pointer positions back to logical units at the boundary, publishes its
 // frame in desktop logical units, and re-rasters through HostScaleEvent when
-// the density changes during the run (to 96, then 144).
+// the density changes during the run (to 96, then 144). The splash shown
+// before the run opens at the same scale.
 //
 // Runs under Xvfb (CI's xvfb-run, or the Linux VM's). Serial: it rewrites the
 // display's RESOURCE_MANAGER, which every other runtime on the display reads,
 // and restores it before it returns.
+#include "../src/core/application/splashscreen_surface.hpp"
 #include "../src/host/linux/application/linux_host_internal.hpp"
 #include "gui_forms/basic_controls.hpp"
 
@@ -16,6 +18,7 @@
 #include <X11/Xutil.h>
 
 #include <bit>
+#include <cstring>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -173,9 +176,70 @@ void press(const NativeWindow &window, int x, int y) {
   XFlush(display);
 }
 
+// The splash window on `display`: a child of the root typed
+// _NET_WM_WINDOW_TYPE_SPLASH, or None.
+::Window find_splash_window(Display *display) {
+  const Atom type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
+  const Atom splash = XInternAtom(display, "_NET_WM_WINDOW_TYPE_SPLASH", False);
+  ::Window root_return = None;
+  ::Window parent_return = None;
+  ::Window *children = nullptr;
+  unsigned count = 0U;
+  ::Window found = None;
+  if (XQueryTree(display, DefaultRootWindow(display), &root_return, &parent_return, &children, &count) == 0)
+    return found;
+  for (unsigned index = 0U; index < count && found == None; ++index) {
+    Atom actual = None;
+    int format = 0;
+    unsigned long items = 0UL;
+    unsigned long after = 0UL;
+    unsigned char *data = nullptr;
+    const int status = XGetWindowProperty(display, children[index], type, 0L, 1L, False, XA_ATOM, &actual,
+                                          &format, &items, &after, &data);
+    if (status == Success && data != nullptr && actual == XA_ATOM && format == 32 && items == 1UL) {
+      Atom named = None;
+      std::memcpy(&named, data, sizeof(named));
+      if (named == splash)
+        found = children[index];
+    }
+    if (data != nullptr)
+      XFree(data);
+  }
+  if (children != nullptr)
+    XFree(children);
+  return found;
+}
+
+// The splash shown before any run takes the desktop's density too: at
+// Xft.dpi 192 a 200 x 100 splash is a 400 x 200 device window, centred.
+void check_splash_scale() {
+  std::unique_ptr<gui_forms::detail::SplashscreenSurface> surface =
+      gui_forms::host::open_platform_splashscreen(Size{200.0, 100.0});
+  require(surface != nullptr, "the X11 splash opens");
+  gui_forms::detail::SplashscreenFrame frame{};
+  frame.size = Size{200.0, 100.0};
+  frame.status = "Loading";
+  frame.progress = 0.5;
+  require((*surface).present(frame), "the splash presents a frame at scale 2");
+  Display *const display = XOpenDisplay(nullptr);
+  require(display != nullptr, "cannot connect to the X server");
+  const ::Window splash = find_splash_window(display);
+  XWindowAttributes attributes{};
+  const bool measured = splash != None && XGetWindowAttributes(display, splash, &attributes) != 0;
+  const int screen = DefaultScreen(display);
+  const int centred_x = (DisplayWidth(display, screen) - 400) / 2;
+  const int centred_y = (DisplayHeight(display, screen) - 200) / 2;
+  XCloseDisplay(display);
+  require(measured && attributes.width == 400 && attributes.height == 200,
+          "the splash window is twice its logical size");
+  require(attributes.x == centred_x && attributes.y == centred_y, "the splash is centred in device pixels");
+  surface.reset();
+}
+
 void run() {
   ResourceDatabase resources;
   resources.write_entry("Xft.dpi:\t192\n");
+  check_splash_scale();
   Runtime runtime;
   require(runtime.desktop_scale() == 2.0, "Xft.dpi 192 is desktop scale 2");
   require(!runtime.device_monitors.empty(), "the runtime knows its monitors");
@@ -257,7 +321,7 @@ void run() {
 int main() {
   try {
     run();
-    std::cout << "X11 HiDPI: Xft.dpi 192 attaches at scale 2, presents twice the logical size, takes input "
+    std::cout << "X11 HiDPI: the splash and a window at Xft.dpi 192 present twice the logical size, take input "
                  "in logical units, and re-rasters on a density change\n";
     return EXIT_SUCCESS;
   } catch (const std::exception &error) {

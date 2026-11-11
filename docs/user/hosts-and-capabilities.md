@@ -362,7 +362,9 @@ Linux (X11)
   `Xft/DPI` from the manager, or `xrdb -merge`) reports the monitors again
   and sends each window a scale notification: the native window is resized
   to keep its logical size and the whole window re-rasters, the path a move
-  onto a monitor of another scale takes. Monitors come from RandR 1.5
+  onto a monitor of another scale takes. The splashscreen shown before the
+  run reads the same scale once when it opens and presents at the logical
+  size times it. Monitors come from RandR 1.5
   (`XRRGetMonitors`) where the build found libXrandr and the server offers
   it, one record per monitor named by its output (`DP-1`), each with the
   desktop's scale and its work area clipped to `_NET_WORKAREA`; otherwise
