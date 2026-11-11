@@ -27,6 +27,42 @@
 # older CMake keeps the static links.
 option(GUI_FORMS_TEST_RUNTIME "Link the test programs that use only the toolkit's own libraries to one shared test runtime" ON)
 
+# Programs that need the libraries in their own image, named here with the
+# reason:
+# - gui_forms_plot_primitives_tests compares the address of a program's
+#   declaration (an inline static member) with the one the library's
+#   registry holds, and each image has its own copy;
+# - gui_forms_data_grid_view_cells_tests reads frames its probe records
+#   through state the runtime would hold a second copy of.
+# A program whose sources replace the global operator new or delete is left
+# out as well (_gui_forms_replaces_allocation): a replacement covers only the
+# image it is linked into, so the runtime's allocations would bypass it.
+set(GUI_FORMS_TEST_RUNTIME_EXCLUDED gui_forms_plot_primitives_tests gui_forms_data_grid_view_cells_tests)
+
+# Whether a C++ source of `target` defines the global operator new or
+# delete; sets `result` to TRUE or FALSE.
+function(_gui_forms_replaces_allocation target result)
+    get_target_property(target_sources ${target} SOURCES)
+    foreach(source IN LISTS target_sources)
+        if(NOT source MATCHES "\\.(cpp|cc|cxx)$")
+            continue()
+        endif()
+        set(path "${source}")
+        if(NOT IS_ABSOLUTE "${path}")
+            set(path "${CMAKE_CURRENT_SOURCE_DIR}/${source}")
+        endif()
+        if(NOT EXISTS "${path}")
+            continue()
+        endif()
+        file(STRINGS "${path}" replacements REGEX "operator (new|delete)[ ]*[(]")
+        if(replacements)
+            set(${result} TRUE PARENT_SCOPE)
+            return()
+        endif()
+    endforeach()
+    set(${result} FALSE PARENT_SCOPE)
+endfunction()
+
 # Whether every entry of `links` (a target's LINK_LIBRARIES) is one of
 # `runtime_libraries`; sets `result` to TRUE or FALSE.
 function(_gui_forms_links_within_runtime links runtime_libraries result)
@@ -70,7 +106,11 @@ function(gui_forms_link_tests_to_runtime)
         endif()
         get_target_property(links ${target} LINK_LIBRARIES)
         _gui_forms_links_within_runtime("${links}" "${runtime_libraries}" within)
-        if(within)
+        if(NOT within OR target IN_LIST GUI_FORMS_TEST_RUNTIME_EXCLUDED)
+            continue()
+        endif()
+        _gui_forms_replaces_allocation(${target} replaces)
+        if(NOT replaces)
             list(APPEND programs ${target})
         endif()
     endforeach()
@@ -99,6 +139,24 @@ function(gui_forms_link_tests_to_runtime)
     if(MINGW)
         target_link_options(gui_forms_test_runtime PRIVATE "-Wl,--export-all-symbols")
     endif()
+    # A shared library the libraries link (the Threading library) stays a
+    # library of its own, which the runtime does not re-export: the programs
+    # link it themselves.
+    foreach(library IN LISTS runtime_libraries)
+        get_target_property(interface_links ${library} INTERFACE_LINK_LIBRARIES)
+        if(NOT interface_links)
+            continue()
+        endif()
+        foreach(dependency IN LISTS interface_links)
+            if(NOT TARGET ${dependency})
+                continue()
+            endif()
+            get_target_property(dependency_type ${dependency} TYPE)
+            if(dependency_type STREQUAL "SHARED_LIBRARY")
+                target_link_libraries(gui_forms_test_runtime INTERFACE ${dependency})
+            endif()
+        endforeach()
+    endforeach()
     foreach(program IN LISTS programs)
         get_target_property(links ${program} LINK_LIBRARIES)
         set(compile_only "")

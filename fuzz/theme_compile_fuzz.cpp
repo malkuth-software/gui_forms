@@ -82,6 +82,18 @@ void compile(std::string_view text, Compilation& compilation) {
     compilation.operations = compiler.work().operations();
 }
 
+// Names each error diagnostic on stderr, for a failed invariant's report.
+void print_errors(const theme_language::ThemeDiagnosticList& diagnostics) {
+    for (const theme_language::ThemeDiagnostic& record : diagnostics.records()) {
+        const bool error =
+            theme_language::diagnostic_severity(record.code) == theme_language::DiagnosticSeverity::error;
+        if (!error) continue;
+        const std::string label = theme_language::diagnostic_code_label(record.code);
+        std::fprintf(stderr, "theme compile fuzz: error %s at byte %u\n", label.c_str(),
+                     static_cast<unsigned>(record.position.offset.value));
+    }
+}
+
 bool same_records(std::span<const theme_language::ThemeDiagnostic> first,
                   std::span<const theme_language::ThemeDiagnostic> second) noexcept {
     if (first.size() != second.size()) return false;
@@ -100,7 +112,10 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     compile(text, first);
     const std::size_t errors = first.diagnostics.error_count();
     const bool compiled = first.outcome == theme_language::CompileOutcome::compiled;
-    if (compiled && errors != 0U) fail("a compiled sheet has no error");
+    if (compiled && errors != 0U) {
+        print_errors(first.diagnostics);
+        fail("a compiled sheet has no error");
+    }
     if (!compiled && errors == 0U) fail("a refused sheet has an error");
     if (first.operations > maximum_operations_per_byte * size + operations_allowance) {
         fail("the work is bounded per input byte");

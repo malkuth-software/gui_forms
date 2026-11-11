@@ -2,10 +2,12 @@
 // DIB reader, GUI.Forms' own wire format (both with and without the
 // allocation padding native clipboards add) and the clipboard PNG path. Each
 // input goes to all three. Invariants: a read result holds an image and a
-// refused one none; a read image is valid (validate_host_image), tight
-// (row_bytes is four bytes a pixel) and premultiplied (no colour channel
-// above its alpha); a wire image read without padding reads the same with
-// it; and every read image survives the wire format byte for byte.
+// refused one none; a read image is valid (validate_host_image) and tight
+// (row_bytes is four bytes a pixel); an image converted from a native
+// straight-alpha format (DIB, PNG) is premultiplied (no colour channel above
+// its alpha), while the wire format keeps its bytes as written, whatever
+// they are (host_image_tests); a wire image read without padding reads the
+// same with it; and every read image survives the wire format byte for byte.
 
 #include "../src/core/host/image/clipboard_dib.hpp"
 #include "../src/core/host/image/clipboard_image_wire.hpp"
@@ -41,11 +43,16 @@ constexpr std::uint64_t read_generation = 7U;
     std::abort();
 }
 
-// Whether `image` is valid, tight and premultiplied.
+// Whether `image` is valid and tight.
 bool image_well_formed(const HostImage& image) noexcept {
     if (gui_forms::validate_host_image(image.view()) != gui_forms::HostImageError::none) return false;
     const std::uint64_t tight_row = static_cast<std::uint64_t>(image.width) * 4U;
-    if (image.row_bytes != tight_row || image.pixels.size() != tight_row * image.height) return false;
+    const bool tight = image.row_bytes == tight_row && image.pixels.size() == tight_row * image.height;
+    return tight;
+}
+
+// Whether no colour channel of `image` exceeds its alpha.
+bool image_premultiplied(const HostImage& image) noexcept {
     // BGRA: three colour bytes, then alpha.
     for (std::size_t offset = 0U; offset < image.pixels.size(); offset += 4U) {
         const std::uint8_t alpha = static_cast<std::uint8_t>(image.pixels[offset + 3U]);
@@ -63,13 +70,15 @@ bool same_image(const HostImage& first, const HostImage& second) noexcept {
 }
 
 // Checks one decoder's result and returns its image, or null when it
-// refused the bytes.
-const HostImage* checked_image(const HostClipboardImageResult& result) {
+// refused the bytes. `converted` says whether the decoder premultiplies a
+// straight-alpha format.
+const HostImage* checked_image(const HostClipboardImageResult& result, bool converted) {
     const HostImage* const image = result.image();
     const bool read = result.status().error == HostServiceError::none;
     if (read != (image != nullptr)) fail("a read result holds an image and a refused one none");
     if (image == nullptr) return nullptr;
-    if (!image_well_formed(*image)) fail("a read image is valid, tight and premultiplied");
+    if (!image_well_formed(*image)) fail("a read image is valid and tight");
+    if (converted && !image_premultiplied(*image)) fail("a converted image is premultiplied");
     return image;
 }
 
@@ -87,13 +96,13 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     const std::span<const std::byte> bytes(reinterpret_cast<const std::byte*>(data), size);
 
     const HostClipboardImageResult dib = gui_forms::detail::decode_clipboard_dib(bytes, read_generation);
-    const HostImage* const dib_image = checked_image(dib);
+    const HostImage* const dib_image = checked_image(dib, true);
     if (dib_image != nullptr) require_wire_round_trip(*dib_image);
 
     const HostClipboardImageResult tight = gui_forms::detail::decode_clipboard_image(bytes, read_generation, false);
-    const HostImage* const tight_image = checked_image(tight);
+    const HostImage* const tight_image = checked_image(tight, false);
     const HostClipboardImageResult padded = gui_forms::detail::decode_clipboard_image(bytes, read_generation, true);
-    const HostImage* const padded_image = checked_image(padded);
+    const HostImage* const padded_image = checked_image(padded, false);
     if (tight_image != nullptr) {
         if (padded_image == nullptr || !same_image(*tight_image, *padded_image)) {
             fail("a wire image read without padding reads the same with it");
@@ -102,7 +111,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     }
 
     const HostClipboardImageResult png = gui_forms::detail::decode_clipboard_png(bytes, read_generation);
-    const HostImage* const png_image = checked_image(png);
+    const HostImage* const png_image = checked_image(png, true);
     if (png_image != nullptr) require_wire_round_trip(*png_image);
     return 0;
 }

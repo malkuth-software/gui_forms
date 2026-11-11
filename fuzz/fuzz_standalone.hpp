@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -102,7 +103,14 @@ inline bool read_corpus_path(const std::filesystem::path& path, std::vector<std:
 
 // Runs one input through the target. The input's bytes are copied into
 // storage of exactly its size, so that a sanitizer sees a read past its end.
+// With GUI_FORMS_FUZZ_LAST_INPUT naming a file, each input is written there
+// first, so the one a target aborts on is left behind to reproduce.
 inline void run_input(std::string_view input) {
+    static const char* const last_input = std::getenv("GUI_FORMS_FUZZ_LAST_INPUT");
+    if (last_input != nullptr) {
+        std::ofstream stream(last_input, std::ios::binary | std::ios::trunc);
+        stream.write(input.data(), static_cast<std::streamsize>(input.size()));
+    }
     const std::vector<std::uint8_t> bytes(input.begin(), input.end());
     static_cast<void>(LLVMFuzzerTestOneInput(bytes.data(), bytes.size()));
 }
