@@ -11,7 +11,8 @@ fragments the catalogue compiles:
 - ``stock_specimen_includes.inc``: each type's header;
 - ``stock_specimen_table.inc``: one ``StockSpecimen`` row per type: the
   control id, the registry category (the palette's family), the logical
-  size it is laid out at, the sample text and the maker.
+  size it is laid out at, the sample text, the maker, the presenter (or
+  none) and the reason a blank look is real (or none).
 
 A type gets the generic maker (``make_plain<Type>``, or ``make_text<Type>``
 when it has a writable ``text`` property) unless ``MAKERS`` below names one
@@ -43,21 +44,85 @@ HEADER: str = (
     "// `python3 -B tools/stock_specimens.py`.\n"
 )
 
-# Makers written by hand in stock_specimens.cpp, by control id.
+# Makers written by hand in stock_specimens.cpp, by control id: sample
+# content (items, rows, pages, menus, data), or what the type borrows.
 MAKERS: Mapping[str, str] = {
+    "command_bar": "make_command_bar",
+    "token_box": "make_token_box",
+    "masked_text_box": "make_masked_text_box",
+    "badge": "make_badge",
+    "info_banner": "make_info_banner",
+    "empty_state": "make_empty_state",
+    "toast": "make_toast",
+    "sweep_scope": "make_sweep_scope",
+    "sparkline": "make_sparkline",
+    "plot_view": "make_plot_view",
+    "plot_axis_item": "make_plot_axis_item",
+    "plot_series_item": "make_plot_series_item",
+    "plot_annotation_item": "make_plot_annotation_item",
+    "review_card": "make_review_card",
     "list_box": "make_list_box",
     "checked_list_box": "make_checked_list_box",
     "combo_box": "make_combo_box",
-    "domain_up_down": "make_domain_up_down",
     "tree_view": "make_tree_view",
-    "breadcrumb_trail": "make_breadcrumb_trail",
+    "object_view": "make_object_view",
+    "list_view": "make_list_view",
+    "tree_list_view": "make_tree_list_view",
+    "correspondence_view": "make_correspondence_view",
+    "data_grid_view": "make_data_grid_view",
     "choice_group": "make_choice_group",
-    "step_indicator": "make_step_indicator",
+    "breadcrumb_trail": "make_breadcrumb_trail",
+    "range_control": "make_range_control",
+    "numeric_up_down": "make_numeric_up_down",
+    "domain_up_down": "make_domain_up_down",
+    "color_value_editor": "make_color_value_editor",
+    "flags_value_editor": "make_flags_value_editor",
+    "property_grid": "make_property_grid",
+    "property_list": "make_property_list",
+    "instrument_rack": "make_instrument_rack",
+    "date_time_picker": "make_date_time_picker",
+    "month_calendar": "make_month_calendar",
+    "panel": "make_filled<Panel>",
+    "group_box": "make_filled_text<GroupBox>",
+    "scaled_group_box": "make_scaled_group_box",
+    "material_panel": "make_filled<MaterialPanel>",
+    "card": "make_card",
+    "expandable_sections": "make_expandable_sections",
+    "container_control": "make_filled<ContainerControl>",
+    "user_control": "make_filled<UserControl>",
     "tab_control": "make_tab_control",
-    "toast": "make_toast",
-    "anchored_overlay_layer": "make_anchored_overlay_layer",
     "page_strip": "make_page_strip",
+    "page_view": "make_page_view",
+    "navigation_pane": "make_navigation_pane",
     "dock_site": "make_dock_site",
+    "dock_navigator": "make_dock_navigator",
+    "tab_page": "make_tab_page",
+    "flex_panel": "make_filled<FlexPanel>",
+    "grid_panel": "make_filled<GridPanel>",
+    "block_panel": "make_filled<BlockPanel>",
+    "flow_layout_panel_compat": "make_filled<FlowLayoutPanelCompat>",
+    "table_layout_panel_compat": "make_table_layout_panel",
+    "responsive_track_panel": "make_filled<ResponsiveTrackPanel>",
+    "scaled_panel": "make_scaled_panel",
+    "split_container": "make_split_container",
+    "splitter_panel": "make_splitter_panel",
+    "splitter": "make_splitter",
+    "command_overflow_panel": "make_command_overflow_panel",
+    "master_detail_view": "make_master_detail_view",
+    "scrollable_control": "make_scrollable_control",
+    "menu_strip": "make_menu_strip",
+    "tool_strip": "make_tool_strip",
+    "ribbon_font_control": "make_ribbon_font_control",
+    "ribbon_color_picker": "make_ribbon_color_picker",
+    "backstage_view": "make_backstage_view",
+    "ribbon_gallery": "make_ribbon_gallery",
+    "status_strip": "make_status_strip",
+    "quick_access_toolbar": "make_quick_access_toolbar",
+    "tool_strip_panel": "make_tool_strip_panel",
+    "tool_strip_container": "make_tool_strip_container",
+    "ribbon": "make_ribbon",
+    "anchored_overlay_layer": "make_anchored_overlay_layer",
+    "task_dialog": "make_task_dialog",
     "gauge_base": "make_gauge_base",
     "progress_bar": "make_ranged<ProgressBar>",
     "track_bar": "make_ranged<TrackBar>",
@@ -65,6 +130,46 @@ MAKERS: Mapping[str, str] = {
     "linear_gauge": "make_ranged<LinearGauge>",
     "radial_gauge": "make_ranged<RadialGauge>",
     "dial": "make_ranged<Dial>",
+    "wizard": "make_wizard",
+    "wizard_page": "make_wizard_page",
+    "callout": "make_callout",
+    "modal_layer": "make_modal_layer",
+    "lookup_combo_box": "make_lookup_combo_box",
+    "picture_box": "make_plain<PictureBox>",
+    "drawing_surface": "make_drawing_surface",
+    "raster_canvas": "make_raster_canvas",
+    "visual_inspector_view": "make_visual_inspector_view",
+    "visual_inspector_overlay": "make_visual_inspector_overlay",
+    "help_book": "make_help_book",
+    "step_indicator": "make_step_indicator",
+}
+
+# Presenters written by hand in stock_specimens.cpp: what needs the window.
+PRESENTERS: Mapping[str, str] = {
+    "picture_box": "present_picture_box",
+    "modal_layer": "present_modal_layer",
+}
+
+# Rows whose near-uniform look at rest is the real look; keep this short.
+BLANK_REASONS: Mapping[str, str] = {
+    "gauge_base": "the gauges' base paints no face of its own",
+    "sub_surface_host": "hosts a program's own surface and is empty until one is attached",
+}
+
+# Sample text by control id, where the id as words would not suit.
+TEXTS: Mapping[str, str] = {
+    "seven_segment_display": "12:45",
+    "group_box": "Shipping address",
+    "scaled_group_box": "Connection",
+    "typography_specimen": "Portsmouth Rapids",
+    "link_label": "Open the guide",
+    "text_box": "Harbour Quay",
+    "search_field": "lighthouse",
+    "rich_text_box": "Tide tables for the harbour, updated each morning.",
+    "text_block": "Palettes show every stock control in every state it declares.",
+    "label": "Display name",
+    "toast": "Theme saved",
+    "callout": "Pinned panels stay open while you work.",
 }
 
 # Logical sizes by registry category, then by control id.
@@ -72,25 +177,39 @@ CATEGORY_SIZES: Mapping[str, tuple[float, float]] = {
     "Commands": (128.0, 32.0),
     "Text editing": (224.0, 30.0),
     "Information display": (224.0, 64.0),
-    "Selection from a list": (224.0, 128.0),
+    "Selection from a list": (240.0, 144.0),
     "Value setting": (224.0, 32.0),
     "Date setting": (240.0, 32.0),
-    "Grouping": (256.0, 160.0),
-    "Layout": (256.0, 160.0),
+    "Grouping": (280.0, 180.0),
+    "Layout": (280.0, 180.0),
     "Scrolling": (224.0, 160.0),
-    "Menus and commands": (320.0, 32.0),
-    "Dialogs and overlays": (320.0, 200.0),
-    "Drawing": (224.0, 128.0),
-    "Diagnostics": (320.0, 200.0),
+    "Menus and commands": (360.0, 32.0),
+    "Dialogs and overlays": (340.0, 210.0),
+    "Drawing": (240.0, 144.0),
+    "Diagnostics": (340.0, 210.0),
 }
 DEFAULT_SIZE: tuple[float, float] = (224.0, 64.0)
 SIZES: Mapping[str, tuple[float, float]] = {
+    "command_bar": (320.0, 36.0),
+    "link_label": (144.0, 32.0),
     "label": (160.0, 24.0),
-    "text_block": (224.0, 48.0),
-    "badge": (48.0, 24.0),
+    "text_block": (240.0, 48.0),
+    "badge": (40.0, 24.0),
+    "info_banner": (340.0, 64.0),
+    "empty_state": (300.0, 150.0),
+    "picture_box": (160.0, 100.0),
     "progress_bar": (224.0, 20.0),
     "progress_ring": (48.0, 48.0),
     "spinner": (48.0, 48.0),
+    "sweep_scope": (240.0, 80.0),
+    "sparkline": (224.0, 48.0),
+    "plot_view": (340.0, 200.0),
+    "plot_axis_item": (340.0, 200.0),
+    "plot_series_item": (340.0, 200.0),
+    "plot_annotation_item": (340.0, 200.0),
+    "review_card": (340.0, 150.0),
+    "help_book": (340.0, 220.0),
+    "help_book_viewer": (440.0, 260.0),
     "check_box": (160.0, 24.0),
     "radio_button": (160.0, 24.0),
     "toggle_switch": (160.0, 28.0),
@@ -98,36 +217,67 @@ SIZES: Mapping[str, tuple[float, float]] = {
     "lookup_combo_box": (224.0, 30.0),
     "domain_up_down": (160.0, 30.0),
     "numeric_up_down": (160.0, 30.0),
-    "breadcrumb_trail": (320.0, 30.0),
     "choice_group": (288.0, 32.0),
-    "rich_text_box": (288.0, 96.0),
-    "token_box": (288.0, 32.0),
+    "breadcrumb_trail": (320.0, 30.0),
+    "rich_text_box": (300.0, 110.0),
+    "token_box": (300.0, 32.0),
+    "object_view": (360.0, 180.0),
+    "list_view": (360.0, 180.0),
+    "tree_list_view": (360.0, 180.0),
+    "correspondence_view": (360.0, 220.0),
+    "data_grid_view": (380.0, 160.0),
+    "range_control": (224.0, 32.0),
+    "color_value_editor": (224.0, 30.0),
+    "flags_value_editor": (224.0, 30.0),
+    "property_grid": (300.0, 260.0),
+    "property_list": (300.0, 240.0),
+    "instrument_rack": (340.0, 150.0),
     "date_time_picker": (240.0, 30.0),
     "month_calendar": (256.0, 224.0),
+    "tab_control": (300.0, 190.0),
+    "tab_page": (300.0, 190.0),
+    "page_strip": (340.0, 32.0),
+    "page_view": (340.0, 200.0),
+    "navigation_pane": (220.0, 280.0),
+    "dock_site": (440.0, 260.0),
+    "dock_navigator": (340.0, 200.0),
+    "wizard": (380.0, 260.0),
+    "wizard_page": (380.0, 260.0),
+    "splitter": (280.0, 120.0),
     "h_scroll_bar": (224.0, 18.0),
     "v_scroll_bar": (18.0, 160.0),
     "scroll_bar": (18.0, 160.0),
-    "splitter": (256.0, 8.0),
-    "property_grid": (288.0, 224.0),
-    "property_list": (288.0, 224.0),
+    "menu_strip": (360.0, 26.0),
+    "tool_strip": (360.0, 32.0),
+    "status_strip": (360.0, 26.0),
+    "ribbon_font_control": (260.0, 28.0),
+    "ribbon_color_picker": (64.0, 28.0),
+    "ribbon_gallery": (320.0, 72.0),
+    "quick_access_toolbar": (160.0, 28.0),
+    "tool_strip_panel": (360.0, 64.0),
+    "tool_strip_container": (360.0, 180.0),
+    "binding_navigator": (360.0, 28.0),
+    "backstage_view": (480.0, 280.0),
+    "ribbon": (560.0, 140.0),
+    "task_dialog": (380.0, 220.0),
+    "callout": (260.0, 120.0),
+    "font_dialog": (380.0, 260.0),
     "radial_gauge": (128.0, 128.0),
     "dial": (96.0, 96.0),
     "seven_segment_display": (160.0, 48.0),
     "step_indicator": (320.0, 48.0),
-    "status_strip": (320.0, 26.0),
-    "ribbon": (480.0, 128.0),
-    "backstage_view": (480.0, 256.0),
     "toast": (320.0, 56.0),
-    "data_grid_view": (320.0, 160.0),
-    "object_view": (320.0, 160.0),
-    "list_view": (320.0, 160.0),
-    "tree_list_view": (320.0, 160.0),
-    "correspondence_view": (320.0, 160.0),
+    "visual_inspector_view": (360.0, 240.0),
+    "visual_inspector_overlay": (280.0, 120.0),
 }
 
 
 def sample_text(control_id: str) -> str:
-    """The id as words, first letter capital: ``check_box`` is ``Check box``."""
+    """``TEXTS``' text, else the id as words, first letter capital:
+    ``check_box`` is ``Check box``."""
+    chosen: str | None = TEXTS.get(control_id)
+    if chosen is not None:
+        return chosen
     words: str = control_id.replace("_", " ")
     result: str = words[:1].upper() + words[1:]
     return result
@@ -177,9 +327,12 @@ def render(schema: Mapping[str, object], registry: Mapping[str, object]) -> tupl
         maker: str = MAKERS.get(control_id, "")
         if not maker:
             maker = f"make_text<{type_name}>" if has_writable_text(entry) else f"make_plain<{type_name}>"
+        presenter: str = PRESENTERS.get(control_id, "")
+        present: str = f"&{presenter}" if presenter else "nullptr"
+        blank: str = BLANK_REASONS.get(control_id, "")
         rows.append(
             f'    {{"{control_id}", "{category}", Size{{{number(size[0])}, {number(size[1])}}}, '
-            f'"{sample_text(control_id)}", &{maker}}},'
+            f'"{sample_text(control_id)}", &{maker}, {present}, "{blank}"}},'
         )
     includes: str = HEADER + "".join(f'#include "{header}"\n' for header in headers)
     table: str = HEADER + "\n".join(rows) + "\n"
