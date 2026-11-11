@@ -792,14 +792,10 @@ const SurfaceMaterial& authored_material(UnkeptAssemblies& window, EnginePartRec
     return (*held).material;
 }
 
-// The built-in recipe at `opacity`, with `resolved_material` (the engine's
-// material for the part, or null) standing in the recipe's own
-// (paint_part_with_built_in_recipe).
-void paint_built_in(Painter& painter, const Control& control, const PartPaint& part, double opacity,
-                    const SurfaceMaterial* resolved_material) {
+void paint_built_in(Painter& painter, const Control& control, const PartPaint& part, double opacity) {
     if (opacity <= 0.0) return;
     if (opacity >= 1.0) {
-        paint_part_with_built_in_recipe(painter, control, part, resolved_material);
+        paint_part_with_built_in_recipe(painter, control, part);
         return;
     }
     Insets reach{built_in_group_margin, built_in_group_margin, built_in_group_margin, built_in_group_margin};
@@ -809,7 +805,7 @@ void paint_built_in(Painter& painter, const Control& control, const PartPaint& p
                         part.bounds.width + reach.left + reach.right, part.bounds.height + reach.top + reach.bottom};
     group.opacity = opacity;
     painter.begin_group(group);
-    paint_part_with_built_in_recipe(painter, control, part, resolved_material);
+    paint_part_with_built_in_recipe(painter, control, part);
     painter.end_group();
 }
 
@@ -1119,12 +1115,6 @@ struct ThemeEngine::PartPaintRun final {
     std::optional<PointerOverlay> placed{};
     // The materials lent for this paint only (lend_part_material).
     SurfaceMaterial* unkept_material{};
-    // The material the rules authored for the part, as lent to its
-    // primitive (one of the materials here or the window's or record's
-    // assembly), which the built-in recipe draws in place of the floor's
-    // when the primitive refuses the part or no raster is made; null while
-    // the rules author no material field.
-    const SurfaceMaterial* resolved_material{};
     std::optional<SurfaceMaterial> authored_ground{};
     std::optional<SurfaceMaterial> unreflected{};
     std::optional<SurfaceMaterial> ground{};
@@ -1447,7 +1437,6 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         }
         request.target.corner_radius = part.corner_radius;
         request.target.images = &(*window).image_resources();
-        if (resolution.materials_authored) run.resolved_material = request.target.material;
     }
     // The overlay shadow (E9, GIVEN E1-1) borrows the theme's layers for the
     // part's presentation, as a material of one transparent fill and those
@@ -1558,7 +1547,7 @@ void ThemeEngine::bake_part(const PartPaint& part, PartPaintRun& run) const {
 void ThemeEngine::draw_part_paint(Painter& painter, const Control& control, const PartPaint& part,
                                   const PartPaintRun& run) const {
     if (run.outcome == PartPaintRun::Outcome::built_in) {
-        paint_built_in(painter, control, run.shown, run.opacity, run.resolved_material);
+        paint_built_in(painter, control, run.shown, run.opacity);
         return;
     }
     const std::shared_ptr<const PartRaster>& raster = run.raster;
