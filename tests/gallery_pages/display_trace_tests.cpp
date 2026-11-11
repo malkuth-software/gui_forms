@@ -583,6 +583,12 @@ struct PageDigest final {
 // which moves docking-workspace. Recorded again: those two, in both tables
 // (tree-and-object-views and guided-tasks did not move).
 //
+// cp29 (block): help H1 gives Control the Help, HelpLine and Keywords
+// properties, so values-and-spinners' property grid gains three rows (the
+// rows below move) and states-and-diagnostics' live control count follows.
+// Recorded again: values-and-spinners in both tables, states-and-diagnostics
+// in the first (the second leaves it out).
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -595,10 +601,10 @@ constexpr std::array<PageDigest, 39> expected_digests{{
     {"ranges-and-progress", 0x9be996aa5ebb1a51ULL},
     {"containers-and-focus", 0x8170bdd707e8acd7ULL},
     {"animation-laboratory", 0x5816f65f03dca827ULL},
-    {"states-and-diagnostics", 0xb7f75e105c264cd2ULL},
+    {"states-and-diagnostics", 0x1415083ea68d09e1ULL},
     {"text-and-input", 0xc3cf4b809999112bULL},
     {"collections-and-overlays", 0x1a88199d35f9097aULL},
-    {"values-and-spinners", 0x59698ecc4a34014bULL},
+    {"values-and-spinners", 0xa27a15ae2f8c92a7ULL},
     {"images-and-drawing", 0xafca6aace72561fdULL},
     {"tabs-and-pages", 0xa77310c4a6f8ded2ULL},
     {"checked-collections", 0xb7b004feba008164ULL},
@@ -653,7 +659,7 @@ constexpr std::array<PageDigest, 39> professional_digests{{
     {"states-and-diagnostics", 0x0000000000000000ULL},
     {"text-and-input", 0xeea32066cb790e5eULL},
     {"collections-and-overlays", 0x8169f36da6f0527bULL},
-    {"values-and-spinners", 0xd9ae82629be76710ULL},
+    {"values-and-spinners", 0x12e56832106ace80ULL},
     {"images-and-drawing", 0xc2d76e1acad2e17dULL},
     {"tabs-and-pages", 0xc04bdfcbd27f8e4bULL},
     {"checked-collections", 0xb337d70176b432e1ULL},
