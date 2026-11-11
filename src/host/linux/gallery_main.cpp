@@ -1,4 +1,5 @@
 #include "gallery.hpp"
+#include "gallery_staging.hpp"
 #include "gui_forms/platform/linux_host.hpp"
 #include "program_options.hpp"
 
@@ -29,10 +30,7 @@ int main(int argc, char** argv) {
     // --automation is accepted for a uniform CI command line; the X11 host has
     // no WM_COPYDATA-style automation channel, so the flag has no effect here.
     std::unique_ptr<gui_forms::Window> window = gui_forms::gallery::make_gallery();
-    if (!(*program).page.empty() && !gui_forms::gallery::select_gallery_page(*window, (*program).page)) {
-        std::fprintf(stderr, "unknown Gallery page: %s\n", (*program).page.c_str());
-        return 2;
-    }
+    if (!gui_forms::gallery::apply_gallery_staging(*program, *window)) return 2;
     const std::shared_ptr<gui_forms::demo::SmokeTest> smoke =
         gui_forms::demo::arm_smoke_test(*program, options, *window);
     return gui_forms::demo::smoke_test_result(

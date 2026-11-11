@@ -1,5 +1,6 @@
 #include "macos_host.hpp"
 #include "gallery.hpp"
+#include "gallery_staging.hpp"
 #include "program_options.hpp"
 
 #include <cstdio>
@@ -27,10 +28,7 @@ int main(int argc, char** argv) {
     options.minimum_size = gui_forms::gallery::gallery_minimum_size;
     gui_forms::demo::apply_program_options(*program, options);
     std::unique_ptr<gui_forms::Window> window = gui_forms::gallery::make_gallery();
-    if (!(*program).page.empty() && !gui_forms::gallery::select_gallery_page(*window, (*program).page)) {
-        std::fprintf(stderr, "unknown Gallery page: %s\n", (*program).page.c_str());
-        return 2;
-    }
+    if (!gui_forms::gallery::apply_gallery_staging(*program, *window)) return 2;
     const std::shared_ptr<gui_forms::demo::SmokeTest> smoke =
         gui_forms::demo::arm_smoke_test(*program, options, *window);
     return gui_forms::demo::smoke_test_result(
