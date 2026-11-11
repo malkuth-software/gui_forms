@@ -32,6 +32,7 @@ SHARED: dict[str, str] = {
     'tests/text_mask_cost_probe.cpp': 'by-hand text mask cost probe (EXCLUDE_FROM_ALL)',
     'tests/windows_message_queue_native_probe.cpp': 'local probe that needs an interactive desktop window',
     'tests/installed_feature_consumer/text_stack.cpp': 'installed-package consumer, built by tools/verify_install.py',
+    'tests/theme_language/theme_request_app.cpp': 'launched by the gui_forms_theme_request_app_* tests, whose add_test names it through gui_forms_theme_request_case',
 }
 
 MAIN: re.Pattern[str] = re.compile(r'^\s*int\s+main\s*\(', re.MULTILINE)
