@@ -29,6 +29,7 @@ from pathlib import Path
 SHARED: dict[str, str] = {
     'tests/frame_drag_probe.cpp': 'stage DK W0 measurement; puts windows on the desktop, run by hand',
     'tests/image/png_encode_benchmark.cpp': 'by-hand encoder size and time measurement, not a test',
+    'tests/image/png_decode_probe.cpp': 'audit P12 decode timing probe, built on demand (EXCLUDE_FROM_ALL), never a test',
     'tests/text_mask_cost_probe.cpp': 'by-hand text mask cost probe (EXCLUDE_FROM_ALL)',
     'tests/windows_message_queue_native_probe.cpp': 'local probe that needs an interactive desktop window',
     'tests/installed_feature_consumer/text_stack.cpp': 'installed-package consumer, built by tools/verify_install.py',
