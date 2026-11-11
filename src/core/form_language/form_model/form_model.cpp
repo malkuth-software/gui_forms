@@ -1303,6 +1303,19 @@ FormSchemaType describe_form_type(std::string name, const Component& prototype) 
     if (control != nullptr) {
         type.properties = (*control).property_descriptors();
         type.child_properties = (*control).child_property_descriptors();
+        // Once per type: the table entry behind each descriptor, unless the
+        // registry replaces that name.
+        const std::span<const PropertyEntry> table = (*control).property_table();
+        type.property_entries.assign(type.properties.size(), nullptr);
+        for (std::size_t index = 0U; index < type.properties.size(); ++index) {
+            const std::string& name = type.properties[index].name;
+            if ((*control).registry_holds_property(name)) continue;
+            for (const PropertyEntry& entry : table) {
+                if (entry.name != name) continue;
+                type.property_entries[index] = &entry;
+                break;
+            }
+        }
     }
     const std::vector<InteractionDeclaration> interactions = prototype.interactions();
     type.interactions.reserve(interactions.size());

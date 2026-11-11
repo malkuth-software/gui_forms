@@ -1120,14 +1120,9 @@ private:
     // and is rebuilt whenever rows are added, removed or reordered; a lookup
     // is checked against the row at the position it finds.
     void rebuild_row_index();
+    void reindex_source_change(const BindingListChange& change);
     // Writes the positions of the rows from `first` to the end (unbound).
     void index_rows_from(std::size_t first);
-    // A binding source's one-record add or removal (audit N47): writes the
-    // positions from the change's index to the end, after erasing a removed
-    // record's ID, instead of rebuilding the whole index. Rebuilds it when
-    // the change names no usable index or the result does not cover every
-    // row. A failed write rebuilds too.
-    void index_source_change(const BindingListChange& change);
     [[nodiscard]] std::optional<std::size_t> find_row(std::string_view row_id) const;
     // The position an event reports for a row: its indexed position, which
     // for a row being removed is the position it had.

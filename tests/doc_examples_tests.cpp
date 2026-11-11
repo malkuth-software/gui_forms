@@ -2206,9 +2206,9 @@ namespace doc_example_MaskedTextBox_1 {
 void example() {
     std::shared_ptr<gf::MaskedTextBox> phone =
         gf::make_control<gf::MaskedTextBox>(gf::StableId("contact.phone"), "(000) 000-0000");
-    (*phone).set_text("5551234567");   // the field shows "(555) 123-4567"
+    (*phone).text = "5551234567";   // the field shows "(555) 123-4567"
     const bool complete = (*phone).mask_completed();   // true
-    const gf::MaskEditResult refused = (*phone).set_text("55x");
+    const gf::MaskEditResult refused = (*phone).place_text("55x");
     // refused.hint == gf::MaskResultHint::digit_expected; the text is unchanged
 }
 }  // namespace doc_example_MaskedTextBox_1

@@ -238,6 +238,8 @@ gui_forms::ListView
         - The index of the item with an ID in an ordinary view; none in virtual mode.
       * - :cpp:func:`refresh_virtual_items <gui_forms::ListView::refresh_virtual_items>`
         - Re-reads the source's count after the application changed its data, keeps the selection, focus and anchor below the new count and repaints.
+      * - :cpp:func:`splice_virtual_items <gui_forms::ListView::splice_virtual_items>`
+        - Tells the view that the source replaced ``removed`` items at ``first`` with ``inserted`` new ones (audit N94): the bulk insertion or removal of a virtual list without a refresh.
       * - :cpp:func:`item_checked <gui_forms::ListView::item_checked>`
         - Whether an item is checked.
       * - :cpp:func:`is_selected <gui_forms::ListView::is_selected>`
@@ -666,6 +668,10 @@ gui_forms::ListView
       Re-reads the source's count after the application changed its data,
       keeps the selection, focus and anchor below the new count and repaints.
       Throws ``std::logic_error`` outside virtual mode.
+
+   .. cpp:function:: void splice_virtual_items(std::size_t first, std::size_t removed, std::size_t inserted)
+
+      Tells the view that the source replaced ``removed`` items at ``first`` with ``inserted`` new ones (audit N94): the bulk insertion or removal of a virtual list without a refresh. The selection, focus, anchor and top item stay on their items; those inside the removed range are dropped. Throws std::logic_error outside virtual mode or when the source's count is not the old count - removed + inserted, and std::out_of_range for a range past the old items.
 
    .. cpp:function:: bool item_checked(std::size_t index) const
 

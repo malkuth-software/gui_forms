@@ -6,8 +6,11 @@
 #include "form_loader.hpp"
 
 #include "gui_forms/binding/form_binding/form_binding.hpp"
+#include "gui_forms/binding/property_table/property_table.hpp"
 
 #include <exception>
+#include <functional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -22,6 +25,26 @@ using theme_language::DiagnosticCode;
 using theme_language::NodeIndex;
 using theme_language::SourcePositionCursor;
 using theme_language::ThemeDiagnostic;
+
+// The schema's table entry for an object-type property (audit S7), when it
+// lies in the made control's own table; otherwise null and the property is
+// written by name. The containment check uses std::less, which orders any
+// two pointers.
+const PropertyEntry* schema_table_entry(const FormSchema& schema, const FormModel& model,
+                                        const FormProperty& property, const Control& control) noexcept {
+    if (property.provider != FormPropertyProvider::object_type) return nullptr;
+    const FormSchemaType& type = schema.types[model.objects[property.object.value].schema_type];
+    if (property.schema_property >= type.property_entries.size()) return nullptr;
+    const PropertyEntry* const entry = type.property_entries[property.schema_property];
+    if (entry == nullptr) return nullptr;
+    const std::span<const PropertyEntry> table = control.property_table();
+    if (table.empty()) return nullptr;
+    const std::less<const PropertyEntry*> before{};
+    const PropertyEntry* const first = table.data();
+    const PropertyEntry* const last = first + table.size();
+    if (before(entry, first) || !before(entry, last)) return nullptr;
+    return entry;
+}
 
 class FormLoader final {
 public:
@@ -167,9 +190,14 @@ void FormLoader::set_property(const FormProperty& property, LoadedForm& scratch)
     const Control::Ptr parent = property.provider == FormPropertyProvider::parent_type
         ? std::dynamic_pointer_cast<Control>(scratch.objects[(*object.parent).value])
         : Control::Ptr{};
+    // The model resolved the property against the schema; an own property
+    // with a table entry is written through it (audit S7).
+    const PropertyEntry* const entry = parent ? nullptr : schema_table_entry(schema_, model_, property, *control);
     try {
         if (parent) {
             (*parent).set_child_property_value(*control, descriptor.name, property.value);
+        } else if (entry != nullptr) {
+            write_property_entry(*control, *entry, property.value);
         } else {
             (*control).set_property_value(descriptor.name, property.value);
         }

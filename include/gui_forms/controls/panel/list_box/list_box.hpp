@@ -12,7 +12,6 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace gui_forms {
@@ -143,21 +142,27 @@ private:
                          std::optional<std::size_t> active);
     void ensure_visible(std::size_t index);
     [[nodiscard]] std::size_t visible_row_count() const noexcept;
+    // Repaints one shown row; nothing for a row outside the shown window.
+    void invalidate_row(std::size_t index);
+    // The index of an authored stable item ID, or nullopt.
+    [[nodiscard]] std::optional<std::size_t> index_of_item_stable_id(std::string_view stable_id);
 
-    std::vector<std::string> item_stable_ids_;
-    // item_stable_ids_ by text to index (audit N46a), looked up by
-    // string_view. Built by set_item_stable_ids; an erase edit clears it
-    // (the indices after the erase moved) and on_semantic_child_action
-    // builds it again when its size differs from item_stable_ids_'s.
-    struct ItemIdHash final {
-        using is_transparent = void;
-        [[nodiscard]] std::size_t operator()(std::string_view id) const noexcept {
-            const std::size_t result = std::hash<std::string_view>{}(id);
-            return result;
+    // Orders indices into item_stable_ids_ by the identity they name.
+    struct StableIdOrder {
+        const std::vector<std::string>* ids{};
+        [[nodiscard]] bool operator()(std::size_t left, std::size_t right) const noexcept {
+            return (*ids)[left] < (*ids)[right];
+        }
+        [[nodiscard]] bool operator()(std::size_t left, std::string_view right) const noexcept {
+            return std::string_view((*ids)[left]) < right;
         }
     };
-    using ItemIdIndex = std::unordered_map<std::string, std::size_t, ItemIdHash, std::equal_to<>>;
-    ItemIdIndex item_stable_index_;
+
+    std::vector<std::string> item_stable_ids_;
+    // Indices into item_stable_ids_ sorted by identity, for the semantic
+    // action lookup; emptied whenever the identities change and rebuilt on
+    // the next lookup.
+    std::vector<std::size_t> stable_id_order_;
     std::vector<std::size_t> selected_;
     // The selection an edit leaves, made by prepare_edit before the edit
     // is stored; after the written hook swaps it in, the selection before

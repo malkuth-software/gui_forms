@@ -4,6 +4,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../../core/drag_engine/drag_engine.hpp"
+#include "../basic/number_text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -350,17 +351,15 @@ bool Splitter::on_semantic_action(SemanticAction action, std::string_view value)
         return true;
     }
     if (action != SemanticAction::set_value) return false;
+    // A value that is not a number is refused.
+    double requested{};
+    if (!number_text::parse_finite_decimal(value, requested)) return false;
     try {
-        const std::string owned(value);
-        std::size_t consumed{};
-        const double requested = std::stod(owned, &consumed);
-        if (consumed != owned.size() || !std::isfinite(requested)) return false;
         set_split_position(requested);
-        return true;
     } catch (const std::exception&) {
-        // A value that is not a number is refused.
         return false;
     }
+    return true;
 }
 
 namespace {

@@ -584,6 +584,8 @@ gui_forms::Control
         -  
       * - :cpp:func:`has_bindable_property <gui_forms::Control::has_bindable_property>`
         - The properties below are the instance registry's (define_bindable_property) and the type's table's (Component:: property_table) together; a registration replaces a table entry of the same name.
+      * - :cpp:func:`registry_holds_property <gui_forms::Control::registry_holds_property>`
+        - Whether the instance registry holds ``canonical_name`` (a registered, snake_case name), which then replaces the table entry of that name.
       * - :cpp:func:`property_descriptor <gui_forms::Control::property_descriptor>`
         -  
       * - :cpp:func:`property_value <gui_forms::Control::property_value>`
@@ -1533,6 +1535,10 @@ gui_forms::Control
    .. cpp:function:: bool has_bindable_property(std::string_view name) const
 
       The properties below are the instance registry's (define_bindable_property) and the type's table's (Component:: property_table) together; a registration replaces a table entry of the same name.
+
+   .. cpp:function:: bool registry_holds_property(const std::string& canonical_name) const
+
+      Whether the instance registry holds ``canonical_name`` (a registered, snake_case name), which then replaces the table entry of that name. The form schema asks it once per type (audit S7).
 
    .. cpp:function:: std::optional<PropertyDescriptor> property_descriptor(std::string_view name) const
 

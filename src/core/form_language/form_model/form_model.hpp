@@ -85,6 +85,7 @@
 #include "../../theme_language/tokenizer/theme_tokenizer.hpp"
 
 #include "gui_forms/binding/form_binding/form_binding.hpp"
+#include "gui_forms/binding/property_table/property_table.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/component.hpp"
@@ -127,6 +128,14 @@ struct FormSchemaType final {
     // components do not.
     bool holds_children{};
     std::vector<PropertyDescriptor> properties{};
+    // For each of `properties` by index, the prototype type's property
+    // table entry that describes it, or null where the descriptor came from
+    // the runtime registry or was added here (the window's properties, the
+    // command slot). Static storage, like the tables. Shorter than
+    // `properties` when entries were appended after description; a missing
+    // index is null. The loader writes through an entry instead of looking
+    // the property up by name per object (audit S7).
+    std::vector<const PropertyEntry*> property_entries{};
     // The properties the type provides to its direct children, which each
     // child writes in its own block (attached properties: a table cell, a
     // flow break). No name here is also a property of every control.

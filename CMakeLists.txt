@@ -790,6 +790,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/card/review_card/review_card.cpp
     src/controls/container/master_detail_view/master_detail_view.cpp
     src/controls/collections/expandable_sections.cpp
+    src/controls/collections/row_height_index.cpp
     src/controls/collections/choice_group.cpp
     src/controls/collections/command_bar.cpp
     src/controls/commands/command/command.cpp
@@ -3837,6 +3838,14 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_tree_list_view_tests tests/tree_list_view_tests.cpp)
     target_link_libraries(gui_forms_tree_list_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_tree_list_view_tests COMMAND gui_forms_tree_list_view_tests)
+    add_executable(gui_forms_number_text_tests tests/number_text_tests.cpp)
+    target_link_libraries(gui_forms_number_text_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_number_text_tests COMMAND gui_forms_number_text_tests)
+
+    add_executable(gui_forms_row_height_index_tests tests/row_height_index_tests.cpp)
+    target_link_libraries(gui_forms_row_height_index_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_row_height_index_tests COMMAND gui_forms_row_height_index_tests)
+
     add_executable(gui_forms_list_view_tests tests/list_view_tests.cpp)
     target_link_libraries(gui_forms_list_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_list_view_tests COMMAND gui_forms_list_view_tests)

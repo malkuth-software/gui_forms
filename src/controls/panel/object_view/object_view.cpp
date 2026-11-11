@@ -733,6 +733,30 @@ std::size_t ObjectView::maximum_top_row() const noexcept {
     return result;
 }
 
+// A hover change repaints the item left and the item entered (audit C9).
+// A complete-name inspection is placed by measuring at paint, so when one
+// was drawn, or either item was truncated (one may appear), the whole view
+// repaints instead.
+void ObjectView::invalidate_hover_change(std::optional<std::size_t> previous, std::optional<std::size_t> next) {
+    bool whole = painted_inspection_;
+    for (const std::size_t truncated : painted_truncated_) {
+        if (truncated == previous || truncated == next) whole = true;
+    }
+    if (whole) {
+        invalidate(Dirty::paint);
+        return;
+    }
+    const Rect bounds = local_bounds();
+    if (previous && *previous < items_.size()) {
+        const Rect cell = Rect::intersection(item_bounds(*previous), bounds);
+        if (!cell.empty()) invalidate(cell);
+    }
+    if (next && *next < items_.size()) {
+        const Rect cell = Rect::intersection(item_bounds(*next), bounds);
+        if (!cell.empty()) invalidate(cell);
+    }
+}
+
 Rect ObjectView::item_bounds(const std::size_t index) const noexcept {
     const std::size_t column_count = columns();
     const std::size_t row = index / column_count;
@@ -901,6 +925,10 @@ void ObjectView::paint_glyph(Painter& painter, Rect b, ObjectGlyph glyph,
 
 void ObjectView::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
+    // Rebuilt by this paint: which shown items were truncated and whether a
+    // complete-name inspection was drawn (read by the hover damage, C9).
+    painted_truncated_.clear();
+    painted_inspection_ = false;
     if (has_details_columns()) {
         paint_details(painter);
         return;
@@ -974,6 +1002,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 baseline += line_height;
             }
             if (label.truncated) {
+                painted_truncated_.push_back(index);
                 if (hovered_index_ == index) hovered_truncated = index;
                 if (active && window() && (*window()).focus_cue_visible()) {
                     focused_truncated = index;
@@ -1018,6 +1047,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                                {cell.x + 38.0, cell.y + cell.height * .5 + 4.0}, name_width);
             const bool name_truncated = display_name != item.name;
             if (name_truncated) {
+                painted_truncated_.push_back(index);
                 if (hovered_index_ == index) hovered_truncated = index;
                 if (active && window() && (*window()).focus_cue_visible()) {
                     focused_truncated = index;
@@ -1048,6 +1078,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
     const std::optional<std::size_t> inspection = hovered_truncated
         ? hovered_truncated : focused_truncated;
     if (inspection && *inspection < items_.size()) {
+        painted_inspection_ = true;
         paint_complete_name_inspection(
             painter, *this, items_[*inspection], item_bounds(*inspection), bounds,
             body_font);
@@ -1060,11 +1091,18 @@ void ObjectView::on_pointer(PointerEvent& event) {
     if (has_details_columns() && details_pointer(event)) return;
     if (event.action == PointerAction::move) {
         const std::optional<std::size_t> next = index_at(event.position);
-        if (next != hovered_index_) { hovered_index_ = next; invalidate(Dirty::paint); }
+        if (next != hovered_index_) {
+            const std::optional<std::size_t> previous = hovered_index_;
+            hovered_index_ = next;
+            invalidate_hover_change(previous, next);
+        }
         return;
     }
     if (event.action == PointerAction::leave) {
-        hovered_index_.reset(); invalidate(Dirty::paint); return;
+        const std::optional<std::size_t> previous = hovered_index_;
+        hovered_index_.reset();
+        invalidate_hover_change(previous, std::nullopt);
+        return;
     }
     if (event.action == PointerAction::wheel && !items_.empty() &&
         event.wheel_delta.y != 0.0) {

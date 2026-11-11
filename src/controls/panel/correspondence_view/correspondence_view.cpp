@@ -1,7 +1,7 @@
 #include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
 
 #include "../collection_control_utilities.hpp"
-#include "gui_forms/detail/algorithm/sort.hpp"
+#include "../../../core/algorithm/sort.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "../../basic/basic_control_rendering.hpp"

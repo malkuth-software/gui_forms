@@ -413,6 +413,8 @@ Related types
      - Whether several items can be selected (Windows Forms' MultiSelect).
    * - :cpp:class:`ListViewSelectionChange <gui_forms::ListViewSelectionChange>`
      - A change of the selected items, after it happened.
+   * - :cpp:class:`ListViewSpliceRemap <gui_forms::ListViewSpliceRemap>`
+     - A retained item list with details, list, small-icon and large-icon views (Windows Forms' ListView).
    * - :cpp:class:`ListViewViewCapability <gui_forms::ListViewViewCapability>`
      - How the items are arranged (see ListViewView).
    * - :cpp:class:`LookupColumn <gui_forms::LookupColumn>`
@@ -4174,6 +4176,25 @@ Related types
    .. cpp:member:: std::size_t selected_count
 
    .. cpp:member:: std::optional<std::size_t> focused_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ListViewSpliceRemap final
+
+   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+
+   A retained item list with details, list, small-icon and large-icon views (Windows Forms' ListView). Items are records, not child controls; only the visible ones are laid out, painted and described, so a virtual view of millions of items realizes a screenful. Every part is painted through the by-role paint path. Two child scroll bars scroll the view when its items or columns do not fit. Selection, focus and check boxes are kept by index. Replacing the items of an ordinary view carries the selection, the focused item and the anchor over by stable ID; a virtual view keeps them by index, clamped to the new count. Columns are resized by dragging a header's divider, items' labels are edited in place (label_edit), and an application may draw items' content itself (draw_mode), and items are shown in groups (groups, show_groups). Tooltips and hot-tracking activation are not supported yet. How a splice moves an index (ListView::splice_virtual_items): before ``first`` it stays, inside [first, removed_end) it is dropped, after it shifts by inserted - removed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::optional<std::size_t> apply(std::optional<std::size_t> index) const noexcept
+
+   .. cpp:member:: std::size_t first
+
+   .. cpp:member:: std::size_t removed_end
+
+   .. cpp:member:: std::size_t inserted
 
 .. cpp:namespace:: gui_forms
 

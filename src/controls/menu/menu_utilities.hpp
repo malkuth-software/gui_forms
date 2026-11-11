@@ -112,9 +112,11 @@ inline void validate_specs(const std::vector<MenuItemSpec>& items,
                 throw std::invalid_argument(
                     "ContextMenu submenu requires text and children but no command");
             }
-        } else if (!item.command || !item.children.empty()) {
+        } else if (!item.children.empty() || (!item.command && item.text.empty())) {
+            // A Command is optional (GAPS E9); without one the item needs
+            // its own text.
             throw std::invalid_argument(
-                "ContextMenu command/check/radio item requires one shared command");
+                "ContextMenu command/check/radio item takes no children and needs a command or text");
         }
         validate_specs(item.children, identities, depth + 1U, count,
                        allow_empty_submenus);
@@ -155,6 +157,10 @@ inline std::vector<MenuSnapshot> snapshot_items(
             snapshot.command_state = (*spec.command).state();
             if (!snapshot.command_state.visible) continue;
             if (snapshot.text.empty()) snapshot.text = snapshot.command_state.text;
+        } else {
+            // An item without a Command (GAPS E9) carries its own state.
+            snapshot.command_state.enabled = spec.enabled;
+            snapshot.command_state.checked = spec.checked;
         }
         snapshot.children = snapshot_items(spec.children);
         if (snapshot.kind == MenuItemKind::submenu && snapshot.children.empty()) {
