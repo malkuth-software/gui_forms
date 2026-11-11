@@ -55,8 +55,8 @@ retained tree.
 Controls draw through the renderer-neutral `Painter` vocabulary: fills,
 strokes, paths, rounded rectangles, images by `ImageId`, text runs by font
 role, clips and transforms. The `Painter` is implemented by the private
-Skia-based CPU adapter on macOS and Linux and by the DIB compositor on
-Windows. No Skia type is visible to a control, and the renderer can be
+Skia-based CPU adapter on every host; the Windows host only presents its
+frames, from DIB sections. No Skia type is visible to a control, and the renderer can be
 replaced without touching one.
 
 Layout gives controls unsnapped logical boxes, identical at every display

@@ -23,7 +23,8 @@ your application
                    └─ Drawing
        and, privately,
          host adapter       src/host/macos | windows | linux
-         CPU renderer       src/render/skia (macOS, Linux), DIB compositor (Windows)
+         CPU renderer       src/render/skia on every host (Windows presents its
+                            frames from DIB sections, src/host/windows/raster)
          text engine        HarfBuzz, FreeType, SheenBidi
 
 renderer-free code (tests, models, automation)

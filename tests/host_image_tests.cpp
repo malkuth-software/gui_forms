@@ -4,6 +4,7 @@
 #include "../src/core/host/image/clipboard_dib.hpp"
 #include "../src/core/host/image/host_image_pixels.hpp"
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <limits>
@@ -56,11 +57,29 @@ void validation_and_wire() {
     const std::vector<std::byte> encoded = detail::encode_clipboard_image(image);
     require(encoded.size() == 24U, "wire format included row padding");
     require(encoded[4] == std::byte{2}, "the wire is written as version 2");
+    require(encoded[16] == std::byte{231} && encoded[19] == std::byte{0} && encoded[20] == std::byte{200} &&
+                encoded[23] == std::byte{128},
+            "the version 2 wire did not write every byte");
+    // These pixels break the premultiplied contract (colour above alpha), as
+    // another process's clipboard bytes may; reading clamps colour to alpha.
     const HostClipboardImageResult decoded = detail::decode_clipboard_image(encoded, 0, false);
     require(decoded.status().accepted() && decoded.image() != nullptr && (*decoded.image()).row_bytes == 4U &&
-            (*decoded.image()).pixels[0] == std::byte{231} && (*decoded.image()).pixels[3] == std::byte{0} &&
-            (*decoded.image()).pixels[4] == std::byte{200} && (*decoded.image()).pixels[7] == std::byte{128},
-            "the version 2 wire did not keep every byte");
+            (*decoded.image()).pixels[0] == std::byte{0} && (*decoded.image()).pixels[1] == std::byte{0} &&
+            (*decoded.image()).pixels[2] == std::byte{0} && (*decoded.image()).pixels[3] == std::byte{0} &&
+            (*decoded.image()).pixels[4] == std::byte{128} && (*decoded.image()).pixels[5] == std::byte{10} &&
+            (*decoded.image()).pixels[6] == std::byte{5} && (*decoded.image()).pixels[7] == std::byte{128},
+            "the version 2 wire did not clamp colour to alpha");
+    // A valid premultiplied image reads back byte for byte.
+    const std::array<std::byte, 8> valid{
+        std::byte{25}, std::byte{50}, std::byte{100}, std::byte{128},
+        std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0}};
+    const HostImageView valid_image{2, 1, 8, valid};
+    const HostClipboardImageResult valid_decoded =
+        detail::decode_clipboard_image(detail::encode_clipboard_image(valid_image), 0, false);
+    require(valid_decoded.image() != nullptr &&
+                std::equal(valid.begin(), valid.end(), (*valid_decoded.image()).pixels.begin(),
+                           (*valid_decoded.image()).pixels.end()),
+            "the version 2 wire did not keep a premultiplied image's bytes");
     for (std::size_t length = 0; length < encoded.size(); ++length) {
         const std::span<const std::byte> truncated = std::span<const std::byte>(encoded).first(length);
         require(!detail::decode_clipboard_image(truncated, 0, false).status().accepted(),

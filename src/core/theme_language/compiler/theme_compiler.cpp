@@ -684,10 +684,16 @@ CompilePass::CompilePass(const ThemeCompileInput& input, ThemeRuleSheet& sheet, 
 
 CompileOutcome CompilePass::run() {
     work_ = ThemeCompileWork{};
+    const std::size_t errors_before = diagnostics_.error_count();
     const TokenizeOutcome tokenized =
         tokenize_theme_sheet(input_.source, tokens_, lines_, diagnostics_, NameEscapes::in_names);
     work_.tokens = tokens_.tokens.size();
     if (tokenized != TokenizeOutcome::tokens_cover_sheet) return CompileOutcome::refused;
+    // A NUL or ill-formed UTF-8 inside a comment leaves every token valid,
+    // so the parse completes, but the tokenizer's report of it is an error
+    // all the same (B2), and an error refuses the theme (found by
+    // theme_compile_fuzz).
+    if (diagnostics_.error_count() != errors_before) return CompileOutcome::refused;
     const ParseOutcome parsed = parse_theme_sheet(input_.source, tokens_, lines_, tree_, diagnostics_, input_.form);
     work_.nodes = tree_.nodes.size();
     if (parsed != ParseOutcome::tree_complete) return CompileOutcome::refused;

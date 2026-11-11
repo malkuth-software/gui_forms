@@ -152,7 +152,10 @@ needs: the test programs share one per group of programs with equal options
 (`cmake/TestPrecompiledHeader.cmake`), which takes most of the test sources' parse
 time away; the daily build compiles the tests without it
 (`GUI_FORMS_TEST_PRECOMPILED_HEADER=OFF`), so each test still includes what it
-uses. The Objective-C++ launcher
+uses. Most test programs link one shared test runtime instead of the static
+libraries (`cmake/TestRuntime.cmake`), so a change to a library source relinks
+that runtime once rather than every program that uses the library; each program
+is still its own process, so the tests stay independent. The Objective-C++ launcher
 matters on macOS, where the AppKit host is Objective-C++. The CPU renderer and the
 text stack come from the stx package (`cmake/Stx.cmake`), which CI restores from an
 Actions cache keyed by `stx.lock`, the package recipe, the platform and the compiler;

@@ -405,11 +405,11 @@ The host presents pixels; it does not paint them. Painting goes through the
 `Painter` implemented by a private renderer:
 
 - A CPU-only Skia build (no GPU backend, no font backend, PNG as the only
-  codec) on macOS and Linux, confined to `src/render/skia/`. PNG decoding
+  codec) on every host, confined to `src/render/skia/`. PNG decoding
   and encoding on every host use the shared owned codec in
   `src/core/image/` (on stx_zlib), not Skia's or the platform's.
-- A DIB compositor on Windows that implements the same blending arithmetic
-  byte for byte.
+- On Windows, the host presents the renderer's frames from DIB sections
+  (`src/host/windows/raster/`); it draws nothing itself.
 
 `MetricsSnapshot::renderer_name` names the active one and `cpu_only` is
 always true. No Skia type crosses into a public header, a control or a test

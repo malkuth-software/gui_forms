@@ -36,9 +36,10 @@ void test_animation_laboratory(gui_forms::Window& window) {
             "reduced motion must retain every animated surface at a calm cadence");
     const std::vector<Rect> reduced_geometry_before = paint_fill_trace(easing);
     const double reduced_phase_before = (*animated_progress).animation_phase();
-    std::this_thread::sleep_for(std::chrono::milliseconds(110));
-    const FramePollResult reduced_frame =
-        window.poll_frame_schedule(FrameClock::now());
+    // The reduced cadence's next tick, on the window's injected clock rather
+    // than after a real wait (N104).
+    const FrameClock::time_point reduced_tick = FrameClock::now() + std::chrono::milliseconds(110);
+    const FramePollResult reduced_frame = window.poll_frame_schedule(reduced_tick);
     const std::vector<Rect> reduced_geometry = paint_fill_trace(easing);
     require(reduced_frame.ui_timer_ticks > 0U,
             "reduced motion must emit retained animation ticks");

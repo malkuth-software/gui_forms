@@ -43,7 +43,9 @@ bool DispatchOperation::cancel() noexcept {
 
 std::exception_ptr DispatchOperation::exception() const noexcept {
     if (!work_) return {};
-    std::scoped_lock lock((*work_).fault_mutex);
+    // The faulted state publishes the fault (DispatchWork::fault).
+    const DispatchOperationState observed = (*work_).state.load(std::memory_order_acquire);
+    if (observed != DispatchOperationState::faulted) return {};
     return (*work_).fault;
 }
 

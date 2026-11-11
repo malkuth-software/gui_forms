@@ -159,10 +159,9 @@ void read_losses(const rtf2md::LossReport& report, MarkdownLossReport& losses) n
 }
 
 // The conversion's error for a library status (audit N114: never throws).
-// ok, output_too_small and invalid_document are not failures a caller can
-// meet (ok is success, the writers are retried at the size they ask for,
-// and the readers only produce documents in normal form); should the
-// library report one anyway, or a status outside the enumeration, the
+// ok and output_too_small are not failures a caller can meet (ok is
+// success, and the writers are retried at the size they ask for); should
+// the library report one anyway, or a status outside the enumeration, the
 // conversion fails as malformed rather than raising.
 [[nodiscard]] RtfConversionError error_of(rtf2md::Status status) noexcept {
     switch (status) {
@@ -170,9 +169,17 @@ void read_losses(const rtf2md::LossReport& report, MarkdownLossReport& losses) n
     case rtf2md::Status::limit_exceeded: return RtfConversionError::limit_exceeded;
     case rtf2md::Status::unsupported_encoding: return RtfConversionError::unsupported_encoding;
     case rtf2md::Status::effort_exceeded: return RtfConversionError::effort_exceeded;
+    case rtf2md::Status::invalid_document:
+        // The readers should give only documents in normal form, but a link
+        // destination holding a control character (rtf_import_fuzz: a
+        // HYPERLINK field with a 0x1A byte) reaches a writer, which refuses
+        // the document. The input is malformed to the caller, not a defect
+        // to throw on; the readers' side is an stx_rtf2md defect.
+        return RtfConversionError::malformed;
     case rtf2md::Status::ok:
     case rtf2md::Status::output_too_small:
-    case rtf2md::Status::invalid_document:
+        // Not a failure a caller can meet: ok is success, and the writers
+        // are retried at the size they ask for.
         return RtfConversionError::malformed;
     }
     return RtfConversionError::malformed;

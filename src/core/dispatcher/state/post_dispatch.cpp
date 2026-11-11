@@ -63,12 +63,13 @@ void wake_host_locked(DispatcherState& state) {
     }
 }
 
-DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
-                                Control::WeakPtr owner,
-                                bool requires_owner,
-                                std::function<void()> callback,
-                                bool synchronous,
-                                bool refuse_when_closed) {
+PostOutcome post_dispatch_outcome(const std::shared_ptr<DispatcherState>& state,
+                                  Control::WeakPtr owner,
+                                  bool requires_owner,
+                                  std::function<void()> callback,
+                                  bool synchronous,
+                                  bool refuse_when_closed,
+                                  DispatchOperation& operation) {
     if (!callback) {
         throw std::invalid_argument("GUI.Forms BeginInvoke requires a callback");
     }
@@ -92,17 +93,18 @@ DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
             // call's argument.
             ++(*state).cancelled;
             ++(*state).teardown_refusals;
-            return refused_operation(state);
+            operation = refused_operation(state);
+            return PostOutcome::refused;
         }
         if (!(*state).accepting) {
-            throw std::logic_error("GUI.Forms dispatcher is shut down");
+            return PostOutcome::closed;
         }
         if (synchronous && !(*state).wake) {
             throw std::logic_error(
                 "GUI.Forms worker Invoke requires a running host dispatcher");
         }
         if ((*state).queue.size() >= maximum_posted_callbacks) {
-            throw std::length_error("GUI.Forms posted callback limit reached");
+            return PostOutcome::queue_full;
         }
         work = std::make_shared<DispatchWork>();
         if (synchronous && thread_revocable_invokes) {
@@ -111,7 +113,8 @@ DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
             std::scoped_lock revocable_lock((*thread_revocable_invokes).mutex);
             if ((*thread_revocable_invokes).revoked) {
                 ++(*state).cancelled;
-                return refused_operation(state);
+                operation = refused_operation(state);
+                return PostOutcome::refused;
             }
             (*thread_revocable_invokes).waiting = work;
         }
@@ -153,7 +156,26 @@ DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
             }
         }
     }
-    return DispatchOperation(std::move(work));
+    operation = DispatchOperation(std::move(work));
+    return PostOutcome::posted;
+}
+
+DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
+                                Control::WeakPtr owner,
+                                bool requires_owner,
+                                std::function<void()> callback,
+                                bool synchronous,
+                                bool refuse_when_closed) {
+    DispatchOperation operation;
+    const PostOutcome outcome = post_dispatch_outcome(state, std::move(owner), requires_owner, std::move(callback),
+                                                      synchronous, refuse_when_closed, operation);
+    if (outcome == PostOutcome::closed) {
+        throw std::logic_error("GUI.Forms dispatcher is shut down");
+    }
+    if (outcome == PostOutcome::queue_full) {
+        throw std::length_error("GUI.Forms posted callback limit reached");
+    }
+    return operation;
 }
 
 } // namespace detail

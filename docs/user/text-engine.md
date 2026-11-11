@@ -27,9 +27,8 @@ Rasterization
 
 Blending
 : Coverage is composited in sRGB values with gamma 1.0, using one arithmetic
-  that every host implements bit for bit. The Skia raster blit is the
-  reference; the Windows DIB compositor matches it, and a test compares them
-  byte for byte. Dark-on-light and light-on-dark text come out at the same
+  that every host shares: the Skia raster blit, which every host's renderer
+  uses. Dark-on-light and light-on-dark text come out at the same
   perceived weight.
 
 Glyph memory

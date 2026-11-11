@@ -382,7 +382,8 @@ Windows Forms controls
 
 ## Not planned
 
-GPU rendering of any kind; a browser engine, CSS or an HTML runtime; a .NET,
+GPU rendering of any kind; a browser engine or an HTML runtime (themes use a
+CSS syntax, and HTML import comes after 1.0, but nothing renders a web page); a .NET,
 Java or Godot dependency in the native runtime; immediate-mode controls or a
 perpetual redraw loop; host font discovery for control text; LCD subpixel
 text; ActiveX, browser hosting, printing, MDI and obsolete Forms families.
