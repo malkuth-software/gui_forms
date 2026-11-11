@@ -203,7 +203,7 @@ gui_forms::TokenBox
 
       The editor's custom source collection, shared as :cpp:class:`TextBox <gui_forms::TextBox>`'s is.
 
-   .. cpp:function:: std::span<const Token> tokens() const noexcept
+   .. cpp:function:: std::span<const Token> tokens() const& noexcept
 
       The tokens, first to last, each a :cpp:class:`Token <gui_forms::Token>` with its :cpp:class:`TokenId <gui_forms::TokenId>` and text.
 

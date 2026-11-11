@@ -76,7 +76,7 @@ gui_forms::CorrespondenceView
          or non-finite value throws ``std::invalid_argument``. Scrolling ends any
          hover expansion; the mouse wheel scrolls by two compact rows.
 
-      **items** : ``std::span<const CorrespondenceItem>``
+      **items** : ``BorrowedSpan<CorrespondenceItem>``
          The records in display order. Empty by default. IDs must be unique and
          follow the :cpp:class:`StableId <gui_forms::StableId>` segment rule, every text field valid UTF-8, and every
          information tag and emphasis term nonempty, or :cpp:func:`set_items <gui_forms::CorrespondenceView::set_items>` throws
@@ -320,7 +320,7 @@ gui_forms::CorrespondenceView
       or non-finite value throws ``std::invalid_argument``. Scrolling ends any
       hover expansion; the mouse wheel scrolls by two compact rows.
 
-   .. cpp:function:: std::span<const CorrespondenceItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<CorrespondenceItem> items() const& noexcept
 
       The records in display order. Empty by default. IDs must be unique and
       follow the :cpp:class:`StableId <gui_forms::StableId>` segment rule, every text field valid UTF-8, and every
@@ -335,14 +335,14 @@ gui_forms::CorrespondenceView
 
       Sets :cpp:func:`items <gui_forms::CorrespondenceView::items>`; see the property's description above.
 
-   .. cpp:function:: std::string_view focused_id() const noexcept
+   .. cpp:function:: std::string_view focused_id() const& noexcept
 
       The record with the keyboard focus. It moves with the arrow keys and
       with clicks, and is expanded while the view has focus. When the view
       gains focus with no focused record, the selected record, or else the
       first, takes the focus.
 
-   .. cpp:function:: std::string_view hovered_id() const noexcept
+   .. cpp:function:: std::string_view hovered_id() const& noexcept
 
       The record under the pointer, or empty.
 

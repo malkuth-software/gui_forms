@@ -506,7 +506,7 @@ Types
 
    .. cpp:function:: std::size_t size() const noexcept
 
-   .. cpp:function:: std::span<const BindingColumn> columns() const noexcept
+   .. cpp:function:: std::span<const BindingColumn> columns() const& noexcept
 
 
    .. rubric:: Methods
@@ -835,9 +835,9 @@ Types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const Element> read() const noexcept
+   .. cpp:function:: BorrowedSpan<Element> read() const& noexcept
 
-      The read.
+      The read: a borrowed view, which in the sanitizer tree (GUI_FORMS_CHECKED_BORROWS) reports a use after a structural edit, a whole store or mark_all, or after the cell died.
 
 
    .. rubric:: Methods
@@ -966,7 +966,7 @@ Types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const std::shared_ptr<Binding>> items() const noexcept
+   .. cpp:function:: std::span<const std::shared_ptr<Binding>> items() const& noexcept
 
       Returns the ordered shared-owner view.
 

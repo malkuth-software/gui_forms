@@ -165,7 +165,7 @@ gui_forms::MaskedTextProvider
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::string_view mask() const noexcept
+   .. cpp:function:: std::string_view mask() const& noexcept
 
       The mask as given.
 

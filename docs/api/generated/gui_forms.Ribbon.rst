@@ -490,7 +490,7 @@ gui_forms::Ribbon
       Whether a tab is selected when the pointer is released over the tab it
       was pressed on, instead of on the press (Office's way, the default).
 
-   .. cpp:function:: std::span<const RibbonTabSpec> tabs() const noexcept
+   .. cpp:function:: std::span<const RibbonTabSpec> tabs() const& noexcept
 
       The tabs, each with its groups and their commands: the core tabs, then
       the contextual tabs, each set's together in the sets' order.
@@ -521,7 +521,7 @@ gui_forms::Ribbon
 
       Sets :cpp:func:`tabs <gui_forms::Ribbon::tabs>`; see the property's description above.
 
-   .. cpp:function:: std::span<const RibbonTabSetSpec> tab_sets() const noexcept
+   .. cpp:function:: std::span<const RibbonTabSetSpec> tab_sets() const& noexcept
 
       The contextual tab sets (:cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`: ID and caption).
 
@@ -559,7 +559,7 @@ gui_forms::Ribbon
 
       Sets :cpp:func:`application_menu <gui_forms::Ribbon::application_menu>`; see the property's description above.
 
-   .. cpp:function:: std::span<const RibbonRecentItem> recent_items() const noexcept
+   .. cpp:function:: std::span<const RibbonRecentItem> recent_items() const& noexcept
 
       The application menu's recent pane (:cpp:class:`RibbonRecentItem <gui_forms::RibbonRecentItem>`: ID, text and a
       description such as its folder), numbered under :cpp:member:`recent_caption <gui_forms::Ribbon::recent_caption>`. While

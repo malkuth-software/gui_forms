@@ -81,7 +81,7 @@ gui_forms::ObjectView
          reorders the items. A column that does not exist or is not sortable, or
          an invalid direction, throws ``std::invalid_argument``.
 
-      **items** : ``std::span<const ObjectViewItem>``
+      **items** : ``BorrowedSpan<ObjectViewItem>``
          The items in display order. Empty by default. :cpp:func:`set_items <gui_forms::ObjectView::set_items>` replaces the
          items and keeps the current :cpp:func:`details_columns <gui_forms::ObjectView::details_columns>`, so every item needs one
          cell per column. Item IDs must be unique and follow the
@@ -380,7 +380,7 @@ gui_forms::ObjectView
       reorders the items. A column that does not exist or is not sortable, or
       an invalid direction, throws ``std::invalid_argument``.
 
-   .. cpp:function:: std::span<const ObjectViewItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<ObjectViewItem> items() const& noexcept
 
       The items in display order. Empty by default. :cpp:func:`set_items <gui_forms::ObjectView::set_items>` replaces the
       items and keeps the current :cpp:func:`details_columns <gui_forms::ObjectView::details_columns>`, so every item needs one
@@ -398,7 +398,7 @@ gui_forms::ObjectView
 
       Sets :cpp:func:`items <gui_forms::ObjectView::items>`; see the property's description above.
 
-   .. cpp:function:: std::span<const ObjectDetailsColumn> details_columns() const noexcept
+   .. cpp:function:: std::span<const ObjectDetailsColumn> details_columns() const& noexcept
 
       The columns of the details mode, set together with the items by
       :cpp:func:`set_details_model <gui_forms::ObjectView::set_details_model>`. Empty by default; without columns, a details row
@@ -419,7 +419,7 @@ gui_forms::ObjectView
       Counts of rows, cells and text preparations in the last paint of the
       details columns, for diagnostics.
 
-   .. cpp:function:: std::span<const std::string> selected_ids() const noexcept
+   .. cpp:function:: std::span<const std::string> selected_ids() const& noexcept
 
       Every selected ID, in the order of :cpp:func:`items <gui_forms::ObjectView::items>`. :cpp:func:`set_selected_ids <gui_forms::ObjectView::set_selected_ids>` replaces
       the selection; its ``primary_id`` must be one of the IDs or empty, in
@@ -433,12 +433,12 @@ gui_forms::ObjectView
 
       Sets :cpp:func:`selected_ids <gui_forms::ObjectView::selected_ids>`; see the property's description above.
 
-   .. cpp:function:: std::string_view selection_anchor_id() const noexcept
+   .. cpp:function:: std::string_view selection_anchor_id() const& noexcept
 
       The item a Shift range starts from. Plain and toggling selections move
       it to the item selected.
 
-   .. cpp:function:: std::string_view focused_id() const noexcept
+   .. cpp:function:: std::string_view focused_id() const& noexcept
 
       The item with the keyboard focus rectangle, from which the arrow keys
       move. A click or key that selects an item focuses it, and Ctrl or

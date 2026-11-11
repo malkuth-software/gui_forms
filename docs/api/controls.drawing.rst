@@ -289,7 +289,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const RoutedLink> routes() const noexcept
+   .. cpp:function:: std::span<const RoutedLink> routes() const& noexcept
 
       The routes in link slot order; borrowed until the next route().
 
@@ -396,11 +396,11 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const NodeRecord> node_slots() const noexcept
+   .. cpp:function:: std::span<const NodeRecord> node_slots() const& noexcept
 
       Every slot, live or free, in slot order (the order the canvas paints and the router routes in); an identity is {index, record.generation}.
 
-   .. cpp:function:: std::span<const LinkRecord> link_slots() const noexcept
+   .. cpp:function:: std::span<const LinkRecord> link_slots() const& noexcept
 
    .. cpp:function:: std::size_t node_count() const noexcept
 

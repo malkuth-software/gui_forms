@@ -898,7 +898,7 @@ Related types
 
    .. cpp:function:: bool empty() const noexcept
 
-   .. cpp:function:: std::span<const InvalidationOutline> outlines() const noexcept
+   .. cpp:function:: std::span<const InvalidationOutline> outlines() const& noexcept
 
       Oldest first.
 

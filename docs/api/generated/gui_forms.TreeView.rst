@@ -63,7 +63,7 @@ gui_forms::TreeView
          ``std::invalid_argument`` is thrown; attaching the tree to a different
          window later throws ``std::logic_error``.
 
-      **items** : ``std::span<const TreeViewItem>``
+      **items** : ``BorrowedSpan<TreeViewItem>``
          The items in preorder: each :cpp:class:`TreeViewItem <gui_forms::TreeViewItem>` is followed by its
          descendants, at one more ``depth`` for each level. The first item must
          have depth 0 and no item may be more than one level deeper than the
@@ -267,7 +267,7 @@ gui_forms::TreeView
       ``std::invalid_argument`` is thrown; attaching the tree to a different
       window later throws ``std::logic_error``.
 
-   .. cpp:function:: std::span<const TreeViewItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<TreeViewItem> items() const& noexcept
 
       The items in preorder: each :cpp:class:`TreeViewItem <gui_forms::TreeViewItem>` is followed by its
       descendants, at one more ``depth`` for each level. The first item must
@@ -286,7 +286,7 @@ gui_forms::TreeView
 
       Sets :cpp:func:`items <gui_forms::TreeView::items>`; see the property's description above.
 
-   .. cpp:function:: std::string_view active_id() const noexcept
+   .. cpp:function:: std::string_view active_id() const& noexcept
 
       The ID of the keyboard-active row, where the focus rectangle is drawn
       and from which the arrow keys move. Selecting an item makes it active.

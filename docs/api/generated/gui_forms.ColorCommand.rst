@@ -119,7 +119,7 @@ gui_forms::ColorCommand
 
       Sets :cpp:func:`value <gui_forms::ColorCommand::value>`; see the property's description above.
 
-   .. cpp:function:: std::span<const Color> recent_colors() const noexcept
+   .. cpp:function:: std::span<const Color> recent_colors() const& noexcept
 
       Recently committed colours, most recent first, without repeats, at most
       ``ColorCommand::maximum_recent_colors`` (10).

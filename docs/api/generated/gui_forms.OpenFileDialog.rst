@@ -196,11 +196,11 @@ gui_forms::OpenFileDialog
       here is the one the dialog suggests; it becomes the one
       chosen path (none for an empty name).
 
-   .. cpp:function:: std::span<const HostFileDialogFilter> filters() const noexcept
+   .. cpp:function:: std::span<const HostFileDialogFilter> filters() const& noexcept
 
       The host filters the filter parsed into, in order.
 
-   .. cpp:function:: std::span<const std::string> file_names() const noexcept
+   .. cpp:function:: std::span<const std::string> file_names() const& noexcept
 
       Every chosen path, in the host's order. Only an accepted dialog changes
       them.

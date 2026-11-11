@@ -39,7 +39,7 @@ gui_forms::BackstageView
          ``std::out_of_range``; an item that is not a topic, or no value, throws
          ``std::invalid_argument``.
 
-      **items** : ``std::span<const BackstageItemSpec>``
+      **items** : ``BorrowedSpan<BackstageItemSpec>``
          The column (:cpp:class:`BackstageItemSpec <gui_forms::BackstageItemSpec>`: ID, kind, Command, text with an
          optional mnemonic, image, definitive flag, page). :cpp:func:`set_items <gui_forms::BackstageView::set_items>` keeps the
          selection on a topic with the same ID, else the first topic, and throws
@@ -134,7 +134,7 @@ gui_forms::BackstageView
       ``std::out_of_range``; an item that is not a topic, or no value, throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: std::span<const BackstageItemSpec> items() const noexcept
+   .. cpp:function:: BorrowedSpan<BackstageItemSpec> items() const& noexcept
 
       The column (:cpp:class:`BackstageItemSpec <gui_forms::BackstageItemSpec>`: ID, kind, Command, text with an
       optional mnemonic, image, definitive flag, page). :cpp:func:`set_items <gui_forms::BackstageView::set_items>` keeps the

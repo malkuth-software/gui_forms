@@ -294,7 +294,7 @@ gui_forms::TreeListView
       and scrolling it into view), ``selected_id = std::nullopt`` selects
       nothing, and a write throws ``std::out_of_range`` for an unknown node.
 
-   .. cpp:function:: std::span<const TreeListColumn> columns() const noexcept
+   .. cpp:function:: std::span<const TreeListColumn> columns() const& noexcept
 
       The columns, column 0 first. :cpp:func:`set_columns <gui_forms::TreeListView::set_columns>` replaces them, resets the
       display order and throws ``std::invalid_argument`` for a repeated ID or one
@@ -306,12 +306,12 @@ gui_forms::TreeListView
 
       Sets :cpp:func:`columns <gui_forms::TreeListView::columns>`; see the property's description above.
 
-   .. cpp:function:: std::span<const std::size_t> column_order() const noexcept
+   .. cpp:function:: std::span<const std::size_t> column_order() const& noexcept
 
       The columns in display order: ``column_order()[position]`` is the column
       shown at that position. Position 0 always holds the tree column.
 
-   .. cpp:function:: std::span<const TreeListNode> nodes() const noexcept
+   .. cpp:function:: std::span<const TreeListNode> nodes() const& noexcept
 
       The nodes in the order given, whatever the sort. :cpp:func:`set_nodes <gui_forms::TreeListView::set_nodes>` replaces
       them, keeps the selection and the current node on their IDs, and throws

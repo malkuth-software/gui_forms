@@ -38,6 +38,9 @@ gui_forms::SurfaceRoot
          The opposite of :cpp:func:`check_access <gui_forms::SurfaceRoot::check_access>`: whether the caller must post work with
          :cpp:func:`begin_invoke <gui_forms::SurfaceRoot::begin_invoke>` or :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>` instead of touching the root directly.
 
+      **presenting_window** : ``BorrowedPointer<Window>``, read-only
+         The Window this root is, borrowed (null for a root presented some other way). In the sanitizer tree the copy reports a use after the Window died; a table that holds a Window across callbacks keeps this.
+
       **dispatcher** : ``WindowDispatcher``, read-only
          A handle to this root's dispatcher that any thread may keep and post through after the root has closed (WindowDispatcher).
 
@@ -644,6 +647,10 @@ gui_forms::SurfaceRoot
 
       The opposite of :cpp:func:`check_access <gui_forms::SurfaceRoot::check_access>`: whether the caller must post work with
       :cpp:func:`begin_invoke <gui_forms::SurfaceRoot::begin_invoke>` or :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>` instead of touching the root directly.
+
+   .. cpp:function:: BorrowedPointer<Window> presenting_window() const noexcept
+
+      The Window this root is, borrowed (null for a root presented some other way). In the sanitizer tree the copy reports a use after the Window died; a table that holds a Window across callbacks keeps this.
 
    .. cpp:function:: WindowDispatcher dispatcher() const
 

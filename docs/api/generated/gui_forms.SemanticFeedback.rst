@@ -138,7 +138,7 @@ gui_forms::SemanticFeedback
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const SemanticFeedbackRecord> records() const noexcept
+   .. cpp:function:: std::span<const SemanticFeedbackRecord> records() const& noexcept
 
       The recorded events, oldest first.
 

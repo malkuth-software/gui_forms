@@ -160,7 +160,7 @@ gui_forms::RibbonColorPicker
 
       The picker's accessible name, with an optional mnemonic.
 
-   .. cpp:function:: std::span<const Color> palette() const noexcept
+   .. cpp:function:: std::span<const Color> palette() const& noexcept
 
       The palette colours. :cpp:func:`set_palette <gui_forms::RibbonColorPicker::set_palette>` throws ``std::invalid_argument`` for an
       empty palette, a repeated colour, or more than

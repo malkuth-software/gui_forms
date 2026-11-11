@@ -379,7 +379,7 @@ gui_forms::DockWorkspace
       The layout as XML (``DockLayout::write_xml``), on the program's request;
       the workspace never saves on its own (owner decision DK-33).
 
-   .. cpp:function:: std::span<const DockNamedLayout> named_layouts() const noexcept
+   .. cpp:function:: std::span<const DockNamedLayout> named_layouts() const& noexcept
 
       The layouts saved by name (:cpp:class:`DockNamedLayout <gui_forms::DockNamedLayout>`: a name and the layout's
       XML), in the order they were first saved. The program keeps the list
@@ -404,11 +404,11 @@ gui_forms::DockWorkspace
 
       The active document. Activating a tool panel leaves it unchanged.
 
-   .. cpp:function:: std::span<const DockPanelId> tool_history() const noexcept
+   .. cpp:function:: std::span<const DockPanelId> tool_history() const& noexcept
 
       The placed tool panels that have been active, most recent first.
 
-   .. cpp:function:: std::span<const DockPanelId> document_history() const noexcept
+   .. cpp:function:: std::span<const DockPanelId> document_history() const& noexcept
 
       The placed documents that have been active, most recent first.
 

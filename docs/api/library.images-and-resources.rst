@@ -117,7 +117,7 @@ Types
 
       The layered user theme's rules, or null where none is layered.
 
-   .. cpp:function:: std::span<const IconDeclaration> icon_declarations() const noexcept
+   .. cpp:function:: std::span<const IconDeclaration> icon_declarations() const& noexcept
 
       The registered icons, in registration order, for a user theme's compilation (ThemeCompileOptions::icons).
 

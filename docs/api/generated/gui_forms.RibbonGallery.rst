@@ -67,7 +67,7 @@ gui_forms::RibbonGallery
       **categories** : ``std::span<const RibbonGalleryCategory>``, read-only
          The categories in display order.
 
-      **items** : ``std::span<const RibbonGalleryItem>``
+      **items** : ``BorrowedSpan<RibbonGalleryItem>``
          The items. :cpp:func:`set_items <gui_forms::RibbonGallery::set_items>` replaces the categories and items: items without a
          category show first, then category by category in category order. A
          repeated ID or one that breaks the :cpp:class:`StableId <gui_forms::StableId>` segment rule, an item
@@ -258,11 +258,11 @@ gui_forms::RibbonGallery
 
       The form, fixed at construction.
 
-   .. cpp:function:: std::span<const RibbonGalleryCategory> categories() const noexcept
+   .. cpp:function:: std::span<const RibbonGalleryCategory> categories() const& noexcept
 
       The categories in display order.
 
-   .. cpp:function:: std::span<const RibbonGalleryItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<RibbonGalleryItem> items() const& noexcept
 
       The items. :cpp:func:`set_items <gui_forms::RibbonGallery::set_items>` replaces the categories and items: items without a
       category show first, then category by category in category order. A

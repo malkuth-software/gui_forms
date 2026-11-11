@@ -2128,7 +2128,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::string_view utf8() const noexcept
+   .. cpp:function:: std::string_view utf8() const& noexcept
 
       Returns the current contiguous UTF-8 view until the next mutation.
 
@@ -2160,7 +2160,7 @@ Related types
 
       Returns immutable byte and style-span limits.
 
-   .. cpp:function:: std::span<const TextStyleSpan> style_spans() const noexcept
+   .. cpp:function:: std::span<const TextStyleSpan> style_spans() const& noexcept
 
       Returns normalized nonoverlapping retained style spans.
 

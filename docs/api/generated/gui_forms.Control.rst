@@ -201,7 +201,7 @@ gui_forms::Control
          The control this one is a child of, or null. A child refers to its
          parent weakly, so the parent's lifetime is decided by its own owners.
 
-      **children** : ``std::span<const Ptr>``, read-only
+      **children** : ``BorrowedSpan<Ptr>``, read-only
          The children, in paint order: the first child is painted first and is
          the backmost; the last is the frontmost. Each child is owned by this
          control.
@@ -252,10 +252,10 @@ gui_forms::Control
          The arranged bounds in window coordinates. Like :cpp:func:`arranged_bounds <gui_forms::Control::arranged_bounds>`, it
          runs pending layout first when attached and no update scope is open.
 
-      **attached_window** : ``Window*``, read-only
+      **attached_window** : ``BorrowedPointer<Window>``, read-only
          The window whose tree contains this control, or null.
 
-      **attached_surface_root** : ``SurfaceRoot*``, read-only
+      **attached_surface_root** : ``BorrowedPointer<SurfaceRoot>``, read-only
          The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
 
       **effective_text_scale** : ``double``, read-only
@@ -963,7 +963,7 @@ gui_forms::Control
       The control this one is a child of, or null. A child refers to its
       parent weakly, so the parent's lifetime is decided by its own owners.
 
-   .. cpp:function:: std::span<const Ptr> children() const noexcept
+   .. cpp:function:: BorrowedSpan<Ptr> children() const& noexcept
 
       The children, in paint order: the first child is painted first and is
       the backmost; the last is the frontmost. Each child is owned by this
@@ -1028,11 +1028,11 @@ gui_forms::Control
       The arranged bounds in window coordinates. Like :cpp:func:`arranged_bounds <gui_forms::Control::arranged_bounds>`, it
       runs pending layout first when attached and no update scope is open.
 
-   .. cpp:function:: Window* attached_window() const noexcept
+   .. cpp:function:: BorrowedPointer<Window> attached_window() const noexcept
 
       The window whose tree contains this control, or null.
 
-   .. cpp:function:: SurfaceRoot* attached_surface_root() const noexcept
+   .. cpp:function:: BorrowedPointer<SurfaceRoot> attached_surface_root() const noexcept
 
       The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
 
@@ -1085,7 +1085,7 @@ gui_forms::Control
 
    .. cpp:function:: std::optional<Color> ambient_fore_color() const noexcept
 
-   .. cpp:function:: std::span<const OwnerDecorationRecipe> owned_decorations() const noexcept
+   .. cpp:function:: std::span<const OwnerDecorationRecipe> owned_decorations() const& noexcept
 
    .. cpp:function:: void set_owned_decorations(const OwnerDecorationRecipe* decorations, std::size_t decoration_count)
 
@@ -1971,11 +1971,11 @@ gui_forms::Control
 
       The base states every control shares: normal, enabled or disabled, focused and focus-visible. Overrides start from this and add their own.
 
-   .. cpp:function:: Window* window() const noexcept
+   .. cpp:function:: BorrowedPointer<Window> window() const noexcept
 
       *Protected.*
 
-   .. cpp:function:: SurfaceRoot* surface_root() const noexcept
+   .. cpp:function:: BorrowedPointer<SurfaceRoot> surface_root() const noexcept
 
       *Protected.*
 

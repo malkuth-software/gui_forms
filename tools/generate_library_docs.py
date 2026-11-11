@@ -88,7 +88,7 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "constraints, intrinsic sizes and layout direction among them), and the "
           "anatomy each control publishes: named parts, part roles and states, "
           "and the interactions each type raises.",
-          ("control", "component", "anatomy", "schema", "layout")),
+          ("control", "component", "anatomy", "schema", "layout", "borrow")),
     Group("events-values-and-commands", "Events, values and commands",
           "Retained events and owned handlers, application-owned `Value` state, "
           "command bindings, a window's rules (a trigger, conditions and "

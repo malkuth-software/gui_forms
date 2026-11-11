@@ -1531,7 +1531,7 @@ Types
 
    .. cpp:function:: bool empty() const noexcept
 
-   .. cpp:function:: std::span<const Rect> rectangles() const noexcept
+   .. cpp:function:: std::span<const Rect> rectangles() const& noexcept
 
    .. cpp:function:: std::size_t rectangle_count() const noexcept
 
@@ -4187,7 +4187,7 @@ Types
 
       Whether record_opacity found every pixel opaque since the last view().
 
-   .. cpp:function:: std::span<const std::uint8_t> pixels() const noexcept
+   .. cpp:function:: std::span<const std::uint8_t> pixels() const& noexcept
 
    .. cpp:function:: DeviceExtent extent() const noexcept
 
@@ -5257,7 +5257,7 @@ Types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::string_view id() const noexcept
+   .. cpp:function:: std::string_view id() const& noexcept
 
       Returns the immutable theme identity.
 

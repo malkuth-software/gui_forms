@@ -294,7 +294,7 @@ gui_forms::MonthCalendar
 
       The first day of the first month shown.
 
-   .. cpp:function:: std::span<const DateTimeValue> bolded_dates() const noexcept
+   .. cpp:function:: std::span<const DateTimeValue> bolded_dates() const& noexcept
 
       Days shown in bold. :cpp:func:`set_bolded_dates <gui_forms::MonthCalendar::set_bolded_dates>`, :cpp:func:`add_bolded_date <gui_forms::MonthCalendar::add_bolded_date>`,
       :cpp:func:`remove_bolded_date <gui_forms::MonthCalendar::remove_bolded_date>` and :cpp:func:`remove_all_bolded_dates <gui_forms::MonthCalendar::remove_all_bolded_dates>` change them; an
@@ -304,7 +304,7 @@ gui_forms::MonthCalendar
 
       Sets :cpp:func:`bolded_dates <gui_forms::MonthCalendar::bolded_dates>`; see the property's description above.
 
-   .. cpp:function:: std::span<const DateTimeValue> annually_bolded_dates() const noexcept
+   .. cpp:function:: std::span<const DateTimeValue> annually_bolded_dates() const& noexcept
 
       Days shown in bold every year: only their month and day count.
 
@@ -312,7 +312,7 @@ gui_forms::MonthCalendar
 
       Sets :cpp:func:`annually_bolded_dates <gui_forms::MonthCalendar::annually_bolded_dates>`; see the property's description above.
 
-   .. cpp:function:: std::span<const DateTimeValue> monthly_bolded_dates() const noexcept
+   .. cpp:function:: std::span<const DateTimeValue> monthly_bolded_dates() const& noexcept
 
       Days shown in bold every month: only their day counts.
 

@@ -253,7 +253,7 @@ gui_forms::BreadcrumbTrail
       moving the focus. It can only be true while :cpp:member:`editing <gui_forms::BreadcrumbTrail::editing>`; setting it at
       other times keeps it false.
 
-   .. cpp:function:: std::span<const BreadcrumbSegment> segments() const noexcept
+   .. cpp:function:: std::span<const BreadcrumbSegment> segments() const& noexcept
 
       The path, from the root to the current location. Empty by default. Each
       :cpp:class:`BreadcrumbSegment <gui_forms::BreadcrumbSegment>` has an ID, text, a description of at most 4096
@@ -265,7 +265,7 @@ gui_forms::BreadcrumbTrail
 
       Sets :cpp:func:`segments <gui_forms::BreadcrumbTrail::segments>`; see the property's description above.
 
-   .. cpp:function:: std::span<const std::string> hidden_segment_ids() const noexcept
+   .. cpp:function:: std::span<const std::string> hidden_segment_ids() const& noexcept
 
       The IDs of the middle segments hidden behind the overflow item, in path
       order; empty when every segment fits. Show them, for example in a menu,
@@ -276,11 +276,11 @@ gui_forms::BreadcrumbTrail
       The :cpp:class:`TextBox <gui_forms::TextBox>` used for editing. It has no border, the placeholder
       "Enter an exact path" and the accessible name "Exact location path".
 
-   .. cpp:function:: std::string_view overflow_stable_id() const noexcept
+   .. cpp:function:: std::string_view overflow_stable_id() const& noexcept
 
       The ID of the overflow item, ``<stable_id>.overflow``.
 
-   .. cpp:function:: std::string_view edit_stable_id() const noexcept
+   .. cpp:function:: std::string_view edit_stable_id() const& noexcept
 
       The ID of the edit button, ``<stable_id>.edit``.
 

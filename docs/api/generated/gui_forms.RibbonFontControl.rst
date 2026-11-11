@@ -138,7 +138,7 @@ gui_forms::RibbonFontControl
       The value shown: the command's, or the control's own. ``set_value`` sets it
       as the program does (the command's ``set_value`` when there is one).
 
-   .. cpp:function:: std::span<const std::string> families() const noexcept
+   .. cpp:function:: std::span<const std::string> families() const& noexcept
 
       The families offered, in order. :cpp:func:`set_families <gui_forms::RibbonFontControl::set_families>` throws
       ``std::invalid_argument`` for an empty, repeated, multi-line or invalid
@@ -148,7 +148,7 @@ gui_forms::RibbonFontControl
 
       Sets :cpp:func:`families <gui_forms::RibbonFontControl::families>`; see the property's description above.
 
-   .. cpp:function:: std::span<const double> sizes() const noexcept
+   .. cpp:function:: std::span<const double> sizes() const& noexcept
 
       The sizes offered, ascending. :cpp:func:`set_sizes <gui_forms::RibbonFontControl::set_sizes>` throws ``std::invalid_argument``
       for sizes that do not ascend or lie outside :cpp:class:`FontCommand <gui_forms::FontCommand>`'s range, or more

@@ -1519,7 +1519,7 @@ Related types
 
    .. cpp:function:: HelpPlaceKind kind() const noexcept
 
-   .. cpp:function:: std::string_view anchor() const noexcept
+   .. cpp:function:: std::string_view anchor() const& noexcept
 
 
    .. rubric:: Methods

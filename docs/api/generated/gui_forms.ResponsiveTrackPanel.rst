@@ -236,7 +236,7 @@ gui_forms::ResponsiveTrackPanel
       Space between neighbouring tracks that are not collapsed. It must be
       finite and between 0 and 256.
 
-   .. cpp:function:: std::span<const ResponsiveTrackSpec> track_specs() const noexcept
+   .. cpp:function:: std::span<const ResponsiveTrackSpec> track_specs() const& noexcept
 
       The tracks, in order along the axis, from 1 through 64 of them. Each
       :cpp:class:`ResponsiveTrackSpec <gui_forms::ResponsiveTrackSpec>` gives a size mode with a ``minimum``, ``preferred`` and

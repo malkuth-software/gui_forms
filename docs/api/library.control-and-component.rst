@@ -62,6 +62,8 @@ Related types
      - One axis of a layout constraint.
    * - :cpp:class:`BackColorCapability <gui_forms::BackColorCapability>`
      - The own background colour; empty takes the parent's.
+   * - :cpp:class:`BasicBorrowedSpan <gui_forms::BasicBorrowedSpan>`
+     - A checked view of ``Element`` (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp.
    * - :cpp:class:`BlockFlowContainerInput <gui_forms::BlockFlowContainerInput>`
      -  
    * - :cpp:class:`BlockFlowItemInput <gui_forms::BlockFlowItemInput>`
@@ -72,6 +74,10 @@ Related types
      - Caller-owned storage solve_block_flow fills, reused from layout to layout (house style section 1): ``items`` has one record per input item, in input order; ``lines`` the line boxes in order.
    * - :cpp:class:`BlockFlowLine <gui_forms::BlockFlowLine>`
      - One line box, its items being items[first, first + count).
+   * - :cpp:class:`BorrowedPointer <gui_forms::BorrowedPointer>`
+     - A checked borrowed pointer: the address and the stamp of the link it was read from.
+   * - :cpp:class:`BorrowedText <gui_forms::BorrowedText>`
+     - A checked view of UTF-8 text: the pointer and length of the lender's characters and the stamp.
    * - :cpp:class:`BoxAlignment <gui_forms::BoxAlignment>`
      - CSS Box Alignment's six properties, shared by flex and grid containers and their items.
    * - :cpp:class:`BoxSides <gui_forms::BoxSides>`
@@ -573,6 +579,75 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: template <typename Element> BasicBorrowedSpan final
+
+   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+
+   A checked view of ``Element`` (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp. Made only by detail::lend_view and the subviews.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: BasicBorrowedSpan() noexcept
+
+      A view of nothing.
+
+   .. cpp:function:: BasicBorrowedSpan(Element* data, std::size_t size, detail::BorrowStamp stamp) noexcept
+
+      :cpp:func:`size <gui_forms::BasicBorrowedSpan::size>` elements at :cpp:func:`data <gui_forms::BasicBorrowedSpan::data>`, lent at ``stamp``.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+   .. cpp:function:: std::size_t size_bytes() const noexcept
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:function:: Element* data() const noexcept
+
+   .. cpp:function:: Element& front() const noexcept
+
+   .. cpp:function:: Element& back() const noexcept
+
+   .. cpp:function:: iterator begin() const noexcept
+
+   .. cpp:function:: iterator end() const noexcept
+
+   .. cpp:function:: reverse_iterator rbegin() const noexcept
+
+   .. cpp:function:: reverse_iterator rend() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: BasicBorrowedSpan subspan(std::size_t offset, std::size_t count = std::dynamic_extent) const noexcept
+
+      The ``count`` elements from ``offset`` (to the end with dynamic_extent).
+
+   .. cpp:function:: BasicBorrowedSpan first(std::size_t count) const noexcept
+
+   .. cpp:function:: BasicBorrowedSpan last(std::size_t count) const noexcept
+
+   .. cpp:type:: element_type = Element
+
+   .. cpp:type:: value_type = std::remove_cv_t<Element>
+
+   .. cpp:type:: size_type = std::size_t
+
+   .. cpp:type:: difference_type = std::ptrdiff_t
+
+   .. cpp:type:: pointer = Element*
+
+   .. cpp:type:: reference = Element&
+
+   .. cpp:type:: iterator = detail::BorrowedIterator<Element>
+
+   .. cpp:type:: reverse_iterator = std::reverse_iterator<iterator>
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: BlockFlowContainerInput final
 
    ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
@@ -721,6 +796,65 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: template <typename Target> BorrowedPointer final
+
+   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+
+   A checked borrowed pointer: the address and the stamp of the link it was read from. Converts to the plain pointer (checking the stamp) for comparisons and calls; ``*pointer`` checks the stamp and that it is not null. Made only by detail::lend_pointer, or null.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: BorrowedPointer() noexcept
+
+   .. cpp:function:: BorrowedPointer(std::nullptr_t) noexcept
+
+   .. cpp:function:: BorrowedPointer(Target* pointer, detail::BorrowStamp stamp) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Target* get() const noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: BorrowedText final
+
+   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+
+   A checked view of UTF-8 text: the pointer and length of the lender's characters and the stamp.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: BorrowedText() noexcept
+
+   .. cpp:function:: BorrowedText(const char* data, std::size_t size, detail::BorrowStamp stamp) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:function:: const char* data() const noexcept
+
+   .. cpp:function:: iterator begin() const noexcept
+
+   .. cpp:function:: iterator end() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: BorrowedText substr(std::size_t offset, std::size_t count = std::string_view::npos) const noexcept
+
+      The ``count`` bytes from ``offset`` (to the end with npos).
+
+   .. cpp:type:: iterator = detail::BorrowedIterator<const char>
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: BoxAlignment final
 
    ``#include <gui_forms/layout/style/layout_style.hpp>``
@@ -860,7 +994,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const Component::Ptr> components() const noexcept
+   .. cpp:function:: std::span<const Component::Ptr> components() const& noexcept
 
       Returns the current ordered ownership view.
 
@@ -2671,7 +2805,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: constexpr std::string_view value() const noexcept
+   .. cpp:function:: constexpr std::string_view value() const& noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -3833,6 +3967,12 @@ Functions, constants and aliases
    Value: ``{.name = "pinned"}``.
 
 .. cpp:var:: constexpr std::array<CustomStateDeclaration, 2> admitted_custom_states
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+
+.. cpp:type:: BorrowedText = std::string_view
 
 .. cpp:namespace:: gui_forms
 

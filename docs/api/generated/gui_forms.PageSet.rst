@@ -228,7 +228,7 @@ gui_forms::PageSet
 
       The selected page. A non-empty set always has one; an empty set has none.
 
-   .. cpp:function:: std::span<const PageId> activation_history() const noexcept
+   .. cpp:function:: std::span<const PageId> activation_history() const& noexcept
 
       Pages in the order they were last selected, most recent first, with the
       selected page at the front. Pages leave it when they leave the set.

@@ -434,7 +434,7 @@ gui_forms::ComboBox
 
       The drop_down style's :cpp:class:`TextBox <gui_forms::TextBox>`, or null in the drop_down_list style.
 
-   .. cpp:function:: std::span<const std::size_t> drop_down_items() const noexcept
+   .. cpp:function:: std::span<const std::size_t> drop_down_items() const& noexcept
 
       The items the open list shows, as indices into :cpp:member:`items <gui_forms::ComboBox::items>`, in row order;
       empty while the list is closed.

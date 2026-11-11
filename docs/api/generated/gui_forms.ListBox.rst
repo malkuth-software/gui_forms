@@ -255,7 +255,7 @@ gui_forms::ListBox
       The font of the row text. An invalid specification throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: std::span<const std::size_t> selected_indices() const noexcept
+   .. cpp:function:: std::span<const std::size_t> selected_indices() const& noexcept
 
       The indices of all selected rows, in ascending order.
 

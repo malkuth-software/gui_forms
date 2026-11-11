@@ -338,7 +338,7 @@ gui_forms::TableLayoutPanelCompat
       The anonymous spans, in the order they were made, each anchored at a
       placed child's cell.
 
-   .. cpp:function:: std::span<const TableLayoutStyle> column_styles() const noexcept
+   .. cpp:function:: std::span<const TableLayoutStyle> column_styles() const& noexcept
 
       The size mode and size of each authored column, one per column. Set one
       with :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`, or all with :cpp:func:`set_column_styles <gui_forms::TableLayoutPanelCompat::set_column_styles>`, which makes the
@@ -351,7 +351,7 @@ gui_forms::TableLayoutPanelCompat
 
       Sets :cpp:func:`column_styles <gui_forms::TableLayoutPanelCompat::column_styles>`; see the property's description above.
 
-   .. cpp:function:: std::span<const TableLayoutStyle> row_styles() const noexcept
+   .. cpp:function:: std::span<const TableLayoutStyle> row_styles() const& noexcept
 
       The size mode and size of each authored row, set with :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>` or
       :cpp:func:`set_row_styles <gui_forms::TableLayoutPanelCompat::set_row_styles>` as the columns are (``row-styles`` in a ``.form``).
@@ -360,12 +360,12 @@ gui_forms::TableLayoutPanelCompat
 
       Sets :cpp:func:`row_styles <gui_forms::TableLayoutPanelCompat::row_styles>`; see the property's description above.
 
-   .. cpp:function:: std::span<const double> column_widths() const noexcept
+   .. cpp:function:: std::span<const double> column_widths() const& noexcept
 
       The column widths resolved by the last layout, including any columns the
       table added. Empty before the first layout.
 
-   .. cpp:function:: std::span<const double> row_heights() const noexcept
+   .. cpp:function:: std::span<const double> row_heights() const& noexcept
 
       The row heights resolved by the last layout, including any rows the table
       added. Empty before the first layout.

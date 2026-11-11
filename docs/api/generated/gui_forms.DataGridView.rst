@@ -1066,7 +1066,7 @@ gui_forms::DataGridView
       row, becomes current. A refused edit changes nothing. An edit
       repaints, at the next layout, only the rows shown that it reaches.
 
-   .. cpp:function:: std::span<const DataGridViewColumn> columns() const noexcept
+   .. cpp:function:: std::span<const DataGridViewColumn> columns() const& noexcept
 
       The columns, in display order. :cpp:func:`set_columns <gui_forms::DataGridView::set_columns>` replaces them, :cpp:func:`add_column <gui_forms::DataGridView::add_column>`
       appends one and :cpp:func:`remove_column_at <gui_forms::DataGridView::remove_column_at>` removes one. A column name must be

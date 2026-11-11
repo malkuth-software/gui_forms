@@ -219,11 +219,11 @@ gui_forms::SaveFileDialog
       The chosen path, or empty. Before the dialog is shown, a name written
       here is the one the dialog suggests.
 
-   .. cpp:function:: std::span<const HostFileDialogFilter> filters() const noexcept
+   .. cpp:function:: std::span<const HostFileDialogFilter> filters() const& noexcept
 
       The host filters the filter parsed into, in order.
 
-   .. cpp:function:: std::span<const std::string> file_names() const noexcept
+   .. cpp:function:: std::span<const std::string> file_names() const& noexcept
 
       The chosen path as a list of one, or none.
 

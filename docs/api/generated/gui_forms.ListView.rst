@@ -96,7 +96,7 @@ gui_forms::ListView
          ``minimum_column_width`` and ``maximum_column_width``, or more than
          ``maximum_columns`` columns. The details view shows nothing without columns.
 
-      **items** : ``std::span<const ListViewItem>``
+      **items** : ``BorrowedSpan<ListViewItem>``
          The items of an ordinary view; empty in virtual mode. :cpp:func:`set_items <gui_forms::ListView::set_items>`
          replaces them, keeps the selection, the focused item and the anchor on
          their items by stable ID, and throws ``std::invalid_argument`` for a
@@ -465,7 +465,7 @@ gui_forms::ListView
       ``LabelEdit``): F2 on the focused item begins an edit. Turning it off
       cancels an edit in progress.
 
-   .. cpp:function:: std::span<const ListViewColumn> columns() const noexcept
+   .. cpp:function:: std::span<const ListViewColumn> columns() const& noexcept
 
       The details view's columns. :cpp:func:`set_columns <gui_forms::ListView::set_columns>` replaces them and throws
       ``std::invalid_argument`` for a repeated ID or one that breaks the
@@ -477,7 +477,7 @@ gui_forms::ListView
 
       Sets :cpp:func:`columns <gui_forms::ListView::columns>`; see the property's description above.
 
-   .. cpp:function:: std::span<const ListViewItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<ListViewItem> items() const& noexcept
 
       The items of an ordinary view; empty in virtual mode. :cpp:func:`set_items <gui_forms::ListView::set_items>`
       replaces them, keeps the selection, the focused item and the anchor on
@@ -494,7 +494,7 @@ gui_forms::ListView
       The number of items: the ordinary items, or the count the source last
       reported.
 
-   .. cpp:function:: std::span<const ListViewGroup> groups() const noexcept
+   .. cpp:function:: std::span<const ListViewGroup> groups() const& noexcept
 
       The groups (:cpp:class:`ListViewGroup <gui_forms::ListViewGroup>`: an ID, a header and its alignment). Items
       name their group in ``ListViewItem::group``. :cpp:func:`set_groups <gui_forms::ListView::set_groups>` throws
