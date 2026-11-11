@@ -606,20 +606,22 @@ void test_engine_equivalence() {
 
     Window& window = *(*authored).window;
     const std::uint64_t first_bakes = bakes(window);
+    const std::uint64_t first_assemblies = assemblies(window);
     (*(*authored).pad).invalidate(Dirty::paint);
     repaint(*authored);
-    require(assemblies(window) == 1U && bakes(window) == first_bakes,
+    require(assemblies(window) == first_assemblies && bakes(window) == first_bakes,
             "a repaint reuses the assembly and the raster");
     (*(*authored).pad).enabled = false;
     (*(*written).pad).enabled = false;
     repaint(*authored);
     repaint(*written);
-    require(assemblies(window) == 2U && bakes(window) == first_bakes + 1U,
+    require(assemblies(window) == first_assemblies + 1U && bakes(window) == first_bakes + 1U,
             "a state whose recipe material differs is one more assembly and one more bake");
     require(pixels_hash(*authored) == pixels_hash(*written), "and still bakes as the C++ material");
     (*(*authored).pad).invalidate(Dirty::paint);
     repaint(*authored);
-    require(assemblies(window) == 2U && bakes(window) == first_bakes + 1U, "which is kept in turn");
+    require(assemblies(window) == first_assemblies + 1U && bakes(window) == first_bakes + 1U,
+            "which is kept in turn");
 }
 
 // The colour in one rule and the image layers in another, the colour's rule
@@ -663,10 +665,13 @@ void test_unkeyed_part() {
     }
     std::unique_ptr<Fixture> fixture = make_fixture(theme);
     Window& window = *(*fixture).window;
-    require(assemblies(window) == 1U, "a part without a key assembles its material for its paint");
+    // The role rule reaches the root panel's face as well, which the
+    // built-in recipe draws in the authored material: one assembly each.
+    const std::uint64_t first_assemblies = assemblies(window);
+    require(first_assemblies == 2U, "a part without a key assembles its material for its paint");
     (*(*fixture).pad).invalidate(Dirty::paint);
     repaint(*fixture);
-    require(assemblies(window) == 1U,
+    require(assemblies(window) == first_assemblies,
             "and none again while its identity holds, kept in the window's unkept assemblies");
     std::unique_ptr<Fixture> written = make_fixture(written_theme());
     require(pixels_hash(*fixture) == pixels_hash(*written), "it bakes the same material");
@@ -707,9 +712,13 @@ void test_refused_assembly() {
     Window& window = *(*fixture).window;
     require((*fixture).painter.rasters == 0U, "a refused assembly composites no raster");
     require(window.metrics_snapshot().engine_primitive_refusals == 1U, "the refusal is counted");
+    // The untyped finish rule also reaches the root panel's face (the
+    // built-in recipe draws it in the authored material), so the count is
+    // taken before the repaint.
+    const std::uint64_t first_assemblies = assemblies(window);
     (*(*fixture).pad).invalidate(Dirty::paint);
     repaint(*fixture);
-    require(window.metrics_snapshot().engine_primitive_refusals == 1U && assemblies(window) == 1U,
+    require(window.metrics_snapshot().engine_primitive_refusals == 1U && assemblies(window) == first_assemblies,
             "once, when it begins, with the assembly kept");
 }
 
