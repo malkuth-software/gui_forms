@@ -154,6 +154,7 @@ PRESENTERS: Mapping[str, str] = {
 BLANK_REASONS: Mapping[str, str] = {
     "gauge_base": "the gauges' base paints no face of its own",
     "range_control": "the ranged controls' base paints no face of its own",
+    "ribbon_color_picker": "a small split button: with no icon image in the catalogue only its colour bar shows",
     "sub_surface_host": "hosts a program's own surface and is empty until one is attached",
 }
 

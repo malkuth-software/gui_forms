@@ -88,7 +88,7 @@
     {"menu_strip", "Menus and commands", Size{360.0, 26.0}, "Menu strip", &make_menu_strip, nullptr, ""},
     {"tool_strip", "Menus and commands", Size{360.0, 32.0}, "Tool strip", &make_tool_strip, nullptr, ""},
     {"ribbon_font_control", "Menus and commands", Size{260.0, 28.0}, "Ribbon font control", &make_ribbon_font_control, nullptr, ""},
-    {"ribbon_color_picker", "Menus and commands", Size{64.0, 28.0}, "Ribbon color picker", &make_ribbon_color_picker, nullptr, ""},
+    {"ribbon_color_picker", "Menus and commands", Size{64.0, 28.0}, "Ribbon color picker", &make_ribbon_color_picker, nullptr, "a small split button: with no icon image in the catalogue only its colour bar shows"},
     {"backstage_view", "Menus and commands", Size{480.0, 280.0}, "Backstage view", &make_backstage_view, nullptr, ""},
     {"ribbon_gallery", "Menus and commands", Size{320.0, 72.0}, "Ribbon gallery", &make_ribbon_gallery, nullptr, ""},
     {"status_strip", "Menus and commands", Size{360.0, 26.0}, "Status strip", &make_status_strip, nullptr, ""},
