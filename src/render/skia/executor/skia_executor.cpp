@@ -691,6 +691,188 @@ private:
     std::uint64_t token_;
 };
 
+
+// Whether a coordinate is a whole number that float holds exactly: Skia
+// receives every rectangle and matrix entry as float (to_sk_rect,
+// to_sk_matrix).
+[[nodiscard]] bool exact_whole(double value) noexcept {
+    constexpr double float_exact_limit = 16777216.0;
+    const bool whole = std::isfinite(value) && std::abs(value) <= float_exact_limit && std::floor(value) == value;
+    return whole;
+}
+
+// An image drawn at its own size, opaque, without attributes, under an
+// integer translation and no clip or a clip on whole pixels: the draw is a
+// copy of its source rectangle's rows. Source-over and source-copy agree
+// for an opaque image, and at its own size on whole pixels both of Skia's
+// samplings return each texel unchanged. Positions are device pixels:
+// the source rectangle's first pixel lands on (left, top).
+struct ImageRowCopy final {
+    std::int64_t source_x{};
+    std::int64_t source_y{};
+    std::int64_t width{};
+    std::int64_t height{};
+    std::int64_t left{};
+    std::int64_t top{};
+    // The clip, [clip_left, clip_right) x [clip_top, clip_bottom), when
+    // the state has one.
+    bool clipped{};
+    std::int64_t clip_left{};
+    std::int64_t clip_top{};
+    std::int64_t clip_right{};
+    std::int64_t clip_bottom{};
+};
+
+// The row copy a draw_image command amounts to, or none when it is not one
+// (see ImageRowCopy). Reads the source rectangle's alpha bytes once.
+[[nodiscard]] std::optional<ImageRowCopy> image_row_copy(const DrawingCommand& command) {
+    const ImageAttributesSnapshot& attributes = command.image_attributes;
+    if (attributes.color_matrix.has_value() || !attributes.remap_table.empty()) return std::nullopt;
+    const Matrix& transform = command.state.transform;
+    if (transform.m11() != 1.0 || transform.m12() != 0.0 || transform.m21() != 0.0 || transform.m22() != 1.0) {
+        return std::nullopt;
+    }
+    // first is the source rectangle's origin and second its size.
+    const std::array<double, 8> placement{command.first.x, command.first.y, command.second.x, command.second.y,
+                                          command.rect.x, command.rect.y, transform.dx(), transform.dy()};
+    for (const double value : placement) {
+        if (!exact_whole(value)) return std::nullopt;
+    }
+    if (command.rect.width != command.second.x || command.rect.height != command.second.y) return std::nullopt;
+    const ImageSnapshot& image = command.image;
+    ImageRowCopy copy{};
+    copy.source_x = static_cast<std::int64_t>(command.first.x);
+    copy.source_y = static_cast<std::int64_t>(command.first.y);
+    copy.width = static_cast<std::int64_t>(command.second.x);
+    copy.height = static_cast<std::int64_t>(command.second.y);
+    if (copy.source_x < 0 || copy.source_y < 0 || copy.width <= 0 || copy.height <= 0 ||
+        copy.source_x + copy.width > static_cast<std::int64_t>(image.width) ||
+        copy.source_y + copy.height > static_cast<std::int64_t>(image.height)) {
+        return std::nullopt;
+    }
+    const std::size_t row_bytes = image.row_bytes();
+    const std::span<const std::byte> pixels = image.pixels();
+    const std::size_t last_row = static_cast<std::size_t>(copy.source_y + copy.height - 1);
+    const std::size_t row_end = static_cast<std::size_t>(copy.source_x + copy.width) * 4U;
+    // Every copied row lies inside the pixels: the last starts at last_row
+    // * row_bytes and needs row_end bytes (row_bytes >= row_end > 0).
+    if (row_bytes < row_end || pixels.size() < row_end) return std::nullopt;
+    if (last_row > (pixels.size() - row_end) / row_bytes) return std::nullopt;
+    if (command.state.clip) {
+        const RectF& clip = *command.state.clip;
+        if (!exact_whole(clip.x) || !exact_whole(clip.y) || !exact_whole(clip.width) || !exact_whole(clip.height) ||
+            clip.width < 0.0 || clip.height < 0.0) {
+            return std::nullopt;
+        }
+        copy.clipped = true;
+        copy.clip_left = static_cast<std::int64_t>(clip.x);
+        copy.clip_top = static_cast<std::int64_t>(clip.y);
+        copy.clip_right = static_cast<std::int64_t>(clip.x + clip.width);
+        copy.clip_bottom = static_cast<std::int64_t>(clip.y + clip.height);
+    }
+    copy.left = static_cast<std::int64_t>(command.rect.x) + static_cast<std::int64_t>(transform.dx());
+    copy.top = static_cast<std::int64_t>(command.rect.y) + static_cast<std::int64_t>(transform.dy());
+    // Opaque: every alpha byte (the fourth of each BGRA pixel) is 255.
+    std::uint8_t every = 255U;
+    for (std::int64_t row = 0; row < copy.height; ++row) {
+        const std::size_t start = static_cast<std::size_t>(copy.source_y + row) * row_bytes +
+                                  static_cast<std::size_t>(copy.source_x) * 4U;
+        for (std::size_t offset = 3U; offset < static_cast<std::size_t>(copy.width) * 4U; offset += 4U) {
+            every = static_cast<std::uint8_t>(every & std::to_integer<std::uint8_t>(pixels[start + offset]));
+        }
+    }
+    if (every != 255U) return std::nullopt;
+    return copy;
+}
+
+// Copies the image's rows as `copy` places them into the locked target,
+// within the target and the clip. The image is a snapshot: its pixels are
+// shared with no target that is written (an owned target's write lock
+// copies storage a snapshot shares, and a borrowed target's snapshot is a
+// copy), so source and destination never overlap.
+void copy_image_rows(const ImageRowCopy& copy, const ImageSnapshot& image, const BitmapLockView& lock) {
+    std::int64_t left = std::max<std::int64_t>(copy.left, 0);
+    std::int64_t top = std::max<std::int64_t>(copy.top, 0);
+    std::int64_t right = std::min<std::int64_t>(copy.left + copy.width, static_cast<std::int64_t>(lock.width));
+    std::int64_t bottom = std::min<std::int64_t>(copy.top + copy.height, static_cast<std::int64_t>(lock.height));
+    if (copy.clipped) {
+        left = std::max(left, copy.clip_left);
+        top = std::max(top, copy.clip_top);
+        right = std::min(right, copy.clip_right);
+        bottom = std::min(bottom, copy.clip_bottom);
+    }
+    if (right <= left || bottom <= top) return;
+    const std::size_t row_bytes = image.row_bytes();
+    const std::size_t copied = static_cast<std::size_t>(right - left) * 4U;
+    const std::byte* const source = image.pixels().data();
+    for (std::int64_t y = top; y < bottom; ++y) {
+        const std::size_t from = static_cast<std::size_t>(copy.source_y + y - copy.top) * row_bytes +
+                                 static_cast<std::size_t>(copy.source_x + left - copy.left) * 4U;
+        const std::size_t to = static_cast<std::size_t>(y) * lock.row_bytes + static_cast<std::size_t>(left) * 4U;
+        std::memcpy(lock.writable_data + to, source + from, copied);
+    }
+}
+
+// The error the draw would end `command` with, found without drawing: its
+// paint, path and image checked as the draw makes them. An owned target's
+// list is checked first, so that a list that would fail leaves it as it
+// was.
+[[nodiscard]] RasterError refusal_of(const DrawingCommand& command) {
+    SkPaint paint;
+    switch (command.kind) {
+    case CommandKind::save:
+    case CommandKind::restore:
+    case CommandKind::translate:
+    case CommandKind::set_transform:
+    case CommandKind::set_clip:
+    case CommandKind::reset_clip:
+    case CommandKind::set_quality:
+    case CommandKind::clear:
+    case CommandKind::draw_string:
+    case CommandKind::draw_markers:
+    case CommandKind::fill_grid_pattern:
+        return RasterError::none;
+    case CommandKind::fill_rectangle:
+    case CommandKind::fill_ellipse:
+    case CommandKind::fill_polygon:
+    case CommandKind::fill_rectangles:
+    case CommandKind::fill_proportion: {
+        const bool configured = configure_brush(paint, command.brush, command.state);
+        return configured ? RasterError::none : RasterError::invalid_argument;
+    }
+    case CommandKind::draw_rectangle:
+    case CommandKind::draw_line:
+    case CommandKind::draw_ellipse:
+    case CommandKind::draw_lines:
+    case CommandKind::draw_line_segments: {
+        const bool configured = configure_pen(paint, command.pen, command.state);
+        return configured ? RasterError::none : RasterError::invalid_argument;
+    }
+    case CommandKind::draw_path: {
+        const std::optional<SkPath> path = to_sk_path(command.path);
+        const bool drawable = path.has_value() && configure_pen(paint, command.pen, command.state);
+        return drawable ? RasterError::none : RasterError::invalid_argument;
+    }
+    case CommandKind::fill_path: {
+        const std::optional<SkPath> path = to_sk_path(command.path);
+        const bool drawable = path.has_value() && configure_brush(paint, command.brush, command.state);
+        return drawable ? RasterError::none : RasterError::invalid_argument;
+    }
+    case CommandKind::draw_image: {
+        if (!command.image.has_pixels()) return RasterError::missing_image_pixels;
+        const SkImageInfo source_info = image_info(command.image.width, command.image.height);
+        const std::size_t row_bytes = command.image.row_bytes();
+        const bool fits = source_info.validRowBytes(row_bytes) &&
+                          source_info.computeByteSize(row_bytes) <= command.image.pixels().size();
+        return fits ? RasterError::none : RasterError::missing_image_pixels;
+    }
+    default:
+        break;
+    }
+    // Not a CommandKind: the list cannot be replayed.
+    return RasterError::invalid_argument;
+}
+
 } // namespace
 
 namespace text = gui_forms::render::text;
@@ -1153,50 +1335,64 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
         const std::span<const DrawingCommand> commands = recorder.commands();
         if (first_command > commands.size()) return {RasterError::invalid_argument};
         if (first_command == commands.size()) return {};
-        // An owned target is drawn through a scratch copy, so a failed list
-        // leaves it untouched. A target borrowing native memory (a DIB under
-        // Graphics.FromHdc) is drawn in place: the native surface is the
-        // program's own buffer, which GDI also writes without transactions,
-        // and copying it in and out per flush was the cost this avoids.
-        const bool in_place = target.borrows_memory();
-        std::unique_ptr<Bitmap> scratch;
-        Bitmap* drawn = &target;
-        if (!in_place) {
-            scratch = target.clone({0, 0, static_cast<std::int32_t>(target.width()),
-                                    static_cast<std::int32_t>(target.height())});
-            drawn = scratch.get();
+        // Every target is drawn in place. An owned target's list is checked
+        // first, command by command, for what the draw would refuse, so a
+        // list that fails leaves it untouched, its generation included;
+        // only an exception during the draw itself leaves the commands
+        // before it drawn. A target borrowing native memory (a DIB under
+        // Graphics.FromHdc) is not checked first: GDI writes the program's
+        // own buffer without transactions too, and a failed command leaves
+        // the ones before it drawn.
+        if (!target.borrows_memory()) {
+            for (std::size_t index = first_command; index < commands.size(); ++index) {
+                const RasterError refused = refusal_of(commands[index]);
+                if (refused != RasterError::none) return {refused, index - first_command};
+            }
         }
-        const BitmapLockView scratch_lock = (*drawn).lock(BitmapLockMode::write);
-        BitmapUnlock unlock_scratch(*drawn, scratch_lock.token);
-        const SkImageInfo info = image_info(scratch_lock.width, scratch_lock.height);
+        const BitmapLockView target_lock = target.lock(BitmapLockMode::write);
+        BitmapUnlock unlock_target(target, target_lock.token);
+        const SkImageInfo info = image_info(target_lock.width, target_lock.height);
         sk_sp<SkSurface> surface = SkSurfaces::WrapPixels(
-            info, scratch_lock.writable_data, scratch_lock.row_bytes);
+            info, target_lock.writable_data, target_lock.row_bytes);
         if (!surface) return {RasterError::target_unavailable};
         SkCanvas* canvas = (*surface).getCanvas();
         // Text composites straight into the pixels Skia draws into; raster
         // canvases draw immediately, so command order is preserved.
-        if (scratch_lock.row_bytes % sizeof(std::uint32_t) != 0U) return {RasterError::target_unavailable};
-        const std::size_t text_stride = scratch_lock.row_bytes / sizeof(std::uint32_t);
+        if (target_lock.row_bytes % sizeof(std::uint32_t) != 0U) return {RasterError::target_unavailable};
+        const std::size_t text_stride = target_lock.row_bytes / sizeof(std::uint32_t);
         gui_forms::detail::TextCompositeTarget text_target{};
-        text_target.pixels = std::span<std::uint32_t>(reinterpret_cast<std::uint32_t*>(scratch_lock.writable_data),
-                                                      text_stride * scratch_lock.height);
-        text_target.width = scratch_lock.width;
-        text_target.height = scratch_lock.height;
+        text_target.pixels = std::span<std::uint32_t>(reinterpret_cast<std::uint32_t*>(target_lock.writable_data),
+                                                      text_stride * target_lock.height);
+        text_target.width = target_lock.width;
+        text_target.height = target_lock.height;
         text_target.stride = text_stride;
+        // The state the canvas holds, the command before's while it still
+        // stands: a command whose clip and transform equal it draws under
+        // the canvas as it is. fill_proportion's own clip ends it.
+        const GraphicsState* applied = nullptr;
         std::size_t executed{};
         for (const DrawingCommand& command : commands.subspan(first_command)) {
-            // Each command draws inside a save of its own: restoreAll undoes
+            // A command draws inside a save of its own: restoreAll undoes
             // only what lies above the base level, so the state's clip and a
-            // command's own (fill_proportion's track) are made inside it and
-            // end with the command.
-            (*canvas).restoreAll();
-            (*canvas).save();
-            (*canvas).resetMatrix();
-            if (command.state.clip) {
-                (*canvas).clipRect(to_sk_rect(*command.state.clip),
-                                 SkClipOp::kIntersect, false);
+            // command's own (fill_proportion's track) are made inside it.
+            // The state is set again only where it differs from the one the
+            // canvas holds: a new clip from the base, a new transform alone
+            // over the same clip (the clip was made under the identity).
+            const bool same_clip = applied != nullptr && (*applied).clip == command.state.clip;
+            const bool same_transform = applied != nullptr && (*applied).transform == command.state.transform;
+            if (!same_clip) {
+                (*canvas).restoreAll();
+                (*canvas).save();
+                (*canvas).resetMatrix();
+                if (command.state.clip) {
+                    (*canvas).clipRect(to_sk_rect(*command.state.clip),
+                                     SkClipOp::kIntersect, false);
+                }
+                (*canvas).setMatrix(to_sk_matrix(command.state.transform));
+            } else if (!same_transform) {
+                (*canvas).setMatrix(to_sk_matrix(command.state.transform));
             }
-            (*canvas).setMatrix(to_sk_matrix(command.state.transform));
+            applied = &command.state;
 
             SkPaint paint;
             configure_paint(paint, command.state);
@@ -1285,6 +1481,11 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                 if (!command.image.has_pixels()) {
                     return {RasterError::missing_image_pixels, executed};
                 }
+                const std::optional<ImageRowCopy> row_copy = image_row_copy(command);
+                if (row_copy) {
+                    copy_image_rows(*row_copy, command.image, target_lock);
+                    break;
+                }
                 const SkImageInfo source_info = image_info(command.image.width, command.image.height);
                 const std::vector<std::byte> pixels = remapped_pixels(
                     command.image, command.image_attributes);
@@ -1329,6 +1530,9 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                 }
                 const RectF part = proportion_part(command.rect, command.scalar, command.direction);
                 if (part.empty() || command.rect.empty()) break;
+                // The track's clip stays on the canvas: the next command
+                // sets its state again from the base.
+                applied = nullptr;
                 (*canvas).clipRRect(track_shape(command.rect, command.radii), SkClipOp::kIntersect, true);
                 (*canvas).drawRect(to_sk_rect(part), paint);
                 break;
@@ -1339,17 +1543,6 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
             }
             ++executed;
         }
-        unlock_scratch.release();
-        if (in_place) return {RasterError::none, executed};
-        const ImageSnapshot rendered = (*scratch).snapshot();
-        const BitmapLockView target_lock = target.lock(BitmapLockMode::write);
-        BitmapUnlock unlock_target(target, target_lock.token);
-        if (rendered.pixels().size() !=
-            target_lock.row_bytes * static_cast<std::size_t>(target_lock.height)) {
-            return {RasterError::target_unavailable};
-        }
-        std::memcpy(target_lock.writable_data, rendered.pixels().data(),
-                    rendered.pixels().size());
         unlock_target.release();
         return {RasterError::none, executed};
     } catch (const std::invalid_argument&) {
