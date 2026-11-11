@@ -134,12 +134,16 @@ void apply_offset_splice(std::vector<std::uint32_t> &offsets,
   }
   const std::size_t replaced = splice.last - splice.first;
   const std::size_t wanted = splice.relative.size();
-  const std::vector<std::uint32_t>::iterator gap =
-      offsets.begin() + static_cast<std::ptrdiff_t>(splice.last);
+  // Each branch takes its own iterator to the gap, used by its one mutation.
+  const std::ptrdiff_t gap = static_cast<std::ptrdiff_t>(splice.last);
   if (wanted > replaced) {
-    offsets.insert(gap, wanted - replaced, 0U);
+    const std::vector<std::uint32_t>::iterator at = offsets.begin() + gap;
+    offsets.insert(at, wanted - replaced, 0U);
   } else if (wanted < replaced) {
-    offsets.erase(gap - static_cast<std::ptrdiff_t>(replaced - wanted), gap);
+    const std::vector<std::uint32_t>::iterator end = offsets.begin() + gap;
+    const std::vector<std::uint32_t>::iterator begin =
+        end - static_cast<std::ptrdiff_t>(replaced - wanted);
+    offsets.erase(begin, end);
   }
   for (std::size_t index = 0; index < wanted; ++index) {
     offsets[splice.first + index] =
