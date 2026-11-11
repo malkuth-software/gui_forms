@@ -1168,7 +1168,7 @@ Related types
 
    .. cpp:member:: std::uint64_t semantic_snapshots_published
 
-      Accessibility (design note section 5): semantic snapshots published (one per turn in which the tree's semantic generation moved), and the posted semantic actions the tree performed and refused.
+      Accessibility (design note section 5): semantic snapshots published (one per turn in which the tree's semantic generation moved and a snapshot was wanted: see take_semantics), and the posted semantic actions the tree performed and refused.
 
    .. cpp:member:: std::uint64_t semantic_actions_performed
 
@@ -1239,7 +1239,7 @@ Related types
 
    .. cpp:function:: std::shared_ptr<const SemanticSnapshot> take_semantics()
 
-      The newest semantic snapshot the sub-surface published (design note section 5: an immutable snapshot, shared and never mutated across the threads; its nodes are in the sub-surface's own coordinates and runtime identities); null before the first. Taking it re-arms the notice: the next publication posts a new one.
+      The newest semantic snapshot the sub-surface published (design note section 5: an immutable snapshot, shared and never mutated across the threads; its nodes are in the sub-surface's own coordinates and runtime identities); null before the first. Taking it re-arms the notice: the next publication posts a new one. A snapshot walks the whole tree, so after the first the sub-surface builds the next only once this one is taken (or a listener is set): changes in between build nothing, and the snapshot taken then may be stale, in which case taking it has the newest built and published (with its notice).
 
    .. cpp:function:: void stop() noexcept
 

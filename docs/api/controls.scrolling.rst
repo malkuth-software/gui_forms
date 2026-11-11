@@ -265,6 +265,12 @@ Related types
 
    .. cpp:member:: PartGeometry increment_arrow
 
+   .. cpp:member:: PartGeometry decrement_glyph
+
+      The arrow marks, each centred in its button (empty when the button is too small to hold one).
+
+   .. cpp:member:: PartGeometry increment_glyph
+
    .. cpp:member:: PartGeometry track
 
    .. cpp:member:: PartGeometry thumb

@@ -263,9 +263,9 @@
       "reviewed": false,
       "summary": "Sets the retained visual status and invalidates style, paint, and semantics."
     },
-    "gui_forms::Control::visual_context|ControlVisualContext (bool, bool, bool, bool, bool) const noexcept": {
+    "gui_forms::Control::visual_context|ControlVisualContext (VisualInteraction) const noexcept": {
       "reviewed": false,
-      "summary": "Builds the `ControlVisualContext` (theme, status, scale, and the given interaction flags) consumed by theme recipes when painting."
+      "summary": "Builds the `ControlVisualContext` (theme, status, scale, and the given interaction flags) consumed by theme recipes when painting; the interaction flags come in one VisualInteraction record."
     },
     "gui_forms::Control::invoke_required|bool () const noexcept": {
       "reviewed": false,
