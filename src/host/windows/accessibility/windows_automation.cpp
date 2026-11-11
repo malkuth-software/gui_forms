@@ -456,8 +456,10 @@ private:
     HRESULT answer_SetValue(LPCWSTR value);
     HRESULT answer_get_Value(BSTR* out);
     HRESULT answer_get_IsReadOnly(BOOL* out);
-    HRESULT answer_SetValue(LPCWSTR value);
-    HRESULT answer_get_Value(BSTR* out);
+    // IRangeValueProvider's SetValue and get_Value, named apart from
+    // IValueProvider's so that call_failing_fast names one member each.
+    HRESULT answer_SetRangeValue(double value);
+    HRESULT answer_get_RangeValue(double* out);
     HRESULT answer_get_Maximum(double* out);
     HRESULT answer_get_Minimum(double* out);
     HRESULT answer_get_LargeChange(double* out);
@@ -1039,7 +1041,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_IsReadOnly(BOOL* out) {
     return gui_forms::detail::call_failing_fast("windows.UiaElement.get_IsReadOnly", &UiaElement::answer_get_IsReadOnly, *this, out);
 }
 
-HRESULT UiaElement::answer_SetValue(double value) {
+HRESULT UiaElement::answer_SetRangeValue(double value) {
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
@@ -1057,10 +1059,10 @@ HRESULT UiaElement::answer_SetValue(double value) {
     return act(UIA_RangeValuePatternId, SemanticAction::set_value, number);
 }
 HRESULT STDMETHODCALLTYPE UiaElement::SetValue(double value) {
-    return gui_forms::detail::call_failing_fast("windows.UiaElement.SetValue", &UiaElement::answer_SetValue, *this, value);
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.SetValue", &UiaElement::answer_SetRangeValue, *this, value);
 }
 
-HRESULT UiaElement::answer_get_Value(double* out) {
+HRESULT UiaElement::answer_get_RangeValue(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
     SemanticTreeRef client;
@@ -1071,7 +1073,7 @@ HRESULT UiaElement::answer_get_Value(double* out) {
     return S_OK;
 }
 HRESULT STDMETHODCALLTYPE UiaElement::get_Value(double* out) {
-    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_Value", &UiaElement::answer_get_Value, *this, out);
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_Value", &UiaElement::answer_get_RangeValue, *this, out);
 }
 
 HRESULT UiaElement::answer_get_Maximum(double* out) {

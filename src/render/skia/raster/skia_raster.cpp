@@ -430,11 +430,14 @@ std::uint8_t channel_byte(double value) noexcept {
 // has no readable pixels, is too large (maximum_resampled_source_pixels), or
 // the seam refuses. Allocates its working copies once and releases them.
 sk_sp<SkImage> resample_image_through_conv(const SkImage& source, int width, int height) {
-    SkPixmap pixels;
-    if (!source.peekPixels(&pixels) || pixels.colorType() != kBGRA_8888_SkColorType ||
-        pixels.alphaType() != kPremul_SkAlphaType) {
+    // stx_skia's peekPixels returns the pixmap, empty when the pixels are
+    // not readable in place.
+    const std::optional<SkPixmap> peeked = source.peekPixels();
+    if (!peeked || (*peeked).colorType() != kBGRA_8888_SkColorType ||
+        (*peeked).alphaType() != kPremul_SkAlphaType) {
         return nullptr;
     }
+    const SkPixmap& pixels = *peeked;
     const std::size_t source_width = static_cast<std::size_t>(pixels.width());
     const std::size_t source_height = static_cast<std::size_t>(pixels.height());
     const std::size_t target_width = static_cast<std::size_t>(width);

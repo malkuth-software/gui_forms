@@ -926,8 +926,7 @@ void edit_relays_out_one_line() {
     const std::size_t line_count = 64U;
     for (std::size_t line = 0; line < line_count; ++line) {
         source.append(400U, static_cast<char>('a' + line % 26U));
-        source += '
-';
+        source += '\n';
     }
     f.editor.text = source;
     f.metrics.calls = 0U;

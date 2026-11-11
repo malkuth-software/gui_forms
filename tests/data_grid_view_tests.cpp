@@ -944,14 +944,18 @@ void bound_rows() {
             "a removal reindexes the rows after it");
     // Audit N47: appends, inserts and removals keep the row index without
     // a rebuild; every record is still found at its position.
+    test_rows::NamedRow bulk = first;
     for (std::size_t index = 0; index < 300U; ++index) {
-        static_cast<void>((*source).add(BindingRecord("bulk." + std::to_string(index), first)));
+        bulk.stable_id = "bulk." + std::to_string(index);
+        static_cast<void>((*source).add(test_rows::row_of(*source, bulk)));
     }
-    static_cast<void>((*source).insert(1U, BindingRecord("bulk.inserted", second)));
+    test_rows::NamedRow inserted = second;
+    inserted.stable_id = "bulk.inserted";
+    static_cast<void>((*source).insert(1U, test_rows::row_of(*source, inserted)));
     require((*source).remove_at(5U), "a bulk record is removed");
     bool indexed = (*grid).row_count() == (*source).count();
     for (std::size_t position = 0; indexed && position < (*source).count(); ++position) {
-        const DataGridViewRowId row = id((*source).records()[position].stable_id);
+        const DataGridViewRowId row = id((*source).stable_id(position));
         indexed = (*grid).row_position(row) == row_at(position);
     }
     require(indexed, "the row index follows appends, inserts and removals");
