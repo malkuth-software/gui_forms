@@ -73,10 +73,20 @@ set(GUIForms_EFFECTS_VERIFIED FALSE)
 if(GUI_FORMS_LOCALIZABLE_LITERALS AND EXISTS "${_gui_forms_plugin}" AND TARGET GUIForms::Core)
     set(_gui_forms_clang22
         "$<AND:$<COMPILE_LANGUAGE:CXX,OBJCXX>,$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,22>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,23>>")
+    # Relative to the top build directory where Ninja compiles, so a compiler
+    # cache shares the objects between worktrees (cmake/LocalizablePlugin.cmake).
+    set(_gui_forms_root "${CMAKE_SOURCE_DIR}")
+    if(CMAKE_GENERATOR MATCHES "Ninja")
+        file(RELATIVE_PATH _gui_forms_root "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}")
+        if(_gui_forms_root STREQUAL "")
+            set(_gui_forms_root ".")
+        endif()
+    endif()
     set_property(TARGET GUIForms::Core APPEND PROPERTY INTERFACE_COMPILE_OPTIONS
         "$<${_gui_forms_clang22}:${_gui_forms_driver}-fplugin=${_gui_forms_plugin}>"
-        "$<${_gui_forms_clang22}:${_gui_forms_driver}-fplugin-arg-gui_forms_localizable-root=${CMAKE_SOURCE_DIR}>")
+        "$<${_gui_forms_clang22}:${_gui_forms_driver}-fplugin-arg-gui_forms_localizable-root=${_gui_forms_root}>")
     unset(_gui_forms_clang22)
+    unset(_gui_forms_root)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 22
        AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 23)
         set(GUIForms_EFFECTS_VERIFIED TRUE)

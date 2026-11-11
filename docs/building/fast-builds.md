@@ -96,6 +96,25 @@ the compiler's working directory. With source and build tree at the same
 relative positions, two checkouts in different places hash identically. Move
 one relative to the other and compilations miss.
 
+Two arguments are not paths `ccache` knows how to rewrite, so the build keeps
+them free of the checkout's location. The localizable-literal plugin's source
+root goes to the compiler relative to the build tree under Ninja
+(`cmake/LocalizablePlugin.cmake`), and the test programs that share a
+precompiled header run `ccache` with `sloppiness=pch_defines,time_macros` as a
+leading argument (`cmake/TestPrecompiledHeader.cmake`). Without that sloppiness
+`ccache` refuses every unit that reads a precompiled header. These settings
+come from CMake, so a local build tree caches the same units as CI whatever
+its shell exports.
+
+### Local builds
+
+Every local workspace shares one cache directory. Its size limit lives in
+that directory's own `ccache.conf` (`ccache --set-config max_size=40G`), so
+no shell exports `CCACHE_MAXSIZE`. One workspace exporting a smaller limit
+would trim everyone's entries the next time it writes. Each workspace sets
+`CCACHE_BASEDIR` to its own root, which holds `gui_forms/` and `.build/` in
+the CI layout above, so worktrees share each other's objects.
+
 ## One compiler cache
 
 Every job sets the compilers and launchers in its environment:
