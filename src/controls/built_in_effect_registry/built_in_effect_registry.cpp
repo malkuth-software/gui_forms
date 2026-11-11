@@ -23,4 +23,9 @@ const EffectRegistry& built_in_effect_registry() {
     return registry;
 }
 
+void install_built_in_effect_registry() {
+    const EffectRegistry& registry = built_in_effect_registry();
+    install_effect_registry(&registry);
+}
+
 } // namespace gui_forms

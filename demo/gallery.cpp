@@ -317,6 +317,9 @@ std::optional<ThemeBase> gallery_theme_base(std::string_view id) noexcept
 
 std::unique_ptr<Application> create_gallery_application(ThemeBase base)
 {
+    // The stock controls' effects, for the user theme the Gallery may be
+    // started with (--theme), settled at its first window.
+    install_built_in_effect_registry();
     ApplicationConfig config{};
     config.theme.packages.push_back(gallery_theme_package());
     config.theme.base = base;

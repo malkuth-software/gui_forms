@@ -300,7 +300,8 @@ struct ApplicationThemeConfig final {
     // built_in_effect_registry(); a name it does not hold refuses the theme
     // (E417). Borrowed for the call to create only. Null, only the names'
     // form is checked. A user theme the process is started with is checked
-    // against built_in_effect_registry() whatever this holds.
+    // against the process's installed registry (install_effect_registry)
+    // whatever this holds.
     const EffectRegistry* effects{};
 };
 

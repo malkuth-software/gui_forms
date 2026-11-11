@@ -1,4 +1,6 @@
-// A C++ GUI.Forms program with no theme code of its own, started by CTest
+// A C++ GUI.Forms program with no theme code of its own (it installs the
+// stock controls' effect registry while it sets up, as any program using
+// them does, so a requested sheet's effect names are checked), started by CTest
 // with --theme <name|built-in|path.css> or GUI_FORMS_THEME_SHEET: it makes
 // its application and one window, and checks what the request did. Its
 // expectations come from the environment, so its command line holds only
@@ -9,6 +11,7 @@
 //                            (layered when unset).
 // Exit 0 when the request did what was expected.
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -57,6 +60,7 @@ int main() {
     const std::string_view expected = environment("GF_EXPECT_THEME_REQUEST");
     const std::string_view policy = environment("GF_TEST_POLICY");
     require(!expected.empty(), "GF_EXPECT_THEME_REQUEST is not set");
+    install_built_in_effect_registry();
     ApplicationCreateResult created = Application::create(ApplicationConfig{});
     require(static_cast<bool>(created), "the application is made");
     if (!created) return 1;

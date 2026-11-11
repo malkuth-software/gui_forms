@@ -621,4 +621,21 @@ std::uint64_t EffectInstance::state_checksum() const noexcept {
     return hash;
 }
 
+namespace {
+
+// The process's installed registry (install_effect_registry), owned by its
+// installer; null while none is installed.
+std::atomic<const EffectRegistry*> installed_registry{nullptr};
+
+} // namespace
+
+void install_effect_registry(const EffectRegistry* registry) noexcept {
+    installed_registry.store(registry, std::memory_order_release);
+}
+
+const EffectRegistry* installed_effect_registry() noexcept {
+    const EffectRegistry* const registry = installed_registry.load(std::memory_order_acquire);
+    return registry;
+}
+
 } // namespace gui_forms
