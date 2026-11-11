@@ -12,6 +12,8 @@
 //   change serial, and the value: INT32 for an integer; CARD32 length and
 //   the bytes padded to a multiple of 4 for a string; four CARD16 for a
 //   colour.
+#include "gui_forms/window/presentation/input_settings.hpp"
+
 #include <cstdint>
 #include <span>
 #include <string_view>
@@ -39,5 +41,13 @@ struct XSettingsInteger final {
 // when the setting comes before the fault. Reads `property` only.
 [[nodiscard]] XSettingsInteger find_xsettings_integer(std::span<const std::uint8_t> property,
                                                     std::string_view name) noexcept;
+
+// The caret settings from the manager's Net/CursorBlink and
+// Net/CursorBlinkTime (audit N75): blinking off (Net/CursorBlink 0) is a
+// phase of 0 with origin host; a usable Net/CursorBlinkTime (a positive
+// integer, the whole on-and-off cycle in milliseconds) is halved into the
+// phase, at least 1 and at most maximum_caret_blink_milliseconds, origin
+// host; anything else leaves the default.
+[[nodiscard]] CaretSettings xsettings_caret(XSettingsInteger blink, XSettingsInteger cycle) noexcept;
 
 } // namespace gui_forms::host::linux_detail

@@ -81,26 +81,47 @@ bool LiveSurface::reconfigure(LiveSurfaceDescription description) {
 LiveSurfaceWriteLease LiveSurface::try_acquire_write(
     bool preserve_published_contents) noexcept {
     if (!state_) return {};
-    std::scoped_lock lock((*state_).mutex);
-    if ((*state_).writing_slot != (*state_).buffers.size()) {
-        ++(*state_).dropped_acquires;
-        return {};
-    }
-    for (std::size_t slot = 0; slot < (*state_).buffers.size(); ++slot) {
-        if (slot == (*state_).published_slot ||
-            (*state_).buffers[slot].use_count() != 1) {
-            continue;
+    // The slot is reserved under the lock and the published pixels copied
+    // after it (audit E1), so a reader's snapshot never waits behind a
+    // whole-frame copy. Both buffers stay alive through the references held
+    // here; the reserved slot is written by this writer alone, and the
+    // published one is only read until the next publication, which needs
+    // this lease. A reconfigure meanwhile changes the epoch, so a lease
+    // filled from the old frame cannot publish.
+    std::shared_ptr<detail::LiveSurfaceBuffer> target{};
+    std::shared_ptr<detail::LiveSurfaceBuffer> source{};
+    std::size_t reserved = 0U;
+    std::uint64_t epoch = 0U;
+    {
+        std::scoped_lock lock((*state_).mutex);
+        if ((*state_).writing_slot != (*state_).buffers.size()) {
+            ++(*state_).dropped_acquires;
+            return {};
         }
+        bool found = false;
+        for (std::size_t slot = 0; slot < (*state_).buffers.size(); ++slot) {
+            if (slot == (*state_).published_slot ||
+                (*state_).buffers[slot].use_count() != 1) {
+                continue;
+            }
+            reserved = slot;
+            found = true;
+            break;
+        }
+        if (!found) {
+            ++(*state_).dropped_acquires;
+            return {};
+        }
+        (*state_).writing_slot = reserved;
+        target = (*state_).buffers[reserved];
+        epoch = (*state_).epoch;
         if (preserve_published_contents &&
             (*state_).published_slot < (*state_).buffers.size()) {
-            (*(*state_).buffers[slot]).pixels =
-                (*(*state_).buffers[(*state_).published_slot]).pixels;
+            source = (*state_).buffers[(*state_).published_slot];
         }
-        (*state_).writing_slot = slot;
-        return {state_, (*state_).buffers[slot], slot, (*state_).epoch};
     }
-    ++(*state_).dropped_acquires;
-    return {};
+    if (source) (*target).pixels = (*source).pixels;
+    return {state_, std::move(target), reserved, epoch};
 }
 
 LiveSurfaceFrame LiveSurface::acquire_latest() const noexcept {

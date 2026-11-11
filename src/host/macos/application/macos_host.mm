@@ -519,6 +519,7 @@ static std::uint32_t physical_key_for(unsigned short key_code) {
     case 7: return 0x1BU;   // X
     case 8: return 0x06U;   // C
     case 9: return 0x19U;   // V
+    case 10: return 0x64U;  // ISO section key (Non-US backslash; N108)
     case 11: return 0x05U;  // B
     case 12: return 0x14U;  // Q
     case 13: return 0x1AU;  // W
@@ -578,6 +579,8 @@ static std::uint32_t physical_key_for(unsigned short key_code) {
     case 75: return 0x54U;  // Keypad divide
     case 76: return 0x58U;  // Keypad enter
     case 78: return 0x56U;  // Keypad minus
+    case 79: return 0x6DU;  // F18 (N108)
+    case 80: return 0x6EU;  // F19 (N108)
     case 81: return 0x67U;  // Keypad equals
     case 82: return 0x62U;  // Keypad 0
     case 83: return 0x59U;  // Keypad 1
@@ -587,15 +590,21 @@ static std::uint32_t physical_key_for(unsigned short key_code) {
     case 87: return 0x5DU;  // Keypad 5
     case 88: return 0x5EU;  // Keypad 6
     case 89: return 0x5FU;  // Keypad 7
+    case 90: return 0x6FU;  // F20 (N108)
     case 91: return 0x60U;  // Keypad 8
     case 92: return 0x61U;  // Keypad 9
+    case 93: return 0x89U;  // JIS Yen (International3; N108)
+    case 94: return 0x87U;  // JIS underscore (International1; N108)
+    case 95: return 0x85U;  // JIS keypad comma (N108)
     case 96: return 0x3EU;  // F5
     case 97: return 0x3FU;  // F6
     case 98: return 0x40U;  // F7
     case 99: return 0x3CU;  // F3
     case 100: return 0x41U; // F8
     case 101: return 0x42U; // F9
+    case 102: return 0x91U; // JIS Eisu (LANG2; N108)
     case 103: return 0x44U; // F11
+    case 104: return 0x90U; // JIS Kana (LANG1; N108)
     case 105: return 0x68U; // F13
     case 106: return 0x6BU; // F16
     case 107: return 0x69U; // F14
@@ -922,6 +931,8 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     // The double-click interval last reported, in milliseconds; 0 (as the
     // runtime zeroes ivars) before the first report.
     std::uint32_t _reportedDoubleClickMilliseconds;
+    // The caret settings last reported (audit N75).
+    gui_forms::CaretSettings _reportedCaret;
     SkiaRaster _raster;
     BOOL _rasterHasContent;
     DamageRegion _pendingDamage;
@@ -2295,11 +2306,36 @@ void post_perform_close(NSWindow* window) {
     const double bounded = std::clamp(milliseconds, 1.0,
                                       static_cast<double>(gui_forms::maximum_double_click_milliseconds));
     const std::uint32_t interval = static_cast<std::uint32_t>(bounded);
-    if (interval == _reportedDoubleClickMilliseconds) return;
-    const gui_forms::HostInputSettingsEvent input{interval, gui_forms::SettingOrigin::host};
+    const gui_forms::CaretSettings caret = [self caretSettings];
+    if (interval == _reportedDoubleClickMilliseconds && caret == _reportedCaret) return;
+    gui_forms::HostInputSettingsEvent input{interval, gui_forms::SettingOrigin::host};
+    input.caret = caret;
     const HostDispatchResult reported = [self dispatchHostPayload:input
                                              timestampNanoseconds:host_now_nanoseconds()];
-    if (reported.accepted()) _reportedDoubleClickMilliseconds = interval;
+    if (reported.accepted()) {
+        _reportedDoubleClickMilliseconds = interval;
+        _reportedCaret = caret;
+    }
+}
+
+// The caret's blink phase (audit N75): the NSTextInsertionPointBlinkPeriodOn
+// user default, in milliseconds, where set; a period above the maximum is
+// the usual way to stop blinking and reports a caret that never blinks.
+// Without the default, GUI.Forms' default with origin default_value.
+- (gui_forms::CaretSettings)caretSettings {
+    gui_forms::CaretSettings caret{};
+    id stored = [NSUserDefaults.standardUserDefaults objectForKey:@"NSTextInsertionPointBlinkPeriodOn"];
+    if (![stored isKindOfClass:NSNumber.class]) return caret;
+    const double period = [(NSNumber*)stored doubleValue];
+    if (!std::isfinite(period) || period <= 0.0) return caret;
+    caret.origin = gui_forms::SettingOrigin::host;
+    if (period > static_cast<double>(gui_forms::maximum_caret_blink_milliseconds)) {
+        caret.blink_milliseconds = 0U;
+        return caret;
+    }
+    const double rounded = std::max(1.0, std::round(period));
+    caret.blink_milliseconds = static_cast<std::uint32_t>(rounded);
+    return caret;
 }
 
 - (void)notifyActivation:(BOOL)active {
@@ -2905,11 +2941,11 @@ void post_perform_close(NSWindow* window) {
     }
     const std::chrono::steady_clock::time_point now =
         std::chrono::steady_clock::now();
-    const std::chrono::duration<long long, std::ratio<1, 1000>> delay = std::max(std::chrono::milliseconds(1),
-                                std::chrono::duration_cast<std::chrono::milliseconds>(
-                                    *wake - now));
-    const std::chrono::nanoseconds::rep nanoseconds =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(delay).count();
+    // Nanosecond precision, never rounded down (audit N107): a deadline
+    // less than a millisecond away used to fire early and be armed again.
+    // A deadline already past fires at once.
+    const std::chrono::nanoseconds remaining = std::chrono::ceil<std::chrono::nanoseconds>(*wake - now);
+    const std::chrono::nanoseconds::rep nanoseconds = std::max<std::chrono::nanoseconds::rep>(remaining.count(), 0);
     dispatch_source_set_timer(
         _wakeSource,
         dispatch_time(DISPATCH_TIME_NOW, static_cast<std::int64_t>(nanoseconds)),
@@ -3767,6 +3803,15 @@ void post_perform_close(NSWindow* window) {
     input.scan_code = event.keyCode;
     input.modifiers = modifiers_for(event.modifierFlags);
     input.repeat = event.isARepeat;
+    // While the input method holds marked text it owns every key: Return
+    // commits, Escape cancels, arrows and Backspace edit the composition
+    // (audit N105). The model sees the key only when no composition is
+    // open, as before.
+    if ([self hasMarkedText]) {
+        [self interpretKeyEvents:@[event]];
+        [self collectDamage];
+        return;
+    }
     const bool handled = [self dispatchHostPayload:std::move(input)
                                timestampNanoseconds:host_event_nanoseconds(event)].handled;
     if (!handled) {
@@ -3855,8 +3900,18 @@ void post_perform_close(NSWindow* window) {
     [self collectDamage];
 }
 
+// The system asks to keep the marked text as typed (NSTextInputClient):
+// it is committed as ordinary input, replacing the composition (N105).
 - (void)unmarkText {
+    if (_markedText.length != 0) {
+        TextInputEvent input;
+        input.text_utf8 = utf8_string(_markedText.string);
+        input.composing = false;
+        static_cast<void>([self dispatchHostPayload:std::move(input)
+                                   timestampNanoseconds:host_now_nanoseconds()]);
+    }
     [_markedText setAttributedString:[[NSAttributedString alloc] initWithString:@""]];
+    [self collectDamage];
 }
 
 - (BOOL)hasMarkedText {

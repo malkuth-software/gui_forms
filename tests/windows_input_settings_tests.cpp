@@ -40,6 +40,16 @@ struct Ready final {
         const PresentationSettings& reported = window.presentation_settings();
         require(reported.double_click_milliseconds == system, "the window holds GetDoubleClickTime");
         require(reported.double_click_origin == SettingOrigin::host, "the interval is reported as a host value");
+        // The caret blink (audit N75): GetCaretBlinkTime, INFINITE as 0.
+        const UINT blink = GetCaretBlinkTime();
+        const std::uint32_t expected_blink =
+            blink == INFINITE ? 0U
+                              : (blink > maximum_caret_blink_milliseconds ? maximum_caret_blink_milliseconds
+                                                                          : static_cast<std::uint32_t>(blink));
+        if (blink != 0U) {
+            require(reported.caret.blink_milliseconds == expected_blink && reported.caret.origin == SettingOrigin::host,
+                    "the window holds GetCaretBlinkTime as a host value");
+        }
         unsigned changes = 0U;
         const std::shared_ptr<Component> owner = std::make_shared<Component>();
         const SubscriptionToken token = window.presentation_changed().subscribe(*owner, ChangeCounter{&changes});

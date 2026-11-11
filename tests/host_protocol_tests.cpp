@@ -1083,11 +1083,12 @@ struct PresentationChangeCounter final {
 };
 
 void test_input_settings_report_and_validation() {
-    require(host_protocol_revisions.size() == 5U && host_protocol_revisions[1].version == 9U &&
+    require(host_protocol_revisions.size() == 6U && host_protocol_revisions[1].version == 9U &&
                 host_protocol_revisions[2].version == 10U && host_protocol_revisions[3].version == 11U &&
-                host_protocol_revisions[4].version == 12U && HostCapabilities::current_protocol_version == 12U,
-            "the compositor report is version 9, the input settings 10, the mouse conventions 11 and the "
-            "window state 12");
+                host_protocol_revisions[4].version == 12U && host_protocol_revisions[5].version == 13U &&
+                HostCapabilities::current_protocol_version == 13U,
+            "the compositor report is version 9, the input settings 10, the mouse conventions 11, the "
+            "window state 12 and the caret blink 13");
     const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
     Fixture& fixture = *held_fixture;
     const PresentationSettings initial = fixture.window.presentation_settings();
@@ -1190,6 +1191,38 @@ void test_input_settings_report_and_validation() {
     require(host_event_name(HostEventPayload{HostContextRequestEvent{}}) == std::string("context_request") &&
                 host_event_name(HostEventPayload{HostHoverEvent{}}) == std::string("hover"),
             "the events are named context_request and hover");
+
+    // The caret blink travels with the report (audit N75): 0 is accepted
+    // as never blinking, above the maximum is refused.
+    require(fixture.window.presentation_settings().caret.blink_milliseconds == default_caret_blink_milliseconds &&
+                fixture.window.presentation_settings().caret.origin == SettingOrigin::default_value,
+            "a report without caret settings leaves the default");
+    HostInputSettingsEvent never_blinks = with_pointer;
+    never_blinks.caret = CaretSettings{0U, SettingOrigin::host};
+    HostEvent never_report{15, 15, never_blinks};
+    require(fixture.host.session().dispatch(std::move(never_report)).accepted() &&
+                fixture.window.presentation_settings().caret == never_blinks.caret,
+            "a caret that never blinks reaches the window");
+    HostInputSettingsEvent too_slow = with_pointer;
+    too_slow.caret = CaretSettings{maximum_caret_blink_milliseconds + 1U, SettingOrigin::host};
+    HostEvent slow_report{16, 16, too_slow};
+    require(fixture.host.session().dispatch(std::move(slow_report)).error == HostDispatchError::invalid_payload &&
+                fixture.window.presentation_settings().caret.blink_milliseconds == 0U,
+            "a phase above the maximum is refused, changing nothing");
+    HostInputSettingsEvent bad_caret_origin = with_pointer;
+    bad_caret_origin.caret = CaretSettings{600U, static_cast<SettingOrigin>(9U)};
+    HostEvent bad_caret{17, 17, bad_caret_origin};
+    require(fixture.host.session().dispatch(std::move(bad_caret)).error == HostDispatchError::invalid_payload,
+            "a caret origin outside the enumeration is refused");
+    PresentationSettings slow_settings = fixture.window.presentation_settings();
+    slow_settings.caret.blink_milliseconds = maximum_caret_blink_milliseconds + 1U;
+    bool slow_threw = false;
+    try {
+        fixture.window.set_presentation_settings(slow_settings);
+    } catch (const std::invalid_argument&) {
+        slow_threw = true;
+    }
+    require(slow_threw, "an application's over-long caret phase throws");
 }
 
 void test_lifecycle_transition_guards() {

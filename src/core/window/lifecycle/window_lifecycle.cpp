@@ -370,6 +370,12 @@ bool valid_pointer_settings(const PointerSettings& settings) noexcept {
     return drag && hover && origins;
 }
 
+bool valid_caret_settings(const CaretSettings& settings) noexcept {
+    const bool phase = settings.blink_milliseconds <= maximum_caret_blink_milliseconds;
+    const bool origin = known_setting_origin(settings.origin);
+    return phase && origin;
+}
+
 void validate_presentation_settings(const PresentationSettings& settings) {
     if (!std::isfinite(settings.text_scale) ||
         settings.text_scale < 0.5 || settings.text_scale > 4.0) {
@@ -388,6 +394,10 @@ void validate_presentation_settings(const PresentationSettings& settings) {
     if (!valid_pointer_settings(settings.pointer)) {
         throw std::invalid_argument(
             "GUI.Forms pointer settings are outside their ranges or enums");
+    }
+    if (!valid_caret_settings(settings.caret)) {
+        throw std::invalid_argument(
+            "GUI.Forms caret blink must be at most 10000 milliseconds, with a SettingOrigin");
     }
     if (settings.colour_scheme != ColourScheme::light && settings.colour_scheme != ColourScheme::dark) {
         throw std::invalid_argument("GUI.Forms colour scheme is not a ColourScheme");

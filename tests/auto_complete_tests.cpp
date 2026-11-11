@@ -346,6 +346,11 @@ void composition_is_never_completed() {
     replaced.replacement_length = 1;
     require(window.dispatch_text(replaced) && box.text.read() == "ca" && !box.auto_complete_open(),
             "an updated composition is left as the input method wrote it");
+    TextInputEvent committed{};
+    committed.text_utf8 = "ca";
+    require(window.dispatch_text(committed) && box.text.read().rfind("ca", 0) == 0 &&
+                box.text.read().find("caca") == std::string::npos,
+            "the commit replaces the marked text (N106)");
     require(type(window, "l") && box.text.read() == "calgary" && box.auto_complete_open(),
             "committed input completes as usual");
     TextInputEvent more{};

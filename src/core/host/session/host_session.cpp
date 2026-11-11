@@ -174,7 +174,7 @@ bool valid_input_settings(const HostInputSettingsEvent& input) noexcept {
                           input.double_click_milliseconds <= maximum_double_click_milliseconds;
     const bool origin = input.double_click_origin == SettingOrigin::default_value ||
                         input.double_click_origin == SettingOrigin::host;
-    return interval && origin && valid_pointer_settings(input.pointer);
+    return interval && origin && valid_pointer_settings(input.pointer) && valid_caret_settings(input.caret);
 }
 
 HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool shutdown,
@@ -359,6 +359,7 @@ void HostSession::DispatchVisitor::operator()(
         settings.double_click_milliseconds = payload.double_click_milliseconds;
         settings.double_click_origin = payload.double_click_origin;
         settings.pointer = payload.pointer;
+        settings.caret = payload.caret;
         (*(*session).window_).set_host_presentation(settings);
     } else if constexpr (std::is_same_v<Payload, HostContextRequestEvent>) {
         (*result).handled = (*(*session).window_).dispatch_context_request(payload.origin, payload.position);
