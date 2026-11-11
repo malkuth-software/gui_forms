@@ -73,8 +73,9 @@ template_harness, checked out beside this repository at the commit
 : Lists the native entries under `src/host/` (Windows `CALLBACK` and COM
   methods, Linux ATK and GLib callbacks, AppKit selectors) and fails on any
   that neither calls `call_failing_fast` nor is `noexcept`, unless it is in
-  `tools/native_boundary_baseline.txt`, which may only shrink. ctest runs it
-  and its `--self-test`.
+  `tools/native_boundary_baseline.txt`, which may only shrink and has been
+  empty since cp29 (every entry is routed). ctest runs it and its
+  `--self-test`.
   `python3 -B tools/check_native_boundaries.py --root .`
 
 `tools/sanitizer/lsan.supp`

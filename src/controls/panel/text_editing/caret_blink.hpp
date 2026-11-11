@@ -6,7 +6,9 @@
 
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <optional>
+#include <utility>
 
 namespace gui_forms::detail {
 
@@ -23,5 +25,22 @@ namespace gui_forms::detail {
     const FrameInterval phase = std::chrono::milliseconds(milliseconds);
     return phase;
 }
+
+// Schedules a text control's caret blink in `window`: a UI timer that rests
+// while the window is occluded (SurfaceRoot::schedule_resting_ui_timer), so
+// a hidden, minimized or covered window holds no caret wake from the moment
+// it is occluded. Without it the blink ran on until its paint gate stopped
+// it, up to two phases later, which the macOS idle-visibility probe could
+// count as a hidden wake.
+struct CaretBlinkSchedule final {
+    SurfaceRoot* window{};
+
+    [[nodiscard]] FrameRequestToken operator()(Component& owner, FrameInterval phase, FrameTime first_deadline,
+                                               std::function<void(FrameTime)> tick) const {
+        FrameRequestToken token =
+            (*window).schedule_resting_ui_timer(owner, phase, first_deadline, std::move(tick));
+        return token;
+    }
+};
 
 } // namespace gui_forms::detail

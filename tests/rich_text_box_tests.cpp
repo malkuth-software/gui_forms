@@ -9,6 +9,7 @@
 #include "support/typography_painter.hpp"
 #include "support/clip_tracking_painter.hpp"
 
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -492,6 +493,28 @@ void property_capabilities() {
     require(box.font.read().size == 14.0, "a valid font is stored");
 }
 
+namespace {
+
+// -- the caret ----------------------------------------------------------------------
+
+// As TextBox's, the caret blink rests while the window is occluded: no wake
+// and no tick from the transition on, and it blinks again once shown.
+void occluded_caret_rests() {
+    Fixture fixture = make_fixture("Some text");
+    Window& window = *fixture.window;
+    require(window.next_wake().has_value(), "a focused box blinks");
+    window.set_occluded(true, FrameClock::now());
+    require(!window.next_wake().has_value(), "an occluded box's caret holds no wake");
+    const FramePollResult hidden = window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(5));
+    require(hidden.ui_timer_ticks == 0U, "an occluded box's caret does not tick");
+    const FrameTime shown = FrameClock::now();
+    window.set_occluded(false, shown);
+    const std::optional<FrameTime> resumed = window.next_wake();
+    require(resumed.has_value() && *resumed >= shown, "a shown box's caret blinks again");
+}
+
+} // namespace
+
 int main() {
     source_and_plain_text();
     plain_text_as_markdown();
@@ -508,6 +531,7 @@ int main() {
     selected_text_drawn_once();
     semantics();
     property_capabilities();
+    occluded_caret_rests();
     std::cout << "rich_text_box_tests passed\n";
     return 0;
 }

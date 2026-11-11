@@ -8,6 +8,7 @@
 #include "appkit_status_items.hpp"
 #include "../compositor/macos_compositor.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
 
 #include <algorithm>
@@ -98,6 +99,10 @@ using gui_forms::render::SkiaRaster;
 @property(nonatomic, weak) NSSavePanel* panel;
 @property(nonatomic, copy) NSArray<NSArray<UTType*>*>* filterTypes;
 - (void)filterChanged:(NSPopUpButton*)sender;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (void)answerFilterChanged:(NSPopUpButton*)sender;
 @end
 
 // An NSAlert's delegate for its Help button: reports the open alert's help
@@ -106,10 +111,27 @@ using gui_forms::render::SkiaRaster;
 @property(nonatomic, assign) gui_forms::HostServices* services;
 @property(nonatomic, assign) std::uint64_t requestId;
 - (BOOL)alertShowHelp:(NSAlert*)alert;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (BOOL)answerAlertShowHelp:(NSAlert*)alert;
 @end
+
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GuiFormsAlertHelp's native entries: each sends the entry's answer message.
+BOOL run_alert_help_alert_show_help(GuiFormsAlertHelp* object, NSAlert* alert) {
+    return [object answerAlertShowHelp:alert];
+}
+} // namespace
 
 @implementation GuiFormsAlertHelp
 - (BOOL)alertShowHelp:(NSAlert*)alert {
+    return gui_forms::detail::call_failing_fast(
+        "macos.alert_help.alertShowHelp:", &run_alert_help_alert_show_help, self, alert);
+}
+
+- (BOOL)answerAlertShowHelp:(NSAlert*)alert {
     (void)alert;
     gui_forms::HostDialogHelpEvent event{};
     event.request_id = self.requestId;
@@ -119,8 +141,21 @@ using gui_forms::render::SkiaRaster;
 }
 @end
 
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GuiFormsFileFilterSwitch's native entries: each sends the entry's answer message.
+void run_file_filter_filter_changed(GuiFormsFileFilterSwitch* object, NSPopUpButton* sender) {
+    [object answerFilterChanged:sender];
+}
+} // namespace
+
 @implementation GuiFormsFileFilterSwitch
 - (void)filterChanged:(NSPopUpButton*)sender {
+    gui_forms::detail::call_failing_fast(
+        "macos.file_filter.filterChanged:", &run_file_filter_filter_changed, self, sender);
+}
+
+- (void)answerFilterChanged:(NSPopUpButton*)sender {
     const NSInteger index = sender.indexOfSelectedItem;
     if (index < 0 || static_cast<NSUInteger>(index) >= self.filterTypes.count) {
         return;

@@ -572,7 +572,8 @@ void RichTextBox::schedule_caret_blink() {
     if (focused_ && attached() && window() != nullptr) {
         // ADR-016: a UI timer the box stops on blur and detachment and
         // replaces when the caret moves, so the caret stays visible for one
-        // whole blink interval after each movement.
+        // whole blink interval after each movement. It rests while the
+        // window is occluded (CaretBlinkSchedule).
         // The platform's phase (audit N75); a caret that never blinks
         // stays shown with no timer.
         const std::optional<FrameInterval> phase = detail::caret_blink_phase(*window());
@@ -584,7 +585,8 @@ void RichTextBox::schedule_caret_blink() {
         const FrameTime now = FrameClock::now();
         const std::shared_ptr<RichTextBox> self =
             std::static_pointer_cast<RichTextBox>(shared_from_this());
-        caret_frame_ = (*window()).schedule_ui_timer(*this, *phase, now + *phase, CaretTick{self});
+        const detail::CaretBlinkSchedule schedule{window()};
+        caret_frame_ = schedule(*this, *phase, now + *phase, CaretTick{self});
     }
 }
 
