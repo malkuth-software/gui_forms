@@ -2795,6 +2795,13 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_linux_host_tests PRIVATE gui_forms_host_linux X11::X11)
         add_test(NAME gui_forms_linux_host_tests COMMAND gui_forms_linux_host_tests)
         set_tests_properties(gui_forms_linux_host_tests PROPERTIES TIMEOUT 45)
+        # Audit N66, option a: the host at Xft.dpi 192 under Xvfb, then at 96
+        # and 144 during the run. Serial: it rewrites the display's
+        # RESOURCE_MANAGER, which every other runtime on the display reads.
+        add_executable(gui_forms_linux_hidpi_tests tests/linux_hidpi_tests.cpp)
+        target_link_libraries(gui_forms_linux_hidpi_tests PRIVATE gui_forms_host_linux X11::X11)
+        add_test(NAME gui_forms_linux_hidpi_tests COMMAND gui_forms_linux_hidpi_tests)
+        set_tests_properties(gui_forms_linux_hidpi_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 45)
         if(TARGET gui_forms_prepared_text_impl)
             add_executable(gui_forms_linux_prepared_text_host_tests
                 tests/linux_prepared_text_host_tests.cpp)

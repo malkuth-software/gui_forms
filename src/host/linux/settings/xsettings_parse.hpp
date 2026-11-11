@@ -15,6 +15,7 @@
 #include "gui_forms/window/presentation/input_settings.hpp"
 
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -49,5 +50,41 @@ struct XSettingsInteger final {
 // phase, at least 1 and at most maximum_caret_blink_milliseconds, origin
 // host; anything else leaves the default.
 [[nodiscard]] CaretSettings xsettings_caret(XSettingsInteger blink, XSettingsInteger cycle) noexcept;
+
+// The X11 host's device scale (audit N66, option a). An X11 desktop states
+// its density once, as Xft.dpi: the settings manager's Xft/DPI first, then
+// the resource database's Xft.dpi, else 96. The scale is that density over
+// 96, never below 1 and at most maximum_x11_scale, as the Windows host
+// divides a monitor's DPI by 96.
+inline constexpr double x11_reference_dpi = 96.0;
+inline constexpr double maximum_x11_scale = 4.0;
+// The densest Xft.dpi accepted; a larger one is treated as unset.
+inline constexpr double maximum_x11_dpi = 9600.0;
+
+// The manager's Xft/DPI, an integer in 1024ths of a dot per inch: the
+// density when it is a positive integer of at most maximum_x11_dpi dots;
+// nullopt otherwise (GTK publishes -1 for "use the default").
+[[nodiscard]] std::optional<double> xsettings_dpi(XSettingsInteger xft_dpi) noexcept;
+
+// The Xft.dpi entry of a resource database string (the root window's
+// RESOURCE_MANAGER property, as xrdb writes it): lines of "name: value",
+// separated by newlines, '!' starting a comment line. The name must be
+// exactly "Xft.dpi" after leading blanks, with blanks allowed before the
+// colon and after it; the value is a decimal number (digits, an optional
+// fraction), read until the line's trailing blanks. With several entries the
+// last one counts, as xrdb's merge keeps the newest. Returns the density
+// when the value is positive and at most maximum_x11_dpi; nullopt when there
+// is no usable entry. Reads `resources` only.
+[[nodiscard]] std::optional<double> resource_database_dpi(std::string_view resources) noexcept;
+
+// The scale for a density: dpi / x11_reference_dpi bounded to
+// [1, maximum_x11_scale]; 1 without a density.
+[[nodiscard]] double x11_scale_for_dpi(std::optional<double> dpi) noexcept;
+
+// The desktop's scale from both sources, in their order: the manager's
+// density (xsettings_dpi) when it has one, else the resource database's
+// (resource_database_dpi), else 1.
+[[nodiscard]] double x11_desktop_scale(std::optional<double> manager_dpi,
+                                       std::optional<double> resource_dpi) noexcept;
 
 } // namespace gui_forms::host::linux_detail

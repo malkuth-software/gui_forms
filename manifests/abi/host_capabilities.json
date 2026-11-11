@@ -29,7 +29,8 @@
     {
       "platform": "linux-x11",
       "capabilities": [
-        "lifecycle", "monitor_geometry", "occlusion", "scheduled_wake", "pointer_input", "keyboard_input",
+        "lifecycle", "scale_notifications", "monitor_geometry", "occlusion", "scheduled_wake", "pointer_input",
+        "keyboard_input",
         "pointer_capture", "cursor", "clipboard", "typed_drag_destination", "dialogs", "accessibility",
         "sound_cues", "clipboard_images", "frame_capture", "runtime_windows", "window_frames",
         "screen_pointer", "window_at_point", "window_ordering", "transparent_windows",

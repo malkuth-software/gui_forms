@@ -27,6 +27,10 @@ class LinuxAccessibility final {
     // that no snapshot is built (APP_WINDOW_RULES_DESIGN K.1).
     void update();
     void set_title(const std::string& title);
+    // The window's device scale: extents a client asks for are the logical
+    // bounds times it, in X pixels. A scale that is not finite and positive
+    // is ignored. Read at each query, so a change applies to the next one.
+    void set_scale(double scale);
     // Marks every published object defunct and releases it; `model` is no
     // longer read. Called by the destructor; repeated calls do nothing.
     void detach();

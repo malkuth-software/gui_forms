@@ -1,19 +1,20 @@
 #include "xsettings_watch.hpp"
 
 #include "../services/x11_foreign_window.hpp"
-#include "xsettings_parse.hpp"
 
 #include <X11/Xatom.h>
 
 #include <cstddef>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace gui_forms::host::linux_detail {
 namespace {
 
 // The property is read whole up to this many 32-bit units (256 KiB); a
-// larger one is not used.
+// larger one is not used. The resource database is read under the same
+// bound.
 constexpr long maximum_property_units = 65536L;
 
 } // namespace
@@ -24,13 +25,16 @@ XSettingsWatch::XSettingsWatch(Display *display, int screen)
   selection_ = XInternAtom(display_, name.c_str(), False);
   settings_ = XInternAtom(display_, "_XSETTINGS_SETTINGS", False);
   manager_ = XInternAtom(display_, "MANAGER", False);
-  // A new manager announces itself to StructureNotify on the root; the
-  // root's other selections, made by this client, are kept.
+  resource_manager_ = XInternAtom(display_, "RESOURCE_MANAGER", False);
+  // A new manager announces itself to StructureNotify on the root, and
+  // xrdb rewrites RESOURCE_MANAGER there (PropertyNotify); the root's other
+  // selections, made by this client, are kept.
   XWindowAttributes attributes{};
-  long mask = StructureNotifyMask;
+  long mask = StructureNotifyMask | PropertyChangeMask;
   if (XGetWindowAttributes(display_, root_, &attributes) != 0)
     mask |= attributes.your_event_mask;
   XSelectInput(display_, root_, mask);
+  read_resources();
   acquire_manager();
 }
 
@@ -39,6 +43,12 @@ bool XSettingsWatch::settings_event(const XEvent &event) {
       event.xclient.message_type == manager_ && event.xclient.format == 32 &&
       static_cast<Atom>(event.xclient.data.l[1]) == selection_) {
     acquire_manager();
+    return true;
+  }
+  if (event.type == PropertyNotify && event.xproperty.window == root_ &&
+      event.xproperty.atom == resource_manager_) {
+    read_resources();
+    update_scale();
     return true;
   }
   if (owner_ == None)
@@ -76,8 +86,11 @@ void XSettingsWatch::read_settings() {
   double_click_distance_ = default_double_click_distance;
   pointer_settings_ = PointerSettings{};
   caret_settings_ = CaretSettings{};
-  if (owner_ == None)
+  xft_dpi_ = XSettingsInteger{};
+  if (owner_ == None) {
+    update_scale();
     return;
+  }
   Atom type = None;
   int format = 0;
   unsigned long items = 0UL;
@@ -105,6 +118,7 @@ void XSettingsWatch::read_settings() {
     drag = find_xsettings_integer(bytes, "Net/DndDragThreshold");
     blink = find_xsettings_integer(bytes, "Net/CursorBlink");
     blink_cycle = find_xsettings_integer(bytes, "Net/CursorBlinkTime");
+    xft_dpi_ = find_xsettings_integer(bytes, "Xft/DPI");
   }
   if (data != nullptr)
     XFree(data);
@@ -128,6 +142,33 @@ void XSettingsWatch::read_settings() {
     pointer_settings_.drag_origin = SettingOrigin::host;
   }
   caret_settings_ = xsettings_caret(blink, blink_cycle);
+  update_scale();
+}
+
+void XSettingsWatch::read_resources() {
+  resource_dpi_.reset();
+  Atom type = None;
+  int format = 0;
+  unsigned long items = 0UL;
+  unsigned long after = 0UL;
+  unsigned char *data = nullptr;
+  // The root window outlives the connection: no foreign-window scope.
+  const int status = XGetWindowProperty(display_, root_, resource_manager_, 0L,
+                                        maximum_property_units, False, XA_STRING, &type, &format,
+                                        &items, &after, &data);
+  const bool usable = status == Success && data != nullptr && type == XA_STRING &&
+                      format == 8 && after == 0UL;
+  if (usable) {
+    const std::string_view resources(reinterpret_cast<const char *>(data),
+                                     static_cast<std::size_t>(items));
+    resource_dpi_ = resource_database_dpi(resources);
+  }
+  if (data != nullptr)
+    XFree(data);
+}
+
+void XSettingsWatch::update_scale() noexcept {
+  scale_ = x11_desktop_scale(xsettings_dpi(xft_dpi_), resource_dpi_);
 }
 
 } // namespace gui_forms::host::linux_detail
