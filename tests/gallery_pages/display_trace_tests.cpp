@@ -577,6 +577,12 @@ struct PageDigest final {
 // the row (the rows below move), and states-and-diagnostics and
 // images-and-drawing follow. Recorded again: those three, in both tables.
 //
+// cp29 (batch 1): tooltip text is black in every light theme (owner,
+// 2026-11-11), which moves help-book, whose HelpBook text is the tool_tip
+// family; and the dock caption grip paints by default (owner, 2026-11-11),
+// which moves docking-workspace. Recorded again: those two, in both tables
+// (tree-and-object-views and guided-tasks did not move).
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -602,7 +608,7 @@ constexpr std::array<PageDigest, 39> expected_digests{{
     {"css-layout-panels", 0x9a947d660eae6ffdULL},
     {"retained-layout-panels", 0x508b7938a65374f4ULL},
     {"dock-and-anchor", 0x39eced64952dfc1eULL},
-    {"docking-workspace", 0xa4eb5c36f047ae08ULL},
+    {"docking-workspace", 0x8f8e06b598f29c2bULL},
     {"commands-and-menus", 0x676efad808b8417eULL},
     {"tree-and-object-views", 0x80be7252a213c7d3ULL},
     {"choices-and-sections", 0xe8ce5781fed36f1cULL},
@@ -618,7 +624,7 @@ constexpr std::array<PageDigest, 39> expected_digests{{
     {"spinners-and-rings", 0xa6466eedf924b036ULL},
     {"instruments", 0xe1b076de73f72a14ULL},
     {"guided-tasks", 0x15afb87d29f8d9c9ULL},
-    {"help-book", 0x87e4a0da56e08d0fULL},
+    {"help-book", 0x85eed6410bd71dc3ULL},
     {"controls-inspection", 0x47e1dff67a7f273fULL},
 }};
 
@@ -657,7 +663,7 @@ constexpr std::array<PageDigest, 39> professional_digests{{
     {"css-layout-panels", 0xf7ccc44f4f88a584ULL},
     {"retained-layout-panels", 0x4505b058b26b7997ULL},
     {"dock-and-anchor", 0xe2086750f8c9a5f3ULL},
-    {"docking-workspace", 0x215fe1d36660e11aULL},
+    {"docking-workspace", 0x75037bac2bf22da3ULL},
     {"commands-and-menus", 0xc9e72b81b92c392dULL},
     {"tree-and-object-views", 0x3caebcf4b042dd8bULL},
     {"choices-and-sections", 0xfa56d3663725de1aULL},
@@ -673,7 +679,7 @@ constexpr std::array<PageDigest, 39> professional_digests{{
     {"spinners-and-rings", 0x70d2b7d24c12a025ULL},
     {"instruments", 0x3cb35b07120d23b4ULL},
     {"guided-tasks", 0x006ff6b22bdaf776ULL},
-    {"help-book", 0x1b926f95509ebe61ULL},
+    {"help-book", 0xec2aea5a618addbbULL},
     {"controls-inspection", 0x5461e90be4f721f0ULL},
 }};
 
