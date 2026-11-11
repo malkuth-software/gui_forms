@@ -22,6 +22,10 @@
 #include <utility>
 #include <vector>
 
+#if !defined(_WIN32)
+#include <pthread.h>
+#endif
+
 namespace {
 
 using namespace gui_forms;
@@ -282,6 +286,58 @@ void test_destruction_at_the_limit_is_iterative() {
     require(spread_bytes < 1024U, "destroying a tree at the limit does not nest a destructor per level");
 }
 
+#if !defined(_WIN32)
+// The small-stack run: a tree at the limit made and destroyed on a thread
+// whose stack holds a few dozen frames, not one destructor chain per level.
+// The sanitizers enlarge every frame, so their builds give it twice the room.
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer) || __has_feature(thread_sanitizer)
+constexpr std::size_t small_stack_bytes = 128U * 1024U;
+#else
+constexpr std::size_t small_stack_bytes = 64U * 1024U;
+#endif
+#else
+constexpr std::size_t small_stack_bytes = 64U * 1024U;
+#endif
+
+struct SmallStackRun final {
+    std::size_t built_levels{0U};
+    bool destroyed{false};
+    bool failed{false};
+};
+
+// The thread's body: builds a chain at the limit, releases every handle but
+// the root's, then the root's, which destroys the whole tree on this stack.
+void* build_and_destroy_at_the_limit(void* raw) noexcept {
+    SmallStackRun& run = *static_cast<SmallStackRun*>(raw);
+    try {
+        std::vector<Control::Ptr> chain;
+        std::shared_ptr<Panel> root = make_chain("depth.small-stack", maximum_control_tree_depth, 300.0, chain);
+        run.built_levels = chain.size();
+        chain.clear();
+        root.reset();
+        run.destroyed = true;
+    } catch (...) {
+        run.failed = true;
+    }
+    return nullptr;
+}
+
+void test_destruction_at_the_limit_on_a_small_stack() {
+    SmallStackRun run{};
+    pthread_attr_t attributes{};
+    require(pthread_attr_init(&attributes) == 0, "thread attributes initialise");
+    const int sized = pthread_attr_setstacksize(&attributes, small_stack_bytes);
+    pthread_t thread{};
+    const int started = sized == 0 ? pthread_create(&thread, &attributes, &build_and_destroy_at_the_limit, &run) : sized;
+    static_cast<void>(pthread_attr_destroy(&attributes));
+    require(started == 0, "a small-stack thread starts");
+    require(pthread_join(thread, nullptr) == 0, "the small-stack thread ends");
+    require(!run.failed && run.built_levels == maximum_control_tree_depth && run.destroyed,
+            "a tree at the limit is made and destroyed on a small-stack thread");
+}
+#endif
+
 void test_detached_tree_at_the_limit_disposes() {
     std::vector<Control::Ptr> chain;
     std::shared_ptr<Panel> root = make_chain("depth.detached", maximum_control_tree_depth, 300.0, chain);
@@ -357,6 +413,9 @@ int main() {
         test_reparenting_past_the_limit_is_refused();
         test_stale_height_bound_does_not_refuse();
         test_destruction_at_the_limit_is_iterative();
+#if !defined(_WIN32)
+        test_destruction_at_the_limit_on_a_small_stack();
+#endif
         test_detached_tree_at_the_limit_disposes();
         test_static_tree_depth();
     } catch (const std::exception& error) {
