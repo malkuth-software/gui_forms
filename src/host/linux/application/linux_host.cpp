@@ -1,6 +1,9 @@
 #include "linux_host_internal.hpp"
 #include "../../offscreen_font_lookup.hpp"
 #include "../../../core/failure/fail_fast.hpp"
+#if defined(GUI_FORMS_PREPARED_TEXT)
+#include "../../../core/text/prepared/prepared_storage.hpp"
+#endif
 #include "../../../core/host/frame_capture/frame_capture.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../core/application/splashscreen_surface.hpp"
@@ -522,13 +525,22 @@ bool update_prepared_window(NativeWindow& window) {
   render::SkiaRaster& raster = window.raster;
   const std::chrono::steady_clock::time_point started = std::chrono::steady_clock::now();
   std::optional<PaintReceipt> committed{};
-  // A paint tick is housekeeping: nothing is caught (the X event loop is the
-  // fail-fast boundary); its budget is the model's paint_within_budget.
+  // A paint tick is housekeeping: a control's exception is not caught (the X
+  // event loop is the fail-fast boundary); its budget is the model's
+  // paint_within_budget. The one exception taken here is core's typed
+  // prepared-text refusal (a stale or cancelled layout, PreparedTextPaintFailure):
+  // an expected alternative that aborts this candidate and keeps the
+  // presented front.
   const bool images_ready = raster.synchronize_images((*window.entry.model).image_resources());
   if (images_ready) {
     const PreparedTextStatus begun = raster.begin_prepared_frame(window.size, window.scale, window.damage);
     if (begun == PreparedTextStatus::success) {
-      const std::optional<PaintReceipt> receipt = (*window.entry.model).paint(raster, window.damage.rectangles());
+      std::optional<PaintReceipt> receipt{};
+      try {
+        receipt = (*window.entry.model).paint(raster, window.damage.rectangles());
+      } catch (const gui_forms::detail::PreparedTextPaintFailure&) {
+        receipt.reset();
+      }
       raster.end_frame();
       if (receipt) {
         const PreparedTextStatus status = raster.commit_prepared_frame(*receipt);
