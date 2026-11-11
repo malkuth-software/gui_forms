@@ -70,7 +70,6 @@ panel gallery.form-pages {
         tab-index: 7;
       }
       gallery-lifecycle-card gallery.lifecycle-card {
-        classes: "lifecycle-card";
         bounds: 416 112 202 24;
         label gallery.lifecycle-title { text: "COMPOSED"; classes: "card-title"; }
         label gallery.lifecycle-status { text: "Awaiting attach"; classes: "note"; }
