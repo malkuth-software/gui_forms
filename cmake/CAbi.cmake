@@ -87,6 +87,7 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_overlays.cpp
     src/abi/stable/tables/abi_property_grid.cpp
     src/abi/stable/tables/abi_custom_controls.cpp
+    src/abi/stable/tables/abi_binding_provider.cpp
     src/abi/stable/tables/abi_bindings.cpp
     src/abi/stable/tables/abi_subsurfaces.cpp
     src/abi/stable/tables/abi_application.cpp
@@ -432,7 +433,8 @@ if(GUI_FORMS_BUILD_TESTS)
     set(_gf_abi_label_candidates
         gui_drawing_c_api_c11_tests gui_drawing_raster_c_api_tests
         gui_forms_windows_gdi_compat_shim_tests
-        gui_forms_binding_tests gui_forms_binding_navigator_tests gui_forms_shadow_frames_tests
+        gui_forms_binding_tests gui_forms_binding_provider_tests gui_forms_binding_navigator_tests
+        gui_forms_shadow_frames_tests
         gui_forms_abi_runtime_c11_tests gui_forms_abi_conformance gui_forms_abi_slot_coverage
         gui_forms_abi_schema_export gui_forms_abi_theme_trace gui_forms_abi_capability_matrix
         gui_forms_abi_schema_catalog_current gui_forms_abi_event_fields gui_forms_abi_custom_paint

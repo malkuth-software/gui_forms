@@ -1763,6 +1763,61 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status set_provider(gf_object source, const gf_binding_column* columns, uint64_t column_count,
+                                         const gf_binding_provider_callbacks* callbacks,
+                                         uint64_t* provider) const noexcept {
+        if (table_.struct_size < 120u || table_.set_provider == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_provider(source, columns, column_count, callbacks, provider);
+        return called;
+    }
+
+    [[nodiscard]] gf_status notify(uint64_t provider, gf_binding_notification_kind kind, uint64_t row, uint64_t count,
+                                   uint64_t target) const noexcept {
+        if (table_.struct_size < 128u || table_.notify == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.notify(provider, kind, row, count, target);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_sort(gf_object source, const gf_binding_sort_key* keys, uint64_t count) const noexcept {
+        if (table_.struct_size < 136u || table_.set_sort == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_sort(source, keys, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_filter(gf_object source, const gf_binding_predicate* predicates,
+                                       uint64_t count) const noexcept {
+        if (table_.struct_size < 144u || table_.set_filter == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_filter(source, predicates, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status generation(gf_object source, uint64_t* generation, uint64_t* count) const noexcept {
+        if (table_.struct_size < 152u || table_.generation == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.generation(source, generation, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status read_cell(gf_object source, uint64_t generation, uint64_t row, uint64_t column,
+                                      gf_value* value, char* text_buffer, uint64_t text_capacity,
+                                      uint64_t* text_required) const noexcept {
+        if (table_.struct_size < 160u || table_.read_cell == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.read_cell(source, generation, row, column, value, text_buffer, text_capacity,
+                                                  text_required);
+        return called;
+    }
+
 private:
     gf_bindings_table table_;
 };

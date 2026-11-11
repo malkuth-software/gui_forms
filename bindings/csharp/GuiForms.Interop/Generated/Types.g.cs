@@ -922,7 +922,56 @@ public unsafe struct gf_binding_record
     public ulong field_count;
 }
 
-/// <summary>gf_bindings_table (table, 112 bytes).</summary>
+/// <summary>gf_binding_column (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_binding_column
+{
+    public uint struct_size;
+    public gf_value_kind kind;
+    public gf_utf8_view name;
+    public uint read_only;
+    public uint reserved;
+}
+
+/// <summary>gf_binding_sort_key (extensible, 24 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_binding_sort_key
+{
+    public uint struct_size;
+    public gf_binding_sort_direction direction;
+    public gf_utf8_view column;
+}
+
+/// <summary>gf_binding_predicate (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_binding_predicate
+{
+    public uint struct_size;
+    public gf_binding_predicate_operator op;
+    public gf_utf8_view column;
+    public gf_value* operand;
+}
+
+/// <summary>gf_binding_provider_callbacks (extensible, 96 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_binding_provider_callbacks
+{
+    public uint struct_size;
+    public gf_binding_provider_flags flags;
+    public void* context;
+    public delegate* unmanaged[Cdecl]<void*, ulong*, gf_status> row_count;
+    public delegate* unmanaged[Cdecl]<void*, ulong, ulong, gf_value*, gf_status> read_value;
+    public delegate* unmanaged[Cdecl]<void*, ulong, gf_utf8_view*, gf_status> read_stable_id;
+    public delegate* unmanaged[Cdecl]<void*, ulong, ulong, gf_value*, uint*, gf_utf8_view*, gf_status> write_value;
+    public delegate* unmanaged[Cdecl]<void*, ulong, ulong, uint*, gf_utf8_view*, gf_status> read_cell_state;
+    public delegate* unmanaged[Cdecl]<void*, gf_binding_sort_key*, ulong, gf_status> apply_sort;
+    public delegate* unmanaged[Cdecl]<void*, gf_binding_predicate*, ulong, gf_status> apply_filter;
+    public delegate* unmanaged[Cdecl]<void*, ulong, gf_utf8_view, gf_value*, ulong, uint*, gf_status> insert_row;
+    public delegate* unmanaged[Cdecl]<void*, ulong, ulong, uint*, gf_status> remove_rows;
+    public delegate* unmanaged[Cdecl]<void*, void> release;
+}
+
+/// <summary>gf_bindings_table (table, 160 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_bindings_table
 {
@@ -941,6 +990,12 @@ public unsafe struct gf_bindings_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_value*, byte*, ulong, ulong*, gf_status> current_field;
     public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_value*, uint*, gf_status> set_current_field;
     public delegate* unmanaged[Cdecl]<gf_object, gf_binding_record*, ulong, ulong*, gf_status> add_records;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_binding_column*, ulong, gf_binding_provider_callbacks*, ulong*, gf_status> set_provider;
+    public delegate* unmanaged[Cdecl]<ulong, gf_binding_notification_kind, ulong, ulong, ulong, gf_status> notify;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_binding_sort_key*, ulong, gf_status> set_sort;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_binding_predicate*, ulong, gf_status> set_filter;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, ulong*, gf_status> generation;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, ulong, ulong, gf_value*, byte*, ulong, ulong*, gf_status> read_cell;
 }
 
 /// <summary>gf_subsurface_content (extensible, 40 bytes).</summary>

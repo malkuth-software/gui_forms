@@ -2,7 +2,6 @@
 
 #include "gui_forms/binding/binding_manager_base/binding_manager_base.hpp"
 
-#include <span>
 
 namespace gui_forms {
 
@@ -11,7 +10,7 @@ class BindingSource;
 class CurrencyManager final : public BindingManagerBase {
 public:
     [[nodiscard]] std::size_t count() const noexcept override;
-    [[nodiscard]] const BindingRecord* current() const noexcept override;
+    [[nodiscard]] std::string current_stable_id() const override;
     [[nodiscard]] std::ptrdiff_t position() const noexcept override;
     [[nodiscard]] bool binding_suspended() const noexcept override;
     bool set_position(std::ptrdiff_t position) override;
@@ -28,7 +27,6 @@ public:
     [[nodiscard]] Event<>& current_item_changed() noexcept override;
     [[nodiscard]] Event<std::ptrdiff_t>& position_changed() noexcept override;
     [[nodiscard]] Event<const std::string&>& data_error() noexcept override;
-    [[nodiscard]] std::span<const BindingRecord> list() const noexcept;
     [[nodiscard]] Event<const BindingListChange&>& list_changed() noexcept;
     void refresh();
     [[nodiscard]] BindingSource& source() const noexcept;

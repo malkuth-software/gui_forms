@@ -177,12 +177,11 @@ controls:
    (*root).add_child(email);
    gf::Window window(root, gf::Size{320.0, 120.0});
 
-   gf::BindingRecord::FieldMap fields;
-   fields["email"] = std::string("ada@");
-   gf::BindingRecord::ErrorMap field_errors;
-   field_errors["email"] = "Enter a complete e-mail address.";
    std::shared_ptr<gf::BindingSource> people = std::make_shared<gf::BindingSource>(window);
-   (*people).set_records({gf::BindingRecord("person.1", fields, true, field_errors)});
+   gf::BindingTable& table = *(*people).table();
+   const std::size_t email_column = table.add_column(gf::BindingColumn{"email"});
+   static_cast<void>(table.append(gf::BindingRow{"person.1", {std::string("ada@")}}));
+   table.set_error(0U, email_column, "Enter a complete e-mail address.");
    (*email).data_bindings().add("text", people, "email");
 
    gf::ErrorProvider errors(window);

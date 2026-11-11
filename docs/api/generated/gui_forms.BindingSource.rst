@@ -11,16 +11,19 @@ gui_forms::BindingSource
 
    ``#include <gui_forms/binding/binding_source/binding_source.hpp>``
 
-   A list of records with a current position, to which controls are bound.
+   A list of rows with a current position, to which controls are bound.
 
-   A binding source holds the data that a form edits: a list of :cpp:class:`BindingRecord <gui_forms::BindingRecord>`
-   values, each with a stable ID, named fields, an editable flag and optional
-   error messages, and a current position. Controls bound to it with :cpp:class:`Binding <gui_forms::Binding>`
-   show the fields of the current record and write their changes back; moving
-   the position moves every bound control to another record at once. The source
-   offers navigation, insertion and removal, edit transactions with
-   cancellation, and the events a list view or navigator needs. Use a :cpp:class:`Value <gui_forms::Value>`
-   instead to share a single scalar between controls.
+   A binding source shows the data that a form edits: the rows of a
+   :cpp:class:`BindingProvider <gui_forms::BindingProvider>`, each with a stable ID, a value per column of the
+   provider's :cpp:class:`BindingSchema <gui_forms::BindingSchema>`, an editable flag and optional error messages,
+   and a current position. Controls bound to it with :cpp:class:`Binding <gui_forms::Binding>` show the fields
+   of the current row and write their changes back, straight to the
+   provider's data; moving the position moves every bound control to another
+   row at once. The source offers navigation, insertion and removal, sorting
+   and filtering, edit transactions with cancellation, and the events a list
+   view or navigator needs. A new source holds an empty :cpp:class:`BindingTable <gui_forms::BindingTable>`, the
+   built-in column store; :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>` binds any other provider. Use a
+   :cpp:class:`Value <gui_forms::Value>` instead to share a single scalar between controls.
 
    *Status:* stable. *Windows Forms counterpart:* ``BindingSource``.
 
@@ -33,19 +36,32 @@ gui_forms::BindingSource
 
    :Properties:
 
-      **records** : ``std::span<const BindingRecord>``
-         The records, in order. ``set_records(records, metadata_changed = false)``
-         replaces them all. Every record needs a stable ID, unique in the list and
-         following the :cpp:class:`StableId <gui_forms::StableId>` segment rule (a bound grid names its row after
-         it), and its field and error names must not collide after trimming and
-         ASCII case folding; otherwise ``std::invalid_argument`` is thrown and
-         nothing changes. The record with the previous current stable ID stays
-         current; otherwise the first record becomes current. It raises
-         :cpp:func:`data_source_changed <gui_forms::BindingSource::data_source_changed>`, then :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with ``reset``, then the position
-         events if the current record changed.
+      **provider** : ``std::shared_ptr<BindingProvider>``
+         The :cpp:class:`BindingProvider <gui_forms::BindingProvider>` whose rows the source shows. ``set_provider(provider)``
+         binds another (null binds a new empty :cpp:class:`BindingTable <gui_forms::BindingTable>`): the previous one
+         is detached and its :cpp:class:`BindingProviderLink <gui_forms::BindingProviderLink>` revoked, a sort or filter whose
+         columns the new schema lacks is dropped, and the first row becomes
+         current. It raises :cpp:func:`data_source_changed <gui_forms::BindingSource::data_source_changed>`, then :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with
+         ``reset``, then the position events if the current row changed.
+
+      **table** : ``std::shared_ptr<BindingTable>``, read-only
+         The provider when it is a :cpp:class:`BindingTable <gui_forms::BindingTable>`, otherwise null. Changing the
+         table changes the source: ``assign`` replaces every row (the row with the
+         previous current stable ID stays current, otherwise the first row
+         becomes current), and ``append``, :cpp:func:`insert <gui_forms::BindingSource::insert>`, ``remove`` and ``set_value``
+         raise the matching list changes.
+
+      **schema** : ``BindingSchema``, read-only
+         The provider's columns, as last read: on binding and on every reset.
+         ``column_of(name)`` finds a column by any spelling of its name.
+
+      **generation** : ``std::uint64_t``, read-only
+         A counter that every change the provider reports advances. A value read
+         with ``value_at(generation, row, column)`` is refused, as an empty
+         optional, once the generation has moved on.
 
       **count** : ``std::size_t``, read-only
-         The number of records.
+         The number of rows shown: the provider's, or those the filter keeps.
 
       **position** : ``std::ptrdiff_t``, default ``-1``
          The index of the current record, or -1 when there is none. Setting it
@@ -56,19 +72,46 @@ gui_forms::BindingSource
          when the position is unchanged, and throws ``std::out_of_range`` outside
          -1 to :cpp:func:`count <gui_forms::BindingSource::count>` - 1.
 
-      **current** : ``BindingRecord*``, read-only
-         A pointer to the current record, or null when there is none. It is
-         invalidated by any change to the list.
+      **current_stable_id** : ``std::string``, read-only
+         The current row's stable ID, or an empty string when there is none.
 
       **bindings** : ``std::vector<std::shared_ptr<Binding>>``, read-only
          The bindings currently connected to the source.
+
+      **sort** : ``std::vector<BindingSortKey>``
+         The sort keys, each a column name and a :cpp:enum:`BindingSortDirection <gui_forms::BindingSortDirection>`.
+         ``set_sort(keys)`` sorts the shown rows and :cpp:func:`remove_sort <gui_forms::BindingSource::remove_sort>` restores the
+         provider's order. A provider that sorts is asked to; otherwise the
+         source builds an index of the keys, kept up to date as rows are
+         inserted, removed and changed. Equal keys keep the provider's order,
+         and text compares ignoring case, by code point. An unknown column
+         throws ``std::invalid_argument`` and changes nothing.
+
+      **filter** : ``BindingFilter``
+         The :cpp:class:`BindingFilter <gui_forms::BindingFilter>`, a list of :cpp:class:`BindingPredicate <gui_forms::BindingPredicate>` values that every
+         shown row satisfies. ``set_filter(filter)`` and :cpp:func:`remove_filter <gui_forms::BindingSource::remove_filter>` set and
+         clear it, asking the provider or keeping an index as for :cpp:func:`sort <gui_forms::BindingSource::sort>`.
+
+      **view_mode** : ``BindingViewMode``, read-only
+         How the rows are ordered: ``provider_order`` with no sort or filter,
+         ``provider_view`` when the provider sorts or filters itself (its
+         :cpp:class:`BindingProviderCapabilities <gui_forms::BindingProviderCapabilities>` say so), and ``index`` when the source keeps
+         its own index of the sort keys and filter memberships.
+
+      **view_node_count** : ``std::size_t``, read-only
+         The view index's storage (nodes, key text bytes), for bounded-memory checks; zeros without an index.
+
+      **view_text_bytes** : ``std::size_t``, read-only
+
+      **provider_reads** : ``std::uint64_t``, read-only
+         The provider calls this source has made, for bounded-cost checks.
 
       **allow_edit** : ``bool``, default ``true``
          Whether fields may be changed. While false, :cpp:func:`set_current_field <gui_forms::BindingSource::set_current_field>` and
          :cpp:func:`begin_edit <gui_forms::BindingSource::begin_edit>` return false, and turning it off ends any edit in progress.
 
       **allow_new** : ``bool``, default ``true``
-         Whether records may be added; while false, :cpp:func:`add <gui_forms::BindingSource::add>` and :cpp:func:`insert <gui_forms::BindingSource::insert>` throw
+         Whether rows may be added; while false, :cpp:func:`add <gui_forms::BindingSource::add>` and :cpp:func:`insert <gui_forms::BindingSource::insert>` throw
          ``std::logic_error``.
 
       **allow_remove** : ``bool``, default ``true``
@@ -88,13 +131,13 @@ gui_forms::BindingSource
          does not use it to look up fields.
 
       **currency_manager** : ``CurrencyManager``, read-only
-         The :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>` of the source: the same records and position
+         The :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>` of the source: the same rows and position
          behind the :cpp:class:`BindingManagerBase <gui_forms::BindingManagerBase>` interface, as returned by
          ``BindingContext::manager``.
 
       **snapshot** : ``BindingSourceSnapshot``, read-only
          A :cpp:class:`BindingSourceSnapshot <gui_forms::BindingSourceSnapshot>` with the count, position and current stable ID,
-         a revision counter, counts of resets, field changes, position changes and
+         the generation, a revision counter, counts of resets, field changes, position changes and
          suspended mutations, and whether binding is suspended, an edit is in
          progress and :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` is raised.
 
@@ -102,7 +145,8 @@ gui_forms::BindingSource
 
       **list_changed** : ``Event<const BindingListChange&>``
          Raised after every change to the list, with a :cpp:class:`BindingListChange <gui_forms::BindingListChange>` giving
-         its ``kind``: ``reset`` after :cpp:func:`set_records <gui_forms::BindingSource::set_records>`, :cpp:func:`clear <gui_forms::BindingSource::clear>`, :cpp:func:`resume_binding <gui_forms::BindingSource::resume_binding>` or a
+         its ``kind``: ``reset`` after :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>`, a provider's reset, a move,
+         a change of more than 64 rows at once, :cpp:func:`clear <gui_forms::BindingSource::clear>`, :cpp:func:`resume_binding <gui_forms::BindingSource::resume_binding>` or a
          reset request, ``item_added`` and ``item_removed`` with the index and stable ID,
          ``item_changed`` with the index, stable ID and, for a field change, the
          field name, and :cpp:func:`position_changed <gui_forms::BindingSource::position_changed>`. It is raised after the bound
@@ -119,8 +163,9 @@ gui_forms::BindingSource
 
       **position_changed** : ``Event<std::ptrdiff_t>``
          Raised with the current position whenever the position or the current
-         record changes: when :cpp:func:`position <gui_forms::BindingSource::position>` is set or moved, and when :cpp:func:`set_records <gui_forms::BindingSource::set_records>`,
-         :cpp:func:`insert <gui_forms::BindingSource::insert>`, :cpp:func:`remove_at <gui_forms::BindingSource::remove_at>` or :cpp:func:`clear <gui_forms::BindingSource::clear>` shift or replace the current record.
+         row changes: when :cpp:func:`position <gui_forms::BindingSource::position>` is set or moved, and when :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>`,
+         a provider's change, :cpp:func:`insert <gui_forms::BindingSource::insert>`, :cpp:func:`remove_at <gui_forms::BindingSource::remove_at>` or :cpp:func:`clear <gui_forms::BindingSource::clear>` shift or replace
+         the current row.
          The index may be unchanged, when removing the current record makes the
          next one current.
 
@@ -128,7 +173,7 @@ gui_forms::BindingSource
          Raised with the error text when a binding fails to transfer a value.
 
       **data_source_changed** : ``Event<>``
-         Raised by :cpp:func:`set_records <gui_forms::BindingSource::set_records>`, before its :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>`.
+         Raised by :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>`, before its :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>`.
 
       **data_member_changed** : ``Event<const std::string&>``
          Raised after :cpp:func:`data_member <gui_forms::BindingSource::data_member>` changes, with the new value.
@@ -151,6 +196,8 @@ gui_forms::BindingSource
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`column_of <gui_forms::BindingSource::column_of>`
+        -  
       * - :cpp:func:`move_first <gui_forms::BindingSource::move_first>`
         - Makes the first record current.
       * - :cpp:func:`move_last <gui_forms::BindingSource::move_last>`
@@ -159,26 +206,48 @@ gui_forms::BindingSource
         - Makes the next record current.
       * - :cpp:func:`move_previous <gui_forms::BindingSource::move_previous>`
         - Makes the previous record current.
+      * - :cpp:func:`value <gui_forms::BindingSource::value>`
+        - ``value(row, column)`` returns a cell of a shown row, or an empty optional when the provider gave no valid answer for it (:cpp:func:`error <gui_forms::BindingSource::error>` says why).
+      * - :cpp:func:`value_at <gui_forms::BindingSource::value_at>`
+        - value, refused (empty) when generation is not the current one.
+      * - :cpp:func:`field <gui_forms::BindingSource::field>`
+        -  
+      * - :cpp:func:`stable_id <gui_forms::BindingSource::stable_id>`
+        - ``stable_id(row)`` returns a shown row's stable ID.
+      * - :cpp:func:`error <gui_forms::BindingSource::error>`
+        - ``error(row, column)`` returns the provider's error text for a cell, or for the row with ``binding_whole_row``, or why its answer was refused, or an empty string.
+      * - :cpp:func:`read_only <gui_forms::BindingSource::read_only>`
+        - ``read_only(row, column)`` is true unless the source, the column, the row and the provider's per-cell flag all allow writing.
+      * - :cpp:func:`write <gui_forms::BindingSource::write>`
+        - ``write(row, column, value)`` writes a cell straight to the provider and returns its :cpp:class:`BindingWriteResult <gui_forms::BindingWriteResult>`, accepted or refused with a reason.
       * - :cpp:func:`current_field <gui_forms::BindingSource::current_field>`
-        - ``current_field(name)`` returns the value of a field of the current record, or an empty optional when there is no current record or no such field.
+        - ``current_field(name)`` returns the value of a field of the current row, or an empty optional when there is no current row or no such field.
       * - :cpp:func:`current_error <gui_forms::BindingSource::current_error>`
         - ``current_error(name)`` returns the current record's error message for a field, or for the record as a whole when the name is empty, or an empty string.
       * - :cpp:func:`add <gui_forms::BindingSource::add>`
-        - Appends a record and returns its index; see :cpp:func:`insert <gui_forms::BindingSource::insert>`.
+        - Appends a row through the provider; see :cpp:func:`insert <gui_forms::BindingSource::insert>`.
       * - :cpp:func:`insert <gui_forms::BindingSource::insert>`
-        - ``insert(index, record)`` inserts a record and returns its index.
+        - ``insert(index, row)`` asks the provider to insert a :cpp:class:`BindingRow <gui_forms::BindingRow>` (values by column position) before the row shown at ``index``, and returns the new row's position, or an empty optional when the filter hides it.
       * - :cpp:func:`remove_at <gui_forms::BindingSource::remove_at>`
-        - Removes the record at an index and returns true, or returns false past the end.
+        - Removes the row at an index through the provider and returns true, or returns false past the end.
       * - :cpp:func:`remove_current <gui_forms::BindingSource::remove_current>`
-        - Removes the current record.
+        - Removes the current row.
       * - :cpp:func:`clear <gui_forms::BindingSource::clear>`
-        - Removes every record and raises :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with ``reset``.
+        - Removes every row and raises :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with ``reset``.
       * - :cpp:func:`find <gui_forms::BindingSource::find>`
-        - ``find(name, value)`` returns the index of the first record whose field equals the value, or an empty optional.
+        - ``find(name, value)`` returns the position of the first row whose field equals the value, or an empty optional, reading every row until it finds one.
+      * - :cpp:func:`find_stable_id <gui_forms::BindingSource::find_stable_id>`
+        -  
+      * - :cpp:func:`remove_sort <gui_forms::BindingSource::remove_sort>`
+        -  
+      * - :cpp:func:`remove_filter <gui_forms::BindingSource::remove_filter>`
+        -  
+      * - :cpp:func:`provider_row <gui_forms::BindingSource::provider_row>`
+        - The provider row behind a view row (below count()).
       * - :cpp:func:`begin_edit <gui_forms::BindingSource::begin_edit>`
-        - Takes a snapshot of the current record so that :cpp:func:`cancel_edit <gui_forms::BindingSource::cancel_edit>` can restore it.
+        - Takes a snapshot of the current row so that :cpp:func:`cancel_edit <gui_forms::BindingSource::cancel_edit>` can restore it.
       * - :cpp:func:`cancel_edit <gui_forms::BindingSource::cancel_edit>`
-        - Restores the record from the snapshot taken by :cpp:func:`begin_edit <gui_forms::BindingSource::begin_edit>` and raises ``item_changed``, and :cpp:func:`current_item_changed <gui_forms::BindingSource::current_item_changed>` when it is the current record.
+        - Writes the snapshot taken by :cpp:func:`begin_edit <gui_forms::BindingSource::begin_edit>` back to the provider and raises ``item_changed``, and :cpp:func:`current_item_changed <gui_forms::BindingSource::current_item_changed>` when it is the current row.
       * - :cpp:func:`end_edit <gui_forms::BindingSource::end_edit>`
         - Keeps the changes and discards the snapshot.
       * - :cpp:func:`suspend_binding <gui_forms::BindingSource::suspend_binding>`
@@ -190,39 +259,52 @@ gui_forms::BindingSource
       * - :cpp:func:`reset_current_item <gui_forms::BindingSource::reset_current_item>`
         - :cpp:func:`reset_item <gui_forms::BindingSource::reset_item>` for the current record.
       * - :cpp:func:`reset_item <gui_forms::BindingSource::reset_item>`
-        - ``reset_item(index)`` raises ``item_changed`` for a record, so that controls bound to it show it again, and returns false past the end.
+        - ``reset_item(index)`` raises ``item_changed`` for a row, so that controls bound to it show it again, and returns false past the end.
       * - :cpp:func:`currency_manager <gui_forms::BindingSource::currency_manager>`
-        - The :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>` of the source: the same records and position behind the :cpp:class:`BindingManagerBase <gui_forms::BindingManagerBase>` interface, as returned by ``BindingContext::manager``.
+        - The :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>` of the source: the same rows and position behind the :cpp:class:`BindingManagerBase <gui_forms::BindingManagerBase>` interface, as returned by ``BindingContext::manager``.
       * - :cpp:func:`set_current_field <gui_forms::BindingSource::set_current_field>`
-        - ``set_current_field(name, value)`` changes a field of the current record, adding it when it does not exist, and raises :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with ``item_changed`` and then :cpp:func:`current_item_changed <gui_forms::BindingSource::current_item_changed>`.
+        - ``set_current_field(name, value)`` writes a field of the current row and raises :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with ``item_changed`` and then :cpp:func:`current_item_changed <gui_forms::BindingSource::current_item_changed>`.
 
    .. seealso::
 
       :cpp:class:`Binding <gui_forms::Binding>`
          Connects one control property to one field of a source.
 
+      :cpp:class:`BindingTable <gui_forms::BindingTable>`
+         The built-in provider, a column store.
+
+      :cpp:class:`BindingProvider <gui_forms::BindingProvider>`
+         The interface any data a source shows implements.
+
       :cpp:class:`BindingContext <gui_forms::BindingContext>`
          The currency managers of a window's binding sources.
 
       :cpp:class:`ErrorProvider <gui_forms::ErrorProvider>`
-         Shows the errors that records carry for bound fields.
+         Shows the errors that rows carry for bound fields.
 
    .. rubric:: Notes
 
-   Field and error names are trimmed and compared ignoring ASCII case:
+   Column names are trimmed and compared ignoring ASCII case:
    "Name", "name" and " NAME " are the same field. An empty field name passed to
    :cpp:func:`current_field <gui_forms::BindingSource::current_field>`, :cpp:func:`set_current_field <gui_forms::BindingSource::set_current_field>` or :cpp:func:`find <gui_forms::BindingSource::find>` throws
    ``std::invalid_argument``.
 
+   A provider is untrusted data: an answer of the wrong kind, past the bounds,
+   or an exception it throws becomes a cell error, never a failure of the
+   source. Misuse of the source itself (another thread, an index past
+   :cpp:func:`count <gui_forms::BindingSource::count>`, an unknown column in a sort) throws. A provider may report changes
+   from any thread through its :cpp:class:`BindingProviderLink <gui_forms::BindingProviderLink>`; they are applied on the
+   source's UI thread.
+
    Edits are snapshots, not transactions with the bound controls: moving to
-   another record ends the edit and keeps its changes, as does :cpp:func:`end_edit <gui_forms::BindingSource::end_edit>`.
+   another row ends the edit and keeps its changes, as does :cpp:func:`end_edit <gui_forms::BindingSource::end_edit>`.
    Changing :cpp:func:`allow_edit <gui_forms::BindingSource::allow_edit>`, :cpp:func:`allow_new <gui_forms::BindingSource::allow_new>` or :cpp:func:`allow_remove <gui_forms::BindingSource::allow_remove>` raises a ``reset`` with
    ``metadata_changed`` set, so that bound views can update their commands.
 
    Use the source only on its window's UI thread. Its mutating members throw
    ``std::logic_error`` from another thread, after disposal and after the window
-   has shut down. Disposal raises :cpp:func:`disposed_event <gui_forms::BindingSource::disposed_event>`, deactivates the bindings and
-   empties the source; destroying an undisposed source disposes it.
+   has shut down. Disposal raises :cpp:func:`disposed_event <gui_forms::BindingSource::disposed_event>`, deactivates the bindings,
+   revokes the provider's link and empties the source; destroying an undisposed source disposes it.
 
    .. rubric:: Examples
 
@@ -234,13 +316,11 @@ gui_forms::BindingSource
       gf::Window window(root, gf::Size{200.0, 100.0});
       std::shared_ptr<gf::BindingSource> cities = std::make_shared<gf::BindingSource>(window);
 
-      gf::BindingRecord::FieldMap oslo;
-      oslo["name"] = std::string("Oslo");
-      gf::BindingRecord::FieldMap lima;
-      lima["name"] = std::string("Lima");
-      (*cities).set_records({gf::BindingRecord("city.oslo", oslo),
-                             gf::BindingRecord("city.lima", lima)});
-      // position() is 0, the first record is current
+      gf::BindingTable& table = *(*cities).table();
+      static_cast<void>(table.add_column(gf::BindingColumn{"name", gf::BindingValueKind::text}));
+      table.assign({gf::BindingRow{"city.oslo", {std::string("Oslo")}},
+                    gf::BindingRow{"city.lima", {std::string("Lima")}}});
+      // position() is 0, the first row is current
       static_cast<void>((*cities).move_next());
       std::optional<gf::BindingValue> name = (*cities).current_field("Name");
       // name holds std::string("Lima")
@@ -261,10 +341,9 @@ gui_forms::BindingSource
           Navigator navigator;
           gf::on((*notes).position_changed(), navigator, &Navigator::on_position);
 
-          gf::BindingRecord::FieldMap fields;
-          fields["title"] = std::string("Draft");
-          static_cast<void>((*notes).add(gf::BindingRecord("note.1", fields)));
-          // navigator.shown is 0: the first record became current
+          static_cast<void>((*(*notes).table()).add_column(gf::BindingColumn{"title"}));
+          static_cast<void>((*notes).add(gf::BindingRow{"note.1", {std::string("Draft")}}));
+          // navigator.shown is 0: the first row became current
           static_cast<void>((*notes).set_current_field("title", std::string("Final")));
           (*notes).cancel_edit();
           // the title is "Draft" again
@@ -278,25 +357,41 @@ gui_forms::BindingSource
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const BindingRecord> records() const noexcept
+   .. cpp:function:: const std::shared_ptr<BindingProvider>& provider() const noexcept
 
-      The records, in order. ``set_records(records, metadata_changed = false)``
-      replaces them all. Every record needs a stable ID, unique in the list and
-      following the :cpp:class:`StableId <gui_forms::StableId>` segment rule (a bound grid names its row after
-      it), and its field and error names must not collide after trimming and
-      ASCII case folding; otherwise ``std::invalid_argument`` is thrown and
-      nothing changes. The record with the previous current stable ID stays
-      current; otherwise the first record becomes current. It raises
-      :cpp:func:`data_source_changed <gui_forms::BindingSource::data_source_changed>`, then :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with ``reset``, then the position
-      events if the current record changed.
+      The :cpp:class:`BindingProvider <gui_forms::BindingProvider>` whose rows the source shows. ``set_provider(provider)``
+      binds another (null binds a new empty :cpp:class:`BindingTable <gui_forms::BindingTable>`): the previous one
+      is detached and its :cpp:class:`BindingProviderLink <gui_forms::BindingProviderLink>` revoked, a sort or filter whose
+      columns the new schema lacks is dropped, and the first row becomes
+      current. It raises :cpp:func:`data_source_changed <gui_forms::BindingSource::data_source_changed>`, then :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with
+      ``reset``, then the position events if the current row changed.
 
-   .. cpp:function:: void set_records(std::vector<BindingRecord> records, bool metadata_changed = false)
+   .. cpp:function:: void set_provider(std::shared_ptr<BindingProvider> provider)
 
-      Sets :cpp:func:`records <gui_forms::BindingSource::records>`; see the property's description above.
+      Sets :cpp:func:`provider <gui_forms::BindingSource::provider>`; see the property's description above.
+
+   .. cpp:function:: std::shared_ptr<BindingTable> table() const noexcept
+
+      The provider when it is a :cpp:class:`BindingTable <gui_forms::BindingTable>`, otherwise null. Changing the
+      table changes the source: ``assign`` replaces every row (the row with the
+      previous current stable ID stays current, otherwise the first row
+      becomes current), and ``append``, :cpp:func:`insert <gui_forms::BindingSource::insert>`, ``remove`` and ``set_value``
+      raise the matching list changes.
+
+   .. cpp:function:: const BindingSchema& schema() const noexcept
+
+      The provider's columns, as last read: on binding and on every reset.
+      ``column_of(name)`` finds a column by any spelling of its name.
+
+   .. cpp:function:: std::uint64_t generation() const noexcept
+
+      A counter that every change the provider reports advances. A value read
+      with ``value_at(generation, row, column)`` is refused, as an empty
+      optional, once the generation has moved on.
 
    .. cpp:function:: std::size_t count() const noexcept
 
-      The number of records.
+      The number of rows shown: the provider's, or those the filter keeps.
 
    .. cpp:function:: std::ptrdiff_t position() const noexcept
 
@@ -312,14 +407,54 @@ gui_forms::BindingSource
 
       Sets :cpp:func:`position <gui_forms::BindingSource::position>`; see the property's description above.
 
-   .. cpp:function:: const BindingRecord* current() const noexcept
+   .. cpp:function:: std::string current_stable_id() const
 
-      A pointer to the current record, or null when there is none. It is
-      invalidated by any change to the list.
+      The current row's stable ID, or an empty string when there is none.
 
    .. cpp:function:: std::vector<std::shared_ptr<Binding>> bindings() const
 
       The bindings currently connected to the source.
+
+   .. cpp:function:: const std::vector<BindingSortKey>& sort() const noexcept
+
+      The sort keys, each a column name and a :cpp:enum:`BindingSortDirection <gui_forms::BindingSortDirection>`.
+      ``set_sort(keys)`` sorts the shown rows and :cpp:func:`remove_sort <gui_forms::BindingSource::remove_sort>` restores the
+      provider's order. A provider that sorts is asked to; otherwise the
+      source builds an index of the keys, kept up to date as rows are
+      inserted, removed and changed. Equal keys keep the provider's order,
+      and text compares ignoring case, by code point. An unknown column
+      throws ``std::invalid_argument`` and changes nothing.
+
+   .. cpp:function:: void set_sort(std::vector<BindingSortKey> keys)
+
+      Sets :cpp:func:`sort <gui_forms::BindingSource::sort>`; see the property's description above.
+
+   .. cpp:function:: const BindingFilter& filter() const noexcept
+
+      The :cpp:class:`BindingFilter <gui_forms::BindingFilter>`, a list of :cpp:class:`BindingPredicate <gui_forms::BindingPredicate>` values that every
+      shown row satisfies. ``set_filter(filter)`` and :cpp:func:`remove_filter <gui_forms::BindingSource::remove_filter>` set and
+      clear it, asking the provider or keeping an index as for :cpp:func:`sort <gui_forms::BindingSource::sort>`.
+
+   .. cpp:function:: void set_filter(BindingFilter filter)
+
+      Sets :cpp:func:`filter <gui_forms::BindingSource::filter>`; see the property's description above.
+
+   .. cpp:function:: BindingViewMode view_mode() const noexcept
+
+      How the rows are ordered: ``provider_order`` with no sort or filter,
+      ``provider_view`` when the provider sorts or filters itself (its
+      :cpp:class:`BindingProviderCapabilities <gui_forms::BindingProviderCapabilities>` say so), and ``index`` when the source keeps
+      its own index of the sort keys and filter memberships.
+
+   .. cpp:function:: std::size_t view_node_count() const noexcept
+
+      The view index's storage (nodes, key text bytes), for bounded-memory checks; zeros without an index.
+
+   .. cpp:function:: std::size_t view_text_bytes() const noexcept
+
+   .. cpp:function:: std::uint64_t provider_reads() const noexcept
+
+      The provider calls this source has made, for bounded-cost checks.
 
    .. cpp:function:: bool allow_edit() const noexcept
 
@@ -332,7 +467,7 @@ gui_forms::BindingSource
 
    .. cpp:function:: bool allow_new() const noexcept
 
-      Whether records may be added; while false, :cpp:func:`add <gui_forms::BindingSource::add>` and :cpp:func:`insert <gui_forms::BindingSource::insert>` throw
+      Whether rows may be added; while false, :cpp:func:`add <gui_forms::BindingSource::add>` and :cpp:func:`insert <gui_forms::BindingSource::insert>` throw
       ``std::logic_error``.
 
    .. cpp:function:: void set_allow_new(bool allow)
@@ -373,14 +508,14 @@ gui_forms::BindingSource
 
    .. cpp:function:: const CurrencyManager& currency_manager() const noexcept
 
-      The :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>` of the source: the same records and position
+      The :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>` of the source: the same rows and position
       behind the :cpp:class:`BindingManagerBase <gui_forms::BindingManagerBase>` interface, as returned by
       ``BindingContext::manager``.
 
    .. cpp:function:: BindingSourceSnapshot snapshot() const
 
       A :cpp:class:`BindingSourceSnapshot <gui_forms::BindingSourceSnapshot>` with the count, position and current stable ID,
-      a revision counter, counts of resets, field changes, position changes and
+      the generation, a revision counter, counts of resets, field changes, position changes and
       suspended mutations, and whether binding is suspended, an edit is in
       progress and :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` is raised.
 
@@ -390,7 +525,8 @@ gui_forms::BindingSource
    .. cpp:function:: Event<const BindingListChange&>& list_changed() noexcept
 
       Raised after every change to the list, with a :cpp:class:`BindingListChange <gui_forms::BindingListChange>` giving
-      its ``kind``: ``reset`` after :cpp:func:`set_records <gui_forms::BindingSource::set_records>`, :cpp:func:`clear <gui_forms::BindingSource::clear>`, :cpp:func:`resume_binding <gui_forms::BindingSource::resume_binding>` or a
+      its ``kind``: ``reset`` after :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>`, a provider's reset, a move,
+      a change of more than 64 rows at once, :cpp:func:`clear <gui_forms::BindingSource::clear>`, :cpp:func:`resume_binding <gui_forms::BindingSource::resume_binding>` or a
       reset request, ``item_added`` and ``item_removed`` with the index and stable ID,
       ``item_changed`` with the index, stable ID and, for a field change, the
       field name, and :cpp:func:`position_changed <gui_forms::BindingSource::position_changed>`. It is raised after the bound
@@ -410,8 +546,9 @@ gui_forms::BindingSource
    .. cpp:function:: Event<std::ptrdiff_t>& position_changed() noexcept
 
       Raised with the current position whenever the position or the current
-      record changes: when :cpp:func:`position <gui_forms::BindingSource::position>` is set or moved, and when :cpp:func:`set_records <gui_forms::BindingSource::set_records>`,
-      :cpp:func:`insert <gui_forms::BindingSource::insert>`, :cpp:func:`remove_at <gui_forms::BindingSource::remove_at>` or :cpp:func:`clear <gui_forms::BindingSource::clear>` shift or replace the current record.
+      row changes: when :cpp:func:`position <gui_forms::BindingSource::position>` is set or moved, and when :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>`,
+      a provider's change, :cpp:func:`insert <gui_forms::BindingSource::insert>`, :cpp:func:`remove_at <gui_forms::BindingSource::remove_at>` or :cpp:func:`clear <gui_forms::BindingSource::clear>` shift or replace
+      the current row.
       The index may be unchanged, when removing the current record makes the
       next one current.
 
@@ -421,7 +558,7 @@ gui_forms::BindingSource
 
    .. cpp:function:: Event<>& data_source_changed() noexcept
 
-      Raised by :cpp:func:`set_records <gui_forms::BindingSource::set_records>`, before its :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>`.
+      Raised by :cpp:func:`set_provider <gui_forms::BindingSource::set_provider>`, before its :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>`.
 
    .. cpp:function:: Event<const std::string&>& data_member_changed() noexcept
 
@@ -439,6 +576,8 @@ gui_forms::BindingSource
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: std::optional<std::size_t> column_of(std::string_view name) const
 
    .. cpp:function:: bool move_first()
 
@@ -459,10 +598,44 @@ gui_forms::BindingSource
       Makes the previous record current. Returns false at the start of the
       list.
 
+   .. cpp:function:: std::optional<BindingValue> value(std::size_t row, std::size_t column) const
+
+      ``value(row, column)`` returns a cell of a shown row, or an empty optional
+      when the provider gave no valid answer for it (:cpp:func:`error <gui_forms::BindingSource::error>` says why).
+      ``field(row, name)`` finds the column by name. Every read goes through a
+      bounded cache of recently read rows, so painting a window of a large
+      provider reads only the rows it shows.
+
+   .. cpp:function:: std::optional<BindingValue> value_at(std::uint64_t generation, std::size_t row, std::size_t column) const
+
+      value, refused (empty) when generation is not the current one.
+
+   .. cpp:function:: std::optional<BindingValue> field(std::size_t row, std::string_view name) const
+
+   .. cpp:function:: std::string stable_id(std::size_t row) const
+
+      ``stable_id(row)`` returns a shown row's stable ID.
+
+   .. cpp:function:: std::string error(std::size_t row, std::size_t column) const
+
+      ``error(row, column)`` returns the provider's error text for a cell, or
+      for the row with ``binding_whole_row``, or why its answer was refused, or
+      an empty string.
+
+   .. cpp:function:: bool read_only(std::size_t row, std::size_t column) const
+
+      ``read_only(row, column)`` is true unless the source, the column, the row
+      and the provider's per-cell flag all allow writing.
+
+   .. cpp:function:: BindingWriteResult write(std::size_t row, std::size_t column, BindingValue value)
+
+      ``write(row, column, value)`` writes a cell straight to the provider and
+      returns its :cpp:class:`BindingWriteResult <gui_forms::BindingWriteResult>`, accepted or refused with a reason.
+
    .. cpp:function:: std::optional<BindingValue> current_field(std::string_view field) const
 
-      ``current_field(name)`` returns the value of a field of the current record,
-      or an empty optional when there is no current record or no such field.
+      ``current_field(name)`` returns the value of a field of the current row,
+      or an empty optional when there is no current row or no such field.
 
    .. cpp:function:: std::string current_error(std::string_view field) const
 
@@ -470,50 +643,64 @@ gui_forms::BindingSource
       field, or for the record as a whole when the name is empty, or an empty
       string.
 
-   .. cpp:function:: std::size_t add(BindingRecord record)
+   .. cpp:function:: std::optional<std::size_t> add(BindingRow row)
 
-      Appends a record and returns its index; see :cpp:func:`insert <gui_forms::BindingSource::insert>`.
+      Appends a row through the provider; see :cpp:func:`insert <gui_forms::BindingSource::insert>`.
 
-   .. cpp:function:: std::size_t insert(std::size_t index, BindingRecord record)
+   .. cpp:function:: std::optional<std::size_t> insert(std::size_t index, BindingRow row)
 
-      ``insert(index, record)`` inserts a record and returns its index. When
-      there was no current record, the first record becomes current; otherwise
-      the current record stays current, and its position moves when the record
-      is inserted before it. Throws ``std::out_of_range`` past the end, and
-      ``std::invalid_argument`` for a duplicate stable ID or an invalid record.
+      ``insert(index, row)`` asks the provider to insert a :cpp:class:`BindingRow <gui_forms::BindingRow>` (values
+      by column position) before the row shown at ``index``, and returns the
+      new row's position, or an empty optional when the filter hides it. When
+      there was no current row, the first row becomes current; otherwise the
+      current row stays current. Throws ``std::out_of_range`` past the end,
+      ``std::logic_error`` when the provider cannot insert, and
+      ``std::invalid_argument`` when it refuses the row (a duplicate stable ID,
+      for one).
 
    .. cpp:function:: bool remove_at(std::size_t index)
 
-      Removes the record at an index and returns true, or returns false past
-      the end. When the current record is removed, the record that takes its
-      index becomes current, or the new last record.
+      Removes the row at an index through the provider and returns true, or
+      returns false past the end. When the current row is removed, the row
+      that takes its index becomes current, or the new last row.
 
    .. cpp:function:: bool remove_current()
 
-      Removes the current record. Returns false when there is none.
+      Removes the current row. Returns false when there is none.
 
    .. cpp:function:: void clear()
 
-      Removes every record and raises :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with ``reset``. The
-      position becomes -1.
+      Removes every row and raises :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with ``reset``. The position
+      becomes -1.
 
    .. cpp:function:: std::optional<std::size_t> find(std::string_view field, const BindingValue& value) const
 
-      ``find(name, value)`` returns the index of the first record whose field
-      equals the value, or an empty optional.
+      ``find(name, value)`` returns the position of the first row whose field
+      equals the value, or an empty optional, reading every row until it
+      finds one. ``find_stable_id(id)`` finds a row by its stable ID.
+
+   .. cpp:function:: std::optional<std::size_t> find_stable_id(std::string_view stable_id) const
+
+   .. cpp:function:: void remove_sort()
+
+   .. cpp:function:: void remove_filter()
+
+   .. cpp:function:: std::size_t provider_row(std::size_t row) const
+
+      The provider row behind a view row (below count()).
 
    .. cpp:function:: bool begin_edit()
 
-      Takes a snapshot of the current record so that :cpp:func:`cancel_edit <gui_forms::BindingSource::cancel_edit>` can restore
-      it. Returns false when there is no current record, editing is not allowed
-      or the record is not editable. Calling it again during the same edit
-      keeps the first snapshot.
+      Takes a snapshot of the current row so that :cpp:func:`cancel_edit <gui_forms::BindingSource::cancel_edit>` can restore
+      it. Returns false when there is no current row, editing is not allowed
+      or every cell of the row is read-only. Calling it again during the same
+      edit keeps the first snapshot.
 
    .. cpp:function:: void cancel_edit()
 
-      Restores the record from the snapshot taken by :cpp:func:`begin_edit <gui_forms::BindingSource::begin_edit>` and raises
-      ``item_changed``, and :cpp:func:`current_item_changed <gui_forms::BindingSource::current_item_changed>` when it is the current
-      record. Does nothing when no edit is in progress.
+      Writes the snapshot taken by :cpp:func:`begin_edit <gui_forms::BindingSource::begin_edit>` back to the provider and
+      raises ``item_changed``, and :cpp:func:`current_item_changed <gui_forms::BindingSource::current_item_changed>` when it is the current
+      row. Does nothing when no edit is in progress.
 
    .. cpp:function:: void end_edit()
 
@@ -541,23 +728,25 @@ gui_forms::BindingSource
 
    .. cpp:function:: bool reset_item(std::size_t index)
 
-      ``reset_item(index)`` raises ``item_changed`` for a record, so that controls
+      ``reset_item(index)`` raises ``item_changed`` for a row, so that controls
       bound to it show it again, and returns false past the end.
 
    .. cpp:function:: CurrencyManager& currency_manager() noexcept
 
-      The :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>` of the source: the same records and position
+      The :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>` of the source: the same rows and position
       behind the :cpp:class:`BindingManagerBase <gui_forms::BindingManagerBase>` interface, as returned by
       ``BindingContext::manager``.
 
    .. cpp:function:: bool set_current_field(std::string_view field, BindingValue value)
 
-      ``set_current_field(name, value)`` changes a field of the current record,
-      adding it when it does not exist, and raises :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with
-      ``item_changed`` and then :cpp:func:`current_item_changed <gui_forms::BindingSource::current_item_changed>`. It begins an edit
-      first, so :cpp:func:`cancel_edit <gui_forms::BindingSource::cancel_edit>` can undo it. Returns false, changing nothing,
-      when there is no current record, editing is not allowed, the record is
-      not editable or the value is unchanged.
+      ``set_current_field(name, value)`` writes a field of the current row and
+      raises :cpp:func:`list_changed <gui_forms::BindingSource::list_changed>` with ``item_changed`` and then
+      :cpp:func:`current_item_changed <gui_forms::BindingSource::current_item_changed>`. The built-in :cpp:class:`BindingTable <gui_forms::BindingTable>` grows a column for
+      a field it has not got; another provider's columns are fixed. It begins
+      an edit first, so :cpp:func:`cancel_edit <gui_forms::BindingSource::cancel_edit>` can undo it. Returns false, changing
+      nothing, when there is no current row, editing is not allowed, the row
+      or cell is read-only, the value is not of the column's kind, the value
+      is unchanged or the provider refuses it.
 
 
    .. rubric:: Extension points
@@ -573,3 +762,7 @@ gui_forms::BindingSource
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+   .. cpp:member:: constexpr std::size_t row_cache_rows
+
+      The rows the row cache holds at most. Default: ``512U``.

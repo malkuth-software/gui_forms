@@ -4,7 +4,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <map>
 #include <string>
 #include <utility>
 
@@ -41,34 +40,6 @@ enum class BindingListChangeKind : std::uint8_t {
     item_changed,
     item_removed,
     position_changed,
-};
-
-struct BindingRecord final {
-    using FieldMap = std::map<std::string, BindingValue>;
-    using ErrorMap = std::map<std::string, std::string>;
-
-    BindingRecord() = default;
-    BindingRecord(std::string identity,
-                  FieldMap values,
-                  bool can_edit = true,
-                  ErrorMap error_values = {})
-        : stable_id(std::move(identity)), fields(std::move(values)),
-          editable(can_edit), errors(std::move(error_values)) {}
-
-    std::string stable_id;
-    FieldMap fields;
-    bool editable{true};
-    // Keys share the canonical field vocabulary; empty means record-wide.
-    ErrorMap errors;
-
-    friend bool operator==(const BindingRecord& left,
-                           const BindingRecord& right) noexcept(noexcept(
-        left.stable_id == right.stable_id && left.fields == right.fields &&
-        left.editable == right.editable && left.errors == right.errors)) {
-        return left.stable_id == right.stable_id &&
-               left.fields == right.fields && left.editable == right.editable &&
-               left.errors == right.errors;
-    }
 };
 
 struct BindingListChange final {
@@ -109,6 +80,8 @@ struct BindingSourceSnapshot final {
     std::ptrdiff_t position{-1};
     std::string current_stable_id;
     std::uint64_t revision{};
+    // The provider-change generation (BindingSource::generation).
+    std::uint64_t generation{};
     std::uint64_t resets{};
     std::uint64_t field_changes{};
     std::uint64_t position_changes{};

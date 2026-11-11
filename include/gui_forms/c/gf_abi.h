@@ -2457,6 +2457,145 @@ typedef struct gf_binding_record {
 #define GF_BINDING_MAXIMUM_FIELDS 1024u
 /* The most records one bindings.add_records call takes (since 1.2). */
 #define GF_BINDING_MAXIMUM_RECORDS_PER_CALL 65536u
+/* The position add_record gives a record the source's filter hides (since
+ * 1.2). */
+#define GF_BINDING_HIDDEN_POSITION 18446744073709551615ull
+/* The column that names a whole row: its own error text, or a change to
+ * every cell of it (since 1.2). */
+#define GF_BINDING_WHOLE_ROW 18446744073709551615ull
+
+/*
+ * Since 1.2 (N31): data providers. A source shows the rows of a provider in
+ * place instead of holding copies: the provider declares its columns once,
+ * answers the source's reads (the row count, a cell, a row's stable id) and
+ * accepts or refuses its writes, and reports its own changes through
+ * bindings.notify. A source made by create_with starts with the library's
+ * own provider, a column table, which add_record and the other record slots
+ * fill (growing a column for each new field name).
+ *
+ * The provider is untrusted data: a callback that fails, or answers a value
+ * of the wrong kind, text that is not UTF-8 or past the bounds, or an id
+ * that breaks the StableId rule, makes that cell or row an error the source
+ * shows, never a failure of the source. Only the row count is trusted to
+ * change through notify alone.
+ */
+
+/* One column of a provider: its name (a registered name in any spelling;
+ * names are distinct after folding), the gf_value_kind it holds
+ * (GF_VALUE_KIND_NULL for any kind; every column takes a NULL value), and
+ * read_only 0 or 1. reserved is zero. */
+typedef struct gf_binding_column {
+    uint32_t struct_size;
+    gf_value_kind kind;
+    gf_utf8_view name;
+    uint32_t read_only;
+    uint32_t reserved;
+} gf_binding_column;
+
+/* gf_binding_sort_direction. */
+typedef uint32_t gf_binding_sort_direction;
+#define GF_BINDING_SORT_ASCENDING 0u
+#define GF_BINDING_SORT_DESCENDING 1u
+
+/* One sort key: a column by name and its direction. Equal keys keep the
+ * provider's order; text compares ignoring case, by code point. */
+typedef struct gf_binding_sort_key {
+    uint32_t struct_size;
+    gf_binding_sort_direction direction;
+    gf_utf8_view column;
+} gf_binding_sort_key;
+
+/* gf_binding_predicate_operator: how a cell is compared with the operand
+ * (contains and starts_with compare text ignoring case; is_null and
+ * is_not_null take no operand). */
+typedef uint32_t gf_binding_predicate_operator;
+#define GF_BINDING_PREDICATE_EQUAL 0u
+#define GF_BINDING_PREDICATE_NOT_EQUAL 1u
+#define GF_BINDING_PREDICATE_LESS 2u
+#define GF_BINDING_PREDICATE_LESS_OR_EQUAL 3u
+#define GF_BINDING_PREDICATE_GREATER 4u
+#define GF_BINDING_PREDICATE_GREATER_OR_EQUAL 5u
+#define GF_BINDING_PREDICATE_CONTAINS 6u
+#define GF_BINDING_PREDICATE_STARTS_WITH 7u
+#define GF_BINDING_PREDICATE_IS_NULL 8u
+#define GF_BINDING_PREDICATE_IS_NOT_NULL 9u
+
+/* One filter predicate: a column by name, an operator and its operand (NULL
+ * for none). A filter shows the rows every predicate holds for. */
+typedef struct gf_binding_predicate {
+    uint32_t struct_size;
+    gf_binding_predicate_operator op;
+    gf_utf8_view column;
+    const gf_value* operand;
+} gf_binding_predicate;
+
+/* gf_binding_notification_kind: a provider's change. reset: anything may
+ * have changed (the columns too); inserted and removed: count rows at row;
+ * moved: count rows at row now start at target; changed: the cell (row,
+ * target), or every cell of the row with target GF_BINDING_WHOLE_ROW. Rows
+ * are the provider's, counted after the change for inserted, before it
+ * for removed and moved. */
+typedef uint32_t gf_binding_notification_kind;
+#define GF_BINDING_NOTIFY_RESET 0u
+#define GF_BINDING_NOTIFY_INSERTED 1u
+#define GF_BINDING_NOTIFY_REMOVED 2u
+#define GF_BINDING_NOTIFY_MOVED 3u
+#define GF_BINDING_NOTIFY_CHANGED 4u
+
+/* gf_binding_provider_flags: what a provider does itself. */
+typedef uint32_t gf_binding_provider_flags;
+/* apply_sort orders its rows; otherwise the source keeps its own index. */
+#define GF_BINDING_PROVIDER_SORTS 1u
+/* apply_filter subsets its rows; otherwise the source keeps its own index. */
+#define GF_BINDING_PROVIDER_FILTERS 2u
+/* insert_row adds rows. */
+#define GF_BINDING_PROVIDER_INSERTS 4u
+/* remove_rows removes rows. */
+#define GF_BINDING_PROVIDER_REMOVES 8u
+
+/*
+ * A provider's callbacks, called on the source's UI thread with context,
+ * only from within a call on the source (a read while painting, a binding's
+ * transfer, a slot), never after release. Rows are the provider's own
+ * order, below its row count. Text a callback lends (a value's text, an id,
+ * a reason, an error) stays valid until the library's next callback on the
+ * provider. Each returns GF_STATUS_OK to answer; any other status is a
+ * refusal or, for a read, a cell error.
+ *
+ * row_count writes the number of rows (at most 2^31). read_value fills
+ * value, whose struct_size the library sets, with the cell (row, column).
+ * read_stable_id writes the row's stable id. write_value receives a value
+ * already checked against the column's kind and read-only flag, and writes
+ * accepted 1 to take it into the provider's data, 0 to refuse it with
+ * reason; the provider reports nothing for a write it accepted (the source
+ * applies it). read_cell_state, which may be null, writes the cell's
+ * read_only (0 or 1) and error text (empty for none), or the row's with
+ * column GF_BINDING_WHOLE_ROW. apply_sort and apply_filter, required with
+ * their flags, reorder or subset the rows (count 0 clears) and report a
+ * reset afterwards; insert_row and remove_rows, required with their flags,
+ * write accepted and report nothing (the source applies it). release,
+ * which may be null, is called once, when the source lets the provider go
+ * (another set_provider, or its disposal); no callback runs after it.
+ * reserved is zero.
+ */
+typedef struct gf_binding_provider_callbacks {
+    uint32_t struct_size;
+    gf_binding_provider_flags flags;
+    void* context;
+    gf_status (GF_CALL* row_count)(void* context, uint64_t* count);
+    gf_status (GF_CALL* read_value)(void* context, uint64_t row, uint64_t column, gf_value* value);
+    gf_status (GF_CALL* read_stable_id)(void* context, uint64_t row, gf_utf8_view* stable_id);
+    gf_status (GF_CALL* write_value)(void* context, uint64_t row, uint64_t column, const gf_value* value,
+                                     uint32_t* accepted, gf_utf8_view* reason);
+    gf_status (GF_CALL* read_cell_state)(void* context, uint64_t row, uint64_t column, uint32_t* read_only,
+                                         gf_utf8_view* error);
+    gf_status (GF_CALL* apply_sort)(void* context, const gf_binding_sort_key* keys, uint64_t count);
+    gf_status (GF_CALL* apply_filter)(void* context, const gf_binding_predicate* predicates, uint64_t count);
+    gf_status (GF_CALL* insert_row)(void* context, uint64_t row, gf_utf8_view stable_id, const gf_value* values,
+                                    uint64_t value_count, uint32_t* accepted);
+    gf_status (GF_CALL* remove_rows)(void* context, uint64_t row, uint64_t count, uint32_t* accepted);
+    void (GF_CALL* release)(void* context);
+} gf_binding_provider_callbacks;
 
 typedef struct gf_bindings_table {
     uint32_t struct_size;
@@ -2474,7 +2613,8 @@ typedef struct gf_bindings_table {
      * would; updated receives 0 when conversion or validation refused it. */
     gf_status (GF_CALL* read_value)(gf_object binding, uint32_t* updated);
     gf_status (GF_CALL* write_value)(gf_object binding, uint32_t* updated);
-    /* Appends a record; index receives its position. */
+    /* Appends a record; index receives its position
+     * (GF_BINDING_HIDDEN_POSITION when the source's filter hides it). */
     gf_status (GF_CALL* add_record)(gf_object source, const gf_binding_record* record, uint64_t* index);
     /* Inserts a record at index (at most the count). */
     gf_status (GF_CALL* insert_record)(gf_object source, uint64_t index, const gf_binding_record* record);
@@ -2506,6 +2646,40 @@ typedef struct gf_bindings_table {
      * GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes first. */
     gf_status (GF_CALL* add_records)(gf_object source, const gf_binding_record* records, uint64_t count,
                                      uint64_t* first);
+    /* Since 1.2 (N31). Binds the provider callbacks describes, with
+     * column_count columns (at most GF_BINDING_MAXIMUM_FIELDS), to source;
+     * provider receives its id for notify. NULL callbacks bind a new empty
+     * column table. The previous provider is let go (its release is called
+     * and its id refused from then on); the first row becomes current. The
+     * library copies columns and callbacks during the call. */
+    gf_status (GF_CALL* set_provider)(gf_object source, const gf_binding_column* columns, uint64_t column_count,
+                                      const gf_binding_provider_callbacks* callbacks, uint64_t* provider);
+    /* Since 1.2 (N31). Reports a provider's change, from any thread: on
+     * the source's UI thread outside a callback it applies at once,
+     * otherwise it is posted and applied there in order. An id the source
+     * has let go, or whose source is disposed, gives GF_STATUS_REMOVED. */
+    gf_status (GF_CALL* notify)(uint64_t provider, gf_binding_notification_kind kind, uint64_t row, uint64_t count,
+                                uint64_t target);
+    /* Since 1.2 (N31). Sorts the source's rows by count keys (0 clears),
+     * through the provider when it sorts, otherwise through the source's
+     * own index; an unknown column gives GF_STATUS_NOT_FOUND and changes
+     * nothing. */
+    gf_status (GF_CALL* set_sort)(gf_object source, const gf_binding_sort_key* keys, uint64_t count);
+    /* Since 1.2 (N31). Filters the source's rows by count predicates (0
+     * clears), as set_sort does. */
+    gf_status (GF_CALL* set_filter)(gf_object source, const gf_binding_predicate* predicates, uint64_t count);
+    /* Since 1.2 (N31). The source's generation, which every change
+     * advances, and its count of shown rows. */
+    gf_status (GF_CALL* generation)(gf_object source, uint64_t* generation, uint64_t* count);
+    /* Since 1.2 (N31). The cell (row, column) of the shown rows, read at
+     * generation, as properties.get gives a value; a generation that is no
+     * longer the source's gives GF_STATUS_STALE_HANDLE, a row or column
+     * past the source's GF_STATUS_NOT_FOUND, and a cell the provider gave
+     * no valid answer for GF_STATUS_INVALID_STATE with its error as the
+     * failure's message. */
+    gf_status (GF_CALL* read_cell)(gf_object source, uint64_t generation, uint64_t row, uint64_t column,
+                                   gf_value* value, char* text_buffer, uint64_t text_capacity,
+                                   uint64_t* text_required);
 } gf_bindings_table;
 
 /*

@@ -1499,6 +1499,121 @@
       "type": "uint32"
     },
     {
+      "name": "GF_BINDING_HIDDEN_POSITION",
+      "value": 18446744073709551615,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_BINDING_WHOLE_ROW",
+      "value": 18446744073709551615,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_BINDING_SORT_ASCENDING",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_SORT_DESCENDING",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PREDICATE_EQUAL",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PREDICATE_NOT_EQUAL",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PREDICATE_LESS",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PREDICATE_LESS_OR_EQUAL",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PREDICATE_GREATER",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PREDICATE_GREATER_OR_EQUAL",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PREDICATE_CONTAINS",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PREDICATE_STARTS_WITH",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PREDICATE_IS_NULL",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PREDICATE_IS_NOT_NULL",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_NOTIFY_RESET",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_NOTIFY_INSERTED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_NOTIFY_REMOVED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_NOTIFY_MOVED",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_NOTIFY_CHANGED",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PROVIDER_SORTS",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PROVIDER_FILTERS",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PROVIDER_INSERTS",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_BINDING_PROVIDER_REMOVES",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
       "name": "GF_SUBSURFACE_STATE_STOPPED",
       "value": 0,
       "type": "uint32"
@@ -2417,6 +2532,22 @@
     },
     {
       "name": "gf_control_update_mode",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_binding_sort_direction",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_binding_predicate_operator",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_binding_notification_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_binding_provider_flags",
       "type": "uint32_t"
     },
     {
@@ -8500,9 +8631,389 @@
       ]
     },
     {
+      "name": "gf_binding_column",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_value_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "read_only",
+          "type": "uint32_t",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 28,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_binding_sort_key",
+      "kind": "extensible",
+      "size": 24,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "direction",
+          "type": "gf_binding_sort_direction",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "column",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        }
+      ]
+    },
+    {
+      "name": "gf_binding_predicate",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "op",
+          "type": "gf_binding_predicate_operator",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "column",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "operand",
+          "type": "const gf_value*",
+          "offset": 24,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_binding_provider_callbacks",
+      "kind": "extensible",
+      "size": 96,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_binding_provider_flags",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "context",
+          "type": "void*",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "row_count",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "read_value",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "row",
+                "type": "uint64_t"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "value",
+                "type": "gf_value*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "read_stable_id",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "row",
+                "type": "uint64_t"
+              },
+              {
+                "name": "stable_id",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "write_value",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "row",
+                "type": "uint64_t"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "value",
+                "type": "const gf_value*"
+              },
+              {
+                "name": "accepted",
+                "type": "uint32_t*"
+              },
+              {
+                "name": "reason",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "read_cell_state",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "row",
+                "type": "uint64_t"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "read_only",
+                "type": "uint32_t*"
+              },
+              {
+                "name": "error",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "apply_sort",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "keys",
+                "type": "const gf_binding_sort_key*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              }
+            ]
+          }
+        },
+        {
+          "name": "apply_filter",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "predicates",
+                "type": "const gf_binding_predicate*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              }
+            ]
+          }
+        },
+        {
+          "name": "insert_row",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "row",
+                "type": "uint64_t"
+              },
+              {
+                "name": "stable_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "values",
+                "type": "const gf_value*"
+              },
+              {
+                "name": "value_count",
+                "type": "uint64_t"
+              },
+              {
+                "name": "accepted",
+                "type": "uint32_t*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "remove_rows",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "row",
+                "type": "uint64_t"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              },
+              {
+                "name": "accepted",
+                "type": "uint32_t*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "release",
+          "type": "function",
+          "offset": 88,
+          "size": 8,
+          "signature": {
+            "returns": "void",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "gf_bindings_table",
       "kind": "table",
-      "size": 112,
+      "size": 160,
       "align": 8,
       "fields": [
         {
@@ -8815,6 +9326,186 @@
               },
               {
                 "name": "first",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "set_provider",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "source",
+                "type": "gf_object"
+              },
+              {
+                "name": "columns",
+                "type": "const gf_binding_column*"
+              },
+              {
+                "name": "column_count",
+                "type": "uint64_t"
+              },
+              {
+                "name": "callbacks",
+                "type": "const gf_binding_provider_callbacks*"
+              },
+              {
+                "name": "provider",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "notify",
+          "type": "function",
+          "offset": 120,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "provider",
+                "type": "uint64_t"
+              },
+              {
+                "name": "kind",
+                "type": "gf_binding_notification_kind"
+              },
+              {
+                "name": "row",
+                "type": "uint64_t"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              },
+              {
+                "name": "target",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "set_sort",
+          "type": "function",
+          "offset": 128,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "source",
+                "type": "gf_object"
+              },
+              {
+                "name": "keys",
+                "type": "const gf_binding_sort_key*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "set_filter",
+          "type": "function",
+          "offset": 136,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "source",
+                "type": "gf_object"
+              },
+              {
+                "name": "predicates",
+                "type": "const gf_binding_predicate*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "generation",
+          "type": "function",
+          "offset": 144,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "source",
+                "type": "gf_object"
+              },
+              {
+                "name": "generation",
+                "type": "uint64_t*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.2"
+        },
+        {
+          "name": "read_cell",
+          "type": "function",
+          "offset": 152,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "source",
+                "type": "gf_object"
+              },
+              {
+                "name": "generation",
+                "type": "uint64_t"
+              },
+              {
+                "name": "row",
+                "type": "uint64_t"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "value",
+                "type": "gf_value*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
                 "type": "uint64_t*"
               }
             ]

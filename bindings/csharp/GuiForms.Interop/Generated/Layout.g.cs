@@ -863,9 +863,54 @@ public static unsafe class Layout
             failures += expect(output, "gf_binding_record.field_count offset", (long)((byte*)&value.field_count - start), 32);
         }
         {
+            gf_binding_column value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_binding_column size", sizeof(gf_binding_column), 32);
+            failures += expect(output, "gf_binding_column.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_binding_column.kind offset", (long)((byte*)&value.kind - start), 4);
+            failures += expect(output, "gf_binding_column.name offset", (long)((byte*)&value.name - start), 8);
+            failures += expect(output, "gf_binding_column.read_only offset", (long)((byte*)&value.read_only - start), 24);
+            failures += expect(output, "gf_binding_column.reserved offset", (long)((byte*)&value.reserved - start), 28);
+        }
+        {
+            gf_binding_sort_key value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_binding_sort_key size", sizeof(gf_binding_sort_key), 24);
+            failures += expect(output, "gf_binding_sort_key.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_binding_sort_key.direction offset", (long)((byte*)&value.direction - start), 4);
+            failures += expect(output, "gf_binding_sort_key.column offset", (long)((byte*)&value.column - start), 8);
+        }
+        {
+            gf_binding_predicate value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_binding_predicate size", sizeof(gf_binding_predicate), 32);
+            failures += expect(output, "gf_binding_predicate.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_binding_predicate.op offset", (long)((byte*)&value.op - start), 4);
+            failures += expect(output, "gf_binding_predicate.column offset", (long)((byte*)&value.column - start), 8);
+            failures += expect(output, "gf_binding_predicate.operand offset", (long)((byte*)&value.operand - start), 24);
+        }
+        {
+            gf_binding_provider_callbacks value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_binding_provider_callbacks size", sizeof(gf_binding_provider_callbacks), 96);
+            failures += expect(output, "gf_binding_provider_callbacks.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_binding_provider_callbacks.flags offset", (long)((byte*)&value.flags - start), 4);
+            failures += expect(output, "gf_binding_provider_callbacks.context offset", (long)((byte*)&value.context - start), 8);
+            failures += expect(output, "gf_binding_provider_callbacks.row_count offset", (long)((byte*)&value.row_count - start), 16);
+            failures += expect(output, "gf_binding_provider_callbacks.read_value offset", (long)((byte*)&value.read_value - start), 24);
+            failures += expect(output, "gf_binding_provider_callbacks.read_stable_id offset", (long)((byte*)&value.read_stable_id - start), 32);
+            failures += expect(output, "gf_binding_provider_callbacks.write_value offset", (long)((byte*)&value.write_value - start), 40);
+            failures += expect(output, "gf_binding_provider_callbacks.read_cell_state offset", (long)((byte*)&value.read_cell_state - start), 48);
+            failures += expect(output, "gf_binding_provider_callbacks.apply_sort offset", (long)((byte*)&value.apply_sort - start), 56);
+            failures += expect(output, "gf_binding_provider_callbacks.apply_filter offset", (long)((byte*)&value.apply_filter - start), 64);
+            failures += expect(output, "gf_binding_provider_callbacks.insert_row offset", (long)((byte*)&value.insert_row - start), 72);
+            failures += expect(output, "gf_binding_provider_callbacks.remove_rows offset", (long)((byte*)&value.remove_rows - start), 80);
+            failures += expect(output, "gf_binding_provider_callbacks.release offset", (long)((byte*)&value.release - start), 88);
+        }
+        {
             gf_bindings_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_bindings_table size", sizeof(gf_bindings_table), 112);
+            failures += expect(output, "gf_bindings_table size", sizeof(gf_bindings_table), 160);
             failures += expect(output, "gf_bindings_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_bindings_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_bindings_table.bind offset", (long)((byte*)&value.bind - start), 8);
@@ -881,6 +926,12 @@ public static unsafe class Layout
             failures += expect(output, "gf_bindings_table.current_field offset", (long)((byte*)&value.current_field - start), 88);
             failures += expect(output, "gf_bindings_table.set_current_field offset", (long)((byte*)&value.set_current_field - start), 96);
             failures += expect(output, "gf_bindings_table.add_records offset", (long)((byte*)&value.add_records - start), 104);
+            failures += expect(output, "gf_bindings_table.set_provider offset", (long)((byte*)&value.set_provider - start), 112);
+            failures += expect(output, "gf_bindings_table.notify offset", (long)((byte*)&value.notify - start), 120);
+            failures += expect(output, "gf_bindings_table.set_sort offset", (long)((byte*)&value.set_sort - start), 128);
+            failures += expect(output, "gf_bindings_table.set_filter offset", (long)((byte*)&value.set_filter - start), 136);
+            failures += expect(output, "gf_bindings_table.generation offset", (long)((byte*)&value.generation - start), 144);
+            failures += expect(output, "gf_bindings_table.read_cell offset", (long)((byte*)&value.read_cell - start), 152);
         }
         {
             gf_subsurface_content value = default;

@@ -257,6 +257,11 @@ add_library(gui_forms_core STATIC
     src/core/binding/value/property_collection_value/property_collection_value.cpp
     src/core/binding/value/property_object_value/property_object_value.cpp
     src/core/binding/currency_manager/currency_manager.cpp
+    src/core/binding/binding_schema/binding_schema.cpp
+    src/core/binding/binding_provider/binding_provider.cpp
+    src/core/binding/binding_table/binding_table.cpp
+    src/core/binding/binding_view/binding_order_tree.cpp
+    src/core/binding/binding_view/binding_view.cpp
     src/core/binding/binding_source/binding_source.cpp
     src/core/binding/binding/binding.cpp
     src/core/binding/control_bindings_collection/control_bindings_collection.cpp
@@ -4485,6 +4490,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_binding_tests tests/binding_tests.cpp)
     target_link_libraries(gui_forms_binding_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_binding_tests COMMAND gui_forms_binding_tests)
+    add_executable(gui_forms_binding_provider_tests tests/binding_provider_tests.cpp)
+    target_link_libraries(gui_forms_binding_provider_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_binding_provider_tests COMMAND gui_forms_binding_provider_tests)
     add_executable(gui_forms_number_format_tests tests/number_format_tests.cpp)
     target_link_libraries(gui_forms_number_format_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_number_format_tests COMMAND gui_forms_number_format_tests)

@@ -67,7 +67,7 @@ gui_forms::BindingContext
    .. seealso::
 
       :cpp:class:`BindingSource <gui_forms::BindingSource>`
-         The records whose currency managers the context holds.
+         The rows whose currency managers the context holds.
 
       :cpp:class:`Binding <gui_forms::Binding>`
          Connects a control property to a field of a source.
@@ -92,12 +92,10 @@ gui_forms::BindingContext
       std::shared_ptr<gf::Control> root = gf::make_control<gf::Control>(gf::StableId("app"));
       gf::Window window(root, gf::Size{200.0, 100.0});
       std::shared_ptr<gf::BindingSource> orders = std::make_shared<gf::BindingSource>(window);
-      gf::BindingRecord::FieldMap first;
-      first["number"] = std::int64_t{1001};
-      gf::BindingRecord::FieldMap second;
-      second["number"] = std::int64_t{1002};
-      (*orders).set_records({gf::BindingRecord("order.1001", first),
-                             gf::BindingRecord("order.1002", second)});
+      gf::BindingTable& table = *(*orders).table();
+      static_cast<void>(table.add_column(gf::BindingColumn{"number", gf::BindingValueKind::signed_integer}));
+      table.assign({gf::BindingRow{"order.1001", {std::int64_t{1001}}},
+                    gf::BindingRow{"order.1002", {std::int64_t{1002}}}});
 
       gf::BindingContext context(window);
       gf::CurrencyManager& manager = context.manager(orders);   // registers orders

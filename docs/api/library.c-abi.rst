@@ -82,9 +82,17 @@ Types
      -  
    * - :cpp:class:`gf_binding_arguments <gf_binding_arguments>`
      -  
+   * - :cpp:class:`gf_binding_column <gf_binding_column>`
+     -  
    * - :cpp:class:`gf_binding_field <gf_binding_field>`
      -  
+   * - :cpp:class:`gf_binding_predicate <gf_binding_predicate>`
+     -  
+   * - :cpp:class:`gf_binding_provider_callbacks <gf_binding_provider_callbacks>`
+     -  
    * - :cpp:class:`gf_binding_record <gf_binding_record>`
+     -  
+   * - :cpp:class:`gf_binding_sort_key <gf_binding_sort_key>`
      -  
    * - :cpp:class:`gf_bindings_table <gf_bindings_table>`
      -  
@@ -367,9 +375,21 @@ Types
 
    .. cpp:function:: gf_status add_records(gf_object source, const gf_binding_record* records, uint64_t count, uint64_t* first) const noexcept
 
+   .. cpp:function:: gf_status notify(uint64_t provider, gf_binding_notification_kind kind, uint64_t row, uint64_t count, uint64_t target) const noexcept
+
+   .. cpp:function:: gf_status generation(gf_object source, uint64_t* generation, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status read_cell(gf_object source, uint64_t generation, uint64_t row, uint64_t column, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
    .. cpp:function:: gf_status set_position(gf_object source, int64_t position, uint32_t* moved) const noexcept
 
    .. cpp:function:: gf_status set_current_field(gf_object source, gf_utf8_view field, const gf_value* value, uint32_t* accepted) const noexcept
+
+   .. cpp:function:: gf_status set_provider(gf_object source, const gf_binding_column* columns, uint64_t column_count, const gf_binding_provider_callbacks* callbacks, uint64_t* provider) const noexcept
+
+   .. cpp:function:: gf_status set_sort(gf_object source, const gf_binding_sort_key* keys, uint64_t count) const noexcept
+
+   .. cpp:function:: gf_status set_filter(gf_object source, const gf_binding_predicate* predicates, uint64_t count) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1398,6 +1418,22 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_binding_column
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_value_kind kind
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: uint32_t read_only
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_binding_field
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -1405,6 +1441,55 @@ Types
    .. cpp:member:: gf_utf8_view name
 
    .. cpp:member:: const gf_value* value
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_binding_predicate
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_binding_predicate_operator op
+
+   .. cpp:member:: gf_utf8_view column
+
+   .. cpp:member:: const gf_value* operand
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_binding_provider_callbacks
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*row_count)(void* context, uint64_t* count)
+
+   .. cpp:member:: gf_status (*read_value)(void* context, uint64_t row, uint64_t column, gf_value* value)
+
+   .. cpp:member:: gf_status (*read_stable_id)(void* context, uint64_t row, gf_utf8_view* stable_id)
+
+   .. cpp:member:: gf_status (*write_value)(void* context, uint64_t row, uint64_t column, const gf_value* value, uint32_t* accepted, gf_utf8_view* reason)
+
+   .. cpp:member:: gf_status (*read_cell_state)(void* context, uint64_t row, uint64_t column, uint32_t* read_only, gf_utf8_view* error)
+
+   .. cpp:member:: gf_status (*apply_sort)(void* context, const gf_binding_sort_key* keys, uint64_t count)
+
+   .. cpp:member:: gf_status (*apply_filter)(void* context, const gf_binding_predicate* predicates, uint64_t count)
+
+   .. cpp:member:: gf_status (*insert_row)(void* context, uint64_t row, gf_utf8_view stable_id, const gf_value* values, uint64_t value_count, uint32_t* accepted)
+
+   .. cpp:member:: gf_status (*remove_rows)(void* context, uint64_t row, uint64_t count, uint32_t* accepted)
+
+   .. cpp:member:: void (*release)(void* context)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_binding_provider_flags flags
+
+   .. cpp:member:: void* context
 
 .. cpp:namespace:: 0
 
@@ -1421,6 +1506,18 @@ Types
    .. cpp:member:: const gf_binding_field* fields
 
    .. cpp:member:: uint64_t field_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_binding_sort_key
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_binding_sort_direction direction
+
+   .. cpp:member:: gf_utf8_view column
 
 .. cpp:namespace:: 0
 
@@ -1456,6 +1553,18 @@ Types
    .. cpp:member:: gf_status (*set_current_field)(gf_object source, gf_utf8_view field, const gf_value* value, uint32_t* accepted)
 
    .. cpp:member:: gf_status (*add_records)(gf_object source, const gf_binding_record* records, uint64_t count, uint64_t* first)
+
+   .. cpp:member:: gf_status (*set_provider)(gf_object source, const gf_binding_column* columns, uint64_t column_count, const gf_binding_provider_callbacks* callbacks, uint64_t* provider)
+
+   .. cpp:member:: gf_status (*notify)(uint64_t provider, gf_binding_notification_kind kind, uint64_t row, uint64_t count, uint64_t target)
+
+   .. cpp:member:: gf_status (*set_sort)(gf_object source, const gf_binding_sort_key* keys, uint64_t count)
+
+   .. cpp:member:: gf_status (*set_filter)(gf_object source, const gf_binding_predicate* predicates, uint64_t count)
+
+   .. cpp:member:: gf_status (*generation)(gf_object source, uint64_t* generation, uint64_t* count)
+
+   .. cpp:member:: gf_status (*read_cell)(gf_object source, uint64_t generation, uint64_t row, uint64_t column, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
 
    .. cpp:member:: uint32_t struct_size
 

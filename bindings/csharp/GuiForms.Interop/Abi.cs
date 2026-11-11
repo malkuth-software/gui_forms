@@ -13,7 +13,7 @@ public static unsafe class Abi
     private static readonly object negotiation_lock = new object();
     // The negotiated tables, published once (N72): a call reads this
     // reference without the lock and borrows the table in place (ref
-    // readonly), so it neither locks nor copies seven tables per call. Null
+    // readonly), so it neither locks nor copies eight tables per call. Null
     // until the first negotiation succeeds.
     private static volatile Tables? negotiated;
 
@@ -24,6 +24,7 @@ public static unsafe class Abi
     public static ref readonly gf_dispatch_table dispatch => ref tables().dispatch;
     public static ref readonly gf_diagnostics_table diagnostics => ref tables().diagnostics;
     public static ref readonly gf_windows_table windows => ref tables().windows;
+    public static ref readonly gf_bindings_table bindings => ref tables().bindings;
 
     // Immutable once built: the published reference is the only writer's
     // hand-off, so readers need no lock.
@@ -36,10 +37,11 @@ public static unsafe class Abi
         public readonly gf_dispatch_table dispatch;
         public readonly gf_diagnostics_table diagnostics;
         public readonly gf_windows_table windows;
+        public readonly gf_bindings_table bindings;
 
         public Tables(gf_runtime_table runtime, gf_objects_table objects, gf_properties_table properties,
                       gf_events_table events, gf_dispatch_table dispatch, gf_diagnostics_table diagnostics,
-                      gf_windows_table windows)
+                      gf_windows_table windows, gf_bindings_table bindings)
         {
             this.runtime = runtime;
             this.objects = objects;
@@ -48,6 +50,7 @@ public static unsafe class Abi
             this.dispatch = dispatch;
             this.diagnostics = diagnostics;
             this.windows = windows;
+            this.bindings = bindings;
         }
     }
 
@@ -82,7 +85,8 @@ public static unsafe class Abi
             negotiate(Exports.get_dispatch_table(out gf_dispatch_table dispatch), "dispatch");
             negotiate(Exports.get_diagnostics_table(out gf_diagnostics_table diagnostics), "diagnostics");
             negotiate(Exports.get_windows_table(out gf_windows_table windows), "windows");
-            Tables made = new Tables(runtime, objects, properties, events, dispatch, diagnostics, windows);
+            negotiate(Exports.get_bindings_table(out gf_bindings_table bindings), "bindings");
+            Tables made = new Tables(runtime, objects, properties, events, dispatch, diagnostics, windows, bindings);
             negotiated = made;
             return made;
         }
