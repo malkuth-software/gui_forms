@@ -1,4 +1,5 @@
 #include "gui_forms/control.hpp"
+#include "gui_forms/component/failures/component_failures.hpp"
 
 #include "gui_forms/binding.hpp"
 #include "gui_forms/binding/value/property_collection_value/property_collection_value.hpp"
@@ -2066,6 +2067,22 @@ void validate_insets(Insets value, const char* message) {
 } // namespace
 
 void Control::add_child(Ptr child) {
+    attach_child(std::move(child), 0U);
+}
+
+void Control::insert_child(Ptr child, std::size_t index) {
+    if (child && (*child).parent().get() == this) {
+        static_cast<void>(set_child_index((*child).runtime_id(), index));
+        return;
+    }
+    attach_child(std::move(child), index);
+}
+
+// The one visual-tree insertion: every check runs before the tree changes,
+// and a failed surface attachment takes the child out again, so a failure
+// leaves the tree as it was. index counts from the top, as set_child_index
+// does; zero is the topmost child, and an index past the end is the bottom.
+void Control::attach_child(Ptr child, std::size_t index) {
     require_mutable();
     if (lifecycle_notification_ ||
         (surface_root_ != nullptr && (*surface_root_).in_lifecycle_notification_)) {
@@ -2078,7 +2095,7 @@ void Control::add_child(Ptr child) {
         throw std::logic_error("GUI.Forms control cannot parent itself");
     }
     if (!(*child).is_alive()) {
-        throw std::logic_error("GUI.Forms cannot attach a disposed control");
+        throw DisposedError("GUI.Forms cannot attach a disposed control");
     }
     if ((*child).surface_root_) {
         (*(*child).surface_root_).require_root_thread("visual-tree mutation");
@@ -2103,18 +2120,26 @@ void Control::add_child(Ptr child) {
         throw std::logic_error("GUI.Forms cannot reparent another window root");
     }
     if (!(*child).is_alive()) {
-        throw std::logic_error("GUI.Forms callback disposed control during reparenting");
+        throw DisposedError("GUI.Forms callback disposed control during reparenting");
     }
 
     (*child).parent_ = weak_from_this();
     (*child).layout_slot_.reset();
     (*child).anchor_reference_.reset();
-    children_.push_back(child);
+    // WinForms index zero is topmost. GUI.Forms paints from front to back,
+    // so the topmost retained child is the final vector element.
+    const std::size_t from_top = std::min(index, children_.size());
+    children_.insert(children_.end() - static_cast<std::ptrdiff_t>(from_top),
+                     child);
     if (surface_root_) {
         try {
             (*surface_root_).attach_subtree(child, weak_from_this());
         } catch (...) {
-            children_.pop_back();
+            ChildList::iterator inserted = std::find(
+                children_.begin(), children_.end(), child);
+            if (inserted != children_.end()) {
+                children_.erase(inserted);
+            }
             (*child).parent_.reset();
             throw;
         }
@@ -4204,7 +4229,7 @@ bool Control::initialization_blocked() const noexcept {
 
 void Control::require_mutable() const {
     if (!is_alive()) {
-        throw std::logic_error("GUI.Forms cannot mutate a disposed control");
+        throw DisposedError("GUI.Forms cannot mutate a disposed control");
     }
     if (surface_root_) {
         (*surface_root_).require_root_thread("control mutation");

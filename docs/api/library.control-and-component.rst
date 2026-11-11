@@ -110,6 +110,8 @@ Related types
      - Position of an application-defined state in its control type's declaration list.
    * - :cpp:class:`DirectionRingStyle <gui_forms::DirectionRingStyle>`
      - The direction ring: an annulus between ``inner_radius`` and ``outer_radius`` (finite, 0 <= inner < outer) about the layout's centre in ``track``, with the picked item's sector of it in ``pick``.
+   * - :cpp:class:`DisposedError <gui_forms::DisposedError>`
+     - Thrown when a disposed object is mutated or attached.
    * - :cpp:class:`DockCapability <gui_forms::DockCapability>`
      - The parent edge the control docks to (Dock).
    * - :cpp:class:`DoubleBufferedCapability <gui_forms::DoubleBufferedCapability>`
@@ -272,6 +274,8 @@ Related types
      -  
    * - :cpp:class:`VisibleCapability <gui_forms::VisibleCapability>`
      - Whether the control takes part in presentation and input (Visible).
+   * - :cpp:class:`WrongThreadError <gui_forms::WrongThreadError>`
+     - Thrown when an object is used from a thread other than the one that owns it (a window's root thread).
 
 .. cpp:namespace:: gui_forms
 
@@ -1188,6 +1192,19 @@ Related types
    .. cpp:member:: Color track
 
    .. cpp:member:: Color pick
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DisposedError final : public std::logic_error
+
+   ``#include <gui_forms/component/failures/component_failures.hpp>``
+
+   Thrown when a disposed object is mutated or attached.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit DisposedError(const std::string& message)
 
 .. cpp:namespace:: gui_forms
 
@@ -2718,6 +2735,19 @@ Related types
    .. cpp:member:: PropertyCell<bool, VisibleCapability<Declaring>> visible
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: WrongThreadError final : public std::logic_error
+
+   ``#include <gui_forms/component/failures/component_failures.hpp>``
+
+   Thrown when an object is used from a thread other than the one that owns it (a window's root thread).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit WrongThreadError(const std::string& message)
 
 Enumerations
 ------------

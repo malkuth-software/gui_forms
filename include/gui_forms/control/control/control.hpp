@@ -354,6 +354,10 @@ public:
     [[nodiscard]] bool attached() const noexcept { return surface_root_ != nullptr; }
 
     void add_child(Ptr child);
+    // Adds child at index counted from the top (zero is topmost), in one
+    // validated mutation; a child already here moves as set_child_index
+    // moves it. On failure the tree is unchanged.
+    void insert_child(Ptr child, std::size_t index);
     [[nodiscard]] Ptr remove_child(RuntimeId child);
     bool set_child_index(RuntimeId child, std::size_t index);
     [[nodiscard]] std::optional<std::size_t> child_index(
@@ -1239,6 +1243,9 @@ protected:
     void on_dispose() noexcept override;
 
 private:
+    // add_child and insert_child: validates, then inserts child at index
+    // counted from the top.
+    void attach_child(Ptr child, std::size_t index);
     // The theme the control takes without its own override: its parent's,
     // else its window's, else the default theme.
     [[nodiscard]] const Theme& inherited_theme() const noexcept;

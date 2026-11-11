@@ -19,11 +19,7 @@
 namespace gui_forms::abi1 {
 
 gf_status enter_live_control(gf_object object, SlotIdentity slot, Control::Ptr& control) {
-    const gf_status entered = registry().enter_ui(slot, false);
-    if (entered != GF_STATUS_OK) {
-        return entered;
-    }
-    const gf_status found = registry().find_object(object, slot, control);
+    const gf_status found = registry().enter_object(object, slot, control);
     if (found != GF_STATUS_OK) {
         return found;
     }

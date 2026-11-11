@@ -20,7 +20,6 @@ get_filename_component(import_name "${IMPORT_LIBRARY}" NAME)
 file(TO_NATIVE_PATH "${VCVARS}" vcvars_native)
 file(TO_NATIVE_PATH "${SOURCE_DIR}/include" include_native)
 file(TO_NATIVE_PATH "${SOURCE_DIR}/tests/abi/gf_abi_layout_probe.c" probe_native)
-file(TO_NATIVE_PATH "${SOURCE_DIR}/tests/abi/gf_abi_coexistence.c" coexistence_native)
 file(TO_NATIVE_PATH "${SOURCE_DIR}/examples/reference/c_abi_consumer.c" consumer_native)
 file(TO_NATIVE_PATH "${SOURCE_DIR}/tests/abi/cpp/gf_abi_cpp_wrappers.cpp" wrappers_native)
 file(TO_NATIVE_PATH "${import_directory}" import_native)
@@ -33,7 +32,7 @@ set(link_flags "/link /LIBPATH:\"${import_native}\" ${import_name}")
 file(WRITE "${WORK_DIR}/build.bat"
     "@echo off\r\n"
     "call \"${vcvars_native}\" >nul || exit /b 1\r\n"
-    "cl ${c_flags} /Fe:layout_probe.exe \"${probe_native}\" \"${coexistence_native}\" || exit /b 1\r\n"
+    "cl ${c_flags} /Fe:layout_probe.exe \"${probe_native}\" || exit /b 1\r\n"
     "cl ${c_flags} /Fe:c_abi_consumer.exe \"${consumer_native}\" ${link_flags} || exit /b 1\r\n"
     "cl ${cpp_flags} /Fe:cpp_wrappers.exe \"${wrappers_native}\" ${link_flags} || exit /b 1\r\n"
     "exit /b 0\r\n")

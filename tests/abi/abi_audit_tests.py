@@ -35,8 +35,6 @@ class Case:
     mode: str = "report"
     # Whether the case's breaks are in the policy's ledger.
     recorded: bool = False
-    # The experimental 0.x header beside the case's c/ directory, or none.
-    legacy: str = ""
 
 
 SLOT_FIRST: str = "    gf_status (GF_CALL* first)(gf_object object, gf_point point);\n"
@@ -92,10 +90,6 @@ CASES: tuple[Case, ...] = (
     Case("blocking mode: recorded break", ((SLOT_SECOND, ""),), "break", "blocking", True),
     Case("report mode: recorded break among unrecorded", ((SLOT_FIRST + SLOT_SECOND, SLOT_SECOND + SLOT_FIRST),),
          "break", "report", True),
-    Case("a name the 0.x header declares", (), "legacy-name",
-         legacy="typedef struct gf_point {\n    double x;\n    double y;\n} gf_point;\n"),
-    Case("names the 0.x header does not declare", (), "",
-         legacy="typedef struct gf_legacy_point {\n    double x;\n} gf_legacy_point;\n"),
     Case("blocking mode: major changed", ((MAJOR, "#define GF_ABI_MAJOR 2u"),), "break", "blocking"),
     Case("report mode: major changed", ((MAJOR, "#define GF_ABI_MAJOR 2u"),), "", "report"),
 )
@@ -136,8 +130,6 @@ def run_case(case: Case, python: str, clang: str, base_text: str, baseline: Path
     header: Path = scratch / "gui_forms" / "c" / "gf_abi.h"
     header.parent.mkdir(parents=True, exist_ok=True)
     header.write_text(text, encoding="utf-8", newline="\n")
-    if case.legacy:
-        (scratch / "gui_forms" / "c_api.h").write_text(case.legacy, encoding="utf-8", newline="\n")
     policy: Path = scratch / "policy.json"
     write_policy(policy, [])
     findings: list[str] = []

@@ -8,6 +8,7 @@
 #endif
 
 #include "../../text/harfbuzz/bundled_face_loader.hpp"
+#include "../../../core/resources/fonts/bundled_font_families.hpp"
 #include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../../core/text/composite/text_composite.hpp"
@@ -351,7 +352,8 @@ public:
     using ImageMap = std::unordered_map<std::uint64_t, DecodedImage>;
 
     // One registered face; `bytes` stay valid while `owner` lives (an SkData, a copy, or a
-    // sealed bundled face). A lazy fallback has no bytes yet: its coverage and loader instead.
+    // sealed bundled face). A lazy fallback has no bytes yet: its coverage and loader instead. A
+    // lazy family face has a loader and its numbered family, and no coverage.
     struct FontSource {
         std::optional<FontRole> role;
         std::uint16_t weight;
@@ -360,6 +362,7 @@ public:
         std::shared_ptr<const void> owner;
         std::span<const gui_forms::detail::CodepointRange> coverage;
         text::LazyFaceLoader loader;
+        BundledFontFamily family;
     };
     std::vector<FontSource> font_sources;
     // The process's bundled font set, held so every window shares it (register_bundled_fonts).
@@ -531,7 +534,7 @@ public:
         const std::optional<FontFaceId> text_face = text_engine.register_owned_typeface(
             role, weight, italic, bytes, owner);
         if (!text_face) return false;
-        font_sources.push_back({role, weight, italic, bytes, std::move(owner), {}, {}});
+        font_sources.push_back({role, weight, italic, bytes, std::move(owner), {}, {}, {}});
         return true;
     }
 
@@ -543,7 +546,19 @@ public:
         const std::optional<FontFaceId> text_face =
             text_engine.register_lazy_fallback_typeface(weight, italic, coverage, loader);
         if (!text_face) return false;
-        font_sources.push_back({std::nullopt, weight, italic, {}, {}, coverage, loader});
+        font_sources.push_back({std::nullopt, weight, italic, {}, {}, coverage, loader, {}});
+        return true;
+    }
+
+    // Registers a face of a numbered bundled family that the text engine loads when text first
+    // names the family.
+    [[nodiscard]] bool register_lazy_family_font(BundledFontFamily family, std::uint16_t weight, bool italic,
+                                                 const text::LazyFaceLoader& loader) {
+        font_sources.reserve(font_sources.size() + 1U);
+        const std::optional<FontFaceId> text_face =
+            text_engine.register_lazy_family_typeface(family, weight, italic, loader);
+        if (!text_face) return false;
+        font_sources.push_back({std::nullopt, weight, italic, {}, {}, {}, loader, family});
         return true;
     }
 
@@ -637,6 +652,13 @@ bool SkiaRaster::register_bundled_fonts(std::shared_ptr<gui_forms::detail::Bundl
         }
         if (!registered && use.required) return false;
     }
+    // The faces of the numbered families a theme may name (font-family: Selawik), each read the
+    // first time text names its family.
+    for (const gui_forms::detail::BundledFamilyFace& family_face : gui_forms::detail::bundled_family_faces) {
+        const text::LazyFaceLoader loader = text::BundledFaceLoader{set, family_face.file_name};
+        if (!(*impl_).register_lazy_family_font(family_face.family, family_face.weight, family_face.italic, loader))
+            return false;
+    }
     (*impl_).bundled_fonts = std::move(set);
     return true;
 }
@@ -667,11 +689,17 @@ std::unique_ptr<PaintFramebuffer> SkiaRaster::create_framebuffer(Size logical_si
         return {};
     std::unique_ptr<SkiaFramebuffer> result = std::make_unique<SkiaFramebuffer>();
     for (const Impl::FontSource& source : (*impl_).font_sources) {
-        const bool registered = source.loader
-            ? (*(*result).raster.impl_).register_lazy_font(source.weight, source.italic, source.coverage,
-                                                          source.loader)
-            : (*(*result).raster.impl_).register_font_bytes(source.role, source.weight, source.italic,
-                                                           source.bytes, source.owner);
+        bool registered = false;
+        if (source.family.value != 0U) {
+            registered = (*(*result).raster.impl_).register_lazy_family_font(source.family, source.weight,
+                                                                            source.italic, source.loader);
+        } else if (source.loader) {
+            registered = (*(*result).raster.impl_).register_lazy_font(source.weight, source.italic,
+                                                                     source.coverage, source.loader);
+        } else {
+            registered = (*(*result).raster.impl_).register_font_bytes(source.role, source.weight, source.italic,
+                                                                      source.bytes, source.owner);
+        }
         if (!registered) return {};
     }
     (*(*result).raster.impl_).bundled_fonts = (*impl_).bundled_fonts;

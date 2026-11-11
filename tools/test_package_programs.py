@@ -106,7 +106,7 @@ class ManifestTests(unittest.TestCase):
         for name in ("libgcc_s_seh-1.dll", "libstdc++-6.dll", "LIBSTDC++-6.DLL", "libc++.dll", "libunwind.dll",
                      "libwinpthread-1.dll", "libgomp-1.dll"):
             self.assertIsNotNone(pp.WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name), name)
-        for name in ("libgui_forms_threading.dll", "gui_forms_abi0.dll", "kernel32.dll"):
+        for name in ("libgui_forms_threading.dll", "gui_forms_abi1.dll", "kernel32.dll"):
             self.assertIsNone(pp.WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name), name)
 
     def assert_rejected(self, mutate, pattern: str) -> None:

@@ -7,7 +7,7 @@ namespace GuiForms.Interop;
 public static class Constants
 {
     public const uint GF_ABI_MAJOR = 1u;
-    public const uint GF_ABI_MINOR = 1u;
+    public const uint GF_ABI_MINOR = 2u;
     public const int GF_STATUS_OK = 0;
     public const int GF_STATUS_INVALID_ARGUMENT = 1;
     public const int GF_STATUS_STALE_HANDLE = 2;
@@ -45,6 +45,7 @@ public static class Constants
     public const uint GF_TABLE_RULES = 19u;
     public const uint GF_TABLE_DATA_GRID = 20u;
     public const uint GF_TABLE_DOCKING = 21u;
+    public const uint GF_TABLE_FONTS = 22u;
     public const uint GF_TABLE_WINDOWS_PAINT_ENDPOINT = 256u;
     public const uint GF_ABI_ENTRY_SLOT = 4294967295u;
     public const uint GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES = 512u;
@@ -78,6 +79,7 @@ public static class Constants
     public const uint GF_CREATE_FLAGS_COMBINABLE = 1u;
     public const uint GF_CREATE_MAXIMUM_CHOICES = 256u;
     public const uint GF_CREATE_MAXIMUM_NAME_BYTES = 256u;
+    public const uint GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL = 65536u;
     public const uint GF_RUN_FLAGS_NONE = 0u;
     public const uint GF_OWNED_WINDOW_FLAGS_NONE = 0u;
     public const uint GF_OWNED_WINDOW_TOOL = 1u;
@@ -326,6 +328,8 @@ public static class Constants
     public const uint GF_RULE_CONDITION_ENABLED = 7u;
     public const uint GF_RULE_CONDITION_VISIBLE = 8u;
     public const uint GF_RULE_CONDITION_WINDOW_ACTIVE = 9u;
+    public const uint GF_RULE_CONDITION_DRAGGING = 12u;
+    public const uint GF_RULE_CONDITION_DROP_CANDIDATE = 13u;
     public const uint GF_RULE_MODIFIER_SHIFT = 1u;
     public const uint GF_RULE_MODIFIER_CONTROL = 2u;
     public const uint GF_RULE_MODIFIER_ALT = 4u;
@@ -335,6 +339,7 @@ public static class Constants
     public const uint GF_RULE_ACTION_SET = 3u;
     public const uint GF_RULE_ACTION_TOGGLE = 4u;
     public const uint GF_RULE_ACTION_FOCUS = 5u;
+    public const uint GF_RULE_ACTION_BEGIN_KEYBOARD_DRAG = 6u;
     public const uint GF_RULE_FLAGS_CONSUME = 1u;
     public const uint GF_RULE_STATE_ARMED = 1u;
     public const uint GF_RULE_STATE_REVOKED = 2u;

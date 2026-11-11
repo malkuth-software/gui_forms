@@ -36,6 +36,7 @@ typedef struct gf_kit {
     gf_rules_table rules;
     gf_data_grid_table data_grid;
     gf_docking_table docking;
+    gf_fonts_table fonts;
     /* Loaded by the custom part where the library has it (Windows). */
     gf_windows_paint_endpoint_table windows_paint_endpoint;
 } gf_kit;

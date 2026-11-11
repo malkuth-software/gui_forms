@@ -202,7 +202,7 @@ void paint_complete_name_inspection(Painter& painter, const Control& control,
     }
     const FontSpec inspection_font{
         authored_font.role, std::max(8.0, authored_font.size - 2.0),
-        400, false, authored_font.letter_spacing};
+        400, false, authored_font.letter_spacing, authored_font.family};
     const double maximum_text_width = std::max(
         8.0, std::min(244.0, viewport.width - 20.0));
     const std::vector<std::string> lines = wrap_complete_name(

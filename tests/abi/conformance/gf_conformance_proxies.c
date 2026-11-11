@@ -57,10 +57,37 @@ static void fonts(gf_kit* kit) {
     bad.font.letter_spacing = 20.0;
     gf_kit_status(kit, (*kit).properties.set(label, gf_kit_text("font"), &bad), GF_STATUS_INVALID_ARGUMENT,
                   "letter spacing past the size is refused");
+    /* The reserved word is the bundled family id (since 1.2, K1). */
+    uint32_t family = 0u;
+    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("selawik"), &family), GF_STATUS_OK,
+                  "a bundled family has an id, its name matched without case");
+    gf_kit_check(kit, family != 0u, "a family id is not zero");
+    char name[32];
+    gf_kit_status(kit, (*kit).fonts.family_name(family, name, sizeof(name), &required), GF_STATUS_OK,
+                  "the id names its family");
+    gf_kit_check(kit, required == 7u && memcmp(name, "Selawik", 7u) == 0, "the family's name round-trips");
+    uint32_t untouched = 77u;
+    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Carlito"), &untouched), GF_STATUS_NOT_FOUND,
+                  "a role's face has no id");
+    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Arial"), &untouched), GF_STATUS_NOT_FOUND,
+                  "a host font has no id");
+    gf_kit_check(kit, untouched == 77u, "a refused lookup leaves its output");
+    gf_kit_status(kit, (*kit).fonts.family_name(0u, name, sizeof(name), &required), GF_STATUS_NOT_FOUND,
+                  "zero names no family");
+    gf_value familied = font;
+    familied.font.reserved = family;
+    gf_kit_status(kit, (*kit).properties.set(label, gf_kit_text("font"), &familied), GF_STATUS_OK,
+                  "set a font with a family");
+    read = blank_value();
+    gf_kit_status(kit, (*kit).properties.get(label, gf_kit_text("font"), &read, text, sizeof(text), &required),
+                  GF_STATUS_OK, "read the familied font back");
+    gf_kit_check(kit, read.kind == GF_VALUE_KIND_FONT && read.font.reserved == family &&
+                          read.font.role == GF_FONT_ROLE_CONTENT,
+                 "the family round-trips beside the role");
     bad = font;
-    bad.font.reserved = 1u;
+    bad.font.reserved = 200u;
     gf_kit_status(kit, (*kit).properties.set(label, gf_kit_text("font"), &bad), GF_STATUS_INVALID_ARGUMENT,
-                  "a font's reserved field is zero");
+                  "an unknown family id is refused");
     gf_kit_status(kit, (*kit).objects.release(label), GF_STATUS_OK, "release the font label");
 }
 
@@ -127,6 +154,33 @@ static void collections(gf_kit* kit) {
     gf_kit_status(kit, (*kit).properties.element_at(combo, gf_kit_text("items"), 2u, &read, text, 2u, &required),
                   GF_STATUS_BUFFER_TOO_SMALL, "a small text buffer reports the size");
     gf_kit_check(kit, required == 5u, "the element's text size is reported");
+
+    /* read_elements reads a range in one call, its text packed (N15). */
+    gf_value range[2];
+    range[0] = blank_value();
+    range[1] = blank_value();
+    char packed[16];
+    gf_kit_status(kit, (*kit).properties.read_elements(combo, gf_kit_text("items"), 1u, 2u, range, packed, 2u,
+                                                       &required),
+                  GF_STATUS_BUFFER_TOO_SMALL, "read_elements measures its text first");
+    gf_kit_check(kit, required == 8u && range[0].kind == 0u, "a short buffer reports the total and writes no value");
+    gf_kit_status(kit, (*kit).properties.read_elements(combo, gf_kit_text("items"), 1u, 2u, range, packed,
+                                                       sizeof(packed), &required),
+                  GF_STATUS_OK, "read two elements at once");
+    gf_kit_check(kit, range[0].kind == GF_VALUE_KIND_TEXT && range[0].text.size == 3u &&
+                          memcmp(range[0].text.data, "two", 3u) == 0 && range[1].text.size == 5u &&
+                          memcmp(range[1].text.data, "three", 5u) == 0 && range[1].text.data == packed + 3,
+                 "the range reads in order, its text one after another");
+    gf_kit_status(kit, (*kit).properties.read_elements(combo, gf_kit_text("items"), 2u, 2u, range, packed,
+                                                       sizeof(packed), &required),
+                  GF_STATUS_NOT_FOUND, "a range past the count is not found");
+    gf_kit_status(kit, (*kit).properties.read_elements(combo, gf_kit_text("text"), 0u, 0u, range, packed,
+                                                       sizeof(packed), &required),
+                  GF_STATUS_INVALID_ARGUMENT, "read_elements needs a collection");
+    gf_kit_status(kit, (*kit).properties.read_elements(combo, gf_kit_text("items"), 0u,
+                                                       GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL + 1u, range, packed,
+                                                       sizeof(packed), &required),
+                  GF_STATUS_LIMIT_EXCEEDED, "read_elements bounds one call");
 
     /* Elements of a later minor's larger size are stepped by the first
      * element's struct_size (N14). */

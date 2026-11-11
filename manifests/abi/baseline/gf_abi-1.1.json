@@ -4,7 +4,7 @@
   "header": "include/gui_forms/c/gf_abi.h",
   "abi": {
     "major": 1,
-    "minor": 0
+    "minor": 1
   },
   "targets": [
     "x86_64-w64-windows-gnu",
@@ -20,7 +20,7 @@
     },
     {
       "name": "GF_ABI_MINOR",
-      "value": 0,
+      "value": 1,
       "type": "uint32"
     },
     {
@@ -164,7 +164,7 @@
       "type": "uint32"
     },
     {
-      "name": "GF_TABLE_POPUPS",
+      "name": "GF_TABLE_OVERLAYS",
       "value": 13,
       "type": "uint32"
     },
@@ -184,6 +184,21 @@
       "type": "uint32"
     },
     {
+      "name": "GF_TABLE_SUBSURFACES",
+      "value": 17,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_APPLICATION",
+      "value": 18,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_RULES",
+      "value": 19,
+      "type": "uint32"
+    },
+    {
       "name": "GF_TABLE_WINDOWS_PAINT_ENDPOINT",
       "value": 256,
       "type": "uint32"
@@ -191,6 +206,21 @@
     {
       "name": "GF_ABI_ENTRY_SLOT",
       "value": 4294967295,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES",
+      "value": 512,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SPLASHSCREEN_MINIMUM_EXTENT",
+      "value": 160,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SPLASHSCREEN_MAXIMUM_EXTENT",
+      "value": 1600,
       "type": "uint32"
     },
     {
@@ -494,6 +524,46 @@
       "type": "uint32"
     },
     {
+      "name": "GF_SCHEMA_EFFECT_TIME_MODEL_STATIC_POSE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_TIME_MODEL_TRANSITION",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_TIME_MODEL_AMBIENT",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_INPUT_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_INPUT_POINTER",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_INPUT_POINTER_AND_KEYS",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_FLAGS_VERIFIED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_FLAGS_SETUP_ON_GEOMETRY",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
       "name": "GF_THEME_PACKAGE_MAXIMUM_FILES",
       "value": 256,
       "type": "uint32"
@@ -722,6 +792,56 @@
       "name": "GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT",
       "value": 4294967296,
       "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_TRANSIENT_SURFACES",
+      "value": 8589934592,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_WINDOW_CORNERS",
+      "value": 17179869184,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS",
+      "value": 34359738368,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_WINDOW_CORNER_SHAPE_SQUARE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_CORNER_SHAPE_ROUNDED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TRANSIENT_SURFACE_TOOLTIP",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TRANSIENT_SURFACE_SPLASHSCREEN",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TRANSIENT_SURFACE_POPUP",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TRANSIENT_SURFACE_TRANSLUCENT",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TRANSIENT_SURFACE_OPAQUE",
+      "value": 16,
+      "type": "uint32"
     },
     {
       "name": "GF_POINTER_CURSOR_ARROW",
@@ -1044,6 +1164,266 @@
       "type": "uint32"
     },
     {
+      "name": "GF_SUBSURFACE_STATE_STOPPED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SUBSURFACE_STATE_STARTING",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SUBSURFACE_STATE_RUNNING",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SUBSURFACE_STATE_FAILED",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_BASE_DEFAULT",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_BASE_WINDOWS_PROFESSIONAL",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_BASE_GUI_FORMS",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_PRESENTATION_SOURCE_HOST",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_PRESENTATION_SOURCE_DEFAULTS",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_APPLICATION_MAXIMUM_THEME_PACKAGES",
+      "value": 16,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_APPLICATION_STATE_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_APPLICATION_STATE_CURRENT",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_KEY_PRESSED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_KEY_RELEASED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_KEY_REPEAT",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_DOWN",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_UP",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_CLICK",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_CLICK",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_DOUBLE_CLICK",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_DOUBLE_CLICK",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_CONTEXT_MENU_REQUESTED",
+      "value": 10,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_ENTER",
+      "value": 11,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_HOVER",
+      "value": 12,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_LEAVE",
+      "value": 13,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_CAPTURE_CHANGED",
+      "value": 14,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_FOCUS_GAINED",
+      "value": 15,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_FOCUS_LOST",
+      "value": 16,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_INTERACTION",
+      "value": 17,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_COMMAND_EXECUTED",
+      "value": 18,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_KEY_DOWN",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_MODIFIERS",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_HOVERING",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_PRESSED",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_FOCUSED",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_FOCUS_WITHIN",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_ENABLED",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_VISIBLE",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_WINDOW_ACTIVE",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_MODIFIER_SHIFT",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_MODIFIER_CONTROL",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_MODIFIER_ALT",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_MODIFIER_META",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_CALLBACK",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_INVOKE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_SET",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_TOGGLE",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_FOCUS",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_FLAGS_CONSUME",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_STATE_ARMED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_STATE_REVOKED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_STATE_STALE",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"
@@ -1060,6 +1440,10 @@
     },
     {
       "name": "gf_object",
+      "type": "uint64_t"
+    },
+    {
+      "name": "gf_splashscreen",
       "type": "uint64_t"
     },
     {
@@ -1115,6 +1499,18 @@
       "type": "uint32_t"
     },
     {
+      "name": "gf_schema_effect_time_model",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_effect_input",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_effect_flags",
+      "type": "uint32_t"
+    },
+    {
       "name": "gf_theme_outcome",
       "type": "uint32_t"
     },
@@ -1129,6 +1525,14 @@
     {
       "name": "gf_host_capability",
       "type": "uint64_t"
+    },
+    {
+      "name": "gf_window_corner_shape",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_transient_surface_kind",
+      "type": "uint32_t"
     },
     {
       "name": "gf_pointer_cursor",
@@ -1189,6 +1593,46 @@
     {
       "name": "gf_control_update_mode",
       "type": "uint32_t"
+    },
+    {
+      "name": "gf_subsurface_state",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_theme_base",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_presentation_source",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_application_state",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_trigger_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_condition_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_action_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_flags",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_state",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_token",
+      "type": "uint64_t"
     },
     {
       "name": "gf_paint_endpoint",
@@ -1304,9 +1748,53 @@
       ]
     },
     {
+      "name": "gf_splashscreen_options",
+      "kind": "extensible",
+      "size": 48,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "show_progress",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "artwork",
+          "type": "const uint8_t*",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "artwork_size",
+          "type": "uint64_t",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "status",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "progress",
+          "type": "double",
+          "offset": 40,
+          "size": 8
+        }
+      ]
+    },
+    {
       "name": "gf_runtime_table",
       "kind": "table",
-      "size": 32,
+      "size": 64,
       "align": 8,
       "fields": [
         {
@@ -1375,6 +1863,86 @@
             "parameters": []
           },
           "since": "1.0"
+        },
+        {
+          "name": "splashscreen_show",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "options",
+                "type": "const gf_splashscreen_options*"
+              },
+              {
+                "name": "splashscreen",
+                "type": "gf_splashscreen*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "splashscreen_set_status",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "splashscreen",
+                "type": "gf_splashscreen"
+              },
+              {
+                "name": "status",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "splashscreen_set_progress",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "splashscreen",
+                "type": "gf_splashscreen"
+              },
+              {
+                "name": "show_progress",
+                "type": "uint32_t"
+              },
+              {
+                "name": "progress",
+                "type": "double"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "splashscreen_close",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "splashscreen",
+                "type": "gf_splashscreen"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },
@@ -2481,6 +3049,38 @@
       ]
     },
     {
+      "name": "gf_schema_interaction",
+      "kind": "extensible",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "mutable_payload",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "payload",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        }
+      ]
+    },
+    {
       "name": "gf_run_options",
       "kind": "extensible",
       "size": 64,
@@ -2539,7 +3139,7 @@
     {
       "name": "gf_windows_table",
       "kind": "table",
-      "size": 32,
+      "size": 56,
       "align": 8,
       "fields": [
         {
@@ -2609,6 +3209,62 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "interaction_count",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "interaction_at",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "interaction",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_interaction*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "request_help",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window",
+                "type": "gf_object"
+              },
+              {
+                "name": "handled",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },
@@ -2857,38 +3513,6 @@
       ]
     },
     {
-      "name": "gf_schema_interaction",
-      "kind": "extensible",
-      "size": 40,
-      "align": 8,
-      "fields": [
-        {
-          "name": "struct_size",
-          "type": "uint32_t",
-          "offset": 0,
-          "size": 4
-        },
-        {
-          "name": "mutable_payload",
-          "type": "uint32_t",
-          "offset": 4,
-          "size": 4
-        },
-        {
-          "name": "name",
-          "type": "gf_utf8_view",
-          "offset": 8,
-          "size": 16
-        },
-        {
-          "name": "payload",
-          "type": "gf_utf8_view",
-          "offset": 24,
-          "size": 16
-        }
-      ]
-    },
-    {
       "name": "gf_schema_engine",
       "kind": "extensible",
       "size": 96,
@@ -3123,9 +3747,95 @@
       ]
     },
     {
+      "name": "gf_schema_effect",
+      "kind": "extensible",
+      "size": 112,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "time_model",
+          "type": "gf_schema_effect_time_model",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "parent",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "engine_version",
+          "type": "uint32_t",
+          "offset": 40,
+          "size": 4
+        },
+        {
+          "name": "input",
+          "type": "gf_schema_effect_input",
+          "offset": 44,
+          "size": 4
+        },
+        {
+          "name": "cost_fixed",
+          "type": "uint32_t",
+          "offset": 48,
+          "size": 4
+        },
+        {
+          "name": "cost_per_device_pixel",
+          "type": "uint32_t",
+          "offset": 52,
+          "size": 4
+        },
+        {
+          "name": "setup_cost",
+          "type": "uint32_t",
+          "offset": 56,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_schema_effect_flags",
+          "offset": 60,
+          "size": 4
+        },
+        {
+          "name": "state_budget",
+          "type": "uint64_t",
+          "offset": 64,
+          "size": 8
+        },
+        {
+          "name": "frames_per_second",
+          "type": "double",
+          "offset": 72,
+          "size": 8
+        },
+        {
+          "name": "outsets",
+          "type": "gf_logical_insets",
+          "offset": 80,
+          "size": 32
+        }
+      ]
+    },
+    {
       "name": "gf_schema_table",
       "kind": "table",
-      "size": 144,
+      "size": 184,
       "align": 8,
       "fields": [
         {
@@ -3543,6 +4253,114 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "effect_count",
+          "type": "function",
+          "offset": 144,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "effect_at",
+          "type": "function",
+          "offset": 152,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "effect",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_effect*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "child_property_count",
+          "type": "function",
+          "offset": 160,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "child_property_at",
+          "type": "function",
+          "offset": 168,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "property",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_property*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "child_choice_at",
+          "type": "function",
+          "offset": 176,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "property",
+                "type": "uint64_t"
+              },
+              {
+                "name": "choice",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_choice*"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },
@@ -3984,7 +4802,7 @@
     {
       "name": "gf_host_capabilities",
       "kind": "extensible",
-      "size": 16,
+      "size": 32,
       "align": 8,
       "fields": [
         {
@@ -4004,6 +4822,30 @@
           "type": "gf_host_capability",
           "offset": 8,
           "size": 8
+        },
+        {
+          "name": "transient_surfaces",
+          "type": "gf_transient_surface_kind",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "window_corner_shapes",
+          "type": "gf_window_corner_shape",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "window_band_maximum_width",
+          "type": "uint32_t",
+          "offset": 28,
+          "size": 4
         }
       ]
     },
@@ -5094,7 +5936,7 @@
       ]
     },
     {
-      "name": "gf_popups_table",
+      "name": "gf_overlays_table",
       "kind": "table",
       "size": 48,
       "align": 8,
@@ -5112,7 +5954,7 @@
           "size": 4
         },
         {
-          "name": "open_popup",
+          "name": "open_overlay",
           "type": "function",
           "offset": 8,
           "size": 8,
@@ -5124,7 +5966,7 @@
                 "type": "gf_object"
               },
               {
-                "name": "popup",
+                "name": "overlay",
                 "type": "gf_object"
               }
             ]
@@ -5132,7 +5974,7 @@
           "since": "1.0"
         },
         {
-          "name": "close_popup",
+          "name": "close_overlay",
           "type": "function",
           "offset": 16,
           "size": 8,
@@ -5140,7 +5982,7 @@
             "returns": "gf_status",
             "parameters": [
               {
-                "name": "popup",
+                "name": "overlay",
                 "type": "gf_object"
               }
             ]
@@ -6124,6 +6966,514 @@
             ]
           },
           "since": "1.0"
+        }
+      ]
+    },
+    {
+      "name": "gf_subsurface_content",
+      "kind": "extensible",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "opaque",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "build",
+          "type": "gf_callback",
+          "offset": 8,
+          "size": 32
+        }
+      ]
+    },
+    {
+      "name": "gf_subsurfaces_table",
+      "kind": "table",
+      "size": 48,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "set_content",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "host",
+                "type": "gf_object"
+              },
+              {
+                "name": "content",
+                "type": "const gf_subsurface_content*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_root",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "root",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "state",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "host",
+                "type": "gf_object"
+              },
+              {
+                "name": "state",
+                "type": "gf_subsurface_state*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "content_epoch",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "host",
+                "type": "gf_object"
+              },
+              {
+                "name": "epoch",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "failure",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "host",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        }
+      ]
+    },
+    {
+      "name": "gf_application_config",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "theme_base",
+          "type": "gf_theme_base",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "packages",
+          "type": "const gf_theme_package*",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "package_count",
+          "type": "uint64_t",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "presentation_source",
+          "type": "gf_presentation_source",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 28,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_application_table",
+      "kind": "table",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "create",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "config",
+                "type": "const gf_application_config*"
+              },
+              {
+                "name": "report",
+                "type": "gf_theme_report*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "close",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "windows_alive",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "state",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "state",
+                "type": "gf_application_state*"
+              }
+            ]
+          },
+          "since": "1.1"
+        }
+      ]
+    },
+    {
+      "name": "gf_rule_condition",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_rule_condition_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "object",
+          "type": "gf_object",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "physical_key",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "modifiers",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "negated",
+          "type": "uint32_t",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 28,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_rule_action",
+      "kind": "extensible",
+      "size": 48,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_rule_action_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "target",
+          "type": "gf_object",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "property",
+          "type": "gf_utf8_view",
+          "offset": 16,
+          "size": 16
+        },
+        {
+          "name": "value",
+          "type": "const gf_value*",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "callback",
+          "type": "const gf_callback*",
+          "offset": 40,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_rule",
+      "kind": "extensible",
+      "size": 72,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_rule_flags",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "trigger",
+          "type": "gf_rule_trigger_kind",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "physical_key",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "source",
+          "type": "gf_object",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "interaction",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "condition_count",
+          "type": "uint64_t",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "conditions",
+          "type": "const gf_rule_condition*",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "action_count",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        },
+        {
+          "name": "actions",
+          "type": "const gf_rule_action*",
+          "offset": 64,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_rules_table",
+      "kind": "table",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "add",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window",
+                "type": "gf_object"
+              },
+              {
+                "name": "rule",
+                "type": "const gf_rule*"
+              },
+              {
+                "name": "token",
+                "type": "gf_rule_token*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "remove",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "token",
+                "type": "gf_rule_token"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "state",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "token",
+                "type": "gf_rule_token"
+              },
+              {
+                "name": "state",
+                "type": "gf_rule_state*"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },

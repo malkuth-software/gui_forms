@@ -208,7 +208,7 @@ public unsafe struct gf_objects_table
     public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_utf8_view, gf_create_arguments*, gf_object*, gf_status> create_with;
 }
 
-/// <summary>gf_properties_table (table, 40 bytes).</summary>
+/// <summary>gf_properties_table (table, 48 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_properties_table
 {
@@ -218,6 +218,7 @@ public unsafe struct gf_properties_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_value*, gf_status> set;
     public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_status> reset;
     public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong, gf_value*, byte*, ulong, ulong*, gf_status> element_at;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong, ulong, gf_value*, byte*, ulong, ulong*, gf_status> read_elements;
 }
 
 /// <summary>gf_events_table (table, 48 bytes).</summary>
@@ -558,7 +559,7 @@ public unsafe struct gf_file_filter
     public ulong extension_count;
 }
 
-/// <summary>gf_dialog_request (extensible, 136 bytes).</summary>
+/// <summary>gf_dialog_request (extensible, 144 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_dialog_request
 {
@@ -578,6 +579,7 @@ public unsafe struct gf_dialog_request
     public gf_dialog_flags flags;
     public uint initial_rgba;
     public uint reserved;
+    public gf_object owner;
 }
 
 /// <summary>gf_dialog_result (extensible, 32 bytes).</summary>
@@ -727,7 +729,7 @@ public unsafe struct gf_text_decoration
     public uint reserved;
 }
 
-/// <summary>gf_text_editing_table (table, 104 bytes).</summary>
+/// <summary>gf_text_editing_table (table, 120 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_text_editing_table
 {
@@ -745,6 +747,8 @@ public unsafe struct gf_text_editing_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> clear_decorations;
     public delegate* unmanaged[Cdecl]<gf_object, uint, ulong*, gf_status> decoration_count;
     public delegate* unmanaged[Cdecl]<gf_object, uint, ulong, gf_text_decoration*, gf_status> decoration_at;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, ulong*, gf_status> utf8_to_utf16_offset;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, ulong*, gf_status> utf16_to_utf8_offset;
 }
 
 /// <summary>gf_anchored_overlay_options (extensible, 40 bytes).</summary>
@@ -818,6 +822,17 @@ public unsafe struct gf_paint_target
     public gf_logical_rect damage;
 }
 
+/// <summary>gf_custom_semantics (extensible, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_custom_semantics
+{
+    public uint struct_size;
+    public uint role;
+    public gf_utf8_view name;
+    public gf_utf8_view value;
+    public gf_utf8_view description;
+}
+
 /// <summary>gf_custom_control_callbacks (extensible, 48 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_custom_control_callbacks
@@ -831,7 +846,18 @@ public unsafe struct gf_custom_control_callbacks
     public delegate* unmanaged[Cdecl]<void*, void> release;
 }
 
-/// <summary>gf_custom_control_spec (extensible, 80 bytes).</summary>
+/// <summary>gf_custom_layout_callbacks (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_custom_layout_callbacks
+{
+    public uint struct_size;
+    public uint reserved;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_logical_size, gf_logical_size*, gf_status> measure;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_logical_point, uint*, gf_status> hit_test;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_custom_semantics*, gf_status> semantics;
+}
+
+/// <summary>gf_custom_control_spec (extensible, 88 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_custom_control_spec
 {
@@ -842,6 +868,7 @@ public unsafe struct gf_custom_control_spec
     public gf_custom_property* properties;
     public ulong property_count;
     public gf_custom_control_callbacks callbacks;
+    public gf_custom_layout_callbacks* layout;
 }
 
 /// <summary>gf_custom_controls_table (table, 24 bytes).</summary>
@@ -1174,6 +1201,16 @@ public unsafe struct gf_docking_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_dock_panel*, gf_status> update_panel;
     public delegate* unmanaged[Cdecl]<gf_object, gf_dock_options*, gf_status> set_options;
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_dock_window_visibility, gf_status> set_floating_window_visibility;
+}
+
+/// <summary>gf_fonts_table (table, 24 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_fonts_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, uint*, gf_status> family_id;
+    public delegate* unmanaged[Cdecl]<uint, byte*, ulong, ulong*, gf_status> family_name;
 }
 
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>

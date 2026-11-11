@@ -101,12 +101,11 @@ jobs:
           python3 tools/control_registry.py emit-cpp --check
           python3 tools/control_registry.py emit-abi --check
           # Stage C: the C ABI's generated C# interop and C++ wrappers (with the
-          # wrappers' 1:1 slot map) and the 0.x compatibility map. The audit
-          # against the 0.5 baseline runs in every native build's ctest
+          # wrappers' 1:1 slot map). The blocking audit against the sealed
+          # 1.1 baseline runs in every native build's ctest
           # (gui_forms_abi_audit), with the pinned clang.
           python3 -B tools/abi_bindings.py csharp --check
           python3 -B tools/abi_bindings.py cpp --check
-          python3 -B tools/abi_compat_map.py --strict
           python3 tools/control_registry.py emit-forms --check
           python3 -B -m unittest discover -s tools -p test_control_schema.py
           python3 tools/control_schema.py check

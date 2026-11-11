@@ -227,6 +227,10 @@ gui_forms::TextBox
         - The number of displayed lines after wrapping; 1 for a single-line box.
       * - :cpp:func:`select <gui_forms::TextBox::select>`
         - Sets the selection from an anchor and a caret offset.
+      * - :cpp:func:`utf16_offset <gui_forms::TextBox::utf16_offset>`
+        - The UTF-16 position of a byte offset in the text, and the byte offset of a UTF-16 position, as the box's text store converts them (a Windows Forms selection is in UTF-16 units).
+      * - :cpp:func:`utf8_offset <gui_forms::TextBox::utf8_offset>`
+        -  
       * - :cpp:func:`select_all <gui_forms::TextBox::select_all>`
         - Selects the whole text.
       * - :cpp:func:`undo <gui_forms::TextBox::undo>`
@@ -650,6 +654,12 @@ gui_forms::TextBox
 
       Sets the selection from an anchor and a caret offset. Both must lie on
       grapheme boundaries of the text, or it throws ``std::out_of_range``.
+
+   .. cpp:function:: Utf16Offset utf16_offset(Utf8Offset position) const
+
+      The UTF-16 position of a byte offset in the text, and the byte offset of a UTF-16 position, as the box's text store converts them (a Windows Forms selection is in UTF-16 units). Throw std::out_of_range past the text, std::invalid_argument inside a scalar or between the halves of a surrogate pair.
+
+   .. cpp:function:: Utf8Offset utf8_offset(Utf16Offset position) const
 
    .. cpp:function:: void select_all()
 

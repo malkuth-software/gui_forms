@@ -763,6 +763,42 @@ void test_default_dock_layout_all_directions_and_z_order() {
             "reverse-z Dock order must update deterministically after SetChildIndex");
 }
 
+// insert_child is one mutation: it puts a new child at a top-counted index,
+// moves a child already present as set_child_index would, and on a refused
+// insertion leaves the children as they were.
+void test_insert_child_is_one_mutation() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("layout.insert.root"));
+    std::shared_ptr<Button> bottom = sized_button("layout.insert.bottom", 10.0, 10.0);
+    std::shared_ptr<Button> top = sized_button("layout.insert.top", 10.0, 10.0);
+    std::shared_ptr<Button> middle = sized_button("layout.insert.middle", 10.0, 10.0);
+    (*root).add_child(bottom);
+    (*root).add_child(top);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{100.0, 100.0});
+    (*root).insert_child(middle, 1U);
+    require((*root).children().size() == 3U &&
+                (*root).children()[0] == bottom &&
+                (*root).children()[1] == middle &&
+                (*root).children()[2] == top,
+            "insert_child must place a new child at its top-counted index");
+    require((*root).child_index((*middle).runtime_id()) == std::optional<std::size_t>(1U),
+            "insert_child index must read back through child_index");
+    (*root).insert_child(middle, 0U);
+    require((*root).children()[2] == middle && (*root).children().size() == 3U,
+            "insert_child of a present child must move it, not add it twice");
+    std::shared_ptr<Button> past_end = sized_button("layout.insert.past-end", 10.0, 10.0);
+    (*root).insert_child(past_end, 99U);
+    require((*root).children()[0] == past_end,
+            "insert_child past the end must place the child at the bottom");
+    bool refused = false;
+    try {
+        (*middle).insert_child(root, 0U);
+    } catch (const std::logic_error&) {
+        refused = true;
+    }
+    require(refused && (*root).children().size() == 4U && (*middle).children().empty(),
+            "a refused insert_child must leave both trees unchanged");
+}
+
 void test_compound_anchor_resize_runtime_rebase_and_validation() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("layout.anchor.root"));
     (*root).padding = {10.0, 10.0, 10.0, 10.0};
@@ -1122,6 +1158,7 @@ int main() {
         test_scaled_panel_and_group_are_public_layout_controls();
         test_default_dock_layout_all_directions_and_z_order();
         test_compound_anchor_resize_runtime_rebase_and_validation();
+        test_insert_child_is_one_mutation();
         std::cout << "layout-panel-tests: pass\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

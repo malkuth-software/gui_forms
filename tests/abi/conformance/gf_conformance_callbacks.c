@@ -186,6 +186,36 @@ static void endings(gf_kit* kit) {
                   "the disposed source's subscription is stale");
     gf_kit_status(kit, (*kit).objects.release(box), GF_STATUS_OK, "release the text box");
 
+    /* Disposing a parent ends the subscriptions of its subtree, and only
+     * those: a control outside it keeps its own (N8). */
+    const gf_object holder = gf_kit_create(kit, "Panel", "kit.disposal.holder");
+    const gf_object inner = gf_kit_create(kit, "TextBox", "kit.disposal.inner");
+    const gf_object outside = gf_kit_create(kit, "TextBox", "kit.disposal.outside");
+    gf_kit_status(kit, (*kit).objects.insert_child(holder, inner, 0u), GF_STATUS_OK, "put the inner box in the holder");
+    gf_kit_recorder inner_recorder = new_recorder(kit);
+    gf_kit_recorder outside_recorder = new_recorder(kit);
+    const gf_callback inner_callback = gf_kit_recording_callback(&inner_recorder);
+    const gf_callback outside_callback = gf_kit_recording_callback(&outside_recorder);
+    gf_subscription inner_subscription = 0u;
+    gf_subscription outside_subscription = 0u;
+    gf_kit_status(kit, (*kit).events.subscribe(inner, gf_kit_text("text_changed"), &inner_callback,
+                                               &inner_subscription),
+                  GF_STATUS_OK, "subscribe to the inner box");
+    gf_kit_status(kit, (*kit).events.subscribe(outside, gf_kit_text("text_changed"), &outside_callback,
+                                               &outside_subscription),
+                  GF_STATUS_OK, "subscribe to the outside box");
+    gf_kit_status(kit, (*kit).objects.dispose(holder), GF_STATUS_OK, "dispose the holder");
+    gf_kit_check(kit, inner_recorder.released == 1u, "disposing the parent releases the child's callback");
+    gf_kit_check(kit, outside_recorder.released == 0u, "a control outside the subtree keeps its callback");
+    gf_kit_status(kit, (*kit).events.disconnect(inner_subscription), GF_STATUS_STALE_HANDLE,
+                  "the disposed child's subscription is stale");
+    gf_kit_status(kit, (*kit).events.disconnect(outside_subscription), GF_STATUS_OK,
+                  "the outside subscription is still live");
+    gf_kit_check(kit, outside_recorder.released == 1u, "disconnect releases the outside callback");
+    gf_kit_status(kit, (*kit).objects.release(inner), GF_STATUS_OK, "release the inner box");
+    gf_kit_status(kit, (*kit).objects.release(holder), GF_STATUS_OK, "release the holder");
+    gf_kit_status(kit, (*kit).objects.release(outside), GF_STATUS_OK, "release the outside box");
+
     /* A callback may end its own sender. */
     const gf_object check = gf_kit_create(kit, "CheckBox", "kit.reentrant");
     gf_kit_status(kit, (*kit).objects.retain(check), GF_STATUS_OK, "a reference for the callback");

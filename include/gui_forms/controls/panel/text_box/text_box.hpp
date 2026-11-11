@@ -125,6 +125,13 @@ public:
     }
     [[nodiscard]] TextSelection selection() const noexcept;
     void select(Utf8Offset anchor, Utf8Offset caret);
+    // The UTF-16 position of a byte offset in the text, and the byte offset
+    // of a UTF-16 position, as the box's text store converts them (a
+    // Windows Forms selection is in UTF-16 units). Throw std::out_of_range
+    // past the text, std::invalid_argument inside a scalar or between the
+    // halves of a surrogate pair.
+    [[nodiscard]] Utf16Offset utf16_offset(Utf8Offset position) const;
+    [[nodiscard]] Utf8Offset utf8_offset(Utf16Offset position) const;
     void select_all();
     [[nodiscard]] std::string selected_text() const;
     [[nodiscard]] bool can_undo() const noexcept;

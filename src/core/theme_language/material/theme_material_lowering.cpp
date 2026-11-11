@@ -2,6 +2,8 @@
 
 #include "../source_text/theme_source_text.hpp"
 
+#include "../../resources/fonts/bundled_font_families.hpp"
+
 #include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
@@ -2502,27 +2504,60 @@ bool MaterialReader::lower_part_shape(RecipeField length_field, RecipeField colo
     return true;
 }
 
-// `font-family` (T4 fonts): one bundled font role, `control`, `content` or
-// `monospace`. A family name, quoted or not, a generic family and a list
-// are refused: GUI.Forms draws its bundled faces, never a host font.
+// `font-family` (T4 fonts; named families, owner decision of 2026-11-10):
+// one bundled font role, `control`, `content` or `monospace`, or the name of
+// a bundled family (gui_forms::detail::bundled_family_names), quoted or written as
+// words, in any ASCII case: `Selawik`, `"Portsmouth Rapids"`, `Carlito`. The
+// name of a role's face stands for that role. A numbered family (Selawik)
+// draws its own faces first and the content role's faces for anything it
+// lacks. A name no bundled family has, a generic family and a list are
+// refused: GUI.Forms draws its bundled faces, never a host font.
 bool MaterialReader::lower_font_family() {
-    if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_form_not_admitted, value_.components[next(0U)].token,
-                    "one bundled font role");
-    }
-    const ValueComponent& component = value_.components[0];
-    if (component.kind != ValueComponentKind::keyword) {
-        return fail(DiagnosticCode::value_wrong_kind, component.token, "a bundled font role");
-    }
+    const std::size_t count = value_.components.size();
+    const ValueComponent& first = value_.components[0];
     RecipeDeclaration declaration = recipe_declaration(RecipeField::font_family);
-    if (keyword(0U, "control")) {
-        declaration.font_role = FontRole::control;
-    } else if (keyword(0U, "content")) {
-        declaration.font_role = FontRole::content;
-    } else if (keyword(0U, "monospace")) {
-        declaration.font_role = FontRole::monospace;
+    if (count == 1U && first.kind == ValueComponentKind::keyword) {
+        bool role_named = true;
+        if (keyword(0U, "control")) {
+            declaration.font_role = FontRole::control;
+        } else if (keyword(0U, "content")) {
+            declaration.font_role = FontRole::content;
+        } else if (keyword(0U, "monospace")) {
+            declaration.font_role = FontRole::monospace;
+        } else {
+            role_named = false;
+        }
+        if (role_named) {
+            lowering_.recipe_fields.push_back(declaration);
+            return true;
+        }
+    }
+    // A family name: one string, or words joined by single spaces.
+    std::string name{};
+    if (count == 1U && first.kind == ValueComponentKind::string) {
+        name = std::string(first.text);
+    } else if (count == 1U && first.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, first.token, "a bundled font role or family");
     } else {
-        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+        for (std::size_t index = 0U; index < count; ++index) {
+            const ValueComponent& component = value_.components[index];
+            if (component.kind != ValueComponentKind::keyword) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            "one bundled font role or family");
+            }
+            if (index != 0U) name += ' ';
+            name += component.text;
+        }
+    }
+    const gui_forms::detail::BundledFamilyName* const family = gui_forms::detail::bundled_family_named(name);
+    if (family == nullptr) {
+        return fail(DiagnosticCode::keyword_unknown, first.token, clipped_theme_detail(name));
+    }
+    if ((*family).role) {
+        declaration.font_role = *(*family).role;
+    } else {
+        declaration.font_role = FontRole::content;
+        declaration.font_family = (*family).family;
     }
     lowering_.recipe_fields.push_back(declaration);
     return true;

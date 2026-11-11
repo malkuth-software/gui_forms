@@ -96,7 +96,39 @@ static void scrolling(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(panel), GF_STATUS_OK, "release the scroll panel");
 }
 
+/* UTF-16 positions round-trip through the text editing table (K9): the
+ * text is "a", U+00E9, U+1F600 and "b", 8 bytes and 5 UTF-16 units. */
+static void utf16_positions(gf_kit* kit) {
+    const gf_object box = gf_kit_create(kit, "text_box", "kit.families.utf16");
+    gf_kit_status(kit, gf_kit_set_text(kit, box, "text", "a\xC3\xA9\xF0\x9F\x98\x80" "b"), GF_STATUS_OK,
+                  "give the box text beyond the BMP");
+    uint64_t converted = 99u;
+    gf_kit_status(kit, (*kit).text_editing.utf8_to_utf16_offset(box, 7u, &converted), GF_STATUS_OK,
+                  "a byte offset after the emoji converts");
+    gf_kit_check(kit, converted == 4u, "the emoji is two UTF-16 units");
+    gf_kit_status(kit, (*kit).text_editing.utf16_to_utf8_offset(box, 4u, &converted), GF_STATUS_OK,
+                  "a UTF-16 position after the emoji converts");
+    gf_kit_check(kit, converted == 7u, "the position converts back to its byte offset");
+    gf_kit_status(kit, (*kit).text_editing.utf16_to_utf8_offset(box, 5u, &converted), GF_STATUS_OK,
+                  "the end converts");
+    gf_kit_check(kit, converted == 8u, "the end is the text's size");
+    converted = 99u;
+    gf_kit_status(kit, (*kit).text_editing.utf16_to_utf8_offset(box, 3u, &converted), GF_STATUS_INVALID_ARGUMENT,
+                  "a position between surrogate halves is refused");
+    gf_kit_status(kit, (*kit).text_editing.utf8_to_utf16_offset(box, 2u, &converted), GF_STATUS_INVALID_ARGUMENT,
+                  "an offset inside a UTF-8 sequence is refused");
+    gf_kit_status(kit, (*kit).text_editing.utf8_to_utf16_offset(box, 9u, &converted), GF_STATUS_INVALID_ARGUMENT,
+                  "an offset past the text is refused");
+    gf_kit_status(kit, (*kit).text_editing.utf16_to_utf8_offset(box, 6u, &converted), GF_STATUS_INVALID_ARGUMENT,
+                  "a position past the text is refused");
+    gf_kit_check(kit, converted == 99u, "a refused conversion leaves its output");
+    gf_kit_status(kit, (*kit).text_editing.utf8_to_utf16_offset(box, 0u, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "a conversion needs an output");
+    gf_kit_status(kit, (*kit).objects.release(box), GF_STATUS_OK, "release the UTF-16 box");
+}
+
 static void text_editing(gf_kit* kit) {
+    utf16_positions(kit);
     const gf_object box = gf_kit_create(kit, "text_box", "kit.families.text");
     gf_kit_status(kit, gf_kit_set_text(kit, box, "text", "hello"), GF_STATUS_OK, "give the box text");
     gf_kit_status(kit, (*kit).text_editing.clear_undo_history(box), GF_STATUS_OK, "start the history afresh");

@@ -1020,35 +1020,6 @@ include(cmake/GUIFormsThemes.cmake)
 install(FILES cmake/GUIFormsThemes.cmake cmake/GUIFormsThemeEmbed.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 
-add_library(gui_forms_c_api SHARED
-    src/abi/c_api.cpp
-    src/abi/control_adapters/input_transparent_control/input_transparent_control.cpp
-    src/abi/control_adapters/form_control/form_control.cpp
-    src/abi/control_adapters/field_control/field_control.cpp
-    src/abi/control_adapters/raster_control/raster_control.cpp
-    src/abi/control_adapters/abi_property_object_control/abi_property_object_control.cpp
-    src/abi/error/abi_error.cpp
-    src/abi/paint_endpoint/windows_compatibility_paint_endpoint.cpp
-)
-target_link_libraries(gui_forms_c_api PRIVATE
-    gui_forms_controls
-    gui_forms_host_headless
-)
-target_include_directories(gui_forms_c_api PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-target_compile_definitions(gui_forms_c_api PRIVATE GF_C_API_BUILD)
-set_target_properties(gui_forms_c_api PROPERTIES
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN YES
-    OUTPUT_NAME gui_forms_abi0
-    VERSION 0.4.0
-    SOVERSION 0
-)
-if(WIN32)
-    set_target_properties(gui_forms_c_api PROPERTIES PREFIX "")
-endif()
-
 add_library(GUIForms::Core ALIAS gui_forms_core)
 add_library(GUIForms::Controls ALIAS gui_forms_controls)
 add_library(GUIForms::Drawing ALIAS gui_drawing_core)
@@ -1131,7 +1102,10 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansDevanagari-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansBengali-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf)
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Semibold.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf)
     set(GUI_FORMS_DEMOBOARD_FONT_NOTICES
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/ATTRIBUTION.md
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/LICENSE-PortsmouthRapids.txt
@@ -1139,7 +1113,8 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Carlito.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Cousine.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoSansCJKjp.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt)
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Selawik.txt)
 
     if(GUI_FORMS_ENABLE_MACOS_HOST)
         set_source_files_properties(
@@ -1194,17 +1169,6 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
                 -DDEMOBOARD_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/file_manager_demoboard
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_demoboard_boundaries.cmake)
     endif()
-endif()
-if(APPLE)
-    target_link_options(gui_forms_c_api PRIVATE
-        "LINKER:-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/cmake/c_api_exports_macos.txt"
-    )
-elseif(UNIX)
-    target_link_options(gui_forms_c_api PRIVATE
-        "LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/cmake/c_api_exports_linux.map"
-    )
-    set_property(TARGET gui_forms_c_api APPEND PROPERTY LINK_DEPENDS
-        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/c_api_exports_linux.map)
 endif()
 
 if(GUI_FORMS_ENABLE_SKIA)
@@ -1339,8 +1303,6 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
                 ${GUI_FORMS_COREGRAPHICS}
                 ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS}
     )
-    target_link_libraries(gui_forms_c_api PRIVATE gui_forms_host_macos)
-    target_compile_definitions(gui_forms_c_api PRIVATE GF_C_API_HAS_MACOS_HOST=1)
 
     # First-party native applications consume one installed dynamic boundary.
     # The renderer, text stack, controls, and AppKit adapter remain private
@@ -1504,8 +1466,6 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         PUBLIC gui_forms_core gui_forms_skia
         PRIVATE gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32
     )
-    target_link_libraries(gui_forms_c_api PRIVATE gui_forms_host_windows)
-    target_compile_definitions(gui_forms_c_api PRIVATE GF_C_API_HAS_WINDOWS_HOST=1)
     if(MINGW)
         add_library(gui_forms_application SHARED
             src/runtime/application_bundle.cpp
@@ -1540,7 +1500,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     )
     target_compile_features(gui_forms_win32_compat PRIVATE cxx_std_20)
     # Declarations only: the shim checks its run-time entry-point types
-    # against c_api.h and resolves the ABI by name; it does not link it.
+    # against gf_abi.h and resolves the ABI by name; it does not link it.
     target_include_directories(gui_forms_win32_compat PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
@@ -1588,7 +1548,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
             WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
         )
         target_link_libraries(gui_forms_windows_gdi_compat_shim_tests PRIVATE
-            gui_forms_c_api gdi32 user32
+            gui_forms_abi gdi32 user32
         )
         add_dependencies(gui_forms_windows_gdi_compat_shim_tests
                          gui_forms_win32_compat)
@@ -1616,6 +1576,9 @@ if(GUI_FORMS_BUILD_GALLERY OR (GUI_FORMS_BUILD_TESTS AND GUI_FORMS_ENABLE_MACOS_
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansDevanagari-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansBengali-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Semibold.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf
     )
     set(GUI_FORMS_GALLERY_FONT_NOTICES
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/ATTRIBUTION.md
@@ -1625,6 +1588,7 @@ if(GUI_FORMS_BUILD_GALLERY OR (GUI_FORMS_BUILD_TESTS AND GUI_FORMS_ENABLE_MACOS_
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Cousine.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoSansCJKjp.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Selawik.txt
     )
 
 endif()
@@ -3612,6 +3576,8 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_NOTO_HEBREW_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Regular.ttf"
             GUI_FORMS_TEST_NOTO_CJK_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansCJKjp-Regular.otf"
             GUI_FORMS_TEST_NOTO_EMOJI="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoEmoji-Regular.ttf"
+            GUI_FORMS_TEST_SELAWIK_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf"
+            GUI_FORMS_TEST_SELAWIK_BOLD="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf"
         )
         target_link_libraries(gui_forms_harfbuzz_font_engine_tests PRIVATE
             gui_forms_text_engine)
@@ -4417,53 +4383,7 @@ if(GUI_FORMS_BUILD_TESTS)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_host_boundaries.cmake
     )
 
-    add_executable(gui_forms_c_api_c11_tests tests/c_api_c11_tests.c)
-    target_link_libraries(gui_forms_c_api_c11_tests PRIVATE gui_forms_c_api)
-    # This C fixture calls pthread_create/join directly. CLANG64's libc++ uses
-    # native Windows threads and does not supply an implicit pthread dependency.
-    if(MINGW)
-        target_link_libraries(gui_forms_c_api_c11_tests PRIVATE winpthread)
-    else()
-        find_package(Threads REQUIRED)
-        target_link_libraries(gui_forms_c_api_c11_tests PRIVATE Threads::Threads)
-    endif()
-    add_test(NAME gui_forms_c_api_c11_tests COMMAND gui_forms_c_api_c11_tests)
-
-    add_executable(gui_forms_c_api_cpp_tests tests/c_api_cpp_tests.cpp)
-    target_link_libraries(gui_forms_c_api_cpp_tests PRIVATE gui_forms_c_api)
-    add_test(NAME gui_forms_c_api_cpp_tests COMMAND gui_forms_c_api_cpp_tests)
-
-    # White-box teardown lifetimes: the test compiles the C ABI translation
-    # unit itself (headless host only) with a friend fixture enabled.
-    add_executable(gui_forms_abi_registry_lifetime_tests
-        tests/abi_registry_lifetime_tests.cpp
-        src/abi/control_adapters/input_transparent_control/input_transparent_control.cpp
-        src/abi/control_adapters/form_control/form_control.cpp
-        src/abi/control_adapters/field_control/field_control.cpp
-        src/abi/control_adapters/raster_control/raster_control.cpp
-        src/abi/control_adapters/abi_property_object_control/abi_property_object_control.cpp
-        src/abi/error/abi_error.cpp
-        src/abi/paint_endpoint/windows_compatibility_paint_endpoint.cpp)
-    target_include_directories(gui_forms_abi_registry_lifetime_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_compile_definitions(gui_forms_abi_registry_lifetime_tests PRIVATE GF_C_API_BUILD GUI_FORMS_ABI_REGISTRY_TEST)
-    target_link_libraries(gui_forms_abi_registry_lifetime_tests PRIVATE gui_forms_controls gui_forms_host_headless)
-    add_test(NAME gui_forms_abi_registry_lifetime_tests COMMAND gui_forms_abi_registry_lifetime_tests)
-
-    if(APPLE)
-        add_test(
-            NAME gui_forms_c_api_export_policy
-            COMMAND ${CMAKE_COMMAND}
-                -DC_API_LIBRARY=$<TARGET_FILE:gui_forms_c_api>
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_c_api_exports.cmake
-        )
-    elseif(UNIX)
-        add_test(
-            NAME gui_forms_c_api_export_policy
-            COMMAND ${CMAKE_COMMAND}
-                -DC_API_LIBRARY=$<TARGET_FILE:gui_forms_c_api>
-                -DEXPECTED_SYMBOL=gf_get_api_v0
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_linux_c_api_exports.cmake
-        )
+    if(UNIX AND NOT APPLE)
         add_test(
             NAME gui_drawing_c_api_export_policy
             COMMAND ${CMAKE_COMMAND}

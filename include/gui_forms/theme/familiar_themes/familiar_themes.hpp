@@ -26,11 +26,15 @@ namespace gui_forms {
 // control would draw below the contrast gate (4.5:1 text, 3:1 boundaries,
 // glyphs and focus) is changed to meet it, and the sheet says so; disabled
 // controls are exempt (WCAG's inactive components), so they keep the
-// references' values. The Windows-familiar themes are light only (a dark
+// references' values. The older Windows-familiar themes are light only (a dark
 // colour scheme resolves their light records); macos-style has a dark
 // floor sheet too, from Puppertino's dark appearance. High contrast is
 // derived from the role model, as for every theme. `windows-professional`
-// (windows_professional_theme) stays the Windows-familiar theme it was.
+// is the stock Windows-familiar theme (owner, 2026-11-10): a blend of
+// Windows 2000, Office 2003 and Office 2007 touched toward Windows 10,
+// light and dark (its sheets: src/core/theme/familiar_themes/
+// windows_professional_sheets.hpp). windows_professional_theme_definition()
+// stays the structural definition every built-in theme starts from.
 enum class FamiliarTheme : std::uint8_t {
     // `classic`: the Windows 2000 look, its system colours and bevels on #D4D0C8.
     classic,
@@ -45,13 +49,18 @@ enum class FamiliarTheme : std::uint8_t {
     // `macos-style`: a macOS-like look after Puppertino, translucent plates
     // with round corners, light and dark.
     macos_style,
+    // `windows-professional`: the stock Windows-familiar theme, Windows
+    // 2000's bevels, Office 2003's strips and gold highlights and Office
+    // 2007's light blue gloss, made crisper toward Windows 10; light and
+    // dark.
+    windows_professional,
     count,
 };
 
 inline constexpr std::size_t familiar_theme_count = static_cast<std::size_t>(FamiliarTheme::count);
 
 // The theme's id (`classic`, `modern-flat`, `xp-style`, `windows7-style`,
-// `macos-style`); empty for `count`.
+// `macos-style`, `windows-professional`); empty for `count`.
 [[nodiscard]] std::string_view familiar_theme_id(FamiliarTheme theme) noexcept;
 
 // The theme `id` names, or none.

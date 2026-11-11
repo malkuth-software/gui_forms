@@ -317,6 +317,16 @@ void TextBox::select(Utf8Offset anchor, Utf8Offset caret) {
     set_selection({anchor, caret});
 }
 
+Utf16Offset TextBox::utf16_offset(Utf8Offset position) const {
+    const Utf16Offset result = (*editing_).store().utf16_offset(position);
+    return result;
+}
+
+Utf8Offset TextBox::utf8_offset(Utf16Offset position) const {
+    const Utf8Offset result = (*editing_).store().utf8_offset(position);
+    return result;
+}
+
 void TextBox::select_all() {
     set_selection({Utf8Offset(0U), (*editing_).store().utf8_size()});
 }

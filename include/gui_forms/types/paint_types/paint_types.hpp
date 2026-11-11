@@ -96,6 +96,19 @@ inline constexpr TypeTag<CursorKind> cursor_kind{};
 
 } // namespace types
 
+// A bundled font family a theme names in place of a role's faces
+// (theme-language `font-family: Selawik`). Zero is none: the role's own faces.
+// Only families bundled with the library have numbers (the table in
+// src/core/resources/fonts/bundled_font_families.hpp); a host font never has
+// one, so a family can never reach a font the application did not ship.
+struct BundledFontFamily {
+    std::uint8_t value{};
+    friend constexpr bool operator==(const BundledFontFamily& left,
+                                     const BundledFontFamily& right) noexcept {
+        return left.value == right.value;
+    }
+};
+
 struct FontSpec {
     FontRole role{FontRole::control};
     double size{13.0};
@@ -105,11 +118,17 @@ struct FontSpec {
     // This is a layout input: painters and measurement must apply the same
     // value. Zero preserves the typeface's native spacing.
     double letter_spacing{};
+    // A named bundled family whose faces draw before the role's. The role
+    // still chooses the faces for characters the family does not cover, and
+    // a family whose faces could not be loaded leaves the role's faces in
+    // charge.
+    BundledFontFamily family{};
     friend constexpr bool operator==(const FontSpec& left,
                                      const FontSpec& right) noexcept {
         return left.role == right.role && left.size == right.size &&
                left.weight == right.weight && left.italic == right.italic &&
-               left.letter_spacing == right.letter_spacing;
+               left.letter_spacing == right.letter_spacing &&
+               left.family == right.family;
     }
 };
 

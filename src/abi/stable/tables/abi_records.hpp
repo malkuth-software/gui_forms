@@ -40,8 +40,9 @@ void write_record(const Record& complete, Record* record) noexcept {
 // struct_size (the caller's sizeof, so a record that grows in a later minor
 // is still stepped correctly). The stride is a u32 and every caller bounds
 // the count (at most 4096 collection items, 8 rule actions or conditions,
-// 17 packages, GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows), so the offset
-// cannot overflow.
+// 17 packages, GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows,
+// GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements), so the offset cannot
+// overflow.
 template <typename Record>
 const Record& element_at(const Record* first, std::uint32_t stride, std::uint64_t index) noexcept {
     const unsigned char* base = reinterpret_cast<const unsigned char*>(first);

@@ -1,7 +1,7 @@
 # The GUI.Forms C ABI, major 1 (stage C): the library, its export allowlist,
 # its installation as the CAbi component (GUIForms::CAbi) and its audit tests.
-# The experimental 0.x ABI (gui_forms_c_api, include/gui_forms/c_api.h) is
-# separate and stays uninstalled until its last consumer moves.
+# It is the library's only C surface: the experimental 0.x ABI and its
+# facade generator were retired before 1.0 (owner decision D5, 2026-11-10).
 #
 # The library links the Application shared library (owner decision C-2), so
 # a process has one GUI.Forms engine whether it uses C++, the C ABI or both.
@@ -93,6 +93,7 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_rules.cpp
     src/abi/stable/tables/abi_data_grid.cpp
     src/abi/stable/tables/abi_docking.cpp
+    src/abi/stable/tables/abi_fonts.cpp
     src/abi/stable/tables/abi_splashscreen.cpp
     src/abi/stable/custom/abi_custom_control.cpp
     src/abi/stable/windows/abi_windows_paint_endpoint.cpp
@@ -320,13 +321,8 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_abi_event_catalog_current
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_event_catalog.py --check)
 
-    # The C5 gate: the 0.x surface the Windows Forms facade uses, mapped onto
-    # stable slots and schema names (pending families are listed, not failed).
-    add_test(NAME gui_forms_abi_compat_map
-        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_compat_map.py)
-
     # The manifest's sizes and offsets, asserted by this host's compiler in C11 and C++.
-    add_executable(gui_forms_abi_layout_probe_c11 tests/abi/gf_abi_layout_probe.c tests/abi/gf_abi_coexistence.c)
+    add_executable(gui_forms_abi_layout_probe_c11 tests/abi/gf_abi_layout_probe.c)
     target_include_directories(gui_forms_abi_layout_probe_c11 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     add_test(NAME gui_forms_abi_layout_probe_c11 COMMAND gui_forms_abi_layout_probe_c11)
     add_executable(gui_forms_abi_layout_probe_cpp tests/abi/gf_abi_layout_probe_cpp.cpp)
@@ -406,19 +402,19 @@ if(GUI_FORMS_BUILD_TESTS)
                          SKIP_REGULAR_EXPRESSION "gui_forms_abi_csharp: SKIPPED")
 endif()
 
-# The C ABI's verification set, run by `ctest -L c_abi`: every test above, the
-# 0.x C API and registry tests it still keeps building, and the C++ binding
-# and shadow-frame tests its tables stand on. A folding checkpoint runs this
+# The C ABI's verification set, run by `ctest -L c_abi`: every test above,
+# the drawing C API's tests, and the C++ binding and shadow-frame tests its
+# tables stand on. A folding checkpoint runs this
 # label rather than a name pattern, so a new ABI test joins by being listed.
 if(GUI_FORMS_BUILD_TESTS)
     set(_gf_abi_label_candidates
         gui_drawing_c_api_c11_tests gui_drawing_raster_c_api_tests
-        gui_forms_c_api_c11_tests gui_forms_c_api_cpp_tests gui_forms_abi_registry_lifetime_tests
+        gui_forms_windows_gdi_compat_shim_tests
         gui_forms_binding_tests gui_forms_binding_navigator_tests gui_forms_shadow_frames_tests
         gui_forms_abi_runtime_c11_tests gui_forms_abi_conformance gui_forms_abi_slot_coverage
         gui_forms_abi_schema_export gui_forms_abi_theme_trace gui_forms_abi_capability_matrix
         gui_forms_abi_schema_catalog_current gui_forms_abi_event_fields gui_forms_abi_custom_paint
-        gui_forms_abi_event_catalog_current gui_forms_abi_compat_map gui_forms_abi_layout_probe_c11
+        gui_forms_abi_event_catalog_current gui_forms_abi_layout_probe_c11
         gui_forms_abi_layout_probe_cpp gui_forms_abi_audit gui_forms_abi_layout_probe_current
         gui_forms_abi_audit_fixtures gui_forms_abi_exports gui_forms_abi_msvc_consumer
         gui_forms_abi_bindings_current gui_forms_abi_csharp
