@@ -327,9 +327,17 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
             break;
         }
     }
-    ResponsiveTrackResolution resolution = resolve_responsive_tracks(
-        tracks, measured, inner.width, group_gap.read(), device_scale,
-        protected_tracks);
+    // A panel with no groups lays out empty: the track resolver requires
+    // 1 to 64 tracks and refuses none, which made a freshly made panel throw
+    // in its first layout (the stock specimen catalogue found it).
+    ResponsiveTrackResolution resolution{};
+    resolution.available_extent = inner.width;
+    resolution.gap = group_gap.read();
+    resolution.device_scale = device_scale;
+    if (!tracks.empty()) {
+        resolution = resolve_responsive_tracks(tracks, measured, inner.width, group_gap.read(), device_scale,
+                                               protected_tracks);
+    }
     bool needs_actuator = !resolution.collapse_order.empty();
     const Control::Ptr actuator = overflow_actuator_.lock();
     Size actuator_desired{};
