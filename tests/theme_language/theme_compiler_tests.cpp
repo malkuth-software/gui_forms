@@ -696,19 +696,31 @@ void test_warnings() {
     }
     require(stripes.outcome == CompileOutcome::compiled && stripes_admitted && stripes.sheet.rules.size() == 2U,
             "the stripe properties compile on a named part");
-    const Compilation bad_stripes =
-        compile("#a::part(face) { stripe-pitch: 2px; stripe-ratio: 0.95; stripe-angle: 80deg;"
-                " stripe-lean: sideways; stripe-speed: 4 }");
-    std::size_t out_of_range = 0U;
-    std::size_t unknown_keyword = 0U;
-    for (const ThemeDiagnostic& diagnostic : bad_stripes.diagnostics) {
-        if (diagnostic.code == DiagnosticCode::value_out_of_range) out_of_range = out_of_range + 1U;
-        if (diagnostic.code == DiagnosticCode::keyword_unknown) unknown_keyword = unknown_keyword + 1U;
-        std::cerr << "  bad stripes: " << diagnostic_code_label(diagnostic.code) << ' '
-                  << diagnostic_code_name(diagnostic.code) << " (" << diagnostic.detail << ")\n";
+    // Each bad value is an error, which refuses its sheet at the first one
+    // (the guide: the first error is named and the old theme stays), so
+    // each is compiled on its own.
+    struct BadStripe final {
+        const char* sheet;
+        DiagnosticCode code;
+    };
+    const std::array<BadStripe, 5> bad_stripes{{
+        {"#a::part(face) { stripe-pitch: 2px }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { stripe-ratio: 0.95 }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { stripe-angle: 80deg }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { stripe-lean: sideways }", DiagnosticCode::keyword_unknown},
+        {"#a::part(face) { stripe-speed: 4 }", DiagnosticCode::value_out_of_range},
+    }};
+    bool each_refused = true;
+    for (const BadStripe& bad : bad_stripes) {
+        const Compilation refused = compile(bad.sheet);
+        const bool one = refused.outcome == CompileOutcome::refused && refused.diagnostics.size() == 1U &&
+                         refused.diagnostics[0].code == bad.code;
+        if (!one) {
+            each_refused = false;
+            std::cerr << "  bad stripe not refused as expected: " << bad.sheet << '\n';
+        }
     }
-    require(bad_stripes.diagnostics.size() == 5U && out_of_range == 4U && unknown_keyword == 1U,
-            "stripe values outside their ranges are dropped with a diagnostic each");
+    require(each_refused, "each stripe value outside its range or vocabulary refuses its sheet with one error");
     const Compilation control_stripes = compile("#a { stripe-speed: 1 }");
     require(control_stripes.outcome == CompileOutcome::compiled && control_stripes.diagnostics.size() == 1U &&
                 warned(control_stripes, DiagnosticCode::property_not_admitted, "stripe-speed"),
