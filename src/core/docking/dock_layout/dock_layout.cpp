@@ -257,6 +257,9 @@ DockInvariantResult DockLayout::check_invariants() const {
     return result;
 }
 
+// Recurses once per dock node level: a committed tree is at most
+// dock_maximum_depth (32) deep, refused beyond by the invariant check;
+// a few hundred bytes of stack per level.
 Size DockLayout::minimum_size(DockNodeId node_id, double seam) const {
     Size minimum{};
     const DockNode* node = find_node(node_id);

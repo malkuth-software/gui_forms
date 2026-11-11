@@ -205,13 +205,25 @@ DockPanelLocation locate_dock_panel(const DockLayoutState& state, const DockPane
 
 void collect_dock_subtree(const DockLayoutState& state, DockNodeId root,
                           std::vector<DockNodeId>& out) {
-    const DockNode* node = find_dock_node(state, root);
-    if (node == nullptr) return;
-    out.push_back(root);
-    const DockNodeId first = (*node).first;
-    const DockNodeId second = (*node).second;
-    if (!(first == DockNodeId{})) collect_dock_subtree(state, first, out);
-    if (!(second == DockNodeId{})) collect_dock_subtree(state, second, out);
+    // In pre-order (a node, its first subtree, its second), with an
+    // explicit work list: an edit runs this on a scratch state that the
+    // invariant check has not yet bounded (HOUSE_STYLE section 1). A
+    // corrupt state whose links loop stops after one visit per node.
+    std::vector<DockNodeId> pending{};
+    pending.push_back(root);
+    std::size_t visits = 0U;
+    while (!pending.empty() && visits <= state.nodes.size()) {
+        const DockNodeId id = pending.back();
+        pending.pop_back();
+        const DockNode* node = find_dock_node(state, id);
+        if (node == nullptr) continue;
+        ++visits;
+        out.push_back(id);
+        const DockNodeId first = (*node).first;
+        const DockNodeId second = (*node).second;
+        if (!(second == DockNodeId{})) pending.push_back(second);
+        if (!(first == DockNodeId{})) pending.push_back(first);
+    }
 }
 
 void insert_dock_node(DockLayoutState& state, DockNode&& node) {
@@ -351,34 +363,67 @@ private:
         return true;
     }
 
-    bool check_tree(DockNodeId id, DockNodeId parent, DockRegion region) {
+    // One node still to check: where it hangs and how deep it is (a site
+    // root is at level one).
+    struct TreeStep final {
+        DockNodeId id{};
+        DockNodeId parent{};
+        DockRegion region{DockRegion::main_tools};
+        std::size_t depth{0U};
+    };
+
+    // Checks a site's tree in pre-order (a node, its first subtree, its
+    // second) with an explicit work list, refusing a node past
+    // dock_maximum_depth before reading below it (HOUSE_STYLE section 1).
+    // The list holds at most one pending second child per level.
+    bool check_tree(DockNodeId root, DockNodeId root_parent, DockRegion root_region) {
+        std::vector<TreeStep> pending{};
+        pending.reserve(dock_maximum_depth + 1U);
+        pending.push_back(TreeStep{root, root_parent, root_region, 1U});
+        while (!pending.empty()) {
+            const TreeStep step = pending.back();
+            pending.pop_back();
+            if (step.depth > dock_maximum_depth) {
+                return fail(node_text(step.id) + " nests deeper than " + std::to_string(dock_maximum_depth) +
+                            " levels");
+            }
+            if (!check_node(step, pending)) return false;
+        }
+        return true;
+    }
+
+    // One node's rules; queues its children, the first to be checked next.
+    bool check_node(const TreeStep& step, std::vector<TreeStep>& pending) {
+        const DockNodeId id = step.id;
         if (!mark(id)) return false;
         const DockNode& node = *find_dock_node(state_, id);
-        if (!(node.parent == parent)) return fail(node_text(id) + " has a wrong parent link");
+        if (!(node.parent == step.parent)) return fail(node_text(id) + " has a wrong parent link");
         if (node.kind == DockNodeKind::split) {
             if (node.first == DockNodeId{} || node.second == DockNodeId{}) {
                 return fail(node_text(id) + " is a split without two children");
             }
             if (!valid_ratio(node.ratio)) return fail(node_text(id) + " has a ratio outside (0, 1)");
             if (!node.panels.empty()) return fail(node_text(id) + " is a split holding panels");
-            if (!check_tree(node.first, id, region)) return false;
-            const bool second = check_tree(node.second, id, region);
-            return second;
+            pending.push_back(TreeStep{node.second, id, step.region, step.depth + 1U});
+            pending.push_back(TreeStep{node.first, id, step.region, step.depth + 1U});
+            return true;
         }
         if (node.kind == DockNodeKind::document_area) {
-            if (region != DockRegion::main_tools) return fail("a document area outside the main site's tool region");
+            if (step.region != DockRegion::main_tools) {
+                return fail("a document area outside the main site's tool region");
+            }
             ++document_areas_;
             if (!(node.second == DockNodeId{}) || !node.panels.empty()) {
                 return fail(node_text(id) + " is a document area with stray fields");
             }
             if (node.first == DockNodeId{}) return true;
-            const bool content = check_tree(node.first, id, DockRegion::document_area);
-            return content;
+            pending.push_back(TreeStep{node.first, id, DockRegion::document_area, step.depth + 1U});
+            return true;
         }
-        if (region == DockRegion::document_area && node.kind != DockNodeKind::document_stack) {
+        if (step.region == DockRegion::document_area && node.kind != DockNodeKind::document_stack) {
             return fail(node_text(id) + " is a tool stack inside the document area");
         }
-        if ((region == DockRegion::main_tools || region == DockRegion::auto_hidden) &&
+        if ((step.region == DockRegion::main_tools || step.region == DockRegion::auto_hidden) &&
             node.kind != DockNodeKind::tool_stack) {
             return fail(node_text(id) + " is a document stack outside the document area");
         }

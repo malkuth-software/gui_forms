@@ -417,6 +417,15 @@ struct DockLayoutState final {
 
 // The most floating sites a layout holds (DK decision 6).
 inline constexpr std::size_t dock_maximum_floating_sites = 32;
+// The deepest a site's node tree may nest, its root at level one; the main
+// site counts through its document area into the document tree. Every
+// split adds a level, and 32 levels of halving leave a pane far below any
+// minimum size, so no usable layout reaches it. The invariant check
+// (DockLayout::check_invariants) refuses a deeper tree, so a transaction
+// or a restore that would build one changes nothing. The walks over a
+// committed tree (minimum sizes, writing, the dock site's placement) may
+// recurse once per level: a few hundred bytes each, at most about 32 KiB.
+inline constexpr std::size_t dock_maximum_depth = 32;
 // Node and site IDs are below this value. An edit that needs a new ID once
 // next_id has reached it is refused (identities_exhausted); IDs are never
 // reused, so the count never wraps to the null ID.
