@@ -42,7 +42,7 @@
     {"check_box", "Value setting", Size{160.0, 24.0}, "Check box", &make_text<CheckBox>, nullptr, ""},
     {"radio_button", "Value setting", Size{160.0, 24.0}, "Radio button", &make_text<RadioButton>, nullptr, ""},
     {"toggle_switch", "Value setting", Size{160.0, 28.0}, "Toggle switch", &make_text<ToggleSwitch>, nullptr, ""},
-    {"range_control", "Value setting", Size{224.0, 32.0}, "Range control", &make_range_control, nullptr, ""},
+    {"range_control", "Value setting", Size{224.0, 32.0}, "Range control", &make_range_control, nullptr, "the ranged controls' base paints no face of its own"},
     {"track_bar", "Value setting", Size{224.0, 32.0}, "Track bar", &make_ranged<TrackBar>, nullptr, ""},
     {"value_bar", "Value setting", Size{224.0, 32.0}, "Value bar", &make_ranged<ValueBar>, nullptr, ""},
     {"numeric_up_down", "Value setting", Size{160.0, 30.0}, "Numeric up down", &make_numeric_up_down, nullptr, ""},

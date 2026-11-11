@@ -42,9 +42,19 @@ namespace {
 // -- naming, holding and writing ---------------------------------------------------
 
 // `id` with `suffix` appended, for a specimen's inner controls.
+// Appends `suffix` to a stable ID's text in the segment spelling: ASCII
+// letters lowered, so a sample label ("Harbour", "Save") names a valid
+// segment.
+void append_segment_text(std::string& text, std::string_view suffix) {
+    for (const char character : suffix) {
+        const bool upper = character >= 'A' && character <= 'Z';
+        text.push_back(upper ? static_cast<char>(character - 'A' + 'a') : character);
+    }
+}
+
 StableId child_id(const StableId& id, std::string_view suffix) {
     std::string text(id.value());
-    text += suffix;
+    append_segment_text(text, suffix);
     StableId result(std::move(text));
     return result;
 }
@@ -52,7 +62,7 @@ StableId child_id(const StableId& id, std::string_view suffix) {
 // The same, as the plain string item records take.
 std::string child_name(const StableId& id, std::string_view suffix) {
     std::string text(id.value());
-    text += suffix;
+    append_segment_text(text, suffix);
     return text;
 }
 
@@ -306,7 +316,9 @@ StockSpecimenInstance make_token_box(const StockSpecimen&, StableId id) {
 
 StockSpecimenInstance make_masked_text_box(const StockSpecimen&, StableId id) {
     const std::shared_ptr<MaskedTextBox> control = make_control<MaskedTextBox>(std::move(id), "(000) 000-0000");
-    set_sample_text(*control, "5550100199");
+    // MaskedTextBox publishes no `text` property; its input goes through
+    // the mask.
+    static_cast<void>((*control).place_text("5550100199"));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }
@@ -1145,15 +1157,16 @@ StockSpecimenInstance make_dock_navigator(const StockSpecimen&, StableId id) {
 }
 
 // A track panel needs 1 to 64 tracks before it lays out: two that share
-// the remaining space.
+// the remaining space, holding add_sample_children's form.
 StockSpecimenInstance make_responsive_track_panel(const StockSpecimen&, StableId id) {
-    const std::shared_ptr<ResponsiveTrackPanel> control = make_control<ResponsiveTrackPanel>(std::move(id));
+    const std::shared_ptr<ResponsiveTrackPanel> control = make_control<ResponsiveTrackPanel>(id);
     ResponsiveTrackSpec track{};
     track.size_mode = ResponsiveTrackSizeMode::remaining;
     std::vector<ResponsiveTrackSpec> tracks;
     tracks.push_back(track);
     tracks.push_back(track);
     (*control).set_track_specs(std::move(tracks));
+    add_sample_children(*control, id);
     StockSpecimenInstance instance = alone(control);
     return instance;
 }
@@ -1374,6 +1387,8 @@ std::vector<Color> sample_palette() {
 StockSpecimenInstance make_ribbon_color_picker(const StockSpecimen&, StableId id) {
     const std::shared_ptr<RibbonColorPicker> control = make_control<RibbonColorPicker>(std::move(id));
     (*control).set_palette(sample_palette());
+    // A chosen colour, so the face's colour bar shows it (Automatic shows none).
+    (*control).value = std::optional<Color>(Color::rgba(196, 60, 52));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }
@@ -1420,6 +1435,8 @@ StockSpecimenInstance make_ribbon_gallery(const StockSpecimen&, StableId id) {
         items[index].category = "styles";
     }
     (*control).set_items(std::move(categories), std::move(items));
+    // The sample items have no images, so their labels are what shows.
+    (*control).show_labels = true;
     StockSpecimenInstance instance = alone(control);
     return instance;
 }

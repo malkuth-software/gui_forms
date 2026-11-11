@@ -153,6 +153,7 @@ PRESENTERS: Mapping[str, str] = {
 # Rows whose near-uniform look at rest is the real look; keep this short.
 BLANK_REASONS: Mapping[str, str] = {
     "gauge_base": "the gauges' base paints no face of its own",
+    "range_control": "the ranged controls' base paints no face of its own",
     "sub_surface_host": "hosts a program's own surface and is empty until one is attached",
 }
 

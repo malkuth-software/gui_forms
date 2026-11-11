@@ -232,7 +232,7 @@ void stock_catalogue() {
     std::string blank{};
     for (const StockSpecimen& row : rows) {
         const StockSpecimenInstance instance =
-            make_stock_specimen(row, StableId("specimen." + std::string(row.control_id)));
+            make_stock_specimen(row, specimen_id(row.control_id));
         require(instance.root != nullptr && instance.subject != nullptr && instance.frame != nullptr,
                 std::string(row.control_id) + ": a maker gives a root, a subject and a frame");
         Window window(instance.root, row.size);
