@@ -2949,6 +2949,11 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_drawing_trace_equivalence_tests
              COMMAND gui_drawing_trace_equivalence_tests)
 
+    # The stx package stamp's digests ignore line endings
+    # (cmake/StxDigest.cmake, tests/cmake/stx_digest_test.cmake).
+    add_test(NAME gui_forms_stx_digest
+             COMMAND ${CMAKE_COMMAND} -DWORK_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/stx_digest_test
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/stx_digest_test.cmake)
     # Public headers name no renderer or platform type; comments may
     # (cmake/check_public_header_tokens.cmake). The fixtures prove a comment
     # passes and a token in code fails.
