@@ -64,6 +64,7 @@ WM_ACTIVATEAPP = 0x001C
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101
 WM_MOUSEMOVE = 0x0200
+WM_MOUSELEAVE = 0x02A3
 WM_LBUTTONDOWN = 0x0201
 WM_LBUTTONUP = 0x0202
 WM_NCLBUTTONDOWN = 0x00A1
@@ -365,6 +366,10 @@ def settle(program, tooltip_ms):
     """Ends every gesture and menu, then reads the invariants; returns the broken ones."""
     width, height = program.client_size()
     user32.PostMessageW(program.main, WM_LBUTTONUP, 0, pack(width // 2, height // 2))
+    # The pointer leaves for the client's far corner: a tooltip stays while
+    # the pointer rests on its control, as it should.
+    user32.PostMessageW(program.main, WM_MOUSEMOVE, 0, pack(width - 2, height - 2))
+    user32.PostMessageW(program.main, WM_MOUSELEAVE, 0, 0)
     for _ in range(4):
         program.automation('key-focused %d' % KEY_ESCAPE)
     broken = []

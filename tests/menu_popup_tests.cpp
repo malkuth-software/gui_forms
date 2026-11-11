@@ -549,6 +549,38 @@ void hovering_a_submenu_row_away_and_back_reopens_it() {
     require(!(*desk.strip).is_open() && desk.popups().empty(), "the owner moving closes the menu and its submenu");
 }
 
+// Contention fuzzer seed 1 (tools/contention_fuzz.py, replay: the File menu
+// with its Background submenu open, then a button that shows a context menu
+// activated through automation, past the menu's outside-press layer). The
+// open chain's focus scope held the new menu outside it, begin_focus_scope
+// threw out of the window procedure and the program died. A window shows
+// one menu chain: the new menu closes the open one, both ways round.
+void a_menu_opening_closes_the_open_chain() {
+    Desk desk(true);
+    Commands commands;
+    (*desk.strip).set_items(strip_items(commands));
+    std::shared_ptr<ContextMenu> context = std::make_shared<ContextMenu>("context");
+    std::vector<MenuItemSpec> items;
+    items.emplace_back("context.open", MenuItemKind::command, commands.open);
+    items.emplace_back("context.save", MenuItemKind::command, commands.save);
+    (*context).set_items(std::move(items));
+    for (std::size_t cycle = 0U; cycle < 4U; ++cycle) {
+        const std::string label = "cycle " + std::to_string(cycle) + ": ";
+        require((*desk.strip).open(0U, MenuOpenMode::keyboard), label + "the File menu opens");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), label + "Down reaches the panel");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), label + "Down skips the rule");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), label + "Right opens the submenu");
+        require(desk.popups().size() == 2U, label + "the submenu shows");
+        (*context).show(desk.ribbon, Point{200.0, 200.0}, MenuOpenMode::keyboard);
+        require((*context).is_open() && !(*desk.strip).is_open(), label + "the context menu replaces the File menu");
+        require(desk.popups().size() == 1U, label + "only the context menu's Popup window shows");
+        require((*desk.strip).open(0U, MenuOpenMode::keyboard), label + "the File menu opens over the context menu");
+        require(!(*context).is_open() && (*desk.strip).is_open(), label + "the File menu replaces the context menu");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)), label + "Escape closes the File menu");
+        require(desk.popups().empty() && !(*desk.strip).is_open(), label + "no Popup window is left");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -562,6 +594,7 @@ int main() {
         the_two_pane_menu_lifts_and_opens_submenus();
         the_application_menu_opens_and_closes_repeatedly();
         hovering_a_submenu_row_away_and_back_reopens_it();
+        a_menu_opening_closes_the_open_chain();
     } catch (const std::exception& error) {
         std::cerr << "menu popup tests failed: " << error.what() << '\n';
         return 1;

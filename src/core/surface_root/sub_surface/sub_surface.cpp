@@ -577,6 +577,10 @@ void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configurat
 
 void SubSurfaceLoop::produce(SubSurface& root) {
     if (!configured_ || !framebuffer_) return;
+    // A pacing wake is for dirt that waits: once nothing does (the dirt was
+    // painted or withdrawn), a wake left set would be in the past and turn
+    // the loop without end.
+    if (!root.needs_frame()) pacing_wake_.reset();
     if (root.needs_frame()) {
         const LivePacingResult pace = pacer_.plan(FrameClock::now());
         // A new epoch's frame does not wait for pacing (pairing, design note
