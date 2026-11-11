@@ -143,6 +143,8 @@ void test_million_rows() {
     require(runs <= 2U * 20000U + 5000U + 4U * 2000U + 8U, "runs bounded after splices");
     require(index.node_count() <= runs, "nodes no more than the runs");
     require(index.depth() <= 5U, "depth after splices");
+    require(index.depth() <= gui_forms::RowHeightIndex::Tree::depth_limit(index.count()),
+            "depth within the family's bound after splices");
 
     // Erase everything, then grow again from empty.
     index.erase(0U, index.count());
@@ -152,6 +154,35 @@ void test_million_rows() {
     std::vector<double> regrown(million, estimate);
     require_matches(index, regrown, sample_rows(million, sequence), "regrown");
     require(index.run_count() == 1U, "regrown is one run");
+}
+
+// Many runs, then most of the rows erased: the tree compacts down to the
+// depth bound for what is left, and every row still answers as before.
+void test_depth_follows_the_count() {
+    gui_forms::RowHeightIndex index(estimate);
+    index.assign(200000U, estimate);
+    std::vector<double> reference(200000U, estimate);
+    for (std::size_t row = 0U; row < 100000U; row += 2U) {
+        const double height = (row / 2U) % 2U == 0U ? 10.0 : 30.0;
+        index.set_height(row, height);
+        reference[row] = height;
+    }
+    require(index.run_count() >= 100000U, "alternating measures leave a run per row");
+    require(index.depth() >= 3U, "that many runs need several levels");
+    require(index.depth() <= gui_forms::RowHeightIndex::Tree::depth_limit(index.count()), "depth within the bound");
+    const std::size_t kept_head = 10U;
+    const std::size_t kept_tail = 10U;
+    index.erase(kept_head, index.count() - kept_head - kept_tail);
+    reference.erase(reference.begin() + static_cast<std::ptrdiff_t>(kept_head),
+                    reference.end() - static_cast<std::ptrdiff_t>(kept_tail));
+    require(index.count() == 20U, "twenty rows left");
+    require(index.depth() <= gui_forms::RowHeightIndex::Tree::depth_limit(index.count()),
+            "erasing most rows brings the depth down to the bound for what is left");
+    require(index.node_count() <= index.run_count() + 1U, "the compacted tree holds no empty nodes");
+    std::vector<std::size_t> rows{};
+    for (std::size_t row = 0U; row < reference.size(); ++row) rows.push_back(row);
+    require_matches(index, reference, rows, "compacted");
+    require(gui_forms::RowHeightIndex::Tree::max_depth <= 17U, "the bound covers every size_t count");
 }
 
 void test_move() {
@@ -171,6 +202,7 @@ int main() {
     try {
         test_empty_and_edges();
         test_million_rows();
+        test_depth_follows_the_count();
         test_move();
         std::cout << "row height index tests passed\n";
         return 0;

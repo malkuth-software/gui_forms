@@ -1,10 +1,48 @@
 #pragma once
 
+#include "../../core/collections/order_statistic_tree.hpp"
+
 #include <cstddef>
-#include <memory>
+#include <cstdint>
+#include <span>
 #include <vector>
 
 namespace gui_forms {
+
+namespace detail {
+
+// A run of rows sharing one height and state: the entries of a
+// RowHeightIndex. A node's summary is its subtree's total height.
+struct RowRun final {
+    std::size_t count{};
+    double height{};
+    bool measured{};
+};
+
+struct RowRuns final {
+    using Entry = RowRun;
+    using Summary = double;
+    static constexpr bool tracks_leaves = false;
+
+    [[nodiscard]] static std::size_t entry_count(const RowRun& run) noexcept { return run.count; }
+    [[nodiscard]] static std::uint32_t entry_key(const RowRun&) noexcept { return 0U; }
+    [[nodiscard]] static double summarize_entries(std::span<const RowRun> runs) noexcept {
+        double height = 0.0;
+        for (const RowRun& run : runs) {
+            height += static_cast<double>(run.count) * run.height;
+        }
+        return height;
+    }
+    [[nodiscard]] static double summarize_children(std::span<const double> heights) noexcept {
+        double height = 0.0;
+        for (const double child : heights) {
+            height += child;
+        }
+        return height;
+    }
+};
+
+} // namespace detail
 
 // The vertical extent of a long list of rows (audit N94, owner ruling D10 b,
 // POST_0.5_BACKLOG "Startup bar"): a height-indexed B-tree whose nodes keep
@@ -22,22 +60,23 @@ namespace gui_forms {
 // and edits create, not with the row count. A measured row is a run of one
 // until its neighbours match it.
 //
-// Leaves hold runs and branches hold children, at most node_capacity each.
-// Totals are recomputed from the children on every path a change touches (no
-// running deltas), so rounding does not accumulate. Plain node layout; the
-// branchless or SIMD layout is a later optimisation (owner, 2026-11-10).
+// The runs are the entries of the shared order-statistic B-tree family
+// (core/collections/order_statistic_tree.hpp, also behind BindingOrderTree):
+// leaves hold runs and branches hold children, at most node_capacity each,
+// and totals are recomputed from the children on every path a change touches
+// (no running deltas), so rounding does not accumulate. Plain node layout;
+// the branchless or SIMD layout is a later optimisation (owner, 2026-11-10).
 //
 // The structure is a value owned by one control and used on its thread.
-// Depth is O(log n) of the largest row count it has held: nodes emptied by an
-// erase are removed and a one-child root is collapsed, but partly filled
-// nodes are not merged (their count is bounded by the runs). Recursion is
-// bounded by that depth: a split leaves both halves at least 16 entries of
-// 32, so a tree is at most 1 + log16 of the most runs it has held deep, 9
-// levels for 2^32 runs and 17 for 2^64 (HOUSE_STYLE section 1: the shape
-// fixes the depth before any walk).
+// Nothing recurses. The depth is at most Tree::depth_limit(count()), which
+// is never more than Tree::max_depth (17 for a 64-bit size_t): nodes emptied
+// by an erase are removed and a one-child root is collapsed, partly filled
+// nodes are not merged (their count is bounded by the runs), and a change
+// that would leave the tree deeper than the limit compacts it.
 class RowHeightIndex final {
 public:
-    static constexpr std::size_t node_capacity = 32U;
+    using Tree = detail::OrderStatisticTree<detail::RowRuns>;
+    static constexpr std::size_t node_capacity = Tree::node_capacity;
 
     // An empty index whose new rows are estimated at `estimated_height`
     // (finite and > 0; otherwise 1 is used).
@@ -87,39 +126,15 @@ public:
     [[nodiscard]] std::uint64_t revision() const noexcept { return revision_; }
 
 private:
-    struct Run final {
-        std::size_t count{};
-        double height{};
-        bool measured{};
-    };
-    struct Node final {
-        bool leaf{true};
-        std::size_t count{};
-        double height{};
-        // A leaf's runs, in row order.
-        std::vector<Run> runs{};
-        // A branch's children, in row order, with each one's totals
-        // (repeated here so a descent reads one array).
-        std::vector<std::unique_ptr<Node>> children{};
-        std::vector<std::size_t> child_counts{};
-        std::vector<double> child_heights{};
-    };
+    using Run = detail::RowRun;
+    using Node = Tree::Node;
 
-    static void recompute(Node& node) noexcept;
     static void merge_neighbours(std::vector<Run>& runs, std::size_t index);
-    // Splits an overfull node in two; returns the right half.
-    static std::unique_ptr<Node> split(Node& node);
-    // Adopts a split-off right sibling after `index` in a branch.
-    static void adopt_split(Node& branch, std::size_t index, std::unique_ptr<Node> sibling);
-    static std::unique_ptr<Node> set_height_in(Node& node, std::size_t row, double height, bool& changed);
-    std::unique_ptr<Node> insert_in(Node& node, std::size_t row, std::size_t count);
-    static void erase_in(Node& node, std::size_t row, std::size_t count);
-    static std::size_t count_nodes(const Node& node) noexcept;
-    static std::size_t count_runs(const Node& node) noexcept;
-    void grow_root(std::unique_ptr<Node> sibling);
-    void shrink_root();
+    // Erases up to `count` rows of the leaf's runs from `row` (within the
+    // leaf) and joins equal neighbours; returns the rows erased.
+    static std::size_t erase_from_leaf(std::vector<Run>& runs, std::size_t row, std::size_t count);
 
-    std::unique_ptr<Node> root_{};
+    Tree tree_{};
     double estimate_{1.0};
     std::uint64_t revision_{0U};
 };

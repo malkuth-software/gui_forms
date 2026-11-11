@@ -765,6 +765,8 @@ void test_order_tree_matches_a_vector() {
         }
         if (step % 500U == 0U) {
             require(tree.size() == reference.size(), "the tree's size matches");
+            require(tree.depth() <= detail::BindingOrderTree::Tree::depth_limit(tree.size()),
+                    "the tree's depth stays within the family's bound");
             for (std::size_t position = 0U; position < reference.size(); ++position) {
                 require(tree.select(position) == reference[position] && tree.rank(reference[position]) == position,
                         "select and rank match the vector");
@@ -776,6 +778,43 @@ void test_order_tree_matches_a_vector() {
         reference.pop_back();
     }
     require(tree.size() == 0U && tree.node_count() == 1U, "an emptied tree collapses to its root");
+}
+
+// The family's depth bound follows the count down: erasing most of a large
+// tree compacts it, and ordered insertion still finds its place afterwards.
+struct AscendingElements final {
+    [[nodiscard]] bool before(std::uint32_t left, std::uint32_t right) const noexcept { return left < right; }
+};
+
+void test_order_tree_depth_follows_the_count() {
+    detail::BindingOrderTree tree;
+    std::vector<std::uint32_t> initial;
+    initial.reserve(200000U);
+    for (std::uint32_t element = 0U; element < 200000U; ++element) initial.push_back(element);
+    tree.assign(initial, 200000U);
+    require(tree.depth() <= detail::BindingOrderTree::Tree::depth_limit(tree.size()), "a bulk load is within the bound");
+    require(detail::BindingOrderTree::Tree::max_depth <= 17U, "the bound covers every size_t count");
+    std::vector<std::uint32_t> survivors;
+    for (std::uint32_t element = 0U; element < 200000U; ++element) {
+        if (element % 10000U == 0U) {
+            survivors.push_back(element);
+        } else {
+            tree.erase(element);
+        }
+    }
+    require(tree.size() == survivors.size(), "twenty elements survive");
+    require(tree.depth() <= detail::BindingOrderTree::Tree::depth_limit(tree.size()),
+            "erasing most of the tree brings its depth down to the bound for what is left");
+    require(tree.node_count() <= 4U, "the compacted tree holds a handful of nodes");
+    const AscendingElements ascending{};
+    for (std::uint32_t element = 5000U; element < 200000U; element += 10000U) {
+        tree.insert_ordered(element, ascending);
+        survivors.insert(std::upper_bound(survivors.begin(), survivors.end(), element), element);
+    }
+    for (std::size_t position = 0U; position < survivors.size(); ++position) {
+        require(tree.select(position) == survivors[position] && tree.rank(survivors[position]) == position,
+                "select and rank match after compaction and ordered insertion");
+    }
 }
 
 } // namespace
@@ -793,6 +832,7 @@ int main() {
         test_add_rows_is_all_or_none();
         test_text_compares_ignoring_case_by_code_point();
         test_order_tree_matches_a_vector();
+        test_order_tree_depth_follows_the_count();
         std::cout << "gui_forms_binding_provider_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
