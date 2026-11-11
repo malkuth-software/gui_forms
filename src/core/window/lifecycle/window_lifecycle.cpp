@@ -71,6 +71,14 @@ Application& checked_application(Application& application) {
     return application;
 }
 
+// `resources` with the process's theme request settled (user_themes.hpp:
+// --theme, GUI_FORMS_THEME_SHEET) before the first window reads their
+// theme. Off their thread nothing is settled; the constructor refuses then.
+std::shared_ptr<ApplicationResources> settled_resources(std::shared_ptr<ApplicationResources> resources) {
+    if (resources && (*resources).check_access()) (*resources).settle_theme_request();
+    return resources;
+}
+
 } // namespace
 
 Window::Window(Control::Ptr root, Size client_size)
@@ -90,7 +98,7 @@ Window::Window(Control::Ptr root, Size client_size,
 
 Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources,
                Application* application)
-    : SurfaceRoot(std::move(root), client_size, std::move(resources)) {
+    : SurfaceRoot(std::move(root), client_size, settled_resources(std::move(resources))) {
     presenting_window_ = this;
     if (application != nullptr) application_tool_tips_shown_ = (*application).tool_tips_shown_;
     // The application's key table, read until a window-local change (K.1).

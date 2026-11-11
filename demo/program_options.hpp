@@ -27,14 +27,21 @@
 //                       one to three WindowBackdrop names, comma-separated,
 //                       preferred first (e.g. window_material,transparent).
 //                       Other programs ignore it.
-//   --theme <id>        The Gallery compiles its project theme onto this
+//   --theme-base <id>   The Gallery compiles its project theme onto this
 //                       base: gui-forms (the default) or
 //                       windows-professional, as its Theme settings page
 //                       does. Other programs ignore it.
 //
+// The user-theme options every GUI.Forms program takes (--theme
+// <name|built-in|path.css> and --export-themes [folder];
+// gui_forms/application/user_themes) are the library's: they are passed
+// over here (program_arguments), and the application settles --theme
+// itself.
+//
 // Header-only so every demo executable can include it without a new library.
 // It is demo-facing code: no host, renderer or platform type appears here.
 
+#include "gui_forms/application/user_themes/user_themes.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/window.hpp"
@@ -50,6 +57,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::demo {
 
@@ -61,13 +69,14 @@ struct ProgramOptions final {
     double scale_hint{};
     std::string page;
     std::string backdrop;
-    std::string theme;
+    std::string theme_base;
 };
 
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
                  "usage: %s [--automation] [--smoke-test] [--capture <path.png>] "
-                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme <id>]\n",
+                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme-base <id>]\n"
+                 "       [--theme <name|built-in|path.css>]\n",
                  program != nullptr && *program != '\0' ? program : "gui-forms-demo");
 }
 
@@ -107,12 +116,19 @@ inline bool parse_size(std::string_view text, Size& size) {
 inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv) {
     ProgramOptions options;
     const char* program = argc > 0 && argv != nullptr ? argv[0] : "";
+    std::vector<std::string_view> given{};
     for (int index = 1; index < argc; ++index) {
         if (argv[index] == nullptr) {
             print_program_usage(program);
             return std::nullopt;
         }
-        const std::string_view argument(argv[index]);
+        given.push_back(std::string_view(argv[index]));
+    }
+    // The user-theme options are the library's (see above).
+    const std::vector<std::string_view> arguments = program_arguments(given);
+    const std::size_t argument_count = arguments.size();
+    for (std::size_t index = 0U; index < argument_count; ++index) {
+        const std::string_view argument = arguments[index];
         if (argument == "--automation") {
             options.automation = true;
             continue;
@@ -123,16 +139,17 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
         }
         const bool wants_value = argument == "--capture" || argument == "--size" ||
                                  argument == "--scale" || argument == "--page" ||
-                                 argument == "--backdrop" || argument == "--theme";
+                                 argument == "--backdrop" || argument == "--theme-base";
         if (!wants_value) {
             print_program_usage(program);
             return std::nullopt;
         }
-        if (index + 1 >= argc || argv[index + 1] == nullptr) {
+        if (index + 1U >= argument_count) {
             print_program_usage(program);
             return std::nullopt;
         }
-        const std::string_view value(argv[++index]);
+        index = index + 1U;
+        const std::string_view value = arguments[index];
         if (argument == "--capture") {
             if (value.empty()) {
                 print_program_usage(program);
@@ -151,12 +168,12 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                 return std::nullopt;
             }
             options.backdrop = std::string(value);
-        } else if (argument == "--theme") {
+        } else if (argument == "--theme-base") {
             if (value.empty()) {
                 print_program_usage(program);
                 return std::nullopt;
             }
-            options.theme = std::string(value);
+            options.theme_base = std::string(value);
         } else if (argument == "--size") {
             Size size{};
             if (!detail::parse_size(value, size)) {

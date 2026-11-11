@@ -916,6 +916,22 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status set_user_theme_policy(gf_user_theme_policy policy) const noexcept {
+        if (table_.struct_size < 128u || table_.set_user_theme_policy == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_user_theme_policy(policy);
+        return called;
+    }
+
+    [[nodiscard]] gf_status theme_request(gf_theme_request_outcome* outcome) const noexcept {
+        if (table_.struct_size < 136u || table_.theme_request == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.theme_request(outcome);
+        return called;
+    }
+
 private:
     gf_themes_table table_;
 };

@@ -1,4 +1,6 @@
 #include "gui_forms/application/user_themes/user_themes.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include "../../core/theme_language/package/theme_manifest.hpp"
 #include "theme_files.hpp"
@@ -6,7 +8,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <memory>
 #include <optional>
+#include <stdexcept>
 #include <span>
 #include <string>
 #include <string_view>
@@ -185,6 +190,140 @@ constexpr std::string_view export_readme =
     "To go back to the program's built-in look, choose \"Built-in\" in the\n"
     "settings, or start the program with --theme built-in.\n";
 
+constexpr std::string_view theme_option = "--theme";
+constexpr std::string_view export_option = "--export-themes";
+// The name a sheet requested by its path compiles under; its findings name
+// this file until they are written with the sheet's own path.
+constexpr std::string_view requested_sheet_name = "theme-sheet";
+constexpr std::string_view requested_sheet_file = "theme-sheet.css";
+
+// Whether an option's next argument is its value: there is one, and it is
+// not itself an option (read_theme_command_line's rule).
+bool value_follows(std::span<const std::string_view> arguments, std::size_t index) noexcept {
+    const bool follows = index + 1U < arguments.size() && !arguments[index + 1U].starts_with("--");
+    return follows;
+}
+
+// Whether a --theme value names a sheet by its path: it holds a path
+// separator, or ends in `.css` in any case.
+bool names_sheet(std::string_view value) noexcept {
+    if (value.find('/') != std::string_view::npos || value.find('\\') != std::string_view::npos) return true;
+    if (value.size() < sheet_suffix.size()) return false;
+    const std::string_view tail = value.substr(value.size() - sheet_suffix.size());
+    for (std::size_t index = 0U; index < tail.size(); ++index) {
+        const char character = tail[index];
+        const bool upper = character >= 'A' && character <= 'Z';
+        const char lower = upper ? static_cast<char>(character - 'A' + 'a') : character;
+        if (lower != sheet_suffix[index]) return false;
+    }
+    return true;
+}
+
+ThemeRequest request_of(ThemeRequestSource source, std::string_view value) {
+    ThemeRequest request{};
+    request.source = source;
+    request.value = std::string(value);
+    if (value == built_in_theme_name) {
+        request.kind = ThemeRequestKind::built_in;
+    } else if (names_sheet(value)) {
+        request.kind = ThemeRequestKind::sheet;
+    } else {
+        request.kind = ThemeRequestKind::named;
+    }
+    return request;
+}
+
+// How the request is written in its log lines: as it was given.
+std::string request_text(const ThemeRequest& request) {
+    std::string text{};
+    if (request.source == ThemeRequestSource::environment) {
+        text = std::string(theme_sheet_environment_variable) + "=" + request.value;
+    } else {
+        text = std::string(theme_option) + " " + request.value;
+    }
+    return text;
+}
+
+// Writes `line` to stderr and keeps it in the report.
+void report_line(ThemeRequestReport& report, std::string line) {
+    std::fprintf(stderr, "GUI.Forms: %s\n", line.c_str());
+    report.log.push_back(std::move(line));
+}
+
+// Writes each finding and keeps it, a finding on the requested sheet's
+// implied file named by the sheet's path.
+void report_findings(ThemeRequestReport& report, std::span<const ThemeCompileDiagnostic> diagnostics,
+                     std::string_view sheet_path) {
+    for (const ThemeCompileDiagnostic& diagnostic : diagnostics) {
+        ThemeCompileDiagnostic shown = diagnostic;
+        if (!sheet_path.empty() && shown.file == requested_sheet_file) shown.file = std::string(sheet_path);
+        report_line(report, format_theme_diagnostic(shown));
+        report.findings.push_back(std::move(shown));
+    }
+}
+
+// The compile options of `context`, borrowing it.
+ThemeCompileOptions options_of(const ThemeRequestContext& context) {
+    ThemeCompileOptions options{};
+    options.controls = context.controls.empty() ? stock_control_anatomies()
+                                                : std::span<const ControlAnatomy>(context.controls);
+    options.published_values = std::span<const std::string>(context.published_values);
+    options.base = context.base;
+    options.effects = context.effects;
+    return options;
+}
+
+// A named request: the theme of that name among those the context's folders
+// hold, compiled by the scan.
+void apply_named(ApplicationResources& resources, const ThemeRequest& request, const ThemeRequestContext& context,
+                 const ThemeLibrary& library, const ThemeCompileOptions& options, ThemeRequestReport& report) {
+    const UserThemeScan scan = scan_user_themes(context.folders, resources, library, options);
+    for (const std::string& line : scan.log) report_line(report, line);
+    for (const UserThemeCandidate& candidate : scan.themes) {
+        if (candidate.name != request.value) continue;
+        report_findings(report, candidate.diagnostics, std::string_view{});
+        if (candidate.theme == nullptr) {
+            report.outcome = ThemeRequestOutcome::refused;
+            report_line(report, request_text(request) + " ignored: " + candidate.file +
+                                    " does not compile; the program's own theme stays");
+            return;
+        }
+        resources.set_user_theme(candidate.theme);
+        report.outcome = ThemeRequestOutcome::applied;
+        return;
+    }
+    report.outcome = ThemeRequestOutcome::unknown_name;
+    report_line(report, request_text(request) + " ignored: no user theme of that name in `" +
+                            context.folders.beside_program + "` or `" + context.folders.per_user + "`");
+}
+
+// A sheet requested by its path, read and compiled as a user theme whose
+// header is implied.
+void apply_sheet(ApplicationResources& resources, const ThemeRequest& request, const ThemeLibrary& library,
+                 const ThemeCompileOptions& options, ThemeRequestReport& report) {
+    UserThemeFiles sheet{};
+    sheet.name = std::string(requested_sheet_name);
+    sheet.header_implied = true;
+    const files::FileOutcome read =
+        files::read_named_file(request.value, maximum_main_sheet_bytes, sheet.main_sheet);
+    if (read != files::FileOutcome::done) {
+        report.outcome = ThemeRequestOutcome::unreadable;
+        report_line(report, request_text(request) + " ignored: the sheet is " + outcome_text(read) +
+                                " (at most 1 MiB is read); the program's own theme stays");
+        return;
+    }
+    const ThemeCompileResult compiled = resources.compile_user_theme(sheet, library, options);
+    report_findings(report, compiled.diagnostics(), request.value);
+    if (!compiled.succeeded()) {
+        report.outcome = ThemeRequestOutcome::refused;
+        report_line(report,
+                    request_text(request) + " ignored: the sheet does not compile; the program's own theme stays");
+        return;
+    }
+    resources.set_user_theme(compiled.theme());
+    report.outcome = ThemeRequestOutcome::applied;
+}
+
 } // namespace
 
 std::string per_user_theme_folder(std::string_view program) {
@@ -310,6 +449,116 @@ ThemeExportReport export_user_themes(const ThemeLibrary& program, const Applicat
     }
     write_one(files::join_path(folder, "README.txt"), export_readme, report);
     return report;
+}
+
+ThemeRequest read_theme_request(std::span<const std::string_view> arguments, std::string_view environment_sheet) {
+    const ThemeCommandLine line = read_theme_command_line(arguments);
+    if (!line.error.empty()) {
+        ThemeRequest misformed{};
+        misformed.source = ThemeRequestSource::command_line;
+        misformed.error = line.error;
+        return misformed;
+    }
+    if (line.theme.kind == ThemeChoiceKind::built_in) {
+        ThemeRequest request = request_of(ThemeRequestSource::command_line, built_in_theme_name);
+        return request;
+    }
+    if (line.theme.kind == ThemeChoiceKind::named) {
+        ThemeRequest request = request_of(ThemeRequestSource::command_line, line.theme.name);
+        return request;
+    }
+    if (environment_sheet.empty()) return ThemeRequest{};
+    ThemeRequest request = request_of(ThemeRequestSource::environment, environment_sheet);
+    return request;
+}
+
+std::vector<std::string> process_arguments() {
+    std::vector<std::string> arguments = files::process_arguments();
+    return arguments;
+}
+
+ThemeRequest process_theme_request() {
+    const std::vector<std::string> arguments = files::process_arguments();
+    std::vector<std::string_view> views{};
+    views.reserve(arguments.size());
+    for (const std::string& argument : arguments) views.push_back(argument);
+    const std::string environment_sheet = files::environment_value(theme_sheet_environment_variable);
+    ThemeRequest request = read_theme_request(views, environment_sheet);
+    return request;
+}
+
+std::vector<std::string_view> program_arguments(std::span<const std::string_view> arguments) {
+    std::vector<std::string_view> kept{};
+    kept.reserve(arguments.size());
+    for (std::size_t index = 0U; index < arguments.size(); ++index) {
+        const std::string_view argument = arguments[index];
+        const bool theme_options = argument == theme_option || argument == export_option;
+        if (!theme_options) {
+            kept.push_back(argument);
+            continue;
+        }
+        if (value_follows(arguments, index)) index = index + 1U;
+    }
+    return kept;
+}
+
+UserThemeFolders process_theme_folders() {
+    UserThemeFolders folders{};
+    const std::string executable = files::executable_path();
+    const std::size_t separator = executable.find_last_of("/\\");
+    if (executable.empty() || separator == std::string::npos) return folders;
+    const std::string_view folder = std::string_view(executable).substr(0U, separator);
+    const std::string_view file = std::string_view(executable).substr(separator + 1U);
+    const std::size_t dot = file.find_last_of('.');
+    const std::string_view program = dot == std::string_view::npos || dot == 0U ? file : file.substr(0U, dot);
+    folders.beside_program = files::join_path(folder, "themes");
+    if (!program.empty()) folders.per_user = per_user_theme_folder(program);
+    return folders;
+}
+
+ThemeRequestReport apply_theme_request(ApplicationResources& resources, const ThemeRequest& request,
+                                       const ThemeRequestContext& context) {
+    if (resources.window_count() != 0U) throw std::logic_error("a theme request is settled before the first window");
+    ThemeRequestReport report{};
+    report.request = request;
+    if (!request.error.empty()) {
+        report.outcome = ThemeRequestOutcome::malformed;
+        report_line(report, "the command line's theme is ignored: " + request.error);
+        return report;
+    }
+    if (request.kind == ThemeRequestKind::none) return report;
+    if (resources.user_theme_policy() == UserThemePolicy::refused) {
+        report.outcome = ThemeRequestOutcome::ignored_by_policy;
+        report_line(report, request_text(request) + " ignored: this program refuses user themes");
+        return report;
+    }
+    if (request.kind == ThemeRequestKind::built_in) {
+        resources.set_user_theme(nullptr);
+        report.outcome = ThemeRequestOutcome::built_in;
+        return report;
+    }
+    const ThemeCompileOptions options = options_of(context);
+    const ThemeLibrary no_library{};
+    const ThemeLibrary& library = context.library != nullptr ? *context.library : no_library;
+    if (request.kind == ThemeRequestKind::named) {
+        apply_named(resources, request, context, library, options, report);
+    } else {
+        apply_sheet(resources, request, library, options, report);
+    }
+    return report;
+}
+
+void hold_process_theme_request(ApplicationResources& resources, ThemeRequestContext context) {
+    ThemeRequest request = process_theme_request();
+    const bool asked = request.kind != ThemeRequestKind::none || !request.error.empty();
+    if (!asked) return;
+    if (context.folders.beside_program.empty() && context.folders.per_user.empty()) {
+        context.folders = process_theme_folders();
+    }
+    std::unique_ptr<DeferredThemeRequest> held = std::make_unique<DeferredThemeRequest>();
+    (*held).request = std::move(request);
+    (*held).context = std::move(context);
+    resources.hold_theme_request(std::move(held));
 }
 
 } // namespace gui_forms

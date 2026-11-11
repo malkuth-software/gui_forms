@@ -1286,6 +1286,28 @@ typedef uint32_t gf_theme_outcome;
 #define GF_THEME_OUTCOME_APPLIED 0u
 #define GF_THEME_OUTCOME_REFUSED 1u
 
+/* gf_user_theme_policy: how a program admits user themes and the theme it
+ * is started with (--theme, GUI_FORMS_THEME_SHEET), as C++
+ * UserThemePolicy. */
+typedef uint32_t gf_user_theme_policy;
+#define GF_USER_THEME_POLICY_LAYERED 0u
+#define GF_USER_THEME_POLICY_REPLACES_PROGRAM_SHEET 1u
+#define GF_USER_THEME_POLICY_REFUSED 2u
+
+/* gf_theme_request_outcome: what the theme the process was started with
+ * did, as C++ ThemeRequestOutcome; PENDING until the first window settles
+ * it. */
+typedef uint32_t gf_theme_request_outcome;
+#define GF_THEME_REQUEST_NONE 0u
+#define GF_THEME_REQUEST_PENDING 1u
+#define GF_THEME_REQUEST_BUILT_IN 2u
+#define GF_THEME_REQUEST_APPLIED 3u
+#define GF_THEME_REQUEST_IGNORED_BY_POLICY 4u
+#define GF_THEME_REQUEST_UNKNOWN_NAME 5u
+#define GF_THEME_REQUEST_REFUSED 6u
+#define GF_THEME_REQUEST_UNREADABLE 7u
+#define GF_THEME_REQUEST_MALFORMED 8u
+
 /* What a load or an install gave. An output record (as gf_abi_version_info).
  * diagnostic_count counts the findings now held (diagnostic_at). */
 typedef struct gf_theme_report {
@@ -1398,6 +1420,19 @@ typedef struct gf_themes_table {
      * with their line and column. GF_STATUS_INVALID_ARGUMENT for a view
      * with a size and no data, GF_STATUS_LIMIT_EXCEEDED past the bound. */
     gf_status (GF_CALL* load_sheet)(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report);
+    /* Chooses how the library's windows admit user themes and the theme the
+     * process was started with (--theme <name|built-in|path.css>, or
+     * GUI_FORMS_THEME_SHEET), for the resources they will share: the
+     * current application's, or the library's own. Resources made later
+     * (a new application) start LAYERED. REFUSED ignores the request with a
+     * warning. GF_STATUS_INVALID_STATE once a window shares the resources;
+     * GF_STATUS_INVALID_ARGUMENT for an unknown policy. */
+    gf_status (GF_CALL* set_user_theme_policy)(gf_user_theme_policy policy);
+    /* What the theme the process was started with did on the resources the
+     * library's windows share: NONE without one, PENDING until the first
+     * window settles it, then its outcome; a request that is not APPLIED
+     * or BUILT_IN changed nothing and wrote its findings to stderr. */
+    gf_status (GF_CALL* theme_request)(gf_theme_request_outcome* outcome);
 } gf_themes_table;
 
 /* gf_host_capability: what a host can do, one bit each; a host reports the

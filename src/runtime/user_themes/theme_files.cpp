@@ -10,6 +10,19 @@
 #include <system_error>
 #include <utility>
 
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#elif defined(__APPLE__)
+#include <crt_externs.h>
+#include <mach-o/dyld.h>
+#endif
+
 namespace gui_forms::detail::theme_files {
 namespace {
 
@@ -118,6 +131,40 @@ FileOutcome read_file(std::string_view path, std::size_t maximum_bytes, std::str
     return FileOutcome::done;
 }
 
+FileOutcome read_named_file(std::string_view path, std::size_t maximum_bytes, std::string& bytes) {
+    // Read a block at a time: no size is taken first.
+    constexpr std::size_t block_bytes = std::size_t{64} * 1024U;
+    bytes.clear();
+    const std::filesystem::path file = path_of(path);
+    std::error_code error{};
+    const std::filesystem::file_status status = std::filesystem::status(file, error);
+    if (error || !std::filesystem::exists(status)) return FileOutcome::missing;
+    if (!std::filesystem::is_regular_file(status)) return FileOutcome::failed;
+    std::ifstream stream(file, std::ios::binary);
+    if (!stream) return FileOutcome::failed;
+    while (true) {
+        const std::size_t held = bytes.size();
+        if (held > maximum_bytes) {
+            bytes.clear();
+            return FileOutcome::over_limit;
+        }
+        bytes.resize(held + block_bytes);
+        stream.read(bytes.data() + held, static_cast<std::streamsize>(block_bytes));
+        const std::size_t read = static_cast<std::size_t>(stream.gcount());
+        bytes.resize(held + read);
+        if (read < block_bytes) break;
+    }
+    if (stream.bad()) {
+        bytes.clear();
+        return FileOutcome::failed;
+    }
+    if (bytes.size() > maximum_bytes) {
+        bytes.clear();
+        return FileOutcome::over_limit;
+    }
+    return FileOutcome::done;
+}
+
 FileOutcome write_new_file(std::string_view path, std::string_view bytes) {
     const std::filesystem::path file = path_of(path);
     std::error_code error{};
@@ -167,6 +214,139 @@ std::string program_configuration_folder(std::string_view program) {
 #endif
     std::string folder = join_path(base, program);
     return folder;
+}
+
+std::string environment_value(std::string_view name) {
+    const std::string terminated(name);
+    std::string value = environment(terminated.c_str());
+    return value;
+}
+
+std::string executable_path() {
+#if defined(_WIN32)
+    // The longest path with long paths enabled, in UTF-16 units.
+    constexpr DWORD maximum_path_units = 32768U;
+    std::wstring path(maximum_path_units, L'\0');
+    const DWORD count = GetModuleFileNameW(nullptr, path.data(), maximum_path_units);
+    if (count == 0U || count >= maximum_path_units) return std::string{};
+    path.resize(count);
+    const std::filesystem::path made(path);
+    return text_of(made);
+#elif defined(__APPLE__)
+    std::uint32_t size = 0U;
+    static_cast<void>(_NSGetExecutablePath(nullptr, &size));
+    if (size == 0U) return std::string{};
+    std::string path(size, '\0');
+    if (_NSGetExecutablePath(path.data(), &size) != 0) return std::string{};
+    path.resize(std::char_traits<char>::length(path.c_str()));
+    return path;
+#elif defined(__linux__)
+    std::error_code error{};
+    const std::filesystem::path path = std::filesystem::read_symlink("/proc/self/exe", error);
+    if (error) return std::string{};
+    return text_of(path);
+#else
+    return std::string{};
+#endif
+}
+
+std::vector<std::string> split_windows_command_line(std::string_view line) {
+    std::vector<std::string> arguments{};
+    std::size_t index = 0U;
+    // The program's name: quotes toggle, backslashes are literal.
+    std::string program{};
+    bool quoted = false;
+    while (index < line.size()) {
+        const char character = line[index];
+        if (!quoted && (character == ' ' || character == '\t')) break;
+        if (character == '"') {
+            quoted = !quoted;
+        } else {
+            program.push_back(character);
+        }
+        index = index + 1U;
+    }
+    arguments.push_back(std::move(program));
+    while (true) {
+        while (index < line.size() && (line[index] == ' ' || line[index] == '\t')) index = index + 1U;
+        if (index >= line.size()) break;
+        std::string argument{};
+        quoted = false;
+        while (index < line.size()) {
+            const char character = line[index];
+            if (!quoted && (character == ' ' || character == '\t')) break;
+            if (character == '\\') {
+                std::size_t backslashes = 0U;
+                while (index < line.size() && line[index] == '\\') {
+                    backslashes = backslashes + 1U;
+                    index = index + 1U;
+                }
+                const bool before_quote = index < line.size() && line[index] == '"';
+                if (!before_quote) {
+                    argument.append(backslashes, '\\');
+                    continue;
+                }
+                argument.append(backslashes / 2U, '\\');
+                if (backslashes % 2U == 1U) {
+                    argument.push_back('"');
+                    index = index + 1U;
+                }
+                continue;
+            }
+            if (character == '"') {
+                const bool doubled = quoted && index + 1U < line.size() && line[index + 1U] == '"';
+                if (doubled) {
+                    argument.push_back('"');
+                    index = index + 2U;
+                    continue;
+                }
+                quoted = !quoted;
+                index = index + 1U;
+                continue;
+            }
+            argument.push_back(character);
+            index = index + 1U;
+        }
+        arguments.push_back(std::move(argument));
+    }
+    return arguments;
+}
+
+std::vector<std::string> process_arguments() {
+    std::vector<std::string> arguments{};
+#if defined(_WIN32)
+    const wchar_t* const line = GetCommandLineW();
+    if (line == nullptr) return arguments;
+    const std::filesystem::path wide(line);
+    const std::u8string units = wide.u8string();
+    const std::string_view text(reinterpret_cast<const char*>(units.data()), units.size());
+    arguments = split_windows_command_line(text);
+#elif defined(__APPLE__)
+    const int count = *_NSGetArgc();
+    char** const vector = *_NSGetArgv();
+    if (vector == nullptr) return arguments;
+    for (int index = 0; index < count; ++index) {
+        if (vector[index] == nullptr) break;
+        arguments.emplace_back(vector[index]);
+    }
+#elif defined(__linux__)
+    // NUL-separated, each argument ended by one; at most 1 MiB is read.
+    constexpr std::size_t maximum_command_line_bytes = std::size_t{1024} * 1024U;
+    std::string bytes{};
+    if (read_named_file("/proc/self/cmdline", maximum_command_line_bytes, bytes) != FileOutcome::done) {
+        return arguments;
+    }
+    std::size_t start = 0U;
+    while (start < bytes.size()) {
+        std::size_t end = bytes.find('\0', start);
+        if (end == std::string::npos) end = bytes.size();
+        arguments.emplace_back(bytes, start, end - start);
+        start = end + 1U;
+    }
+#endif
+    // The program's own name is not an argument.
+    if (!arguments.empty()) arguments.erase(arguments.begin());
+    return arguments;
 }
 
 } // namespace gui_forms::detail::theme_files

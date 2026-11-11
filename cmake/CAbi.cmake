@@ -272,11 +272,30 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
     add_test(NAME gui_forms_abi_runtime_c11_tests COMMAND gui_forms_abi_runtime_c11_tests)
 
+    # A C program with no theme code of its own launched with each theme
+    # request (--theme, GUI_FORMS_THEME_SHEET), its window on the library's
+    # resources, then two on an application's (gui_forms_theme_request_cases
+    # in CMakeLists.txt).
+    add_executable(gui_forms_abi_theme_request_app tests/abi/gf_abi_theme_request_app.c)
+    target_link_libraries(gui_forms_abi_theme_request_app PRIVATE gui_forms_abi)
+    add_custom_command(TARGET gui_forms_abi_theme_request_app POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${GUI_FORMS_THEME_REQUEST_FIXTURES}/harbour.css"
+            "$<TARGET_FILE_DIR:gui_forms_abi_theme_request_app>/themes/harbour.css")
+    gui_forms_theme_request_cases(gui_forms_abi_theme_request gui_forms_abi_theme_request_app)
+    gui_forms_theme_request_case(gui_forms_abi_theme_request_application_sheet
+        PROGRAM gui_forms_abi_theme_request_app EXPECT applied APPLICATION
+        ARGS --theme "${GUI_FORMS_THEME_REQUEST_FIXTURES}/good.css")
+    gui_forms_theme_request_case(gui_forms_abi_theme_request_application_replaces
+        PROGRAM gui_forms_abi_theme_request_app EXPECT applied APPLICATION POLICY replaces
+        ARGS --theme "${GUI_FORMS_THEME_REQUEST_FIXTURES}/good.css")
+
     # The kit run in-tree, and the check that it calls every slot.
     add_executable(gui_forms_abi_conformance tests/abi/conformance/gf_conformance_main.c)
     target_link_libraries(gui_forms_abi_conformance PRIVATE gui_forms_abi_conformance_kit)
     add_test(NAME gui_forms_abi_conformance COMMAND gui_forms_abi_conformance)
-    set_tests_properties(gui_forms_abi_conformance PROPERTIES TIMEOUT 60)
+    # Started with no theme request, whatever the caller's environment.
+    set_tests_properties(gui_forms_abi_conformance PROPERTIES TIMEOUT 60
+                         ENVIRONMENT_MODIFICATION "GUI_FORMS_THEME_SHEET=unset:")
     add_test(NAME gui_forms_abi_slot_coverage
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_audit.py coverage
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/conformance ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/schema
@@ -423,6 +442,12 @@ if(GUI_FORMS_BUILD_TESTS)
         gui_forms_abi_audit_fixtures gui_forms_abi_exports gui_forms_abi_msvc_consumer
         gui_forms_abi_bindings_current gui_forms_abi_csharp
         gui_forms_abi_cpp_wrappers_current gui_forms_abi_cpp_wrappers)
+    get_property(_gf_abi_directory_tests DIRECTORY PROPERTY TESTS)
+    foreach(_gf_abi_directory_test IN LISTS _gf_abi_directory_tests)
+        if(_gf_abi_directory_test MATCHES "^gui_forms_abi_theme_request_")
+            list(APPEND _gf_abi_label_candidates ${_gf_abi_directory_test})
+        endif()
+    endforeach()
     foreach(_gf_abi_label_test IN LISTS _gf_abi_label_candidates)
         if(TEST ${_gf_abi_label_test})
             set_property(TEST ${_gf_abi_label_test} APPEND PROPERTY LABELS c_abi)

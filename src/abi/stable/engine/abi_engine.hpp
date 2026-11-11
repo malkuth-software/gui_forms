@@ -58,7 +58,15 @@ public:
     // call on the UI thread.
     [[nodiscard]] ApplicationResources& resources();
     [[nodiscard]] const std::shared_ptr<ApplicationResources>& shared_resources();
-    [[nodiscard]] ThemeLibrary& library() noexcept { return library_; }
+    [[nodiscard]] ThemeLibrary& library() noexcept { return *library_; }
+    // The library shared, for a theme request held until the first window
+    // (user_themes.hpp: --theme, GUI_FORMS_THEME_SHEET).
+    [[nodiscard]] std::shared_ptr<const ThemeLibrary> shared_library() const noexcept { return library_; }
+    // Holds the process's theme request on `resources`, compiled against
+    // the library's packages, control types and published names, onto
+    // `base`: for resources the library makes, and for an application's
+    // once its theme is set. UI thread.
+    void hold_theme_request(ApplicationResources& resources, ThemeBase base);
     // The application made through GF_TABLE_APPLICATION, or null. While it
     // lives the library's resources are its resources.
     [[nodiscard]] Application* application() const noexcept { return application_.get(); }
@@ -112,7 +120,9 @@ private:
     // Declared after the resources: destroyed first (never, in practice; see
     // above), so the application never outlives what it shares.
     std::unique_ptr<Application> application_{};
-    ThemeLibrary library_{};
+    // Shared with a theme request held by the resources until their first
+    // window.
+    std::shared_ptr<ThemeLibrary> library_{std::make_shared<ThemeLibrary>()};
     // Copies of the schema's anatomies, which name static storage.
     std::vector<ControlAnatomy> controls_{};
     bool controls_built_ = false;

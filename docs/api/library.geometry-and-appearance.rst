@@ -5927,6 +5927,10 @@ Types
 
    .. cpp:member:: std::vector<ThemePackageFile> files
 
+   .. cpp:member:: bool header_implied
+
+      A sheet named on the command line or in GUI_FORMS_THEME_SHEET is a theme by being named: its ``@theme`` header is implied (no engine bound, version or author), and one it has is read as usual.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: UserThemeHeader final

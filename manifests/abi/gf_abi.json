@@ -719,6 +719,66 @@
       "type": "uint32"
     },
     {
+      "name": "GF_USER_THEME_POLICY_LAYERED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_USER_THEME_POLICY_REPLACES_PROGRAM_SHEET",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_USER_THEME_POLICY_REFUSED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_REQUEST_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_REQUEST_PENDING",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_REQUEST_BUILT_IN",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_REQUEST_APPLIED",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_REQUEST_IGNORED_BY_POLICY",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_REQUEST_UNKNOWN_NAME",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_REQUEST_REFUSED",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_REQUEST_UNREADABLE",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_REQUEST_MALFORMED",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
       "name": "GF_THEME_SEVERITY_ERROR",
       "value": 0,
       "type": "uint32"
@@ -2199,6 +2259,14 @@
     },
     {
       "name": "gf_theme_outcome",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_user_theme_policy",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_theme_request_outcome",
       "type": "uint32_t"
     },
     {
@@ -5436,7 +5504,7 @@
     {
       "name": "gf_themes_table",
       "kind": "table",
-      "size": 120,
+      "size": 136,
       "align": 8,
       "fields": [
         {
@@ -5749,6 +5817,38 @@
               {
                 "name": "report",
                 "type": "gf_theme_report*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_user_theme_policy",
+          "type": "function",
+          "offset": 120,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "policy",
+                "type": "gf_user_theme_policy"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "theme_request",
+          "type": "function",
+          "offset": 128,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "outcome",
+                "type": "gf_theme_request_outcome*"
               }
             ]
           },

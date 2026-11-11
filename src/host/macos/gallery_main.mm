@@ -12,9 +12,9 @@ int main(int argc, char** argv) {
     const std::optional<gui_forms::demo::ProgramOptions> program =
         gui_forms::demo::parse_program_options(argc, argv);
     if (!program) return 2;
-    const std::optional<gui_forms::ThemeBase> base = gui_forms::gallery::gallery_theme_base((*program).theme);
+    const std::optional<gui_forms::ThemeBase> base = gui_forms::gallery::gallery_theme_base((*program).theme_base);
     if (!base) {
-        std::fprintf(stderr, "unknown Gallery theme: %s\n", (*program).theme.c_str());
+        std::fprintf(stderr, "unknown Gallery theme base: %s\n", (*program).theme_base.c_str());
         return 2;
     }
     // The program's application before any window (APP_WINDOW_RULES_DESIGN

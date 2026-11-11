@@ -488,6 +488,48 @@ the first window. `export_user_themes` writes the program's own packages
 as user themes, each a verbatim copy that changes nothing until edited,
 with the overridable icons and a `README.txt`, and never overwrites a file.
 
+### A theme from the command line, in every program
+
+Every GUI.Forms program, C++ or through the C ABI, takes a theme from the
+command line it was started with, with no code of its own:
+
+```text
+program --theme built-in          no user theme (the way back)
+program --theme harbour           the user theme `harbour`
+program --theme my-colours.css    that sheet, read as a user theme
+```
+
+A value ending in `.css` (in any case) or holding a path separator is a
+sheet's path; `built-in` is no user theme; any other value is a user
+theme's name, found in the `themes/` folder beside the program or the
+per-user one (the program's name is its executable's file name without
+the extension). A sheet needs no `@theme` header: being named makes it a
+theme. The environment variable `GUI_FORMS_THEME_SHEET` takes the same
+values, for a program started without `--theme`.
+
+The command line wins over the environment, and both win over the
+program's own choice (its saved setting, selected with `set_user_theme`)
+for that run. The program's `UserThemePolicy` holds over all of them:
+under `layered` (the default) the sheet is layered under the program's
+own theme, under `replaces_program_sheet` it takes the program sheet's
+place, compiled onto the program's base, and under `refused` the request
+is ignored with a warning. The request is read when the application is
+made and settled when its first window is made, after the program has
+chosen its policy (C ABI: `themes.set_user_theme_policy`).
+
+A request that cannot be met is never applied: a sheet that does not
+compile, a file that does not read, a name no theme has, or a misformed
+command line (`--theme` without a value, or given twice). Its findings go
+to stderr as `path:line:column: error code ...`, and the program runs on
+its own theme. `ApplicationResources::theme_request_report` (C ABI:
+`themes.theme_request`) says what the request did.
+
+The options stay in the process's arguments: the platform hands a program
+its argument vector before any library code runs, and GUI.Forms does not
+rewrite it. A program that parses its own arguments passes them over with
+`program_arguments`. The Gallery's own option for its base is
+`--theme-base gui-forms|windows-professional`.
+
 ## Not yet built
 
 - `backdrop-filter` is refused (`E999 not_yet_built`).

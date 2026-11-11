@@ -2,6 +2,7 @@
 #include "splashscreen_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include "gui_forms/application/user_themes/user_themes.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
@@ -371,6 +372,22 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
         }
         (*resources).set_theme(compiled.theme());
     }
+    // The theme the process was started with (--theme,
+    // GUI_FORMS_THEME_SHEET), held for the first window, which settles it
+    // once the program has chosen its policy and its own user theme. The
+    // configured effects are borrowed for create only, so the request
+    // checks only the form of an `effect` name.
+    ThemeRequestContext request_context{};
+    request_context.library = std::make_shared<const ThemeLibrary>(std::move(config.theme.library));
+    request_context.base = config.theme.base;
+    // The stock anatomies and the program's own, which theme_anatomies
+    // places in the storage when there are both; none means the stock ones.
+    if (!config.theme.controls.empty()) {
+        std::vector<ControlAnatomy> storage;
+        static_cast<void>(theme_anatomies(config.theme.controls, storage));
+        request_context.controls = std::move(storage);
+    }
+    hold_process_theme_request(*resources, std::move(request_context));
     const PresentationSettings presentation = config.presentation.value_or(PresentationSettings{});
     std::unique_ptr<Application> application(new Application(std::move(resources), presentation));
     Application* expected = nullptr;

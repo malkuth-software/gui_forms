@@ -949,7 +949,7 @@ ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLi
         (*header).author = read.author;
         (*header).provenance = read.provenance;
     }
-    if (!read.present) {
+    if (!read.present && !files.header_implied) {
         return refusal(problem_of(DiagnosticCode::manifest_invalid, main_name, "no @theme header: not a theme"));
     }
     if (read.engine && current_engine_version < *read.engine) {

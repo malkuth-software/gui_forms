@@ -8,6 +8,7 @@
 #include "../engine/abi_engine.hpp"
 #include "../registry/abi_registry.hpp"
 
+#include "gui_forms/application/user_themes/user_themes.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
@@ -44,6 +45,8 @@ constexpr SlotIdentity load_image_slot{GF_TABLE_THEMES, 10U};
 constexpr SlotIdentity remove_image_slot{GF_TABLE_THEMES, 11U};
 constexpr SlotIdentity load_pixels_slot{GF_TABLE_THEMES, 12U};
 constexpr SlotIdentity load_sheet_slot{GF_TABLE_THEMES, 13U};
+constexpr SlotIdentity set_user_theme_policy_slot{GF_TABLE_THEMES, 14U};
+constexpr SlotIdentity theme_request_slot{GF_TABLE_THEMES, 15U};
 
 // The 1.0 size of gf_theme_package: a caller passes at least this much.
 static_assert(sizeof(gf_theme_package) == theme_package_size_1_0);
@@ -606,6 +609,82 @@ gf_status GF_CALL themes_remove_image(std::uint64_t image) noexcept {
     }
 }
 
+gf_status GF_CALL themes_set_user_theme_policy(gf_user_theme_policy policy) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(set_user_theme_policy_slot.table_id,
+                                            set_user_theme_policy_slot.slot_index);
+        UserThemePolicy chosen{UserThemePolicy::layered};
+        switch (policy) {
+        case GF_USER_THEME_POLICY_LAYERED:
+            chosen = UserThemePolicy::layered;
+            break;
+        case GF_USER_THEME_POLICY_REPLACES_PROGRAM_SHEET:
+            chosen = UserThemePolicy::replaces_program_sheet;
+            break;
+        case GF_USER_THEME_POLICY_REFUSED:
+            chosen = UserThemePolicy::refused;
+            break;
+        default:
+            return fail(GF_STATUS_INVALID_ARGUMENT, set_user_theme_policy_slot, "the user theme policy is unknown");
+        }
+        const gf_status entered = registry().enter_ui(set_user_theme_policy_slot, true);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        ApplicationResources& resources = engine().resources();
+        if (resources.window_count() != 0U) {
+            return fail(GF_STATUS_INVALID_STATE, set_user_theme_policy_slot,
+                        "the user theme policy is chosen before the first window");
+        }
+        resources.set_user_theme_policy(chosen);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(set_user_theme_policy_slot);
+    }
+}
+
+// The C value of a settled request's outcome.
+gf_theme_request_outcome request_outcome_code(ThemeRequestOutcome outcome) noexcept {
+    switch (outcome) {
+    case ThemeRequestOutcome::none: return GF_THEME_REQUEST_NONE;
+    case ThemeRequestOutcome::built_in: return GF_THEME_REQUEST_BUILT_IN;
+    case ThemeRequestOutcome::applied: return GF_THEME_REQUEST_APPLIED;
+    case ThemeRequestOutcome::ignored_by_policy: return GF_THEME_REQUEST_IGNORED_BY_POLICY;
+    case ThemeRequestOutcome::unknown_name: return GF_THEME_REQUEST_UNKNOWN_NAME;
+    case ThemeRequestOutcome::refused: return GF_THEME_REQUEST_REFUSED;
+    case ThemeRequestOutcome::unreadable: return GF_THEME_REQUEST_UNREADABLE;
+    case ThemeRequestOutcome::malformed: return GF_THEME_REQUEST_MALFORMED;
+    }
+    // An outcome a later library adds reads as none rather than a value
+    // the header does not name.
+    return GF_THEME_REQUEST_NONE;
+}
+
+gf_status GF_CALL themes_theme_request(gf_theme_request_outcome* outcome) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(theme_request_slot.table_id, theme_request_slot.slot_index);
+        if (outcome == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, theme_request_slot, "theme_request needs an outcome output");
+        }
+        const gf_status entered = registry().enter_ui(theme_request_slot, true);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        const ApplicationResources& resources = engine().resources();
+        const ThemeRequestReport* const report = resources.theme_request_report();
+        if (resources.theme_request_held()) {
+            *outcome = GF_THEME_REQUEST_PENDING;
+        } else if (report == nullptr) {
+            *outcome = GF_THEME_REQUEST_NONE;
+        } else {
+            *outcome = request_outcome_code((*report).outcome);
+        }
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(theme_request_slot);
+    }
+}
+
 constexpr gf_themes_table table{
     .struct_size = sizeof(gf_themes_table),
     .abi_minor = GF_ABI_MINOR,
@@ -623,6 +702,8 @@ constexpr gf_themes_table table{
     .remove_image = &themes_remove_image,
     .load_pixels = &themes_load_pixels,
     .load_sheet = &themes_load_sheet,
+    .set_user_theme_policy = &themes_set_user_theme_policy,
+    .theme_request = &themes_theme_request,
 };
 
 } // namespace
