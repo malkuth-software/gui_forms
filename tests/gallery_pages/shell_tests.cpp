@@ -1,4 +1,5 @@
 #include "support.hpp"
+#include "gui_forms/prepared_text/types/prepared_text_types.hpp"
 #include "../../src/core/theme/contrast/theme_contrast.hpp"
 
 #include <cstddef>
@@ -145,7 +146,9 @@ Color label_ink(Window& window, std::string_view id) {
 // The basics page's lifecycle card under the dark scheme (theme lab
 // finding, cp29): its plate follows the scheme, so its labels' light ink
 // reads on it at the body-text ratio (4.5:1). The card's plate was a
-// literal near-white fill whatever the scheme.
+// literal near-white fill whatever the scheme. The basics page is shown
+// first: a page not shown arranges its card to no size, which paints no
+// plate.
 void test_basics_card_dark_contrast() {
     std::unique_ptr<Window> owned = gallery::make_gallery();
     Window& window = *owned;
@@ -153,9 +156,12 @@ void test_basics_card_dark_contrast() {
     settings.colour_scheme = ColourScheme::dark;
     window.set_presentation_settings(settings);
     window.perform_layout();
+    select_page(window, "basics");
     const Control::Ptr card = window.find("gallery.lifecycle-card");
     require(card != nullptr, "the basics page holds the lifecycle card");
+    reveal_in_page_viewport(window, card);
     const Rect bounds = (*card).committed_arranged_bounds();
+    require(bounds.width > 0.0 && bounds.height > 0.0, "the shown basics page arranges the lifecycle card");
     PlateAndInkPainter painter(bounds.width * 0.5);
     (*card).on_paint(painter, Rect{0.0, 0.0, bounds.width, bounds.height});
     require(painter.plated, "the lifecycle card paints a plate");
