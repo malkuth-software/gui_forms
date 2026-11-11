@@ -790,8 +790,11 @@ void ComboBox::commit_overlay_selection(std::size_t row) {
 // are parts the theme's engine draws, in the control's anatomy states (hot
 // under the pointer, open while the list is down). A background or style
 // override supplies the well's ground, and a style override the text and
-// the arrow's ink, as authored colours (T4-1); a disabled combo box keeps
-// the theme's disabled text. The ring shows while the field has focus or
+// the arrow's ink, as authored colours (T4-1); otherwise the selected text
+// is left to the control colours, so the combo box's fore colour, else its
+// parent's, inks it as a TextBox's (WinForms' ForeColor), and with neither
+// the theme's editor text stands. The placeholder keeps the theme's muted
+// text, and a disabled combo box the theme's disabled text. The ring shows while the field has focus or
 // its list is open.
 void ComboBox::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
@@ -845,8 +848,9 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     if (!editor_) field_text = selected_index_ ? selected_text() : std::string_view(placeholder_text.read());
     const ControlVisualContext context = part_visual_context(*this, states);
     const ControlVisualRecipe& editor_recipe = effective_theme().resolve(ControlVisualRole::editor, context);
-    Color text_ink = selected_index_ ? editor_recipe.text : editor_recipe.muted_text;
-    if (ink && effectively_enabled() && selected_index_) text_ink = *ink;
+    std::optional<Color> text_ink{};
+    if (!selected_index_) text_ink = editor_recipe.muted_text;
+    else if (ink && effectively_enabled()) text_ink = *ink;
     // The content part centres its line box on its bounds, so the bounds are
     // that box on the field's baseline, ending left of the button.
     const FontSpec field_font = text_font(font.read());

@@ -415,6 +415,32 @@ struct GlideFixture final {
     }
 };
 
+// wheel_scrolls off: a wheel turn over the content (bubbling from a child)
+// or over the panel itself passes through unhandled and leaves the position;
+// turned back on, the same turns scroll as before.
+void test_wheel_scrolls_off_leaves_the_wheel_to_the_consumer() {
+    GlideFixture f{};
+    require((*f.panel).wheel_scrolls.read(), "wheel_scrolls must default to true");
+    (*f.panel).wheel_scrolls = false;
+    PointerEvent over_child;
+    over_child.action = PointerAction::wheel;
+    over_child.position = {20.0, 20.0};
+    over_child.wheel_delta = {0.0, -10.0};
+    over_child.wheel_unit = WheelDeltaUnit::pixels;
+    PointerEvent over_panel = over_child;
+    over_panel.position = {60.0, 20.0};
+    const bool child_handled = f.window.dispatch_pointer(over_child);
+    const bool panel_handled = f.window.dispatch_pointer(over_panel);
+    require(!child_handled && !panel_handled &&
+                (*f.panel).scroll_position().y == 0.0 && !(*f.panel).scrolling_smoothly(),
+            "with wheel_scrolls off a wheel turn must pass through and leave the position");
+    (*f.panel).wheel_scrolls = true;
+    require(f.window.dispatch_pointer(over_child) && near((*f.panel).scroll_position().y, 10.0),
+            "with wheel_scrolls on a wheel turn over a child must scroll the panel");
+    require(f.window.dispatch_pointer(over_panel) && near((*f.panel).scroll_position().y, 20.0),
+            "with wheel_scrolls on a wheel turn over the panel must scroll it");
+}
+
 // Smooth scrolling: a wheel line moves the target at once and the position
 // over the next frames, a fixed fraction of the gap per frame; a second
 // line before it settles adds to the target; the glide settles exactly on
@@ -748,6 +774,7 @@ int main() {
         test_scroll_copies_damage_only_the_exposed_band();
         test_damage_moves_with_a_scroll_copy();
         test_wheel_glides_on_the_motion_clock();
+        test_wheel_scrolls_off_leaves_the_wheel_to_the_consumer();
         test_bar_glides_and_immediate_input_stops_it();
         test_built_in_bars_hover_press_and_repeat();
         test_built_in_track_repeat_stops_at_the_pointer();
