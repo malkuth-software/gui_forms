@@ -1773,6 +1773,27 @@ void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, Cont
     if (shadow_width != nullptr) metrics.edge_shadow_width = (*shadow_width).number;
     const RecipeDeclaration* const shadow_colour = set_recipe_field(fields, RecipeField::edge_shadow_colour);
     if (shadow_colour != nullptr) metrics.edge_shadow_colour = (*shadow_colour).colour;
+    ControlStripePattern& stripes = metrics.stripes;
+    const RecipeDeclaration* const pitch = set_recipe_field(fields, RecipeField::stripe_pitch);
+    if (pitch != nullptr) stripes.pitch = (*pitch).number;
+    const RecipeDeclaration* const ratio = set_recipe_field(fields, RecipeField::stripe_ratio);
+    if (ratio != nullptr) stripes.ratio = (*ratio).number;
+    const RecipeDeclaration* const angle = set_recipe_field(fields, RecipeField::stripe_angle);
+    if (angle != nullptr) stripes.angle_degrees = (*angle).number;
+    const RecipeDeclaration* const lean = set_recipe_field(fields, RecipeField::stripe_lean);
+    if (lean != nullptr) stripes.lean = (*lean).stripe_sense;
+    const RecipeDeclaration* const direction = set_recipe_field(fields, RecipeField::stripe_direction);
+    if (direction != nullptr) stripes.direction = (*direction).stripe_sense;
+    const RecipeDeclaration* const speed = set_recipe_field(fields, RecipeField::stripe_speed);
+    if (speed != nullptr) stripes.speed = (*speed).number;
+    const RecipeDeclaration* const stripe_colour = set_recipe_field(fields, RecipeField::stripe_colour);
+    if (stripe_colour != nullptr) stripes.colour = (*stripe_colour).colour;
+    const RecipeDeclaration* const ground = set_recipe_field(fields, RecipeField::stripe_ground_colour);
+    if (ground != nullptr) stripes.ground = (*ground).colour;
+    const RecipeDeclaration* const gloss = set_recipe_field(fields, RecipeField::stripe_gloss);
+    if (gloss != nullptr) stripes.gloss = (*gloss).stripe_gloss;
+    const RecipeDeclaration* const reduced = set_recipe_field(fields, RecipeField::stripe_reduced_motion);
+    if (reduced != nullptr) stripes.reduced_motion = (*reduced).stripe_reduced_motion;
 }
 
 // The recipe fields `fields` sets, over `recipe` (the floor's copy), in
@@ -2128,6 +2149,10 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
         fields.fields[static_cast<std::size_t>(RecipeField::taper_colour)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::flare_colour)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::scrim_colour)] = nullptr;
+        // The stripes take the pass's colours too: no authored band or
+        // ground colour.
+        fields.fields[static_cast<std::size_t>(RecipeField::stripe_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::stripe_ground_colour)] = nullptr;
         bool any = false;
         for (const RecipeDeclaration* field : fields.fields) any = any || field != nullptr;
         fields.authored = any;

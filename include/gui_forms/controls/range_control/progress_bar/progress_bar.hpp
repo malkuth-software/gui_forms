@@ -5,6 +5,7 @@
 #include "gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -107,6 +108,14 @@ private:
     [[nodiscard]] bool animated_style() const noexcept;
     // The fill (determinate styles) or the moving activity band (marquee).
     [[nodiscard]] Rect indicator_bounds() const noexcept;
+    // The fill part's stripe properties (the barber pole's theme knobs) and
+    // the fill's corner radius, from the theme's rules for the part; unset
+    // and 0 for a bar in no window.
+    struct FillStripes final {
+        ControlStripePattern pattern{};
+        double corner_radius{};
+    };
+    [[nodiscard]] FillStripes fill_stripes() const;
     // The effect asked for, and who asked: the name borrows effect_, a
     // static name or the window theme's compiled rules, and is used before
     // any of them can change.

@@ -677,6 +677,36 @@ void test_warnings() {
                 warned(control_fields, DiagnosticCode::property_not_admitted, "taper") &&
                 warned(control_fields, DiagnosticCode::property_not_admitted, "font-weight in a state rule"),
             "part metrics and state fonts are refused on a control");
+    // A progress fill's stripe properties (the barber pole's knobs, owner
+    // rulings of 2026-11-11) are part fields: admitted on a named part,
+    // range-checked, and refused on a control.
+    const Compilation stripes =
+        compile("#a::part(fill) { stripe-pitch: auto; stripe-ratio: 0.35; stripe-angle: 30deg;"
+                " stripe-lean: backward; stripe-direction: forward; stripe-speed: 1.5; stripe-color: #ffffff;"
+                " stripe-ground: #2060c0; stripe-gloss: none; stripe-reduced-motion: still }\n"
+                "#b::part(fill) { stripe-pitch: 12px; stripe-lean: forward; stripe-gloss: auto;"
+                " stripe-reduced-motion: none }");
+    bool stripes_admitted = true;
+    for (const ThemeDiagnostic& diagnostic : stripes.diagnostics) {
+        if (diagnostic.code != DiagnosticCode::literal_colour_unremappable) stripes_admitted = false;
+    }
+    require(stripes.outcome == CompileOutcome::compiled && stripes_admitted && stripes.sheet.rules.size() == 2U,
+            "the stripe properties compile on a named part");
+    const Compilation bad_stripes =
+        compile("#a::part(fill) { stripe-pitch: 2px; stripe-ratio: 0.95; stripe-angle: 80deg;"
+                " stripe-lean: sideways; stripe-speed: 4 }");
+    std::size_t out_of_range = 0U;
+    std::size_t unknown_keyword = 0U;
+    for (const ThemeDiagnostic& diagnostic : bad_stripes.diagnostics) {
+        if (diagnostic.code == DiagnosticCode::value_out_of_range) out_of_range = out_of_range + 1U;
+        if (diagnostic.code == DiagnosticCode::keyword_unknown) unknown_keyword = unknown_keyword + 1U;
+    }
+    require(bad_stripes.diagnostics.size() == 5U && out_of_range == 4U && unknown_keyword == 1U,
+            "stripe values outside their ranges are dropped with a diagnostic each");
+    const Compilation control_stripes = compile("#a { stripe-speed: 1 }");
+    require(control_stripes.outcome == CompileOutcome::compiled && control_stripes.diagnostics.size() == 1U &&
+                warned(control_stripes, DiagnosticCode::property_not_admitted, "stripe-speed"),
+            "the stripe properties are refused on a control");
     const Compilation not_read = compile("#a { width: var(--missing); glimmer: 1 2 3 }");
     require(not_read.outcome == CompileOutcome::compiled && not_read.diagnostics.size() == 2U,
             "a dropped property's value is not read");

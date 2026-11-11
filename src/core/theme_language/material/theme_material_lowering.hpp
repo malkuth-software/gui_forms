@@ -110,6 +110,19 @@ enum class MaterialProperty : std::uint8_t {
     needle_shape,
     scrim_color,
     stroke_width,
+    // A progress fill's stripe pattern (the barber pole, owner rulings of
+    // 2026-11-11): recipe fields of a named part (RecipeField::stripe_pitch
+    // on), read by the stripe effect.
+    stripe_angle,
+    stripe_color,
+    stripe_direction,
+    stripe_gloss,
+    stripe_ground,
+    stripe_lean,
+    stripe_pitch,
+    stripe_ratio,
+    stripe_reduced_motion,
+    stripe_speed,
 };
 
 // An image resource the theme's manifest lists, bound to the engine's image
@@ -141,6 +154,11 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
 // material's: they are the control's, so a rule naming a part or a role
 // cannot declare them.
 [[nodiscard]] bool recipe_property(MaterialProperty property) noexcept;
+
+// Whether `property` is one of a progress fill's stripe properties
+// (`stripe-pitch` to `stripe-reduced-motion`): part fields, admitted only on
+// a named part.
+[[nodiscard]] bool stripe_property(MaterialProperty property) noexcept;
 
 // The recipe fields a recipe property sets, in order (`count` of the
 // capacity are live): what CSS's `initial` resets. None for a material

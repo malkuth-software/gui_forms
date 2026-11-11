@@ -357,6 +357,29 @@ void EffectCanvas::clip_rect(Rect rect) noexcept {
     painter_.clip_rect(rect);
 }
 
+void EffectCanvas::clip_rounded_rect(Rect rect, double radius) noexcept {
+    if (!rect.finite() || !std::isfinite(radius)) return;
+    Level& level = levels_[depth_];
+    level.clip = Rect::intersection(level.clip, to_part(rect));
+    if (!level.painter_saved) {
+        painter_.save();
+        painter_saves_ = painter_saves_ + 1U;
+        level.painter_saved = true;
+    }
+    const double half_short = std::min(rect.width, rect.height) * 0.5;
+    const double clamped = std::clamp(radius, 0.0, std::max(half_short, 0.0));
+    if (clamped <= 0.0) {
+        painter_.clip_rect(rect);
+        return;
+    }
+    PaintCornerRadii radii{};
+    radii.top_left = clamped;
+    radii.top_right = clamped;
+    radii.bottom_right = clamped;
+    radii.bottom_left = clamped;
+    painter_.clip_rounded_rect_corners(rect, radii);
+}
+
 void EffectCanvas::clip_part_shape() noexcept {
     Level& level = levels_[depth_];
     const Rect part{0.0, 0.0, part_.width, part_.height};

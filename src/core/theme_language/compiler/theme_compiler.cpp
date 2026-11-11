@@ -2942,7 +2942,7 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
                             property == MaterialProperty::padding_inline || property == MaterialProperty::gap ||
                             property == MaterialProperty::margin_top || property == MaterialProperty::margin_bottom ||
                             property == MaterialProperty::taper || property == MaterialProperty::flare ||
-                            property == MaterialProperty::edge_shadow;
+                            property == MaterialProperty::edge_shadow || stripe_property(property);
     const bool named_part = rule_names_parts_only();
     if (part_field && !named_part) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_);
