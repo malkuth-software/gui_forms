@@ -1443,8 +1443,8 @@ typedef struct gf_themes_table {
      */
     gf_status (GF_CALL* load_pixels)(const uint8_t* pixels, uint32_t width, uint32_t height, uint64_t row_bytes,
                                      uint64_t* image);
-    /* Loads sheet, the UTF-8 text of one CSS theme sheet (at most
-     * GF_THEME_PACKAGE_MAXIMUM_BYTES), as load does a package: the package
+    /* Loads sheet (since 1.2), the UTF-8 text of one CSS theme sheet (at
+     * most GF_THEME_PACKAGE_MAXIMUM_BYTES), as load does a package: the package
      * of that one sheet named name, its manifest made by the library (the
      * sheet's sha256 included). An application's theme kept as a plain
      * file, edited and read again at start-up without a rebuild. A refused
