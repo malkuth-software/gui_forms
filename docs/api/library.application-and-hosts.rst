@@ -1805,8 +1805,6 @@ Related types
 
    .. cpp:member:: std::uint64_t events_rejected
 
-   .. cpp:member:: std::uint64_t callback_faults
-
    .. cpp:member:: std::uint64_t close_requests
 
    .. cpp:member:: std::uint64_t close_cancellations
@@ -3608,8 +3606,6 @@ Enumerations
    .. cpp:enumerator:: invalid_geometry
 
    .. cpp:enumerator:: invalid_payload
-
-   .. cpp:enumerator:: callback_fault
 
 .. cpp:namespace:: gui_forms
 

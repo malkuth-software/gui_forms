@@ -56,6 +56,8 @@ Related types
      - The heading painted above the tracks.
    * - :cpp:class:`EasingPreviewTrack <gui_forms::EasingPreviewTrack>`
      - EasingPreviewTrack is one caller-authored easing comparison row: exact curve, label, and marker color.
+   * - :cpp:class:`ExpectationThresholds <gui_forms::ExpectationThresholds>`
+     - What each expectation allows.
    * - :cpp:class:`Metrics <gui_forms::Metrics>`
      - Metrics is the structured counter accumulator used by Window and retained controls; only wrong-thread rejection is atomic because that rejection may originate off-thread.
    * - :cpp:class:`MetricsSnapshot <gui_forms::MetricsSnapshot>`
@@ -274,6 +276,26 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ExpectationThresholds final
+
+   ``#include <gui_forms/metrics/types/metrics_types.hpp>``
+
+   What each expectation allows. Defaults are generous: they flag a stall, not an ordinary busy frame.
+
+   .. cpp:member:: std::uint64_t late_wake_nanoseconds
+
+      Default: ``{100'000'000U}``.
+
+   .. cpp:member:: std::uint64_t paint_budget_nanoseconds
+
+      Default: ``{50'000'000U}``.
+
+   .. cpp:member:: std::uint64_t live_drain_skipped_frames
+
+      Default: ``{8U}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: Metrics
 
    ``#include <gui_forms/metrics/metrics/metrics.hpp>``
@@ -286,6 +308,14 @@ Related types
    .. cpp:function:: MetricsSnapshot snapshot() const
 
       Copies retained counters and samples the atomic wrong-thread rejection total.
+
+   .. cpp:function:: const ExpectationThresholds& expectation_thresholds() const noexcept
+
+      Returns the thresholds the housekeeping expectations are checked against.
+
+   .. cpp:function:: void set_expectation_thresholds(const ExpectationThresholds& thresholds) noexcept
+
+      Replaces the housekeeping expectation thresholds.
 
 
    .. rubric:: Methods
@@ -466,9 +496,9 @@ Related types
 
    .. cpp:function:: void record_paint_group_refusals(std::uint64_t refusals) noexcept
 
-   .. cpp:function:: void record_frame_callback_fault() noexcept
+   .. cpp:function:: void record_expectation_miss(HousekeepingExpectation expectation, std::uint64_t expected, std::uint64_t observed) noexcept
 
-      Counts a contained frame callback exception.
+      Counts one missed housekeeping expectation and prints a rate-limited telemetry record.
 
    .. cpp:function:: void record_reentrant_frame_poll() noexcept
 
@@ -685,7 +715,17 @@ Related types
 
    .. cpp:member:: std::uint64_t frame_requests_coalesced
 
-   .. cpp:member:: std::uint64_t frame_callback_faults
+   .. cpp:member:: std::uint64_t wake_expectation_misses
+
+      Missed housekeeping expectations (HousekeepingExpectation), one counter each, and the telemetry lines printed for them.
+
+   .. cpp:member:: std::uint64_t paint_budget_misses
+
+   .. cpp:member:: std::uint64_t live_drain_misses
+
+   .. cpp:member:: std::uint64_t damage_bound_misses
+
+   .. cpp:member:: std::uint64_t expectation_telemetry_records
 
    .. cpp:member:: std::uint64_t reentrant_frame_polls_deferred
 
@@ -1441,6 +1481,20 @@ Enumerations
    .. cpp:enumerator:: install_share
 
    .. cpp:enumerator:: application_bundle
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HousekeepingExpectation
+
+   ``#include <gui_forms/metrics/types/metrics_types.hpp>``
+
+   .. cpp:enumerator:: wake_on_time
+
+   .. cpp:enumerator:: paint_within_budget
+
+   .. cpp:enumerator:: live_drain_kept_up
+
+   .. cpp:enumerator:: damage_bounded
 
 .. cpp:namespace:: gui_forms
 

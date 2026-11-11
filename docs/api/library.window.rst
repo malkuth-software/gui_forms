@@ -739,10 +739,6 @@ Related types
 
    .. cpp:member:: std::uint64_t coalesced_requests
 
-   .. cpp:member:: std::uint64_t callback_faults
-
-      Throwing UI timer callbacks are disconnected individually so one cannot repeatedly escape through a native timer callback.
-
    .. cpp:member:: bool reentrant_poll_deferred
 
    .. cpp:member:: bool damage_pending
