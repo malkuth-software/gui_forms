@@ -2578,6 +2578,8 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `region` | region |  |  |
 | `decrement_arrow` | actuator | `button` | hot, pressed |
 | `increment_arrow` | actuator | `button` | hot, pressed |
+| `decrement_glyph` | glyph |  | hot, pressed |
+| `increment_glyph` | glyph |  | hot, pressed |
 | `track` | track |  | hot, pressed |
 | `thumb` | thumb |  | hot, pressed, captured |
 | `focus` | focus |  |  |
@@ -2599,6 +2601,8 @@ Properties beyond every control's: `large_change` (number), `maximum` (number), 
 | `region` | region |  |  |
 | `decrement_arrow` | actuator | `button` | hot, pressed |
 | `increment_arrow` | actuator | `button` | hot, pressed |
+| `decrement_glyph` | glyph |  | hot, pressed |
+| `increment_glyph` | glyph |  | hot, pressed |
 | `track` | track |  | hot, pressed |
 | `thumb` | thumb |  | hot, pressed, captured |
 | `focus` | focus |  |  |
@@ -2620,6 +2624,8 @@ Properties beyond every control's: `large_change` (number), `maximum` (number), 
 | `region` | region |  |  |
 | `decrement_arrow` | actuator | `button` | hot, pressed |
 | `increment_arrow` | actuator | `button` | hot, pressed |
+| `decrement_glyph` | glyph |  | hot, pressed |
+| `increment_glyph` | glyph |  | hot, pressed |
 | `track` | track |  | hot, pressed |
 | `thumb` | thumb |  | hot, pressed, captured |
 | `focus` | focus |  |  |

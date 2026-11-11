@@ -8259,6 +8259,8 @@
         {"name": "region", "role": "region", "composed_from": null, "states": []},
         {"name": "decrement_arrow", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed"]},
         {"name": "increment_arrow", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed"]},
+        {"name": "decrement_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed"]},
+        {"name": "increment_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed"]},
         {"name": "track", "role": "track", "composed_from": null, "states": ["hot", "pressed"]},
         {"name": "thumb", "role": "thumb", "composed_from": null, "states": ["hot", "pressed", "captured"]},
         {"name": "focus", "role": "focus", "composed_from": null, "states": []}
@@ -8346,6 +8348,8 @@
         {"name": "region", "role": "region", "composed_from": null, "states": []},
         {"name": "decrement_arrow", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed"]},
         {"name": "increment_arrow", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed"]},
+        {"name": "decrement_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed"]},
+        {"name": "increment_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed"]},
         {"name": "track", "role": "track", "composed_from": null, "states": ["hot", "pressed"]},
         {"name": "thumb", "role": "thumb", "composed_from": null, "states": ["hot", "pressed", "captured"]},
         {"name": "focus", "role": "focus", "composed_from": null, "states": []}
@@ -8433,6 +8437,8 @@
         {"name": "region", "role": "region", "composed_from": null, "states": []},
         {"name": "decrement_arrow", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed"]},
         {"name": "increment_arrow", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed"]},
+        {"name": "decrement_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed"]},
+        {"name": "increment_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed"]},
         {"name": "track", "role": "track", "composed_from": null, "states": ["hot", "pressed"]},
         {"name": "thumb", "role": "thumb", "composed_from": null, "states": ["hot", "pressed", "captured"]},
         {"name": "focus", "role": "focus", "composed_from": null, "states": []}
