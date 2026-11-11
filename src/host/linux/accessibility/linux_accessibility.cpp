@@ -1190,9 +1190,11 @@ bool granularity_span(const SemanticTextLayout& layout, const std::string& value
         return true;
     }
     case ATK_TEXT_GRANULARITY_SENTENCE:
+    default:
+        // Sentences are unsupported (A-T2); a granularity ATK adds later has
+        // no span either.
         return false;
     }
-    return false;
 }
 // The span's text, newly allocated; an empty string with offsets -1 when
 // there is no span (as for a sentence).
