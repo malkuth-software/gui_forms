@@ -475,6 +475,12 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
     if (set == ThemeRuleSet::program && segments.size() > 1U) {
         base_origin_end = static_cast<std::uint32_t>(segments[1].start);
     }
+    // The base sheet is the colour authority under every set: a layered
+    // user theme's floor is the stock sheet, whose literal colours are not
+    // the user's to answer for (W201), though its rules stand at the user
+    // levels.
+    std::optional<std::uint32_t> colour_authority_end{};
+    if (segments.size() > 1U) colour_authority_end = static_cast<std::uint32_t>(segments[1].start);
     const theme_language::ThemeSource source{.file = closure_file, .text = text};
     const PrimitiveRegistry& registry = builtin_primitive_registry();
     std::vector<ControlAnatomy> vocabulary_storage{};
@@ -490,6 +496,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
                                                   .base_origin_end = base_origin_end,
                                                   .system_colours = options.system_colours,
                                                   .colour_authority = onto_gui_forms && roots.empty(),
+                                                  .colour_authority_end = colour_authority_end,
                                                   .effects = options.effects};
     // The base's recipes, some 100 KB held out of line.
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(

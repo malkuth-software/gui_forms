@@ -1375,7 +1375,8 @@ void paint_text_part_at(Painter& painter, const Control& control, PartPaint part
     paint_part(painter, control, part);
 }
 
-void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part) {
+void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part,
+                                     const SurfaceMaterial* resolved_material) {
     if (!paintable(part.bounds)) return;
     const ControlVisualContext context = part_visual_context(control, part.states);
     const Theme& theme = control.effective_theme();
@@ -1391,13 +1392,19 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
         return;
     }
     // Authored colours (owner decision T4-1) stand in a copy of the recipe,
-    // made only for a part that carries them, and never in high contrast.
+    // made only for a part that carries them, and never in high contrast;
+    // so does the engine's resolved material, made only for a part that has
+    // one.
     const bool authored = (part.authored_background || part.authored_foreground) && !context.high_contrast;
+    const bool resolved_ground = resolved_material != nullptr;
     bool opaque_face = false;
-    if (authored) {
+    if (authored || resolved_ground) {
         ControlVisualRecipe styled = recipe;
+        if (resolved_ground) styled.material = *resolved_material;
         const bool disabled = context.surface == ControlSurfaceState::disabled;
-        apply_authored_colours(part, disabled, resolved.important_text(), resolved.important_glyph(), styled);
+        if (authored) {
+            apply_authored_colours(part, disabled, resolved.important_text(), resolved.important_glyph(), styled);
+        }
         paint_part_from_recipe(painter, part, styled, context);
         opaque_face = opaque_surface_part(part, styled.material);
     } else {
