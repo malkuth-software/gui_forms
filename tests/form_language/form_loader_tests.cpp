@@ -671,6 +671,52 @@ void test_table_placement() {
 
 } // namespace
 
+// Audit S7: each type's schema carries, per property, the prototype's
+// property table entry the loader writes through (null where the registry
+// holds the name), so loading a property is no lookup by name.
+void test_property_entries() {
+    const FormSchema schema = sample_schema();
+    std::size_t typed = 0U;
+    for (const FormSchemaType& type : schema.types) {
+        require(type.property_entries.size() <= type.properties.size(), "entries: at most one per property");
+        for (std::size_t index = 0U; index < type.property_entries.size(); ++index) {
+            const gui_forms::PropertyEntry* const entry = type.property_entries[index];
+            if (entry == nullptr) continue;
+            require(std::string_view((*entry).name) == type.properties[index].name,
+                    "entries: an entry describes the property at its index");
+            ++typed;
+        }
+    }
+    require(typed > 0U, "entries: the control types' properties have table entries");
+    const FormSchemaType* check_type = nullptr;
+    for (const FormSchemaType& type : schema.types) {
+        if (type.name == "check_box") check_type = &type;
+    }
+    require(check_type != nullptr, "entries: the check box type");
+    bool text_entry = false;
+    bool checked_entry = false;
+    for (std::size_t index = 0U; check_type != nullptr && index < (*check_type).property_entries.size(); ++index) {
+        if ((*check_type).property_entries[index] == nullptr) continue;
+        if ((*check_type).properties[index].name == "text") text_entry = true;
+        if ((*check_type).properties[index].name == "checked") checked_entry = true;
+    }
+    require(text_entry && checked_entry, "entries: text and checked load through the table");
+    // The load itself (test_load) writes through these entries; a second
+    // load of the same document gives the same values.
+    const std::string_view document = "user-control entries.root {\n"
+                                      "  check-box entries.box { text: \"Entry\"; checked: true; tab-index: 4; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
+    print_diagnostics(workspace);
+    const std::shared_ptr<gui_forms::CheckBox> check =
+        loaded.objects.size() == 2U ? std::dynamic_pointer_cast<gui_forms::CheckBox>(loaded.objects[1]) : nullptr;
+    require(outcome == FormLoadOutcome::loaded && check != nullptr && (*check).text.read() == "Entry" &&
+                (*check).checked.read() && (*check).tab_index.read() == 4U,
+            "entries: values written through the table land on the control");
+}
+
 int main() {
     test_load();
     test_bindings();
@@ -683,6 +729,7 @@ int main() {
     test_value_bar();
     test_load_window();
     test_load_window_application();
+    test_property_entries();
     if (failures != 0) {
         std::cerr << failures << " form loader checks failed\n";
         return 1;

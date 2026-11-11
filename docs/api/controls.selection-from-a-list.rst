@@ -499,6 +499,10 @@ Related types
      - A node expanded or collapsed, by the user or the program.
    * - :cpp:class:`TreeListNode <gui_forms::TreeListNode>`
      - One node of the tree.
+   * - :cpp:class:`TreeListRowSource <gui_forms::TreeListRowSource>`
+     - The application's rows for a virtual TreeListView (audit N94, owner ruling D10 b): the view keeps no nodes, only the row count and each row's height in a height-indexed tree, and asks the source for the rows it shows.
+   * - :cpp:class:`TreeListRowSplice <gui_forms::TreeListRowSplice>`
+     - A change of a virtual tree's rows (TreeListRowSource): the ``removed`` rows at ``first`` were replaced by ``inserted`` rows.
    * - :cpp:class:`TreeListSelectionChange <gui_forms::TreeListSelectionChange>`
      - A change of the selected node, after it happened.
    * - :cpp:class:`TreeListSortChange <gui_forms::TreeListSortChange>`
@@ -4915,6 +4919,56 @@ Related types
       Default: ``{true}``.
 
    .. cpp:member:: std::string image_key
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: TreeListRowSource
+
+   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+
+   The application's rows for a virtual TreeListView (audit N94, owner ruling D10 b): the view keeps no nodes, only the row count and each row's height in a height-indexed tree, and asks the source for the rows it shows. Rows are the shown nodes in order (a collapsed node's descendants are not rows); each row's node carries its depth, expandable and expanded flags. The view calls the source on its own thread, during layout, paint, input and semantics. retrieve_row and row_height are called only for rows below row_count(); set_row_expanded only for an expandable row whose expanded flag differs, and it must return the splice it made, after which row_count() is the old count - removed + inserted (otherwise the view throws std::logic_error and keeps its old rows). The source outlives nothing: the view holds it by shared_ptr until set_row_source replaces it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: virtual TreeListRowSplice set_row_expanded(std::size_t row, bool expanded) = 0
+
+      Expands or collapses the row's node in the application's model and returns the rows that change.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual std::size_t row_count() const = 0
+
+   .. cpp:function:: virtual void retrieve_row(std::size_t row, TreeListNode& node) const = 0
+
+      Fills ``node`` (which holds the previous row's values) with the row's node. An invalid ID is shown as "#row"; invalid UTF-8 is shown empty.
+
+   .. cpp:function:: virtual double row_height(std::size_t row, double estimated) const
+
+      The row's height in logical units at text scale 1, asked once when the row is first shown (the height is kept until splice_rows or refresh_rows drops it). Until then the row counts as ``estimated``, the view's own row height; returning it (the default), zero or a value that is not finite keeps that.
+
+   .. cpp:function:: virtual std::optional<std::size_t> find_row(std::string_view node_id) const
+
+      The row showing a node, for lookups by ID outside the rows in view (selected_id, ensure_visible, semantic actions); none by default.
+
+   .. cpp:function:: virtual std::optional<std::size_t> find_prefix(std::string_view folded_prefix, std::size_t start) const
+
+      Type-ahead: the first enabled row at or after ``start`` (wrapping) whose text starts with ``folded_prefix`` (ASCII case folded); none by default, so a virtual view has no type-ahead unless the source provides it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: TreeListRowSplice final
+
+   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+
+   A change of a virtual tree's rows (TreeListRowSource): the ``removed`` rows at ``first`` were replaced by ``inserted`` rows. Expanding row r with k shown descendants is {r + 1, 0, k}; collapsing it is {r + 1, k, 0}.
+
+   .. cpp:member:: std::size_t first
+
+   .. cpp:member:: std::size_t removed
+
+   .. cpp:member:: std::size_t inserted
 
 .. cpp:namespace:: gui_forms
 

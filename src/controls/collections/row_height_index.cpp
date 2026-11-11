@@ -21,15 +21,18 @@ RowHeightIndex::RowHeightIndex(double estimated_height)
 RowHeightIndex::~RowHeightIndex() {}
 
 RowHeightIndex::RowHeightIndex(RowHeightIndex&& other) noexcept
-    : root_(std::move(other.root_)), estimate_(other.estimate_) {
+    : root_(std::move(other.root_)), estimate_(other.estimate_), revision_(other.revision_) {
     other.root_ = std::make_unique<Node>();
+    ++other.revision_;
 }
 
 RowHeightIndex& RowHeightIndex::operator=(RowHeightIndex&& other) noexcept {
     if (this == &other) return *this;
     root_ = std::move(other.root_);
     estimate_ = other.estimate_;
+    revision_ = std::max(revision_, other.revision_) + 1U;
     other.root_ = std::make_unique<Node>();
+    ++other.revision_;
     return *this;
 }
 
@@ -42,6 +45,7 @@ void RowHeightIndex::assign(std::size_t count, double estimated_height) {
     }
     recompute(*fresh);
     root_ = std::move(fresh);
+    ++revision_;
 }
 
 std::size_t RowHeightIndex::count() const noexcept {
@@ -303,6 +307,7 @@ bool RowHeightIndex::set_height(std::size_t row, double height) {
     bool changed = false;
     std::unique_ptr<Node> sibling = set_height_in(*root_, row, height, changed);
     if (sibling) grow_root(std::move(sibling));
+    if (changed) ++revision_;
     return changed;
 }
 
@@ -355,6 +360,7 @@ void RowHeightIndex::insert(std::size_t row, std::size_t count) {
     const std::size_t at = std::min(row, (*root_).count);
     std::unique_ptr<Node> sibling = insert_in(*root_, at, count);
     if (sibling) grow_root(std::move(sibling));
+    ++revision_;
 }
 
 void RowHeightIndex::erase_in(Node& node, std::size_t row, std::size_t count) {
@@ -435,6 +441,7 @@ void RowHeightIndex::erase(std::size_t row, std::size_t count) {
     const std::size_t taken = std::min(count, total - row);
     erase_in(*root_, row, taken);
     shrink_root();
+    ++revision_;
 }
 
 // -- storage ----------------------------------------------------------------------------

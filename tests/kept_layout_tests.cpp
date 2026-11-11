@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -186,6 +187,116 @@ std::vector<std::string> tree_list_view_run(bool keeping) {
     return seen;
 }
 
+// A flat virtual source: `count` rows, every fifth one tall. The view
+// measures rows lazily as they are shown, which writes its height index
+// without moving its key; the kept layout is keyed on the index's revision.
+class TallRowSource final : public TreeListRowSource {
+public:
+    explicit TallRowSource(std::size_t count) : count_(count) {}
+
+    [[nodiscard]] std::size_t row_count() const override { return count_; }
+
+    void retrieve_row(std::size_t row, TreeListNode& node) const override {
+        node.stable_id = "row-" + std::to_string(row);
+        node.text = "Row " + std::to_string(row);
+        node.depth = 0U;
+        node.expandable = false;
+        node.expanded = false;
+        node.enabled = true;
+        node.cells.clear();
+        node.image_key.clear();
+    }
+
+    [[nodiscard]] TreeListRowSplice set_row_expanded(std::size_t row, bool expanded) override {
+        static_cast<void>(row);
+        static_cast<void>(expanded);
+        const TreeListRowSplice none{};
+        return none;
+    }
+
+    [[nodiscard]] double row_height(std::size_t row, double estimated) const override {
+        ++measurements;
+        if (row % 5U == 0U) return tall_height;
+        return estimated;
+    }
+
+    [[nodiscard]] std::optional<std::size_t> find_row(std::string_view node_id) const override {
+        if (!node_id.starts_with("row-")) return std::nullopt;
+        const std::string digits(node_id.substr(4U));
+        const std::size_t row = static_cast<std::size_t>(std::stoull(digits));
+        if (row >= count_) return std::nullopt;
+        return row;
+    }
+
+    static constexpr double tall_height = 40.0;
+    mutable std::size_t measurements{};
+
+private:
+    std::size_t count_{};
+};
+
+// Scrolls to rows never measured: each step's kept layout must read as a
+// fresh one, the new rows showing their measured heights.
+std::vector<std::string> virtual_tree_run(bool keeping) {
+    detail::set_layout_keeping(keeping);
+    std::vector<std::string> seen;
+    std::shared_ptr<TallRowSource> source = std::make_shared<TallRowSource>(20'000U);
+    std::shared_ptr<TreeListView> view = make_control<TreeListView>(StableId("virtual-tree"));
+    (*view).set_columns(tree_columns(180.0));
+    (*view).set_row_source(source);
+    Window window(view, {320.0, 180.0});
+    seen.push_back(observed(window));
+    (*view).set_top_row(10'000U);
+    seen.push_back(observed(window));
+    (*view).set_top_row(10'007U);
+    seen.push_back(observed(window));
+    // Scrolling a far row into view brings it in at the bottom, measuring
+    // the rows above it outside the layout pass.
+    (*view).ensure_visible("row-15003");
+    seen.push_back(observed(window));
+    (*view).selected_id = std::string("row-17001");
+    seen.push_back(observed(window));
+    (*view).set_top_row(19'999U);
+    seen.push_back(observed(window));
+    (*view).set_top_row(19'990U);
+    seen.push_back(observed(window));
+    window.resize({320.0, 400.0});
+    seen.push_back(observed(window));
+    // A pass that measures nothing new reuses the kept layout.
+    const std::size_t measured = (*source).measurements;
+    seen.push_back(observed(window));
+    require((*source).measurements == measured, "a pass over measured rows measures nothing");
+    detail::set_layout_keeping(true);
+    return seen;
+}
+
+// Under keeping, a layout over unmeasured rows shows their measured heights
+// at once, and asking again reuses it.
+void virtual_tree_scroll_to_unmeasured_rows() {
+    std::shared_ptr<TallRowSource> source = std::make_shared<TallRowSource>(20'000U);
+    std::shared_ptr<TreeListView> view = make_control<TreeListView>(StableId("virtual-tree"));
+    (*view).set_columns(tree_columns(180.0));
+    (*view).set_row_source(source);
+    Window window(view, {320.0, 180.0});
+    window.perform_layout();
+    (*view).set_top_row(12'345U);
+    window.perform_layout();
+    const std::vector<TreeListView::Row> rows = (*view).realized_rows();
+    require(rows.size() > 6U && rows[0].row == 12'345U, "the jump shows the row asked for at the top");
+    for (const TreeListView::Row& row : rows) {
+        const bool tall = row.row % 5U == 0U;
+        const bool shows_tall = row.parts.row.bounds.height == TallRowSource::tall_height;
+        require(tall == shows_tall, "every newly shown row has its measured height");
+    }
+    require(rows[1].parts.row.bounds.y == rows[0].parts.row.bounds.y + rows[0].parts.row.bounds.height,
+            "rows follow one another at their measured heights");
+    const std::size_t measured = (*source).measurements;
+    window.perform_layout();
+    const std::vector<TreeListView::Row> again = (*view).realized_rows();
+    require((*source).measurements == measured && again.size() == rows.size() && again[0].row == 12'345U,
+            "an unchanged pass measures nothing and shows the same rows");
+}
+
 // -- NavigationPane ----------------------------------------------------------
 
 std::vector<std::string> navigation_pane_run(bool keeping) {
@@ -307,6 +418,8 @@ std::vector<std::string> ribbon_run(bool keeping) {
 int main() {
     compare(list_view_run(true), list_view_run(false), "ListView");
     compare(tree_list_view_run(true), tree_list_view_run(false), "TreeListView");
+    compare(virtual_tree_run(true), virtual_tree_run(false), "virtual TreeListView");
+    virtual_tree_scroll_to_unmeasured_rows();
     compare(navigation_pane_run(true), navigation_pane_run(false), "NavigationPane");
     compare(tool_strip_run(true), tool_strip_run(false), "ToolStrip");
     compare(ribbon_run(true), ribbon_run(false), "Ribbon");

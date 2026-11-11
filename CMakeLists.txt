@@ -3402,6 +3402,9 @@ if(GUI_FORMS_BUILD_TESTS)
     gui_forms_add_fuzz_test(rtf_import SOURCE fuzz/rtf_import_fuzz.cpp
         LIBRARIES gui_forms_core stx_rtf2md::stx_rtf2md
         ARGUMENTS ${GUI_FORMS_STX_BUILD_PREFIX_DIR}/share/stx_text/rtf2md_corpus)
+    add_executable(gui_forms_rtf_conversion_failure_tests tests/rtf_conversion_failure_tests.cpp)
+    target_link_libraries(gui_forms_rtf_conversion_failure_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_rtf_conversion_failure_tests COMMAND gui_forms_rtf_conversion_failure_tests)
 
     add_executable(gui_forms_bounded_grapheme_tests tests/bounded_grapheme_tests.cpp)
     target_include_directories(gui_forms_bounded_grapheme_tests PRIVATE src/core/text/unicode)
