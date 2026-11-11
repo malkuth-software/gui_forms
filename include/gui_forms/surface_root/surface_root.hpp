@@ -653,6 +653,13 @@ public:
     // only: report_frame_moved. UI thread.
     [[nodiscard]] Event<>& frame_moved() noexcept { return frame_moved_; }
     void report_frame_moved();
+    // Raised before a menu opens on this window: every menu open on it
+    // closes first, so the window shows one menu chain at a time (an open
+    // chain's focus scope would hold the new menu outside it). Raised by
+    // the opening menu through announce_menu_opening, before it subscribes
+    // itself. UI thread.
+    [[nodiscard]] Event<>& menu_opening() noexcept { return menu_opening_; }
+    void announce_menu_opening();
     // Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/
     // PLAN.md §2). Declares, before a host attaches, that this window may
     // be presented non-opaque (owner decision T5-Q4);
@@ -2201,6 +2208,7 @@ private:
     Event<const Theme&> theme_changed_;
     Event<bool> active_changed_;
     Event<> frame_moved_;
+    Event<> menu_opening_;
     bool active_{true};
     StableIdMap stable_ids_;
     Control::WeakPtr focused_;

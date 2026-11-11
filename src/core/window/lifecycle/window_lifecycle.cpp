@@ -629,6 +629,11 @@ void SurfaceRoot::report_frame_moved() {
     frame_moved_.emit();
 }
 
+void SurfaceRoot::announce_menu_opening() {
+    require_root_thread("menu opening");
+    menu_opening_.emit();
+}
+
 void SurfaceRoot::set_active(bool active) {
     require_root_thread("activation mutation");
     if (active_ == active) return;

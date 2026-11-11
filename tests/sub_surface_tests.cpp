@@ -41,6 +41,10 @@ void require(const bool condition, const char* const message) {
     if (!condition) throw std::runtime_error(message);
 }
 
+void require(const bool condition, const std::string& message) {
+    if (!condition) throw std::runtime_error(message);
+}
+
 // What the sub-surface's thread reports back to the test: written there,
 // read here, under the mutex. The control is held weakly, so the test never
 // keeps a sub-surface control alive past its thread.
@@ -1823,6 +1827,18 @@ private:
     return log.ticks.size();
 }
 
+// The loop's counters and the ticks seen, for a failure's message: a stall
+// is told apart from a slow machine by whether the loop turned at all.
+[[nodiscard]] std::string ambient_state(const SubSurfaceHost& host, AmbientLog& log) {
+    const SubSurfaceStatistics statistics = host.statistics();
+    const std::string text = " (ticks " + std::to_string(ticks_of(log)) + ", loop turns " +
+                             std::to_string(statistics.loop_turns) + ", deadline wakes " +
+                             std::to_string(statistics.deadline_wakes) + ", frames published " +
+                             std::to_string(statistics.frames_published) + ", publish retries " +
+                             std::to_string(statistics.publish_retries) + ")";
+    return text;
+}
+
 [[nodiscard]] bool wait_for_ticks(AmbientLog& log, std::size_t ticks) {
     const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
     while (std::chrono::steady_clock::now() < limit) {
@@ -1857,7 +1873,8 @@ void ambient_effect_ticks_off_the_ui_thread() {
     // 200 ms. Nothing here runs the window, so each tick is the sub-surface's.
     const std::size_t before_block = ticks_of(*log);
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    require(wait_for_ticks(*log, before_block + 3U), "ticks continue while the UI thread is blocked");
+    require(wait_for_ticks(*log, before_block + 3U),
+            "ticks continue while the UI thread is blocked" + ambient_state(*host, *log));
 
     // Display timing: a 10 ms refresh phased at `phase`. Later ticks are on
     // its vertical blanks.

@@ -201,6 +201,9 @@ private:
 
     void build_context_menu() {
         context_button_ = document_.gallery_commands_context_open;
+        // The page's one tooltip: its window is the bubble and its shadow,
+        // and the shadow takes no input (tools/popup_margin_probe.py).
+        (*context_button_).tool_tip_text = "Opens the context menu";
         on((*context_button_).clicked(), *this, &CommandsAndMenusPage::on_context_requested);
         context_menu_.set_items({
             item("save", save_), item("delete", delete_), separator("separator.edit"),

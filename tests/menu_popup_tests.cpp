@@ -305,10 +305,47 @@ void panels_fit_their_rows() {
     require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the File menu opens");
     const std::shared_ptr<Control> panel = panel_of(*desk.model, 0U);
     const double width = (*panel).requested_bounds().width;
-    require(width > 268.0, "a long label widens the panel past its preferred width");
+    require(width > 268.0, "a long label widens the panel");
     const ResolvedTextLayout label = (*desk.model).resolve_text_layout_utf8(
         "Open a picture from a folder far away on the network", FontSpec{FontRole::control, 11.0, 400, false, 0.12});
     require(width >= 30.0 + label.logical_size.width + 25.0, "the label fits between the gutter and the chevron");
+    (*desk.strip).close();
+}
+
+// Plan Paint's Paste menu (two short rows) and its three-row Fill/Tile/Center
+// submenu were 268 units wide whatever their rows (the old default
+// minimum, 532 px at 2x). A panel is as wide as its widest row, at least
+// the 120-unit minimum.
+void a_short_menu_is_as_wide_as_its_rows() {
+    Desk desk(true);
+    Commands commands;
+    std::vector<MenuItemSpec> paste;
+    paste.emplace_back("paste.here", MenuItemKind::command, commands.open, "Paste");
+    paste.emplace_back("paste.new", MenuItemKind::command, commands.save, "Paste as new");
+    std::vector<MenuItemSpec> placing;
+    placing.emplace_back("place.fill", MenuItemKind::command, commands.fill, "Fill");
+    placing.emplace_back("place.tile", MenuItemKind::command, commands.tile, "Tile");
+    placing.emplace_back("place.center", MenuItemKind::command, commands.quit, "Center");
+    std::vector<MenuItemSpec> short_items;
+    short_items.emplace_back("short.paste", MenuItemKind::submenu, std::shared_ptr<Command>{}, "Paste",
+                             std::move(paste));
+    short_items.emplace_back("short.place", MenuItemKind::submenu, std::shared_ptr<Command>{}, "Place",
+                             std::move(placing));
+    std::vector<MenuStripItemSpec> items;
+    MenuStripItemSpec entry{};
+    entry.stable_id = "edit";
+    entry.text = "&Edit";
+    entry.items = std::move(short_items);
+    items.push_back(std::move(entry));
+    (*desk.strip).set_items(std::move(items));
+    require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the Edit menu opens");
+    const double top_width = (*panel_of(*desk.model, 0U)).requested_bounds().width;
+    require(top_width >= 120.0 && top_width < 200.0, "a two-row menu is as wide as its rows, at least the minimum");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches Paste");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches Place");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), "Right opens the Place submenu");
+    const double child_width = (*panel_of(*desk.model, 1U)).requested_bounds().width;
+    require(child_width >= 120.0 && child_width < 200.0, "a three-row submenu is as wide as its rows");
     (*desk.strip).close();
 }
 
@@ -549,6 +586,38 @@ void hovering_a_submenu_row_away_and_back_reopens_it() {
     require(!(*desk.strip).is_open() && desk.popups().empty(), "the owner moving closes the menu and its submenu");
 }
 
+// Contention fuzzer seed 1 (tools/contention_fuzz.py, replay: the File menu
+// with its Background submenu open, then a button that shows a context menu
+// activated through automation, past the menu's outside-press layer). The
+// open chain's focus scope held the new menu outside it, begin_focus_scope
+// threw out of the window procedure and the program died. A window shows
+// one menu chain: the new menu closes the open one, both ways round.
+void a_menu_opening_closes_the_open_chain() {
+    Desk desk(true);
+    Commands commands;
+    (*desk.strip).set_items(strip_items(commands));
+    std::shared_ptr<ContextMenu> context = std::make_shared<ContextMenu>("context");
+    std::vector<MenuItemSpec> items;
+    items.emplace_back("context.open", MenuItemKind::command, commands.open);
+    items.emplace_back("context.save", MenuItemKind::command, commands.save);
+    (*context).set_items(std::move(items));
+    for (std::size_t cycle = 0U; cycle < 4U; ++cycle) {
+        const std::string label = "cycle " + std::to_string(cycle) + ": ";
+        require((*desk.strip).open(0U, MenuOpenMode::keyboard), label + "the File menu opens");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), label + "Down reaches the panel");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), label + "Down skips the rule");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), label + "Right opens the submenu");
+        require(desk.popups().size() == 2U, label + "the submenu shows");
+        (*context).show(desk.ribbon, Point{200.0, 200.0}, MenuOpenMode::keyboard);
+        require((*context).is_open() && !(*desk.strip).is_open(), label + "the context menu replaces the File menu");
+        require(desk.popups().size() == 1U, label + "only the context menu's Popup window shows");
+        require((*desk.strip).open(0U, MenuOpenMode::keyboard), label + "the File menu opens over the context menu");
+        require(!(*context).is_open() && (*desk.strip).is_open(), label + "the File menu replaces the context menu");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)), label + "Escape closes the File menu");
+        require(desk.popups().empty() && !(*desk.strip).is_open(), label + "no Popup window is left");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -558,10 +627,12 @@ int main() {
         the_popup_backplane_is_clear_round_the_panel();
         rows_take_the_designed_hover();
         panels_fit_their_rows();
+        a_short_menu_is_as_wide_as_its_rows();
         the_keyboard_drives_submenu_popups();
         the_two_pane_menu_lifts_and_opens_submenus();
         the_application_menu_opens_and_closes_repeatedly();
         hovering_a_submenu_row_away_and_back_reopens_it();
+        a_menu_opening_closes_the_open_chain();
     } catch (const std::exception& error) {
         std::cerr << "menu popup tests failed: " << error.what() << '\n';
         return 1;

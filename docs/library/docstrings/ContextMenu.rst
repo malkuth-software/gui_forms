@@ -31,9 +31,11 @@ items
     text and children but no command; every other item has exactly one
     command and no children; nesting is at most 8 levels deep; and there are
     at most 1024 items in all. Replacing the items closes an open menu.
-preferred_width : default ``268.0``
-    The width of each menu level, multiplied by the window's text scale and
-    never wider than the window's client area less 8 pixels. It must be
+preferred_width : default ``120.0``
+    The narrowest each menu level is, multiplied by the window's text scale;
+    a level is as wide as its widest row needs (icon gutter, label, shortcut
+    column and submenu arrow) and never wider than the window's client area
+    less 8 pixels. It must be
     finite and between 120 and 1024, or `std::invalid_argument` is thrown.
     Changing it closes an open menu.
 is_open : default ``false``

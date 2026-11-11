@@ -2070,10 +2070,16 @@ bool SurfaceRoot::dispatch_key(KeyEvent event) {
     // A running drag takes the keys it uses (Escape; the keyboard mode's
     // arrows, Tab and Enter) before the rules and the focused control.
     if (drag_engine_ && (*drag_engine_).key(event)) return true;
+    const bool escape = key_down && event.physical_key == PhysicalKey::escape;
     const bool handled = route_key(std::move(event));
-    // A key may have moved the keyboard within the focused control, or
-    // shown the focus cue: the presenter looks at what focus is on again.
-    if (key_down && tool_tips_) (*tool_tips_).key_handled();
+    // Escape dismisses a bubble. Any other key may have moved the keyboard
+    // within the focused control, or shown the focus cue: the presenter
+    // looks at what focus is on again.
+    if (escape && tool_tips_) {
+        (*tool_tips_).escape_pressed();
+    } else if (key_down && tool_tips_) {
+        (*tool_tips_).key_handled();
+    }
     return handled;
 }
 

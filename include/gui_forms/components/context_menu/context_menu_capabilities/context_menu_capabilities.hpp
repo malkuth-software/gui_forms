@@ -23,10 +23,10 @@ namespace gui_forms {
 // on_<property>_changed() where Windows Forms has OnXChanged). A read is
 // `(*control).x.read()`.
 
-// The menu's width in logical units at text scale 1, 120 to 1024 (default 268). A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
+// The menu's width in logical units at text scale 1, 120 to 1024 (default 120): the narrowest a panel is; a panel is as wide as its widest row needs. A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
 template <typename Declaring>
 struct ContextMenuPreferredWidthCapability {
-    PropertyCell<double, ContextMenuPreferredWidthCapability<Declaring>> preferred_width{268.0};
+    PropertyCell<double, ContextMenuPreferredWidthCapability<Declaring>> preferred_width{120.0};
 
     static void assign(ContextMenuPreferredWidthCapability& capability, double incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

@@ -10,7 +10,7 @@
 
 namespace gui_forms::menu_detail {
 
-inline constexpr double menu_width = 268.0;
+inline constexpr double menu_width = 120.0;
 inline constexpr double command_row_height = 28.0;
 inline constexpr double separator_row_height = 9.0;
 inline constexpr double menu_border = 2.0;

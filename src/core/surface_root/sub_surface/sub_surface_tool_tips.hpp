@@ -41,6 +41,9 @@ public:
     void pointer_left() override;
     void focus_changed(const Control::Ptr& focused) override;
     void key_handled() override;
+    // Withdraws the keyboard and pointer requests; the pointer's region is
+    // kept, so motion within it does not ask again.
+    void escape_pressed() override;
     // A keyboard or program request whose thing moved is asked again.
     void root_arranged() override;
     void text_changed(const Control& control) override;

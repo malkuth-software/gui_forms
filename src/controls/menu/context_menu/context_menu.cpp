@@ -656,6 +656,12 @@ struct ContextMenu::Impl final {
             throw std::logic_error("ContextMenu has no visible items to show");
         }
         window = (*invoker).attached_window();
+        // Every other menu on the window closes first (one menu chain per
+        // window); this one is closed and not yet subscribed, so it is not
+        // among them.
+        (*window).announce_menu_opening();
+        other_menu_opening = (*window).menu_opening().subscribe(
+            owner, Delegate<>::bind<Impl, &Impl::on_other_menu_opening>(*this));
         owner_control = invoker;
         invoker_theme = invoker_theme_override(invoker);
         const Size client = (*window).client_size();
@@ -711,6 +717,7 @@ struct ContextMenu::Impl final {
         }
         focus_scope = {};
         hide_popups();
+        other_menu_opening.disconnect();
         overlay_token.disconnect();
         overlay_revocation.disconnect();
         const bool changed = open;
@@ -757,6 +764,8 @@ struct ContextMenu::Impl final {
     // The owner moved under its Popup windows: they no longer sit by the
     // rows that opened them, so the whole chain closes.
     void on_owner_moved() { close(); }
+
+    void on_other_menu_opening() { close(); }
 
     // Hides every Popup window the menu shows, deepest first, and empties
     // their frames.
@@ -1275,6 +1284,8 @@ struct ContextMenu::Impl final {
     SubscriptionToken popup_closed;
     SubscriptionToken owner_active;
     SubscriptionToken owner_moved;
+    // The window's menu_opening, while the menu shows (both modes).
+    SubscriptionToken other_menu_opening;
     bool open{};
     bool closing{};
     // Counts closes. Showing a Popup window, focusing a row or hiding a
