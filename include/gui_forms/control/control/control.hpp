@@ -1594,6 +1594,9 @@ private:
     // this control's and its ancestors' subtree_height_bound_ where the
     // child makes it higher, stopping at the first that already covers it.
     void raise_height_bounds(std::size_t child_height) noexcept;
+    // A vector that ends the views lent from it at each change (a plain
+    // std::vector outside the sanitizer tree).
+    using ChildList = detail::LendingVector<Ptr>;
     // The destructor's teardown of `children`, a dying control's child
     // list, one level at a time in fixed storage, so destroying a tree
     // never nests a destructor call per level (control.cpp).
@@ -1637,9 +1640,6 @@ private:
         const void* event_key{};
         std::function<void()> publication;
     };
-    // A vector that ends the views lent from it at each change (a plain
-    // std::vector outside the sanitizer tree).
-    using ChildList = detail::LendingVector<Ptr>;
     using ProviderTextMap = std::map<std::uint64_t, std::string>;
     using BindablePropertyMap = std::map<std::string, BindableProperty>;
     using DeferredInitializationChangeList =
