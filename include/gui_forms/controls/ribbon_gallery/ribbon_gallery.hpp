@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/commands/gallery_command/gallery_command.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
@@ -67,8 +68,8 @@ public:
     // -- model -----------------------------------------------------------
     [[nodiscard]] std::span<const RibbonGalleryCategory> categories() const& noexcept { return categories_; }
     std::span<const RibbonGalleryCategory> categories() const&& = delete;
-    [[nodiscard]] std::span<const RibbonGalleryItem> items() const& noexcept { return items_; }
-    std::span<const RibbonGalleryItem> items() const&& = delete;
+    [[nodiscard]] BorrowedSpan<RibbonGalleryItem> items() const& noexcept { return detail::lend_view(items_); }
+    BorrowedSpan<RibbonGalleryItem> items() const&& = delete;
     // Replaces the categories and items. Items show without a category
     // first, then category by category in category order, each in the order
     // given. Throws std::invalid_argument for an empty or repeated ID, an
@@ -277,7 +278,7 @@ private:
 
     RibbonGalleryForm form_{RibbonGalleryForm::in_ribbon};
     std::vector<RibbonGalleryCategory> categories_{};
-    std::vector<RibbonGalleryItem> items_{};
+    detail::LendingVector<RibbonGalleryItem> items_{};
     // Display order: indexes into items_.
     std::vector<std::size_t> order_{};
     std::vector<Line> lines_{};

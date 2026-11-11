@@ -865,7 +865,7 @@ void ListView::sort_items(std::size_t column, ListViewSortOrder order) {
     // `order_of[new position]` is the item's old position.
     std::vector<std::size_t> order_of(items_.size(), 0U);
     std::iota(order_of.begin(), order_of.end(), std::size_t{0U});
-    const ColumnTextOrder by_text{&items_, column, order == ListViewSortOrder::descending};
+    const ColumnTextOrder by_text{&detail::lent_storage(items_), column, order == ListViewSortOrder::descending};
     std::stable_sort(order_of.begin(), order_of.end(), by_text);
     // `position_of[old position]` is its new position.
     std::vector<std::size_t> position_of(items_.size(), 0U);

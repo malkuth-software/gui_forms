@@ -22,6 +22,10 @@
 #include <execinfo.h>
 #define GUI_FORMS_FAIL_FAST_EXECINFO 1
 #endif
+#if __has_include(<dlfcn.h>)
+#include <dlfcn.h>
+#define GUI_FORMS_FAIL_FAST_DLADDR 1
+#endif
 #endif
 
 namespace gui_forms::detail {
@@ -77,6 +81,41 @@ void write_stack() noexcept {
 }
 
 } // namespace
+
+void write_fail_fast_stack() noexcept {
+    write_stack();
+}
+
+void write_code_address(const void* address) noexcept {
+    if (address == nullptr) {
+        std::fputs("unknown", stderr);
+        return;
+    }
+#if defined(_WIN32)
+    HMODULE module = nullptr;
+    char path[MAX_PATH]{};
+    const DWORD flags = GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+    const bool found = GetModuleHandleExA(flags, static_cast<LPCSTR>(address), &module) != 0 &&
+        GetModuleFileNameA(module, path, MAX_PATH) != 0U;
+    if (found) {
+        const std::uintptr_t base = reinterpret_cast<std::uintptr_t>(module);
+        const std::uintptr_t offset = reinterpret_cast<std::uintptr_t>(address) - base;
+        std::fprintf(stderr, "%s+0x%llx", path, static_cast<unsigned long long>(offset));
+        return;
+    }
+#elif defined(GUI_FORMS_FAIL_FAST_DLADDR)
+    Dl_info information{};
+    if (dladdr(address, &information) != 0 && information.dli_fname != nullptr) {
+        const std::uintptr_t base = reinterpret_cast<std::uintptr_t>(information.dli_fbase);
+        const std::uintptr_t offset = reinterpret_cast<std::uintptr_t>(address) - base;
+        const char* const symbol = information.dli_sname != nullptr ? information.dli_sname : "?";
+        std::fprintf(stderr, "%s+0x%llx (%s)", information.dli_fname, static_cast<unsigned long long>(offset),
+                     symbol);
+        return;
+    }
+#endif
+    std::fprintf(stderr, "%p", address);
+}
 
 void fail_fast(std::string_view site, std::exception_ptr failure) noexcept {
     // %.*s takes an int precision; a site is a short literal, and a longer

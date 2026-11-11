@@ -418,6 +418,12 @@ public:
     // std::logic_error naming `operation` off the root's thread.
     void verify_access(std::string_view operation = "window access");
     [[nodiscard]] bool invoke_required() const noexcept { return !check_access(); }
+    // The Window this root is, borrowed (null for a root presented some
+    // other way). In the sanitizer tree the copy reports a use after the
+    // Window died; a table that holds a Window across callbacks keeps this.
+    [[nodiscard]] BorrowedPointer<Window> presenting_window() const noexcept {
+        return detail::lend_pointer(presenting_window_);
+    }
 
     // Posts `callback` to run on the root's thread at its next dispatcher
     // turn (drain_posted_work). The owned overload cancels the work when
@@ -2542,7 +2548,7 @@ private:
     // The Window this root is, set first by Window's constructor; null for a
     // root presented some other way (a sub-surface, stage S2). Attached
     // controls copy it into Control::window(); nothing else reads it.
-    Window* presenting_window_{};
+    detail::LendingPointer<Window> presenting_window_{};
     std::uint64_t update_depth_{};
     bool layout_dirty_{true};
     bool hit_test_dirty_{true};

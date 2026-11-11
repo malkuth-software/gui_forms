@@ -59,8 +59,9 @@ struct RunCallbacks {
     std::unique_ptr<CallbackBinding> closing;
     std::unique_ptr<CallbackBinding> closed;
     // The run's window model, from ready until run returns (observing; the
-    // run's window owns it): closed reads its host_close_reason.
-    Window* model = nullptr;
+    // run's window owns it): closed reads its host_close_reason. Borrowed:
+    // the sanitizer tree reports a use after the window died.
+    BorrowedPointer<Window> model = nullptr;
 };
 
 // The "reason" field's text (gf_abi.h, "Run callbacks"): the names of
@@ -113,7 +114,7 @@ struct RunReady {
     void operator()(Window& model, ApplicationWindowHandle window) const {
         registry().set_run_window(window);
         engine().attach_window(model);
-        (*callbacks).model = &model;
+        (*callbacks).model = model.presenting_window();
         static_cast<void>(call_run_callback(*callbacks, (*callbacks).ready.get(), "ready", std::nullopt));
     }
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp"
 #include "gui_forms/scheduler.hpp"
@@ -84,10 +85,8 @@ public:
     // Provisional development admission guard, not measured product capacity.
     static constexpr std::size_t maximum_details_text_bytes = 64U * 1024U * 1024U;
 
-    [[nodiscard]] std::span<const ObjectViewItem> items() const& noexcept {
-        return items_;
-    }
-    std::span<const ObjectViewItem> items() const&& = delete;
+    [[nodiscard]] BorrowedSpan<ObjectViewItem> items() const& noexcept { return detail::lend_view(items_); }
+    BorrowedSpan<ObjectViewItem> items() const&& = delete;
     // Maps a root-client pointer position back to the retained stable item.
     // This is presentation identity only; applications retain all domain and
     // transfer authority.
@@ -328,7 +327,7 @@ private:
     void paint_focus_ring_part(Painter& painter, Rect bounds) const;
     void invalidate_hover_change(std::optional<std::size_t> previous, std::optional<std::size_t> next);
 
-    std::vector<ObjectViewItem> items_{};
+    detail::LendingVector<ObjectViewItem> items_{};
     std::string selected_id_{};
     std::vector<std::string> selected_ids_{};
     std::string focused_id_{};

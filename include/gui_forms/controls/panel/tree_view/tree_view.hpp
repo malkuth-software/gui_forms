@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
@@ -49,10 +50,8 @@ public:
     explicit TreeView(StableId stable_id);
     ~TreeView() override;
 
-    [[nodiscard]] std::span<const TreeViewItem> items() const& noexcept {
-        return items_;
-    }
-    std::span<const TreeViewItem> items() const&& = delete;
+    [[nodiscard]] BorrowedSpan<TreeViewItem> items() const& noexcept { return detail::lend_view(items_); }
+    BorrowedSpan<TreeViewItem> items() const&& = delete;
     void set_items(std::vector<TreeViewItem> items);
     [[nodiscard]] std::string_view active_id() const& noexcept {
         return active_id_;
@@ -147,7 +146,7 @@ private:
     void reveal_cut_off_text(std::size_t visible_row);
     void conceal_cut_off_text() noexcept;
 
-    std::vector<TreeViewItem> items_;
+    detail::LendingVector<TreeViewItem> items_;
     std::vector<std::size_t> visible_;
     std::string selected_id_;
     std::string active_id_;

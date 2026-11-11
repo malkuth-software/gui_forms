@@ -25,7 +25,7 @@ table in <tree>/lifetime-lint-findings.json (or --json).
 The analysis in LLVM 22 is intra-procedural and covers stack lifetimes
 (returned addresses of locals, use after scope). It does not model a member
 call as invalidating a view (a span used after the vector's push_back is
-not reported); the checked borrow types (gui_forms/borrow/borrowed_view.hpp,
+not reported); the checked borrow types (gui_forms/borrow/borrowed_view/borrowed_view.hpp,
 the sanitizer tree) cover that.
 """
 from __future__ import annotations

@@ -32,6 +32,14 @@ namespace gui_forms::detail {
 // returns and never throws.
 [[noreturn]] void fail_fast(std::string_view site, std::exception_ptr failure) noexcept;
 
+// The report's parts, shared with the borrow sanitizer's report
+// (detail::fail_borrow, gui_forms/borrow/borrowed_view/borrowed_view.hpp):
+// the current stack, one line per frame, and one code address as its module
+// and offset (and symbol, where the platform names one), so a symbolizer
+// can name the function after the fact. Both write to stderr only.
+void write_fail_fast_stack() noexcept;
+void write_code_address(const void* address) noexcept;
+
 // Calls `target(arguments...)` and returns its result; an exception ends the
 // process through fail_fast.
 template <typename Result, typename... Parameters, typename... Arguments>

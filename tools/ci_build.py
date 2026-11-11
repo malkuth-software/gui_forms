@@ -315,6 +315,10 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         sanitizer_cmake, sanitizer_environment = sanitizer_options(
             host, ROOT / 'gui_forms/tools/sanitizer/lsan.supp', debug_info)
         options.extend(sanitizer_cmake)
+        # The sanitizer tree checks borrowed views against their owners
+        # (gui_forms/borrow/borrowed_view/borrowed_view.hpp, owner ruling
+        # 2026-11-11); the plain tree compiles the plain views.
+        options.append('-DGUI_FORMS_CHECKED_BORROWS=ON')
         os.environ.update(sanitizer_environment)
         timeout = '900'
     configure: list[str] = [

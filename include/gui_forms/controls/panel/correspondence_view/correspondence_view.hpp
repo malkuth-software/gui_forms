@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/scheduler.hpp"
 
@@ -76,10 +77,8 @@ class CorrespondenceView final : public Panel, public CorrespondenceViewCapabili
 public:
     explicit CorrespondenceView(StableId stable_id);
 
-    [[nodiscard]] std::span<const CorrespondenceItem> items() const& noexcept {
-        return items_;
-    }
-    std::span<const CorrespondenceItem> items() const&& = delete;
+    [[nodiscard]] BorrowedSpan<CorrespondenceItem> items() const& noexcept { return detail::lend_view(items_); }
+    BorrowedSpan<CorrespondenceItem> items() const&& = delete;
     void set_items(std::vector<CorrespondenceItem> items);
     [[nodiscard]] std::string_view focused_id() const& noexcept {
         return focused_id_;
@@ -259,7 +258,7 @@ private:
     [[nodiscard]] CorrespondenceCardLayout card_layout(std::size_t index, const CorrespondenceCardFonts& fonts) const;
     [[nodiscard]] double measured_text_width(std::string_view text, FontSpec text_face) const;
 
-    std::vector<CorrespondenceItem> items_;
+    detail::LendingVector<CorrespondenceItem> items_;
     std::string selected_id_;
     std::string focused_id_;
     std::string hovered_id_;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 
@@ -82,8 +83,8 @@ public:
     AutoCompleteStringCollection(const AutoCompleteStringCollection&) = delete;
     AutoCompleteStringCollection& operator=(const AutoCompleteStringCollection&) = delete;
 
-    [[nodiscard]] std::span<const std::string> items() const& noexcept { return items_; }
-    std::span<const std::string> items() const&& = delete;
+    [[nodiscard]] BorrowedSpan<std::string> items() const& noexcept { return detail::lend_view(items_); }
+    BorrowedSpan<std::string> items() const&& = delete;
     [[nodiscard]] std::size_t size() const noexcept { return items_.size(); }
     [[nodiscard]] bool empty() const noexcept { return items_.empty(); }
     // Throws std::out_of_range for an index past the end.
@@ -109,7 +110,7 @@ public:
     [[nodiscard]] Event<>& changed() noexcept { return changed_; }
 
 private:
-    std::vector<std::string> items_;
+    detail::LendingVector<std::string> items_;
     Event<> changed_;
 };
 
