@@ -1546,7 +1546,8 @@ private:
     void written(const decltype(classes)& cell);
     friend class ContainerControl;
     // Reports an opaque engine face's cover (report_opaque_cover).
-    friend void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part);
+    friend void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part,
+                                                const SurfaceMaterial* resolved_material);
     friend class ErrorProvider;
     friend class HelpProvider;
     friend class Binding;
