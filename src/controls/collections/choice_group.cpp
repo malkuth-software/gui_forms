@@ -266,7 +266,7 @@ void ChoiceGroup::set_items(std::vector<ChoiceItem> items) {
         }
         for (std::size_t index = 0U; index < (*next).entries.size(); ++index) {
             const Button& button = *(*(*next).entries[index]).button;
-            static_cast<void>(set_child_index(button.runtime_id(), (*next).entries.size() - index - 1U));
+            static_cast<void>(set_child_index_from_top(button.runtime_id(), (*next).entries.size() - index - 1U));
         }
         const int current = selected_index.read();
         if (current >= static_cast<int>((*next).items.size())) selected_index = -1;

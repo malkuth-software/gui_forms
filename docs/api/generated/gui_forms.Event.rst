@@ -134,7 +134,7 @@ gui_forms::Event
 
    .. rubric:: Construction
 
-   .. cpp:function:: Event()
+   .. cpp:function:: Event() noexcept = default
 
 
    .. rubric:: Properties

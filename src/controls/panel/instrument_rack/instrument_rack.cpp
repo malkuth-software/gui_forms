@@ -780,10 +780,10 @@ void InstrumentRack::set_modules(std::vector<InstrumentModuleSpec> modules) {
     (*impl_).public_modules.reserve((*impl_).states.size());
     for (std::size_t index = 0; index < (*impl_).states.size(); ++index) {
         (*impl_).public_modules.push_back((*impl_).states[index].spec);
-        set_child_index((*(*impl_).states[index].panel).runtime_id(), index);
+        set_child_index_from_top((*(*impl_).states[index].panel).runtime_id(), index);
     }
     if ((*impl_).action_content) {
-        set_child_index((*(*impl_).action_content).runtime_id(), (*impl_).states.size());
+        set_child_index_from_top((*(*impl_).action_content).runtime_id(), (*impl_).states.size());
     }
     (*impl_).scroll_offset = 0.0;
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |

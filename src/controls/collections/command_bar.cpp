@@ -154,7 +154,7 @@ void CommandBar::set_items(std::vector<CommandItem> items) {
         }
         for (std::size_t index = 0U; index < (*next).entries.size(); ++index) {
             const Button& button = *(*(*next).entries[index]).button;
-            static_cast<void>(set_child_index(button.runtime_id(), (*next).entries.size() - index - 1U));
+            static_cast<void>(set_child_index_from_top(button.runtime_id(), (*next).entries.size() - index - 1U));
         }
         install_shortcuts();
         invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::semantics);

@@ -168,6 +168,29 @@ Utf8ValidationResult validate_utf8(std::string_view text) noexcept {
   return result;
 }
 
+Utf8ScalarDecode decode_utf8_scalar(std::string_view text, Utf8Offset offset) noexcept {
+  const std::size_t start = offset.value();
+  const std::uint8_t first = static_cast<std::uint8_t>(text[start]);
+  std::size_t length = 1U;
+  if (first >= 0xc2U && first < 0xe0U) length = 2U;
+  else if (first >= 0xe0U && first < 0xf0U) length = 3U;
+  else if (first >= 0xf0U && first < 0xf5U) length = 4U;
+  const std::size_t available = text.size() - start;
+  const std::string_view sequence = text.substr(start, std::min(length, available));
+  const Utf8ValidationResult checked = validate_utf8(sequence);
+  Utf8ScalarDecode result{};
+  if (sequence.size() != length || !checked.valid() || checked.scalar_count != 1U) {
+    result.scalar = U'�';
+    result.length = 1U;
+    result.valid = false;
+    return result;
+  }
+  result.scalar = decode_valid(text, start).value;
+  result.length = length;
+  result.valid = true;
+  return result;
+}
+
 std::string_view to_string(Utf8ValidationError error) noexcept {
   switch (error) {
   case Utf8ValidationError::none:

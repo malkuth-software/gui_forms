@@ -122,18 +122,26 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
         return deferred;
     }
     in_frame_poll_ = true;
+    // Ends the poll on every path: the scratch is emptied (keeping its
+    // capacity) and the copied requests are released.
     struct Reset final {
         bool& value;
-        ~Reset() { value = false; }
-    } reset{in_frame_poll_};
+        FrameRequestList& requests;
+        std::unordered_set<std::uint64_t>& invalidated;
+        ~Reset() {
+            value = false;
+            requests.clear();
+            invalidated.clear();
+        }
+    } reset{in_frame_poll_, frame_poll_requests_, frame_poll_invalidated_};
     compact_frame_requests();
 
     FramePollResult result;
     result.suppressed_by_occlusion = occluded_;
     if (occluded_) metrics_.record_occluded_frame_poll();
-    std::unordered_set<std::uint64_t> invalidated_controls;
-    const std::vector<std::shared_ptr<detail::ScheduledFrameRequest>> requests = frame_requests_;
-    for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : requests) {
+    frame_poll_invalidated_.clear();
+    frame_poll_requests_.assign(frame_requests_.begin(), frame_requests_.end());
+    for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_poll_requests_) {
         if (!(*request).connected() || (*request).deadline > now) {
             continue;
         }
@@ -145,7 +153,12 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
             result.coalesced_requests += static_cast<std::uint64_t>(skipped);
             (*request).deadline += (*request).interval * (skipped + 1);
             metrics_.record_callback_emitted();
-            const std::function<void(FrameTime)> callback = (*request).callback;
+            // The callback is moved out while it runs (audit C10: no copy
+            // per tick), since a timer that stops itself disconnects its
+            // request, which empties the request's callback; it is moved
+            // back only while the request stays connected and empty.
+            std::function<void(FrameTime)> callback = std::move((*request).callback);
+            (*request).callback = {};
             if (callback) {
                 try {
                     callback(now);
@@ -155,6 +168,7 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
                     metrics_.record_frame_callback_fault();
                 }
             }
+            if ((*request).connected() && !(*request).callback) (*request).callback = std::move(callback);
             continue;
         }
         if (occluded_) {
@@ -202,7 +216,7 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
         ++result.deadlines_fired;
         (*request).disconnect();
         const bool already_requested = has_dirty((*target).dirty_, Dirty::paint) ||
-            !invalidated_controls.insert((*target).runtime_id().value).second;
+            !frame_poll_invalidated_.insert((*target).runtime_id().value).second;
         if (already_requested) {
             ++result.coalesced_requests;
         } else {

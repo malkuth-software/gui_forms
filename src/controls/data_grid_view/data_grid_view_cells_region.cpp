@@ -50,7 +50,7 @@ void DataGridView::written(const decltype(cells_on_sub_surface)&) {
         (*cells_host_).set_publishes_semantics(false);
         add_child(cells_host_);
         // The bottom of the paint order (set_child_index counts from the top).
-        static_cast<void>(set_child_index((*cells_host_).runtime_id(), children().size()));
+        static_cast<void>(set_child_index_from_top((*cells_host_).runtime_id(), children().size()));
         set_child_layout_collapsed(cells_host_, true);
         // The held text provider moves into the content, and with it to
         // the region's thread.

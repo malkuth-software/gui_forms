@@ -197,6 +197,9 @@ gui_forms::Control
          the backmost; the last is the frontmost. Each child is owned by this
          control.
 
+      **children_revision** : ``std::uint64_t``, read-only
+         Advances whenever the child list changes (an add, a removal, a new order, a disposal), so a walk that indexes the live list instead of copying it can tell that a callback changed it meanwhile (audit N84).
+
       **attached** : ``bool``, read-only
          Whether the control is in a window's tree.
 
@@ -499,8 +502,8 @@ gui_forms::Control
         - Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index moves it.
       * - :cpp:func:`remove_child <gui_forms::Control::remove_child>`
         - Detaches the child with the given :cpp:class:`RuntimeId <gui_forms::RuntimeId>` and returns it, or returns null if there is no such child.
-      * - :cpp:func:`child_index <gui_forms::Control::child_index>`
-        - The child's z-order index, where 0 is the frontmost child, or none.
+      * - :cpp:func:`child_index_from_top <gui_forms::Control::child_index_from_top>`
+        - The child's z-order index counted from the top, where 0 is the frontmost child (the Windows Forms index), or none.
       * - :cpp:func:`clear_children <gui_forms::Control::clear_children>`
         - Removes every child, frontmost first, without disposing them.
       * - :cpp:func:`point_to_window <gui_forms::Control::point_to_window>`
@@ -609,8 +612,8 @@ gui_forms::Control
         - The item system a realized item belongs to; the first by default.
       * - :cpp:func:`fill_realized_item_geometry <gui_forms::Control::fill_realized_item_geometry>`
         - Fills one record per part of the item's system for one realized item.
-      * - :cpp:func:`set_child_index <gui_forms::Control::set_child_index>`
-        - Moves a child to a z-order index, where 0 is frontmost.
+      * - :cpp:func:`set_child_index_from_top <gui_forms::Control::set_child_index_from_top>`
+        - Moves a child to a z-order index counted from the top, where 0 is frontmost.
       * - :cpp:func:`set_bounds <gui_forms::Control::set_bounds>`
         - Changes the fields of :cpp:func:`requested_bounds <gui_forms::Control::requested_bounds>` selected by :cpp:enum:`BoundsSpecified <gui_forms::BoundsSpecified>`, all of them by default.
       * - :cpp:func:`set_style <gui_forms::Control::set_style>`
@@ -938,6 +941,10 @@ gui_forms::Control
       The children, in paint order: the first child is painted first and is
       the backmost; the last is the frontmost. Each child is owned by this
       control.
+
+   .. cpp:function:: std::uint64_t children_revision() const noexcept
+
+      Advances whenever the child list changes (an add, a removal, a new order, a disposal), so a walk that indexes the live list instead of copying it can tell that a callback changed it meanwhile (audit N84).
 
    .. cpp:function:: bool attached() const noexcept
 
@@ -1340,9 +1347,11 @@ gui_forms::Control
       null if there is no such child. The child is not disposed: it lives on
       as long as someone holds it.
 
-   .. cpp:function:: std::optional<std::size_t> child_index(RuntimeId child) const noexcept
+   .. cpp:function:: std::optional<std::size_t> child_index_from_top(RuntimeId child) const noexcept
 
-      The child's z-order index, where 0 is the frontmost child, or none.
+      The child's z-order index counted from the top, where 0 is the
+      frontmost child (the Windows Forms index), or none. children() runs
+      the other way, back to front.
 
    .. cpp:function:: void clear_children()
 
@@ -1422,7 +1431,7 @@ gui_forms::Control
 
    .. cpp:function:: void clear_owned_decorations()
 
-   .. cpp:function:: ControlVisualContext visual_context(bool hovered = false, bool pressed = false, bool selected = false, bool focused = false, bool defaulted = false) const noexcept
+   .. cpp:function:: ControlVisualContext visual_context(VisualInteraction interaction = {}) const noexcept
 
    .. cpp:function:: DispatchOperation begin_invoke(std::function<void()> callback)
 
@@ -1569,10 +1578,12 @@ gui_forms::Control
 
       Fills one record per part of the item's system for one realized item. Throws std::out_of_range for an item past realized_item_count() and std::invalid_argument when ``geometry`` does not hold exactly one record per part of realized_item_system(item); ``geometry`` is then unchanged.
 
-   .. cpp:function:: bool set_child_index(RuntimeId child, std::size_t index)
+   .. cpp:function:: bool set_child_index_from_top(RuntimeId child, std::size_t index)
 
-      Moves a child to a z-order index, where 0 is frontmost. An index past
-      the end makes it the backmost. Returns false if it is not a child.
+      Moves a child to a z-order index counted from the top, where 0 is
+      frontmost. An index past the end makes it the backmost; a move to
+      where it already is changes nothing. Returns false if it is not a
+      child.
 
    .. cpp:function:: void set_bounds(Rect values, BoundsSpecified specified = BoundsSpecified::all)
 

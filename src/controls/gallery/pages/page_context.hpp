@@ -265,8 +265,8 @@ inline void insert_before(ScaledGroupBox& group, Control::Ptr child, Rect design
                           const Control& successor) {
     const RuntimeId id = (*child).runtime_id();
     group.add_at(std::move(child), design_bounds);
-    const std::optional<std::size_t> index = group.child_index(successor.runtime_id());
-    if (!index || !group.set_child_index(id, *index)) {
+    const std::optional<std::size_t> index = group.child_index_from_top(successor.runtime_id());
+    if (!index || !group.set_child_index_from_top(id, *index)) {
         throw std::logic_error("insert_before: the successor is not the group's child");
     }
 }

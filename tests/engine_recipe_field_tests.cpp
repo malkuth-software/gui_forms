@@ -383,9 +383,9 @@ void test_states() {
     const ResolvedControlRecipe plain = theme.resolve(first, ControlVisualRole::button, first.visual_context());
     require(!plain.authored(), "a state rule does not match outside its state");
     const ResolvedControlRecipe focus =
-        theme.resolve(first, ControlVisualRole::button, first.visual_context(false, false, false, true));
+        theme.resolve(first, ControlVisualRole::button, first.visual_context({.focused = true}));
     const ResolvedControlRecipe hovered =
-        theme.resolve(first, ControlVisualRole::button, first.visual_context(true));
+        theme.resolve(first, ControlVisualRole::button, first.visual_context({.hovered = true}));
     require(focus.recipe().focus_ring == red && hovered.recipe().text == blue,
             "the context's focus is focus_visible and its hot surface hot");
 }

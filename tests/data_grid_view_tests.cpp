@@ -924,6 +924,10 @@ void bound_rows() {
     require((*grid).current_row_id() == id("person.1") && (*grid).current_cell() == cell_at(1U, 1U) &&
                 (*grid).is_cell_selected(row_at(3U), 0U) && (*source).position() == 1,
             "an inserted record keeps the current cell and the selection on their records");
+    // Audit N47: the row index is updated from the change's position.
+    require((*grid).row_position(id("person.0")) == row_at(0U) && (*grid).row_position(id("person.1")) == row_at(1U) &&
+                (*grid).row_position(id("person.3")) == row_at(3U),
+            "an insert reindexes the rows from its position on");
     require((*source).remove_at(1U) && (*grid).row_count() == 3U && (*grid).row_position(id("person.1")) == std::nullopt,
             "a removed record leaves the grid");
     // As for unbound rows: the record that took the removed record's place
@@ -934,6 +938,9 @@ void bound_rows() {
             "the record that takes the removed current record's place becomes current");
     require((*grid).is_cell_selected(row_at(2U), 0U) && (*grid).selected_cells().size() == 1U,
             "the removed record leaves the selection and person.3 stays selected");
+    require((*grid).row_position(id("person.0")) == row_at(0U) && (*grid).row_position(id("person.2")) == row_at(1U) &&
+                (*grid).row_position(id("person.3")) == row_at(2U),
+            "a removal reindexes the rows after it");
     (*grid).data_source = nullptr;
     require((*grid).row_source() == DataGridViewRowSource::unbound && (*grid).row_count() == 0U,
             "a null source returns to empty unbound rows");

@@ -345,15 +345,12 @@ struct EnumerationChoices<DialogResult> {
 template <>
 struct EnumerationChoices<Dirty> {
     static constexpr bool flags = true;
-    static constexpr std::array<EnumerationChoice, 11> choices{{
+    static constexpr std::array<EnumerationChoice, 8> choices{{
         {"none", static_cast<std::int64_t>(Dirty::none)},
         {"measure", static_cast<std::int64_t>(Dirty::measure)},
         {"arrange", static_cast<std::int64_t>(Dirty::arrange)},
         {"paint", static_cast<std::int64_t>(Dirty::paint)},
         {"hit_test", static_cast<std::int64_t>(Dirty::hit_test)},
-        {"text", static_cast<std::int64_t>(Dirty::text)},
-        {"style", static_cast<std::int64_t>(Dirty::style)},
-        {"resource", static_cast<std::int64_t>(Dirty::resource)},
         {"semantics", static_cast<std::int64_t>(Dirty::semantics)},
         {"accessibility", static_cast<std::int64_t>(Dirty::accessibility)},
         {"layout", static_cast<std::int64_t>(Dirty::layout)},

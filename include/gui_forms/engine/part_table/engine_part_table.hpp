@@ -723,6 +723,19 @@ private:
     std::vector<std::uint32_t> free_slots_;
     // Lookup text to slot, one entry per live record.
     std::unordered_map<std::string, std::uint32_t> index_;
+    // A control's stable ID to its live records' slots, in no order (audit
+    // N36: release_control visits the control's records, not every slot).
+    // Looked up by string_view. An entry may be empty after a failed
+    // acquire; release_control erases the entry.
+    struct ControlIdHash final {
+        using is_transparent = void;
+        [[nodiscard]] std::size_t operator()(std::string_view id) const noexcept {
+            const std::size_t result = std::hash<std::string_view>{}(id);
+            return result;
+        }
+    };
+    using ControlSlots = std::unordered_map<std::string, std::vector<std::uint32_t>, ControlIdHash, std::equal_to<>>;
+    ControlSlots control_slots_;
     // Reused by every lookup, so that a paint of a known part allocates
     // nothing once the string has grown to the longest key.
     std::string lookup_scratch_;

@@ -2213,12 +2213,6 @@ Enumerations
 
    .. cpp:enumerator:: hit_test
 
-   .. cpp:enumerator:: text
-
-   .. cpp:enumerator:: style
-
-   .. cpp:enumerator:: resource
-
    .. cpp:enumerator:: semantics
 
    .. cpp:enumerator:: accessibility
@@ -2668,19 +2662,19 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr Dirty text_content
 
-   Value: ``Dirty::text | Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics | Dirty::accessibility``.
+   Value: ``Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics | Dirty::accessibility``.
 
 .. cpp:var:: constexpr Dirty style_only
 
-   Value: ``Dirty::style | Dirty::paint``.
+   Value: ``Dirty::paint``.
 
 .. cpp:var:: constexpr Dirty resource_content
 
-   Value: ``Dirty::resource | Dirty::measure | Dirty::arrange | Dirty::paint``.
+   Value: ``Dirty::measure | Dirty::arrange | Dirty::paint``.
 
 .. cpp:var:: constexpr Dirty conservative_subtree
 
-   Value: ``Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::text | Dirty::style | Dirty::resource | Dirty::semantics | Dirty::accessibility``.
+   Value: ``Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics | Dirty::accessibility``.
 
 .. cpp:namespace:: gui_forms
 

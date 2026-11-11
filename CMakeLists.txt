@@ -1369,7 +1369,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     endif()
     find_package(X11 REQUIRED)
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GUI_FORMS_ATK REQUIRED IMPORTED_TARGET atk atk-bridge-2.0)
+    pkg_check_modules(GUI_FORMS_ATK REQUIRED IMPORTED_TARGET atk atk-bridge-2.0 gio-2.0)
     if(TARGET X11::Xcursor)
         set(GUI_FORMS_XCURSOR_AVAILABLE ON)
     endif()
@@ -2357,6 +2357,12 @@ target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
 add_executable(gui_forms_plot_performance_probe EXCLUDE_FROM_ALL benchmarks/plot_performance_probe.cpp)
 target_link_libraries(gui_forms_plot_performance_probe PRIVATE gui_forms_plot_primitives)
 
+# Audit addendum batch d: the per-operation cost of a window of several
+# thousand controls (attach, pointer, focus, layout, paint, inherited reads,
+# bulk clear). Built only when asked for; run in Release.
+add_executable(gui_forms_tree_cost_benchmark EXCLUDE_FROM_ALL benchmarks/tree_cost_benchmark.cpp)
+target_link_libraries(gui_forms_tree_cost_benchmark PRIVATE gui_forms_core)
+
 # APP_WINDOW_RULES_DESIGN K.2: the creation-cost gate (a bare window, a popup
 # and a generated form window; time and allocations against the committed
 # baseline benchmarks/creation/creation_baseline.txt). Built only when asked
@@ -3172,6 +3178,15 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_control_table_tests tests/control_table_tests.cpp)
     target_link_libraries(gui_forms_control_table_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_control_table_tests COMMAND gui_forms_control_table_tests)
+    add_executable(gui_forms_tree_cost_tests tests/tree_cost_tests.cpp)
+    target_link_libraries(gui_forms_tree_cost_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_tree_cost_tests COMMAND gui_forms_tree_cost_tests)
+    add_executable(gui_forms_control_core_tests tests/control_core_tests.cpp)
+    target_link_libraries(gui_forms_control_core_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_control_core_tests COMMAND gui_forms_control_core_tests)
+    add_executable(gui_forms_window_correctness_tests tests/window_correctness_tests.cpp)
+    target_link_libraries(gui_forms_window_correctness_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_window_correctness_tests COMMAND gui_forms_window_correctness_tests)
     add_executable(gui_forms_property_capability_tests tests/property_capability_tests.cpp)
     target_link_libraries(gui_forms_property_capability_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_property_capability_tests COMMAND gui_forms_property_capability_tests)
@@ -5380,7 +5395,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GUI_FORMS_BUILD_TESTS)
     set(gui_forms_linux_accessibility_test_ready OFF)
     find_package(PkgConfig QUIET)
     if(PkgConfig_FOUND)
-        pkg_check_modules(GUI_FORMS_TEST_ATK QUIET IMPORTED_TARGET atk atk-bridge-2.0)
+        pkg_check_modules(GUI_FORMS_TEST_ATK QUIET IMPORTED_TARGET atk atk-bridge-2.0 gio-2.0)
         find_package(X11 QUIET)
         if(TARGET PkgConfig::GUI_FORMS_TEST_ATK AND TARGET X11::X11)
             add_executable(gui_forms_linux_accessibility_fixture

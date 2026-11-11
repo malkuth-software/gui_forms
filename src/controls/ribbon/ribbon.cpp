@@ -2452,7 +2452,7 @@ void Ribbon::move_hosted_to_ribbon() noexcept {
             for (const std::vector<CommandRecord>& group : tab) {
                 for (const CommandRecord& record : group) {
                     if (!record.hosted || (*record.hosted).parent().get() != this) continue;
-                    static_cast<void>(set_child_index((*record.hosted).runtime_id(), position));
+                    static_cast<void>(set_child_index_from_top((*record.hosted).runtime_id(), position));
                     ++position;
                 }
             }

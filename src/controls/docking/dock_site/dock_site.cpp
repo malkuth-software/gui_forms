@@ -354,7 +354,7 @@ void DockSite::realize() {
     std::size_t child_index = 0U;
     for (StackSlot& slot : stacks_) {
         if (!slot.in_flyout) {
-            static_cast<void>(set_child_index((*slot.view).runtime_id(), child_index));
+            static_cast<void>(set_child_index_from_top((*slot.view).runtime_id(), child_index));
             ++child_index;
         }
         sync_pages(slot, *layout.find_node(slot.stack));

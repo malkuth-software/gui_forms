@@ -187,6 +187,8 @@ Related types
      - TextStyleSpan maps one UTF-8 half-open range to a compact style identity.
    * - :cpp:class:`TextUnitIndex <gui_forms::TextUnitIndex>`
      - TextUnitIndex prevents accidental mixing of byte, UTF-16, scalar, grapheme, and line coordinate systems.
+   * - :cpp:class:`Utf8ScalarDecode <gui_forms::Utf8ScalarDecode>`
+     - One scalar decoded strictly (the rules of validate_utf8: no overlong forms, surrogates or values past U+10FFFF).
    * - :cpp:class:`Utf8ValidationResult <gui_forms::Utf8ValidationResult>`
      - Utf8ValidationResult preserves the first closed validation failure and exact byte/scalar/UTF-16 counts.
 
@@ -2064,6 +2066,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: Utf8ScalarDecode final
+
+   ``#include <gui_forms/text/types/text_types.hpp>``
+
+   One scalar decoded strictly (the rules of validate_utf8: no overlong forms, surrogates or values past U+10FFFF). At a malformed or truncated sequence ``valid`` is false, ``length`` is 1 (the caller steps one byte) and ``scalar`` is U+FFFD. ``offset`` must be inside ``text``.
+
+   .. cpp:member:: char32_t scalar
+
+   .. cpp:member:: std::size_t length
+
+   .. cpp:member:: bool valid
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: Utf8ValidationResult final
 
    ``#include <gui_forms/text/types/text_types.hpp>``
@@ -2676,6 +2692,8 @@ Functions, constants and aliases
 .. cpp:function:: Utf8ValidationResult validate_utf8(std::string_view text) noexcept
 
 .. cpp:function:: std::string_view to_string(Utf8ValidationError error) noexcept
+
+.. cpp:function:: Utf8ScalarDecode decode_utf8_scalar(std::string_view text, Utf8Offset offset) noexcept
 
 .. cpp:function:: std::string_view grapheme_unicode_version() noexcept
 

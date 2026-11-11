@@ -1319,9 +1319,13 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_ContainingGrid(IRawElementProviderSimp
 // -- events ----------------------------------------------------------------
 
 // One node of a published tree, by identity, for comparing two trees.
+// A published node, its parent's identity (the client node has none) and
+// whether it has one.
 struct PublishedNode final {
     SemanticElementId id;
     const SemanticNode* node;
+    SemanticElementId parent{};
+    bool has_parent{};
 };
 
 struct PublishedNodeBefore final {
@@ -1331,12 +1335,95 @@ struct PublishedNodeBefore final {
     }
 };
 
-void collect_published(const SemanticLocation& at, std::vector<PublishedNode>& nodes) {
-    nodes.push_back(PublishedNode{at.id, at.node});
+void collect_published(const SemanticLocation& at, SemanticElementId parent, bool has_parent,
+                       std::vector<PublishedNode>& nodes) {
+    nodes.push_back(PublishedNode{at.id, at.node, parent, has_parent});
     const std::size_t count = (*at.node).children.size();
     for (std::size_t index = 0; index < count; ++index) {
-        collect_published(child_location(at, index), nodes);
+        collect_published(child_location(at, index), at.id, true, nodes);
     }
+}
+
+// The entry for `id` in `sorted` (ordered by PublishedNodeBefore), or null.
+const PublishedNode* find_published(const std::vector<PublishedNode>& sorted, SemanticElementId id) noexcept {
+    const PublishedNode probe{id, nullptr, SemanticElementId{}, false};
+    const std::vector<PublishedNode>::const_iterator found =
+        std::lower_bound(sorted.begin(), sorted.end(), probe, PublishedNodeBefore{});
+    if (found == sorted.end() || (*found).id != id) return nullptr;
+    const PublishedNode* const entry = &*found;
+    return entry;
+}
+const PublishedNode* find_published(std::vector<PublishedNode>&& sorted, SemanticElementId id) noexcept = delete;
+
+// The parent of `id`, read from the current tree first, else the previous.
+bool published_parent(const std::vector<PublishedNode>& after, const std::vector<PublishedNode>& before,
+                      SemanticElementId id, SemanticElementId& parent) noexcept {
+    const PublishedNode* entry = find_published(after, id);
+    if (entry == nullptr) entry = find_published(before, id);
+    if (entry == nullptr || !(*entry).has_parent) return false;
+    parent = (*entry).parent;
+    return true;
+}
+
+// Whether the identity set changed and, when it did, the nearest node of
+// the current tree above every node that came or went (audit N97). Both
+// lists are sorted by PublishedNodeBefore.
+bool children_changed_at(const std::vector<PublishedNode>& before, const std::vector<PublishedNode>& after,
+                         SemanticElementId& changed) {
+    std::vector<SemanticElementId> parents;
+    std::size_t old_index = 0U;
+    std::size_t new_index = 0U;
+    while (old_index < before.size() || new_index < after.size()) {
+        const bool old_left = old_index < before.size();
+        const bool new_left = new_index < after.size();
+        if (old_left && new_left && before[old_index].id == after[new_index].id) {
+            ++old_index;
+            ++new_index;
+            continue;
+        }
+        const bool removed = old_left && (!new_left || PublishedNodeBefore{}(before[old_index], after[new_index]));
+        const PublishedNode& entry = removed ? before[old_index] : after[new_index];
+        parents.push_back(entry.has_parent ? entry.parent : SemanticElementId{});
+        if (removed) {
+            ++old_index;
+        } else {
+            ++new_index;
+        }
+    }
+    if (parents.empty()) return false;
+    // The first changed parent's chain to the client, cut back to the part
+    // every other changed parent reaches.
+    std::vector<SemanticElementId> chain{parents.front()};
+    SemanticElementId step = parents.front();
+    SemanticElementId above{};
+    while (published_parent(after, before, step, above)) {
+        chain.push_back(above);
+        step = above;
+    }
+    std::size_t common = 0U;
+    for (std::size_t index = 1U; index < parents.size(); ++index) {
+        SemanticElementId climbing = parents[index];
+        bool reached = false;
+        while (!reached) {
+            const std::vector<SemanticElementId>::const_iterator met =
+                std::find(chain.begin() + static_cast<std::ptrdiff_t>(common), chain.end(), climbing);
+            if (met != chain.end()) {
+                common = static_cast<std::size_t>(std::distance(chain.cbegin(), met));
+                reached = true;
+            } else if (!published_parent(after, before, climbing, climbing)) {
+                common = chain.size() - 1U;
+                reached = true;
+            }
+        }
+    }
+    // A common node that left the tree gives way to its nearest kept one.
+    std::size_t kept = common;
+    while (kept + 1U < chain.size() && chain[kept] != SemanticElementId{} &&
+           find_published(after, chain[kept]) == nullptr) {
+        ++kept;
+    }
+    changed = find_published(after, chain[kept]) != nullptr ? chain[kept] : SemanticElementId{};
+    return true;
 }
 
 // Raises one property-changed event for `id` when `before` and `after`
@@ -1445,17 +1532,24 @@ void raise_automation_events(const std::shared_ptr<SemanticSource>& source,
     try {
         std::vector<PublishedNode> before;
         std::vector<PublishedNode> after;
-        collect_published(client_location(previous), before);
-        collect_published(client_location(current), after);
+        collect_published(client_location(previous), SemanticElementId{}, false, before);
+        collect_published(client_location(current), SemanticElementId{}, false, after);
         std::sort(before.begin(), before.end(), PublishedNodeBefore{});
-        // Children changed: one event on the root says the whole tree may
-        // have; clients read it again.
-        IRawElementProviderSimple* root = make_automation_element(source, SemanticElementId{});
-        if (root != nullptr) {
-            int no_runtime_id = 0;
-            UiaRaiseStructureChangedEvent(root, StructureChangeType_ChildrenInvalidated,
-                                          &no_runtime_id, 0);
-            (*root).Release();
+        std::vector<PublishedNode> after_sorted = after;
+        std::sort(after_sorted.begin(), after_sorted.end(), PublishedNodeBefore{});
+        // Children changed only when nodes came or went: one event on the
+        // nearest node above them says its subtree may have; clients read
+        // that subtree again. A change of names, states or bounds alone
+        // raises none (audit N97).
+        SemanticElementId changed{};
+        if (children_changed_at(before, after_sorted, changed)) {
+            IRawElementProviderSimple* parent = make_automation_element(source, changed);
+            if (parent != nullptr) {
+                int no_runtime_id = 0;
+                UiaRaiseStructureChangedEvent(parent, StructureChangeType_ChildrenInvalidated,
+                                              &no_runtime_id, 0);
+                (*parent).Release();
+            }
         }
         SemanticElementId focus_before{};
         bool had_focus = false;

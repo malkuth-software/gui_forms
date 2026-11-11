@@ -247,28 +247,22 @@ struct MnemonicText final {
 //   own body.
 enum class ToolTipPresentation : std::uint8_t { bubble, field_hint, owner_item };
 
-// Forms-compatible style requests are retained as control state. GUI.Forms is
-// always coherently composited, so clearing a buffering bit never opts a
-// control into visible partial painting.
+// Forms-compatible style requests the core reads. GUI.Forms is always
+// coherently composited, so clearing a buffering bit never opts a control
+// into visible partial painting. The values are Windows Forms' bit
+// positions; the Windows Forms styles the core never read (container,
+// user paint, opaque, fixed width and height, user mouse, transparent
+// back colour, all painting in one pass, cache text, notify message, text
+// for accessibility) were removed (audit A17) and belong to a
+// compatibility facade.
 enum class ControlStyles : std::uint32_t {
     none = 0U,
-    container_control = 1U << 0U,
-    user_paint = 1U << 1U,
-    opaque = 1U << 2U,
     resize_redraw = 1U << 3U,
-    fixed_width = 1U << 4U,
-    fixed_height = 1U << 5U,
     standard_click = 1U << 6U,
     selectable = 1U << 7U,
-    user_mouse = 1U << 8U,
-    supports_transparent_back_color = 1U << 9U,
     standard_double_click = 1U << 10U,
-    all_painting_in_one_pass = 1U << 11U,
-    cache_text = 1U << 12U,
-    enable_notify_message = 1U << 13U,
     double_buffer = 1U << 14U,
     optimized_double_buffer = 1U << 15U,
-    use_text_for_accessibility = 1U << 16U,
 };
 
 [[nodiscard]] constexpr ControlStyles operator|(ControlStyles left,
@@ -350,17 +344,27 @@ public:
         return enabled_changed_;
     }
     [[nodiscard]] Ptr parent() const noexcept { return parent_.lock(); }
+    // Back to front (painter order, as the C ABI's insert_child and
+    // child_at count): index 0 paints first, the last child paints on top.
     [[nodiscard]] std::span<const Ptr> children() const noexcept { return children_; }
+    // Advances whenever the child list changes (an add, a removal, a new
+    // order, a disposal), so a walk that indexes the live list instead of
+    // copying it can tell that a callback changed it meanwhile (audit N84).
+    [[nodiscard]] std::uint64_t children_revision() const noexcept { return children_revision_; }
     [[nodiscard]] bool attached() const noexcept { return surface_root_ != nullptr; }
 
     void add_child(Ptr child);
     // Adds child at index counted from the top (zero is topmost), in one
-    // validated mutation; a child already here moves as set_child_index
-    // moves it. On failure the tree is unchanged.
+    // validated mutation; a child already here moves as
+    // set_child_index_from_top moves it. On failure the tree is unchanged.
     void insert_child(Ptr child, std::size_t index);
     [[nodiscard]] Ptr remove_child(RuntimeId child);
-    bool set_child_index(RuntimeId child, std::size_t index);
-    [[nodiscard]] std::optional<std::size_t> child_index(
+    // Windows Forms' z-order index, counted from the top (index 0 is the
+    // last of children()); the names say so (audit A11). An index past the
+    // last puts the child at the bottom. Moving a child to where it is
+    // changes nothing; returns false for a child this control does not hold.
+    bool set_child_index_from_top(RuntimeId child, std::size_t index);
+    [[nodiscard]] std::optional<std::size_t> child_index_from_top(
         RuntimeId child) const noexcept;
     void clear_children();
 
@@ -526,9 +530,7 @@ public:
         return visual_status_;
     }
     void set_visual_status(ControlVisualStatus status);
-    [[nodiscard]] ControlVisualContext visual_context(
-        bool hovered = false, bool pressed = false, bool selected = false,
-        bool focused = false, bool defaulted = false) const noexcept;
+    [[nodiscard]] ControlVisualContext visual_context(VisualInteraction interaction = {}) const noexcept;
     [[nodiscard]] bool invoke_required() const noexcept;
     [[nodiscard]] DispatchOperation begin_invoke(std::function<void()> callback);
     // Executes inline on the owning UI thread. A worker caller blocks without
@@ -1432,6 +1434,20 @@ private:
         const SurfaceMaterial& material) const;
     void publish_change(const void* event_key,
                         std::function<void()> publication);
+    // A keyed publication called at once outside initialisation (audit S6):
+    // only a publication kept for end_init is wrapped in std::function.
+    // Publication is a named function object taking no arguments.
+    template <typename Publication>
+    void publish_change(const void* event_key, Publication&& publication) {
+        if (initialization_depth_ == 0U) {
+            publication();
+            return;
+        }
+        publish_change(event_key, std::function<void()>(std::forward<Publication>(publication)));
+    }
+    void disconnect_control_events() noexcept;
+    static void restore_to_previous_parent(const Ptr& child, const Ptr& previous_parent,
+                                           std::optional<std::size_t> previous_index) noexcept;
     [[nodiscard]] static bool tab_order_less(const Ptr& left,
                                              const Ptr& right) noexcept;
     static void collect_tab_order_controls(const Control& owner,
@@ -1478,18 +1494,61 @@ private:
         std::vector<DeferredInitializationChange>;
 
     static std::atomic<std::uint64_t> next_runtime_id_;
+    // The process-wide inherited-value generation (InheritedValues):
+    // starts at 1, so a control that never computed its values (generation
+    // 0) is never current. Advanced by every write of an inherited input,
+    // on any thread; a control on another thread then only computes its
+    // values again. Relaxed: each control is read and written on its own
+    // thread, which also made the write.
+    static std::atomic<std::uint64_t> inherited_generation_;
+    static void advance_inherited_generation() noexcept;
+    [[nodiscard]] static std::uint64_t current_inherited_generation() noexcept;
     RuntimeId runtime_id_;
     StableId stable_id_;
     std::any tag_;
     WeakPtr parent_;
+    // The parent as an observing pointer (audit A7), set and cleared with
+    // parent_: the parent owns this control through children_, so the
+    // pointer is valid exactly while the link is. Ancestor walks that run
+    // no callbacks step through it instead of locking parent_ per level.
+    Control* parent_link_{};
     ChildList children_;
+    // See children_revision(); advanced with every change of children_.
+    std::uint64_t children_revision_{};
+    // The parent's children_revision_ at this control's add_child: a child
+    // walk that began at an earlier revision leaves a child added since to
+    // a following pass, as the copied child list it replaced did (N84).
+    std::uint64_t added_at_revision_{};
+    // The inherited values (audit N87), kept as of `generation`, a value of
+    // the process-wide inherited-value generation (control.cpp), which
+    // every write of an input advances: visible, enabled, cursor, colours,
+    // layout direction, ceremonial, a theme override, layout collapse, a
+    // disposal and every change of a parent. A read whose generation is
+    // older computes them again from the parent's, so a read costs one
+    // step, not a walk to the root. `theme_override` is the nearest theme
+    // override at or above the control (null for none); its owner keeps
+    // it, and dropping it advances the generation.
+    struct InheritedValues final {
+        std::uint64_t generation{};
+        const Theme* theme_override{};
+        std::optional<Color> back_color{};
+        std::optional<Color> fore_color{};
+        CursorKind cursor{CursorKind::arrow};
+        LayoutDirection direction{LayoutDirection::left_to_right};
+        bool visible{};
+        bool enabled{};
+        bool ceremonial{};
+    };
+    // Written only by inherited_values(), on the control's thread.
+    mutable InheritedValues inherited_{};
+    [[nodiscard]] const InheritedValues& inherited_values() const noexcept;
     Window* window_{};
     SurfaceRoot* surface_root_{};
     // This control's slot in its surface root's control table while it is
     // attached (assigned and released with surface_root_); unassigned
     // otherwise.
     detail::ControlSlot surface_slot_{};
-    // Atomic shared_ptr free functions make BeginInvoke safe to acquire from a
+    // dispatcher_mutex_ guards dispatcher_state_: BeginInvoke reads it from a
     // worker while the UI thread attaches or detaches this control.
     mutable std::mutex dispatcher_mutex_;
     std::shared_ptr<detail::DispatcherState> dispatcher_state_;
@@ -1526,12 +1585,10 @@ private:
     // resize_redraw is on by default (unlike Windows Forms): a control
     // repaints all of itself when its size changes unless it, or its
     // application, clears it, or it overrides paint_depends_on_size.
-    ControlStyles styles_{ControlStyles::user_paint |
-                          ControlStyles::resize_redraw |
+    ControlStyles styles_{ControlStyles::resize_redraw |
                           ControlStyles::standard_click |
                           ControlStyles::standard_double_click |
-                          ControlStyles::selectable |
-                          ControlStyles::all_painting_in_one_pass};
+                          ControlStyles::selectable};
     std::shared_ptr<const detail::ControlInlineStyle> inline_style_;
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
@@ -1618,7 +1675,7 @@ private:
     Event<Rect> arranged_bounds_changed_;
     Event<HelpRequestEvent&> help_requested_;
     BindablePropertyMap bindable_properties_;
-    mutable std::unique_ptr<ControlBindingsCollection> data_bindings_;
+    std::unique_ptr<ControlBindingsCollection> data_bindings_;
     // The form bindings' links, in the order they were made. Declared after
     // the events they subscribe to, so they end first.
     std::vector<std::unique_ptr<PropertyLink>> property_links_;
@@ -1646,6 +1703,10 @@ private:
     std::uint64_t measure_pass_callbacks_{};
     std::uint32_t layout_suspend_depth_{};
     bool layout_deferred_{};
+    // The surface root whose deferred-layout list holds this control
+    // (SurfaceRoot::list_layout_deferred), or null; cleared when the
+    // request commits and when the control leaves that root.
+    SurfaceRoot* layout_deferred_listed_in_{};
     std::uint64_t layout_requested_revision_{};
     std::uint64_t layout_committed_revision_{};
 

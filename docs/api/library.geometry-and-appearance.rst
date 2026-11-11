@@ -410,6 +410,8 @@ Types
      - A user theme's files (T3 user themes, notes:planning/stages/ T3-theme-language/USER_THEMES.md): its name, the stem of its main file ``themes/<name>.css``; that file's bytes; and the files of its folder ``themes/<name>/``, each by its path inside the folder, as the host read them.
    * - :cpp:class:`UserThemeHeader <gui_forms::UserThemeHeader>`
      - The header of a user theme's main file, which makes the file a theme.
+   * - :cpp:class:`VisualInteraction <gui_forms::VisualInteraction>`
+     - A control's interaction state as it asks for its visual context (Control::visual_context, audit A13): named fields, all false by default.
 
 .. cpp:namespace:: gui_forms
 
@@ -5962,6 +5964,24 @@ Types
    .. cpp:member:: std::string author
 
    .. cpp:member:: std::string provenance
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VisualInteraction final
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
+
+   A control's interaction state as it asks for its visual context (Control::visual_context, audit A13): named fields, all false by default.
+
+   .. cpp:member:: bool hovered
+
+   .. cpp:member:: bool pressed
+
+   .. cpp:member:: bool selected
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool defaulted
 
 Enumerations
 ------------

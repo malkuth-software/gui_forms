@@ -133,7 +133,7 @@ void ToolStripPanel::place(std::shared_ptr<ToolStrip> strip, const std::shared_p
     // (topmost) at 0: with the joined strip taken out, `count - 1 - position`
     // puts it just before `before`.
     const std::size_t count = children().size();
-    static_cast<void>(set_child_index(inserted, count - 1U - *position));
+    static_cast<void>(set_child_index_from_top(inserted, count - 1U - *position));
 }
 
 void ToolStripPanel::insert(std::shared_ptr<ToolStrip> strip, std::size_t row) {

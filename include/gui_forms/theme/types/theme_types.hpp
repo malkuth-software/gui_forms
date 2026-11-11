@@ -63,6 +63,16 @@ enum class ControlSurfaceState : std::uint8_t {
 };
 enum class ControlVisualStatus : std::uint8_t { normal, pending, invalid };
 
+// A control's interaction state as it asks for its visual context
+// (Control::visual_context, audit A13): named fields, all false by default.
+struct VisualInteraction final {
+    bool hovered{};
+    bool pressed{};
+    bool selected{};
+    bool focused{};
+    bool defaulted{};
+};
+
 struct ControlVisualContext final {
     ControlSurfaceState surface{ControlSurfaceState::normal};
     bool selected{};

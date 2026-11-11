@@ -144,7 +144,7 @@ void Panel::clear_background() {
     require_mutable();
     if (!background_override_) return;
     background_override_.reset();
-    invalidate(Dirty::style | Dirty::paint);
+    invalidate(Dirty::paint);
 }
 
 void Panel::set_style(BasicControlStyle style) {
@@ -162,7 +162,7 @@ void Panel::clear_style() {
     require_mutable();
     if (!style_override_) return;
     style_override_.reset();
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 Rect Panel::local_bounds() const noexcept {
@@ -374,7 +374,7 @@ void Panel::prepare_write(const decltype(visual_role)&, ControlVisualRole& incom
 }
 
 void Panel::written(const decltype(visual_role)&) {
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 // property_codemod end Panel

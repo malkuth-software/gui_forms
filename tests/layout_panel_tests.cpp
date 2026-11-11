@@ -755,7 +755,7 @@ void test_default_dock_layout_all_directions_and_z_order() {
     require((*first).arranged_bounds().y == 0.0 &&
                 (*second).arranged_bounds().y == 20.0,
             "backmost docked sibling must consume its edge first");
-    require((*order_root).set_child_index((*first).runtime_id(), 0U),
+    require((*order_root).set_child_index_from_top((*first).runtime_id(), 0U),
             "dock z-order specimen must accept child-index mutation");
     order_window.perform_layout();
     require((*second).arranged_bounds().y == 0.0 &&
@@ -780,7 +780,7 @@ void test_insert_child_is_one_mutation() {
                 (*root).children()[1] == middle &&
                 (*root).children()[2] == top,
             "insert_child must place a new child at its top-counted index");
-    require((*root).child_index((*middle).runtime_id()) == std::optional<std::size_t>(1U),
+    require((*root).child_index_from_top((*middle).runtime_id()) == std::optional<std::size_t>(1U),
             "insert_child index must read back through child_index");
     (*root).insert_child(middle, 0U);
     require((*root).children()[2] == middle && (*root).children().size() == 3U,

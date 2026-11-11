@@ -169,6 +169,13 @@ class Session:
         check(self.address != '',
               'the AT-SPI bus launcher owns org.a11y.Bus and reports an address\n' + self.launcher_output())
         os.environ['AT_SPI_BUS_ADDRESS'] = self.address
+        # This client is the assistive client: it says so, as a screen
+        # reader does, so the fixture keeps its tree current (the host
+        # skips its updates while org.a11y.Status says no one listens).
+        connection.call_sync(
+            'org.a11y.Bus', '/org/a11y/bus', 'org.freedesktop.DBus.Properties', 'Set',
+            glib.Variant('(ssv)', ('org.a11y.Status', 'IsEnabled', glib.Variant('b', True))),
+            None, gio.DBusCallFlags.NO_AUTO_START, 1000, None)
 
     def launcher_output(self) -> str:
         self.log.seek(0)

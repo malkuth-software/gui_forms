@@ -69,6 +69,17 @@ struct Utf8ValidationResult final {
 [[nodiscard]] Utf8ValidationResult validate_utf8(
     std::string_view text) noexcept;
 [[nodiscard]] std::string_view to_string(Utf8ValidationError error) noexcept;
+
+// One scalar decoded strictly (the rules of validate_utf8: no overlong
+// forms, surrogates or values past U+10FFFF). At a malformed or truncated
+// sequence `valid` is false, `length` is 1 (the caller steps one byte) and
+// `scalar` is U+FFFD. `offset` must be inside `text`.
+struct Utf8ScalarDecode final {
+    char32_t scalar{};
+    std::size_t length{};
+    bool valid{};
+};
+[[nodiscard]] Utf8ScalarDecode decode_utf8_scalar(std::string_view text, Utf8Offset offset) noexcept;
 [[nodiscard]] std::string_view grapheme_unicode_version() noexcept;
 
 struct TextStyleId final {

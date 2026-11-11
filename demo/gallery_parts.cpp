@@ -89,7 +89,7 @@ void LifecycleCard::on_initialization_completed(Dirty, bool) {
 void LifecycleCard::on_loaded() {
     // Two nested initialization scopes complete as one batch.
     begin_init();
-    invalidate(Dirty::style | Dirty::paint);
+    invalidate(Dirty::paint);
     begin_init();
     invalidate(Dirty::semantics | Dirty::accessibility);
     end_init();

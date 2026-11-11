@@ -90,6 +90,7 @@ void ListBox::written(const decltype(items)&, const CollectionEdit& edit) {
             const std::vector<std::string>::iterator first =
                 item_stable_ids_.begin() + static_cast<std::ptrdiff_t>(edit.index());
             item_stable_ids_.erase(first, first + static_cast<std::ptrdiff_t>(edit.count()));
+            item_stable_index_.clear();
         }
         break;
     case CollectionEditKind::replace:
@@ -98,6 +99,7 @@ void ListBox::written(const decltype(items)&, const CollectionEdit& edit) {
     case CollectionEditKind::insert:
     default:
         item_stable_ids_.clear();
+        item_stable_index_.clear();
         break;
     }
     const bool selection_changed = edit_selection_ != selected_;
@@ -141,7 +143,13 @@ void ListBox::set_item_stable_ids(std::vector<std::string> stable_ids) {
     if (std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end()) {
         throw std::invalid_argument("ListBox stable item IDs must be unique");
     }
+    ItemIdIndex index;
+    index.reserve(stable_ids.size());
+    for (std::size_t position = 0U; position < stable_ids.size(); ++position) {
+        index.emplace(stable_ids[position], position);
+    }
     item_stable_ids_ = std::move(stable_ids);
+    item_stable_index_ = std::move(index);
     invalidate(Dirty::semantics);
 }
 
@@ -480,14 +488,32 @@ SemanticDescriptor ListBox::semantic_descriptor() const {
     return descriptor;
 }
 
+// The published rows are the shown window and the active row when it lies
+// outside it (audit N46: a list of thousands publishes a screenful, as
+// ListView and the other item controls do); set_size carries the total,
+// position_in_set each row's place. An action reaches any row by its
+// stable ID, published or not.
 std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes;
-    nodes.reserve(items.read().size());
+    const std::size_t item_count = items.read().size();
     const Rect list_bounds = absolute_bounds();
     const std::size_t visible_count = visible_row_count();
-    const std::size_t visible_end = std::min(items.read().size(), top_index_ + visible_count);
+    const std::size_t window_first = std::min(item_count, top_index_);
+    const std::size_t visible_end = std::min(item_count, top_index_ + visible_count);
+    // The published window is the realized rows (realized_item_count): the
+    // fully shown rows and the one partly shown below them, which alone are
+    // marked visible when fully shown.
+    const std::size_t window_end = std::min(item_count, top_index_ + visible_count + 1U);
+    const bool active_outside = active_index_ && *active_index_ < item_count &&
+                                (*active_index_ < window_first || *active_index_ >= window_end);
+    std::vector<std::size_t> published;
+    published.reserve(window_end - window_first + 1U);
+    if (active_outside && *active_index_ < window_first) published.push_back(*active_index_);
+    for (std::size_t index = window_first; index < window_end; ++index) published.push_back(index);
+    if (active_outside && *active_index_ >= window_end) published.push_back(*active_index_);
+    nodes.reserve(published.size());
     const double row_height = item_height.read() * effective_text_scale();
-    for (std::size_t index = 0; index < items.read().size(); ++index) {
+    for (const std::size_t index : published) {
         SemanticNode node;
         node.stable_id = item_stable_id(index);
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
@@ -495,7 +521,7 @@ std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
         node.name = items.read()[index];
         node.value = items.read()[index];
         node.position_in_set = index + 1U;
-        node.set_size = items.read().size();
+        node.set_size = item_count;
         const double row_y = list_bounds.y + 2.0 +
             (static_cast<double>(index) - static_cast<double>(top_index_)) *
                 row_height;
@@ -525,12 +551,17 @@ bool ListBox::on_semantic_child_action(std::string_view child_stable_id,
                                        std::string_view) {
     std::size_t index{};
     if (!item_stable_ids_.empty()) {
-        const std::vector<std::string>::iterator found =
-            std::find(item_stable_ids_.begin(),
-                                     item_stable_ids_.end(), child_stable_id);
-        if (found == item_stable_ids_.end()) return false;
-        index = static_cast<std::size_t>(
-            std::distance(item_stable_ids_.begin(), found));
+        if (item_stable_index_.size() != item_stable_ids_.size()) {
+            ItemIdIndex rebuilt;
+            rebuilt.reserve(item_stable_ids_.size());
+            for (std::size_t position = 0U; position < item_stable_ids_.size(); ++position) {
+                rebuilt.emplace(item_stable_ids_[position], position);
+            }
+            item_stable_index_ = std::move(rebuilt);
+        }
+        const ItemIdIndex::const_iterator found = item_stable_index_.find(child_stable_id);
+        if (found == item_stable_index_.end()) return false;
+        index = (*found).second;
     } else {
         const std::string prefix = std::string(stable_id().value()) + ".item.";
         if (!child_stable_id.starts_with(prefix)) return false;

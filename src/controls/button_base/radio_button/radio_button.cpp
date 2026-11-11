@@ -241,8 +241,7 @@ void RadioButton::on_paint(Painter& painter, Rect) {
 }
 
 Insets RadioButton::visual_outsets() const noexcept {
-    const ControlVisualContext context = visual_context(
-        hovered_visual(), pressed_visual(), checked_, focus_cue_visible());
+    const ControlVisualContext context = visual_context({.hovered = hovered_visual(), .pressed = pressed_visual(), .selected = checked_, .focused = focus_cue_visible()});
     return surface_material_visual_outsets(
         effective_theme().resolve(ControlVisualRole::choice, context).material);
 }

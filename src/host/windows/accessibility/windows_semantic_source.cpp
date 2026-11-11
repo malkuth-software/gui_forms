@@ -230,8 +230,7 @@ bool utf8_from_wide(std::wstring_view value, std::string& text) {
 
 bool operator==(const SemanticTreeKey& left, const SemanticTreeKey& right) noexcept {
     const bool equal = left.semantic_generation == right.semantic_generation &&
-                       left.content_revision == right.content_revision &&
-                       left.display_generation == right.display_generation &&
+                       left.layout_pass == right.layout_pass &&
                        left.focused == right.focused && left.pressed == right.pressed &&
                        left.captured == right.captured && left.active == right.active &&
                        left.client_width == right.client_width &&
@@ -258,8 +257,7 @@ std::uint64_t control_id(const Control::Ptr& control) noexcept {
 SemanticTreeKey read_tree_key(const Window& window, HWND hwnd, double scale) {
     SemanticTreeKey key;
     key.semantic_generation = window.semantic_generation();
-    key.content_revision = window.paint_lease_snapshot().content_revision;
-    key.display_generation = window.metrics_snapshot().display_generation;
+    key.layout_pass = window.layout_pass_sequence();
     key.focused = control_id(window.focused_control());
     key.pressed = control_id(window.pressed_control());
     key.captured = control_id(window.captured_control());

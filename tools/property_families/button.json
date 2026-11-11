@@ -144,7 +144,7 @@
       "table": null,
       "hooks": "generated",
       "hand": [],
-      "effects": "Dirty::style | Dirty::paint | Dirty::semantics",
+      "effects": "Dirty::paint | Dirty::semantics",
       "sample": "true"
     }
   ],

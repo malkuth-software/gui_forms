@@ -245,7 +245,7 @@ void ButtonBase::clear_style() {
     require_mutable();
     if (!style_override_) return;
     style_override_.reset();
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void ButtonBase::set_visual_recipes(ControlStateRecipes recipes) {
@@ -257,14 +257,14 @@ void ButtonBase::set_visual_recipes(ControlStateRecipes recipes) {
         return;
     }
     visual_recipes_override_ = std::move(recipes);
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void ButtonBase::clear_visual_recipes() {
     require_mutable();
     if (!visual_recipes_override_) return;
     visual_recipes_override_.reset();
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void ButtonBase::set_connection_topology(
@@ -276,7 +276,7 @@ void ButtonBase::set_connection_topology(
     }
     if (connection_topology_ == topology) return;
     connection_topology_ = topology;
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 // The image's write, as set_image was: an ID must be live in the button's
@@ -763,8 +763,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
                                      bool command_alignment,
                                      bool selected,
                                      std::optional<AuthoredButtonColours> authored) const {
-    const ControlVisualContext context = visual_context(
-        hovered_, pressed_visual(), selected, focus_cue_visible(), default_cue);
+    const ControlVisualContext context = visual_context({.hovered = hovered_, .pressed = pressed_visual(), .selected = selected, .focused = focus_cue_visible(), .defaulted = default_cue});
     const ControlVisualRecipe& recipe = resolve_visual_recipe(role, context);
     const Rect visual_bounds{
         bounds.x + recipe.visual_offset.x,
@@ -935,8 +934,7 @@ void ButtonBase::on_paint(Painter& painter, Rect) {
 }
 
 Insets ButtonBase::visual_outsets() const noexcept {
-    const ControlVisualContext context = visual_context(
-        hovered_, pressed_visual(), false, focus_cue_visible(), false);
+    const ControlVisualContext context = visual_context({.hovered = hovered_, .pressed = pressed_visual(), .selected = false, .focused = focus_cue_visible(), .defaulted = false});
     return resolved_visual_outsets(ControlVisualRole::button, context);
 }
 
@@ -945,7 +943,7 @@ void ButtonBase::on_pointer(PointerEvent& event) {
         const bool next = event.action == PointerAction::enter;
         if (hovered_ != next) {
             hovered_ = next;
-            invalidate(Dirty::style | Dirty::paint);
+            invalidate(Dirty::paint);
         }
     } else if (event.button == PointerButton::primary &&
                event.action == PointerAction::down) {

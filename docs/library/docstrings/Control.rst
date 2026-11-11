@@ -295,11 +295,15 @@ remove_child
     as long as someone holds it.
 clear_children
     Removes every child, frontmost first, without disposing them.
-child_index
-    The child's z-order index, where 0 is the frontmost child, or none.
-set_child_index
-    Moves a child to a z-order index, where 0 is frontmost. An index past
-    the end makes it the backmost. Returns false if it is not a child.
+child_index_from_top
+    The child's z-order index counted from the top, where 0 is the
+    frontmost child (the Windows Forms index), or none. children() runs
+    the other way, back to front.
+set_child_index_from_top
+    Moves a child to a z-order index counted from the top, where 0 is
+    frontmost. An index past the end makes it the backmost; a move to
+    where it already is changes nothing. Returns false if it is not a
+    child.
 bring_to_front
     Makes the control its parent's frontmost child.
 send_to_back
