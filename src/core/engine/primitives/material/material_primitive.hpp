@@ -123,7 +123,10 @@ private:
 // validated the destination (validate_raster_view), the target and the
 // material (valid_surface_material); target.material is not read. The box
 // starts `outset` logical units in. The bake measurement uses it to time
-// materials past the bound.
+// materials past the bound. Where the look does not vary across (or down)
+// its interior, it bakes the pixels near the box's edges and one interior
+// column (or row) and copies it over the rest, to the same bytes;
+// bake_material_region bakes every pixel and is its reference.
 void bake_material(const SurfaceMaterial& material, const PrimitiveTarget& target,
                    const PartRasterView& destination, double outset = material_outset,
                    PartShapeKind shape = PartShapeKind::rounded_rectangle) noexcept;

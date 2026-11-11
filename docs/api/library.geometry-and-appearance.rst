@@ -4183,6 +4183,10 @@ Types
 
    .. rubric:: Properties
 
+   .. cpp:function:: bool opaque() const noexcept
+
+      Whether record_opacity found every pixel opaque since the last view().
+
    .. cpp:function:: std::span<const std::uint8_t> pixels() const noexcept
 
    .. cpp:function:: DeviceExtent extent() const noexcept
@@ -4200,7 +4204,11 @@ Types
 
    .. cpp:function:: PartRasterView view() noexcept
 
-      The raster as a destination for a primitive: valid while the raster lives and is not shared read-only.
+      The raster as a destination for a primitive: valid while the raster lives and is not shared read-only. Clears the recorded opacity, since the pixels may change through the view.
+
+   .. cpp:function:: void record_opacity() noexcept
+
+      Records whether every pixel's alpha is 255. The maker calls it after its last write through view(), before sharing the raster; the composite then copies the raster's rows rather than blending them.
 
 .. cpp:namespace:: gui_forms
 

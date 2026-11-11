@@ -19,6 +19,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <exception>
 #include <memory>
 #include <new>
@@ -2064,20 +2065,112 @@ void MaterialPrimitive::fill(const PrimitiveParameterBlock& parameters, const Pr
 
 namespace {
 
+// Where a bake's pixels repeat, decided once before its row loop: in
+// columns [first_column, end_column) every row holds its pixel at
+// first_column, and rows [first_row, end_row) are row first_row's bytes.
+// An empty range (end at or before first) repeats nothing.
+struct BakeSpans final {
+    std::uint32_t first_column{};
+    std::uint32_t end_column{};
+    std::uint32_t first_row{};
+    std::uint32_t end_row{};
+};
+
+// Device pixels [first, end) of one axis.
+struct PixelSpan final {
+    std::uint32_t first{};
+    std::uint32_t end{};
+};
+
+// The pixels of one axis that repeat in a look that does not vary all
+// along it: those lying more than reach.start past the box's start and
+// reach.end before its end (axis_reach, whose layers change only nearer
+// the box's edges than that), one pixel further in on each side so that a
+// pixel's whole extent clears the reach at any phase of the box. The
+// reach includes the part filters' and a reflection's, which only widens
+// the edges.
+PixelSpan repeating_span(const AxisReach& reach, const double box_start, const double box_end,
+                         const std::uint32_t extent) noexcept {
+    PixelSpan span{};
+    if (reach.varies) return span;
+    const double low = std::ceil(box_start + reach.start) + 1.0;
+    const double high = std::floor(box_end - reach.end) - 1.0;
+    if (!(low >= 0.0) || !(high > low)) return span;
+    const double limit = static_cast<double>(extent);
+    span.first = static_cast<std::uint32_t>(std::min(low, limit));
+    span.end = static_cast<std::uint32_t>(std::min(high, limit));
+    if (span.end <= span.first) return PixelSpan{};
+    return span;
+}
+
+BakeSpans bake_spans(const SurfaceMaterial& material, const PrimitiveTarget& target, const MaterialLook& look,
+                     const double outset, const PartShapeKind shape, const DeviceExtent extent) noexcept {
+    const AxisReach across = axis_reach(material, target, true, outset, shape);
+    const AxisReach down = axis_reach(material, target, false, outset, shape);
+    const PixelSpan columns = repeating_span(across, look.box.x, look.box.right(), extent.width);
+    const PixelSpan rows = repeating_span(down, look.box.y, look.box.bottom(), extent.height);
+    BakeSpans spans{};
+    spans.first_column = columns.first;
+    spans.end_column = columns.end;
+    spans.first_row = rows.first;
+    spans.end_row = rows.end;
+    return spans;
+}
+
+// The look's pixels into columns [from, to) of one row, which begins at
+// byte `start` of `destination`.
+void bake_columns(const MaterialLook& look, const MaterialImages& images, const OuterIntegrals& integrals,
+                  const PartRasterView& destination, const std::uint32_t row, const std::size_t start,
+                  const std::uint32_t from, const std::uint32_t to) noexcept {
+    for (std::uint32_t column = from; column < to; ++column) {
+        const Unit pixel = material_pixel(look, images, integrals, static_cast<std::int64_t>(column),
+                                          static_cast<std::int64_t>(row));
+        store(destination, start + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel, pixel);
+    }
+}
+
+// Copies the pixel at column `from` of the row at byte `start` over
+// columns (from, to).
+void repeat_pixel(const PartRasterView& destination, const std::size_t start, const std::uint32_t from,
+                  const std::uint32_t to) noexcept {
+    std::uint8_t* const row = destination.pixels.data() + start;
+    std::array<std::uint8_t, part_raster_bytes_per_pixel> pixel{};
+    std::memcpy(pixel.data(), row + static_cast<std::size_t>(from) * part_raster_bytes_per_pixel, pixel.size());
+    for (std::uint32_t column = from + 1U; column < to; ++column) {
+        std::memcpy(row + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel, pixel.data(), pixel.size());
+    }
+}
+
 // The look's pixels into every pixel of `destination`, with `images`
-// prepared for it (prepare_images).
-void bake_look(const MaterialLook& look, const MaterialImages& images, const PartRasterView& destination) noexcept {
-    const std::size_t width = destination.extent.width;
+// prepared for it (prepare_images). Where `spans` says pixels repeat, one
+// is baked and copied: across a row, the pixels left of the span and the
+// span's first are baked, then that pixel is copied over the span and the
+// pixels right of it baked; down the rows, the span's first row is baked
+// and copied into the rest.
+void bake_look(const MaterialLook& look, const MaterialImages& images, const PartRasterView& destination,
+               const BakeSpans& spans) noexcept {
+    const std::uint32_t width = destination.extent.width;
+    const bool repeats_columns = spans.end_column > spans.first_column;
+    const bool repeats_rows = spans.end_row > spans.first_row;
+    const std::size_t row_pixel_bytes = static_cast<std::size_t>(width) * part_raster_bytes_per_pixel;
+    const std::size_t repeated_row = static_cast<std::size_t>(spans.first_row) * destination.row_bytes;
     OuterIntegrals integrals{};
     fill_columns(look, width, integrals);
     for (std::uint32_t row = 0U; row < destination.extent.height; ++row) {
         const std::size_t start = static_cast<std::size_t>(row) * destination.row_bytes;
-        fill_row(look, row, integrals);
-        for (std::uint32_t column = 0U; column < destination.extent.width; ++column) {
-            const Unit pixel = material_pixel(look, images, integrals, static_cast<std::int64_t>(column),
-                                              static_cast<std::int64_t>(row));
-            store(destination, start + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel, pixel);
+        if (repeats_rows && row > spans.first_row && row < spans.end_row) {
+            // Distinct rows of one raster: the copy's ranges do not overlap.
+            std::memcpy(destination.pixels.data() + start, destination.pixels.data() + repeated_row, row_pixel_bytes);
+            continue;
         }
+        fill_row(look, row, integrals);
+        if (!repeats_columns) {
+            bake_columns(look, images, integrals, destination, row, start, 0U, width);
+            continue;
+        }
+        bake_columns(look, images, integrals, destination, row, start, 0U, spans.first_column + 1U);
+        repeat_pixel(destination, start, spans.first_column, spans.end_column);
+        bake_columns(look, images, integrals, destination, row, start, spans.end_column, width);
     }
 }
 
@@ -2090,7 +2183,8 @@ void bake_material(const SurfaceMaterial& authored, const PrimitiveTarget& targe
     const MaterialLook look = resolve_look(material, target, outset, shape);
     MaterialImages images{};
     prepare_images(material, target, look, destination.extent, images);
-    bake_look(look, images, destination);
+    const BakeSpans spans = bake_spans(material, target, look, outset, shape, destination.extent);
+    bake_look(look, images, destination, spans);
     apply_part_filters(material, target, destination);
     apply_mask(look, images, destination);
     if (material.reflection) {
@@ -2124,7 +2218,8 @@ void bake_material_region(const SurfaceMaterial& authored, const PrimitiveTarget
         resolve_look_at(material, target, Point{-device_origin.x, -device_origin.y}, PartShapeKind::rounded_rectangle);
     MaterialImages images{};
     prepare_images(material, target, look, destination.extent, images);
-    bake_look(look, images, destination);
+    // Every pixel baked: the region bake is the whole bake's reference.
+    bake_look(look, images, destination, BakeSpans{});
     apply_mask(look, images, destination);
 }
 

@@ -5771,6 +5771,28 @@ if(GUI_FORMS_BUILD_TESTS)
     gui_forms_label_test_areas()
 endif()
 
+# The focus labs (claude/perf-focus-labs, benchmarks/focus_labs): measurement programs,
+# not tests, so no CTest entry. Each checks its rearranged kernels against the library's
+# own for equal output, then times both. composite_lab compiles the compositor's own
+# translation unit; bake_lab links as gui_forms_engine_material_tests does, exec_lab as
+# gui_drawing_skia_tests does. Since the perf fold (cp29) the library carries the
+# rearrangements, so the ratios measure what is left.
+option(GUI_FORMS_BUILD_FOCUS_LABS "Build the benchmarks/focus_labs programs" OFF)
+if(GUI_FORMS_BUILD_FOCUS_LABS)
+    add_executable(focus_composite_lab benchmarks/focus_labs/composite_lab.cpp
+        src/core/text/composite/text_composite.cpp)
+    target_include_directories(focus_composite_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/core/text/composite)
+    target_compile_features(focus_composite_lab PRIVATE cxx_std_20)
+    add_executable(focus_bake_lab benchmarks/focus_labs/bake_lab.cpp)
+    target_link_libraries(focus_bake_lab PRIVATE gui_forms_controls)
+    if(TARGET gui_drawing_skia)
+        add_executable(focus_exec_lab benchmarks/focus_labs/exec_lab.cpp)
+        target_link_libraries(focus_exec_lab PRIVATE gui_drawing_skia gui_forms_core)
+        target_include_directories(focus_exec_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+    endif()
+endif()
+
 # No floating-point contraction in first-party code (owner, 2026-11-01): Clang's default
 # fuses a * b + c within an expression where the target has a fused multiply-add, which
 # arm64 always has and the x86-64 baseline never does, so the same source gave different

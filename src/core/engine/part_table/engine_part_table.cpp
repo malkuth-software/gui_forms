@@ -789,6 +789,7 @@ std::shared_ptr<PartRaster> EnginePartTable::shared_bake(const PartRasterRequest
     }
     const RasterOutcome outcome = primitive.rasterize(request.parameters, target, preparation, (*baked).view());
     if (outcome != RasterOutcome::painted && outcome != RasterOutcome::empty) return nullptr;
+    (*baked).record_opacity();
     statistics_.bakes = statistics_.bakes + 1U;
     count_image_mask_fallback(request, lent);
     if (use == SharedUse::idle_keyframe) {
@@ -944,6 +945,7 @@ PartRasterResult EnginePartTable::raster_without_record(const PartRasterRequest&
     if (outcome != RasterOutcome::painted && outcome != RasterOutcome::empty) {
         return PartRasterResult{nullptr, PartRasterStatus::refused};
     }
+    (*storage).record_opacity();
     if (awaited) unrecorded_awaited_ = true;
     statistics_.uncached = statistics_.uncached + 1U;
     return PartRasterResult{storage, PartRasterStatus::uncached};
@@ -1022,6 +1024,7 @@ PartRasterResult EnginePartTable::raster_for(const PartRecordHandle handle, cons
     if (outcome != RasterOutcome::painted && outcome != RasterOutcome::empty) {
         return PartRasterResult{nullptr, PartRasterStatus::refused};
     }
+    (*storage).record_opacity();
 
     // Commit. The part's former raster no longer shows it either way.
     if (status == PartRasterStatus::uncached) {
