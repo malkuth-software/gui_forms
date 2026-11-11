@@ -3014,6 +3014,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_resource_pixels_tests tests/image/resource_pixels_tests.cpp)
     target_link_libraries(gui_forms_resource_pixels_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_resource_pixels_tests COMMAND gui_forms_resource_pixels_tests)
+    # A timing probe for audit P12, built on demand and never a test.
+    add_executable(gui_forms_png_decode_probe EXCLUDE_FROM_ALL tests/image/png_decode_probe.cpp)
+    target_link_libraries(gui_forms_png_decode_probe PRIVATE gui_forms_core)
 
     # Deterministic malformed-input sweeps (owner revision of decision 6A).
     add_executable(gui_forms_malformed_sweep_tests tests/compression/malformed_sweep_tests.cpp)
@@ -4824,6 +4827,13 @@ if(GUI_FORMS_BUILD_TESTS)
         target_compile_options(gui_forms_macos_exposure_tests PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_macos_exposure_tests PRIVATE gui_forms_host_macos)
         add_test(NAME gui_forms_macos_exposure_tests COMMAND gui_forms_macos_exposure_tests)
+
+        # Audit P13: a PDF recording of the view outlives the raster's frame.
+        add_executable(gui_forms_macos_recorded_draw_tests tests/macos_recorded_draw_tests.mm)
+        target_compile_options(gui_forms_macos_recorded_draw_tests PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_macos_recorded_draw_tests PRIVATE gui_forms_host_macos)
+        add_test(NAME gui_forms_macos_recorded_draw_tests COMMAND gui_forms_macos_recorded_draw_tests)
+        set_tests_properties(gui_forms_macos_recorded_draw_tests PROPERTIES TIMEOUT 60)
 
         # Stage DP gate on macOS (notes:results/2026-10-25-dp-gate-macos).
         add_executable(gui_forms_macos_damage_rectangles_tests tests/macos_damage_rectangles_tests.mm)

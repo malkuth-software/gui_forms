@@ -101,7 +101,9 @@ enum class FormLoadOutcome : std::uint8_t {
 // Loads `model`, which build_form_model built from `tree` against
 // `schema`, binding its bound properties to `sources`; the source, tokens
 // and lines are those of that build and locate the diagnostics.
-// Everything is borrowed for the call. UI thread.
+// Everything is borrowed for the call. UI thread. Throws
+// std::invalid_argument for a model with no objects (one that was never
+// built, or whose build was refused).
 [[nodiscard]] FormLoadOutcome load_form(const theme_language::ThemeSource& source,
                                         const theme_language::ThemeTokenBuffer& tokens,
                                         const theme_language::LineStartTable& lines,

@@ -337,6 +337,10 @@ FormLoadOutcome load_form(const theme_language::ThemeSource& source, const theme
                           const theme_language::LineStartTable& lines, const theme_language::ThemeSyntaxTree& tree,
                           const FormSchema& schema, const FormModel& model, const FormSources& sources,
                           LoadedForm& loaded, theme_language::ThemeDiagnosticList& diagnostics) {
+    // A built model has its root object; an empty one (a refused or never
+    // built model) is the caller's error, as generate_form_cpp says (audit
+    // P16).
+    if (model.objects.empty()) throw std::invalid_argument("load_form: the model has no objects");
     LoadedForm scratch{};
     FormLoader loader(source, tokens, lines, tree, schema, model, sources, diagnostics);
     if (!loader.run(scratch)) return FormLoadOutcome::refused;

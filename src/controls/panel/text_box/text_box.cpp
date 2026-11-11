@@ -449,6 +449,13 @@ void TextBox::rebuild_multiline_rows(const double width) {
     const bool decorations_only = !visual_lines_.empty() && multiline_revision_ == (*editing_).store().revision() &&
         multiline_font_ == content_font && multiline_width_ == width &&
         multiline_provider_ == provider && multiline_device_scale_ == device_scale;
+    // Only the text changed since a committed build, and no decoration sets
+    // a font: the logical lines the edit did not touch keep their rows
+    // (audit P3). Decided before the cache is invalidated below.
+    const bool text_only = !visual_lines_.empty() && !laid_lines_.empty() &&
+        multiline_font_ == content_font && multiline_width_ == width &&
+        multiline_provider_ == provider && multiline_device_scale_ == device_scale &&
+        multiline_decoration_revision_ == decorations_.layout_revision() && !decorations_.changes_font();
     // Invalidate before modifying retained rows: an allocation/metrics failure
     // leaves the cache uncommitted and the next call must rebuild it.
     multiline_width_ = -1.0;
@@ -478,6 +485,37 @@ void TextBox::rebuild_multiline_rows(const double width) {
     line.positions.reserve(boundary_capacity);
     line.runs.reserve(maximum_line_bytes);
     visual_lines_.reserve(logical_count);
+    // The kept lines: the first `kept_head` logical lines lie, with their
+    // terminators, inside the bytes the edit left at the start, and the last
+    // `kept_tail` start, after a terminator, inside the bytes it left at the
+    // end, shifted by the change in size. Each kept line is checked against
+    // the new text's line before its rows are copied.
+    std::size_t kept_head = 0U;
+    std::size_t kept_tail = 0U;
+    const std::size_t laid_count = laid_lines_.size();
+    if (text_only) {
+        const std::size_t shorter = std::min(laid_text_.size(), source.size());
+        std::size_t prefix = 0U;
+        while (prefix < shorter && laid_text_[prefix] == source[prefix]) ++prefix;
+        std::size_t suffix = 0U;
+        while (suffix < shorter - prefix &&
+               laid_text_[laid_text_.size() - 1U - suffix] == source[source.size() - 1U - suffix]) {
+            ++suffix;
+        }
+        // The last laid line has no terminator: text appended after it
+        // would extend it, so it is never kept by the prefix.
+        while (kept_head + 1U < laid_count && laid_lines_[kept_head].next <= prefix) ++kept_head;
+        const std::size_t tail_start = laid_text_.size() - suffix;
+        while (kept_tail + kept_head < laid_count && laid_count - kept_tail > 1U &&
+               laid_lines_[laid_count - 1U - kept_tail].start > tail_start) {
+            ++kept_tail;
+        }
+        kept_head = std::min(kept_head, logical_count);
+        kept_tail = std::min(kept_tail, logical_count - kept_head);
+        previous_visual_lines_.swap(visual_lines_);
+    }
+    laying_lines_.clear();
+    laying_lines_.reserve(logical_count);
     std::size_t row_count = 0U;
     // Keep complete visual-row shaping runs. Prefix measurement is quadratic
     // within the admitted 4096-byte logical-line bound, cached across paints.
@@ -487,6 +525,39 @@ void TextBox::rebuild_multiline_rows(const double width) {
     const bool styled_fonts = decorations_.changes_font();
     for (std::size_t logical = 0U; logical < logical_count; ++logical) {
         const Utf8Range range = (*editing_).store().line_content_range(LineIndex(logical));
+        const std::size_t next_start = logical + 1U < logical_count
+            ? (*editing_).store().line_content_range(LineIndex(logical + 1U)).start.value()
+            : source.size();
+        LaidLine laid{.start = range.start.value(), .end = range.end.value(), .next = next_start,
+                      .first_row = row_count, .row_count = 0U};
+        // A kept line's rows are copied, shifted when it lies after the edit.
+        const bool head = logical < kept_head;
+        const bool tail = !head && logical >= logical_count - kept_tail;
+        if (head || tail) {
+            const std::size_t old_index = head ? logical : logical + laid_count - logical_count;
+            const LaidLine& old = laid_lines_[old_index];
+            const std::size_t shifted_start = tail ? old.start + source.size() - laid_text_.size() : old.start;
+            const bool same = shifted_start == laid.start && old.end - old.start == laid.end - laid.start;
+            if (same) {
+                for (std::size_t row = 0U; row < old.row_count; ++row) {
+                    if (row_count == visual_lines_.size()) visual_lines_.emplace_back();
+                    VisualLine& target = visual_lines_[row_count];
+                    target = previous_visual_lines_[old.first_row + row];
+                    if (tail) {
+                        for (std::size_t& offset : target.offsets) offset = offset + source.size() - laid_text_.size();
+                        for (VisualRun& run : target.runs) {
+                            run.start = run.start + source.size() - laid_text_.size();
+                            run.end = run.end + source.size() - laid_text_.size();
+                        }
+                    }
+                    document_width_ = std::max(document_width_, target.positions.back());
+                    ++row_count;
+                }
+                laid.row_count = old.row_count;
+                laying_lines_.push_back(laid);
+                continue;
+            }
+        }
         if (styled_fonts) {
             decorations_.compose(range, styled_scratch_);
         } else {
@@ -557,8 +628,12 @@ void TextBox::rebuild_multiline_rows(const double width) {
             visual_lines_[row_count] = line;
             ++row_count;
         } while (cursor < range.end.value());
+        laid.row_count = row_count - laid.first_row;
+        laying_lines_.push_back(laid);
     }
     visual_lines_.resize(row_count);
+    laid_text_.assign(source);
+    laid_lines_.swap(laying_lines_);
     multiline_revision_ = (*editing_).store().revision();
     multiline_font_ = content_font;
     multiline_width_ = width;

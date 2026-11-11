@@ -223,7 +223,11 @@ public:
     // the clip in force when it began, as part rasters are composited.
     void begin_group(const PaintGroup& group) override;
     void end_group() override;
-    // Paint groups begun deeper than maximum_paint_group_depth.
+    // Paint groups drawn without isolation although they asked for it:
+    // begun deeper than maximum_paint_group_depth, over a parent whose clips
+    // or pixels are unknown, or whose isolation surface could not be
+    // allocated. Each draws its content directly, clipped to its bounds,
+    // without its opacity or composite.
     [[nodiscard]] std::uint64_t group_refusals() const noexcept;
 
 private:

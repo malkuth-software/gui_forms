@@ -286,7 +286,25 @@ private:
         Rect content{};
     };
 
-    [[nodiscard]] Layout layout() const;
+    // Everything layout_for reads (audit P17): the cached layout is reused
+    // while the key matches. Compared by hand; the hidden pages are
+    // compared with hidden_ in place, without a copy.
+    struct LayoutKey final {
+        Rect surface{};
+        bool collapsed{};
+        std::uint64_t pages_revision{};
+        std::size_t page_count{};
+        std::vector<PageId> hidden{};
+        std::size_t button_count{};
+        double scale{};
+        double icon_side{};
+        std::optional<std::size_t> selected{};
+        bool selected_image{};
+    };
+    // The layout over the client rectangle, cached by LayoutKey. The
+    // reference is valid until the next call; a caller that runs handlers
+    // copies it first.
+    [[nodiscard]] const Layout& layout() const;
     [[nodiscard]] Layout layout_for(Rect surface) const;
     // The two halves of layout_for: each fills `placed` for a non-empty
     // surface from the pages shown (positions, in order).
@@ -342,6 +360,11 @@ private:
     // The hidden pages, by identity, in the order they were hidden; state()
     // and hidden_pages() report them in page order.
     std::vector<PageId> hidden_{};
+    // layout()'s cache and the key it was computed for; valid once
+    // layout_cached_ is set. Owned here, refilled in place.
+    mutable Layout layout_cache_{};
+    mutable LayoutKey layout_key_{};
+    mutable bool layout_cached_{};
     // Set while apply_state reorders the set, which then raises one
     // state_changed for the whole restoration.
     bool applying_state_{};

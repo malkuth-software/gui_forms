@@ -1197,13 +1197,20 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelectionRequired(BOOL* out) {
 // `row_index` and `column_index` (counting from one). Returns false, leaving
 // `found` unchanged, when there is none: the cell is outside the grid or not
 // realized (only the visible rows and columns publish cells).
+//
+// The search skips the subtree of any node that carries another row's
+// index, since a row publishes only its own cells, and does not descend
+// into a cell, so one call visits the rows and the wanted row's cells
+// rather than every cell of the grid (audit P4).
 bool find_grid_item(const SemanticLocation& at, std::size_t row_index, std::size_t column_index,
                     SemanticLocation& found) noexcept {
     const SemanticNode& node = *at.node;
-    if (grid_item_pattern(node) && *node.row_index == row_index && *node.column_index == column_index) {
+    if (grid_item_pattern(node)) {
+        if (*node.row_index != row_index || *node.column_index != column_index) return false;
         found = at;
         return true;
     }
+    if (node.row_index.has_value() && *node.row_index != row_index) return false;
     const std::size_t count = node.children.size();
     for (std::size_t index = 0; index < count; ++index) {
         if (find_grid_item(child_location(at, index), row_index, column_index, found)) return true;
