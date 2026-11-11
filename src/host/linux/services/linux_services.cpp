@@ -32,7 +32,7 @@ ForeignWindowScope::~ForeignWindowScope() {
   XSetErrorHandler(previous_);
   active_ = parent_;
 }
-int ForeignWindowScope::handle(Display *display, XErrorEvent *error) {
+int ForeignWindowScope::handle(Display *display, XErrorEvent *error) noexcept {
   ForeignWindowScope *scope = active_;
   if (scope != nullptr && (*scope).display_ == display &&
       (*error).error_code == BadWindow &&

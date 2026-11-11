@@ -1,4 +1,5 @@
 #include "windows_text_automation.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 
 #include "windows_automation.hpp"
 
@@ -289,6 +290,30 @@ private:
     // UTF-8 byte offsets into the node's value; start_ <= end_.
     std::size_t start_{};
     std::size_t end_{};
+private:
+    // The COM methods' bodies: each method calls its own through the
+    // fail-fast boundary (site "windows.UiaTextRange.<method>").
+    HRESULT answer_QueryInterface(REFIID iid, void** out);
+    ULONG answer_AddRef();
+    ULONG answer_Release();
+    HRESULT answer_Clone(ITextRangeProvider** out);
+    HRESULT answer_Compare(ITextRangeProvider* range, BOOL* out);
+    HRESULT answer_CompareEndpoints(TextPatternRangeEndpoint endpoint, ITextRangeProvider* target, TextPatternRangeEndpoint target_endpoint, int* out);
+    HRESULT answer_ExpandToEnclosingUnit(TextUnit unit);
+    HRESULT answer_FindAttribute(TEXTATTRIBUTEID attribute, VARIANT value, BOOL backward, ITextRangeProvider** out);
+    HRESULT answer_FindText(BSTR text, BOOL backward, BOOL ignore_case, ITextRangeProvider** out);
+    HRESULT answer_GetAttributeValue(TEXTATTRIBUTEID attribute, VARIANT* out);
+    HRESULT answer_GetBoundingRectangles(SAFEARRAY** out);
+    HRESULT answer_GetEnclosingElement(IRawElementProviderSimple** out);
+    HRESULT answer_GetText(int max_length, BSTR* out);
+    HRESULT answer_Move(TextUnit unit, int count, int* out);
+    HRESULT answer_MoveEndpointByUnit(TextPatternRangeEndpoint endpoint, TextUnit unit, int count, int* out);
+    HRESULT answer_MoveEndpointByRange(TextPatternRangeEndpoint endpoint, ITextRangeProvider* target, TextPatternRangeEndpoint target_endpoint);
+    HRESULT answer_Select();
+    HRESULT answer_AddToSelection();
+    HRESULT answer_RemoveFromSelection();
+    HRESULT answer_ScrollIntoView(BOOL align_to_top);
+    HRESULT answer_GetChildren(SAFEARRAY** out);
 };
 
 // A new range, as ITextRangeProvider, in `*out`.
@@ -353,7 +378,7 @@ void UiaTextRange::set_endpoint(TextPatternRangeEndpoint which, std::size_t offs
     }
 }
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::QueryInterface(REFIID iid, void** out) {
+HRESULT UiaTextRange::answer_QueryInterface(REFIID iid, void** out) {
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
     if (iid == IID_IUnknown || iid == IID_ITextRangeProvider) {
@@ -366,25 +391,37 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::QueryInterface(REFIID iid, void** out) {
     AddRef();
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaTextRange::QueryInterface(REFIID iid, void** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.QueryInterface", &UiaTextRange::answer_QueryInterface, *this, iid, out);
+}
 
-ULONG STDMETHODCALLTYPE UiaTextRange::AddRef() {
+ULONG UiaTextRange::answer_AddRef() {
     const ULONG count = ++references_;
     return count;
 }
+ULONG STDMETHODCALLTYPE UiaTextRange::AddRef() {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.AddRef", &UiaTextRange::answer_AddRef, *this);
+}
 
-ULONG STDMETHODCALLTYPE UiaTextRange::Release() {
+ULONG UiaTextRange::answer_Release() {
     const ULONG count = --references_;
     if (count == 0U) delete this;
     return count;
 }
+ULONG STDMETHODCALLTYPE UiaTextRange::Release() {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.Release", &UiaTextRange::answer_Release, *this);
+}
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::Clone(ITextRangeProvider** out) {
+HRESULT UiaTextRange::answer_Clone(ITextRangeProvider** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     return make_range(source_, id_, start_, end_, out);
 }
+HRESULT STDMETHODCALLTYPE UiaTextRange::Clone(ITextRangeProvider** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.Clone", &UiaTextRange::answer_Clone, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::Compare(ITextRangeProvider* range, BOOL* out) {
+HRESULT UiaTextRange::answer_Compare(ITextRangeProvider* range, BOOL* out) {
     if (out == nullptr || range == nullptr) return E_INVALIDARG;
     *out = FALSE;
     UiaTextRange* other = same_element_range(range);
@@ -394,8 +431,11 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::Compare(ITextRangeProvider* range, BOOL*
     *out = same ? TRUE : FALSE;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaTextRange::Compare(ITextRangeProvider* range, BOOL* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.Compare", &UiaTextRange::answer_Compare, *this, range, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::CompareEndpoints(TextPatternRangeEndpoint endpoint,
+HRESULT UiaTextRange::answer_CompareEndpoints(TextPatternRangeEndpoint endpoint,
                                                          ITextRangeProvider* target,
                                                          TextPatternRangeEndpoint target_endpoint,
                                                          int* out) {
@@ -409,6 +449,9 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::CompareEndpoints(TextPatternRangeEndpoin
     *out = mine < theirs ? -1 : (mine > theirs ? 1 : 0);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaTextRange::CompareEndpoints(TextPatternRangeEndpoint endpoint, ITextRangeProvider* target, TextPatternRangeEndpoint target_endpoint, int* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.CompareEndpoints", &UiaTextRange::answer_CompareEndpoints, *this, endpoint, target, target_endpoint, out);
+}
 
 HRESULT UiaTextRange::expand(TextUnit unit) {
     TextRead text;
@@ -419,36 +462,30 @@ HRESULT UiaTextRange::expand(TextUnit unit) {
     return S_OK;
 }
 
+HRESULT UiaTextRange::answer_ExpandToEnclosingUnit(TextUnit unit) {
+    return expand(unit);
+}
 HRESULT STDMETHODCALLTYPE UiaTextRange::ExpandToEnclosingUnit(TextUnit unit) {
-    try {
-        return expand(unit);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.ExpandToEnclosingUnit", &UiaTextRange::answer_ExpandToEnclosingUnit, *this, unit);
 }
 
 // Only IsReadOnly is published, and it holds for the whole text: a match is
 // this range; any other attribute or value finds nothing.
-HRESULT STDMETHODCALLTYPE UiaTextRange::FindAttribute(TEXTATTRIBUTEID attribute, VARIANT value, BOOL,
+HRESULT UiaTextRange::answer_FindAttribute(TEXTATTRIBUTEID attribute, VARIANT value, BOOL,
                                                       ITextRangeProvider** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     if (attribute != UIA_IsReadOnlyAttributeId || value.vt != VT_BOOL) return S_OK;
-    try {
-        TextRead text;
-        const HRESULT status = read(text);
-        if (FAILED(status)) return status;
-        const bool read_only = has_semantic_state((*text.self.node).states, SemanticState::read_only);
-        const bool wanted = value.boolVal != VARIANT_FALSE;
-        if (read_only != wanted) return S_OK;
-        return make_range(source_, id_, start_, end_, out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    TextRead text;
+    const HRESULT status = read(text);
+    if (FAILED(status)) return status;
+    const bool read_only = has_semantic_state((*text.self.node).states, SemanticState::read_only);
+    const bool wanted = value.boolVal != VARIANT_FALSE;
+    if (read_only != wanted) return S_OK;
+    return make_range(source_, id_, start_, end_, out);
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::FindAttribute(TEXTATTRIBUTEID attribute, VARIANT value, BOOL unnamed_2, ITextRangeProvider** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.FindAttribute", &UiaTextRange::answer_FindAttribute, *this, attribute, value, unnamed_2, out);
 }
 
 HRESULT UiaTextRange::find_text(BSTR text, BOOL backward, BOOL ignore_case, ITextRangeProvider** out) {
@@ -470,20 +507,17 @@ HRESULT UiaTextRange::find_text(BSTR text, BOOL backward, BOOL ignore_case, ITex
     return make_range(source_, id_, match_start, match_start + wanted.size(), out);
 }
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::FindText(BSTR text, BOOL backward, BOOL ignore_case,
+HRESULT UiaTextRange::answer_FindText(BSTR text, BOOL backward, BOOL ignore_case,
                                                  ITextRangeProvider** out) {
     if (out == nullptr || text == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    try {
-        return find_text(text, backward, ignore_case, out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return find_text(text, backward, ignore_case, out);
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::FindText(BSTR text, BOOL backward, BOOL ignore_case, ITextRangeProvider** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.FindText", &UiaTextRange::answer_FindText, *this, text, backward, ignore_case, out);
 }
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::GetAttributeValue(TEXTATTRIBUTEID attribute, VARIANT* out) {
+HRESULT UiaTextRange::answer_GetAttributeValue(TEXTATTRIBUTEID attribute, VARIANT* out) {
     if (out == nullptr) return E_INVALIDARG;
     VariantInit(out);
     if (attribute != UIA_IsReadOnlyAttributeId) {
@@ -491,19 +525,16 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::GetAttributeValue(TEXTATTRIBUTEID attrib
         (*out).vt = VT_UNKNOWN;
         return UiaGetReservedNotSupportedValue(&(*out).punkVal);
     }
-    try {
-        TextRead text;
-        const HRESULT status = read(text);
-        if (FAILED(status)) return status;
-        const bool read_only = has_semantic_state((*text.self.node).states, SemanticState::read_only);
-        (*out).vt = VT_BOOL;
-        (*out).boolVal = read_only ? VARIANT_TRUE : VARIANT_FALSE;
-        return S_OK;
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    TextRead text;
+    const HRESULT status = read(text);
+    if (FAILED(status)) return status;
+    const bool read_only = has_semantic_state((*text.self.node).states, SemanticState::read_only);
+    (*out).vt = VT_BOOL;
+    (*out).boolVal = read_only ? VARIANT_TRUE : VARIANT_FALSE;
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::GetAttributeValue(TEXTATTRIBUTEID attribute, VARIANT* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.GetAttributeValue", &UiaTextRange::answer_GetAttributeValue, *this, attribute, out);
 }
 
 HRESULT UiaTextRange::bounding_rectangles(SAFEARRAY** out) {
@@ -532,34 +563,28 @@ HRESULT UiaTextRange::bounding_rectangles(SAFEARRAY** out) {
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::GetBoundingRectangles(SAFEARRAY** out) {
+HRESULT UiaTextRange::answer_GetBoundingRectangles(SAFEARRAY** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    try {
-        return bounding_rectangles(out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return bounding_rectangles(out);
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::GetBoundingRectangles(SAFEARRAY** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.GetBoundingRectangles", &UiaTextRange::answer_GetBoundingRectangles, *this, out);
 }
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::GetEnclosingElement(IRawElementProviderSimple** out) {
+HRESULT UiaTextRange::answer_GetEnclosingElement(IRawElementProviderSimple** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    try {
-        TextRead text;
-        const HRESULT status = read(text);
-        if (FAILED(status)) return status;
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    TextRead text;
+    const HRESULT status = read(text);
+    if (FAILED(status)) return status;
     IRawElementProviderSimple* element = make_automation_element(source_, id_);
     if (element == nullptr) return E_OUTOFMEMORY;
     *out = element;
     return S_OK;
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::GetEnclosingElement(IRawElementProviderSimple** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.GetEnclosingElement", &UiaTextRange::answer_GetEnclosingElement, *this, out);
 }
 
 HRESULT UiaTextRange::text(int max_length, BSTR* out) {
@@ -586,16 +611,13 @@ HRESULT UiaTextRange::text(int max_length, BSTR* out) {
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::GetText(int max_length, BSTR* out) {
+HRESULT UiaTextRange::answer_GetText(int max_length, BSTR* out) {
     if (out == nullptr || max_length < -1) return E_INVALIDARG;
     *out = nullptr;
-    try {
-        return text(max_length, out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return text(max_length, out);
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::GetText(int max_length, BSTR* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.GetText", &UiaTextRange::answer_GetText, *this, max_length, out);
 }
 
 // A degenerate range moves its position by `count` units and stays
@@ -625,16 +647,13 @@ HRESULT UiaTextRange::move(TextUnit unit, int count, int* out) {
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::Move(TextUnit unit, int count, int* out) {
+HRESULT UiaTextRange::answer_Move(TextUnit unit, int count, int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0;
-    try {
-        return move(unit, count, out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return move(unit, count, out);
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::Move(TextUnit unit, int count, int* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.Move", &UiaTextRange::answer_Move, *this, unit, count, out);
 }
 
 HRESULT UiaTextRange::move_endpoint(TextPatternRangeEndpoint which, TextUnit unit, int count, int* out) {
@@ -649,23 +668,20 @@ HRESULT UiaTextRange::move_endpoint(TextPatternRangeEndpoint which, TextUnit uni
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::MoveEndpointByUnit(TextPatternRangeEndpoint endpoint, TextUnit unit,
+HRESULT UiaTextRange::answer_MoveEndpointByUnit(TextPatternRangeEndpoint endpoint, TextUnit unit,
                                                            int count, int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0;
     if (endpoint != TextPatternRangeEndpoint_Start && endpoint != TextPatternRangeEndpoint_End) {
         return E_INVALIDARG;
     }
-    try {
-        return move_endpoint(endpoint, unit, count, out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return move_endpoint(endpoint, unit, count, out);
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::MoveEndpointByUnit(TextPatternRangeEndpoint endpoint, TextUnit unit, int count, int* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.MoveEndpointByUnit", &UiaTextRange::answer_MoveEndpointByUnit, *this, endpoint, unit, count, out);
 }
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::MoveEndpointByRange(TextPatternRangeEndpoint endpoint,
+HRESULT UiaTextRange::answer_MoveEndpointByRange(TextPatternRangeEndpoint endpoint,
                                                             ITextRangeProvider* target,
                                                             TextPatternRangeEndpoint target_endpoint) {
     if (endpoint != TextPatternRangeEndpoint_Start && endpoint != TextPatternRangeEndpoint_End) {
@@ -678,34 +694,40 @@ HRESULT STDMETHODCALLTYPE UiaTextRange::MoveEndpointByRange(TextPatternRangeEndp
     set_endpoint(endpoint, offset);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaTextRange::MoveEndpointByRange(TextPatternRangeEndpoint endpoint, ITextRangeProvider* target, TextPatternRangeEndpoint target_endpoint) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.MoveEndpointByRange", &UiaTextRange::answer_MoveEndpointByRange, *this, endpoint, target, target_endpoint);
+}
 
 // The control's selection becomes this range, anchored at its start with
 // the caret at its end.
+HRESULT UiaTextRange::answer_Select() {
+    TextRead text;
+    const HRESULT status = read(text);
+    if (FAILED(status)) return status;
+    const RuntimeId control{(*text.self.node).runtime_id};
+    const SemanticTextSelection selection{Utf8Offset{start_}, Utf8Offset{end_}};
+    const SemanticTextResult result = (*(*source_).model).set_semantic_text_selection(control, selection);
+    if (result == SemanticTextResult::stale_identity) return element_not_available;
+    if (result != SemanticTextResult::done) return invalid_operation;
+    return S_OK;
+}
 HRESULT STDMETHODCALLTYPE UiaTextRange::Select() {
-    try {
-        TextRead text;
-        const HRESULT status = read(text);
-        if (FAILED(status)) return status;
-        const RuntimeId control{(*text.self.node).runtime_id};
-        const SemanticTextSelection selection{Utf8Offset{start_}, Utf8Offset{end_}};
-        const SemanticTextResult result = (*(*source_).model).set_semantic_text_selection(control, selection);
-        if (result == SemanticTextResult::stale_identity) return element_not_available;
-        if (result != SemanticTextResult::done) return invalid_operation;
-        return S_OK;
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.Select", &UiaTextRange::answer_Select, *this);
 }
 
 // A text box holds one selection.
-HRESULT STDMETHODCALLTYPE UiaTextRange::AddToSelection() {
+HRESULT UiaTextRange::answer_AddToSelection() {
     return invalid_operation;
 }
+HRESULT STDMETHODCALLTYPE UiaTextRange::AddToSelection() {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.AddToSelection", &UiaTextRange::answer_AddToSelection, *this);
+}
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::RemoveFromSelection() {
+HRESULT UiaTextRange::answer_RemoveFromSelection() {
     return invalid_operation;
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::RemoveFromSelection() {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.RemoveFromSelection", &UiaTextRange::answer_RemoveFromSelection, *this);
 }
 
 // A text box scrolls only to show its caret, so a range is brought into
@@ -724,22 +746,22 @@ HRESULT UiaTextRange::scroll_into_view() {
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE UiaTextRange::ScrollIntoView(BOOL) {
-    try {
-        return scroll_into_view();
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+HRESULT UiaTextRange::answer_ScrollIntoView(BOOL) {
+    return scroll_into_view();
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::ScrollIntoView(BOOL unnamed_0) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.ScrollIntoView", &UiaTextRange::answer_ScrollIntoView, *this, unnamed_0);
 }
 
 // Text holds no embedded objects.
-HRESULT STDMETHODCALLTYPE UiaTextRange::GetChildren(SAFEARRAY** out) {
+HRESULT UiaTextRange::answer_GetChildren(SAFEARRAY** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = SafeArrayCreateVector(VT_UNKNOWN, 0, 0U);
     if (*out == nullptr) return E_OUTOFMEMORY;
     return S_OK;
+}
+HRESULT STDMETHODCALLTYPE UiaTextRange::GetChildren(SAFEARRAY** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaTextRange.GetChildren", &UiaTextRange::answer_GetChildren, *this, out);
 }
 
 // The grapheme edge nearest the logical point (x, y): the line whose band
@@ -871,69 +893,39 @@ bool text_pattern(const SemanticNode& node) noexcept {
 }
 
 HRESULT text_selection_ranges(const std::shared_ptr<SemanticSource>& source, SemanticElementId id,
-                              SAFEARRAY** out) noexcept {
+                              SAFEARRAY** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    try {
-        return selection_ranges(source, id, out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return selection_ranges(source, id, out);
 }
 
 HRESULT text_visible_ranges(const std::shared_ptr<SemanticSource>& source, SemanticElementId id,
-                            SAFEARRAY** out) noexcept {
+                            SAFEARRAY** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    try {
-        return visible_ranges(source, id, out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return visible_ranges(source, id, out);
 }
 
 HRESULT text_range_from_point(const std::shared_ptr<SemanticSource>& source, SemanticElementId id,
-                              UiaPoint point, ITextRangeProvider** out) noexcept {
+                              UiaPoint point, ITextRangeProvider** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    try {
-        return range_from_point(source, id, point, out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return range_from_point(source, id, point, out);
 }
 
 HRESULT text_document_range(const std::shared_ptr<SemanticSource>& source, SemanticElementId id,
-                            ITextRangeProvider** out) noexcept {
+                            ITextRangeProvider** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    try {
-        return document_range(source, id, out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return document_range(source, id, out);
 }
 
 HRESULT text_caret_range(const std::shared_ptr<SemanticSource>& source, SemanticElementId id, BOOL* active,
-                         ITextRangeProvider** out) noexcept {
+                         ITextRangeProvider** out) {
     if (out == nullptr || active == nullptr) return E_INVALIDARG;
     *out = nullptr;
     *active = FALSE;
-    try {
-        return caret_range(source, id, active, out);
-    } catch (const std::bad_alloc&) {
-        return E_OUTOFMEMORY;
-    } catch (...) {
-        return E_FAIL;
-    }
+    return caret_range(source, id, active, out);
 }
 
 void raise_text_changes(const std::shared_ptr<SemanticSource>& source, SemanticElementId id,

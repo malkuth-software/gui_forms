@@ -1,4 +1,5 @@
 #include "linux_accessibility.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 #include <atk/atk.h>
 #include <atk-bridge.h>
 #include <gio/gio.h>
@@ -99,7 +100,7 @@ void read_bus_status(GVariant* properties) {
     }
 }
 // PropertiesChanged: (s a{sv} as).
-void bus_status_changed(GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*,
+void answer_bus_status_changed(GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*,
                         GVariant* parameters, gpointer) {
     const gchar* changed_interface = nullptr;
     GVariant* changed = nullptr;
@@ -109,8 +110,11 @@ void bus_status_changed(GDBusConnection*, const gchar*, const gchar*, const gcha
     g_variant_unref(changed);
     g_variant_unref(invalidated);
 }
+void bus_status_changed(GDBusConnection* unnamed_0, const gchar* unnamed_1, const gchar* unnamed_2, const gchar* unnamed_3, const gchar* unnamed_4, GVariant* parameters, gpointer unnamed_6) {
+    gui_forms::detail::call_failing_fast("linux.atk.bus_status_changed", &answer_bus_status_changed, unnamed_0, unnamed_1, unnamed_2, unnamed_3, unnamed_4, parameters, unnamed_6);
+}
 // GetAll's reply: (a{sv}). A failed or cancelled read keeps the status.
-void bus_status_received(GObject* source, GAsyncResult* result, gpointer) {
+void answer_bus_status_received(GObject* source, GAsyncResult* result, gpointer) {
     GError* error = nullptr;
     GVariant* reply = g_dbus_connection_call_finish(G_DBUS_CONNECTION(source), result, &error);
     if (reply == nullptr) {
@@ -123,8 +127,11 @@ void bus_status_received(GObject* source, GAsyncResult* result, gpointer) {
     g_variant_unref(properties);
     g_variant_unref(reply);
 }
+void bus_status_received(GObject* source, GAsyncResult* result, gpointer unnamed_2) {
+    gui_forms::detail::call_failing_fast("linux.atk.bus_status_received", &answer_bus_status_received, source, result, unnamed_2);
+}
 // The session bus, once connected: subscribes to the status and reads it.
-void bus_status_connected(GObject*, GAsyncResult* result, gpointer) {
+void answer_bus_status_connected(GObject*, GAsyncResult* result, gpointer) {
     GError* error = nullptr;
     GDBusConnection* connection = g_bus_get_finish(result, &error);
     if (connection == nullptr) {
@@ -143,6 +150,9 @@ void bus_status_connected(GObject*, GAsyncResult* result, gpointer) {
     g_dbus_connection_call(connection, bus_status_name, bus_status_path, "org.freedesktop.DBus.Properties", "GetAll",
                            g_variant_new("(s)", bus_status_interface), G_VARIANT_TYPE("(a{sv})"),
                            G_DBUS_CALL_FLAGS_NO_AUTO_START, -1, bus_status.cancellable, bus_status_received, nullptr);
+}
+void bus_status_connected(GObject* unnamed_0, GAsyncResult* result, gpointer unnamed_2) {
+    gui_forms::detail::call_failing_fast("linux.atk.bus_status_connected", &answer_bus_status_connected, unnamed_0, result, unnamed_2);
 }
 void bus_status_start() {
     if (bus_status.cancellable != nullptr) return;
@@ -349,30 +359,52 @@ unsigned interface_flags(const SemanticNode& node) {
     return flags;
 }
 
-void finalize(GObject* object) {
+void answer_finalize(GObject* object) {
     delete (*reinterpret_cast<NativeAccessible*>(object)).data;
     GObjectClass* parent = G_OBJECT_CLASS(g_type_class_peek(ATK_TYPE_OBJECT));
     (*parent).finalize(object);
 }
-const gchar* name(AtkObject* object) { return data(object).node.name.c_str(); }
-const gchar* description(AtkObject* object) { return data(object).node.description.c_str(); }
-AtkObject* parent(AtkObject* object) { return data(object).live ? data(object).parent : nullptr; }
-gint index_in_parent(AtkObject* object) { return data(object).live ? data(object).index : -1; }
+
+void finalize(GObject* object) {
+    gui_forms::detail::call_failing_fast("linux.atk.finalize", &answer_finalize, object);
+}
+const gchar* answer_name(AtkObject* object) { return data(object).node.name.c_str(); }
+const gchar* name(AtkObject* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.name", &answer_name, object);
+}
+const gchar* answer_description(AtkObject* object) { return data(object).node.description.c_str(); }
+const gchar* description(AtkObject* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.description", &answer_description, object);
+}
+AtkObject* answer_parent(AtkObject* object) { return data(object).live ? data(object).parent : nullptr; }
+AtkObject* parent(AtkObject* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.parent", &answer_parent, object);
+}
+gint answer_index_in_parent(AtkObject* object) { return data(object).live ? data(object).index : -1; }
+gint index_in_parent(AtkObject* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.index_in_parent", &answer_index_in_parent, object);
+}
 // Defined after LinuxAccessibility::Impl: publishes the window's tree the
 // first time a client asks a frame for its children (K.1: the tree is
 // built on the first client query, not when the window opens).
 void publish_on_query(AtkObject* object);
-gint child_count(AtkObject* object) {
+gint answer_child_count(AtkObject* object) {
     publish_on_query(object);
     return data(object).live ? static_cast<gint>(data(object).children.size()) : 0;
 }
-AtkObject* child_at(AtkObject* object, gint index) {
+gint child_count(AtkObject* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.child_count", &answer_child_count, object);
+}
+AtkObject* answer_child_at(AtkObject* object, gint index) {
     publish_on_query(object);
     const NodeData& value = data(object);
     if (!value.live || index < 0 || static_cast<std::size_t>(index) >= value.children.size()) { return nullptr; }
     return ATK_OBJECT(g_object_ref(value.children[index]));
 }
-AtkRole role(AtkObject* object) {
+AtkObject* child_at(AtkObject* object, gint index) {
+    return gui_forms::detail::call_failing_fast("linux.atk.child_at", &answer_child_at, object, index);
+}
+AtkRole answer_role(AtkObject* object) {
     const NodeData& value = data(object);
     if (value.application) return ATK_ROLE_APPLICATION;
     if (value.frame) return ATK_ROLE_FRAME;
@@ -380,7 +412,10 @@ AtkRole role(AtkObject* object) {
     const AtkRole result = native_role(value.node.role);
     return result;
 }
-AtkStateSet* states(AtkObject* object) {
+AtkRole role(AtkObject* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.role", &answer_role, object);
+}
+AtkStateSet* answer_states(AtkObject* object) {
     AtkStateSet* result = atk_state_set_new();
     const NodeData& value = data(object);
     if (!value.live) { atk_state_set_add_state(result, ATK_STATE_DEFUNCT); return result; }
@@ -391,17 +426,23 @@ AtkStateSet* states(AtkObject* object) {
     }
     return result;
 }
+AtkStateSet* states(AtkObject* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.states", &answer_states, object);
+}
 AtkObject* panel_object(const NodeData& value);
 // The tab-to-panel relation as ATK's controller-for relation, to the panel's
 // object when the window publishes the panel. A new set per call; the
 // caller releases it.
-AtkRelationSet* relations(AtkObject* object) {
+AtkRelationSet* answer_relations(AtkObject* object) {
     AtkRelationSet* set = atk_relation_set_new();
     const NodeData& value = data(object);
     if (!value.live || value.node.controlled_panel.empty()) { return set; }
     AtkObject* panel = panel_object(value);
     if (panel != nullptr) { atk_relation_set_add_relation_by_type(set, ATK_RELATION_CONTROLLER_FOR, panel); }
     return set;
+}
+AtkRelationSet* relations(AtkObject* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.relations", &answer_relations, object);
 }
 // The object attributes AT-SPI clients read, as browsers publish them:
 // "posinset" and "setsize" (published together), a tree item's "level", a
@@ -420,7 +461,7 @@ AtkAttributeSet* add_count(AtkAttributeSet* set, const char* name, const std::op
     AtkAttributeSet* result = add_attribute(set, name, text.c_str());
     return result;
 }
-AtkAttributeSet* attributes(AtkObject* object) {
+AtkAttributeSet* answer_attributes(AtkObject* object) {
     const NodeData& value = data(object);
     AtkAttributeSet* set = nullptr;
     if (!value.live) { return set; }
@@ -440,6 +481,9 @@ AtkAttributeSet* attributes(AtkObject* object) {
     }
     return set;
 }
+AtkAttributeSet* attributes(AtkObject* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.attributes", &answer_attributes, object);
+}
 // Asks a screen reader to speak a live region's latest announcement
 // (DK-51), its new name. ATK 2.46 and later carry the "announcement" signal
 // (AT-SPI object:announcement); it is looked up at run time, so that an
@@ -449,7 +493,7 @@ void announce_live_region(AtkObject* object, const std::string& text) {
     if (signal == 0U) return;
     g_signal_emit(object, signal, 0U, text.c_str());
 }
-void class_init(gpointer raw, gpointer) {
+void class_init(gpointer raw, gpointer) noexcept {
     AtkObjectClass& object = *static_cast<AtkObjectClass*>(raw);
     object.get_name = name; object.get_description = description; object.get_parent = parent;
     object.get_index_in_parent = index_in_parent; object.get_n_children = child_count;
@@ -457,39 +501,57 @@ void class_init(gpointer raw, gpointer) {
     object.get_attributes = attributes; object.ref_relation_set = relations;
     (*G_OBJECT_CLASS(raw)).finalize = finalize;
 }
-void instance_init(GTypeInstance* instance, gpointer) {
+void answer_instance_init(GTypeInstance* instance, gpointer) {
     (*reinterpret_cast<NativeAccessible*>(instance)).data = new NodeData;
 }
+void instance_init(GTypeInstance* instance, gpointer unnamed_1) {
+    gui_forms::detail::call_failing_fast("linux.atk.instance_init", &answer_instance_init, instance, unnamed_1);
+}
 gboolean perform(gpointer object, SemanticAction action, const std::string& value = {});
-gint action_count(AtkAction* object) { return static_cast<gint>(data(object).actions.size()); }
-const gchar* action_name(AtkAction* object, gint index) {
+gint answer_action_count(AtkAction* object) { return static_cast<gint>(data(object).actions.size()); }
+gint action_count(AtkAction* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.action_count", &answer_action_count, object);
+}
+const gchar* answer_action_name(AtkAction* object, gint index) {
     const std::vector<SemanticAction>& actions = data(object).actions;
     return index >= 0 && static_cast<std::size_t>(index) < actions.size() ? semantic_action_name(actions[index]) : nullptr;
 }
+const gchar* action_name(AtkAction* object, gint index) {
+    return gui_forms::detail::call_failing_fast("linux.atk.action_name", &answer_action_name, object, index);
+}
 // The default action's key binding, "<Alt>key;;" (mnemonic, no sequence, no
 // shortcut), for a node with an access key; the others have none.
-const gchar* action_keybinding(AtkAction* object, gint index) {
+const gchar* answer_action_keybinding(AtkAction* object, gint index) {
     const NodeData& value = data(object);
     if (index != 0 || value.keybinding.empty()) return nullptr;
     return value.keybinding.c_str();
 }
-gboolean do_action(AtkAction* object, gint index) {
+const gchar* action_keybinding(AtkAction* object, gint index) {
+    return gui_forms::detail::call_failing_fast("linux.atk.action_keybinding", &answer_action_keybinding, object, index);
+}
+gboolean answer_do_action(AtkAction* object, gint index) {
     const std::vector<SemanticAction>& actions = data(object).actions;
     if (index < 0 || static_cast<std::size_t>(index) >= actions.size()) { return false; }
     const SemanticAction action = actions[index];
     return perform(object, action);
 }
-void action_init(gpointer raw, gpointer) {
+gboolean do_action(AtkAction* object, gint index) {
+    return gui_forms::detail::call_failing_fast("linux.atk.do_action", &answer_do_action, object, index);
+}
+void action_init(gpointer raw, gpointer) noexcept {
     AtkActionIface& face = *static_cast<AtkActionIface*>(raw);
     face.get_n_actions = action_count; face.get_name = action_name; face.get_localized_name = action_name;
     face.do_action = do_action; face.get_keybinding = action_keybinding;
 }
 void extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates);
-gboolean contains(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
+gboolean answer_contains(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
     gint left = 0, top = 0, width = 0, height = 0; extents(object, &left, &top, &width, &height, coordinates);
     return x >= left && y >= top && x < left + width && y < top + height;
 }
-AtkObject* at_point(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
+gboolean contains(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
+    return gui_forms::detail::call_failing_fast("linux.atk.contains", &answer_contains, object, x, y, coordinates);
+}
+AtkObject* answer_at_point(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
     const NodeData& value = data(object);
     for (std::size_t i = value.children.size(); i > 0; --i) {
         AtkObject* child = value.children[i - 1];
@@ -500,49 +562,79 @@ AtkObject* at_point(AtkComponent* object, gint x, gint y, AtkCoordType coordinat
     }
     return contains(object, x, y, coordinates) ? ATK_OBJECT(g_object_ref(object)) : nullptr;
 }
-gboolean focus(AtkComponent* object) { return perform(object, SemanticAction::focus); }
-AtkLayer layer(AtkComponent*) { return ATK_LAYER_WIDGET; }
-void component_init(gpointer raw, gpointer) {
+AtkObject* at_point(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
+    return gui_forms::detail::call_failing_fast("linux.atk.at_point", &answer_at_point, object, x, y, coordinates);
+}
+gboolean answer_focus(AtkComponent* object) { return perform(object, SemanticAction::focus); }
+gboolean focus(AtkComponent* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.focus", &answer_focus, object);
+}
+AtkLayer answer_layer(AtkComponent*) { return ATK_LAYER_WIDGET; }
+AtkLayer layer(AtkComponent* unnamed_0) {
+    return gui_forms::detail::call_failing_fast("linux.atk.layer", &answer_layer, unnamed_0);
+}
+void component_init(gpointer raw, gpointer) noexcept {
     AtkComponentIface& face = *static_cast<AtkComponentIface*>(raw);
     face.get_extents = extents; face.contains = contains; face.ref_accessible_at_point = at_point;
     face.grab_focus = focus; face.get_layer = layer;
 }
 // A node without a numeric value reads as 0 with no range; its meaning is
 // the text.
-void value_and_text(AtkValue* object, gdouble* value, gchar** text) {
+void answer_value_and_text(AtkValue* object, gdouble* value, gchar** text) {
     if (value) { *value = data(object).node.numeric_value.value_or(0); }
     if (text) { *text = g_strdup(data(object).node.value.c_str()); }
 }
-AtkRange* range(AtkValue* object) {
+void value_and_text(AtkValue* object, gdouble* value, gchar** text) {
+    gui_forms::detail::call_failing_fast("linux.atk.value_and_text", &answer_value_and_text, object, value, text);
+}
+AtkRange* answer_range(AtkValue* object) {
     const SemanticNode& node = data(object).node;
     return node.minimum_value && node.maximum_value ? atk_range_new(*node.minimum_value, *node.maximum_value, nullptr) : nullptr;
 }
-void set_value(AtkValue* object, gdouble value) {
+AtkRange* range(AtkValue* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.range", &answer_range, object);
+}
+void answer_set_value(AtkValue* object, gdouble value) {
     if (!std::isfinite(value) || !data(object).node.numeric_value) { return; }
     std::ostringstream text; text.imbue(std::locale::classic()); text.precision(17); text << value;
     static_cast<void>(perform(object, SemanticAction::set_value, text.str()));
 }
+void set_value(AtkValue* object, gdouble value) {
+    gui_forms::detail::call_failing_fast("linux.atk.set_value", &answer_set_value, object, value);
+}
 // A range node's small step; zero when it publishes none.
-gdouble increment(AtkValue* object) {
+gdouble answer_increment(AtkValue* object) {
     const gdouble step = data(object).node.small_step.value_or(0.0);
     return step;
 }
-void value_init(gpointer raw, gpointer) {
+gdouble increment(AtkValue* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.increment", &answer_increment, object);
+}
+void value_init(gpointer raw, gpointer) noexcept {
     AtkValueIface& face = *static_cast<AtkValueIface*>(raw);
     face.get_value_and_text = value_and_text; face.get_range = range; face.set_value = set_value;
     face.get_increment = increment;
 }
-gchar* text(AtkText* object, gint start, gint end) {
+gchar* answer_text(AtkText* object, gint start, gint end) {
     const std::string& value = data(object).node.value;
     const glong count = g_utf8_strlen(value.c_str(), value.size());
     start = std::clamp(start, 0, static_cast<int>(count));
     end = end < 0 ? static_cast<int>(count) : std::clamp(end, start, static_cast<int>(count));
     return g_utf8_substring(value.c_str(), start, end);
 }
-gint text_count(AtkText* object) { return static_cast<gint>(g_utf8_strlen(data(object).node.value.c_str(), -1)); }
-gunichar character(AtkText* object, gint offset) {
+gchar* text(AtkText* object, gint start, gint end) {
+    return gui_forms::detail::call_failing_fast("linux.atk.text", &answer_text, object, start, end);
+}
+gint answer_text_count(AtkText* object) { return static_cast<gint>(g_utf8_strlen(data(object).node.value.c_str(), -1)); }
+gint text_count(AtkText* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.text_count", &answer_text_count, object);
+}
+gunichar answer_character(AtkText* object, gint offset) {
     const std::string& value = data(object).node.value;
     return offset >= 0 && offset < text_count(object) ? g_utf8_get_char(g_utf8_offset_to_pointer(value.c_str(), offset)) : 0;
+}
+gunichar character(AtkText* object, gint offset) {
+    return gui_forms::detail::call_failing_fast("linux.atk.character", &answer_character, object, offset);
 }
 
 // Editable text on the A-T1 core (A-L3). AT-SPI counts characters (Unicode
@@ -564,19 +656,25 @@ std::optional<std::size_t> byte_offset(const std::string& value, gint offset) {
     return byte;
 }
 // The published caret, or 0 without a published selection.
-gint caret_offset(AtkText* object) {
+gint answer_caret_offset(AtkText* object) {
     const NodeData& node = data(object);
     if (!node.live || !node.node.text_selection) return 0;
     return character_offset(node.node.value, (*node.node.text_selection).caret.value());
 }
+gint caret_offset(AtkText* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.caret_offset", &answer_caret_offset, object);
+}
 // One selection while the anchor and the caret differ, else none.
-gint selection_count(AtkText* object) {
+gint answer_selection_count(AtkText* object) {
     const NodeData& node = data(object);
     if (!node.live || !node.node.text_selection) return 0;
     const SemanticTextSelection selection = *node.node.text_selection;
     return selection.anchor == selection.caret ? 0 : 1;
 }
-gchar* selection_text(AtkText* object, gint number, gint* start, gint* end) {
+gint selection_count(AtkText* object) {
+    return gui_forms::detail::call_failing_fast("linux.atk.selection_count", &answer_selection_count, object);
+}
+gchar* answer_selection_text(AtkText* object, gint number, gint* start, gint* end) {
     if (start) { *start = 0; }
     if (end) { *end = 0; }
     if (number != 0 || selection_count(object) == 0) return nullptr;
@@ -590,6 +688,9 @@ gchar* selection_text(AtkText* object, gint number, gint* start, gint* end) {
     if (end) { *end = last; }
     return g_utf8_substring(node.node.value.c_str(), first, last);
 }
+gchar* selection_text(AtkText* object, gint number, gint* start, gint* end) {
+    return gui_forms::detail::call_failing_fast("linux.atk.selection_text", &answer_selection_text, object, number, start, end);
+}
 // Defined after LinuxAccessibility::Impl: these reach the window.
 gboolean set_caret(AtkText* object, gint offset);
 gboolean add_selection(AtkText* object, gint start, gint end);
@@ -598,7 +699,7 @@ gboolean set_selection(AtkText* object, gint number, gint start, gint end);
 gchar* string_at(AtkText* object, gint offset, AtkTextGranularity granularity, gint* start, gint* end);
 void character_extents(AtkText* object, gint offset, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates);
 gint offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordinates);
-void text_init(gpointer raw, gpointer) {
+void text_init(gpointer raw, gpointer) noexcept {
     AtkTextIface& face = *static_cast<AtkTextIface*>(raw);
     face.get_text = text; face.get_character_count = text_count; face.get_character_at_offset = character;
     face.get_caret_offset = caret_offset; face.set_caret_offset = set_caret;
@@ -656,10 +757,13 @@ void announce_text(AtkObject* object, const std::string& before, const std::opti
     const bool selected_now = now && (*now).anchor != (*now).caret;
     if ((selected_before || selected_now) && was != now) { g_signal_emit_by_name(object, "text-selection-changed"); }
 }
-void set_contents(AtkEditableText* object, const gchar* value) {
+void answer_set_contents(AtkEditableText* object, const gchar* value) {
     if (value && g_utf8_validate(value, -1, nullptr)) { static_cast<void>(perform(object, SemanticAction::set_value, value)); }
 }
-void editable_init(gpointer raw, gpointer) { (*static_cast<AtkEditableTextIface*>(raw)).set_text_contents = set_contents; }
+void set_contents(AtkEditableText* object, const gchar* value) {
+    gui_forms::detail::call_failing_fast("linux.atk.set_contents", &answer_set_contents, object, value);
+}
+void editable_init(gpointer raw, gpointer) noexcept { (*static_cast<AtkEditableTextIface*>(raw)).set_text_contents = set_contents; }
 AtkObject* make_object(unsigned flags) {
     static std::map<unsigned, GType> types;
     std::map<unsigned, GType>::const_iterator found = types.find(flags);
@@ -847,25 +951,23 @@ gboolean perform(gpointer object, SemanticAction action, const std::string& valu
     LinuxAccessibility::Impl& owner = *node.owner;
     g_object_ref(accessible);
     gboolean result = false;
-    try {
-        owner.update();
-        if (node.live && node.owner != nullptr && owner.model != nullptr) {
-            if (action == SemanticAction::focus) { XSetInputFocus(owner.display, owner.native, RevertToParent, CurrentTime); }
-            // Copied: the action may run a nested main loop whose update
-            // replaces this node's data.
-            const std::string virtual_child = node.key.virtual_child;
-            const std::string stable_id = node.node.stable_id;
-            const RuntimeId control{node.key.control};
-            if (control.value == 0U) {
-                // A virtual child at the top of the tree has no exposed
-                // control above it; the window finds its publisher by stable
-                // identity.
-                result = (*owner.model).perform_semantic_action(stable_id, action, value);
-            } else {
-                result = (*owner.model).perform_semantic_action(control, virtual_child, action, value);
-            }
+    owner.update();
+    if (node.live && node.owner != nullptr && owner.model != nullptr) {
+        if (action == SemanticAction::focus) { XSetInputFocus(owner.display, owner.native, RevertToParent, CurrentTime); }
+        // Copied: the action may run a nested main loop whose update
+        // replaces this node's data.
+        const std::string virtual_child = node.key.virtual_child;
+        const std::string stable_id = node.node.stable_id;
+        const RuntimeId control{node.key.control};
+        if (control.value == 0U) {
+            // A virtual child at the top of the tree has no exposed
+            // control above it; the window finds its publisher by stable
+            // identity.
+            result = (*owner.model).perform_semantic_action(stable_id, action, value);
+        } else {
+            result = (*owner.model).perform_semantic_action(control, virtual_child, action, value);
         }
-    } catch (...) { result = false; }
+    }
     g_object_unref(accessible);
     return result;
 }
@@ -881,7 +983,7 @@ void coordinate_origin(const NodeData& node, AtkCoordType coordinates, int& left
         left = -static_cast<int>(data(node.parent).node.bounds.x); top = -static_cast<int>(data(node.parent).node.bounds.y);
     }
 }
-void extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
+void answer_extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
     const NodeData& node = data(object);
     int left = 0, top = 0;
     coordinate_origin(node, coordinates, left, top);
@@ -890,11 +992,14 @@ void extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, 
     if (width) { *width = node.live ? static_cast<int>(node.node.bounds.width) : 0; }
     if (height) { *height = node.live ? static_cast<int>(node.node.bounds.height) : 0; }
 }
+void extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
+    gui_forms::detail::call_failing_fast("linux.atk.extents", &answer_extents, object, x, y, width, height, coordinates);
+}
 
 // -- editable text through the window (A-L3) ---------------------------------
 // Each function holds a reference to its object throughout, since bringing
-// the published tree up to date may retire it, and catches every exception:
-// none may cross into the AT-SPI bridge.
+// the published tree up to date may retire it. Each ATK entry goes through
+// the fail-fast boundary: no exception crosses into the AT-SPI bridge.
 
 // Whether every offset of `layout` lies within a value of `size` bytes: the
 // layout comes from the control, the value from the published snapshot.
@@ -932,47 +1037,57 @@ gboolean select_text(AtkText* object, gint anchor, gint caret) {
     AtkObject* const accessible = ATK_OBJECT(object);
     g_object_ref(accessible);
     gboolean result = FALSE;
-    try {
-        NodeData& node = data(accessible);
-        if (node.live && node.owner != nullptr && (*node.owner).model != nullptr) {
-            LinuxAccessibility::Impl& owner = *node.owner;
+    NodeData& node = data(accessible);
+    if (node.live && node.owner != nullptr && (*node.owner).model != nullptr) {
+        LinuxAccessibility::Impl& owner = *node.owner;
+        owner.update();
+        const std::optional<std::size_t> anchor_byte = byte_offset(node.node.value, anchor);
+        const std::optional<std::size_t> caret_byte = byte_offset(node.node.value, caret);
+        if (node.live && node.owner != nullptr && anchor_byte && caret_byte) {
+            const RuntimeId control{node.key.control};
+            const SemanticTextSelection selection{.anchor = Utf8Offset(*anchor_byte), .caret = Utf8Offset(*caret_byte)};
+            const SemanticTextResult moved = (*owner.model).set_semantic_text_selection(control, selection);
+            result = moved == SemanticTextResult::done ? TRUE : FALSE;
             owner.update();
-            const std::optional<std::size_t> anchor_byte = byte_offset(node.node.value, anchor);
-            const std::optional<std::size_t> caret_byte = byte_offset(node.node.value, caret);
-            if (node.live && node.owner != nullptr && anchor_byte && caret_byte) {
-                const RuntimeId control{node.key.control};
-                const SemanticTextSelection selection{.anchor = Utf8Offset(*anchor_byte), .caret = Utf8Offset(*caret_byte)};
-                const SemanticTextResult moved = (*owner.model).set_semantic_text_selection(control, selection);
-                result = moved == SemanticTextResult::done ? TRUE : FALSE;
-                owner.update();
-            }
         }
-    } catch (...) { result = FALSE; }
+    }
     g_object_unref(accessible);
     return result;
 }
-gboolean set_caret(AtkText* object, gint offset) {
+gboolean answer_set_caret(AtkText* object, gint offset) {
     const gboolean result = select_text(object, offset, offset);
     return result;
 }
+gboolean set_caret(AtkText* object, gint offset) {
+    return gui_forms::detail::call_failing_fast("linux.atk.set_caret", &answer_set_caret, object, offset);
+}
 // A second selection is not supported; the one selection is added only
 // while there is none.
-gboolean add_selection(AtkText* object, gint start, gint end) {
+gboolean answer_add_selection(AtkText* object, gint start, gint end) {
     if (selection_count(object) != 0) return FALSE;
     const gboolean result = select_text(object, start, end);
     return result;
 }
+gboolean add_selection(AtkText* object, gint start, gint end) {
+    return gui_forms::detail::call_failing_fast("linux.atk.add_selection", &answer_add_selection, object, start, end);
+}
 // Removing the selection leaves the caret where it was.
-gboolean remove_selection(AtkText* object, gint number) {
+gboolean answer_remove_selection(AtkText* object, gint number) {
     if (number != 0 || selection_count(object) == 0) return FALSE;
     const gint caret = caret_offset(object);
     const gboolean result = select_text(object, caret, caret);
     return result;
 }
-gboolean set_selection(AtkText* object, gint number, gint start, gint end) {
+gboolean remove_selection(AtkText* object, gint number) {
+    return gui_forms::detail::call_failing_fast("linux.atk.remove_selection", &answer_remove_selection, object, number);
+}
+gboolean answer_set_selection(AtkText* object, gint number, gint start, gint end) {
     if (number != 0) return FALSE;
     const gboolean result = select_text(object, start, end);
     return result;
+}
+gboolean set_selection(AtkText* object, gint number, gint start, gint end) {
+    return gui_forms::detail::call_failing_fast("linux.atk.set_selection", &answer_set_selection, object, number, start, end);
 }
 // The span of `granularity` around byte `byte` of `value`, from the owner's
 // layout: a grapheme, a word (between consecutive word starts), a visual
@@ -1024,84 +1139,87 @@ bool granularity_span(const SemanticTextLayout& layout, const std::string& value
 }
 // The span's text, newly allocated; an empty string with offsets -1 when
 // there is no span (as for a sentence).
-gchar* string_at(AtkText* object, gint offset, AtkTextGranularity granularity, gint* start, gint* end) {
+gchar* answer_string_at(AtkText* object, gint offset, AtkTextGranularity granularity, gint* start, gint* end) {
     if (start) { *start = -1; }
     if (end) { *end = -1; }
     AtkObject* const accessible = ATK_OBJECT(object);
     g_object_ref(accessible);
     gchar* result = nullptr;
-    try {
-        if (fetch_text_layout(accessible)) {
-            const NodeData& node = data(accessible);
-            const std::string& value = node.node.value;
-            const std::optional<std::size_t> byte = byte_offset(value, offset);
-            std::size_t low = 0U, high = 0U;
-            if (byte && granularity_span((*node.owner).text_layout, value, *byte, granularity, low, high)) {
-                const gint first = character_offset(value, low);
-                const gint last = character_offset(value, high);
-                if (start) { *start = first; }
-                if (end) { *end = last; }
-                result = g_utf8_substring(value.c_str(), first, last);
-            }
+    if (fetch_text_layout(accessible)) {
+        const NodeData& node = data(accessible);
+        const std::string& value = node.node.value;
+        const std::optional<std::size_t> byte = byte_offset(value, offset);
+        std::size_t low = 0U, high = 0U;
+        if (byte && granularity_span((*node.owner).text_layout, value, *byte, granularity, low, high)) {
+            const gint first = character_offset(value, low);
+            const gint last = character_offset(value, high);
+            if (start) { *start = first; }
+            if (end) { *end = last; }
+            result = g_utf8_substring(value.c_str(), first, last);
         }
-    } catch (...) { result = nullptr; }
+    }
     g_object_unref(accessible);
     if (result == nullptr) { result = g_strdup(""); }
     return result;
 }
+gchar* string_at(AtkText* object, gint offset, AtkTextGranularity granularity, gint* start, gint* end) {
+    return gui_forms::detail::call_failing_fast("linux.atk.string_at", &answer_string_at, object, offset, granularity, start, end);
+}
 // A character's box: the box of the grapheme it belongs to. All four are -1
 // at the end of the text or when the layout cannot be read.
-void character_extents(AtkText* object, gint offset, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
+void answer_character_extents(AtkText* object, gint offset, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
     if (x) { *x = -1; }
     if (y) { *y = -1; }
     if (width) { *width = -1; }
     if (height) { *height = -1; }
     AtkObject* const accessible = ATK_OBJECT(object);
     g_object_ref(accessible);
-    try {
-        if (fetch_text_layout(accessible)) {
-            const NodeData& node = data(accessible);
-            const std::optional<std::size_t> byte = byte_offset(node.node.value, offset);
-            std::size_t low = 0U, high = 0U;
-            if (byte && granularity_span((*node.owner).text_layout, node.node.value, *byte, ATK_TEXT_GRANULARITY_CHAR, low, high)) {
-                for (const SemanticTextGrapheme& grapheme : (*node.owner).text_layout.graphemes) {
-                    if (grapheme.range.start.value() != low) continue;
-                    int left = 0, top = 0;
-                    coordinate_origin(node, coordinates, left, top);
-                    if (x) { *x = left + static_cast<int>(std::lround(grapheme.bounds.x)); }
-                    if (y) { *y = top + static_cast<int>(std::lround(grapheme.bounds.y)); }
-                    if (width) { *width = static_cast<int>(std::lround(grapheme.bounds.width)); }
-                    if (height) { *height = static_cast<int>(std::lround(grapheme.bounds.height)); }
-                    break;
-                }
+    if (fetch_text_layout(accessible)) {
+        const NodeData& node = data(accessible);
+        const std::optional<std::size_t> byte = byte_offset(node.node.value, offset);
+        std::size_t low = 0U, high = 0U;
+        if (byte && granularity_span((*node.owner).text_layout, node.node.value, *byte, ATK_TEXT_GRANULARITY_CHAR, low, high)) {
+            for (const SemanticTextGrapheme& grapheme : (*node.owner).text_layout.graphemes) {
+                if (grapheme.range.start.value() != low) continue;
+                int left = 0, top = 0;
+                coordinate_origin(node, coordinates, left, top);
+                if (x) { *x = left + static_cast<int>(std::lround(grapheme.bounds.x)); }
+                if (y) { *y = top + static_cast<int>(std::lround(grapheme.bounds.y)); }
+                if (width) { *width = static_cast<int>(std::lround(grapheme.bounds.width)); }
+                if (height) { *height = static_cast<int>(std::lround(grapheme.bounds.height)); }
+                break;
             }
         }
-    } catch (...) {}
+    }
     g_object_unref(accessible);
 }
+void character_extents(AtkText* object, gint offset, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
+    gui_forms::detail::call_failing_fast("linux.atk.character_extents", &answer_character_extents, object, offset, x, y, width, height, coordinates);
+}
 // The first character of the grapheme whose box holds the point, or -1.
-gint offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordinates) {
+gint answer_offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordinates) {
     AtkObject* const accessible = ATK_OBJECT(object);
     g_object_ref(accessible);
     gint result = -1;
-    try {
-        if (fetch_text_layout(accessible)) {
-            const NodeData& node = data(accessible);
-            int left = 0, top = 0;
-            coordinate_origin(node, coordinates, left, top);
-            const double client_x = static_cast<double>(x - left);
-            const double client_y = static_cast<double>(y - top);
-            for (const SemanticTextGrapheme& grapheme : (*node.owner).text_layout.graphemes) {
-                const Rect box = grapheme.bounds;
-                if (client_x >= box.x && client_x < box.x + box.width && client_y >= box.y && client_y < box.y + box.height) {
-                    result = character_offset(node.node.value, grapheme.range.start.value());
-                    break;
-                }
+    if (fetch_text_layout(accessible)) {
+        const NodeData& node = data(accessible);
+        int left = 0, top = 0;
+        coordinate_origin(node, coordinates, left, top);
+        const double client_x = static_cast<double>(x - left);
+        const double client_y = static_cast<double>(y - top);
+        for (const SemanticTextGrapheme& grapheme : (*node.owner).text_layout.graphemes) {
+            const Rect box = grapheme.bounds;
+            if (client_x >= box.x && client_x < box.x + box.width && client_y >= box.y && client_y < box.y + box.height) {
+                result = character_offset(node.node.value, grapheme.range.start.value());
+                break;
             }
         }
-    } catch (...) { result = -1; }
+    }
     g_object_unref(accessible);
     return result;
+}
+gint offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordinates) {
+    return gui_forms::detail::call_failing_fast("linux.atk.offset_at_point", &answer_offset_at_point, object, x, y, coordinates);
 }
 void publish_on_query(AtkObject* object) {
     NodeData& value = data(object);

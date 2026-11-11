@@ -35,9 +35,6 @@ public:
 
     void on_pointer(PointerEvent& event) override {
         ++pointer_events;
-        if (throw_on_pointer) {
-            throw std::runtime_error("intentional host callback fault");
-        }
         event.handled = true;
     }
 
@@ -68,7 +65,6 @@ public:
     std::vector<DragAction> drag_actions;
     std::vector<DragDataItem> last_drag_items;
     DragEffect drag_effect{DragEffect::copy};
-    bool throw_on_pointer{};
 };
 
 class HostLeasePainter final : public Painter {
@@ -549,39 +545,6 @@ void test_capabilities_and_normalized_dispatch() {
     require(fixture.host.dispatch(std::move(text), 4).handled &&
                 (*fixture.probe).last_text == "é",
             "committed UTF-8 host text must retain bytes and handling result");
-}
-
-void test_application_callback_fault_is_contained_at_host_boundary() {
-    const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
-    Fixture& fixture = *held_fixture;
-    require(fixture.host.dispatch(
-                HostAttachEvent{{320.0, 180.0}, 1.0}, 1).accepted(),
-            "callback-fault fixture must attach before input");
-    (*fixture.probe).throw_on_pointer = true;
-    PointerEvent pointer;
-    pointer.action = PointerAction::down;
-    pointer.button = PointerButton::primary;
-    pointer.position = {10.0, 10.0};
-    pointer.pointer_id = 7U;
-    const HostDispatchResult fault = fixture.host.dispatch(pointer, 2);
-    const HostSessionSnapshot after_fault = fixture.host.session().snapshot();
-    require(fault.error == HostDispatchError::callback_fault &&
-                after_fault.callback_faults == 1U &&
-                after_fault.last_sequence == 2U &&
-                !fixture.window.captured_control(),
-            "throwing input callbacks must become an observable host fault and release capture");
-
-    (*fixture.probe).throw_on_pointer = false;
-    pointer.action = PointerAction::move;
-    const HostDispatchResult recovered = fixture.host.dispatch(pointer, 3);
-    require(recovered.accepted() && recovered.handled &&
-                fixture.host.session().snapshot().callback_faults == 1U,
-            "a contained callback fault must not poison later host dispatch");
-    require(std::string(host_dispatch_error_name(
-                HostDispatchError::callback_fault)) == "callback_fault" &&
-                after_fault.to_json().find("\"callback_faults\":1") !=
-                    std::string::npos,
-            "callback fault telemetry must be stable and machine readable");
 }
 
 void test_semantic_sound_cues_are_bounded_and_deterministic() {
@@ -1449,7 +1412,6 @@ void test_drag_over_reuses_effect_and_compacts_while_painting() {
 int main() {
     try {
         test_capabilities_and_normalized_dispatch();
-        test_application_callback_fault_is_contained_at_host_boundary();
         test_semantic_sound_cues_are_bounded_and_deterministic();
         test_typed_dialog_requests_and_results();
         test_typed_drag_destination_routing_and_bounds();

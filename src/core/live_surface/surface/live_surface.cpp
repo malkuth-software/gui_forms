@@ -70,10 +70,9 @@ bool LiveSurface::reconfigure(LiveSurfaceDescription description) {
             !(*wake).callback) {
             continue;
         }
-        try {
-            (*wake).callback();
-        } catch (...) {
-        }
+        // Wakes are host and core housekeeping (a posted message, a
+        // re-armed drain): no-throw by construction, so nothing is caught.
+        (*wake).callback();
     }
     return true;
 }
@@ -220,11 +219,7 @@ void LiveSurface::notify_presented(const std::uint64_t generation, const LiveDis
     (*state_).presented.notify_all();
     for (const std::shared_ptr<gui_forms::detail::LiveSurfaceWake>& wake : wakes) {
         if (!wake || !(*wake).connected.load(std::memory_order_acquire) || !(*wake).callback) continue;
-        try {
-            (*wake).callback();
-        } catch (...) {
-            // The report stands when a retiring consumer's wake faults.
-        }
+        (*wake).callback();
     }
 }
 

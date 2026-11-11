@@ -36,12 +36,12 @@ public:
     // Answers WM_GETOBJECT for UiaRootObjectId with the window's fragment
     // root (an LRESULT from UiaReturnRawElementProvider), or 0 when nothing
     // is attached.
-    LRESULT automation_object(WPARAM wparam, LPARAM lparam) noexcept;
+    LRESULT automation_object(WPARAM wparam, LPARAM lparam);
     // Whether a WM_GETOBJECT `lparam` asks for the UI Automation root.
     [[nodiscard]] static bool automation_request(LPARAM lparam) noexcept;
     // Raises the MSAA and UI Automation events for a tree that changed since
     // the last call.
-    void notify(double scale) noexcept;
+    void notify(double scale);
 
 private:
     // Takes one reference on the calling thread's COM apartment

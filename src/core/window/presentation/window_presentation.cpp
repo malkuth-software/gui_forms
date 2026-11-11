@@ -17,6 +17,7 @@
 #include <array>
 #include <cmath>
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <optional>
@@ -41,8 +42,9 @@ public:
     void operator()() const noexcept {
         const std::shared_ptr<LiveSurfaceIdleWake> state = state_.lock();
         if (!state || !(*state).waiting.exchange(false, std::memory_order_acq_rel)) return;
-        try { (*state).handler(); }
-        catch (...) { (*state).waiting.store(true, std::memory_order_release); }
+        // The handler re-arms the host's drain: housekeeping, no-throw by
+        // construction.
+        (*state).handler();
     }
 private:
     std::weak_ptr<LiveSurfaceIdleWake> state_{};
@@ -593,7 +595,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
     // One rectangle: the request, or else the bounds of all damage.
     if (!requested_damage.empty()) {
         const std::array<Rect, 1> request{requested_damage};
-        return paint_rectangles(painter, request, true);
+        return paint_timed(painter, request, true);
     }
     DamageRegion aggregate;
     for (const DamageRegion& plane : plane_damage_) {
@@ -602,21 +604,37 @@ std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
         }
     }
     const std::array<Rect, 1> bounds{aggregate.bounds()};
-    return paint_rectangles(painter, bounds, false);
+    return paint_timed(painter, bounds, false);
 }
 
 std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
                                           std::span<const Rect> requested_damage) {
     settle_dirty();
     if (!requested_damage.empty()) {
-        return paint_rectangles(painter, requested_damage, true);
+        return paint_timed(painter, requested_damage, true);
     }
     std::vector<Rect> pending;
     for (const DamageRegion& plane : plane_damage_) {
         const std::span<const Rect> rectangles = plane.rectangles();
         pending.insert(pending.end(), rectangles.begin(), rectangles.end());
     }
-    return paint_rectangles(painter, pending, false);
+    return paint_timed(painter, pending, false);
+}
+
+// One paint tick, checked against the paint budget (paint_within_budget):
+// a tick that took longer is a missed expectation, never a fault.
+std::optional<PaintReceipt> SurfaceRoot::paint_timed(Painter& painter, std::span<const Rect> rectangles,
+                                                     bool explicit_request) {
+    const FrameTime started = FrameClock::now();
+    std::optional<PaintReceipt> receipt = paint_rectangles(painter, rectangles, explicit_request);
+    const FrameInterval elapsed = FrameClock::now() - started;
+    const std::uint64_t nanoseconds = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count());
+    const std::uint64_t budget = metrics_.expectation_thresholds().paint_budget_nanoseconds;
+    if (nanoseconds > budget) {
+        metrics_.record_expectation_miss(HousekeepingExpectation::paint_within_budget, budget, nanoseconds);
+    }
+    return receipt;
 }
 
 std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
@@ -1219,6 +1237,17 @@ Window::take_live_surface_presentations(const bool include_unchanged,
                 }
                 clips = std::move(remaining);
                 if (clips.empty()) break;
+            }
+            // live_drain_kept_up: the frames the producer published since
+            // this drain last sampled the surface, beyond the one it takes
+            // now, stay within the allowance.
+            const bool sampled_this_epoch = registration.placed && registration.sampled_epoch == snapshot.epoch;
+            if (sampled_this_epoch && snapshot.published_generation > registration.sampled_generation + 1U) {
+                const std::uint64_t skipped = snapshot.published_generation - registration.sampled_generation - 1U;
+                const std::uint64_t allowed = metrics_.expectation_thresholds().live_drain_skipped_frames;
+                if (skipped > allowed) {
+                    metrics_.record_expectation_miss(HousekeepingExpectation::live_drain_kept_up, allowed, skipped);
+                }
             }
             const bool same_generation =
                 registration.sampled_epoch == snapshot.epoch &&

@@ -17,6 +17,7 @@
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../core/engine/primitives/material/material_raster.hpp"
 #include "../../../core/theme/theme/material_layers.hpp"
+#include "../../../core/interpolation/interpolation.hpp"
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkBlurTypes.h"
@@ -334,6 +335,74 @@ sk_sp<SkData> read_font_file(const char* path) {
     return data;
 }
 
+// draw_image below 1x (owner, 2026-11-11, audit P11): neither mipmaps nor an
+// area filter of Skia's; the image is resampled through the interpolation
+// seam (stx_conv, pixel-area on each axis) to the device size it is drawn at,
+// and that copy is drawn instead. A source larger than this many pixels is
+// drawn directly: its binary64 working copy (32 bytes a pixel) would cost
+// more than the draw is worth.
+constexpr std::size_t maximum_resampled_source_pixels = 1024U * 1024U;
+
+// One premultiplied channel in [0, 1] quantized once to a byte.
+std::uint8_t channel_byte(double value) noexcept {
+    const double scaled = std::round(std::clamp(value, 0.0, 1.0) * 255.0);
+    return static_cast<std::uint8_t>(scaled);
+}
+
+// `source` (premultiplied BGRA, 8 bits a channel) resampled to `width` x
+// `height` pixels, each no larger than the source's: null when the source
+// has no readable pixels, is too large (maximum_resampled_source_pixels), or
+// the seam refuses. Allocates its working copies once and releases them.
+sk_sp<SkImage> resample_image_through_conv(const SkImage& source, int width, int height) {
+    SkPixmap pixels;
+    if (!source.peekPixels(&pixels) || pixels.colorType() != kBGRA_8888_SkColorType ||
+        pixels.alphaType() != kPremul_SkAlphaType) {
+        return nullptr;
+    }
+    const std::size_t source_width = static_cast<std::size_t>(pixels.width());
+    const std::size_t source_height = static_cast<std::size_t>(pixels.height());
+    const std::size_t target_width = static_cast<std::size_t>(width);
+    const std::size_t target_height = static_cast<std::size_t>(height);
+    if (source_width == 0U || source_height == 0U || source_width * source_height > maximum_resampled_source_pixels ||
+        target_width == 0U || target_height == 0U || target_width > source_width || target_height > source_height) {
+        return nullptr;
+    }
+    constexpr std::size_t channels = 4U;
+    // Source and target samples, row-major, the channels in BGRA order.
+    std::vector<double> source_samples(source_width * source_height * channels);
+    std::vector<double> target_samples(target_width * target_height * channels);
+    for (std::size_t y = 0U; y < source_height; ++y) {
+        const std::uint8_t* const row = static_cast<const std::uint8_t*>(pixels.addr(0, static_cast<int>(y)));
+        double* const out = source_samples.data() + y * source_width * channels;
+        for (std::size_t index = 0U; index < source_width * channels; ++index) {
+            out[index] = static_cast<double>(row[index]) / 255.0;
+        }
+    }
+    const interpolation::SourceImage from{source_samples, source_width, source_height, channels,
+                                          source_width * channels};
+    const interpolation::TargetImage to{target_samples, target_width, target_height, target_width * channels};
+    const interpolation::Status status =
+        interpolation::resample_image(from, to, interpolation::Sampling::pixel_area, interpolation::ValueRange{});
+    if (status != interpolation::Status::ok) return nullptr;
+    const std::size_t row_bytes = target_width * channels;
+    sk_sp<SkData> data = SkData::MakeUninitialized(row_bytes * target_height);
+    std::uint8_t* const bytes = static_cast<std::uint8_t*>((*data).writable_data());
+    for (std::size_t pixel = 0U; pixel < target_width * target_height; ++pixel) {
+        const std::size_t at = pixel * channels;
+        const double alpha = target_samples[at + 3U];
+        // The seam clamps each channel alone; colour above alpha is clamped
+        // to it, keeping the copy premultiplied.
+        bytes[at] = channel_byte(std::min(target_samples[at], alpha));
+        bytes[at + 1U] = channel_byte(std::min(target_samples[at + 1U], alpha));
+        bytes[at + 2U] = channel_byte(std::min(target_samples[at + 2U], alpha));
+        bytes[at + 3U] = channel_byte(alpha);
+    }
+    const SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kPremul_SkAlphaType,
+                                               SkColorSpace::MakeSRGB());
+    sk_sp<SkImage> result = SkImages::RasterFromData(info, std::move(data), row_bytes);
+    return result;
+}
+
 } // namespace
 
 class SkiaRaster::Impl {
@@ -376,6 +445,77 @@ public:
     bool prepared_mode{false};
 #endif
     ImageMap images;
+    // draw_image's resampled copies (resample_image_through_conv), keyed by
+    // image, its content (a replaced image misses) and the device size; at
+    // most maximum_downscaled_images and maximum_downscaled_bytes, the least
+    // recently drawn evicted first.
+    struct DownscaledImage final {
+        std::uint64_t image{};
+        std::uint64_t content_hash{};
+        int width{};
+        int height{};
+        std::uint64_t last_use{};
+        sk_sp<SkImage> pixels;
+    };
+    static constexpr std::size_t maximum_downscaled_images = 64U;
+    static constexpr std::size_t maximum_downscaled_bytes = 16U * 1024U * 1024U;
+    std::vector<DownscaledImage> downscaled;
+    std::size_t downscaled_bytes{};
+    std::uint64_t downscale_clock{};
+
+    // The copy of `decoded` (image `image`) to draw over `destination` under
+    // `matrix`: null when the draw is not below 1x on either axis, the
+    // matrix is not a scale and translation, or the copy cannot be made, so
+    // the image is drawn as it is.
+    sk_sp<SkImage> downscaled_for(std::uint64_t image, const DecodedImage& decoded, const SkMatrix& matrix,
+                                  Rect destination) {
+        if (!matrix.isScaleTranslate()) return nullptr;
+        const double device_width = destination.width * std::abs(static_cast<double>(matrix.getScaleX()));
+        const double device_height = destination.height * std::abs(static_cast<double>(matrix.getScaleY()));
+        const int source_width = (*decoded.image).width();
+        const int source_height = (*decoded.image).height();
+        if (!(device_width >= 0.5) || !(device_height >= 0.5) ||
+            !(device_width <= static_cast<double>(source_width)) ||
+            !(device_height <= static_cast<double>(source_height))) {
+            return nullptr;
+        }
+        const int width = static_cast<int>(std::lround(device_width));
+        const int height = static_cast<int>(std::lround(device_height));
+        if (width == source_width && height == source_height) return nullptr;
+        downscale_clock = downscale_clock + 1U;
+        for (DownscaledImage& kept : downscaled) {
+            if (kept.image == image && kept.content_hash == decoded.content_hash && kept.width == width &&
+                kept.height == height) {
+                kept.last_use = downscale_clock;
+                return kept.pixels;
+            }
+        }
+        sk_sp<SkImage> made = resample_image_through_conv(*decoded.image, width, height);
+        if (!made) return nullptr;
+        const std::size_t bytes = static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4U;
+        while (!downscaled.empty() &&
+               (downscaled.size() >= maximum_downscaled_images || downscaled_bytes + bytes > maximum_downscaled_bytes)) {
+            std::size_t oldest = 0U;
+            for (std::size_t index = 1U; index < downscaled.size(); ++index) {
+                if (downscaled[index].last_use < downscaled[oldest].last_use) oldest = index;
+            }
+            const std::size_t evicted = static_cast<std::size_t>(downscaled[oldest].width) *
+                static_cast<std::size_t>(downscaled[oldest].height) * 4U;
+            downscaled_bytes = downscaled_bytes - evicted;
+            downscaled.erase(downscaled.begin() + static_cast<std::ptrdiff_t>(oldest));
+        }
+        if (bytes > maximum_downscaled_bytes) return made;
+        DownscaledImage entry{};
+        entry.image = image;
+        entry.content_hash = decoded.content_hash;
+        entry.width = width;
+        entry.height = height;
+        entry.last_use = downscale_clock;
+        entry.pixels = made;
+        downscaled.push_back(std::move(entry));
+        downscaled_bytes = downscaled_bytes + bytes;
+        return made;
+    }
     text::HarfBuzzFontEngine text_engine;
     // Identity of text_engine for shaped-text memos. A memo holding an
     // expired or different identity was shaped by another raster.
@@ -1835,16 +1975,20 @@ TextResolutionStatus SkiaRaster::fill_line_break_opportunities_utf8(
     return status;
 }
 
+// Below 1x on either axis (and no larger on the other) the image is drawn
+// from its resampled copy at the device size (Impl::downscaled_for); at or
+// above 1x it is drawn as it is, so those pixels are unchanged.
 void SkiaRaster::draw_image(ImageId image, Rect destination, double opacity) {
     const Impl::ImageMap::const_iterator found = (*impl_).images.find(image.value);
-    if (SkCanvas* canvas = (*impl_).canvas();
-        canvas && found != (*impl_).images.end() && opacity > 0.0) {
-        SkPaint paint;
-        paint.setAlphaf(static_cast<float>(std::clamp(opacity, 0.0, 1.0)));
-        paint.setAntiAlias(true);
-        (*canvas).drawImageRect((*found).second.image.get(), to_sk_rect(destination),
-                              SkSamplingOptions(SkFilterMode::kLinear), &paint);
-    }
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (canvas == nullptr || found == (*impl_).images.end() || !(opacity > 0.0) || !destination.finite()) return;
+    const sk_sp<SkImage> reduced =
+        (*impl_).downscaled_for(image.value, (*found).second, (*canvas).getTotalMatrix(), destination);
+    const SkImage* const drawn = reduced ? reduced.get() : (*found).second.image.get();
+    SkPaint paint;
+    paint.setAlphaf(static_cast<float>(std::clamp(opacity, 0.0, 1.0)));
+    paint.setAntiAlias(true);
+    (*canvas).drawImageRect(drawn, to_sk_rect(destination), SkSamplingOptions(SkFilterMode::kLinear), &paint);
 }
 
 void SkiaRaster::begin_group(const PaintGroup& group) {

@@ -1,4 +1,5 @@
 #include "linux_host_internal.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../core/application/splashscreen_surface.hpp"
@@ -510,31 +511,26 @@ bool update_prepared_window(NativeWindow& window) {
   render::SkiaRaster& raster = window.raster;
   const std::chrono::steady_clock::time_point started = std::chrono::steady_clock::now();
   std::optional<PaintReceipt> committed{};
-  try {
-    const bool images_ready = raster.synchronize_images((*window.entry.model).image_resources());
-    if (images_ready) {
-      const PreparedTextStatus begun = raster.begin_prepared_frame(window.size, 1.0, window.damage);
-      if (begun == PreparedTextStatus::success) {
-        const std::optional<PaintReceipt> receipt = (*window.entry.model).paint(raster, window.damage.rectangles());
-        raster.end_frame();
-        if (receipt) {
-          const PreparedTextStatus status = raster.commit_prepared_frame(*receipt);
-          if (status == PreparedTextStatus::success) committed = *receipt;
-          else raster.abort_prepared_frame();
-        } else raster.abort_prepared_frame();
+  // A paint tick is housekeeping: nothing is caught (the X event loop is the
+  // fail-fast boundary); its budget is the model's paint_within_budget.
+  const bool images_ready = raster.synchronize_images((*window.entry.model).image_resources());
+  if (images_ready) {
+    const PreparedTextStatus begun = raster.begin_prepared_frame(window.size, 1.0, window.damage);
+    if (begun == PreparedTextStatus::success) {
+      const std::optional<PaintReceipt> receipt = (*window.entry.model).paint(raster, window.damage.rectangles());
+      raster.end_frame();
+      if (receipt) {
+        const PreparedTextStatus status = raster.commit_prepared_frame(*receipt);
+        if (status == PreparedTextStatus::success) committed = *receipt;
+        else raster.abort_prepared_frame();
       } else raster.abort_prepared_frame();
     } else raster.abort_prepared_frame();
-  } catch (...) {
-    raster.abort_prepared_frame();
-    // Keep host damage and the coherent front for exposure/recovery. A failed
-    // replay cannot terminate the event loop or claim a presentation receipt.
-  }
+  } else raster.abort_prepared_frame();
   const PaintReceipt front = raster.prepared_front_receipt();
   if (!front || raster.prepared_front_scale() != 1.0) return false;
   bool presented = false;
   PresentedArea copied;
-  try { presented = present_raster_rectangles(window, window.damage.rectangles(), copied); }
-  catch (...) { return false; }
+  presented = present_raster_rectangles(window, window.damage.rectangles(), copied);
   if (!presented || !committed) return false;
   const std::chrono::steady_clock::time_point finished = std::chrono::steady_clock::now();
   const std::chrono::nanoseconds duration = std::chrono::duration_cast<std::chrono::nanoseconds>(finished - started);
@@ -1944,7 +1940,9 @@ void Runtime::step(int maximum_wait) {
     XNextEvent(display, &event);
     if (superseded_motion(display, event))
       continue;
-    dispatch(event);
+    // One X event is the native callback of this loop: application code
+    // runs under it, so it goes through the fail-fast boundary.
+    gui_forms::detail::call_failing_fast("linux.x11_event", &Runtime::dispatch, *this, event);
     turn_events = turn_events + 1U;
     if (turn_events >= turn_event_limit)
       break;

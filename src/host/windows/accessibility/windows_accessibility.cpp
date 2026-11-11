@@ -1,4 +1,5 @@
 #include "windows_accessibility.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 
 #include "windows_automation.hpp"
 #include "windows_semantic_source.hpp"
@@ -228,18 +229,15 @@ const wchar_t* default_action_verb(const SemanticNode& node) noexcept {
 // a UI Automation client listens, raises the events for the change from it;
 // then keeps the new tree as the one announced. A failed snapshot keeps the
 // old one, and a reused tree is the one announced, with nothing to raise.
-void publish_automation_tree(const std::shared_ptr<SemanticSource>& source) noexcept {
+void publish_automation_tree(const std::shared_ptr<SemanticSource>& source) {
     SemanticSource& state = *source;
-    try {
-        SemanticTreeRef current;
-        if (!state.snapshot(current)) return;
-        if (current == state.published) return;
-        if (state.published && UiaClientsAreListening()) {
-            raise_automation_events(source, *state.published, *current);
-        }
-        state.published = std::move(current);
-    } catch (...) {
+    SemanticTreeRef current;
+    if (!state.snapshot(current)) return;
+    if (current == state.published) return;
+    if (state.published && UiaClientsAreListening()) {
+        raise_automation_events(source, *state.published, *current);
     }
+    state.published = std::move(current);
 }
 
 // Which text property a text getter reads.
@@ -291,31 +289,62 @@ private:
     ~MsaaElement() = default;
 
     // Takes a snapshot into `client` and finds this object's node.
-    HRESULT resolve_self(SemanticTreeRef& client, SemanticLocation& self) noexcept;
+    HRESULT resolve_self(SemanticTreeRef& client, SemanticLocation& self);
     // As resolve_self, then the node `child` names: this object's node for
     // CHILDID_SELF, else its child `child.lVal` (counting from one).
-    HRESULT resolve(const VARIANT& child, SemanticTreeRef& client, SemanticLocation& target) noexcept;
+    HRESULT resolve(const VARIANT& child, SemanticTreeRef& client, SemanticLocation& target);
     // A new object for the located node, returned as IDispatch.
     HRESULT object_for(const SemanticLocation& location, IDispatch** out) noexcept;
     // The VARIANT a navigation result takes: VT_I4 CHILDID_SELF for this
     // object's own node (a new object for it would make focus and hit-test
     // descent recurse forever), VT_DISPATCH for another node.
     HRESULT variant_for(const SemanticLocation& found, VARIANT* out) noexcept;
-    HRESULT text_property(const VARIANT& child, BSTR* out, TextProperty property) noexcept;
+    HRESULT text_property(const VARIANT& child, BSTR* out, TextProperty property);
 
     std::atomic<ULONG> references_{1U};
     std::shared_ptr<SemanticSource> source_;
     SemanticElementId id_;
+private:
+    // The COM methods' bodies: each method calls its own through the
+    // fail-fast boundary (site "windows.MsaaElement.<method>").
+    HRESULT answer_QueryInterface(REFIID iid, void** out);
+    ULONG answer_AddRef();
+    ULONG answer_Release();
+    HRESULT answer_GetTypeInfoCount(UINT* out);
+    HRESULT answer_GetTypeInfo(UINT, LCID, ITypeInfo** out);
+    HRESULT answer_GetIDsOfNames(REFIID, LPOLESTR*, UINT, LCID, DISPID*);
+    HRESULT answer_Invoke(DISPID, REFIID, LCID, WORD, DISPPARAMS*, VARIANT*, EXCEPINFO*, UINT*);
+    HRESULT answer_get_accParent(IDispatch** out);
+    HRESULT answer_get_accChildCount(LONG* out);
+    HRESULT answer_get_accChild(VARIANT child, IDispatch** out);
+    HRESULT answer_get_accName(VARIANT child, BSTR* out);
+    HRESULT answer_get_accValue(VARIANT child, BSTR* out);
+    HRESULT answer_get_accDescription(VARIANT child, BSTR* out);
+    HRESULT answer_get_accRole(VARIANT child, VARIANT* out);
+    HRESULT answer_get_accState(VARIANT child, VARIANT* out);
+    HRESULT answer_get_accHelp(VARIANT child, BSTR* out);
+    HRESULT answer_get_accHelpTopic(BSTR* file, VARIANT child, LONG* topic);
+    HRESULT answer_get_accKeyboardShortcut(VARIANT child, BSTR* out);
+    HRESULT answer_get_accFocus(VARIANT* out);
+    HRESULT answer_get_accSelection(VARIANT* out);
+    HRESULT answer_get_accDefaultAction(VARIANT child, BSTR* out);
+    HRESULT answer_accSelect(LONG flags, VARIANT child);
+    HRESULT answer_accLocation(LONG* x, LONG* y, LONG* width, LONG* height, VARIANT child);
+    HRESULT answer_accNavigate(LONG direction, VARIANT start, VARIANT* out);
+    HRESULT answer_accHitTest(LONG x, LONG y, VARIANT* out);
+    HRESULT answer_accDoDefaultAction(VARIANT child);
+    HRESULT answer_put_accName(VARIANT child, BSTR value);
+    HRESULT answer_put_accValue(VARIANT child, BSTR value);
 };
 
-HRESULT MsaaElement::resolve_self(SemanticTreeRef& client, SemanticLocation& self) noexcept {
+HRESULT MsaaElement::resolve_self(SemanticTreeRef& client, SemanticLocation& self) {
     if (!(*source_).snapshot(client)) return CO_E_OBJNOTCONNECTED;
     if (!locate_semantic_element(*client, id_, self)) return CO_E_OBJNOTCONNECTED;
     return S_OK;
 }
 
 HRESULT MsaaElement::resolve(const VARIANT& child, SemanticTreeRef& client,
-                             SemanticLocation& target) noexcept {
+                             SemanticLocation& target) {
     if (child.vt != VT_I4) return E_INVALIDARG;
     SemanticLocation self;
     const HRESULT status = resolve_self(client, self);
@@ -352,7 +381,7 @@ HRESULT MsaaElement::variant_for(const SemanticLocation& found, VARIANT* out) no
 }
 
 HRESULT MsaaElement::text_property(const VARIANT& child, BSTR* out,
-                                   TextProperty property) noexcept {
+                                   TextProperty property) {
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
     SemanticTreeRef client;
@@ -374,7 +403,7 @@ HRESULT MsaaElement::text_property(const VARIANT& child, BSTR* out,
     return S_FALSE;
 }
 
-HRESULT STDMETHODCALLTYPE MsaaElement::QueryInterface(REFIID iid, void** out) {
+HRESULT MsaaElement::answer_QueryInterface(REFIID iid, void** out) {
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
     const bool known = iid == IID_IUnknown || iid == IID_IDispatch || iid == IID_IAccessible;
@@ -383,39 +412,60 @@ HRESULT STDMETHODCALLTYPE MsaaElement::QueryInterface(REFIID iid, void** out) {
     AddRef();
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::QueryInterface(REFIID iid, void** out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.QueryInterface", &MsaaElement::answer_QueryInterface, *this, iid, out);
+}
 
-ULONG STDMETHODCALLTYPE MsaaElement::AddRef() {
+ULONG MsaaElement::answer_AddRef() {
     const ULONG count = ++references_;
     return count;
 }
+ULONG STDMETHODCALLTYPE MsaaElement::AddRef() {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.AddRef", &MsaaElement::answer_AddRef, *this);
+}
 
-ULONG STDMETHODCALLTYPE MsaaElement::Release() {
+ULONG MsaaElement::answer_Release() {
     const ULONG count = --references_;
     if (count == 0U) delete this;
     return count;
 }
+ULONG STDMETHODCALLTYPE MsaaElement::Release() {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.Release", &MsaaElement::answer_Release, *this);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::GetTypeInfoCount(UINT* out) {
+HRESULT MsaaElement::answer_GetTypeInfoCount(UINT* out) {
     if (out == nullptr) return E_POINTER;
     *out = 0U;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::GetTypeInfoCount(UINT* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.GetTypeInfoCount", &MsaaElement::answer_GetTypeInfoCount, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::GetTypeInfo(UINT, LCID, ITypeInfo** out) {
+HRESULT MsaaElement::answer_GetTypeInfo(UINT, LCID, ITypeInfo** out) {
     if (out != nullptr) *out = nullptr;
     return E_NOTIMPL;
 }
-
-HRESULT STDMETHODCALLTYPE MsaaElement::GetIDsOfNames(REFIID, LPOLESTR*, UINT, LCID, DISPID*) {
-    return E_NOTIMPL;
+HRESULT STDMETHODCALLTYPE MsaaElement::GetTypeInfo(UINT unnamed_0, LCID unnamed_1, ITypeInfo** out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.GetTypeInfo", &MsaaElement::answer_GetTypeInfo, *this, unnamed_0, unnamed_1, out);
 }
 
-HRESULT STDMETHODCALLTYPE MsaaElement::Invoke(DISPID, REFIID, LCID, WORD, DISPPARAMS*, VARIANT*,
+HRESULT MsaaElement::answer_GetIDsOfNames(REFIID, LPOLESTR*, UINT, LCID, DISPID*) {
+    return E_NOTIMPL;
+}
+HRESULT STDMETHODCALLTYPE MsaaElement::GetIDsOfNames(REFIID unnamed_0, LPOLESTR* unnamed_1, UINT unnamed_2, LCID unnamed_3, DISPID* unnamed_4) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.GetIDsOfNames", &MsaaElement::answer_GetIDsOfNames, *this, unnamed_0, unnamed_1, unnamed_2, unnamed_3, unnamed_4);
+}
+
+HRESULT MsaaElement::answer_Invoke(DISPID, REFIID, LCID, WORD, DISPPARAMS*, VARIANT*,
                                              EXCEPINFO*, UINT*) {
     return E_NOTIMPL;
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::Invoke(DISPID unnamed_0, REFIID unnamed_1, LCID unnamed_2, WORD unnamed_3, DISPPARAMS* unnamed_4, VARIANT* unnamed_5, EXCEPINFO* unnamed_6, UINT* unnamed_7) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.Invoke", &MsaaElement::answer_Invoke, *this, unnamed_0, unnamed_1, unnamed_2, unnamed_3, unnamed_4, unnamed_5, unnamed_6, unnamed_7);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accParent(IDispatch** out) {
+HRESULT MsaaElement::answer_get_accParent(IDispatch** out) {
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
     SemanticTreeRef client;
@@ -431,8 +481,11 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accParent(IDispatch** out) {
     if (!parent_semantic_location(*client, self, parent)) return CO_E_OBJNOTCONNECTED;
     return object_for(parent, out);
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accParent(IDispatch** out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accParent", &MsaaElement::answer_get_accParent, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accChildCount(LONG* out) {
+HRESULT MsaaElement::answer_get_accChildCount(LONG* out) {
     if (out == nullptr) return E_POINTER;
     *out = 0;
     SemanticTreeRef client;
@@ -442,8 +495,11 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accChildCount(LONG* out) {
     *out = static_cast<LONG>((*self.node).children.size());
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accChildCount(LONG* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accChildCount", &MsaaElement::answer_get_accChildCount, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accChild(VARIANT child, IDispatch** out) {
+HRESULT MsaaElement::answer_get_accChild(VARIANT child, IDispatch** out) {
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
     if (child.vt == VT_I4 && child.lVal == CHILDID_SELF) return E_INVALIDARG;
@@ -453,20 +509,32 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accChild(VARIANT child, IDispatch** o
     if (FAILED(status)) return status;
     return object_for(target, out);
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accChild(VARIANT child, IDispatch** out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accChild", &MsaaElement::answer_get_accChild, *this, child, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accName(VARIANT child, BSTR* out) {
+HRESULT MsaaElement::answer_get_accName(VARIANT child, BSTR* out) {
     return text_property(child, out, TextProperty::name);
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accName(VARIANT child, BSTR* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accName", &MsaaElement::answer_get_accName, *this, child, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accValue(VARIANT child, BSTR* out) {
+HRESULT MsaaElement::answer_get_accValue(VARIANT child, BSTR* out) {
     return text_property(child, out, TextProperty::value);
 }
-
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accDescription(VARIANT child, BSTR* out) {
-    return text_property(child, out, TextProperty::description);
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accValue(VARIANT child, BSTR* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accValue", &MsaaElement::answer_get_accValue, *this, child, out);
 }
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accRole(VARIANT child, VARIANT* out) {
+HRESULT MsaaElement::answer_get_accDescription(VARIANT child, BSTR* out) {
+    return text_property(child, out, TextProperty::description);
+}
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accDescription(VARIANT child, BSTR* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accDescription", &MsaaElement::answer_get_accDescription, *this, child, out);
+}
+
+HRESULT MsaaElement::answer_get_accRole(VARIANT child, VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
     SemanticTreeRef client;
@@ -478,8 +546,11 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accRole(VARIANT child, VARIANT* out) 
     (*out).lVal = client_object ? ROLE_SYSTEM_CLIENT : msaa_role((*target.node).role);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accRole(VARIANT child, VARIANT* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accRole", &MsaaElement::answer_get_accRole, *this, child, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accState(VARIANT child, VARIANT* out) {
+HRESULT MsaaElement::answer_get_accState(VARIANT child, VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
     SemanticTreeRef client;
@@ -490,22 +561,34 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accState(VARIANT child, VARIANT* out)
     (*out).lVal = msaa_state(*target.node);
     return S_OK;
 }
-
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accHelp(VARIANT child, BSTR* out) {
-    return text_property(child, out, TextProperty::description);
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accState(VARIANT child, VARIANT* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accState", &MsaaElement::answer_get_accState, *this, child, out);
 }
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accHelpTopic(BSTR* file, VARIANT, LONG* topic) {
+HRESULT MsaaElement::answer_get_accHelp(VARIANT child, BSTR* out) {
+    return text_property(child, out, TextProperty::description);
+}
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accHelp(VARIANT child, BSTR* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accHelp", &MsaaElement::answer_get_accHelp, *this, child, out);
+}
+
+HRESULT MsaaElement::answer_get_accHelpTopic(BSTR* file, VARIANT, LONG* topic) {
     if (file != nullptr) *file = nullptr;
     if (topic != nullptr) *topic = 0;
     return S_FALSE;
 }
-
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accKeyboardShortcut(VARIANT child, BSTR* out) {
-    return text_property(child, out, TextProperty::keyboard_shortcut);
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accHelpTopic(BSTR* file, VARIANT unnamed_1, LONG* topic) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accHelpTopic", &MsaaElement::answer_get_accHelpTopic, *this, file, unnamed_1, topic);
 }
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accFocus(VARIANT* out) {
+HRESULT MsaaElement::answer_get_accKeyboardShortcut(VARIANT child, BSTR* out) {
+    return text_property(child, out, TextProperty::keyboard_shortcut);
+}
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accKeyboardShortcut(VARIANT child, BSTR* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accKeyboardShortcut", &MsaaElement::answer_get_accKeyboardShortcut, *this, child, out);
+}
+
+HRESULT MsaaElement::answer_get_accFocus(VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
     SemanticTreeRef client;
@@ -516,8 +599,11 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accFocus(VARIANT* out) {
     if (!find_state_location(self, SemanticState::focused, found)) return S_FALSE;
     return variant_for(found, out);
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accFocus(VARIANT* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accFocus", &MsaaElement::answer_get_accFocus, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accSelection(VARIANT* out) {
+HRESULT MsaaElement::answer_get_accSelection(VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
     SemanticTreeRef client;
@@ -528,8 +614,11 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accSelection(VARIANT* out) {
     if (!find_state_location(self, SemanticState::selected, found)) return S_FALSE;
     return variant_for(found, out);
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accSelection(VARIANT* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accSelection", &MsaaElement::answer_get_accSelection, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::get_accDefaultAction(VARIANT child, BSTR* out) {
+HRESULT MsaaElement::answer_get_accDefaultAction(VARIANT child, BSTR* out) {
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
     SemanticTreeRef client;
@@ -543,8 +632,11 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accDefaultAction(VARIANT child, BSTR*
     if (*out == nullptr) return E_OUTOFMEMORY;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::get_accDefaultAction(VARIANT child, BSTR* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.get_accDefaultAction", &MsaaElement::answer_get_accDefaultAction, *this, child, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::accSelect(LONG flags, VARIANT child) {
+HRESULT MsaaElement::answer_accSelect(LONG flags, VARIANT child) {
     const LONG supported = SELFLAG_TAKEFOCUS | SELFLAG_TAKESELECTION;
     if (flags == 0 || (flags & ~supported) != 0) return E_INVALIDARG;
     SemanticTreeRef client;
@@ -566,8 +658,11 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accSelect(LONG flags, VARIANT child) {
     }
     return done ? S_OK : E_FAIL;
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::accSelect(LONG flags, VARIANT child) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.accSelect", &MsaaElement::answer_accSelect, *this, flags, child);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::accLocation(LONG* x, LONG* y, LONG* width, LONG* height,
+HRESULT MsaaElement::answer_accLocation(LONG* x, LONG* y, LONG* width, LONG* height,
                                                   VARIANT child) {
     if (x == nullptr || y == nullptr || width == nullptr || height == nullptr) return E_POINTER;
     *x = 0;
@@ -588,8 +683,11 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accLocation(LONG* x, LONG* y, LONG* width
     *height = static_cast<LONG>(std::lround(bounds.height * scale));
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::accLocation(LONG* x, LONG* y, LONG* width, LONG* height, VARIANT child) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.accLocation", &MsaaElement::answer_accLocation, *this, x, y, width, height, child);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::accNavigate(LONG direction, VARIANT start, VARIANT* out) {
+HRESULT MsaaElement::answer_accNavigate(LONG direction, VARIANT start, VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
     SemanticTreeRef client;
@@ -614,8 +712,11 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accNavigate(LONG direction, VARIANT start
     }
     return S_FALSE;
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::accNavigate(LONG direction, VARIANT start, VARIANT* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.accNavigate", &MsaaElement::answer_accNavigate, *this, direction, start, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::accHitTest(LONG x, LONG y, VARIANT* out) {
+HRESULT MsaaElement::answer_accHitTest(LONG x, LONG y, VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
     SemanticTreeRef client;
@@ -631,8 +732,11 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accHitTest(LONG x, LONG y, VARIANT* out) 
     if (!hit_semantic_location(self, logical_x, logical_y, hit)) return S_FALSE;
     return variant_for(hit, out);
 }
+HRESULT STDMETHODCALLTYPE MsaaElement::accHitTest(LONG x, LONG y, VARIANT* out) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.accHitTest", &MsaaElement::answer_accHitTest, *this, x, y, out);
+}
 
-HRESULT STDMETHODCALLTYPE MsaaElement::accDoDefaultAction(VARIANT child) {
+HRESULT MsaaElement::answer_accDoDefaultAction(VARIANT child) {
     SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
@@ -643,25 +747,30 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accDoDefaultAction(VARIANT child) {
     const bool handled = (*source_).perform(target, *action, {});
     return handled ? S_OK : E_FAIL;
 }
-
-HRESULT STDMETHODCALLTYPE MsaaElement::put_accName(VARIANT, BSTR) {
-    return E_NOTIMPL;
+HRESULT STDMETHODCALLTYPE MsaaElement::accDoDefaultAction(VARIANT child) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.accDoDefaultAction", &MsaaElement::answer_accDoDefaultAction, *this, child);
 }
 
-HRESULT STDMETHODCALLTYPE MsaaElement::put_accValue(VARIANT child, BSTR value) {
+HRESULT MsaaElement::answer_put_accName(VARIANT, BSTR) {
+    return E_NOTIMPL;
+}
+HRESULT STDMETHODCALLTYPE MsaaElement::put_accName(VARIANT unnamed_0, BSTR unnamed_1) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.put_accName", &MsaaElement::answer_put_accName, *this, unnamed_0, unnamed_1);
+}
+
+HRESULT MsaaElement::answer_put_accValue(VARIANT child, BSTR value) {
     SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
     if (FAILED(status)) return status;
     if (!semantic_has_action(*target.node, SemanticAction::set_value)) return DISP_E_MEMBERNOTFOUND;
     std::string text;
-    try {
-        if (!utf8_from_bstr(value, text)) return E_INVALIDARG;
-    } catch (...) {
-        return E_OUTOFMEMORY;
-    }
+    if (!utf8_from_bstr(value, text)) return E_INVALIDARG;
     const bool handled = (*source_).perform(target, SemanticAction::set_value, text);
     return handled ? S_OK : E_FAIL;
+}
+HRESULT STDMETHODCALLTYPE MsaaElement::put_accValue(VARIANT child, BSTR value) {
+    return gui_forms::detail::call_failing_fast("windows.MsaaElement.put_accValue", &MsaaElement::answer_put_accValue, *this, child, value);
 }
 
 } // namespace
@@ -728,7 +837,7 @@ bool WindowsAccessibility::automation_request(LPARAM lparam) noexcept {
     return requested;
 }
 
-LRESULT WindowsAccessibility::automation_object(WPARAM wparam, LPARAM lparam) noexcept {
+LRESULT WindowsAccessibility::automation_object(WPARAM wparam, LPARAM lparam) {
     SemanticSource& source = *source_;
     if (source.model == nullptr || source.hwnd == nullptr) return 0;
     pin_automation_apartment();
@@ -745,51 +854,48 @@ LRESULT WindowsAccessibility::automation_object(WPARAM wparam, LPARAM lparam) no
     return result;
 }
 
-void WindowsAccessibility::notify(double scale) noexcept {
+void WindowsAccessibility::notify(double scale) {
     SemanticSource& source = *source_;
     source.scale = scale;
     if (source.model == nullptr || (!source.observed && !source.automation_observed)) return;
     if ((*source.model).semantic_generation() == source.generation) return;
-    try {
-        // The tree is the source's current one, which the UI Automation
-        // publication below reuses.
-        SemanticTreeRef tree;
-        if (!source.snapshot(tree)) return;
-        const std::uint64_t generation = source.current_key.semantic_generation;
-        if (generation == source.generation) return;
-        source.generation = generation;
-        if (source.automation_observed) publish_automation_tree(source_);
-        if (!source.observed) return;
-        // The tree's identities; a reorder only when nodes came or went.
-        std::vector<std::uint64_t> identities;
-        std::vector<const SemanticNode*> pending{tree.get()};
-        while (!pending.empty()) {
-            const SemanticNode* const node = pending.back();
-            pending.pop_back();
-            identities.push_back((*node).runtime_id);
-            for (const SemanticNode& child : (*node).children) pending.push_back(&child);
+    // The tree is the source's current one, which the UI Automation
+    // publication below reuses.
+    SemanticTreeRef tree;
+    if (!source.snapshot(tree)) return;
+    const std::uint64_t generation = source.current_key.semantic_generation;
+    if (generation == source.generation) return;
+    source.generation = generation;
+    if (source.automation_observed) publish_automation_tree(source_);
+    if (!source.observed) return;
+    // The tree's identities; a reorder only when nodes came or went.
+    std::vector<std::uint64_t> identities;
+    std::vector<const SemanticNode*> pending{tree.get()};
+    while (!pending.empty()) {
+        const SemanticNode* const node = pending.back();
+        pending.pop_back();
+        identities.push_back((*node).runtime_id);
+        for (const SemanticNode& child : (*node).children) pending.push_back(&child);
+    }
+    std::sort(identities.begin(), identities.end());
+    if (identities != source.announced_ids) {
+        source.announced_ids = std::move(identities);
+        NotifyWinEvent(EVENT_OBJECT_REORDER, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
+    }
+    NotifyWinEvent(EVENT_OBJECT_VALUECHANGE, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
+    NotifyWinEvent(EVENT_OBJECT_STATECHANGE, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
+    std::uint64_t focused = 0U;
+    for (const SemanticNode& root : (*tree).children) {
+        const SemanticLocation root_at = client_location(root);
+        SemanticLocation found;
+        if (find_state_location(root_at, SemanticState::focused, found)) {
+            focused = (*found.node).runtime_id;
+            break;
         }
-        std::sort(identities.begin(), identities.end());
-        if (identities != source.announced_ids) {
-            source.announced_ids = std::move(identities);
-            NotifyWinEvent(EVENT_OBJECT_REORDER, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
-        }
-        NotifyWinEvent(EVENT_OBJECT_VALUECHANGE, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
-        NotifyWinEvent(EVENT_OBJECT_STATECHANGE, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
-        std::uint64_t focused = 0U;
-        for (const SemanticNode& root : (*tree).children) {
-            const SemanticLocation root_at = client_location(root);
-            SemanticLocation found;
-            if (find_state_location(root_at, SemanticState::focused, found)) {
-                focused = (*found.node).runtime_id;
-                break;
-            }
-        }
-        if (focused != source.focus) {
-            source.focus = focused;
-            NotifyWinEvent(EVENT_OBJECT_FOCUS, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
-        }
-    } catch (...) {
+    }
+    if (focused != source.focus) {
+        source.focus = focused;
+        NotifyWinEvent(EVENT_OBJECT_FOCUS, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
     }
 }
 

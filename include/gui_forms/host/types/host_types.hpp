@@ -661,7 +661,6 @@ enum class HostDispatchError : std::uint8_t {
     invalid_lifecycle,
     invalid_geometry,
     invalid_payload,
-    callback_fault,
 };
 
 // Portable presentation lifecycle. Native adapters may have private allocation

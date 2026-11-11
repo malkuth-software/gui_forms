@@ -203,7 +203,6 @@ void end_cost_phase(CostProbe& probe) {
         const gui_forms::MetricsSnapshot metrics = model.metrics_snapshot();
         const std::string after = [window.contentView hostJSON];
         print_cost_phases(probe.before[index], after, probe.phase, index);
-        cost_require(counter(after, "native_callback_faults") == 0U, "native callback fault");
         const std::uint64_t expected_paints = index == 0U ? cost_tick_count : 0U;
         const std::uint64_t expected_rebuilds = index == 0U && cost_rebuild(probe.phase) ? cost_tick_count : 0U;
         cost_require(metrics.paint_passes == expected_paints &&

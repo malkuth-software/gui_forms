@@ -70,8 +70,6 @@ void test_ranges_and_progress(gui_forms::Window& window) {
     // the visible retained page immediately, service the new animation lease,
     // and paint. Repeating both directions exercises stale deadlines and page
     // visibility invalidation rather than merely proving that Animation opens.
-    const std::uint64_t frame_faults_before =
-        window.metrics_snapshot().frame_callback_faults;
     for (std::size_t cycle = 0U; cycle < 48U; ++cycle) {
         select_page(window, "ranges-and-progress");
         const Rect live_track = (*slider).absolute_bounds();
@@ -117,9 +115,6 @@ void test_ranges_and_progress(gui_forms::Window& window) {
                 "opening Animation after a slider drag must retain a live deadline");
         static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
     }
-    require(window.metrics_snapshot().frame_callback_faults ==
-                frame_faults_before,
-            "slider-to-animation stress must not fault an animation timer callback");
 }
 
 } // namespace gallery_pages_tests

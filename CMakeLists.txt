@@ -311,6 +311,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/theme_rules/built_in_rules.cpp
     src/core/engine/motion_value/motion_value.cpp
     src/core/engine/motion_clock/motion_clock.cpp
+    src/core/failure/fail_fast.cpp
     src/core/drag_engine/drag_engine.cpp
     src/core/drag_engine/scrub_gesture.cpp
     src/core/engine/effect_canvas/effect_canvas.cpp
@@ -2851,6 +2852,15 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_test_assert_check_unit
             COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
                 -p test_check_test_asserts.py)
+        # Every native entry (window procedure, COM method, ATK callback,
+        # AppKit selector) runs through the fail-fast boundary, or is listed
+        # in tools/native_boundary_baseline.txt, which may only shrink.
+        add_test(NAME gui_forms_native_boundary_check
+            COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_native_boundaries.py
+                --root ${CMAKE_CURRENT_SOURCE_DIR})
+        add_test(NAME gui_forms_native_boundary_check_self_test
+            COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_native_boundaries.py
+                --self-test)
     endif()
     add_executable(gui_drawing_core_tests tests/drawing_core_tests.cpp)
     target_link_libraries(gui_drawing_core_tests PRIVATE gui_drawing_core)
@@ -4364,6 +4374,32 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_frame_scheduler_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_frame_scheduler_tests COMMAND gui_forms_frame_scheduler_tests)
 
+    # Housekeeping expectations: a missed wake and a slow paint tick each give
+    # one telemetry record; a normal run gives none (owner, 2026-11-11).
+    add_executable(gui_forms_housekeeping_expectation_tests tests/housekeeping_expectation_tests.cpp)
+    target_link_libraries(gui_forms_housekeeping_expectation_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_housekeeping_expectation_tests COMMAND gui_forms_housekeeping_expectation_tests)
+
+    # The fail-fast boundary: each mode must end the process with its report
+    # (site and exception text) and never print "survived".
+    add_executable(gui_forms_fail_fast_tests tests/fail_fast_tests.cpp)
+    target_link_libraries(gui_forms_fail_fast_tests PRIVATE gui_forms_host_headless)
+    foreach(_gui_fail_fast_case IN ITEMS
+            "direct|test.direct|injected direct failure"
+            "ui_timer|scheduler.ui_timer|injected timer failure"
+            "motion_listener|motion_clock.listener|injected listener failure"
+            "host_dispatch|host_session.dispatch|injected event failure")
+        string(REPLACE "|" ";" _gui_fail_fast_fields "${_gui_fail_fast_case}")
+        list(GET _gui_fail_fast_fields 0 _gui_fail_fast_mode)
+        list(GET _gui_fail_fast_fields 1 _gui_fail_fast_site)
+        list(GET _gui_fail_fast_fields 2 _gui_fail_fast_text)
+        add_test(NAME gui_forms_fail_fast_${_gui_fail_fast_mode}
+                 COMMAND gui_forms_fail_fast_tests ${_gui_fail_fast_mode})
+        set_tests_properties(gui_forms_fail_fast_${_gui_fail_fast_mode} PROPERTIES
+            PASS_REGULAR_EXPRESSION "GUI.Forms: fatal exception at ${_gui_fail_fast_site}: ${_gui_fail_fast_text}"
+            FAIL_REGULAR_EXPRESSION "survived")
+    endforeach()
+
     add_executable(gui_forms_program_options_tests tests/program_options_tests.cpp)
     target_link_libraries(gui_forms_program_options_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_program_options_tests COMMAND gui_forms_program_options_tests)
@@ -5079,6 +5115,10 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_canvas_raster_tests tests/canvas_raster_tests.cpp)
         target_link_libraries(gui_forms_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_canvas_raster_tests COMMAND gui_forms_canvas_raster_tests)
+        # draw_image below 1x resamples through stx_conv (audit P11).
+        add_executable(gui_forms_skia_image_downscale_tests tests/skia_image_downscale_tests.cpp)
+        target_link_libraries(gui_forms_skia_image_downscale_tests PRIVATE gui_forms_core gui_forms_skia)
+        add_test(NAME gui_forms_skia_image_downscale_tests COMMAND gui_forms_skia_image_downscale_tests)
 
         add_executable(gui_forms_skia_edge_snapping_tests tests/skia_edge_snapping_tests.cpp)
         target_link_libraries(gui_forms_skia_edge_snapping_tests PRIVATE gui_forms_skia)

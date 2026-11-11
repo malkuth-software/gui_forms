@@ -52,22 +52,22 @@ namespace gui_forms::host {
 // The selection: one range from the selection's start to its end, which is
 // degenerate at the caret when nothing is selected.
 [[nodiscard]] HRESULT text_selection_ranges(const std::shared_ptr<SemanticSource>& source,
-                                            SemanticElementId id, SAFEARRAY** out) noexcept;
+                                            SemanticElementId id, SAFEARRAY** out);
 // One range from the first grapheme whose box meets the node's bounds to
 // the last; degenerate at the start for empty text.
 [[nodiscard]] HRESULT text_visible_ranges(const std::shared_ptr<SemanticSource>& source,
-                                          SemanticElementId id, SAFEARRAY** out) noexcept;
+                                          SemanticElementId id, SAFEARRAY** out);
 // A degenerate range at the grapheme edge nearest `point`, in screen pixels.
 [[nodiscard]] HRESULT text_range_from_point(const std::shared_ptr<SemanticSource>& source,
                                             SemanticElementId id, UiaPoint point,
-                                            ITextRangeProvider** out) noexcept;
+                                            ITextRangeProvider** out);
 // The whole text.
 [[nodiscard]] HRESULT text_document_range(const std::shared_ptr<SemanticSource>& source,
-                                          SemanticElementId id, ITextRangeProvider** out) noexcept;
+                                          SemanticElementId id, ITextRangeProvider** out);
 // A degenerate range at the caret; `active` says whether the node has focus.
 [[nodiscard]] HRESULT text_caret_range(const std::shared_ptr<SemanticSource>& source,
                                        SemanticElementId id, BOOL* active,
-                                       ITextRangeProvider** out) noexcept;
+                                       ITextRangeProvider** out);
 
 // Raises TextSelectionChanged when a text node's selection changed from
 // `before` to `after`, and TextChanged when its text did. UI thread only.

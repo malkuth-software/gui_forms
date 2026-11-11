@@ -1,4 +1,5 @@
 #include "windows_notify_icons.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 #include "../../../core/host/image/host_image_pixels.hpp"
 
 #include <shellapi.h>
@@ -126,6 +127,14 @@ bool WindowsNotifyIcons::ensure_window() noexcept {
 
 LRESULT CALLBACK WindowsNotifyIcons::window_procedure(HWND window, UINT message, WPARAM w_parameter,
                                                       LPARAM l_parameter) {
+    const LRESULT result = gui_forms::detail::call_failing_fast(
+        "windows.notify_icons.window_procedure", &WindowsNotifyIcons::answer_window_procedure, window, message,
+        w_parameter, l_parameter);
+    return result;
+}
+
+LRESULT WindowsNotifyIcons::answer_window_procedure(HWND window, UINT message, WPARAM w_parameter,
+                                                    LPARAM l_parameter) {
     if (message == WM_NCCREATE) {
         const CREATESTRUCTW* const creation = reinterpret_cast<const CREATESTRUCTW*>(l_parameter);
         SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>((*creation).lpCreateParams));
