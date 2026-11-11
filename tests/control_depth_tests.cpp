@@ -26,6 +26,22 @@ namespace {
 
 using namespace gui_forms;
 
+// The controls in `root`'s tree, root included: an iterative walk over the
+// public children() (Control::subtree_size is private).
+std::uint64_t control_count(const Control& root) {
+    std::uint64_t count = 0U;
+    std::vector<const Control*> pending{&root};
+    while (!pending.empty()) {
+        const Control* const current = pending.back();
+        pending.pop_back();
+        ++count;
+        for (const Control::Ptr& child : (*current).children()) {
+            if (child) pending.push_back(child.get());
+        }
+    }
+    return count;
+}
+
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
 }
@@ -78,7 +94,7 @@ void test_tree_at_the_limit_works() {
     std::shared_ptr<Button> leaf = make_control<Button>(StableId("depth.limit.leaf"), "Leaf");
     (*leaf).set_requested_bounds({1.0, 1.0, 40.0, 24.0});
     (*chain.back()).add_child(leaf);
-    require((*root).subtree_size() == maximum_control_tree_depth,
+    require(control_count(*root) == maximum_control_tree_depth,
             "a chain at the limit holds one control per level");
 
     std::unique_ptr<Window> window = std::make_unique<Window>(root, Size{200.0, 200.0});
@@ -315,7 +331,7 @@ void test_static_tree_depth() {
     factory.register_type("Panel", ControlFactory::Creator(CountingPanelCreator(made)));
     const StaticNode fitting = chain_description(maximum_control_tree_depth);
     const Control::Ptr built = build_static_tree(fitting, factory);
-    require((*built).subtree_size() == maximum_control_tree_depth && made == maximum_control_tree_depth,
+    require(control_count(*built) == maximum_control_tree_depth && made == maximum_control_tree_depth,
             "a description at the limit builds every level, top-down");
     require((*built).children().size() == 1U &&
                 (*(*built).children()[0]).stable_id().value() == level_id("depth.static", 2U),
