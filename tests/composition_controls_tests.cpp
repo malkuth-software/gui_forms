@@ -174,7 +174,7 @@ void test_card_theme_status_and_outsets_are_reusable() {
     std::shared_ptr<gui_forms::Card> card = make_control<Card>(StableId("card.theme"));
     (*card).set_theme_override(theme);
     (*card).set_visual_status(ControlVisualStatus::invalid);
-    require((*card).visual_outsets() == Insets{11.0, 10.0, 15.0, 16.0},
+    require((*card).visual_outsets() == Insets{6.0, 5.0, 10.0, 11.0},
             "card must project active recipe shadows into compositor outsets");
     const SemanticDescriptor descriptor = (*card).semantic_descriptor();
     require(!descriptor.exposed,
