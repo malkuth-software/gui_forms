@@ -11,6 +11,7 @@
 
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/container_controls.hpp"
+#include "gui_forms/live_surface/write_lease/live_surface_write_lease.hpp"
 #include "gui_forms/window.hpp"
 
 #include <cmath>
