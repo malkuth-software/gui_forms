@@ -2,6 +2,7 @@
 
 #include "appkit_status_items.hpp"
 #include "appkit_clipboard_image.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -17,10 +18,27 @@
 @property(nonatomic) std::uint64_t iconIdentity;
 @property(nonatomic) gui_forms::host::detail::AppKitStatusItems::Sink* sink;
 - (void)buttonActivated:(id)sender;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (void)answerButtonActivated:(id)sender;
 @end
+
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GFStatusItemTarget's native entries: each sends the entry's answer message.
+void run_status_item_button_activated(GFStatusItemTarget* object, id sender) {
+    [object answerButtonActivated:sender];
+}
+} // namespace
 
 @implementation GFStatusItemTarget
 - (void)buttonActivated:(id)sender {
+    gui_forms::detail::call_failing_fast(
+        "macos.status_item.buttonActivated:", &run_status_item_button_activated, self, sender);
+}
+
+- (void)answerButtonActivated:(id)sender {
     static_cast<void>(sender);
     gui_forms::host::detail::AppKitStatusItems::Sink* const sink = self.sink;
     if (sink == nullptr) return;
@@ -44,10 +62,26 @@
 @interface GFStatusMenuTarget : NSObject
 @property(nonatomic) NSInteger chosenTag;
 - (void)rowChosen:(id)sender;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (void)answerRowChosen:(id)sender;
 @end
+
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GFStatusMenuTarget's native entries: each sends the entry's answer message.
+void run_status_menu_row_chosen(GFStatusMenuTarget* object, id sender) {
+    [object answerRowChosen:sender];
+}
+} // namespace
 
 @implementation GFStatusMenuTarget
 - (void)rowChosen:(id)sender {
+    gui_forms::detail::call_failing_fast("macos.status_menu.rowChosen:", &run_status_menu_row_chosen, self, sender);
+}
+
+- (void)answerRowChosen:(id)sender {
     self.chosenTag = [(NSMenuItem*)sender tag];
 }
 @end

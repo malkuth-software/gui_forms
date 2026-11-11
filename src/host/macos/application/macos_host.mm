@@ -918,6 +918,10 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 }
 - (instancetype)initWithView:(GUIFormsView*)view;
 - (void)tick:(CADisplayLink*)sender;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (void)answerTick:(CADisplayLink*)sender;
 @end
 
 @interface GUIFormsView : NSView <NSTextInputClient, NSDraggingDestination> {
@@ -1127,7 +1131,67 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 // A point in screen coordinates (AppKit's, origin at the bottom left) in
 // the view's semantic coordinates.
 - (NSPoint)semanticPointForScreenPoint:(NSPoint)point;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (void)answerAccessibilityDisplayOptionsChanged:(NSNotification*)notification;
+- (void)answerSystemColoursChanged:(NSNotification*)notification;
+- (void)answerViewDidChangeEffectiveAppearance;
+- (NSRect)answerAccessibilityFrame;
+- (void)answerScreenParametersChanged:(NSNotification*)notification;
+- (NSString*)answerAccessibilityLabel;
+- (NSArray*)answerAccessibilityChildren;
+- (NSArray*)answerAccessibilityChildrenInNavigationOrder;
+- (NSArray*)answerAccessibilityVisibleChildren;
+- (NSRect)answerAccessibilityFrameForSemanticBounds:(GFRect)bounds;
+- (void)answerViewDidMoveToWindow;
+- (void)answerViewWillMoveToWindow:(NSWindow*)newWindow;
+- (void)answerDealloc;
+- (void)answerSetFrameSize:(NSSize)newSize;
+- (void)answerUpdateTrackingAreas;
+- (void)answerInvalidationOverlayTick;
+- (NSDragOperation)answerDraggingEntered:(id<NSDraggingInfo>)sender;
+- (NSDragOperation)answerDraggingUpdated:(id<NSDraggingInfo>)sender;
+- (void)answerDraggingExited:(id<NSDraggingInfo>)sender;
+- (BOOL)answerPrepareForDragOperation:(id<NSDraggingInfo>)sender;
+- (BOOL)answerPerformDragOperation:(id<NSDraggingInfo>)sender;
+- (void)answerCursorUpdate:(NSEvent*)event;
+- (void)answerMouseExited:(NSEvent*)event;
+- (void)answerMouseDown:(NSEvent*)event;
+- (void)answerMouseUp:(NSEvent*)event;
+- (void)answerRightMouseDown:(NSEvent*)event;
+- (NSMenu*)answerMenuForEvent:(NSEvent*)event;
+- (void)answerRightMouseUp:(NSEvent*)event;
+- (void)answerOtherMouseDown:(NSEvent*)event;
+- (void)answerOtherMouseUp:(NSEvent*)event;
+- (void)answerMouseMoved:(NSEvent*)event;
+- (void)answerMouseDragged:(NSEvent*)event;
+- (void)answerRightMouseDragged:(NSEvent*)event;
+- (void)answerOtherMouseDragged:(NSEvent*)event;
+- (void)answerScrollWheel:(NSEvent*)event;
+- (void)answerKeyDown:(NSEvent*)event;
+- (void)answerKeyUp:(NSEvent*)event;
+- (void)answerFlagsChanged:(NSEvent*)event;
+- (void)answerInsertText:(id)string replacementRange:(NSRange)replacementRange;
+- (void)answerSetMarkedText:(id)string selectedRange:(NSRange)selectedRange replacementRange:(NSRange)replacementRange;
+- (void)answerUnmarkText;
+- (BOOL)answerHasMarkedText;
+- (NSRange)answerMarkedRange;
+- (NSRange)answerSelectedRange;
+- (nullable NSAttributedString*)answerAttributedSubstringForProposedRange:(NSRange)range
+        actualRange:(nullable NSRangePointer)actualRange;
+- (NSArray<NSAttributedStringKey>*)answerValidAttributesForMarkedText;
+- (NSRect)answerFirstRectForCharacterRange:(NSRange)range actualRange:(nullable NSRangePointer)actualRange;
+- (void)answerDoCommandBySelector:(SEL)selector;
 @end
+
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GUIFormsDisplayTarget's native entries: each sends the entry's answer message.
+void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sender) {
+    [object answerTick:sender];
+}
+} // namespace
 
 @implementation GUIFormsDisplayTarget
 - (instancetype)initWithView:(GUIFormsView*)view {
@@ -1136,6 +1200,10 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     return self;
 }
 - (void)tick:(CADisplayLink*)sender {
+    gui_forms::detail::call_failing_fast("macos.display_target.tick:", &run_display_target_tick, self, sender);
+}
+
+- (void)answerTick:(CADisplayLink*)sender {
     GUIFormsView* view = _view;
     if (view == nil) {
         [sender invalidate];
@@ -1153,7 +1221,19 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 }
 - (instancetype)initWithView:(GUIFormsView*)view;
 - (void)tick:(NSTimer*)sender;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (void)answerTick:(NSTimer*)sender;
 @end
+
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GUIFormsOverlayTimerTarget's native entries: each sends the entry's answer message.
+void run_overlay_timer_tick(GUIFormsOverlayTimerTarget* object, NSTimer* sender) {
+    [object answerTick:sender];
+}
+} // namespace
 
 @implementation GUIFormsOverlayTimerTarget
 - (instancetype)initWithView:(GUIFormsView*)view {
@@ -1162,6 +1242,10 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     return self;
 }
 - (void)tick:(NSTimer*)sender {
+    gui_forms::detail::call_failing_fast("macos.overlay_timer.tick:", &run_overlay_timer_tick, self, sender);
+}
+
+- (void)answerTick:(NSTimer*)sender {
     GUIFormsView* view = _view;
     if (view == nil) {
         [sender invalidate];
@@ -1208,6 +1292,57 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
                 parent:(id)parent;
 - (void)setSemanticChildren:(NSArray*)children;
 - (BOOL)performNodeAction:(SemanticAction)action value:(NSString*)value;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (NSString*)answerAccessibilityRole;
+- (NSString*)answerAccessibilityLabel;
+- (NSString*)answerAccessibilityHelp;
+- (NSString*)answerAccessibilityIdentifier;
+- (NSArray*)answerAccessibilityChildren;
+- (NSRect)answerAccessibilityFrame;
+- (BOOL)answerIsAccessibilityEnabled;
+- (BOOL)answerIsAccessibilityFocused;
+- (BOOL)answerIsAccessibilitySelected;
+- (BOOL)answerIsAccessibilityExpanded;
+- (NSInteger)answerAccessibilityIndex;
+- (BOOL)answerIsAccessibilityProtectedContent;
+- (NSString*)answerAccessibilitySubrole;
+- (NSInteger)answerAccessibilityDisclosureLevel;
+- (NSRange)answerAccessibilityRowIndexRange;
+- (NSRange)answerAccessibilityColumnIndexRange;
+- (NSInteger)answerAccessibilityRowCount;
+- (NSInteger)answerAccessibilityColumnCount;
+- (BOOL)answerIsAccessibilityModal;
+- (NSAccessibilityOrientation)answerAccessibilityOrientation;
+- (NSArray*)answerAccessibilityLinkedUIElements;
+- (NSArray<NSAccessibilityCustomAction*>*)answerAccessibilityCustomActions;
+- (id)answerAccessibilityValue;
+- (id)answerAccessibilityMinValue;
+- (id)answerAccessibilityMaxValue;
+- (BOOL)answerAccessibilityPerformPress;
+- (void)answerSetAccessibilitySelected:(BOOL)selected;
+- (BOOL)answerAccessibilityPerformShowMenu;
+- (BOOL)answerAccessibilityPerformIncrement;
+- (BOOL)answerAccessibilityPerformDecrement;
+- (void)answerSetAccessibilityFocused:(BOOL)focused;
+- (void)answerSetAccessibilityValue:(id)value;
+- (NSInteger)answerAccessibilityNumberOfCharacters;
+- (NSRange)answerAccessibilitySelectedTextRange;
+- (void)answerSetAccessibilitySelectedTextRange:(NSRange)range;
+- (NSString*)answerAccessibilitySelectedText;
+- (NSRange)answerAccessibilityVisibleCharacterRange;
+- (NSInteger)answerAccessibilityInsertionPointLineNumber;
+- (NSString*)answerAccessibilityStringForRange:(NSRange)range;
+- (NSAttributedString*)answerAccessibilityAttributedStringForRange:(NSRange)range;
+- (NSInteger)answerAccessibilityLineForIndex:(NSInteger)index;
+- (NSRange)answerAccessibilityRangeForLine:(NSInteger)line;
+- (NSRect)answerAccessibilityFrameForRange:(NSRange)range;
+- (NSRange)answerAccessibilityRangeForPosition:(NSPoint)point;
+- (NSRange)answerAccessibilityRangeForIndex:(NSInteger)index;
+- (NSRange)answerAccessibilityStyleRangeForIndex:(NSInteger)index;
+- (BOOL)answerIsAccessibilitySelectorAllowed:(SEL)selector;
+- (BOOL)answerAccessibilityIsAttributeSettable:(NSAccessibilityAttributeName)attribute;
 @end
 
 // Asks VoiceOver to speak a live region's latest announcement (DK-51) at
@@ -1443,6 +1578,163 @@ static bool contains_live_region(const SemanticNode& node) {
     return false;
 }
 
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GUIFormsAccessibilityElement's native entries: each sends the entry's answer message.
+NSString* run_accessibility_element_accessibility_role(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityRole];
+}
+NSString* run_accessibility_element_accessibility_label(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityLabel];
+}
+NSString* run_accessibility_element_accessibility_help(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityHelp];
+}
+NSString* run_accessibility_element_accessibility_identifier(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityIdentifier];
+}
+NSArray* run_accessibility_element_accessibility_children(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityChildren];
+}
+NSRect run_accessibility_element_accessibility_frame(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityFrame];
+}
+BOOL run_accessibility_element_is_accessibility_enabled(GUIFormsAccessibilityElement* object) {
+    return [object answerIsAccessibilityEnabled];
+}
+BOOL run_accessibility_element_is_accessibility_focused(GUIFormsAccessibilityElement* object) {
+    return [object answerIsAccessibilityFocused];
+}
+BOOL run_accessibility_element_is_accessibility_selected(GUIFormsAccessibilityElement* object) {
+    return [object answerIsAccessibilitySelected];
+}
+BOOL run_accessibility_element_is_accessibility_expanded(GUIFormsAccessibilityElement* object) {
+    return [object answerIsAccessibilityExpanded];
+}
+NSInteger run_accessibility_element_accessibility_index(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityIndex];
+}
+BOOL run_accessibility_element_is_accessibility_protected_content(GUIFormsAccessibilityElement* object) {
+    return [object answerIsAccessibilityProtectedContent];
+}
+NSString* run_accessibility_element_accessibility_subrole(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilitySubrole];
+}
+NSInteger run_accessibility_element_accessibility_disclosure_level(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityDisclosureLevel];
+}
+NSRange run_accessibility_element_accessibility_row_index_range(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityRowIndexRange];
+}
+NSRange run_accessibility_element_accessibility_column_index_range(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityColumnIndexRange];
+}
+NSInteger run_accessibility_element_accessibility_row_count(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityRowCount];
+}
+NSInteger run_accessibility_element_accessibility_column_count(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityColumnCount];
+}
+BOOL run_accessibility_element_is_accessibility_modal(GUIFormsAccessibilityElement* object) {
+    return [object answerIsAccessibilityModal];
+}
+NSAccessibilityOrientation run_accessibility_element_accessibility_orientation(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityOrientation];
+}
+NSArray* run_accessibility_element_accessibility_linked_u_i_elements(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityLinkedUIElements];
+}
+NSArray<NSAccessibilityCustomAction*>* run_accessibility_element_accessibility_custom_actions(
+    GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityCustomActions];
+}
+id run_accessibility_element_accessibility_value(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityValue];
+}
+id run_accessibility_element_accessibility_min_value(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityMinValue];
+}
+id run_accessibility_element_accessibility_max_value(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityMaxValue];
+}
+BOOL run_accessibility_element_accessibility_perform_press(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityPerformPress];
+}
+void run_accessibility_element_set_accessibility_selected(GUIFormsAccessibilityElement* object, BOOL selected) {
+    [object answerSetAccessibilitySelected:selected];
+}
+BOOL run_accessibility_element_accessibility_perform_show_menu(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityPerformShowMenu];
+}
+BOOL run_accessibility_element_accessibility_perform_increment(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityPerformIncrement];
+}
+BOOL run_accessibility_element_accessibility_perform_decrement(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityPerformDecrement];
+}
+void run_accessibility_element_set_accessibility_focused(GUIFormsAccessibilityElement* object, BOOL focused) {
+    [object answerSetAccessibilityFocused:focused];
+}
+void run_accessibility_element_set_accessibility_value(GUIFormsAccessibilityElement* object, id value) {
+    [object answerSetAccessibilityValue:value];
+}
+NSInteger run_accessibility_element_accessibility_number_of_characters(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityNumberOfCharacters];
+}
+NSRange run_accessibility_element_accessibility_selected_text_range(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilitySelectedTextRange];
+}
+void run_accessibility_element_set_accessibility_selected_text_range(
+    GUIFormsAccessibilityElement* object, NSRange range) {
+    [object answerSetAccessibilitySelectedTextRange:range];
+}
+NSString* run_accessibility_element_accessibility_selected_text(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilitySelectedText];
+}
+NSRange run_accessibility_element_accessibility_visible_character_range(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityVisibleCharacterRange];
+}
+NSInteger run_accessibility_element_accessibility_insertion_point_line_number(GUIFormsAccessibilityElement* object) {
+    return [object answerAccessibilityInsertionPointLineNumber];
+}
+NSString* run_accessibility_element_accessibility_string_for_range(
+    GUIFormsAccessibilityElement* object, NSRange range) {
+    return [object answerAccessibilityStringForRange:range];
+}
+NSAttributedString* run_accessibility_element_accessibility_attributed_string_for_range(
+    GUIFormsAccessibilityElement* object, NSRange range) {
+    return [object answerAccessibilityAttributedStringForRange:range];
+}
+NSInteger run_accessibility_element_accessibility_line_for_index(
+    GUIFormsAccessibilityElement* object, NSInteger index) {
+    return [object answerAccessibilityLineForIndex:index];
+}
+NSRange run_accessibility_element_accessibility_range_for_line(GUIFormsAccessibilityElement* object, NSInteger line) {
+    return [object answerAccessibilityRangeForLine:line];
+}
+NSRect run_accessibility_element_accessibility_frame_for_range(GUIFormsAccessibilityElement* object, NSRange range) {
+    return [object answerAccessibilityFrameForRange:range];
+}
+NSRange run_accessibility_element_accessibility_range_for_position(
+    GUIFormsAccessibilityElement* object, NSPoint point) {
+    return [object answerAccessibilityRangeForPosition:point];
+}
+NSRange run_accessibility_element_accessibility_range_for_index(GUIFormsAccessibilityElement* object, NSInteger index) {
+    return [object answerAccessibilityRangeForIndex:index];
+}
+NSRange run_accessibility_element_accessibility_style_range_for_index(
+    GUIFormsAccessibilityElement* object, NSInteger index) {
+    return [object answerAccessibilityStyleRangeForIndex:index];
+}
+BOOL run_accessibility_element_is_accessibility_selector_allowed(GUIFormsAccessibilityElement* object, SEL selector) {
+    return [object answerIsAccessibilitySelectorAllowed:selector];
+}
+BOOL run_accessibility_element_accessibility_is_attribute_settable(
+    GUIFormsAccessibilityElement* object, NSAccessibilityAttributeName attribute) {
+    return [object answerAccessibilityIsAttributeSettable:attribute];
+}
+} // namespace
+
 @implementation GUIFormsAccessibilityElement
 
 // The children are set by reconcile_accessibility_element, which keys them.
@@ -1499,37 +1791,103 @@ static bool contains_live_region(const SemanticNode& node) {
 - (BOOL)isAccessibilityElement { return YES; }
 // A text box whose text runs over several lines is AppKit's text area.
 - (NSString*)accessibilityRole {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityRole", &run_accessibility_element_accessibility_role, self);
+}
+
+- (NSString*)answerAccessibilityRole {
     if (_node.role == SemanticRole::text_box && _node.multiline) return NSAccessibilityTextAreaRole;
     return native_accessibility_role(_node.role);
 }
-- (NSString*)accessibilityLabel { return native_string(_node.name); }
-- (NSString*)accessibilityHelp { return native_string(_node.description); }
-- (NSString*)accessibilityIdentifier { return native_string(_node.stable_id); }
-- (NSArray*)accessibilityChildren { return _semanticChildren; }
+- (NSString*)accessibilityLabel {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityLabel", &run_accessibility_element_accessibility_label, self);
+}
+
+- (NSString*)answerAccessibilityLabel { return native_string(_node.name); }
+- (NSString*)accessibilityHelp {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityHelp", &run_accessibility_element_accessibility_help, self);
+}
+
+- (NSString*)answerAccessibilityHelp { return native_string(_node.description); }
+- (NSString*)accessibilityIdentifier {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityIdentifier",
+        &run_accessibility_element_accessibility_identifier, self);
+}
+
+- (NSString*)answerAccessibilityIdentifier { return native_string(_node.stable_id); }
+- (NSArray*)accessibilityChildren {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityChildren", &run_accessibility_element_accessibility_children, self);
+}
+
+- (NSArray*)answerAccessibilityChildren { return _semanticChildren; }
 - (NSRect)accessibilityFrame {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityFrame", &run_accessibility_element_accessibility_frame, self);
+}
+
+- (NSRect)answerAccessibilityFrame {
     return _owner == nil ? NSZeroRect
                          : [_owner accessibilityFrameForSemanticBounds:_node.bounds];
 }
 - (BOOL)isAccessibilityEnabled {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.isAccessibilityEnabled",
+        &run_accessibility_element_is_accessibility_enabled, self);
+}
+
+- (BOOL)answerIsAccessibilityEnabled {
     return gui_forms::has_semantic_state(_node.states, SemanticState::enabled);
 }
 - (BOOL)isAccessibilityFocused {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.isAccessibilityFocused",
+        &run_accessibility_element_is_accessibility_focused, self);
+}
+
+- (BOOL)answerIsAccessibilityFocused {
     return gui_forms::has_semantic_state(_node.states, SemanticState::focused);
 }
 - (BOOL)isAccessibilitySelected {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.isAccessibilitySelected",
+        &run_accessibility_element_is_accessibility_selected, self);
+}
+
+- (BOOL)answerIsAccessibilitySelected {
     return gui_forms::has_semantic_state(_node.states, SemanticState::selected);
 }
 - (BOOL)isAccessibilityExpanded {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.isAccessibilityExpanded",
+        &run_accessibility_element_is_accessibility_expanded, self);
+}
+
+- (BOOL)answerIsAccessibilityExpanded {
     return gui_forms::has_semantic_state(_node.states, SemanticState::expanded);
 }
 // AppKit's index attribute carries the zero-based position in a set; it has
 // no set-size or has-popup attribute (a menu button's role says it opens a
 // menu).
 - (NSInteger)accessibilityIndex {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityIndex", &run_accessibility_element_accessibility_index, self);
+}
+
+- (NSInteger)answerAccessibilityIndex {
     if (!_node.position_in_set || *_node.position_in_set == 0) return 0;
     return static_cast<NSInteger>(*_node.position_in_set - 1);
 }
 - (BOOL)isAccessibilityProtectedContent {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.isAccessibilityProtectedContent",
+        &run_accessibility_element_is_accessibility_protected_content, self);
+}
+
+- (BOOL)answerIsAccessibilityProtectedContent {
     return gui_forms::has_semantic_state(
         _node.states, SemanticState::protected_content);
 }
@@ -1540,6 +1898,11 @@ static bool contains_live_region(const SemanticNode& node) {
 // carry WebKit's subroles for them. A switch and a search box carry
 // AppKit's own.
 - (NSString*)accessibilitySubrole {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilitySubrole", &run_accessibility_element_accessibility_subrole, self);
+}
+
+- (NSString*)answerAccessibilitySubrole {
     if (_node.role == SemanticRole::toggle_switch) return NSAccessibilitySwitchSubrole;
     if (_node.role == SemanticRole::search_box) return NSAccessibilitySearchFieldSubrole;
     if (_node.role == SemanticRole::tab_panel) return @"AXTabPanel";
@@ -1552,6 +1915,12 @@ static bool contains_live_region(const SemanticNode& node) {
 }
 // A tree item's depth, counting from zero as AppKit does.
 - (NSInteger)accessibilityDisclosureLevel {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityDisclosureLevel",
+        &run_accessibility_element_accessibility_disclosure_level, self);
+}
+
+- (NSInteger)answerAccessibilityDisclosureLevel {
     if (!_node.level || *_node.level == 0) return 0;
     return static_cast<NSInteger>(*_node.level - 1);
 }
@@ -1561,25 +1930,59 @@ static bool contains_live_region(const SemanticNode& node) {
 // no-range value, {NSNotFound, 0}, which reaches a client as a location of
 // LONG_MAX rather than kCFNotFound.
 - (NSRange)accessibilityRowIndexRange {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityRowIndexRange",
+        &run_accessibility_element_accessibility_row_index_range, self);
+}
+
+- (NSRange)answerAccessibilityRowIndexRange {
     if (!_node.row_index || *_node.row_index == 0) return NSMakeRange(NSNotFound, 0);
     return NSMakeRange(static_cast<NSUInteger>(*_node.row_index - 1), 1);
 }
 - (NSRange)accessibilityColumnIndexRange {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityColumnIndexRange",
+        &run_accessibility_element_accessibility_column_index_range, self);
+}
+
+- (NSRange)answerAccessibilityColumnIndexRange {
     if (!_node.column_index || *_node.column_index == 0) return NSMakeRange(NSNotFound, 0);
     return NSMakeRange(static_cast<NSUInteger>(*_node.column_index - 1), 1);
 }
 - (NSInteger)accessibilityRowCount {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityRowCount", &run_accessibility_element_accessibility_row_count, self);
+}
+
+- (NSInteger)answerAccessibilityRowCount {
     return _node.row_count ? static_cast<NSInteger>(*_node.row_count) : 0;
 }
 - (NSInteger)accessibilityColumnCount {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityColumnCount",
+        &run_accessibility_element_accessibility_column_count, self);
+}
+
+- (NSInteger)answerAccessibilityColumnCount {
     return _node.column_count ? static_cast<NSInteger>(*_node.column_count) : 0;
 }
 // A dialog that blocks the rest of its window.
 - (BOOL)isAccessibilityModal {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.isAccessibilityModal", &run_accessibility_element_is_accessibility_modal, self);
+}
+
+- (BOOL)answerIsAccessibilityModal {
     return _node.modal ? YES : NO;
 }
 // A tab list's orientation.
 - (NSAccessibilityOrientation)accessibilityOrientation {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityOrientation",
+        &run_accessibility_element_accessibility_orientation, self);
+}
+
+- (NSAccessibilityOrientation)answerAccessibilityOrientation {
     if (!_node.orientation) return NSAccessibilityOrientationUnknown;
     if (*_node.orientation == SemanticOrientation::horizontal) return NSAccessibilityOrientationHorizontal;
     return NSAccessibilityOrientationVertical;
@@ -1587,6 +1990,12 @@ static bool contains_live_region(const SemanticNode& node) {
 // The tab-to-panel relation as AppKit's linked elements: the panel's element
 // when the window publishes the panel.
 - (NSArray*)accessibilityLinkedUIElements {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityLinkedUIElements",
+        &run_accessibility_element_accessibility_linked_u_i_elements, self);
+}
+
+- (NSArray*)answerAccessibilityLinkedUIElements {
     if (_owner == nil || _node.controlled_panel.empty()) return nil;
     id panel = [_owner semanticAccessibilityElementForStableId:native_string(_node.controlled_panel)];
     if (panel == nil) return nil;
@@ -1599,6 +2008,12 @@ static bool contains_live_region(const SemanticNode& node) {
     return [self performNodeAction:SemanticAction::close value:nil];
 }
 - (NSArray<NSAccessibilityCustomAction*>*)accessibilityCustomActions {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityCustomActions",
+        &run_accessibility_element_accessibility_custom_actions, self);
+}
+
+- (NSArray<NSAccessibilityCustomAction*>*)answerAccessibilityCustomActions {
     if (!semantic_has_action(_node, SemanticAction::close)) return nil;
     NSAccessibilityCustomAction* close =
         [[NSAccessibilityCustomAction alloc] initWithName:@"Close"
@@ -1607,6 +2022,11 @@ static bool contains_live_region(const SemanticNode& node) {
     return @[ close ];
 }
 - (id)accessibilityValue {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityValue", &run_accessibility_element_accessibility_value, self);
+}
+
+- (id)answerAccessibilityValue {
     const SemanticRole acting = gui_forms::semantic_role_fallback(_node.role);
     if (acting == SemanticRole::check_box ||
         acting == SemanticRole::check_list_item ||
@@ -1625,12 +2045,28 @@ static bool contains_live_region(const SemanticNode& node) {
     return native_string(_node.value);
 }
 - (id)accessibilityMinValue {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityMinValue", &run_accessibility_element_accessibility_min_value, self);
+}
+
+- (id)answerAccessibilityMinValue {
     return _node.minimum_value ? @(*_node.minimum_value) : nil;
 }
 - (id)accessibilityMaxValue {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityMaxValue", &run_accessibility_element_accessibility_max_value, self);
+}
+
+- (id)answerAccessibilityMaxValue {
     return _node.maximum_value ? @(*_node.maximum_value) : nil;
 }
 - (BOOL)accessibilityPerformPress {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityPerformPress",
+        &run_accessibility_element_accessibility_perform_press, self);
+}
+
+- (BOOL)answerAccessibilityPerformPress {
     if (_owner == nil) return NO;
     SemanticAction action = SemanticAction::press;
     if (!semantic_has_action(_node, action)) {
@@ -1647,12 +2083,24 @@ static bool contains_live_region(const SemanticNode& node) {
     return [self performNodeAction:action value:nil];
 }
 - (void)setAccessibilitySelected:(BOOL)selected {
+    gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.setAccessibilitySelected:",
+        &run_accessibility_element_set_accessibility_selected, self, selected);
+}
+
+- (void)answerSetAccessibilitySelected:(BOOL)selected {
     if (selected && _owner != nil &&
         semantic_has_action(_node, SemanticAction::select)) {
         static_cast<void>([self performNodeAction:SemanticAction::select value:nil]);
     }
 }
 - (BOOL)accessibilityPerformShowMenu {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityPerformShowMenu",
+        &run_accessibility_element_accessibility_perform_show_menu, self);
+}
+
+- (BOOL)answerAccessibilityPerformShowMenu {
     if (_owner == nil) return NO;
     if (semantic_has_action(_node, SemanticAction::show_menu)) {
         return [self performNodeAction:SemanticAction::show_menu value:nil];
@@ -1668,20 +2116,44 @@ static bool contains_live_region(const SemanticNode& node) {
     return [_owner dispatchKeyboardContextRequest];
 }
 - (BOOL)accessibilityPerformIncrement {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityPerformIncrement",
+        &run_accessibility_element_accessibility_perform_increment, self);
+}
+
+- (BOOL)answerAccessibilityPerformIncrement {
     if (_owner == nil || !semantic_has_action(_node, SemanticAction::increment)) return NO;
     return [self performNodeAction:SemanticAction::increment value:nil];
 }
 - (BOOL)accessibilityPerformDecrement {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityPerformDecrement",
+        &run_accessibility_element_accessibility_perform_decrement, self);
+}
+
+- (BOOL)answerAccessibilityPerformDecrement {
     if (_owner == nil || !semantic_has_action(_node, SemanticAction::decrement)) return NO;
     return [self performNodeAction:SemanticAction::decrement value:nil];
 }
 - (void)setAccessibilityFocused:(BOOL)focused {
+    gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.setAccessibilityFocused:",
+        &run_accessibility_element_set_accessibility_focused, self, focused);
+}
+
+- (void)answerSetAccessibilityFocused:(BOOL)focused {
     if (focused && _owner != nil &&
         semantic_has_action(_node, SemanticAction::focus)) {
         static_cast<void>([self performNodeAction:SemanticAction::focus value:nil]);
     }
 }
 - (void)setAccessibilityValue:(id)value {
+    gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.setAccessibilityValue:",
+        &run_accessibility_element_set_accessibility_value, self, value);
+}
+
+- (void)answerSetAccessibilityValue:(id)value {
     if (_owner == nil || !semantic_has_action(_node, SemanticAction::set_value)) return;
     NSString* text = [value isKindOfClass:[NSString class]]
         ? (NSString*)value : [value stringValue];
@@ -1720,11 +2192,23 @@ static bool contains_live_region(const SemanticNode& node) {
     high = std::min(std::max(selection.anchor.value(), selection.caret.value()), size);
 }
 - (NSInteger)accessibilityNumberOfCharacters {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityNumberOfCharacters",
+        &run_accessibility_element_accessibility_number_of_characters, self);
+}
+
+- (NSInteger)answerAccessibilityNumberOfCharacters {
     if (![self readSemanticText]) return 0;
     const std::size_t units = utf16_units_before(_node.value, _node.value.size());
     return static_cast<NSInteger>(units);
 }
 - (NSRange)accessibilitySelectedTextRange {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilitySelectedTextRange",
+        &run_accessibility_element_accessibility_selected_text_range, self);
+}
+
+- (NSRange)answerAccessibilitySelectedTextRange {
     if (![self readSemanticText]) return NSMakeRange(0, 0);
     std::size_t low = 0U;
     std::size_t high = 0U;
@@ -1734,6 +2218,12 @@ static bool contains_live_region(const SemanticNode& node) {
 // The selection becomes the range, anchored at its start with the caret at
 // its end.
 - (void)setAccessibilitySelectedTextRange:(NSRange)range {
+    gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.setAccessibilitySelectedTextRange:",
+        &run_accessibility_element_set_accessibility_selected_text_range, self, range);
+}
+
+- (void)answerSetAccessibilitySelectedTextRange:(NSRange)range {
     if (![self readSemanticText]) return;
     std::size_t start = 0U;
     std::size_t end = 0U;
@@ -1743,6 +2233,12 @@ static bool contains_live_region(const SemanticNode& node) {
     static_cast<void>([_owner selectSemanticText:_control selection:selection]);
 }
 - (NSString*)accessibilitySelectedText {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilitySelectedText",
+        &run_accessibility_element_accessibility_selected_text, self);
+}
+
+- (NSString*)answerAccessibilitySelectedText {
     if (![self readSemanticText]) return nil;
     std::size_t low = 0U;
     std::size_t high = 0U;
@@ -1752,6 +2248,12 @@ static bool contains_live_region(const SemanticNode& node) {
 }
 // From the first grapheme whose box meets the node's bounds to the last.
 - (NSRange)accessibilityVisibleCharacterRange {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityVisibleCharacterRange",
+        &run_accessibility_element_accessibility_visible_character_range, self);
+}
+
+- (NSRange)answerAccessibilityVisibleCharacterRange {
     if (![self readSemanticText]) return NSMakeRange(0, 0);
     std::optional<std::size_t> first;
     std::size_t last = 0U;
@@ -1765,11 +2267,23 @@ static bool contains_live_region(const SemanticNode& node) {
     return utf16_range(_node.value, *first, last);
 }
 - (NSInteger)accessibilityInsertionPointLineNumber {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityInsertionPointLineNumber",
+        &run_accessibility_element_accessibility_insertion_point_line_number, self);
+}
+
+- (NSInteger)answerAccessibilityInsertionPointLineNumber {
     if (![self readSemanticText]) return 0;
     const std::size_t caret = (*_node.text_selection).caret.value();
     return static_cast<NSInteger>(line_of_offset(_textLayout, caret));
 }
 - (NSString*)accessibilityStringForRange:(NSRange)range {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityStringForRange:",
+        &run_accessibility_element_accessibility_string_for_range, self, range);
+}
+
+- (NSString*)answerAccessibilityStringForRange:(NSRange)range {
     if (![self readSemanticText]) return nil;
     std::size_t start = 0U;
     std::size_t end = 0U;
@@ -1780,11 +2294,23 @@ static bool contains_live_region(const SemanticNode& node) {
 // The text has one style run, so the attributed string carries no
 // attributes.
 - (NSAttributedString*)accessibilityAttributedStringForRange:(NSRange)range {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityAttributedStringForRange:",
+        &run_accessibility_element_accessibility_attributed_string_for_range, self, range);
+}
+
+- (NSAttributedString*)answerAccessibilityAttributedStringForRange:(NSRange)range {
     NSString* const text = [self accessibilityStringForRange:range];
     if (text == nil) return nil;
     return [[NSAttributedString alloc] initWithString:text];
 }
 - (NSInteger)accessibilityLineForIndex:(NSInteger)index {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityLineForIndex:",
+        &run_accessibility_element_accessibility_line_for_index, self, index);
+}
+
+- (NSInteger)answerAccessibilityLineForIndex:(NSInteger)index {
     if (![self readSemanticText] || index < 0) return 0;
     const std::size_t offset =
         utf8_offset_at_units(_node.value, static_cast<std::size_t>(index), SurrogateRounding::down);
@@ -1792,6 +2318,12 @@ static bool contains_live_region(const SemanticNode& node) {
 }
 // A line runs to the next line's start, so it holds its break.
 - (NSRange)accessibilityRangeForLine:(NSInteger)line {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityRangeForLine:",
+        &run_accessibility_element_accessibility_range_for_line, self, line);
+}
+
+- (NSRange)answerAccessibilityRangeForLine:(NSInteger)line {
     if (![self readSemanticText] || line < 0) return NSMakeRange(NSNotFound, 0);
     const std::size_t index = static_cast<std::size_t>(line);
     const std::vector<SemanticTextLine>& lines = _textLayout.lines;
@@ -1803,6 +2335,12 @@ static bool contains_live_region(const SemanticNode& node) {
 // The union of the range's grapheme boxes (the caret's box for an empty
 // range), cut to the node's bounds, in screen coordinates.
 - (NSRect)accessibilityFrameForRange:(NSRange)range {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityFrameForRange:",
+        &run_accessibility_element_accessibility_frame_for_range, self, range);
+}
+
+- (NSRect)answerAccessibilityFrameForRange:(NSRange)range {
     if (![self readSemanticText]) return NSZeroRect;
     std::size_t start = 0U;
     std::size_t end = 0U;
@@ -1815,6 +2353,12 @@ static bool contains_live_region(const SemanticNode& node) {
 }
 // The composed character at a screen point.
 - (NSRange)accessibilityRangeForPosition:(NSPoint)point {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityRangeForPosition:",
+        &run_accessibility_element_accessibility_range_for_position, self, point);
+}
+
+- (NSRange)answerAccessibilityRangeForPosition:(NSPoint)point {
     if (![self readSemanticText]) return NSMakeRange(NSNotFound, 0);
     const NSPoint local = [_owner semanticPointForScreenPoint:point];
     const SemanticTextGrapheme* const hit = grapheme_at_point(_textLayout, local.x, local.y);
@@ -1824,6 +2368,12 @@ static bool contains_live_region(const SemanticNode& node) {
 // The composed character holding a UTF-16 index: its grapheme, or the line
 // break there, which is one character.
 - (NSRange)accessibilityRangeForIndex:(NSInteger)index {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityRangeForIndex:",
+        &run_accessibility_element_accessibility_range_for_index, self, index);
+}
+
+- (NSRange)answerAccessibilityRangeForIndex:(NSInteger)index {
     if (![self readSemanticText] || index < 0) return NSMakeRange(NSNotFound, 0);
     const std::size_t offset =
         utf8_offset_at_units(_node.value, static_cast<std::size_t>(index), SurrogateRounding::down);
@@ -1837,11 +2387,23 @@ static bool contains_live_region(const SemanticNode& node) {
     return utf16_range(_node.value, offset, next);
 }
 - (NSRange)accessibilityStyleRangeForIndex:(NSInteger)index {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityStyleRangeForIndex:",
+        &run_accessibility_element_accessibility_style_range_for_index, self, index);
+}
+
+- (NSRange)answerAccessibilityStyleRangeForIndex:(NSInteger)index {
     if (![self readSemanticText] || index < 0) return NSMakeRange(NSNotFound, 0);
     return utf16_range(_node.value, 0U, _node.value.size());
 }
 
 - (BOOL)isAccessibilitySelectorAllowed:(SEL)selector {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.isAccessibilitySelectorAllowed:",
+        &run_accessibility_element_is_accessibility_selector_allowed, self, selector);
+}
+
+- (BOOL)answerIsAccessibilitySelectorAllowed:(SEL)selector {
     if (text_range_selector(selector)) {
         return publishes_text_ranges(_node) ? YES : NO;
     }
@@ -1881,6 +2443,12 @@ static bool contains_live_region(const SemanticNode& node) {
 }
 
 - (BOOL)accessibilityIsAttributeSettable:(NSAccessibilityAttributeName)attribute {
+    return gui_forms::detail::call_failing_fast(
+        "macos.accessibility_element.accessibilityIsAttributeSettable:",
+        &run_accessibility_element_accessibility_is_attribute_settable, self, attribute);
+}
+
+- (BOOL)answerAccessibilityIsAttributeSettable:(NSAccessibilityAttributeName)attribute {
     if ([attribute isEqualToString:NSAccessibilityFocusedAttribute]) {
         return semantic_has_action(_node, SemanticAction::focus);
     }
@@ -1972,7 +2540,19 @@ static GUIFormsAccessibilityElement* reconcile_accessibility_element(
 @interface GUIFormsMainWork : NSObject
 - (instancetype)initWithFunction:(void (*)(void*))function context:(void*)context;
 - (void)perform;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (void)answerPerform;
 @end
+
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GUIFormsMainWork's native entries: each sends the entry's answer message.
+void run_main_work_perform(GUIFormsMainWork* object) {
+    [object answerPerform];
+}
+} // namespace
 
 @implementation GUIFormsMainWork {
     void (*_function)(void*);
@@ -1989,6 +2569,10 @@ static GUIFormsAccessibilityElement* reconcile_accessibility_element(
 }
 
 - (void)perform {
+    gui_forms::detail::call_failing_fast("macos.main_work.perform", &run_main_work_perform, self);
+}
+
+- (void)answerPerform {
     void (*const function)(void*) = _function;
     void* const context = _context;
     _function = nullptr;
@@ -2094,7 +2678,7 @@ void post_perform_close(NSWindow* window) {
     post_main_work(work, &perform_close_on_main);
 }
 // The named targets the fail-fast boundary calls for GUIFormsView's native
-// entries (call_failing_fast): each sends the entry's own message.
+// entries (call_failing_fast): each sends the entry's body message.
 void run_display_link_tick(GUIFormsView* view) {
     [view answerDisplayLinkTick];
 }
@@ -2106,6 +2690,151 @@ void run_collect_damage(GUIFormsView* view) {
 }
 void run_draw_retained(GUIFormsView* view, NSRect dirty) {
     [view drawRetainedRect:dirty];
+}
+void run_view_accessibility_display_options_changed(GUIFormsView* object, NSNotification* notification) {
+    [object answerAccessibilityDisplayOptionsChanged:notification];
+}
+void run_view_system_colours_changed(GUIFormsView* object, NSNotification* notification) {
+    [object answerSystemColoursChanged:notification];
+}
+void run_view_view_did_change_effective_appearance(GUIFormsView* object) {
+    [object answerViewDidChangeEffectiveAppearance];
+}
+NSRect run_view_accessibility_frame(GUIFormsView* object) {
+    return [object answerAccessibilityFrame];
+}
+void run_view_screen_parameters_changed(GUIFormsView* object, NSNotification* notification) {
+    [object answerScreenParametersChanged:notification];
+}
+NSString* run_view_accessibility_label(GUIFormsView* object) {
+    return [object answerAccessibilityLabel];
+}
+NSArray* run_view_accessibility_children(GUIFormsView* object) {
+    return [object answerAccessibilityChildren];
+}
+NSArray* run_view_accessibility_children_in_navigation_order(GUIFormsView* object) {
+    return [object answerAccessibilityChildrenInNavigationOrder];
+}
+NSArray* run_view_accessibility_visible_children(GUIFormsView* object) {
+    return [object answerAccessibilityVisibleChildren];
+}
+NSRect run_view_accessibility_frame_for_semantic_bounds(GUIFormsView* object, GFRect bounds) {
+    return [object answerAccessibilityFrameForSemanticBounds:bounds];
+}
+void run_view_view_did_move_to_window(GUIFormsView* object) {
+    [object answerViewDidMoveToWindow];
+}
+void run_view_view_will_move_to_window(GUIFormsView* object, NSWindow* newWindow) {
+    [object answerViewWillMoveToWindow:newWindow];
+}
+void run_view_dealloc(__unsafe_unretained GUIFormsView* object) {
+    [object answerDealloc];
+}
+void run_view_set_frame_size(GUIFormsView* object, NSSize newSize) {
+    [object answerSetFrameSize:newSize];
+}
+void run_view_update_tracking_areas(GUIFormsView* object) {
+    [object answerUpdateTrackingAreas];
+}
+void run_view_invalidation_overlay_tick(GUIFormsView* object) {
+    [object answerInvalidationOverlayTick];
+}
+NSDragOperation run_view_dragging_entered(GUIFormsView* object, id<NSDraggingInfo> sender) {
+    return [object answerDraggingEntered:sender];
+}
+NSDragOperation run_view_dragging_updated(GUIFormsView* object, id<NSDraggingInfo> sender) {
+    return [object answerDraggingUpdated:sender];
+}
+void run_view_dragging_exited(GUIFormsView* object, id<NSDraggingInfo> sender) {
+    [object answerDraggingExited:sender];
+}
+BOOL run_view_prepare_for_drag_operation(GUIFormsView* object, id<NSDraggingInfo> sender) {
+    return [object answerPrepareForDragOperation:sender];
+}
+BOOL run_view_perform_drag_operation(GUIFormsView* object, id<NSDraggingInfo> sender) {
+    return [object answerPerformDragOperation:sender];
+}
+void run_view_cursor_update(GUIFormsView* object, NSEvent* event) {
+    [object answerCursorUpdate:event];
+}
+void run_view_mouse_exited(GUIFormsView* object, NSEvent* event) {
+    [object answerMouseExited:event];
+}
+void run_view_mouse_down(GUIFormsView* object, NSEvent* event) {
+    [object answerMouseDown:event];
+}
+void run_view_mouse_up(GUIFormsView* object, NSEvent* event) {
+    [object answerMouseUp:event];
+}
+void run_view_right_mouse_down(GUIFormsView* object, NSEvent* event) {
+    [object answerRightMouseDown:event];
+}
+NSMenu* run_view_menu_for_event(GUIFormsView* object, NSEvent* event) {
+    return [object answerMenuForEvent:event];
+}
+void run_view_right_mouse_up(GUIFormsView* object, NSEvent* event) {
+    [object answerRightMouseUp:event];
+}
+void run_view_other_mouse_down(GUIFormsView* object, NSEvent* event) {
+    [object answerOtherMouseDown:event];
+}
+void run_view_other_mouse_up(GUIFormsView* object, NSEvent* event) {
+    [object answerOtherMouseUp:event];
+}
+void run_view_mouse_moved(GUIFormsView* object, NSEvent* event) {
+    [object answerMouseMoved:event];
+}
+void run_view_mouse_dragged(GUIFormsView* object, NSEvent* event) {
+    [object answerMouseDragged:event];
+}
+void run_view_right_mouse_dragged(GUIFormsView* object, NSEvent* event) {
+    [object answerRightMouseDragged:event];
+}
+void run_view_other_mouse_dragged(GUIFormsView* object, NSEvent* event) {
+    [object answerOtherMouseDragged:event];
+}
+void run_view_scroll_wheel(GUIFormsView* object, NSEvent* event) {
+    [object answerScrollWheel:event];
+}
+void run_view_key_down(GUIFormsView* object, NSEvent* event) {
+    [object answerKeyDown:event];
+}
+void run_view_key_up(GUIFormsView* object, NSEvent* event) {
+    [object answerKeyUp:event];
+}
+void run_view_flags_changed(GUIFormsView* object, NSEvent* event) {
+    [object answerFlagsChanged:event];
+}
+void run_view_insert_text(GUIFormsView* object, id string, NSRange replacementRange) {
+    [object answerInsertText:string replacementRange:replacementRange];
+}
+void run_view_set_marked_text(GUIFormsView* object, id string, NSRange selectedRange, NSRange replacementRange) {
+    [object answerSetMarkedText:string selectedRange:selectedRange replacementRange:replacementRange];
+}
+void run_view_unmark_text(GUIFormsView* object) {
+    [object answerUnmarkText];
+}
+BOOL run_view_has_marked_text(GUIFormsView* object) {
+    return [object answerHasMarkedText];
+}
+NSRange run_view_marked_range(GUIFormsView* object) {
+    return [object answerMarkedRange];
+}
+NSRange run_view_selected_range(GUIFormsView* object) {
+    return [object answerSelectedRange];
+}
+NSAttributedString* run_view_attributed_substring_for_proposed_range(
+    GUIFormsView* object, NSRange range, NSRangePointer actualRange) {
+    return [object answerAttributedSubstringForProposedRange:range actualRange:actualRange];
+}
+NSArray<NSAttributedStringKey>* run_view_valid_attributes_for_marked_text(GUIFormsView* object) {
+    return [object answerValidAttributesForMarkedText];
+}
+NSRect run_view_first_rect_for_character_range(GUIFormsView* object, NSRange range, NSRangePointer actualRange) {
+    return [object answerFirstRectForCharacterRange:range actualRange:actualRange];
+}
+void run_view_do_command_by_selector(GUIFormsView* object, SEL selector) {
+    [object answerDoCommandBySelector:selector];
 }
 } // namespace
 
@@ -2243,12 +2972,23 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)accessibilityDisplayOptionsChanged:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.view.accessibilityDisplayOptionsChanged:",
+        &run_view_accessibility_display_options_changed, self, notification);
+}
+
+- (void)answerAccessibilityDisplayOptionsChanged:(NSNotification*)notification {
     (void)notification;
     [self reportCompositorState];
     [self collectDamage];
 }
 
 - (void)systemColoursChanged:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.view.systemColoursChanged:", &run_view_system_colours_changed, self, notification);
+}
+
+- (void)answerSystemColoursChanged:(NSNotification*)notification {
     (void)notification;
     [self reportCompositorState];
     [self collectDamage];
@@ -2258,6 +2998,11 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 // appearance (the host sets no appearance of its own, so the view follows
 // the application's): the state is read again, dark_scheme with it.
 - (void)viewDidChangeEffectiveAppearance {
+    gui_forms::detail::call_failing_fast(
+        "macos.view.viewDidChangeEffectiveAppearance", &run_view_view_did_change_effective_appearance, self);
+}
+
+- (void)answerViewDidChangeEffectiveAppearance {
     [super viewDidChangeEffectiveAppearance];
     [self reportCompositorState];
     [self collectDamage];
@@ -2449,6 +3194,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 // outer band lies outside it (owner, 2026-11-08), as it lies outside every
 // hit test.
 - (NSRect)accessibilityFrame {
+    return gui_forms::detail::call_failing_fast("macos.view.accessibilityFrame", &run_view_accessibility_frame, self);
+}
+
+- (NSRect)answerAccessibilityFrame {
     if (!_model) return [super accessibilityFrame];
     return [self accessibilityFrameForSemanticBounds:(*_model).content_rect()];
 }
@@ -2467,6 +3216,11 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)screenParametersChanged:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.view.screenParametersChanged:", &run_view_screen_parameters_changed, self, notification);
+}
+
+- (void)answerScreenParametersChanged:(NSNotification*)notification {
     [self notifyDisplaysChanged];
 }
 
@@ -2489,10 +3243,19 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 - (BOOL)isAccessibilityElement { return YES; }
 - (NSString*)accessibilityRole { return NSAccessibilityGroupRole; }
 - (NSString*)accessibilityLabel {
+    return gui_forms::detail::call_failing_fast("macos.view.accessibilityLabel", &run_view_accessibility_label, self);
+}
+
+- (NSString*)answerAccessibilityLabel {
     return @"GUI.Forms retained surface";
 }
 
 - (NSArray*)accessibilityChildren {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.accessibilityChildren", &run_view_accessibility_children, self);
+}
+
+- (NSArray*)answerAccessibilityChildren {
     if (!_model) return @[];
     // Every client query lands here; build a snapshot only when the key has
     // moved since the cached children were built.
@@ -2531,14 +3294,31 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (NSArray*)accessibilityChildrenInNavigationOrder {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.accessibilityChildrenInNavigationOrder",
+        &run_view_accessibility_children_in_navigation_order, self);
+}
+
+- (NSArray*)answerAccessibilityChildrenInNavigationOrder {
     return [self accessibilityChildren];
 }
 
 - (NSArray*)accessibilityVisibleChildren {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.accessibilityVisibleChildren", &run_view_accessibility_visible_children, self);
+}
+
+- (NSArray*)answerAccessibilityVisibleChildren {
     return [self accessibilityChildren];
 }
 
 - (NSRect)accessibilityFrameForSemanticBounds:(GFRect)bounds {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.accessibilityFrameForSemanticBounds:",
+        &run_view_accessibility_frame_for_semantic_bounds, self, bounds);
+}
+
+- (NSRect)answerAccessibilityFrameForSemanticBounds:(GFRect)bounds {
     if (self.window == nil) return NSZeroRect;
     const NSRect local = NSMakeRect(bounds.x, bounds.y, bounds.width, bounds.height);
     const NSRect inWindow = [self convertRect:local toView:nil];
@@ -2606,6 +3386,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)viewDidMoveToWindow {
+    gui_forms::detail::call_failing_fast("macos.view.viewDidMoveToWindow", &run_view_view_did_move_to_window, self);
+}
+
+- (void)answerViewDidMoveToWindow {
     [super viewDidMoveToWindow];
     [self notifyScaleChanged];
     [self notifyDisplaysChanged];
@@ -2614,6 +3398,11 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)viewWillMoveToWindow:(NSWindow*)newWindow {
+    gui_forms::detail::call_failing_fast(
+        "macos.view.viewWillMoveToWindow:", &run_view_view_will_move_to_window, self, newWindow);
+}
+
+- (void)answerViewWillMoveToWindow:(NSWindow*)newWindow {
     if (newWindow == nil && _wakeSource != nil) {
         dispatch_source_set_timer(_wakeSource, DISPATCH_TIME_FOREVER,
                                   DISPATCH_TIME_FOREVER, 0);
@@ -2627,6 +3416,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)dealloc {
+    gui_forms::detail::call_failing_fast("macos.view.dealloc", &run_view_dealloc, self);
+}
+
+- (void)answerDealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self];
     [self stopDisplayLink];
@@ -2677,6 +3470,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)setFrameSize:(NSSize)newSize {
+    gui_forms::detail::call_failing_fast("macos.view.setFrameSize:", &run_view_set_frame_size, self, newSize);
+}
+
+- (void)answerSetFrameSize:(NSSize)newSize {
     [super setFrameSize:newSize];
     if (_hostSession) {
         static_cast<void>([self dispatchHostPayload:
@@ -2687,6 +3484,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)updateTrackingAreas {
+    gui_forms::detail::call_failing_fast("macos.view.updateTrackingAreas", &run_view_update_tracking_areas, self);
+}
+
+- (void)answerUpdateTrackingAreas {
     if (_trackingArea != nil) {
         [self removeTrackingArea:_trackingArea];
     }
@@ -2850,6 +3651,11 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)invalidationOverlayTick {
+    gui_forms::detail::call_failing_fast(
+        "macos.view.invalidationOverlayTick", &run_view_invalidation_overlay_tick, self);
+}
+
+- (void)answerInvalidationOverlayTick {
     if (!_model) {
         [self stopInvalidationOverlayTimer];
         return;
@@ -3061,6 +3867,11 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.draggingEntered:", &run_view_dragging_entered, self, sender);
+}
+
+- (NSDragOperation)answerDraggingEntered:(id<NSDraggingInfo>)sender {
     DragEvent event = [self dragEventFor:sender action:DragAction::enter];
     const HostDispatchResult result = [self dispatchHostPayload:std::move(event)
         timestampNanoseconds:host_now_nanoseconds()];
@@ -3069,6 +3880,11 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.draggingUpdated:", &run_view_dragging_updated, self, sender);
+}
+
+- (NSDragOperation)answerDraggingUpdated:(id<NSDraggingInfo>)sender {
     DragEvent event = [self dragEventFor:sender action:DragAction::over];
     const HostDispatchResult result = [self dispatchHostPayload:std::move(event)
         timestampNanoseconds:host_now_nanoseconds()];
@@ -3077,6 +3893,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)draggingExited:(id<NSDraggingInfo>)sender {
+    gui_forms::detail::call_failing_fast("macos.view.draggingExited:", &run_view_dragging_exited, self, sender);
+}
+
+- (void)answerDraggingExited:(id<NSDraggingInfo>)sender {
     DragEvent event = [self dragEventFor:sender action:DragAction::leave];
     static_cast<void>([self dispatchHostPayload:std::move(event)
         timestampNanoseconds:host_now_nanoseconds()]);
@@ -3084,10 +3904,20 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (BOOL)prepareForDragOperation:(id<NSDraggingInfo>)sender {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.prepareForDragOperation:", &run_view_prepare_for_drag_operation, self, sender);
+}
+
+- (BOOL)answerPrepareForDragOperation:(id<NSDraggingInfo>)sender {
     return _hostSession != nullptr;
 }
 
 - (BOOL)performDragOperation:(id<NSDraggingInfo>)sender {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.performDragOperation:", &run_view_perform_drag_operation, self, sender);
+}
+
+- (BOOL)answerPerformDragOperation:(id<NSDraggingInfo>)sender {
     DragEvent event = [self dragEventFor:sender action:DragAction::drop];
     const HostDispatchResult result = [self dispatchHostPayload:std::move(event)
         timestampNanoseconds:host_now_nanoseconds()];
@@ -3686,10 +4516,18 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)cursorUpdate:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.cursorUpdate:", &run_view_cursor_update, self, event);
+}
+
+- (void)answerCursorUpdate:(NSEvent*)event {
     [self updateCursorAtPoint:[self modelPointForEvent:event]];
 }
 
 - (void)mouseExited:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.mouseExited:", &run_view_mouse_exited, self, event);
+}
+
+- (void)answerMouseExited:(NSEvent*)event {
     if (_model && (*_model).captured_control()) return;
     if (_hostServices != nullptr) {
         static_cast<void>((*_hostServices).set_cursor(CursorKind::arrow));
@@ -3697,6 +4535,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)mouseDown:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.mouseDown:", &run_view_mouse_down, self, event);
+}
+
+- (void)answerMouseDown:(NSEvent*)event {
     [self.window makeFirstResponder:self];
     if ((event.modifierFlags & NSEventModifierFlagControl) != 0) {
         _controlClickInProgress = YES;
@@ -3717,6 +4559,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)mouseUp:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.mouseUp:", &run_view_mouse_up, self, event);
+}
+
+- (void)answerMouseUp:(NSEvent*)event {
     if (_controlClickInProgress) {
         _controlClickInProgress = NO;
         return;
@@ -3725,6 +4571,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)rightMouseDown:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.rightMouseDown:", &run_view_right_mouse_down, self, event);
+}
+
+- (void)answerRightMouseDown:(NSEvent*)event {
     [self dispatchPointerEvent:event action:PointerAction::down];
     // NSView's own rightMouseDown: asks menuForEvent: for the menu, which
     // reports the context request (owner's mouse-event rule).
@@ -3735,6 +4585,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 // Control-click, reported to the window as a pointer HostContextRequestEvent.
 // GUI.Forms shows its own menus, so AppKit is given none.
 - (NSMenu*)menuForEvent:(NSEvent*)event {
+    return gui_forms::detail::call_failing_fast("macos.view.menuForEvent:", &run_view_menu_for_event, self, event);
+}
+
+- (NSMenu*)answerMenuForEvent:(NSEvent*)event {
     if (!_model) return nil;
     HostContextRequestEvent request{};
     request.origin = ContextRequestOrigin::pointer;
@@ -3756,35 +4610,67 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)rightMouseUp:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.rightMouseUp:", &run_view_right_mouse_up, self, event);
+}
+
+- (void)answerRightMouseUp:(NSEvent*)event {
     [self dispatchPointerEvent:event action:PointerAction::up];
 }
 
 - (void)otherMouseDown:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.otherMouseDown:", &run_view_other_mouse_down, self, event);
+}
+
+- (void)answerOtherMouseDown:(NSEvent*)event {
     [self dispatchPointerEvent:event action:PointerAction::down];
 }
 
 - (void)otherMouseUp:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.otherMouseUp:", &run_view_other_mouse_up, self, event);
+}
+
+- (void)answerOtherMouseUp:(NSEvent*)event {
     [self dispatchPointerEvent:event action:PointerAction::up];
 }
 
 - (void)mouseMoved:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.mouseMoved:", &run_view_mouse_moved, self, event);
+}
+
+- (void)answerMouseMoved:(NSEvent*)event {
     [self dispatchPointerEvent:event action:PointerAction::move];
 }
 
 - (void)mouseDragged:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.mouseDragged:", &run_view_mouse_dragged, self, event);
+}
+
+- (void)answerMouseDragged:(NSEvent*)event {
     if (_controlClickInProgress) return;
     [self dispatchPointerEvent:event action:PointerAction::move];
 }
 
 - (void)rightMouseDragged:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.rightMouseDragged:", &run_view_right_mouse_dragged, self, event);
+}
+
+- (void)answerRightMouseDragged:(NSEvent*)event {
     [self dispatchPointerEvent:event action:PointerAction::move];
 }
 
 - (void)otherMouseDragged:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.otherMouseDragged:", &run_view_other_mouse_dragged, self, event);
+}
+
+- (void)answerOtherMouseDragged:(NSEvent*)event {
     [self dispatchPointerEvent:event action:PointerAction::move];
 }
 
 - (void)scrollWheel:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.scrollWheel:", &run_view_scroll_wheel, self, event);
+}
+
+- (void)answerScrollWheel:(NSEvent*)event {
     PointerEvent input;
     input.action = PointerAction::wheel;
     input.position = [self modelPointForEvent:event];
@@ -3802,6 +4688,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)keyDown:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.keyDown:", &run_view_key_down, self, event);
+}
+
+- (void)answerKeyDown:(NSEvent*)event {
     KeyEvent input;
     input.action = KeyAction::down;
     input.physical_key = physical_key_for(event.keyCode);
@@ -3826,6 +4716,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)keyUp:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.keyUp:", &run_view_key_up, self, event);
+}
+
+- (void)answerKeyUp:(NSEvent*)event {
     KeyEvent input;
     input.action = KeyAction::up;
     input.physical_key = physical_key_for(event.keyCode);
@@ -3841,6 +4735,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 // own device-dependent flag (the side's bit, IOKit's NX_DEVICE*KEYMASK) is
 // set; Caps Lock toggles, so it is down when its flag turned on.
 - (void)flagsChanged:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.flagsChanged:", &run_view_flags_changed, self, event);
+}
+
+- (void)answerFlagsChanged:(NSEvent*)event {
     const std::uint32_t physical = physical_key_for(event.keyCode);
     const NSUInteger flags = event.modifierFlags;
     bool down = false;
@@ -3871,6 +4769,11 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)insertText:(id)string replacementRange:(NSRange)replacementRange {
+    gui_forms::detail::call_failing_fast(
+        "macos.view.insertText:replacementRange:", &run_view_insert_text, self, string, replacementRange);
+}
+
+- (void)answerInsertText:(id)string replacementRange:(NSRange)replacementRange {
     TextInputEvent input;
     input.text_utf8 = utf8_string(string);
     input.composing = false;
@@ -3885,6 +4788,14 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)setMarkedText:(id)string
+         selectedRange:(NSRange)selectedRange
+       replacementRange:(NSRange)replacementRange {
+    gui_forms::detail::call_failing_fast(
+        "macos.view.setMarkedText:selectedRange:replacementRange:",
+        &run_view_set_marked_text, self, string, selectedRange, replacementRange);
+}
+
+- (void)answerSetMarkedText:(id)string
          selectedRange:(NSRange)selectedRange
        replacementRange:(NSRange)replacementRange {
     NSString* plain = [string isKindOfClass:[NSAttributedString class]]
@@ -3908,6 +4819,10 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 // The system asks to keep the marked text as typed (NSTextInputClient):
 // it is committed as ordinary input, replacing the composition (N105).
 - (void)unmarkText {
+    gui_forms::detail::call_failing_fast("macos.view.unmarkText", &run_view_unmark_text, self);
+}
+
+- (void)answerUnmarkText {
     if (_markedText.length != 0) {
         TextInputEvent input;
         input.text_utf8 = utf8_string(_markedText.string);
@@ -3920,19 +4835,38 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (BOOL)hasMarkedText {
+    return gui_forms::detail::call_failing_fast("macos.view.hasMarkedText", &run_view_has_marked_text, self);
+}
+
+- (BOOL)answerHasMarkedText {
     return _markedText.length != 0;
 }
 
 - (NSRange)markedRange {
+    return gui_forms::detail::call_failing_fast("macos.view.markedRange", &run_view_marked_range, self);
+}
+
+- (NSRange)answerMarkedRange {
     return [self hasMarkedText] ? NSMakeRange(0, _markedText.length)
                                 : NSMakeRange(NSNotFound, 0);
 }
 
 - (NSRange)selectedRange {
+    return gui_forms::detail::call_failing_fast("macos.view.selectedRange", &run_view_selected_range, self);
+}
+
+- (NSRange)answerSelectedRange {
     return _selectedRange;
 }
 
 - (nullable NSAttributedString*)attributedSubstringForProposedRange:(NSRange)range
+                                                        actualRange:(nullable NSRangePointer)actualRange {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.attributedSubstringForProposedRange:actualRange:",
+        &run_view_attributed_substring_for_proposed_range, self, range, actualRange);
+}
+
+- (nullable NSAttributedString*)answerAttributedSubstringForProposedRange:(NSRange)range
                                                         actualRange:(nullable NSRangePointer)actualRange {
     if (actualRange != nullptr) {
         *actualRange = NSMakeRange(NSNotFound, 0);
@@ -3941,10 +4875,22 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (NSArray<NSAttributedStringKey>*)validAttributesForMarkedText {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.validAttributesForMarkedText", &run_view_valid_attributes_for_marked_text, self);
+}
+
+- (NSArray<NSAttributedStringKey>*)answerValidAttributesForMarkedText {
     return @[];
 }
 
 - (NSRect)firstRectForCharacterRange:(NSRange)range
+                          actualRange:(nullable NSRangePointer)actualRange {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.firstRectForCharacterRange:actualRange:",
+        &run_view_first_rect_for_character_range, self, range, actualRange);
+}
+
+- (NSRect)answerFirstRectForCharacterRange:(NSRange)range
                           actualRange:(nullable NSRangePointer)actualRange {
     if (actualRange != nullptr) {
         *actualRange = range;
@@ -3968,6 +4914,11 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
 }
 
 - (void)doCommandBySelector:(SEL)selector {
+    gui_forms::detail::call_failing_fast(
+        "macos.view.doCommandBySelector:", &run_view_do_command_by_selector, self, selector);
+}
+
+- (void)answerDoCommandBySelector:(SEL)selector {
     // Physical command keys are handled by the retained control first. The
     // initial text milestone intentionally leaves unimplemented Cocoa editing
     // selectors inert instead of mutating an invisible native text field.
@@ -4100,7 +5051,23 @@ void mac_run_report_active(MacApplicationRun* run, bool active);
 - (void)applicationDidBecomeActive:(NSNotification*)notification;
 - (void)applicationDidResignActive:(NSNotification*)notification;
 - (void)stopObserving;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (void)answerApplicationDidBecomeActive:(NSNotification*)notification;
+- (void)answerApplicationDidResignActive:(NSNotification*)notification;
 @end
+
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GUIFormsActivationObserver's native entries: each sends the entry's answer message.
+void run_activation_application_did_become_active(GUIFormsActivationObserver* object, NSNotification* notification) {
+    [object answerApplicationDidBecomeActive:notification];
+}
+void run_activation_application_did_resign_active(GUIFormsActivationObserver* object, NSNotification* notification) {
+    [object answerApplicationDidResignActive:notification];
+}
+} // namespace
 
 @implementation GUIFormsActivationObserver
 - (instancetype)initWithRun:(gui_forms::host::MacApplicationRun*)run {
@@ -4116,9 +5083,21 @@ void mac_run_report_active(MacApplicationRun* run, bool active);
     return self;
 }
 - (void)applicationDidBecomeActive:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.activation.applicationDidBecomeActive:",
+        &run_activation_application_did_become_active, self, notification);
+}
+
+- (void)answerApplicationDidBecomeActive:(NSNotification*)notification {
     gui_forms::host::mac_run_report_active(_run, true);
 }
 - (void)applicationDidResignActive:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.activation.applicationDidResignActive:",
+        &run_activation_application_did_resign_active, self, notification);
+}
+
+- (void)answerApplicationDidResignActive:(NSNotification*)notification {
     gui_forms::host::mac_run_report_active(_run, false);
 }
 - (void)stopObserving {
@@ -4205,7 +5184,61 @@ void run_open_files(const std::function<void(std::vector<std::string>)>& open_fi
 // headless host. NO for the run-ending window, which closeForTermination:
 // asks.
 - (BOOL)refusesTermination:(HostCloseReason)reason;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (void)answerWindowDidMove:(NSNotification*)notification;
+- (void)answerWindowDidResize:(NSNotification*)notification;
+- (BOOL)answerWindowShouldClose:(NSWindow*)sender;
+- (void)answerWindowDidBecomeKey:(NSNotification*)notification;
+- (void)answerWindowDidResignKey:(NSNotification*)notification;
+- (void)answerWindowDidChangeOcclusionState:(NSNotification*)notification;
+- (void)answerWindowDidMiniaturize:(NSNotification*)notification;
+- (void)answerWindowDidDeminiaturize:(NSNotification*)notification;
+- (void)answerWindowDidChangeBackingProperties:(NSNotification*)notification;
+- (void)answerWindowDidEnterFullScreen:(NSNotification*)notification;
+- (void)answerWindowDidExitFullScreen:(NSNotification*)notification;
 @end
+
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GUIFormsWindowDelegate's native entries: each sends the entry's answer message.
+void run_window_delegate_window_did_move(GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowDidMove:notification];
+}
+void run_window_delegate_window_did_resize(GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowDidResize:notification];
+}
+BOOL run_window_delegate_window_should_close(GUIFormsWindowDelegate* object, NSWindow* sender) {
+    return [object answerWindowShouldClose:sender];
+}
+void run_window_delegate_window_did_become_key(GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowDidBecomeKey:notification];
+}
+void run_window_delegate_window_did_resign_key(GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowDidResignKey:notification];
+}
+void run_window_delegate_window_did_change_occlusion_state(
+    GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowDidChangeOcclusionState:notification];
+}
+void run_window_delegate_window_did_miniaturize(GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowDidMiniaturize:notification];
+}
+void run_window_delegate_window_did_deminiaturize(GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowDidDeminiaturize:notification];
+}
+void run_window_delegate_window_did_change_backing_properties(
+    GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowDidChangeBackingProperties:notification];
+}
+void run_window_delegate_window_did_enter_full_screen(GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowDidEnterFullScreen:notification];
+}
+void run_window_delegate_window_did_exit_full_screen(GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowDidExitFullScreen:notification];
+}
+} // namespace
 
 @implementation GUIFormsWindowDelegate
 - (instancetype)initWithView:(GUIFormsView*)view
@@ -4237,12 +5270,27 @@ void run_open_files(const std::function<void(std::vector<std::string>)>& open_fi
     [window close];
 }
 - (void)windowDidMove:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowDidMove:", &run_window_delegate_window_did_move, self, notification);
+}
+
+- (void)answerWindowDidMove:(NSNotification*)notification {
     gui_forms::host::mac_run_report_frame(_run, _windowId);
 }
 - (void)windowDidResize:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowDidResize:", &run_window_delegate_window_did_resize, self, notification);
+}
+
+- (void)answerWindowDidResize:(NSNotification*)notification {
     gui_forms::host::mac_run_report_frame(_run, _windowId);
 }
 - (BOOL)windowShouldClose:(NSWindow*)sender {
+    return gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowShouldClose:", &run_window_delegate_window_should_close, self, sender);
+}
+
+- (BOOL)answerWindowShouldClose:(NSWindow*)sender {
     if (_view != nil && ![_view requestCloseHiding:_hideOnClose reason:HostCloseReason::user]) return NO;
     if (_hideOnClose) {
         [sender orderOut:nil];
@@ -4280,30 +5328,75 @@ void run_open_files(const std::function<void(std::vector<std::string>)>& open_fi
     [NSApp postEvent:wake atStart:NO];
 }
 - (void)windowDidBecomeKey:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowDidBecomeKey:", &run_window_delegate_window_did_become_key, self, notification);
+}
+
+- (void)answerWindowDidBecomeKey:(NSNotification*)notification {
     [_view notifyActivation:YES];
 }
 - (void)windowDidResignKey:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowDidResignKey:", &run_window_delegate_window_did_resign_key, self, notification);
+}
+
+- (void)answerWindowDidResignKey:(NSNotification*)notification {
     [_view notifyActivation:NO];
 }
 - (void)windowDidChangeOcclusionState:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowDidChangeOcclusionState:",
+        &run_window_delegate_window_did_change_occlusion_state, self, notification);
+}
+
+- (void)answerWindowDidChangeOcclusionState:(NSNotification*)notification {
     NSWindow* window = notification.object;
     const BOOL visible = (window.occlusionState & NSWindowOcclusionStateVisible) != 0;
     [_view notifyOcclusion:!visible];
 }
 - (void)windowDidMiniaturize:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowDidMiniaturize:", &run_window_delegate_window_did_miniaturize, self, notification);
+}
+
+- (void)answerWindowDidMiniaturize:(NSNotification*)notification {
     gui_forms::host::mac_run_report_minimized(_run, _windowId, true);
 }
 - (void)windowDidDeminiaturize:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowDidDeminiaturize:",
+        &run_window_delegate_window_did_deminiaturize, self, notification);
+}
+
+- (void)answerWindowDidDeminiaturize:(NSNotification*)notification {
     [_view setNeedsDisplay:YES];
     gui_forms::host::mac_run_report_minimized(_run, _windowId, false);
 }
 - (void)windowDidChangeBackingProperties:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowDidChangeBackingProperties:",
+        &run_window_delegate_window_did_change_backing_properties, self, notification);
+}
+
+- (void)answerWindowDidChangeBackingProperties:(NSNotification*)notification {
     [_view notifyScaleChanged];
 }
 - (void)windowDidEnterFullScreen:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowDidEnterFullScreen:",
+        &run_window_delegate_window_did_enter_full_screen, self, notification);
+}
+
+- (void)answerWindowDidEnterFullScreen:(NSNotification*)notification {
     [_view notifyWindowState];
 }
 - (void)windowDidExitFullScreen:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowDidExitFullScreen:",
+        &run_window_delegate_window_did_exit_full_screen, self, notification);
+}
+
+- (void)answerWindowDidExitFullScreen:(NSNotification*)notification {
     [_view notifyWindowState];
 }
 - (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window
@@ -4356,7 +5449,20 @@ void run_open_files(const std::function<void(std::vector<std::string>)>& open_fi
 - (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end;
 - (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end
                   openFiles:(const std::function<void(std::vector<std::string>)>*)openFiles;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (NSApplicationTerminateReply)answerApplicationShouldTerminate:(NSApplication*)sender;
 @end
+
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GUIFormsTerminationDelegate's native entries: each sends the entry's answer message.
+NSApplicationTerminateReply run_termination_application_should_terminate(
+    GUIFormsTerminationDelegate* object, NSApplication* sender) {
+    return [object answerApplicationShouldTerminate:sender];
+}
+} // namespace
 
 @implementation GUIFormsTerminationDelegate
 - (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end {
@@ -4414,6 +5520,11 @@ static HostCloseReason termination_close_reason() {
 }
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
+    return gui_forms::detail::call_failing_fast(
+        "macos.termination.applicationShouldTerminate:", &run_termination_application_should_terminate, self, sender);
+}
+
+- (NSApplicationTerminateReply)answerApplicationShouldTerminate:(NSApplication*)sender {
     const HostCloseReason reason = termination_close_reason();
     // First every window that does not end the run is asked, in NSApp's
     // window order, and the first refusal cancels the termination (audit
@@ -4449,7 +5560,19 @@ static HostCloseReason termination_close_reason() {
     BOOL _takesFocus;
 }
 - (instancetype)initWithContentRect:(NSRect)contentRect takesFocus:(BOOL)takesFocus;
+// The bodies of this class's native entries (the AppKit overrides and
+// targets below): each entry calls its answer through the fail-fast
+// boundary (call_failing_fast).
+- (BOOL)answerCanBecomeKeyWindow;
 @end
+
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GUIFormsPopupPanel's native entries: each sends the entry's answer message.
+BOOL run_popup_panel_can_become_key_window(GUIFormsPopupPanel* object) {
+    return [object answerCanBecomeKeyWindow];
+}
+} // namespace
 
 @implementation GUIFormsPopupPanel
 - (instancetype)initWithContentRect:(NSRect)contentRect takesFocus:(BOOL)takesFocus {
@@ -4461,6 +5584,11 @@ static HostCloseReason termination_close_reason() {
     return self;
 }
 - (BOOL)canBecomeKeyWindow {
+    return gui_forms::detail::call_failing_fast(
+        "macos.popup_panel.canBecomeKeyWindow", &run_popup_panel_can_become_key_window, self);
+}
+
+- (BOOL)answerCanBecomeKeyWindow {
     return _takesFocus;
 }
 - (BOOL)canBecomeMainWindow {
