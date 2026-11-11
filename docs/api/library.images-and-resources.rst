@@ -22,6 +22,8 @@ Types
      - ImageLoadResult couples a stable nonzero image identity to a closed registry error.
    * - :cpp:class:`ImageMetadata <gui_forms::ImageMetadata>`
      - What every resource reports, whatever its encoding.
+   * - :cpp:class:`ImagePatchRegion <gui_forms::ImagePatchRegion>`
+     - The part of an image patched since an earlier state of it (D4).
    * - :cpp:class:`ImageRegistry <gui_forms::ImageRegistry>`
      - ImageRegistry is the renderer-neutral generational identity store for validated PNG and premultiplied BGRA resources, with bounded per-image/global quotas, in-place live updates, rectangular patches, stale-ID rejection, and structured telemetry.
    * - :cpp:class:`ImageRegistryLimits <gui_forms::ImageRegistryLimits>`
@@ -211,6 +213,28 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ImagePatchRegion final
+
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+
+   The part of an image patched since an earlier state of it (D4). A run of patch_bgra32_premultiplied calls with no other change between them is one run: base_image and base_hash name the image as it was before the run's first patch, and the rectangle is the union of the run's patches, so the pixels differ from that state, and from every state inside the run, only inside it. base_hash 0 means no run is open: a consumer resynchronizes the whole image.
+
+   .. cpp:member:: std::uint64_t base_image
+
+      ImageId::value before the run's first patch.
+
+   .. cpp:member:: std::uint64_t base_hash
+
+   .. cpp:member:: std::uint32_t x
+
+   .. cpp:member:: std::uint32_t y
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: ImageRegistry final
 
    ``#include <gui_forms/resources/image_registry/image_registry.hpp>``
@@ -377,6 +401,10 @@ Types
    .. cpp:member:: std::uint64_t content_hash
 
       Opaque cache revision paired with ImageId. Initial loads may seed this from pixel bytes; updates advance it. It is not a content digest.
+
+   .. cpp:member:: ImagePatchRegion patched
+
+      The open patch run, if any (ImagePatchRegion).
 
 .. cpp:namespace:: gui_forms
 

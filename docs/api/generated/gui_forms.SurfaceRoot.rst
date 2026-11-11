@@ -424,6 +424,8 @@ gui_forms::SurfaceRoot
         - Removes a snapshot's image; false when it is not there.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`
         -  
+      * - :cpp:func:`measure_text_extent_utf8 <gui_forms::SurfaceRoot::measure_text_extent_utf8>`
+        - The extent resolve_text_layout_utf8 reports, without the layout (D2).
       * - :cpp:func:`fill_line_break_opportunities_utf8 <gui_forms::SurfaceRoot::fill_line_break_opportunities_utf8>`
         - The installed provider's line-break opportunities (TextMetricsProvider::fill_line_break_opportunities_utf8), or the estimate without one.
       * - :cpp:func:`shares_resources_with <gui_forms::SurfaceRoot::shares_resources_with>`
@@ -1195,6 +1197,10 @@ gui_forms::SurfaceRoot
       Removes a snapshot's image; false when it is not there.
 
    .. cpp:function:: ResolvedTextLayout resolve_text_layout_utf8(std::string_view utf8, FontSpec effective_font) const
+
+   .. cpp:function:: TextExtent measure_text_extent_utf8(std::string_view utf8, FontSpec effective_font) const
+
+      The extent resolve_text_layout_utf8 reports, without the layout (D2).
 
    .. cpp:function:: TextResolutionStatus fill_line_break_opportunities_utf8(std::string_view utf8, std::span<LineBreakOpportunity> opportunities) const
 

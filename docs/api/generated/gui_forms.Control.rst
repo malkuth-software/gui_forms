@@ -527,6 +527,8 @@ gui_forms::Control
         - The primary text font before the text scale, with where each field came from.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::Control::resolve_text_layout_utf8>`
         - Resolves an already-effective FontSpec (normally from effective_font) through the attached terminal provider without applying text scale a second time.
+      * - :cpp:func:`measure_text_extent_utf8 <gui_forms::Control::measure_text_extent_utf8>`
+        - The extent resolve_text_layout_utf8 reports, without the layout (D2): for measuring, as a wrap probe does.
       * - :cpp:func:`fill_line_break_opportunities_utf8 <gui_forms::Control::fill_line_break_opportunities_utf8>`
         - The attached window's line-break opportunities (Window::fill_line_break_opportunities_utf8), or the estimate while detached.
       * - :cpp:func:`snap_text_baseline <gui_forms::Control::snap_text_baseline>`
@@ -1398,6 +1400,10 @@ gui_forms::Control
 
       Resolves an already-effective FontSpec (normally from effective_font) through the attached terminal provider without applying text scale a second time.
 
+   .. cpp:function:: TextExtent measure_text_extent_utf8(std::string_view utf8, FontSpec effective) const
+
+      The extent resolve_text_layout_utf8 reports, without the layout (D2): for measuring, as a wrap probe does.
+
    .. cpp:function:: TextResolutionStatus fill_line_break_opportunities_utf8(std::string_view utf8, std::span<LineBreakOpportunity> opportunities) const
 
       The attached window's line-break opportunities (Window::fill_line_break_opportunities_utf8), or the estimate while detached.
@@ -2088,6 +2094,16 @@ gui_forms::Control
       *Protected.*
 
       Derived disposal hooks that retain child controls must finish through this base implementation; it owns the mutation-free child detach path.
+
+   .. cpp:function:: LayoutKey layout_key() const
+
+      *Protected.*
+
+   .. cpp:function:: void advance_layout_revision() noexcept
+
+      *Protected.*
+
+      Called after writing a field a kept layout reads that is neither a property cell nor a collection cell, before the next layout read.
 
    .. cpp:type:: Ptr = std::shared_ptr<Control>
 

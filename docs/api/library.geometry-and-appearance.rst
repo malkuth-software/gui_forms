@@ -778,6 +778,14 @@ Types
 
    .. cpp:member:: std::uint64_t raster_table_generation
 
+   .. cpp:member:: bool listed
+
+      N37: the table's recency list of part rasters it budgets (held, not shared), least recently painted first. Observing links, kept by the table; ``listed`` says whether this raster is on the list.
+
+   .. cpp:member:: CachedPartRaster* older_raster
+
+   .. cpp:member:: CachedPartRaster* newer_raster
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: CheckerPattern final
@@ -5511,6 +5519,10 @@ Types
 
       Paints one part of ``control`` (see paint_part). A part with a key (PartPaint::key) and paintable bounds, painted by a control attached to a window, has its record in that window's part table made or updated first; a primitive then draws into the record's cached raster. A part without a key leaves no record; a primitive draws it into a raster of its own for this paint. If the primitive refuses the part, the built-in recipe draws it. A part with a blend (blend_property) is drawn inside a paint group of that composite.
 
+   .. cpp:function:: void paint_clipped(Painter& painter, const Control& control, const PartPaint& part, std::span<const Rect> clips) const
+
+      As paint, with what it draws repeated under each of ``clips`` (each in a save, clip_rect and restore; none for an empty span), the part planned, noted and baked once (N91): a pointed part's body and the strips of its nose.
+
    .. cpp:function:: PartHitRegion hit_region(const Control& control, const PartPaint& part) const noexcept
 
       The hit region of one part of ``control`` (E8, T1's hand-off): the part's bounds and the shape its primitive draws there, as plan() decides it. A part the built-in recipe draws, for any reason, has a rectangle. Themes choose a primitive's shape; they never set a hit region (design language §7.4 rule 1). Test a point with part_hit.
@@ -8591,9 +8603,9 @@ Functions, constants and aliases
 
 ``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
 
-.. cpp:function:: ThemeDefinition gui_forms_theme_definition()
+.. cpp:function:: const ThemeDefinition& gui_forms_theme_definition()
 
-   The floor: Plan Paint's action plate for push buttons, the gold active tool for selected ones, recessed wells for entry fields and choices, near-white stock (#F4F4F5) for windows and panels, flat command members at rest, and enabled text colours that meet the contrast gate (4.5:1) on every face (disabled text is exempt). Its recipes are the floor sheet's (gui_forms_floor_sheet), evaluated once on the first call (thread-safe) over the C++ structure (owner option 1); a copy each call. Id ``gui-forms``; its rules are empty.
+   The floor: Plan Paint's action plate for push buttons, the gold active tool for selected ones, recessed wells for entry fields and choices, near-white stock (#F4F4F5) for windows and panels, flat command members at rest, and enabled text colours that meet the contrast gate (4.5:1) on every face (disabled text is exempt). Its recipes are the floor sheet's (gui_forms_floor_sheet), evaluated once on the first call (thread-safe) over the C++ structure (owner option 1) and kept for the process: the reference stays valid until exit (S3). Id ``gui-forms``; its rules are empty.
 
 .. cpp:function:: std::string_view gui_forms_floor_sheet() noexcept
 

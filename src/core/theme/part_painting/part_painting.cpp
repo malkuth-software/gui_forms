@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -1243,30 +1244,47 @@ namespace {
 // (paint_part_with_built_in_recipe), a primitive does not, so a contextual
 // tab or plane a theme styles keeps its tint (RB 25). The ramp colour
 // carries its own translucency and follows the recipe's corners.
-void paint_primitive_accent(Painter& painter, const Control& control, const PartPaint& part) {
-    if (!part.accent || !surface_role(part.role) || !paintable(part.bounds)) return;
+// The accent fill a part's primitive takes, or none.
+struct AccentFill final {
+    double radius{};
+    Color color{};
+};
+
+std::optional<AccentFill> primitive_accent_fill(const Control& control, const PartPaint& part) {
+    if (!part.accent || !surface_role(part.role) || !paintable(part.bounds)) return std::nullopt;
     const Theme& theme = control.effective_theme();
     const ThemeEngine::PartPlan decided = theme.engine().plan(control, part);
-    if (decided.drawing != ThemeEngine::PartDrawing::primitive) return;
+    if (decided.drawing != ThemeEngine::PartDrawing::primitive) return std::nullopt;
     const ControlVisualContext context = part_visual_context(control, part.states);
     const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
     const ResolvedControlRecipe resolved =
         theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
-    const double radius = part_corner_radius(part, resolved.recipe());
-    painter.fill_rounded_rect(part.bounds, radius, theme.accent(*part.accent));
+    AccentFill fill{};
+    fill.radius = part_corner_radius(part, resolved.recipe());
+    fill.color = theme.accent(*part.accent);
+    return fill;
+}
+
+void paint_primitive_accent(Painter& painter, const Control& control, const PartPaint& part) {
+    const std::optional<AccentFill> fill = primitive_accent_fill(control, part);
+    if (!fill) return;
+    painter.fill_rounded_rect(part.bounds, (*fill).radius, (*fill).color);
 }
 
 // paint_primitive_accent under each of `clips`, or once without any.
 void paint_primitive_accent_clipped(Painter& painter, const Control& control, const PartPaint& part,
                                     const std::span<const Rect> clips) {
+    // Resolved once; a part with no accent records nothing, as before.
+    const std::optional<AccentFill> fill = primitive_accent_fill(control, part);
+    if (!fill) return;
     if (clips.empty()) {
-        paint_primitive_accent(painter, control, part);
+        painter.fill_rounded_rect(part.bounds, (*fill).radius, (*fill).color);
         return;
     }
     for (const Rect clip : clips) {
         painter.save();
         painter.clip_rect(clip);
-        paint_primitive_accent(painter, control, part);
+        painter.fill_rounded_rect(part.bounds, (*fill).radius, (*fill).color);
         painter.restore();
     }
 }
