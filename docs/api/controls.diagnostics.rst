@@ -952,17 +952,27 @@ Related types
 
    .. cpp:member:: StockSpecimenMaker make
 
+   .. cpp:member:: StockSpecimenPresenter present
+
+      Null when the instance needs nothing from its window.
+
+   .. cpp:member:: std::string_view blank_reason
+
+      Why a near-uniform capture at rest is this control's real look (a base that paints nothing of its own); empty for every other row.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: StockSpecimenInstance final
 
    ``#include <gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp>``
 
-   What a window holds for one specimen. ``subject`` is the control of the row's type, which a palette captures and shows states on; ``root`` is what the window holds: the subject itself, or a holder that owns what the subject borrows (a PageSet, a DockWorkspace, an overlay's anchor) and lays the subject over its whole client area. Keep ``root`` alive while ``subject`` is used.
+   What a window holds for one specimen. ``subject`` is the control of the row's type, which a palette captures and shows states on; ``root`` is what the window holds: the subject itself, or a holder that owns what the subject borrows (a PageSet, a DockWorkspace, an overlay's anchor) and lays the subject over its whole client area. Keep ``root`` alive while ``subject`` is used. ``frame`` is what a palette captures: the subject, or, for a part that only shows inside its container (a tab page, a wizard page, a plot's axis, a splitter between two panels), the container.
 
    .. cpp:member:: Control::Ptr root
 
    .. cpp:member:: Control::Ptr subject
+
+   .. cpp:member:: Control::Ptr frame
 
 .. cpp:namespace:: gui_forms
 
@@ -1637,11 +1647,27 @@ Functions, constants and aliases
 
 .. cpp:function:: StockSpecimenInstance make_stock_specimen(const StockSpecimen& specimen, StableId id)
 
-   ``specimen``'s instance (specimen.make), IDs starting with ``id``. Makers write only ordinary property values; a refused write is the write's own exception (std::invalid_argument or std::logic_error). UI thread.
+   ``specimen``'s instance (specimen.make), IDs starting with ``id``. Makers write only ordinary property values; a refused write is the write's own exception (std::invalid_argument or std::logic_error). UI thread. ``frame`` is the subject when the maker names none.
+
+.. cpp:function:: void present_stock_specimen(const StockSpecimen& specimen, const StockSpecimenInstance& instance, Window& window)
+
+   Runs ``specimen.present`` on ``instance`` (nothing when it has none), once ``instance.root`` is in ``window`` and laid out. UI thread.
+
+.. cpp:function:: double stock_specimen_dominant_share(const WindowCapture& capture, std::uint32_t inset_pixels)
+
+   The share, in [0, 1], of the pixels of ``capture`` inside ``inset_pixels`` from each edge that have its most frequent BGRA value; 1 when that region is empty. ``inset_pixels`` leaves out a margin and the subject's own border. Allocates one copy of the region's pixels.
 
 .. cpp:type:: StockSpecimenMaker = StockSpecimenInstance (*)(const StockSpecimen& specimen, StableId id)
 
    Makes ``specimen``'s instance, its controls' stable IDs starting with ``id``.
+
+.. cpp:type:: StockSpecimenPresenter = void (*)(const StockSpecimenInstance& instance, Window& window)
+
+   Finishes an instance once its root is in ``window`` and laid out: what needs the window (an image in its registry, a modal layer shown over the root). Throws what the window's own call throws, or std::runtime_error when the window refuses (an image not loaded).
+
+.. cpp:var:: constexpr double stock_specimen_uniform_share
+
+   A capture whose most frequent colour covers at least this share of the subject's pixels (stock_specimen_dominant_share) is near-uniform: an empty specimen. Value: ``0.97``.
 
 .. cpp:namespace:: gui_forms
 

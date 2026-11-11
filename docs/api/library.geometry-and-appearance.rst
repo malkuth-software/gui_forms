@@ -7949,6 +7949,16 @@ Functions, constants and aliases
 
    The registry of the toolkit's own effects, filled on first use (defined with the controls that host them).
 
+.. cpp:function:: void install_effect_registry(const EffectRegistry* registry) noexcept
+
+   The process's installed effect registry: the one a theme compiled without a registry of its own checks ``effect`` names against (E417), such as the user theme a process is started with (--theme, GUI_FORMS_THEME_SHEET), settled at its first window. gui_forms_core holds only the address and never names a registry: the installer owns the registry, which must stay alive until it is uninstalled (null) or the process ends, and the core reads it when a held request is settled, not when it is held. None is installed until a program installs one; with none, ``effect`` names are checked for their form only and E417 is skipped, which the request's report says. Replacing or uninstalling does not reach a compile already done. Any thread; settling reads it on the UI thread.
+
+.. cpp:function:: const EffectRegistry* installed_effect_registry() noexcept
+
+.. cpp:function:: void install_built_in_effect_registry()
+
+   Installs built_in_effect_registry() as the process's registry (install_effect_registry), which lives until the process ends (defined with the controls, so only a program linking them can call it). A program using the stock controls calls it once while it sets up, before its first window. Repeating it changes nothing.
+
 .. cpp:function:: bool effect_verification_recorded(std::string_view name, std::size_t state_size, const void* run_thunk) noexcept
 
    Whether the effect pass of the gui_forms Clang plugin verified the effect named ``name``, of ``state_size`` bytes, whose run thunk is ``run_thunk``: a record naming it with that state size is in the binary holding that code (design note §2). A record of another size (another build's effect of the same name) does not count.
