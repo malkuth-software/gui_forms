@@ -21,6 +21,9 @@ gui_forms::HelpBookSystem
 
    :Properties:
 
+      **locale** : ``LocaleCatalog``, read-only
+         The language files' text: every field the loaded files give, and the program layer as of the last compile, section(), export or resolve_field. Declared HelpTopics are not in it; they join the help view at each compile and the template export.
+
       **options** : ``HelpBookSystemOptions``, read-only
 
       **active_viewer** : ``std::shared_ptr<HelpBookViewer>``, read-only
@@ -54,13 +57,21 @@ gui_forms::HelpBookSystem
       :widths: 35 65
 
       * - :cpp:func:`catalog <gui_forms::HelpBookSystem::catalog>`
-        -  
+        - The help view of locale().
       * - :cpp:func:`load_built_in <gui_forms::HelpBookSystem::load_built_in>`
-        - Reads a locale file's help fields: into the built-in layer (the embedded built-in locale file) or as the translation.
+        - Reads a locale file: merged into the built-in layer (the embedded built-in locale file, which must be for options().built_in_language), or as the translation (user overrides for another language go).
       * - :cpp:func:`load_translation <gui_forms::HelpBookSystem::load_translation>`
         -  
+      * - :cpp:func:`load_user_overrides <gui_forms::HelpBookSystem::load_user_overrides>`
+        - The user's own ``locales-<tag>.xml`` for the language in force: wins over the translation and the built-in text per field.
+      * - :cpp:func:`clear_user_overrides <gui_forms::HelpBookSystem::clear_user_overrides>`
+        - Drops the user's overrides (one way back: the file is removed).
       * - :cpp:func:`use_built_in_language <gui_forms::HelpBookSystem::use_built_in_language>`
-        - The untranslatable way back: help in the built-in language only.
+        - The untranslatable way back: help in the built-in language only, whatever the translation and the user's file say.
+      * - :cpp:func:`export_template <gui_forms::HelpBookSystem::export_template>`
+        - The template export (translation design 7): the declared topics, the built-in file and the attached windows' program values, with the built-in text as values and, when ``language`` is the translation's, its translations over them; never the user's overrides.
+      * - :cpp:func:`resolve_field <gui_forms::HelpBookSystem::resolve_field>`
+        - One field of a record as it shows now, with the layer it came from: the attached windows' program values are read first.
       * - :cpp:func:`compile <gui_forms::HelpBookSystem::compile>`
         - Compiles the section from the catalog, the attached windows' structure and the declared topics, and shows it in the viewers.
       * - :cpp:func:`section <gui_forms::HelpBookSystem::section>`
@@ -114,6 +125,10 @@ gui_forms::HelpBookSystem
 
    .. rubric:: Properties
 
+   .. cpp:function:: const LocaleCatalog& locale() const noexcept
+
+      The language files' text: every field the loaded files give, and the program layer as of the last compile, section(), export or resolve_field. Declared HelpTopics are not in it; they join the help view at each compile and the template export.
+
    .. cpp:function:: const HelpBookSystemOptions& options() const noexcept
 
    .. cpp:function:: std::shared_ptr<HelpBookViewer> active_viewer() const
@@ -144,15 +159,33 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: HelpCatalog& catalog() noexcept
 
-   .. cpp:function:: HelpLocaleReadResult load_built_in(std::string_view locale_xml)
+      The help view of locale(). Every load and the way back replace it from locale() (HelpCatalog::adopt_locale), so a direct edit lasts only until the next one.
 
-      Reads a locale file's help fields: into the built-in layer (the embedded built-in locale file) or as the translation. A refused file changes nothing; rejected fields are left out and listed.
+   .. cpp:function:: LocaleReadResult load_built_in(std::string_view locale_xml)
 
-   .. cpp:function:: HelpLocaleReadResult load_translation(std::string_view locale_xml)
+      Reads a locale file: merged into the built-in layer (the embedded built-in locale file, which must be for options().built_in_language), or as the translation (user overrides for another language go). A refused file changes nothing; rejected fields are left out and listed.
+
+   .. cpp:function:: LocaleReadResult load_translation(std::string_view locale_xml)
+
+   .. cpp:function:: LocaleReadResult load_user_overrides(std::string_view locale_xml)
+
+      The user's own ``locales-<tag>.xml`` for the language in force: wins over the translation and the built-in text per field. A file for another language is refused (language_mismatch) and changes nothing.
+
+   .. cpp:function:: void clear_user_overrides()
+
+      Drops the user's overrides (one way back: the file is removed).
 
    .. cpp:function:: void use_built_in_language(bool built_in_only)
 
-      The untranslatable way back: help in the built-in language only.
+      The untranslatable way back: help in the built-in language only, whatever the translation and the user's file say. The viewer's built-in-language link turns it on.
+
+   .. cpp:function:: XmlWriteResult export_template(std::string_view language)
+
+      The template export (translation design 7): the declared topics, the built-in file and the attached windows' program values, with the built-in text as values and, when ``language`` is the translation's, its translations over them; never the user's overrides. ``language`` empty exports the built-in language. The error is the XML writer's.
+
+   .. cpp:function:: LocaleResolvedField resolve_field(std::string_view stable_id, LocaleField field)
+
+      One field of a record as it shows now, with the layer it came from: the attached windows' program values are read first.
 
    .. cpp:function:: const HelpBookCompileResult& compile()
 

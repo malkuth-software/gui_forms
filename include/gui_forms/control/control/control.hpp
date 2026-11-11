@@ -19,6 +19,7 @@
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/theme.hpp"
+#include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <atomic>
@@ -68,6 +69,14 @@ void set_layout_keeping(bool keeping) noexcept;
 struct DispatcherState;
 struct ControlInlineStyle;
 struct InlineRestyle;
+// A control's help fields (Control::help_line, help and keywords), made on
+// the first non-empty write and released when all three are empty again,
+// so a control without help pays one pointer.
+struct ControlHelpFields final {
+    std::string help_line{};
+    std::string help{};
+    std::string keywords{};
+};
 
 template <typename EventType, typename... Values>
 class DeferredEventPublication final {
@@ -789,7 +798,7 @@ public:
     void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 29U;
+    static constexpr std::size_t control_property_count = 32U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -1375,6 +1384,9 @@ private:
     friend struct HitTestTransparentCapability<Control>;
     friend struct AccessibleNameCapability<Control>;
     friend struct AccessibleDescriptionCapability<Control>;
+    friend struct HelpLineCapability<Control>;
+    friend struct HelpCapability<Control>;
+    friend struct KeywordsCapability<Control>;
     friend struct CeremonialCapability<Control>;
     friend struct TagCapability<Control>;
     friend struct FocusableCapability<Control>;
@@ -1437,6 +1449,20 @@ private:
     void written(const decltype(accessible_name)& cell);
     void prepare_write(const decltype(accessible_description)& cell, std::string& value);
     void written(const decltype(accessible_description)& cell);
+    // The help fields are views onto help_fields_: each write checks the
+    // value as the locale reader does (check_locale_value; refused, it
+    // throws std::invalid_argument and changes nothing), then stores it and
+    // invalidates semantics; reads return the program's value, never a
+    // translation (translation design: getters return program values).
+    void write_view(const decltype(help_line)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(help_line)& cell) const;
+    void write_view(const decltype(help)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(help)& cell) const;
+    void write_view(const decltype(keywords)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(keywords)& cell) const;
+    // Stores one help field through `slot` (a member of ControlHelpFields),
+    // making or releasing help_fields_.
+    void write_help_field(std::string detail::ControlHelpFields::* slot, LocaleField field, std::string incoming);
     void prepare_write(const decltype(ceremonial)& cell, bool& value);
     void written(const decltype(ceremonial)& cell);
     void write_view(const decltype(tag)& cell, std::any incoming);
@@ -1465,7 +1491,7 @@ private:
     void advance_measure_generation() noexcept;
     void set_provider_error(std::uint64_t provider_id, std::string error);
     void clear_provider_error(std::uint64_t provider_id);
-    void set_provider_help(std::uint64_t provider_id, std::string help);
+    void set_provider_help(std::uint64_t provider_id, std::string description);
     void clear_provider_help(std::uint64_t provider_id);
     [[nodiscard]] bool perform_validation(Control* destination, bool bulk);
     [[nodiscard]] virtual AutoValidate authored_auto_validate() const noexcept {
@@ -1561,6 +1587,9 @@ private:
     RuntimeId runtime_id_;
     StableId stable_id_;
     std::any tag_;
+    // The help fields' storage (ControlHelpFields), absent while all three
+    // are empty. Owned; released with the control.
+    std::unique_ptr<detail::ControlHelpFields> help_fields_;
     WeakPtr parent_;
     // The parent as an observing pointer (audit A7), set and cleared with
     // parent_: the parent owns this control through children_, so the
@@ -1795,6 +1824,9 @@ private:
         hit_test_transparent,
         accessible_name,
         accessible_description,
+        help_line,
+        help,
+        keywords,
         tool_tip_text,
         cursor,
         classes,
@@ -1894,6 +1926,12 @@ private:
             } else if constexpr (
                 Property == RegisteredProperty::tool_tip_text) {
                 return BindingValue{(*control).tool_tip_text.read()};
+            } else if constexpr (Property == RegisteredProperty::help_line) {
+                return BindingValue{(*control).help_line.read()};
+            } else if constexpr (Property == RegisteredProperty::help) {
+                return BindingValue{(*control).help.read()};
+            } else if constexpr (Property == RegisteredProperty::keywords) {
+                return BindingValue{(*control).keywords.read()};
             } else if constexpr (Property == RegisteredProperty::cursor) {
                 return (*control).cursor_property_value();
             } else if constexpr (Property == RegisteredProperty::classes) {
@@ -2006,6 +2044,12 @@ private:
                         "ToolTipText binding requires text");
                 }
                 (*control).tool_tip_text = std::get<std::string>(*converted);
+            } else if constexpr (Property == RegisteredProperty::help_line) {
+                (*control).help_line = std::get<std::string>(value);
+            } else if constexpr (Property == RegisteredProperty::help) {
+                (*control).help = std::get<std::string>(value);
+            } else if constexpr (Property == RegisteredProperty::keywords) {
+                (*control).keywords = std::get<std::string>(value);
             } else if constexpr (Property == RegisteredProperty::cursor) {
                 (*control).set_cursor_property_value(value);
             } else if constexpr (Property == RegisteredProperty::classes) {

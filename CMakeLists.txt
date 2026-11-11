@@ -337,6 +337,7 @@ add_library(gui_forms_core STATIC
     src/core/text/prepared/prepared_storage.cpp
     src/core/text/composite/text_composite.cpp
     src/core/text/localizable/localizable.cpp
+    src/core/text/locale_file/locale_file.cpp
     src/core/document_view/document_view_state.cpp
     src/core/pages/page_set/page_set.cpp
     src/core/events/key_commands/key_commands.cpp
@@ -3422,6 +3423,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_help_system_core_tests tests/help_system_core_tests.cpp)
     target_link_libraries(gui_forms_help_system_core_tests PRIVATE gui_forms_controls gui_forms_core)
     add_test(NAME gui_forms_help_system_core_tests COMMAND gui_forms_help_system_core_tests)
+    add_executable(gui_forms_locale_file_tests tests/locale_file_tests.cpp)
+    target_link_libraries(gui_forms_locale_file_tests PRIVATE gui_forms_controls gui_forms_core)
+    add_test(NAME gui_forms_locale_file_tests COMMAND gui_forms_locale_file_tests)
     gui_forms_add_fuzz_test(helpbook_section SOURCE fuzz/helpbook_section_fuzz.cpp LIBRARIES gui_forms_core)
 
     add_executable(gui_forms_xml_tests tests/xml_tests.cpp)

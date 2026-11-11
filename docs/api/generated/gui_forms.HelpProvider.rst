@@ -180,7 +180,7 @@ gui_forms::HelpProvider
 
       Application data, kept as given and never interpreted.
 
-   .. cpp:function:: HelpProviderSnapshot snapshot() const noexcept
+   .. cpp:function:: HelpProviderSnapshot snapshot() const
 
       A :cpp:class:`HelpProviderSnapshot <gui_forms::HelpProviderSnapshot>` with the number of controls that have entries,
       how many of them currently offer help, and how many requests were raised

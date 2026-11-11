@@ -3,12 +3,16 @@
 // (contents sync, history, index and its chooser, search, bookmarks, keys),
 // the HelpBookSystem (F1 walking up to the window page and home, the window
 // card, What's This, the program routes, external links) and print
-// pagination.
+// pagination; and the language files through the system (help H1): a
+// control's help fields and HelpProvider as program values, the template
+// export, a user override read back, the way back and a translation.
 
 #include "gui_forms/gui_forms.hpp"
 
 #include <cstdlib>
 #include <iostream>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -285,6 +289,108 @@ void printing() {
     require(covered == plan.content_height, "the sheets cover the page");
 }
 
+// Help H1's round trip: author (the built-in file, a HelpProvider and a
+// property set in code), export the template, apply a user override made
+// from it, read it back; then the way back, removal and a translation.
+void language_files() {
+    Program program = make_program();
+    HelpBookSystem help{};
+    require(static_cast<bool>(help.load_built_in(program_locale)), "the built-in file loads");
+    help.attach(*program.window);
+    HelpProvider provider(*program.window);
+    provider.set_help_string(program.silent, "Does nothing, quietly.");
+    provider.set_help_keyword(program.silent, "silence; quiet, button");
+    require((*program.silent).help_line.read() == "Does nothing, quietly." &&
+                (*program.silent).keywords.read() == "silence; quiet, button",
+            "HelpProvider writes the control's help line and keywords");
+    (*program.pen).help = "Hold the button down and drag.";
+    require(provider.help_string(*program.pen).empty() && provider.help_keyword(*program.silent) == "silence; quiet, button",
+            "HelpProvider's getters read the controls' fields");
+    bool refused = false;
+    try {
+        (*program.pen).keywords = "pen;;drawing";
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*program.pen).keywords.read().empty(), "a malformed keyword list is refused, nothing changed");
+
+    // The template: the built-in file, the program's values and the
+    // declared text, with the built-in text as values.
+    const XmlWriteResult exported = help.export_template("");
+    require(static_cast<bool>(exported), "the template exports");
+    const LocaleReadResult reread = read_locale(exported.text);
+    require(static_cast<bool>(reread) && reread.info.language == "en" && reread.rejections.empty(),
+            "the template reads back as a locale file");
+    const LocaleRecord* silent = reread.records.find("app.silent");
+    require(silent != nullptr && locale_record_field(*silent, LocaleField::text) == std::optional<std::string>("Silent") &&
+                locale_record_field(*silent, LocaleField::help_line) ==
+                    std::optional<std::string>("Does nothing, quietly.") &&
+                locale_record_field(*silent, LocaleField::keywords) ==
+                    std::optional<std::string>("silence; quiet, button"),
+            "the template lists a record's file text and its program help fields");
+    const LocaleRecord* pen = reread.records.find("app.tools.pen");
+    require(pen != nullptr &&
+                locale_record_field(*pen, LocaleField::help_line) == std::optional<std::string>("Draws freehand lines.") &&
+                locale_record_field(*pen, LocaleField::help) ==
+                    std::optional<std::string>("Hold the button down and drag."),
+            "a help body set in code joins the file's help line");
+
+    // A user override made from the template wins per field.
+    LocaleLayer overrides;
+    overrides.set("app.silent", LocaleField::help_line, "My own note.");
+    LocaleFileInfo user_info{};
+    user_info.language = "en";
+    const XmlWriteResult user_file = write_locale(overrides, user_info);
+    require(static_cast<bool>(user_file) && static_cast<bool>(help.load_user_overrides(user_file.text)),
+            "the user's file loads");
+    const LocaleResolvedField line = help.resolve_field("app.silent", LocaleField::help_line);
+    require(line.text == "My own note." && line.origin == LocaleLayerKind::user, "the override reads back");
+    const LocaleResolvedField keywords = help.resolve_field("app.silent", LocaleField::keywords);
+    require(keywords.text == "silence; quiet, button" && keywords.origin == LocaleLayerKind::program,
+            "fields the override leaves out keep the program's value");
+    const HelpResolvedRecord shown = help.catalog().resolve("app.silent");
+    require(shown.help_line.text == "My own note." && shown.help_line.origin == HelpLayer::user,
+            "the help view shows the override");
+    require(provider.help_string(*program.silent) == "Does nothing, quietly.",
+            "getters return the program's value, never the override");
+    const XmlWriteResult again = help.export_template("");
+    require(static_cast<bool>(again) && again.text.find("My own note.") == std::string::npos,
+            "the template never carries the user's overrides");
+
+    // The way back, then removing the file.
+    help.use_built_in_language(true);
+    require(help.resolve_field("app.silent", LocaleField::help_line).origin == LocaleLayerKind::program,
+            "the way back sets the override aside");
+    help.use_built_in_language(false);
+    require(help.resolve_field("app.silent", LocaleField::help_line).origin == LocaleLayerKind::user,
+            "leaving the way back restores it");
+    help.clear_user_overrides();
+    require(help.resolve_field("app.silent", LocaleField::help_line).text == "Does nothing, quietly.",
+            "without the file the program's value shows");
+    provider.set_help_string(program.silent, "");
+    require(help.resolve_field("app.silent", LocaleField::help_line).origin == std::nullopt,
+            "a value cleared in code leaves the program layer");
+
+    // A translation, and the language rule for user files.
+    constexpr std::string_view french =
+        "<locale xml:lang=\"fr\" name=\"Fran\xc3\xa7" "ais\"><controls><control name=\"app\">"
+        "<control name=\"tools\"><control name=\"pen\" text=\"Stylo\" help-line=\"Trace a main lev\xc3\xa9" "e.\"/>"
+        "</control></control></controls></locale>";
+    require(static_cast<bool>(help.load_translation(french)), "the translation loads");
+    const LocaleResolvedField pen_line = help.resolve_field("app.tools.pen", LocaleField::help_line);
+    require(pen_line.origin == LocaleLayerKind::translation, "the translation's field shows");
+    const LocaleResolvedField pen_body = help.resolve_field("app.tools.pen", LocaleField::help);
+    require(pen_body.origin == LocaleLayerKind::program && pen_body.fallback,
+            "an untranslated field falls back to the program's value, marked");
+    const LocaleReadResult english_user = help.load_user_overrides(user_file.text);
+    require(english_user.error == LocaleFileError::language_mismatch, "an English user file is refused under French");
+    const XmlWriteResult french_template = help.export_template("fr");
+    require(static_cast<bool>(french_template) && french_template.text.find("Stylo") != std::string::npos &&
+                french_template.text.find("Hold the button down and drag.") != std::string::npos,
+            "a language's template continues its translation over the built-in text");
+    help.detach(*program.window);
+}
+
 } // namespace
 
 int main() {
@@ -292,6 +398,7 @@ int main() {
     viewer();
     system_routes();
     printing();
+    language_files();
     std::cout << "help system tests passed\n";
     return 0;
 }

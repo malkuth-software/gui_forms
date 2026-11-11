@@ -244,7 +244,7 @@ def capability_text(prop, shared):
     value = prop["value"]
     lines = ["", "// " + prop["comment"], "template <typename Declaring>", f"struct {cap} {{"]
     if prop.get("storage") == "view":
-        lines.append(f"    PropertyView<{value}, {cap}<Declaring>> {member};")
+        lines.append(f"    {localizable_prefix(prop)}PropertyView<{value}, {cap}<Declaring>> {member};")
         lines.append("")
         lines.append(f"    static void assign({cap}& capability, {value} incoming) {{")
         lines.append("        Declaring& control = static_cast<Declaring&>(capability);")

@@ -356,6 +356,57 @@ struct AccessibleDescriptionCapability {
     }
 };
 
+// The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+template <typename Declaring>
+struct HelpLineCapability {
+    GUI_FORMS_LOCALIZABLE(help_line) PropertyView<std::string, HelpLineCapability<Declaring>> help_line;
+
+    static void assign(HelpLineCapability& capability, std::string incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.help_line), std::move(incoming));
+    }
+
+    static std::string read(const HelpLineCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::string current = control.read_view(capability.help_line);
+        return current;
+    }
+};
+
+// The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+template <typename Declaring>
+struct HelpCapability {
+    GUI_FORMS_LOCALIZABLE(help) PropertyView<std::string, HelpCapability<Declaring>> help;
+
+    static void assign(HelpCapability& capability, std::string incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.help), std::move(incoming));
+    }
+
+    static std::string read(const HelpCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::string current = control.read_view(capability.help);
+        return current;
+    }
+};
+
+// The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.
+template <typename Declaring>
+struct KeywordsCapability {
+    GUI_FORMS_LOCALIZABLE(keywords) PropertyView<std::string, KeywordsCapability<Declaring>> keywords;
+
+    static void assign(KeywordsCapability& capability, std::string incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.keywords), std::move(incoming));
+    }
+
+    static std::string read(const KeywordsCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::string current = control.read_view(capability.keywords);
+        return current;
+    }
+};
+
 // Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window. A theme never sets it; a change repaints the subtree.
 template <typename Declaring>
 struct CeremonialCapability {
@@ -456,6 +507,9 @@ struct ControlCapabilities : public NameCapability<Declaring>,
                              public HitTestTransparentCapability<Declaring>,
                              public AccessibleNameCapability<Declaring>,
                              public AccessibleDescriptionCapability<Declaring>,
+                             public HelpLineCapability<Declaring>,
+                             public HelpCapability<Declaring>,
+                             public KeywordsCapability<Declaring>,
                              public CeremonialCapability<Declaring>,
                              public TagCapability<Declaring>,
                              public FocusableCapability<Declaring>,

@@ -1124,6 +1124,10 @@ Related types
 
       The built-in layer, for the program to fill. Bumps the revision.
 
+   .. cpp:function:: void adopt_locale(const LocaleCatalog& locale)
+
+      Takes every layer from a language-file catalog (the help view of it): its built-in and program layers become the built-in layer (program values over the file's), its translation and user layers these, and its language and way-back switch these. Replaces what built_in(), set_translation and set_user_overrides put in. Bumps the revision.
+
    .. cpp:function:: HelpResolvedRecord resolve(std::string_view stable_id) const
 
       Resolves every field of ``stable_id`` from the highest layer in force that gives it.
@@ -4039,6 +4043,10 @@ Enumerations
 
    .. cpp:enumerator:: missing_image
 
+   .. cpp:enumerator:: control_character
+
+   .. cpp:enumerator:: unbalanced_bidi
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HelpField
@@ -4094,6 +4102,10 @@ Enumerations
    .. cpp:enumerator:: no_language
 
    .. cpp:enumerator:: too_many_records
+
+   .. cpp:enumerator:: invalid_language
+
+   .. cpp:enumerator:: invalid_direction
 
 .. cpp:namespace:: gui_forms
 
@@ -4420,9 +4432,17 @@ Functions, constants and aliases
 
    Writes every declared HelpTopic's text into ``layer`` (the built-in layer): title, body, help line and keywords.
 
+.. cpp:function:: void put_declared_topics(LocaleLayer& layer)
+
+   The same, as language-file records (text, help, help-line, keywords), for the template export.
+
 .. cpp:function:: void append_help_skeleton(const SurfaceRoot& window, std::vector<HelpSkeletonNode>& nodes)
 
    Appends ``window``'s structure to ``nodes``: its root as the window, then every control of its tree, depth first. Overlays and controls without a stable ID path under the root are not part of the structure. UI thread.
+
+.. cpp:function:: void append_control_help_fields(const SurfaceRoot& window, LocaleLayer& layer)
+
+   Puts the help fields ``window``'s controls hold in code (Control::help_line, help and keywords; HelpProvider writes the first and last) into ``layer`` as program values, keyed by each control's stable ID: only the non-empty fields, over what ``layer`` held for that ID. The same walk as append_help_skeleton (an explicit stack, bounded by the window's own nesting limit). UI thread.
 
 .. cpp:function:: void build_help_contents(std::span<const HelpSkeletonNode> skeleton, std::span<const HelpTopicPlacement> topics, const HelpCatalog& catalog, HelpContentsTree& tree)
 
@@ -4472,17 +4492,21 @@ Functions, constants and aliases
 
 .. cpp:function:: void normalize_help_body(std::string_view raw, std::string& body)
 
-   The ``<help>`` element's character data as a help body: a leading line end and the trailing white space go, and the indentation every non-blank line shares is removed, so a body indented to sit under its ``<control>`` reads as written. ``body`` is replaced.
+   normalize_locale_help_body, under its help name.
 
 .. cpp:function:: std::string_view help_locale_error_name(HelpLocaleError error) noexcept
 
-.. cpp:function:: HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits = {}, const XmlLimits& xml_limits = {})
+.. cpp:function:: HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits = {}, const XmlLimits& xml_limits = locale_xml_limits())
 
-   Reads the help fields of a ``locales-<tag>.xml`` file: <locale xml:lang="fr"> <controls> <control name="main"> <control name="paste" text="Coller" help-line="..."> <help keywords="presse-papiers; coller, image">...</help> </control> </control> </controls> </locale> ``<control>`` elements nest by stable-ID segment; ``text`` is the record's title, ``help-line`` an attribute, and the body the ``<help>`` child's character data (normalize_help_body), with ``keywords`` on it. Other attributes and elements (the rest of the language file) are ignored. Expected faults never throw.
+   Reads the help fields of a ``locales-<tag>.xml`` file: <locale xml:lang="fr"> <controls> <control name="main"> <control name="paste" text="Coller" help-line="..."> <help keywords="presse-papiers; coller, image">...</help> </control> </control> </controls> </locale> ``<control>`` elements nest by stable-ID segment; ``text`` is the record's title, ``help-line`` an attribute, and the body the ``<help>`` child's character data (normalize_help_body), with ``keywords`` on it. This is read_locale with the other fields left out (their rejections too). Expected faults never throw.
 
-.. cpp:function:: XmlWriteResult write_help_locale(const HelpRecordLayer& records, std::string_view language, const XmlLimits& xml_limits = {})
+.. cpp:function:: XmlWriteResult write_help_locale(const HelpRecordLayer& records, std::string_view language, const XmlLimits& xml_limits = locale_xml_limits())
 
    Writes ``records`` as a locale file read_help_locale accepts: the template export when ``records`` is the built-in layer (every field with the built-in text as its value), or a translation. Records nest by segment in stable-ID order. The result's error is the XML writer's.
+
+.. cpp:function:: void project_help_fields(const LocaleLayer& source, HelpRecordLayer& target)
+
+   Fills ``target`` (cleared first) with the help fields of ``source``: its ``text`` as the title, ``help-line``, ``help`` and ``keywords``. Records with none of them are left out.
 
 .. cpp:var:: constexpr std::size_t help_field_count
 

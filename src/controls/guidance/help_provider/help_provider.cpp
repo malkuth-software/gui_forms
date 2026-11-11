@@ -3,6 +3,7 @@
 #include "../guidance_utilities.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
@@ -18,13 +19,45 @@
 namespace gui_forms {
 
 using namespace guidance_detail;
+
+// The provider's own settings for one target. The help string and keyword
+// are not here: they are the target's help_line and keywords (help system
+// study, section 4: HelpProvider is a view onto the text record), so there
+// is one source of help text, which a language file translates.
 struct HelpProvider::Entry final {
     std::weak_ptr<Control> target;
-    std::string help_string;
-    std::string keyword;
     HelpNavigator navigator{HelpNavigator::topic};
     std::optional<bool> show_help;
 };
+
+namespace {
+
+// The help string and keyword a request carries: the target's own fields.
+struct TargetHelpText final {
+    std::string help_line{};
+    std::string keywords{};
+};
+
+[[nodiscard]] TargetHelpText target_help_text(const std::weak_ptr<Control>& weak_target) {
+    TargetHelpText text{};
+    const std::shared_ptr<Control> target = weak_target.lock();
+    if (!target || !(*target).is_alive()) return text;
+    text.help_line = (*target).help_line.read();
+    text.keywords = (*target).keywords.read();
+    return text;
+}
+
+// Refuses a value the target's field would refuse, before any entry is
+// made, so a refused write leaves the provider as it was.
+void require_help_value(LocaleField field, std::string_view value) {
+    const std::optional<LocaleRefusal> refusal = check_locale_value(field, value);
+    if (refusal.has_value()) {
+        throw std::invalid_argument("GUI.Forms help " + std::string(locale_field_name(field)) +
+                                    " refused: " + std::string(locale_refusal_name(*refusal)));
+    }
+}
+
+} // namespace
 
 class HelpProvider::AcceleratorHolder final {
 public:
@@ -120,9 +153,10 @@ HelpProvider::Entry& HelpProvider::require_entry(
     return result;
 }
 
-bool HelpProvider::entry_effective(const Entry& entry) const noexcept {
+bool HelpProvider::entry_effective(const Entry& entry) const {
     if (entry.show_help.has_value()) return *entry.show_help;
-    return !entry.help_string.empty() || !entry.keyword.empty();
+    const TargetHelpText text = target_help_text(entry.target);
+    return !text.help_line.empty() || !text.keywords.empty();
 }
 
 void HelpProvider::publish_semantics(Entry& entry) {
@@ -132,7 +166,8 @@ void HelpProvider::publish_semantics(Entry& entry) {
     }
     std::string description;
     if (entry_effective(entry)) {
-        description = entry.help_string.empty() ? entry.keyword : entry.help_string;
+        TargetHelpText text = target_help_text(entry.target);
+        description = text.help_line.empty() ? std::move(text.keywords) : std::move(text.help_line);
     }
     if (description.empty()) {
         (*target).clear_provider_help(provider_id_);
@@ -144,39 +179,33 @@ void HelpProvider::publish_semantics(Entry& entry) {
 void HelpProvider::set_help_string(const std::shared_ptr<Control>& target,
                                    std::string text) {
     require_access("HelpProvider help-string mutation");
-    if (!validate_utf8(text).valid()) {
-        throw std::invalid_argument("GUI.Forms help text must be valid UTF-8");
-    }
+    require_help_value(LocaleField::help_line, text);
     Entry& entry = require_entry(target);
-    if (entry.help_string == text) return;
-    entry.help_string = std::move(text);
+    if ((*target).help_line.read() != text) (*target).help_line = std::move(text);
     publish_semantics(entry);
     erase_if_empty((*target).runtime_id().value);
 }
 
 std::string HelpProvider::help_string(const Control& target) const {
     if (Window* owner = bound_window()) (*owner).verify_access("HelpProvider string query");
-    const Entry* entry = find_entry(target);
-    return entry ? (*entry).help_string : std::string{};
+    std::string text = target.help_line.read();
+    return text;
 }
 
 void HelpProvider::set_help_keyword(const std::shared_ptr<Control>& target,
                                     std::string keyword) {
     require_access("HelpProvider keyword mutation");
-    if (!validate_utf8(keyword).valid()) {
-        throw std::invalid_argument("GUI.Forms help keyword must be valid UTF-8");
-    }
+    require_help_value(LocaleField::keywords, keyword);
     Entry& entry = require_entry(target);
-    if (entry.keyword == keyword) return;
-    entry.keyword = std::move(keyword);
+    if ((*target).keywords.read() != keyword) (*target).keywords = std::move(keyword);
     publish_semantics(entry);
     erase_if_empty((*target).runtime_id().value);
 }
 
 std::string HelpProvider::help_keyword(const Control& target) const {
     if (Window* owner = bound_window()) (*owner).verify_access("HelpProvider keyword query");
-    const Entry* entry = find_entry(target);
-    return entry ? (*entry).keyword : std::string{};
+    std::string keyword = target.keywords.read();
+    return keyword;
 }
 
 void HelpProvider::set_help_navigator(const std::shared_ptr<Control>& target,
@@ -253,9 +282,10 @@ bool HelpProvider::request_help(const std::shared_ptr<Control>& target,
         position = {bounds.x + bounds.width * 0.5,
                     bounds.y + bounds.height * 0.5};
     }
+    TargetHelpText text = target_help_text(target);
     HelpRequestEvent request{
         std::string((*target).stable_id().value()), position, help_namespace.read(),
-        (*entry).help_string, (*entry).keyword, (*entry).navigator,
+        std::move(text.help_line), std::move(text.keywords), (*entry).navigator,
         keyboard_initiated, false};
     ++request_count_;
     (*target).help_requested_.emit(request);
@@ -275,8 +305,9 @@ bool HelpProvider::offer_window_help(HelpRequestEvent& request) {
     const std::shared_ptr<Control> root = owner != nullptr ? (*owner).root() : nullptr;
     const Entry* entry = root ? find_entry(*root) : nullptr;
     if (entry != nullptr && entry_effective(*entry)) {
-        offered.help_string = (*entry).help_string;
-        offered.keyword = (*entry).keyword;
+        TargetHelpText text = target_help_text(root);
+        offered.help_string = std::move(text.help_line);
+        offered.keyword = std::move(text.keywords);
         offered.navigator = (*entry).navigator;
     }
     ++request_count_;
@@ -305,7 +336,8 @@ void HelpProvider::erase_if_empty(std::uint64_t runtime_id) {
     const EntryMap::iterator found = entries_.find(runtime_id);
     if (found == entries_.end()) return;
     const Entry& entry = *(*found).second;
-    if (entry.help_string.empty() && entry.keyword.empty() &&
+    const TargetHelpText text = target_help_text(entry.target);
+    if (text.help_line.empty() && text.keywords.empty() &&
         entry.navigator == HelpNavigator::topic && !entry.show_help.has_value()) {
         if (const std::shared_ptr<gui_forms::Control> target = entry.target.lock(); target && (*target).is_alive()) {
             (*target).clear_provider_help(provider_id_);
@@ -314,7 +346,7 @@ void HelpProvider::erase_if_empty(std::uint64_t runtime_id) {
     }
 }
 
-HelpProviderSnapshot HelpProvider::snapshot() const noexcept {
+HelpProviderSnapshot HelpProvider::snapshot() const {
     HelpProviderSnapshot result;
     result.mappings = entries_.size();
     result.requests = request_count_;

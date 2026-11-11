@@ -830,7 +830,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_fonts_table, struct_size) == 0, "gf_fonts_table.str
 GF_LAYOUT_ASSERT(offsetof(gf_fonts_table, abi_minor) == 4, "gf_fonts_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_fonts_table, family_id) == 8, "gf_fonts_table.family_id offset");
 GF_LAYOUT_ASSERT(offsetof(gf_fonts_table, family_name) == 16, "gf_fonts_table.family_name offset");
-GF_LAYOUT_ASSERT(sizeof(gf_help_table) == 80, "gf_help_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_help_table) == 128, "gf_help_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_help_table, struct_size) == 0, "gf_help_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_help_table, abi_minor) == 4, "gf_help_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_help_table, attach) == 8, "gf_help_table.attach offset");
@@ -842,6 +842,12 @@ GF_LAYOUT_ASSERT(offsetof(gf_help_table, show_popup) == 48, "gf_help_table.show_
 GF_LAYOUT_ASSERT(offsetof(gf_help_table, resolve) == 56, "gf_help_table.resolve offset");
 GF_LAYOUT_ASSERT(offsetof(gf_help_table, enter_help_mode) == 64, "gf_help_table.enter_help_mode offset");
 GF_LAYOUT_ASSERT(offsetof(gf_help_table, cancel_help_mode) == 72, "gf_help_table.cancel_help_mode offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, load_translation) == 80, "gf_help_table.load_translation offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, load_user_overrides) == 88, "gf_help_table.load_user_overrides offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, clear_user_overrides) == 96, "gf_help_table.clear_user_overrides offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, use_built_in_language) == 104, "gf_help_table.use_built_in_language offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, export_template) == 112, "gf_help_table.export_template offset");
+GF_LAYOUT_ASSERT(offsetof(gf_help_table, read_field) == 120, "gf_help_table.read_field offset");
 GF_LAYOUT_ASSERT(sizeof(gf_windows_paint_endpoint_table) == 104, "gf_windows_paint_endpoint_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_paint_endpoint_table, struct_size) == 0, "gf_windows_paint_endpoint_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_paint_endpoint_table, abi_minor) == 4, "gf_windows_paint_endpoint_table.abi_minor offset");

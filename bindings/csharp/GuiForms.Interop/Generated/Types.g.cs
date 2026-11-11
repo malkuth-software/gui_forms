@@ -1274,7 +1274,7 @@ public unsafe struct gf_fonts_table
     public delegate* unmanaged[Cdecl]<uint, byte*, ulong, ulong*, gf_status> family_name;
 }
 
-/// <summary>gf_help_table (table, 80 bytes).</summary>
+/// <summary>gf_help_table (table, 128 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_help_table
 {
@@ -1289,6 +1289,12 @@ public unsafe struct gf_help_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, byte*, ulong, ulong*, uint*, gf_status> resolve;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, uint*, gf_status> enter_help_mode;
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> cancel_help_mode;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_status> load_translation;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_status> load_user_overrides;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> clear_user_overrides;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> use_built_in_language;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, byte*, ulong, ulong*, gf_status> export_template;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_locale_field, byte*, ulong, ulong*, gf_locale_origin*, gf_status> read_field;
 }
 
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>

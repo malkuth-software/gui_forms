@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/localizable/localizable.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 #include "gui_forms/text/markdown/rtf_conversion.hpp"

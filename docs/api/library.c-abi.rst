@@ -2322,6 +2322,18 @@ Types
 
    .. cpp:member:: gf_status (*cancel_help_mode)(gf_object system)
 
+   .. cpp:member:: gf_status (*load_translation)(gf_object system, gf_utf8_view locale_xml)
+
+   .. cpp:member:: gf_status (*load_user_overrides)(gf_object system, gf_utf8_view locale_xml)
+
+   .. cpp:member:: gf_status (*clear_user_overrides)(gf_object system)
+
+   .. cpp:member:: gf_status (*use_built_in_language)(gf_object system, uint32_t built_in_only)
+
+   .. cpp:member:: gf_status (*export_template)(gf_object system, gf_utf8_view language, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*read_field)(gf_object system, gf_utf8_view stable_id, gf_locale_field field, char* buffer, uint64_t capacity, uint64_t* required, gf_locale_origin* origin)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3513,6 +3525,18 @@ Types
    .. cpp:function:: gf_status enter_help_mode(gf_object system, gf_object window, uint32_t* entered) const noexcept
 
    .. cpp:function:: gf_status cancel_help_mode(gf_object system) const noexcept
+
+   .. cpp:function:: gf_status load_translation(gf_object system, gf_utf8_view locale_xml) const noexcept
+
+   .. cpp:function:: gf_status load_user_overrides(gf_object system, gf_utf8_view locale_xml) const noexcept
+
+   .. cpp:function:: gf_status clear_user_overrides(gf_object system) const noexcept
+
+   .. cpp:function:: gf_status use_built_in_language(gf_object system, uint32_t built_in_only) const noexcept
+
+   .. cpp:function:: gf_status export_template(gf_object system, gf_utf8_view language, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status read_field(gf_object system, gf_utf8_view stable_id, gf_locale_field field, char* buffer, uint64_t capacity, uint64_t* required, gf_locale_origin* origin) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

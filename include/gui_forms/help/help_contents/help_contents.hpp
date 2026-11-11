@@ -109,6 +109,9 @@ void collect_declared_topics(std::vector<HelpTopicPlacement>& placements);
 // Writes every declared HelpTopic's text into `layer` (the built-in layer):
 // title, body, help line and keywords.
 void put_declared_topics(HelpRecordLayer& layer);
+// The same, as language-file records (text, help, help-line, keywords), for
+// the template export.
+void put_declared_topics(LocaleLayer& layer);
 
 // What a node of the program's structure is, as the contents tree arranges
 // it: a window, a group that holds other controls (a panel, a group box, a
@@ -130,6 +133,14 @@ struct HelpSkeletonNode final {
 // every control of its tree, depth first. Overlays and controls without a
 // stable ID path under the root are not part of the structure. UI thread.
 void append_help_skeleton(const SurfaceRoot& window, std::vector<HelpSkeletonNode>& nodes);
+
+// Puts the help fields `window`'s controls hold in code (Control::help_line,
+// help and keywords; HelpProvider writes the first and last) into `layer`
+// as program values, keyed by each control's stable ID: only the non-empty
+// fields, over what `layer` held for that ID. The same walk as
+// append_help_skeleton (an explicit stack, bounded by the window's own
+// nesting limit). UI thread.
+void append_control_help_fields(const SurfaceRoot& window, LocaleLayer& layer);
 
 inline constexpr std::uint32_t help_no_parent = 0xFFFFFFFFU;
 

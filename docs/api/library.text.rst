@@ -73,6 +73,22 @@ Related types
      -  
    * - :cpp:class:`LineBoxMetrics <gui_forms::LineBoxMetrics>`
      - One line box of CSS text in a primary face (CSS 2.1 section 10.8 with ``line-height: normal`` as browsers compute it): its height, its baseline from its top, and the face's x-height.
+   * - :cpp:class:`LocaleCatalog <gui_forms::LocaleCatalog>`
+     - The text store of one program: its four layers, the language in force and the untranslatable way back.
+   * - :cpp:class:`LocaleFileInfo <gui_forms::LocaleFileInfo>`
+     - The ``<locale>`` element's attributes.
+   * - :cpp:class:`LocaleLayer <gui_forms::LocaleLayer>`
+     - The records of one layer, sorted by stable ID with each ID once.
+   * - :cpp:class:`LocaleLimits <gui_forms::LocaleLimits>`
+     - The bounds on one file's fields.
+   * - :cpp:class:`LocaleReadResult <gui_forms::LocaleReadResult>`
+     -  
+   * - :cpp:class:`LocaleRecord <gui_forms::LocaleRecord>`
+     - One text record as one layer gives it.
+   * - :cpp:class:`LocaleRejection <gui_forms::LocaleRejection>`
+     -  
+   * - :cpp:class:`LocaleResolvedField <gui_forms::LocaleResolvedField>`
+     - One resolved field: its text and the layer it came from.
    * - :cpp:class:`LocalizableLiteral <gui_forms::LocalizableLiteral>`
      - One string literal the GUI.Forms Clang plugin found passed to a localizable property (a parameter or field marked GUI_FORMS_LOCALIZABLE).
    * - :cpp:class:`MarkdownBlock <gui_forms::MarkdownBlock>`
@@ -613,6 +629,243 @@ Related types
    .. cpp:member:: double baseline
 
    .. cpp:member:: double x_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LocaleCatalog final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   The text store of one program: its four layers, the language in force and the untranslatable way back. The program owns it. One execution context (the UI thread); a refused load changes nothing. On an accepted load the result's records are in the catalog and the result's own are left empty; its info, rejections and ignored names stay.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit LocaleCatalog(std::string built_in_language = "en")
+
+      :cpp:func:`built_in_language <gui_forms::LocaleCatalog::built_in_language>` is the built-in file's language tag (std::invalid_argument when it is not a tag).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const std::string& built_in_language() const noexcept
+
+   .. cpp:function:: const LocaleFileInfo& translation_info() const noexcept
+
+   .. cpp:function:: const std::string& current_language() const noexcept
+
+      The translation's language while one is set, else the built-in one.
+
+   .. cpp:function:: bool built_in_only() const noexcept
+
+   .. cpp:function:: void set_built_in_only(bool built_in_only) noexcept
+
+      The untranslatable way back (translation design 8): while set, only the built-in and program layers resolve, whatever the translation and the user's file say.
+
+   .. cpp:function:: std::uint64_t revision() const noexcept
+
+      Grows by one on every change.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: const LocaleLayer& layer(LocaleLayerKind which) const& noexcept
+
+   .. cpp:function:: LocaleReadResult load_built_in(std::string_view utf8)
+
+      Reads ``utf8`` as (part of) the built-in file and merges its fields over the built-in layer. A file for another language than built_in_language() is refused (language_mismatch).
+
+   .. cpp:function:: LocaleReadResult load_translation(std::string_view utf8)
+
+      Replaces the translation with ``utf8``'s records and info. User overrides for another language are dropped.
+
+   .. cpp:function:: void clear_translation()
+
+      Removes the translation, and user overrides for its language.
+
+   .. cpp:function:: LocaleReadResult load_user_overrides(std::string_view utf8)
+
+      Replaces the user layer with ``utf8``'s records. A file for another language than current_language() is refused (language_mismatch).
+
+   .. cpp:function:: void clear_user_overrides()
+
+   .. cpp:function:: LocaleResolvedField resolve(std::string_view stable_id, LocaleField field) const
+
+      Resolves one field of ``stable_id`` from the highest layer in force that gives it.
+
+   .. cpp:function:: void collect_ids(std::vector<std::string>& ids) const
+
+      Fills ``ids`` (cleared first) with every ID a layer in force holds, sorted and unique.
+
+   .. cpp:function:: bool set_program_values(LocaleLayer records)
+
+      Replaces the program layer. Returns whether it changed; an equal layer changes nothing, not even the revision.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleFileInfo final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   The ``<locale>`` element's attributes.
+
+   .. cpp:member:: std::string language
+
+      ``xml:lang``: a language tag, 2 to 8 letters then ``-`` and 1 to 8 letters or digits per subtag ("fr", "es-mx", "zh-hant-tw").
+
+   .. cpp:member:: std::string name
+
+      ``name``: the language's own name for the language list; may be empty.
+
+   .. cpp:member:: std::string version
+
+      ``version``: the file's own version text; may be empty.
+
+   .. cpp:member:: LocaleDirection direction
+
+      ``direction``: "ltr" (the default) or "rtl". Default: ``{LocaleDirection::left_to_right}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LocaleLayer final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   The records of one layer, sorted by stable ID with each ID once. Owns its records. Not thread-safe; one owner mutates it.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const LocaleRecord> entries() const& noexcept
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+   .. cpp:function:: bool empty() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: const LocaleRecord* find(std::string_view stable_id) const& noexcept
+
+      The record with this ID, or null. The pointer borrows this layer and is invalidated by any change to it; a temporary layer is refused.
+
+   .. cpp:function:: void set(std::string_view stable_id, LocaleField field, std::string value)
+
+      Sets one field of the record ``stable_id``, creating the record. Throws std::invalid_argument, changing nothing, for an ID that is not a stable ID or a value check_locale_value refuses under default limits.
+
+   .. cpp:function:: bool reset(std::string_view stable_id, LocaleField field)
+
+      Removes one field; a record with no field left is removed. Returns whether the field was present.
+
+   .. cpp:function:: void put(LocaleRecord record)
+
+      Puts ``record`` in, replacing a record with the same ID. Throws std::invalid_argument, changing nothing, when its ID is not a stable ID. An empty record removes the ID.
+
+   .. cpp:function:: void assign_sorted(std::vector<LocaleRecord> records)
+
+      Replaces every record with ``records``, which must be sorted by stable ID with each ID once and each a stable ID (std::invalid_argument, changing nothing, otherwise). Empty records are dropped.
+
+   .. cpp:function:: void merge_over(const LocaleLayer& over)
+
+      Every field ``over`` gives replaces this layer's; the others stay. One pass over both sorted layers.
+
+   .. cpp:function:: void clear() noexcept
+
+      Ends every record's lifetime; capacity remains.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleLimits final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   The bounds on one file's fields. A value past its field's bound rejects that field (LocaleRefusal::too_long), not the file; more records than maximum_records refuse the file. Lengths are bytes of UTF-8.
+
+   .. cpp:member:: std::array<std::size_t, locale_field_count> maximum_field_bytes
+
+      Indexed by LocaleField, in its order.
+
+   .. cpp:member:: std::size_t maximum_records
+
+      Default: ``{20000U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleReadResult final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:member:: LocaleFileError error
+
+      Default: ``{LocaleFileError::none}``.
+
+   .. cpp:member:: XmlError xml_error
+
+      Default: ``{XmlError::none}``.
+
+   .. cpp:member:: XmlSourcePosition position
+
+   .. cpp:member:: LocaleFileInfo info
+
+   .. cpp:member:: LocaleLayer records
+
+      The records the file gives. Empty on a refused file.
+
+   .. cpp:member:: std::vector<LocaleRejection> rejections
+
+      The fields that were rejected one by one. Empty on a refused file.
+
+   .. cpp:member:: std::vector<std::string> ignored
+
+      Attributes and elements the reader does not know, as "<record>@<name>" (the record's ID, empty above the first control), at most locale_maximum_ignored_diagnostics of them. They change nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleRecord final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   One text record as one layer gives it. An absent field lets a lower layer's value show; a present field, even empty, hides it.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::array<std::optional<std::string>, locale_field_count> fields
+
+      Indexed by LocaleField.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleRejection final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: LocaleField field
+
+      Default: ``{LocaleField::text}``.
+
+   .. cpp:member:: LocaleRefusal reason
+
+      Default: ``{LocaleRefusal::invalid_text}``.
+
+   .. cpp:member:: std::string detail
+
+      What was wrong, for logs (the offending segment or keyword list); empty when the reason says it all.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleResolvedField final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   One resolved field: its text and the layer it came from. ``fallback`` is set when a translation is in force and the field came from the built-in or program layer, so a page can mark it.
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: std::optional<LocaleLayerKind> origin
+
+   .. cpp:member:: bool fallback
 
 .. cpp:namespace:: gui_forms
 
@@ -2212,6 +2465,102 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: LocaleDirection
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:enumerator:: left_to_right
+
+   .. cpp:enumerator:: right_to_left
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LocaleField
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:enumerator:: text
+
+   .. cpp:enumerator:: tool_tip
+
+   .. cpp:enumerator:: access_key
+
+   .. cpp:enumerator:: title
+
+   .. cpp:enumerator:: placeholder
+
+   .. cpp:enumerator:: header
+
+   .. cpp:enumerator:: accessible_name
+
+   .. cpp:enumerator:: accessible_description
+
+   .. cpp:enumerator:: help_line
+
+   .. cpp:enumerator:: help
+
+   .. cpp:enumerator:: keywords
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LocaleFileError
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: xml
+
+   .. cpp:enumerator:: wrong_root
+
+   .. cpp:enumerator:: no_language
+
+   .. cpp:enumerator:: invalid_language
+
+   .. cpp:enumerator:: invalid_direction
+
+   .. cpp:enumerator:: too_many_records
+
+   .. cpp:enumerator:: language_mismatch
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LocaleLayerKind
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:enumerator:: built_in
+
+   .. cpp:enumerator:: program
+
+   .. cpp:enumerator:: translation
+
+   .. cpp:enumerator:: user
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LocaleRefusal
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:enumerator:: invalid_stable_id
+
+   .. cpp:enumerator:: too_long
+
+   .. cpp:enumerator:: invalid_text
+
+   .. cpp:enumerator:: control_character
+
+   .. cpp:enumerator:: unbalanced_bidi
+
+   .. cpp:enumerator:: invalid_keywords
+
+   .. cpp:enumerator:: invalid_access_key
+
+   .. cpp:enumerator:: duplicate_record
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: MarkdownAlignment
 
    ``#include <gui_forms/text/markdown/markdown.hpp>``
@@ -2654,6 +3003,76 @@ Functions, constants and aliases
 .. cpp:function:: bool same_prepared_text_key(const PreparedTextKey& left, const PreparedTextKey& right) noexcept
 
 .. cpp:function:: bool same_layout_authority(const LayoutAuthority left, const LayoutAuthority right) noexcept
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+.. cpp:function:: std::string_view locale_field_name(LocaleField field) noexcept
+
+   The field's name in the locale XML: "text", "tool-tip", "access-key", "title", "placeholder", "header", "accessible-name", "accessible-description", "help-line", "help" or "keywords". Static storage.
+
+.. cpp:function:: std::optional<LocaleField> find_locale_field(std::string_view name) noexcept
+
+   The field a locale XML name names, or nothing.
+
+.. cpp:function:: XmlLimits locale_xml_limits() noexcept
+
+   The XML reader's bounds for a locale file (translation design, revision B): 1 MiB, depth 256, 65,536 elements, 64 attributes, 256-byte names and 64 KiB values. The reader enforces the depth while it parses, before any walk of the tree, so every walk over a read file is bounded by it.
+
+.. cpp:function:: const std::optional<std::string>& locale_record_field(const LocaleRecord& record, LocaleField field) noexcept
+
+   The field of ``record`` named by ``field``. The reference borrows ``record``.
+
+.. cpp:function:: std::optional<std::string>& locale_record_field(LocaleRecord& record, LocaleField field) noexcept
+
+.. cpp:function:: bool locale_record_empty(const LocaleRecord& record) noexcept
+
+   Whether no field is present.
+
+.. cpp:function:: std::string_view locale_refusal_name(LocaleRefusal refusal) noexcept
+
+.. cpp:function:: std::optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value, const LocaleLimits& limits = {})
+
+   Checks one value against its field's rules and bound: the refusal, or nothing when the value is acceptable. Display text only: no C0 controls but tab and line feed, balanced bidirectional controls, a well-formed keyword list for ``keywords`` and one grapheme for ``access-key``.
+
+.. cpp:function:: bool valid_language_tag(std::string_view tag) noexcept
+
+   Whether ``tag`` has the language tag shape LocaleFileInfo::language states.
+
+.. cpp:function:: std::string_view locale_file_error_name(LocaleFileError error) noexcept
+
+.. cpp:function:: void normalize_locale_help_body(std::string_view raw, std::string& body)
+
+   The ``<help>`` element's character data as a help body: a leading line end and the trailing white space go, and the indentation every non-blank line shares is removed, so a body indented to sit under its ``<control>`` reads as written. ``body`` is replaced.
+
+.. cpp:function:: LocaleReadResult read_locale(std::string_view utf8, const LocaleLimits& limits = {}, const XmlLimits& xml_limits = locale_xml_limits())
+
+   Reads a ``locales-<tag>.xml`` file. Expected faults never throw: a refused file gives its error, rejected fields are listed and left out. The walk over ``<control>`` elements recurses once per nesting level and is bounded by xml_limits.maximum_depth, which the XML reader enforced before the walk began.
+
+.. cpp:function:: XmlWriteResult write_locale(const LocaleLayer& records, const LocaleFileInfo& info, const XmlLimits& xml_limits = locale_xml_limits())
+
+   Writes ``records`` as a file read_locale accepts: ``<control>`` elements nested by segment, in segment order. The result's error is the XML writer's (an ID with more segments than the depth bound gives XmlError::depth_exceeded). A record whose ``help`` is present but empty and has no ``keywords`` writes no ``<help>``: an empty ``<help>`` element gives no body when read.
+
+.. cpp:function:: void locale_template_records(const LocaleCatalog& catalog, std::string_view language, LocaleLayer& records)
+
+   The template export (translation design 7, help system study section 4): every record of the built-in and program layers with the built-in text as values and, when ``language`` is the translation's, its translations over them, so a translator continues an existing translation. User overrides are never exported. Fills ``records`` (cleared first).
+
+.. cpp:function:: XmlWriteResult export_locale_template(const LocaleCatalog& catalog, std::string_view language, const XmlLimits& xml_limits = locale_xml_limits())
+
+   locale_template_records written as a locale file for ``language`` (the built-in language when empty).
+
+.. cpp:function:: bool locale_rescue_requested(std::span<const std::string_view> arguments, std::string_view environment_value) noexcept
+
+   The way back from outside the program (translation design 8): whether the command line holds ``--gui-forms-locale=builtin`` (or ``--gui-forms-locale builtin``), or the GUI_FORMS_LOCALE environment value the caller read is "builtin". The caller then sets LocaleCatalog::set_built_in_only.
+
+.. cpp:var:: constexpr std::size_t locale_field_count
+
+   Value: ``11U``.
+
+.. cpp:var:: constexpr std::size_t locale_maximum_ignored_diagnostics
+
+   The most ignored-name diagnostics one read keeps. Value: ``256U``.
 
 .. cpp:namespace:: gui_forms
 
