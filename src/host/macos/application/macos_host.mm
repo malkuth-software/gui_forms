@@ -1050,6 +1050,10 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (HostDispatchResult)dispatchHostPayload:(HostEventPayload)payload
                          timestampNanoseconds:(std::uint64_t)timestamp;
 - (BOOL)requestCloseHiding:(BOOL)hiding reason:(HostCloseReason)reason;
+// Whether the closing handler refuses a close for `reason`, asked without
+// closing (audit P2). A detached host, or a request nothing accepted,
+// refuses nothing, as in the headless host's session end.
+- (BOOL)closeRefusedForReason:(HostCloseReason)reason;
 - (void)notifyClosed;
 - (void)notifyClosedWithReason:(HostCloseReason)reason;
 - (void)notifyActivation:(BOOL)active;
@@ -2303,6 +2307,14 @@ void run_draw_retained(GUIFormsView* view, NSRect dirty) {
         HostCloseRequest{reason, false, hiding == YES}
                                            timestampNanoseconds:host_now_nanoseconds()];
     return result.accepted() && result.close_allowed;
+}
+
+- (BOOL)closeRefusedForReason:(HostCloseReason)reason {
+    if (_hostAttached == NO) return NO;
+    const HostDispatchResult result = [self dispatchHostPayload:HostCloseRequest{reason, false, false}
+                                           timestampNanoseconds:host_now_nanoseconds()];
+    const BOOL refused = result.accepted() && !result.close_allowed ? YES : NO;
+    return refused;
 }
 
 - (void)installFrameCapturePath:(std::string)path {
@@ -4186,6 +4198,13 @@ void run_open_files(const std::function<void(std::vector<std::string>)>& open_fi
 // when it agrees. A hide-on-close window closes rather than hides.
 - (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window
                                                      reason:(HostCloseReason)reason;
+// Before a quit request closes the run-ending window, every other window's
+// closing handler is asked with the same reason, without closing it (audit
+// P2), so a secondary window with unsaved work can cancel a quit or a
+// log-out, as each window can on Windows (WM_QUERYENDSESSION) and in the
+// headless host. NO for the run-ending window, which closeForTermination:
+// asks.
+- (BOOL)refusesTermination:(HostCloseReason)reason;
 @end
 
 @implementation GUIFormsWindowDelegate
@@ -4303,6 +4322,11 @@ void run_open_files(const std::function<void(std::vector<std::string>)>& open_fi
     [window close];
     return gui_forms::host::MacTerminationClose::closed;
 }
+- (BOOL)refusesTermination:(HostCloseReason)reason {
+    if (_stopsApplicationOnClose || _view == nil) return NO;
+    const BOOL refused = [_view closeRefusedForReason:reason];
+    return refused;
+}
 @end
 
 // The application delegate for a run. AppKit's terminate: ends the process
@@ -4310,7 +4334,8 @@ void run_open_files(const std::function<void(std::vector<std::string>)>& open_fi
 // its window closes. A quit request therefore closes the window that ends
 // the run, as its close button does, then ends the run in place (the run's
 // MacRunEnd) and lets the termination proceed, so a log-out or restart goes
-// on. When the closing handler refuses, the termination is cancelled, as an
+// on. Every other window's closing handler is asked first (audit P2). When
+// a closing handler refuses, the termination is cancelled, as an
 // application with unsaved work cancels it. With no such window, the
 // termination proceeds. The work is synchronous, so the reply is given at
 // once rather than deferred with NSTerminateLater.
@@ -4390,6 +4415,16 @@ static HostCloseReason termination_close_reason() {
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
     const HostCloseReason reason = termination_close_reason();
+    // First every window that does not end the run is asked, in NSApp's
+    // window order, and the first refusal cancels the termination (audit
+    // P2). A copy is walked: a closing handler may open or close windows.
+    NSArray<NSWindow*>* asked = [NSArray arrayWithArray:[sender windows]];
+    for (NSWindow* window in asked) {
+        const id delegate = [window delegate];
+        if (![delegate isKindOfClass:[GUIFormsWindowDelegate class]]) continue;
+        GUIFormsWindowDelegate* windowDelegate = static_cast<GUIFormsWindowDelegate*>(delegate);
+        if ([windowDelegate refusesTermination:reason]) return NSTerminateCancel;
+    }
     for (NSWindow* window in [sender windows]) {
         const id delegate = [window delegate];
         if (![delegate isKindOfClass:[GUIFormsWindowDelegate class]]) continue;

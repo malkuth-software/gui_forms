@@ -5,6 +5,7 @@
 #include <gio/gio.h>
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <locale>
 #include <map>
@@ -56,6 +57,12 @@ struct NodeData {
     bool frame = false;
     bool live = true;
     unsigned flags = 0;
+    // The byte offset where each character (Unicode scalar value) of
+    // node.value starts, then the value's size: rebuilt whenever the value
+    // changes (index_characters), so AT-SPI character queries cost O(1) or
+    // O(log n) rather than a walk from the start (audit P6). An empty value
+    // holds just {0}.
+    std::vector<std::size_t> character_starts{0U};
 };
 struct NativeAccessible { AtkObject parent; NodeData* data; };
 NodeData& data(gpointer object) { return *(*static_cast<NativeAccessible*>(object)).data; }
@@ -615,51 +622,99 @@ void value_init(gpointer raw, gpointer) noexcept {
     face.get_value_and_text = value_and_text; face.get_range = range; face.set_value = set_value;
     face.get_increment = increment;
 }
+// Text on the A-T1 core (A-L3). AT-SPI counts characters (Unicode scalar
+// values); the core counts UTF-8 bytes on grapheme boundaries. Every offset
+// is converted against the published value, which is valid UTF-8, through
+// the node's character index (character_starts). Counts are bounded by the
+// value's size, never by a NUL (audit P6).
+
+// Fills `starts` with the byte offset of each character of `value`, then the
+// value's size. `starts` is cleared first and its capacity reused.
+void index_characters(const std::string& value, std::vector<std::size_t>& starts) {
+    starts.clear();
+    const std::size_t size = value.size();
+    for (std::size_t index = 0; index < size; ++index) {
+        const bool continuation = (static_cast<unsigned char>(value[index]) & 0xC0U) == 0x80U;
+        if (!continuation) starts.push_back(index);
+    }
+    starts.push_back(size);
+}
+// The node's character count.
+gint character_count(const NodeData& node) {
+    const std::size_t count = node.character_starts.size() - 1U;
+    return static_cast<gint>(std::min<std::size_t>(count, G_MAXINT));
+}
+// `byte` clamped to the value's size and back to the start of the character
+// it falls in (audit P5). The core publishes offsets on grapheme
+// boundaries, but nothing here relies on it, as the Windows provider's
+// clamp_offset does not.
+std::size_t clamp_byte(const std::string& value, std::size_t byte) {
+    std::size_t clamped = std::min(byte, value.size());
+    while (clamped > 0U && clamped < value.size() &&
+           (static_cast<unsigned char>(value[clamped]) & 0xC0U) == 0x80U) {
+        --clamped;
+    }
+    return clamped;
+}
+// The character offset of byte offset `byte` in `value`, clamped first;
+// linear, for the texts announce_text compares.
+gint character_offset(const std::string& value, std::size_t byte) {
+    const std::size_t clamped = clamp_byte(value, byte);
+    const glong offset = g_utf8_strlen(value.c_str(), static_cast<gssize>(clamped));
+    return static_cast<gint>(offset);
+}
+// The character offset of byte offset `byte` in the node's value, clamped
+// first; a binary search of the character index.
+gint character_offset(const NodeData& node, std::size_t byte) {
+    const std::size_t clamped = clamp_byte(node.node.value, byte);
+    const std::vector<std::size_t>& starts = node.character_starts;
+    const std::vector<std::size_t>::const_iterator at = std::lower_bound(starts.begin(), starts.end(), clamped);
+    const std::ptrdiff_t offset = at - starts.begin();
+    return static_cast<gint>(offset);
+}
+// The byte offset of character offset `offset` in the node's value, or none
+// when it lies outside 0..character count.
+std::optional<std::size_t> byte_offset(const NodeData& node, gint offset) {
+    if (offset < 0 || offset > character_count(node)) return std::nullopt;
+    const std::size_t byte = node.character_starts[static_cast<std::size_t>(offset)];
+    return byte;
+}
+// Characters first..last of the node's value (0 <= first <= last <=
+// character count), newly allocated with g_strndup.
+gchar* character_substring(const NodeData& node, gint first, gint last) {
+    const std::size_t low = node.character_starts[static_cast<std::size_t>(first)];
+    const std::size_t high = node.character_starts[static_cast<std::size_t>(last)];
+    gchar* copy = g_strndup(node.node.value.c_str() + low, high - low);
+    return copy;
+}
 gchar* answer_text(AtkText* object, gint start, gint end) {
-    const std::string& value = data(object).node.value;
-    const glong count = g_utf8_strlen(value.c_str(), value.size());
-    start = std::clamp(start, 0, static_cast<int>(count));
-    end = end < 0 ? static_cast<int>(count) : std::clamp(end, start, static_cast<int>(count));
-    return g_utf8_substring(value.c_str(), start, end);
+    const NodeData& node = data(object);
+    const gint count = character_count(node);
+    start = std::clamp(start, 0, count);
+    end = end < 0 ? count : std::clamp(end, start, count);
+    return character_substring(node, start, end);
 }
 gchar* text(AtkText* object, gint start, gint end) {
     return gui_forms::detail::call_failing_fast("linux.atk.text", &answer_text, object, start, end);
 }
-gint answer_text_count(AtkText* object) { return static_cast<gint>(g_utf8_strlen(data(object).node.value.c_str(), -1)); }
+gint answer_text_count(AtkText* object) { return character_count(data(object)); }
 gint text_count(AtkText* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.text_count", &answer_text_count, object);
 }
 gunichar answer_character(AtkText* object, gint offset) {
-    const std::string& value = data(object).node.value;
-    return offset >= 0 && offset < text_count(object) ? g_utf8_get_char(g_utf8_offset_to_pointer(value.c_str(), offset)) : 0;
+    const NodeData& node = data(object);
+    if (offset < 0 || offset >= character_count(node)) return 0;
+    const std::size_t byte = node.character_starts[static_cast<std::size_t>(offset)];
+    return g_utf8_get_char(node.node.value.c_str() + byte);
 }
 gunichar character(AtkText* object, gint offset) {
     return gui_forms::detail::call_failing_fast("linux.atk.character", &answer_character, object, offset);
-}
-
-// Editable text on the A-T1 core (A-L3). AT-SPI counts characters (Unicode
-// scalar values); the core counts UTF-8 bytes on grapheme boundaries. Every
-// offset is converted against the published value, which is valid UTF-8.
-
-// The character offset of byte offset `byte` (at most the value's size).
-gint character_offset(const std::string& value, std::size_t byte) {
-    const glong offset = g_utf8_pointer_to_offset(value.c_str(), value.c_str() + byte);
-    return static_cast<gint>(offset);
-}
-// The byte offset of character offset `offset`, or none when it lies
-// outside 0..character count.
-std::optional<std::size_t> byte_offset(const std::string& value, gint offset) {
-    const glong count = g_utf8_strlen(value.c_str(), static_cast<gssize>(value.size()));
-    if (offset < 0 || offset > count) return std::nullopt;
-    const gchar* at = g_utf8_offset_to_pointer(value.c_str(), offset);
-    const std::size_t byte = static_cast<std::size_t>(at - value.c_str());
-    return byte;
 }
 // The published caret, or 0 without a published selection.
 gint answer_caret_offset(AtkText* object) {
     const NodeData& node = data(object);
     if (!node.live || !node.node.text_selection) return 0;
-    return character_offset(node.node.value, (*node.node.text_selection).caret.value());
+    return character_offset(node, (*node.node.text_selection).caret.value());
 }
 gint caret_offset(AtkText* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.caret_offset", &answer_caret_offset, object);
@@ -682,11 +737,11 @@ gchar* answer_selection_text(AtkText* object, gint number, gint* start, gint* en
     const SemanticTextSelection selection = *node.node.text_selection;
     const std::size_t low = std::min(selection.anchor.value(), selection.caret.value());
     const std::size_t high = std::max(selection.anchor.value(), selection.caret.value());
-    const gint first = character_offset(node.node.value, low);
-    const gint last = character_offset(node.node.value, high);
+    const gint first = character_offset(node, low);
+    const gint last = character_offset(node, high);
     if (start) { *start = first; }
     if (end) { *end = last; }
-    return g_utf8_substring(node.node.value.c_str(), first, last);
+    return character_substring(node, first, last);
 }
 gchar* selection_text(AtkText* object, gint number, gint* start, gint* end) {
     return gui_forms::detail::call_failing_fast("linux.atk.selection_text", &answer_selection_text, object, number, start, end);
@@ -856,6 +911,7 @@ struct LinuxAccessibility::Impl {
         std::vector<AtkObject*> previous = std::move(value.children);
         value.children.clear();
         value.flags = flags; value.owner = this; value.key = key; value.node = node; value.live = true;
+        if (created || old_value != node.value) index_characters(value.node.value, value.character_starts);
         order_actions(node.actions, value.actions);
         value.keybinding.clear();
         if (!node.access_key.empty()) {
@@ -1041,8 +1097,8 @@ gboolean select_text(AtkText* object, gint anchor, gint caret) {
     if (node.live && node.owner != nullptr && (*node.owner).model != nullptr) {
         LinuxAccessibility::Impl& owner = *node.owner;
         owner.update();
-        const std::optional<std::size_t> anchor_byte = byte_offset(node.node.value, anchor);
-        const std::optional<std::size_t> caret_byte = byte_offset(node.node.value, caret);
+        const std::optional<std::size_t> anchor_byte = byte_offset(node, anchor);
+        const std::optional<std::size_t> caret_byte = byte_offset(node, caret);
         if (node.live && node.owner != nullptr && anchor_byte && caret_byte) {
             const RuntimeId control{node.key.control};
             const SemanticTextSelection selection{.anchor = Utf8Offset(*anchor_byte), .caret = Utf8Offset(*caret_byte)};
@@ -1148,14 +1204,14 @@ gchar* answer_string_at(AtkText* object, gint offset, AtkTextGranularity granula
     if (fetch_text_layout(accessible)) {
         const NodeData& node = data(accessible);
         const std::string& value = node.node.value;
-        const std::optional<std::size_t> byte = byte_offset(value, offset);
+        const std::optional<std::size_t> byte = byte_offset(node, offset);
         std::size_t low = 0U, high = 0U;
         if (byte && granularity_span((*node.owner).text_layout, value, *byte, granularity, low, high)) {
-            const gint first = character_offset(value, low);
-            const gint last = character_offset(value, high);
+            const gint first = character_offset(node, low);
+            const gint last = character_offset(node, high);
             if (start) { *start = first; }
             if (end) { *end = last; }
-            result = g_utf8_substring(value.c_str(), first, last);
+            result = character_substring(node, first, last);
         }
     }
     g_object_unref(accessible);
@@ -1176,7 +1232,7 @@ void answer_character_extents(AtkText* object, gint offset, gint* x, gint* y, gi
     g_object_ref(accessible);
     if (fetch_text_layout(accessible)) {
         const NodeData& node = data(accessible);
-        const std::optional<std::size_t> byte = byte_offset(node.node.value, offset);
+        const std::optional<std::size_t> byte = byte_offset(node, offset);
         std::size_t low = 0U, high = 0U;
         if (byte && granularity_span((*node.owner).text_layout, node.node.value, *byte, ATK_TEXT_GRANULARITY_CHAR, low, high)) {
             for (const SemanticTextGrapheme& grapheme : (*node.owner).text_layout.graphemes) {
@@ -1210,7 +1266,7 @@ gint answer_offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordi
         for (const SemanticTextGrapheme& grapheme : (*node.owner).text_layout.graphemes) {
             const Rect box = grapheme.bounds;
             if (client_x >= box.x && client_x < box.x + box.width && client_y >= box.y && client_y < box.y + box.height) {
-                result = character_offset(node.node.value, grapheme.range.start.value());
+                result = character_offset(node, grapheme.range.start.value());
                 break;
             }
         }

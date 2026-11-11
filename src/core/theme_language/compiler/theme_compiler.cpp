@@ -2948,7 +2948,6 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_);
         return true;
     }
-    // A named part's font is its own too (Theme::resolve_font with the part).
     const bool part_geometry = property == MaterialProperty::stroke_width ||
                                property == MaterialProperty::needle_shape ||
                                property == MaterialProperty::scrim_color;

@@ -428,6 +428,25 @@ private:
     double line_ascent_{12.0};
     double document_width_{};
     std::vector<VisualLine> visual_lines_{};
+    // One logical line of the text the rows were last built from: its
+    // content's bytes, the next line's start (the text's size for the last
+    // line) and its visual rows. An edit re-lays out only the lines it
+    // changed and copies the others' rows (audit P3).
+    struct LaidLine final {
+        std::size_t start{};
+        std::size_t end{};
+        std::size_t next{};
+        std::size_t first_row{};
+        std::size_t row_count{};
+    };
+    // The text the rows were built from (a copy, as long as the document)
+    // and its logical lines; empty until a full build commits them.
+    std::string laid_text_{};
+    std::vector<LaidLine> laid_lines_{};
+    // Scratch for the next laid_lines_ and the previous build's rows, kept
+    // for their capacity.
+    std::vector<LaidLine> laying_lines_{};
+    std::vector<VisualLine> previous_visual_lines_{};
     std::uint64_t multiline_revision_{};
     // The decorations' layout revision the rows were measured with.
     std::uint64_t multiline_decoration_revision_{};

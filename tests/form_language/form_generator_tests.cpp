@@ -916,6 +916,9 @@ void test_member_names() {
     require(gui_forms::form_language::form_member_name("class").empty(), "member names: a keyword");
     require(!gui_forms::form_language::form_identifier("_reserved"), "identifiers: a leading underscore");
     require(gui_forms::form_language::form_identifier("on_save2"), "identifiers: letters, digits, '_'");
+    require(!gui_forms::form_language::form_identifier("on__save"), "identifiers: a reserved double underscore");
+    require(gui_forms::form_language::form_member_name("app.-save").empty(),
+            "member names: '.-' spells a reserved double underscore");
 }
 
 } // namespace

@@ -142,18 +142,23 @@ SkRRect to_sk_rrect_corners(Rect rect, PaintCornerRadii radii) noexcept {
     return result;
 }
 
+// A gradient's stops in Skia's form, on the stack: capacity
+// maximum_gradient_stops, live length `count` (audit P10: no allocation
+// per fill).
 struct SkGradientData final {
-    std::vector<SkColor4f> colors;
-    std::vector<float> positions;
+    std::array<SkColor4f, maximum_gradient_stops> colors{};
+    std::array<float, maximum_gradient_stops> positions{};
+    std::size_t count{};
 };
 
+// `stops` passed valid_gradient_stops, so it holds at most
+// maximum_gradient_stops.
 SkGradientData to_sk_gradient(std::span<const GradientStop> stops) {
-    SkGradientData result;
-    result.colors.reserve(stops.size());
-    result.positions.reserve(stops.size());
-    for (const GradientStop& stop : stops) {
-        result.colors.push_back(SkColor4f::FromColor(to_sk_color(stop.color)));
-        result.positions.push_back(static_cast<float>(stop.offset));
+    SkGradientData result{};
+    result.count = std::min(stops.size(), maximum_gradient_stops);
+    for (std::size_t index = 0U; index < result.count; ++index) {
+        result.colors[index] = SkColor4f::FromColor(to_sk_color(stops[index].color));
+        result.positions[index] = static_cast<float>(stops[index].offset);
     }
     return result;
 }
@@ -171,8 +176,8 @@ SkGradient make_sk_gradient(
     const SkGradientData& data,
     GradientSpreadMode spread = GradientSpreadMode::pad) {
     const SkGradient::Colors colors(
-        SkSpan<const SkColor4f>(data.colors.data(), data.colors.size()),
-        SkSpan<const float>(data.positions.data(), data.positions.size()),
+        SkSpan<const SkColor4f>(data.colors.data(), data.count),
+        SkSpan<const float>(data.positions.data(), data.count),
         to_sk_tile_mode(spread), SkColorSpace::MakeSRGB());
     SkGradient::Interpolation interpolation;
     interpolation.fInPremul = SkGradient::Interpolation::InPremul::kYes;
@@ -2289,12 +2294,20 @@ void SkiaRaster::begin_group(const PaintGroup& group) {
     const bool isolate = group.opacity < 1.0 || group.isolated || group.composite != PaintGroupComposite::source_over;
     if (!visible || !isolate || parent == nullptr) return;
     // The group covers the recorded clip, which now includes its bounds, in
-    // the parent's device pixels. A parent whose clips or pixels are unknown
-    // draws the group directly.
+    // the parent's device pixels. A parent whose clips or pixels are unknown,
+    // or an isolation surface that cannot be allocated, draws the group
+    // directly, without its opacity or composite: counted as a refusal
+    // (audit P9), as a group past the depth bound is.
     const Impl::TextClipState* const state = impl.current_text_clip(*parent);
-    if (state == nullptr) return;
+    if (state == nullptr) {
+        impl.group_refusals = impl.group_refusals + 1U;
+        return;
+    }
     const std::optional<SkPixmap> parent_view = (*parent).peekPixels();
-    if (!parent_view) return;
+    if (!parent_view) {
+        impl.group_refusals = impl.group_refusals + 1U;
+        return;
+    }
     const SkPixmap& parent_pixels = *parent_view;
     SkIRect device = (*state).rect.roundOut();
     if (!device.intersect(SkIRect::MakeWH(parent_pixels.width(), parent_pixels.height()))) return;
@@ -2306,7 +2319,10 @@ void SkiaRaster::begin_group(const PaintGroup& group) {
         const SkImageInfo info = SkImageInfo::Make(grown_width, grown_height, kBGRA_8888_SkColorType,
                                                    kPremul_SkAlphaType, SkColorSpace::MakeSRGB());
         sk_sp<SkSurface> grown = SkSurfaces::Raster(info);
-        if (!grown) return;
+        if (!grown) {
+            impl.group_refusals = impl.group_refusals + 1U;
+            return;
+        }
         level.surface = std::move(grown);
     }
     SkCanvas& canvas = *(*level.surface).getCanvas();

@@ -915,8 +915,49 @@ void deep_history_for_a_large_text() {
     require(f.editor.text.read() == large, "undo restores the large text exactly");
 }
 
+// One typed character re-lays out only its own logical line (audit P3).
+// A 64-line document of 400-byte lines is laid out, then one character is
+// inserted in line 32: the shaping bytes of that relayout are measured
+// against the whole document's, and the rows equal a fresh layout's.
+void edit_relays_out_one_line() {
+    Fixture f{};
+    f.editor.word_wrap = false;
+    std::string source{};
+    const std::size_t line_count = 64U;
+    for (std::size_t line = 0; line < line_count; ++line) {
+        source.append(400U, static_cast<char>('a' + line % 26U));
+        source += '
+';
+    }
+    f.editor.text = source;
+    f.metrics.calls = 0U;
+    f.metrics.bytes = 0U;
+    const std::size_t rows = f.editor.visual_line_count();
+    const std::size_t whole_bytes = f.metrics.bytes;
+    const std::size_t edited_at = 32U * 401U + 200U;
+    f.caret(edited_at);
+    f.metrics.calls = 0U;
+    f.metrics.bytes = 0U;
+    const bool typed = f.editor.replace_selection("Z");
+    const std::size_t edited_rows = f.editor.visual_line_count();
+    const std::size_t edit_bytes = f.metrics.bytes;
+    std::cout << "multiline relayout (audit P3): whole document " << whole_bytes << " shaped bytes, one typed character "
+              << edit_bytes << " shaped bytes in " << f.metrics.calls << " calls\n";
+    require(typed && rows == line_count + 1U && edited_rows == rows, "edit relayout: the rows");
+    require(edit_bytes * 16U < whole_bytes, "edit relayout: only the edited line is shaped again");
+    // Vertical moves read the rows above (kept) and below (kept, shifted by
+    // the inserted byte) at the caret's x, 201 advances in.
+    f.caret(edited_at + 1U);
+    f.key(PhysicalKey::down);
+    require(f.caret() == 33U * 401U + 1U + 201U, "edit relayout: a shifted row below");
+    f.caret(edited_at + 1U);
+    f.key(PhysicalKey::up);
+    require(f.caret() == 31U * 401U + 201U, "edit relayout: a kept row above");
+}
+
 int main() {
     try {
+        edit_relays_out_one_line();
         exact_editing();
         document_scrollbars();
         document_scrollbar_input();

@@ -717,8 +717,29 @@ void test_property_entries() {
             "entries: values written through the table land on the control");
 }
 
+// A model with no objects (never built, or refused) is a caller error
+// (audit P16): load_form throws rather than index its missing root.
+void test_empty_model() {
+    const FormSchema schema = sample_schema();
+    Workspace workspace{};
+    LoadedForm loaded{};
+    static_cast<void>(load(workspace, "user-control app.root { }\n", schema, loaded));
+    const FormModel empty{};
+    const FormSources no_sources{};
+    LoadedForm refused{};
+    bool thrown = false;
+    try {
+        static_cast<void>(load_form(workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, empty,
+                                    no_sources, refused, workspace.diagnostics));
+    } catch (const std::invalid_argument&) {
+        thrown = true;
+    }
+    require(thrown, "empty model: refused with std::invalid_argument");
+}
+
 int main() {
     test_load();
+    test_empty_model();
     test_bindings();
     test_refusals();
     test_form_root();

@@ -340,12 +340,12 @@ std::size_t NavigationPane::read_view(const decltype(button_count)&) const {
 }
 
 std::size_t NavigationPane::visible_button_count() const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     return placed.large_count;
 }
 
 bool NavigationPane::step_buttons(int direction) {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     if (placed.collapsed) return false;
     const std::size_t maximum = std::min(placed.shown_count, placed.button_capacity);
     const std::size_t current = placed.large_count;
@@ -972,7 +972,7 @@ void NavigationPane::paint_tab(Painter& painter, const TabSlot& slot) const {
 }
 
 void NavigationPane::on_paint(Painter& painter, Rect) {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const std::string title = selected_text();
     PartPaint part{};
     part.family = ControlVisualRole::panel;
@@ -1369,7 +1369,7 @@ void NavigationPane::on_key(KeyEvent& event) {
 void NavigationPane::on_focus_changed(bool focused) {
     focused_ = focused;
     if (focused_) {
-        const Layout placed = layout();
+        const Layout& placed = layout();
         if (target_bounds(placed, stop_).empty()) stop_ = default_stop(placed);
     }
     invalidate(Dirty::paint | Dirty::semantics);
@@ -1573,7 +1573,7 @@ SemanticDescriptor NavigationPane::semantic_descriptor() const {
 
 std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const Rect absolute = absolute_bounds();
     const std::string prefix(stable_id().value());
     SemanticState base = SemanticState::visible;
@@ -1887,7 +1887,7 @@ const ControlAnatomy& NavigationPane::anatomy() const noexcept {
 }
 
 void NavigationPane::publish_part_geometry(std::span<PartGeometry> geometry) const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const Rect surface = client_rectangle();
     Target target{};
     Parts record{};
@@ -1934,26 +1934,26 @@ NavigationPane::Parts NavigationPane::parts() const {
 }
 
 std::size_t NavigationPane::realized_item_count() const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     return placed.tabs.size();
 }
 
 std::string NavigationPane::realized_item_stable_id(std::size_t item) const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const TabSlot& slot = placed.tabs.at(item);
     std::string id = std::string(stable_id().value()) + ".tab." + pages_.record_at(PagePosition{slot.position}).id.value;
     return id;
 }
 
 ItemSystemIndex NavigationPane::publish_realized_item_system(std::size_t item) const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const TabSlot& slot = placed.tabs.at(item);
     const ItemSystemIndex system{static_cast<std::uint8_t>(slot.kind == NavigationPaneItemKind::large_button ? 0U : 1U)};
     return system;
 }
 
 void NavigationPane::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const TabSlot& slot = placed.tabs.at(item);
     if (slot.kind == NavigationPaneItemKind::large_button) {
         const PageButtonParts record = button_parts(slot);
@@ -1965,7 +1965,7 @@ void NavigationPane::publish_realized_item_geometry(std::size_t item, std::span<
 }
 
 AnatomyStateSet NavigationPane::realized_item_anatomy_states(std::size_t item) const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const TabSlot& slot = placed.tabs.at(item);
     return tab_states(slot.position);
 }
@@ -1974,7 +1974,7 @@ std::vector<NavigationPane::Item> NavigationPane::realized_items() const {
     const std::size_t count = realized_item_count();
     std::vector<Item> records{};
     records.reserve(count);
-    const Layout placed = layout();
+    const Layout& placed = layout();
     for (std::size_t item = 0; item < count; ++item) {
         const TabSlot& slot = placed.tabs[item];
         const PartGeometryBuffer published = published_realized_item_geometry(item);

@@ -280,6 +280,13 @@ void range_boxes(const TextRead& read, std::size_t start, std::size_t end, doubl
 
 // ASCII letters folded to lower case, for FindText's ignoreCase (other
 // letters are compared as they are).
+//
+// This is a known limit (audit P8): GUI.Forms carries no Unicode case
+// data yet, and the host's case mapping is not used because our engine,
+// not the platform, defines text behaviour. So with ignoreCase U+00C9
+// does not match U+00E9, and a match is aligned to UTF-8 sequences but not to
+// graphemes ("e" matches the base of "e" plus a combining accent). Full
+// folding and grapheme snapping wait for case data in the text engine.
 void fold_ascii_case(std::string& text) noexcept {
     for (char& character : text) {
         if (character >= 'A' && character <= 'Z') character = static_cast<char>(character - 'A' + 'a');
@@ -682,8 +689,10 @@ HRESULT UiaTextRange::text(int max_length, BSTR* out) {
         return S_OK;
     }
     // Empty text is an empty string, never null; a cut keeps the first
-    // max_length UTF-16 units.
-    const UINT kept = cut ? static_cast<UINT>(max_length) : 0U;
+    // max_length UTF-16 units, one fewer when the last would be a high
+    // surrogate whose pair the cut separates (audit P7).
+    UINT kept = cut ? static_cast<UINT>(max_length) : 0U;
+    if (kept > 0U && whole[kept - 1U] >= 0xD800 && whole[kept - 1U] <= 0xDBFF) kept = kept - 1U;
     BSTR result = SysAllocStringLen(whole, kept);
     SysFreeString(whole);
     if (result == nullptr) return E_OUTOFMEMORY;

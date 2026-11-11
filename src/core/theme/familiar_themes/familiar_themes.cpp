@@ -1845,13 +1845,14 @@ FamiliarFloor evaluate_familiar_floor(const FamiliarDescription& description) {
     return result;
 }
 
-FamiliarThemeBuild build_familiar_theme(const FamiliarDescription& description) {
-    const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+// A theme's build from its evaluated floor, which it reads and does not
+// keep. `start` is when the floor's evaluation began.
+FamiliarThemeBuild build_from_floor(const FamiliarDescription& description, const FamiliarFloor& floor,
+                                    std::chrono::steady_clock::time_point start) {
     FamiliarThemeBuild result{};
-    FamiliarFloor floor = evaluate_familiar_floor(description);
-    result.diagnostics = std::move(floor.diagnostics);
+    result.diagnostics = floor.diagnostics;
     result.compile_operations = floor.operations;
-    const std::unique_ptr<ThemeDefinition> definition = std::move(floor.definition);
+    const ThemeDefinition* const definition = floor.definition.get();
     result.theme = Theme::create(*definition);
     if (!description.parts_sheet.empty()) {
         // A refused parts sheet leaves the theme its floor alone.
@@ -1864,6 +1865,35 @@ FamiliarThemeBuild build_familiar_theme(const FamiliarDescription& description) 
     const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     result.build_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     return result;
+}
+
+FamiliarThemeBuild build_familiar_theme(const FamiliarDescription& description) {
+    const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    const FamiliarFloor floor = evaluate_familiar_floor(description);
+    FamiliarThemeBuild result = build_from_floor(description, floor, start);
+    return result;
+}
+
+// Windows-professional's floor, evaluated once on the first call's thread
+// and never changed: both its theme build and
+// windows_professional_floor_definition read it (audit P18), so it is
+// evaluated once, not twice. The time of its evaluation is kept for the
+// build's build_time.
+struct ProfessionalFloor final {
+    std::chrono::steady_clock::time_point start{};
+    FamiliarFloor floor{};
+};
+
+ProfessionalFloor evaluate_professional_floor() {
+    ProfessionalFloor result{};
+    result.start = std::chrono::steady_clock::now();
+    result.floor = evaluate_familiar_floor(descriptions[static_cast<std::size_t>(FamiliarTheme::windows_professional)]);
+    return result;
+}
+
+const ProfessionalFloor& professional_floor() {
+    static const ProfessionalFloor evaluated = evaluate_professional_floor();
+    return evaluated;
 }
 
 // Each theme's build, made on its first use. Function-local statics make
@@ -1889,7 +1919,8 @@ const FamiliarThemeBuild& macos_style_build() {
     return build;
 }
 const FamiliarThemeBuild& windows_professional_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[5]);
+    const ProfessionalFloor& evaluated = professional_floor();
+    static const FamiliarThemeBuild build = build_from_floor(descriptions[5], evaluated.floor, evaluated.start);
     return build;
 }
 
@@ -1948,10 +1979,8 @@ const ThemeDefinition& windows_professional_floor_definition() {
     // initialization thread-safe), and never changed afterwards. Its
     // diagnostics are the theme build's (familiar_theme_build), which the
     // familiar themes tests require to be empty.
-    static const std::unique_ptr<ThemeDefinition> definition =
-        std::move(evaluate_familiar_floor(descriptions[static_cast<std::size_t>(FamiliarTheme::windows_professional)])
-                      .definition);
-    return *definition;
+    const ProfessionalFloor& evaluated = professional_floor();
+    return *evaluated.floor.definition;
 }
 
 } // namespace detail
