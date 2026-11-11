@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Counts what the reader asks the heap for while the probe is enabled. The
@@ -580,6 +581,48 @@ void test_seeded_mutation() {
 
 } // namespace
 
+// A chain `levels` deep, the root at depth 1, built in code (no limit).
+XmlElement element_chain(std::size_t levels) {
+    XmlElement current{};
+    current.name = "leaf";
+    for (std::size_t level = 1U; level < levels; ++level) {
+        XmlElement parent{};
+        parent.name = "level";
+        parent.children.push_back(std::move(current));
+        current = std::move(parent);
+    }
+    return current;
+}
+
+// Copying, comparing and destroying do not recurse per level (HOUSE_STYLE
+// section 1): a chain far deeper than any reader limit, whose recursive
+// teardown would exhaust an 8 MiB stack, is copied, compared and destroyed.
+// The writer refuses one level past maximum_depth and writes the limit.
+void test_deep_trees() {
+    constexpr std::size_t deep = 200000U;
+    {
+        const XmlElement original = element_chain(deep);
+        XmlElement copy = original;
+        require(copy == original, "a deep copy compares equal");
+        copy.children.front().children.front().text = "changed";
+        require(!(copy == original), "a change two levels down compares unequal");
+        XmlElement assigned{};
+        assigned = original;
+        require(assigned == original, "copy assignment copies the whole depth");
+    }
+    XmlLimits limits{};
+    limits.maximum_depth = xml_depth_ceiling;
+    const XmlElement at_limit = element_chain(xml_depth_ceiling);
+    const XmlWriteResult written = write_xml(at_limit, XmlWriteOptions{}, limits);
+    require(static_cast<bool>(written), "a tree at maximum_depth writes");
+    const XmlReadResult reread = read_xml(written.text, limits);
+    require(static_cast<bool>(reread) && reread.root == at_limit, "a tree at maximum_depth reads back equal");
+    const XmlElement past_limit = element_chain(xml_depth_ceiling + 1U);
+    const XmlWriteResult refused = write_xml(past_limit, XmlWriteOptions{}, limits);
+    require(refused.error == XmlError::depth_exceeded && refused.text.empty(),
+            "one level past maximum_depth is refused, writing nothing");
+}
+
 int main() {
     test_conformance();
     test_malformed();
@@ -587,6 +630,7 @@ int main() {
     test_positions();
     test_limits();
     test_writer();
+    test_deep_trees();
     test_seeded_mutation();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";

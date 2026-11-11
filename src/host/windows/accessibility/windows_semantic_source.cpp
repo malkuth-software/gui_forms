@@ -16,10 +16,9 @@ namespace {
 // control-backed node there has its own scope).
 enum class SearchKind : std::uint8_t { controls, virtual_children };
 
-// Recurses once per semantic level. Control levels are bounded by
-// maximum_control_tree_depth (control.hpp); the virtual item levels a
-// control publishes below itself are not yet (an open target of the
-// depth rule, owner 2026-11-11).
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 bool search_children(const SemanticLocation& at, std::uint64_t runtime_id, SearchKind kind,
                      SemanticLocation& found) noexcept {
     const std::vector<SemanticNode>& children = (*at.node).children;
@@ -145,10 +144,9 @@ bool contains_point(const SemanticNode& node, double x, double y) noexcept {
 
 } // namespace
 
-// Recurses once per semantic level. Control levels are bounded by
-// maximum_control_tree_depth (control.hpp); the virtual item levels a
-// control publishes below itself are not yet (an open target of the
-// depth rule, owner 2026-11-11).
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 bool hit_semantic_location(const SemanticLocation& at, double x, double y,
                            SemanticLocation& hit) noexcept {
     const std::size_t count = (*at.node).children.size();
@@ -164,10 +162,9 @@ bool hit_semantic_location(const SemanticLocation& at, double x, double y,
     return false;
 }
 
-// Recurses once per semantic level. Control levels are bounded by
-// maximum_control_tree_depth (control.hpp); the virtual item levels a
-// control publishes below itself are not yet (an open target of the
-// depth rule, owner 2026-11-11).
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 bool find_state_location(const SemanticLocation& at, SemanticState state,
                          SemanticLocation& found) noexcept {
     if (has_semantic_state((*at.node).states, state)) {
@@ -182,10 +179,9 @@ bool find_state_location(const SemanticLocation& at, SemanticState state,
     return false;
 }
 
-// Recurses once per semantic level. Control levels are bounded by
-// maximum_control_tree_depth (control.hpp); the virtual item levels a
-// control publishes below itself are not yet (an open target of the
-// depth rule, owner 2026-11-11).
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 bool find_control_location(const SemanticLocation& at, std::string_view stable_id,
                            SemanticLocation& found) noexcept {
     const std::size_t count = (*at.node).children.size();

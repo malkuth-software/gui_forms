@@ -1036,6 +1036,27 @@ void test_static_tree_factory() {
             "compiled static description must retain stable child ID");
 }
 
+// A description built in code is copied and destroyed without recursing
+// per level (HOUSE_STYLE section 1): a chain deep enough that a recursive
+// teardown would exhaust an 8 MiB stack.
+void test_static_node_deep_copy_and_teardown() {
+    constexpr std::size_t deep = 200000U;
+    StaticNode current{"probe", "static.deep", {0.0, 0.0, 10.0, 10.0}};
+    for (std::size_t level = 1U; level < deep; ++level) {
+        StaticNode parent{"probe", "static.deep", {0.0, 0.0, 10.0, 10.0}};
+        parent.children.push_back(std::move(current));
+        current = std::move(parent);
+    }
+    const StaticNode copy = current;
+    std::size_t copied_levels = 0U;
+    const StaticNode* walk = &copy;
+    while (walk != nullptr) {
+        ++copied_levels;
+        walk = (*walk).children.empty() ? nullptr : &(*walk).children.front();
+    }
+    require(copied_levels == deep, "a deep description copies every level");
+}
+
 void test_cursor_inheritance_and_override() {
     Fixture fixture;
     require((*fixture.child).effective_cursor() == CursorKind::arrow,
@@ -1476,6 +1497,7 @@ int main() {
         test_stable_ids_and_detached_lifetime();
         test_stable_id_rule();
         test_static_tree_factory();
+        test_static_node_deep_copy_and_teardown();
         test_cursor_inheritance_and_override();
         test_control_identity_geometry_constraints_and_z_order();
         test_damage_and_idle_metrics();

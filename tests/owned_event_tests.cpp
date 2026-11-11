@@ -502,6 +502,54 @@ void test_nested_emission() {
             "nested events must keep independent registration boundaries");
 }
 
+// A handler that raises `next` again from inside its own emission, with
+// no condition to stop: only the nesting limit ends the chain.
+struct RaiseAgain final {
+    gf::Event<int>* next{nullptr};
+    std::size_t* calls{nullptr};
+
+    void operator()(int depth) const {
+        ++(*calls);
+        (*next).emit(depth + 1);
+    }
+};
+
+// Emissions nest at most maximum_nested_event_emissions deep on a thread,
+// across events: the emission past the limit runs no handler and is
+// counted as refused, and the thread's count recovers afterwards.
+void test_nested_emission_limit() {
+    gf::Event<int> looping{};
+    std::size_t calls = 0U;
+    RaiseAgain again{};
+    again.next = &looping;
+    again.calls = &calls;
+    const gf::SubscriptionToken token = looping.subscribe(again);
+    looping.emit(1);
+    require(calls == gf::maximum_nested_event_emissions && looping.statistics().emissions_refused == 1U,
+            "a handler that raises its own event stops at the nesting limit");
+
+    gf::Event<int> first{};
+    gf::Event<int> second{};
+    std::size_t mutual_calls = 0U;
+    RaiseAgain to_second{};
+    to_second.next = &second;
+    to_second.calls = &mutual_calls;
+    RaiseAgain to_first{};
+    to_first.next = &first;
+    to_first.calls = &mutual_calls;
+    const gf::SubscriptionToken first_token = first.subscribe(to_second);
+    const gf::SubscriptionToken second_token = second.subscribe(to_first);
+    first.emit(1);
+    const std::uint64_t refused = first.statistics().emissions_refused + second.statistics().emissions_refused;
+    require(mutual_calls == gf::maximum_nested_event_emissions && refused == 1U,
+            "two events raising each other stop at the same thread-wide limit");
+
+    // Unwound: a fresh emission runs its full chain again.
+    calls = 0U;
+    looping.emit(1);
+    require(calls == gf::maximum_nested_event_emissions, "the nesting count recovers after the chain unwinds");
+}
+
 void test_publisher_and_target_destruction() {
     PublisherDestruction owner{};
     gf::on(*owner.event, owner, &PublisherDestruction::destroy);
@@ -1131,6 +1179,7 @@ int main() {
         test_disposal_during_emission();
         test_natural_teardown_cannot_resubscribe();
         test_nested_emission();
+        test_nested_emission_limit();
         test_callable_state_persists();
         test_publisher_and_target_destruction();
         test_exception_recovery_and_null_member();

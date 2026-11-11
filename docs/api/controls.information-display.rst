@@ -4478,7 +4478,7 @@ Functions, constants and aliases
 
 .. cpp:function:: HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits = {}, const XmlLimits& xml_limits = {})
 
-   Reads the help fields of a ``locales-<tag>.xml`` file: <locale xml:lang="fr"> <controls> <control name="main"> <control name="paste" text="Coller" help-line="..."> <help keywords="presse-papiers; coller, image">...</help> </control> </control> </controls> </locale> ``<control>`` elements nest by stable-ID segment; ``text`` is the record's title, ``help-line`` an attribute, and the body the ``<help>`` child's character data (normalize_help_body), with ``keywords`` on it. Other attributes and elements (the rest of the language file) are ignored. Expected faults never throw.
+   Reads the help fields of a ``locales-<tag>.xml`` file: <locale xml:lang="fr"> <controls> <control name="main"> <control name="paste" text="Coller" help-line="..."> <help keywords="presse-papiers; coller, image">...</help> </control> </control> </controls> </locale> ``<control>`` elements nest by stable-ID segment; ``text`` is the record's title, ``help-line`` an attribute, and the body the ``<help>`` child's character data (normalize_help_body), with ``keywords`` on it. Other attributes and elements (the rest of the language file) are ignored. The document nests at most 67 elements deep (locale, controls, 64 control levels and a help child), whatever xml_limits allows: a deeper file is refused as HelpLocaleError::xml with XmlError::depth_exceeded. Expected faults never throw.
 
 .. cpp:function:: XmlWriteResult write_help_locale(const HelpRecordLayer& records, std::string_view language, const XmlLimits& xml_limits = {})
 

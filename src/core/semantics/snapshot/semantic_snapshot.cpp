@@ -42,10 +42,9 @@ void append_number(std::ostringstream& stream, const char* name, const std::opti
     else stream << "null";
 }
 
-// Recurses once per semantic level. Control levels are bounded by
-// maximum_control_tree_depth (control.hpp); the virtual item levels a
-// control publishes below itself are not yet (an open target of the
-// depth rule, owner 2026-11-11).
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 void append_node(std::ostringstream& stream, const SemanticNode& node) {
     stream << "{\"runtime_id\":" << node.runtime_id << ",\"stable_id\":";
     append_json_string(stream, node.stable_id);

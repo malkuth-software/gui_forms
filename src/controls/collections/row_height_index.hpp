@@ -31,7 +31,10 @@ namespace gui_forms {
 // Depth is O(log n) of the largest row count it has held: nodes emptied by an
 // erase are removed and a one-child root is collapsed, but partly filled
 // nodes are not merged (their count is bounded by the runs). Recursion is
-// bounded by that depth.
+// bounded by that depth: a split leaves both halves at least 16 entries of
+// 32, so a tree is at most 1 + log16 of the most runs it has held deep, 9
+// levels for 2^32 runs and 17 for 2^64 (HOUSE_STYLE section 1: the shape
+// fixes the depth before any walk).
 class RowHeightIndex final {
 public:
     static constexpr std::size_t node_capacity = 32U;

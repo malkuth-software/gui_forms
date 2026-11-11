@@ -1583,6 +1583,99 @@ void test_ratio_and_frame_edits() {
             "refused frame edits leave the frame");
 }
 
+// A node's level in its site, the root at level one, by its parent links.
+std::size_t node_level(const DockLayout& layout, DockNodeId id) {
+    std::size_t level = 0U;
+    const DockNode* node = layout.find_node(id);
+    while (node != nullptr && level <= gui_forms::dock_maximum_depth + 1U) {
+        ++level;
+        const DockNodeId parent = (*node).parent;
+        node = parent == DockNodeId{} ? nullptr : layout.find_node(parent);
+    }
+    return level;
+}
+
+// A restore record whose main site is a chain of `splits` splits, each
+// holding the next and a tool stack; the deepest holds the document area
+// and the last stack. Tool panels tools.deep-0 up to tools.deep-<splits>.
+std::string split_chain_xml(std::size_t splits) {
+    std::uint32_t next_id = 1U;
+    std::string text = "<dock_layout format=\"2\" next_id=\"NEXT\"><main_site>";
+    for (std::size_t index = 0U; index < splits; ++index) {
+        text += "<split id=\"" + std::to_string(next_id++) + "\" axis=\"horizontal\" ratio=\"0.5\">";
+    }
+    text += "<document_area id=\"" + std::to_string(next_id++) + "\"/>";
+    for (std::size_t index = splits; index > 0U; --index) {
+        text += "<tool_stack id=\"" + std::to_string(next_id++) + "\"><panel id=\"tools.deep-" +
+                std::to_string(index) + "\"/></tool_stack></split>";
+    }
+    text += "</main_site></dock_layout>";
+    const std::size_t at = text.find("NEXT");
+    text.replace(at, 4U, std::to_string(next_id));
+    return text;
+}
+
+void register_deep_tools(DockLayout& layout, std::size_t count) {
+    for (std::size_t index = 0U; index <= count; ++index) {
+        require(layout.register_panel(tool("tools.deep-" + std::to_string(index))), "register a deep tool");
+    }
+}
+
+// A site's tree nests at most dock_maximum_depth levels: a transaction that
+// would split one level deeper is refused and changes nothing, and so is a
+// restore whose tree is one level deeper. A record nested past
+// dock_layout_maximum_xml_depth is refused by the read, whatever the
+// caller's XML limits allow.
+void test_depth_limit() {
+    {
+        DockLayout layout{};
+        register_deep_tools(layout, 2U * gui_forms::dock_maximum_depth);
+        require(static_cast<bool>(apply_one(layout, DockEdit::show(panel("tools.deep-0")))), "show the first tool");
+        std::size_t index = 1U;
+        bool refused = false;
+        while (!refused && index <= 2U * gui_forms::dock_maximum_depth) {
+            const DockNodeId target = stack_of(layout, "tools.deep-" + std::to_string(index - 1U));
+            const DockSide side = index % 2U == 0U ? DockSide::right : DockSide::bottom;
+            const std::uint64_t generation = layout.generation();
+            const DockTransactionResult result =
+                apply_one(layout, DockEdit::dock_beside(subject("tools.deep-" + std::to_string(index)), target, side));
+            if (!result.applied) {
+                refused = true;
+                require(result.refusal.reason == DockRefusalReason::invariant_violated &&
+                            layout.generation() == generation,
+                        "a split one level past the depth limit is refused, changing nothing");
+                require(node_level(layout, target) == gui_forms::dock_maximum_depth,
+                        "splits are accepted down to the depth limit exactly");
+            }
+            ++index;
+        }
+        require(refused, "splitting stops at the depth limit");
+    }
+    {
+        // 31 splits put the deepest stack at level 32; 32 put it at 33.
+        DockLayout layout{};
+        register_deep_tools(layout, gui_forms::dock_maximum_depth + 1U);
+        const DockRestoreResult fits =
+            layout.restore_xml(split_chain_xml(gui_forms::dock_maximum_depth - 1U), DockRestoreOptions{});
+        if (fits.status != DockRestoreStatus::restored) print_diagnostics(fits);
+        require(fits.status == DockRestoreStatus::restored, "a restored tree at the depth limit is accepted");
+        const DockLayoutState before = layout.state();
+        const DockRestoreResult deeper =
+            layout.restore_xml(split_chain_xml(gui_forms::dock_maximum_depth), DockRestoreOptions{});
+        require(deeper.status == DockRestoreStatus::kept_current && layout.state() == before &&
+                    has_diagnostic(deeper, DockRestoreDiagnosticKind::structure_invalid),
+                "a restored tree one level past the limit is refused, keeping the current layout");
+        DockRestoreOptions generous{};
+        generous.limits.maximum_depth = 1024U;
+        // dock_layout, main_site, the splits, the stack and its panel.
+        const std::size_t past_xml = gui_forms::dock_layout_maximum_xml_depth - 3U;
+        const DockRestoreResult unreadable = layout.restore_xml(split_chain_xml(past_xml), generous);
+        require(unreadable.status == DockRestoreStatus::kept_current &&
+                    has_diagnostic(unreadable, DockRestoreDiagnosticKind::unreadable_xml),
+                "a record nested past the layout XML depth is refused by the read");
+    }
+}
+
 int main() {
     test_default_layout();
     test_standard_layout_and_format();
@@ -1611,6 +1704,7 @@ int main() {
     test_lazy_creation_report();
     test_random_edit_sequences();
     test_mutated_restores();
+    test_depth_limit();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

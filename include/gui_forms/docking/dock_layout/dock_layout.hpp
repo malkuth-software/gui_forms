@@ -20,8 +20,15 @@ namespace gui_forms {
 // as <stack kind="tool|document">); newer ones are read best-effort.
 inline constexpr std::uint32_t dock_layout_format_version = 2;
 
+// The deepest layout document read or written: <dock_layout>, a site, a
+// node tree of at most dock_maximum_depth levels, a <panel>, and 13 levels
+// for an application's unknown fields below it. The restore walks the
+// document recursively (a node per level), so restore_xml reads with at
+// most this depth whatever DockRestoreOptions::limits allows.
+inline constexpr std::uint32_t dock_layout_maximum_xml_depth = 48;
+
 // The XML limits layouts are written and read with: XmlLimits' defaults
-// with a depth of 256, since every split nests one level.
+// with a depth of dock_layout_maximum_xml_depth.
 [[nodiscard]] XmlLimits dock_layout_xml_limits() noexcept;
 
 // A monitor as restore needs it; convert from HostMonitor (id, work_area,

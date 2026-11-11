@@ -2624,6 +2624,21 @@ Related types
 
    StaticNode is an inert declarative node containing a registered type name, stable ID, and owned child descriptions.
 
+
+   .. rubric:: Construction
+
+   .. cpp:function:: StaticNode() = default
+
+   .. cpp:function:: StaticNode(std::string node_type, std::string node_stable_id, Rect node_requested_bounds, std::vector<StaticNode> node_children = {})
+
+      Brace-initializable as the aggregate it was: StaticNode{"panel", "main.panel", bounds, {{"button", "main.ok", ok}}}.
+
+   .. cpp:function:: StaticNode(const StaticNode& other)
+
+      A deep copy, level by level in a work list. On failure (allocation) the partial copy is destroyed and the exception propagates.
+
+   .. cpp:function:: StaticNode(StaticNode&& other) noexcept = default
+
    .. cpp:member:: std::string type
 
    .. cpp:member:: std::string stable_id

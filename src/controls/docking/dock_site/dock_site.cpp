@@ -257,6 +257,9 @@ std::vector<DockNodeId> DockSite::collapsed_stacks() const {
 // before its second, the document area's content in place.
 namespace {
 
+// Recurses once per dock node level: a committed tree is at most
+// dock_maximum_depth (32) deep, refused beyond by the invariant check;
+// a few hundred bytes of stack per level.
 void collect_main_stacks(const DockLayout& layout, DockNodeId node_id, std::vector<DockNodeId>& out) {
     const DockNode* const node = layout.find_node(node_id);
     if (node == nullptr) return;
@@ -873,6 +876,9 @@ Size DockSite::stack_minimum(const DockNode& node) const {
     return minimum;
 }
 
+// Recurses once per dock node level: a committed tree is at most
+// dock_maximum_depth (32) deep, refused beyond by the invariant check;
+// a few hundred bytes of stack per level.
 DockSite::Extent DockSite::extent_of(DockNodeId node_id, std::span<const DockNodeId> collapsed) const {
     Extent extent{};
     const DockNode* const node = (*workspace_).layout().find_node(node_id);
@@ -971,6 +977,9 @@ std::vector<DockNodeId> DockSite::plan_collapse(Size available) const {
     return collapsed;
 }
 
+// Recurses once per dock node level: a committed tree is at most
+// dock_maximum_depth (32) deep, refused beyond by the invariant check;
+// a few hundred bytes of stack per level.
 void DockSite::place(DockNodeId node_id, Rect bounds, std::span<const DockNodeId> collapsed) {
     const DockNode* const node = (*workspace_).layout().find_node(node_id);
     if (node == nullptr) return;

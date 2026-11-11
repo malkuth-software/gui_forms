@@ -110,6 +110,17 @@ gui_forms::XmlElement
       static_cast<void>(is_mixed);
 
 
+   .. rubric:: Construction
+
+   .. cpp:function:: XmlElement() = default
+
+   .. cpp:function:: XmlElement(const XmlElement& other)
+
+      A deep copy, level by level in a work list. On failure (allocation) the partial copy is destroyed and the exception propagates.
+
+   .. cpp:function:: XmlElement(XmlElement&& other) noexcept = default
+
+
    .. rubric:: Methods
 
    .. cpp:function:: const XmlAttribute* find_attribute(std::string_view attribute_name) const& noexcept

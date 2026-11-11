@@ -1351,7 +1351,7 @@ Functions, constants and aliases
 
 .. cpp:function:: XmlLimits dock_layout_xml_limits() noexcept
 
-   The XML limits layouts are written and read with: XmlLimits' defaults with a depth of 256, since every split nests one level.
+   The XML limits layouts are written and read with: XmlLimits' defaults with a depth of dock_layout_maximum_xml_depth.
 
 .. cpp:function:: DockMonitorPlacement place_on_monitor(Rect frame, std::string_view monitor_id, std::span<const DockMonitor> monitors, const DockCaptionReach& reach = {})
 
@@ -1364,6 +1364,10 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::uint32_t dock_layout_format_version
 
    The framework's layout format version written by write_xml. Older versions are upgraded step by step on restore (version 1 spelled stacks as <stack kind="tool|document">); newer ones are read best-effort. Value: ``2``.
+
+.. cpp:var:: constexpr std::uint32_t dock_layout_maximum_xml_depth
+
+   The deepest layout document read or written: <dock_layout>, a site, a node tree of at most dock_maximum_depth levels, a <panel>, and 13 levels for an application's unknown fields below it. The restore walks the document recursively (a node per level), so restore_xml reads with at most this depth whatever DockRestoreOptions::limits allows. Value: ``48``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1380,6 +1384,10 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t dock_maximum_floating_sites
 
    The most floating sites a layout holds (DK decision 6). Value: ``32``.
+
+.. cpp:var:: constexpr std::size_t dock_maximum_depth
+
+   The deepest a site's node tree may nest, its root at level one; the main site counts through its document area into the document tree. Every split adds a level, and 32 levels of halving leave a pane far below any minimum size, so no usable layout reaches it. The invariant check (DockLayout::check_invariants) refuses a deeper tree, so a transaction or a restore that would build one changes nothing. The walks over a committed tree (minimum sizes, writing, the dock site's placement) may recurse once per level: a few hundred bytes each, at most about 32 KiB. Value: ``32``.
 
 .. cpp:var:: constexpr std::uint32_t dock_identity_limit
 

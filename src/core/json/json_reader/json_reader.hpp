@@ -40,8 +40,10 @@ struct JsonLimits final {
     std::size_t maximum_number_bytes{64U};
 };
 
-// The largest maximum_depth accepted. A value is destroyed recursively, so
-// a deeper limit is refused with JsonError::invalid_limits.
+// The largest maximum_depth accepted; a deeper limit is refused with
+// JsonError::invalid_limits. Nothing recurses per level: the reader keeps
+// one frame per open container in explicit storage, and copying,
+// comparing and destroying a value walk it in work lists (JsonValue).
 inline constexpr std::uint32_t json_depth_ceiling = 256U;
 
 enum class JsonError : std::uint8_t {
@@ -74,6 +76,10 @@ enum class JsonKind : std::uint8_t { null, boolean, number, string, array, objec
 // One value and everything below it. An array's items are in `items`; an
 // object's member values are in `items` and their names, at the same
 // positions, in `names`, in document order.
+//
+// A value built in code has no depth limit, so copying, comparing and
+// destroying walk it in explicit work storage instead of recursing per
+// level (HOUSE_STYLE section 1). Moving moves the item list's storage.
 struct JsonValue final {
     JsonKind kind{JsonKind::null};
     bool boolean{};
@@ -82,13 +88,26 @@ struct JsonValue final {
     std::vector<JsonValue> items{};
     std::vector<std::string> names{};
 
+    JsonValue() = default;
+    // A deep copy, level by level in a work list. On failure (allocation)
+    // the partial copy is destroyed and the exception propagates.
+    JsonValue(const JsonValue& other);
+    JsonValue(JsonValue&& other) noexcept = default;
+    // Copies into a new value first, so on failure this value is unchanged.
+    JsonValue& operator=(const JsonValue& other);
+    JsonValue& operator=(JsonValue&& other) noexcept = default;
+    // Tears the items down iteratively (src/core/algorithm/tree_teardown.hpp).
+    ~JsonValue();
+
     // The member named `name` of an object, or null (also for any other
     // kind). The pointer borrows from this value; a temporary is refused.
     [[nodiscard]] const JsonValue* find(std::string_view name) const& noexcept;
     const JsonValue* find(std::string_view name) const&& = delete;
 };
 
-[[nodiscard]] bool operator==(const JsonValue& left, const JsonValue& right) noexcept;
+// Compares the values level by level in a work list, so it may throw
+// std::bad_alloc.
+[[nodiscard]] bool operator==(const JsonValue& left, const JsonValue& right);
 
 // Where an error was found: lines and columns count from 1, a column in
 // Unicode scalar values (an ill-formed byte counts as one); CR LF, CR and

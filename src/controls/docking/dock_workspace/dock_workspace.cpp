@@ -34,6 +34,9 @@ constexpr std::array<InteractionDeclaration, 3> workspace_interactions{{
 constexpr Size smallest_floating_window{64.0, 48.0};
 
 // The stacks under a node in tree order (a split's first child first).
+// Recurses once per dock node level: a committed tree is at most
+// dock_maximum_depth (32) deep, refused beyond by the invariant check;
+// a few hundred bytes of stack per level.
 void collect_stacks(const DockLayout& layout, DockNodeId node_id, std::vector<DockNodeId>& out) {
     const DockNode* const node = layout.find_node(node_id);
     if (node == nullptr) return;

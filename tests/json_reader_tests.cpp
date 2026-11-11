@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace {
 
@@ -180,10 +181,45 @@ void test_limits() {
 
 } // namespace
 
+// Copying, comparing and destroying do not recurse per level (HOUSE_STYLE
+// section 1): a value far deeper than the reader's ceiling, built in code,
+// whose recursive teardown would exhaust an 8 MiB stack. The reader takes a
+// document at the ceiling and refuses one level more.
+void test_deep_values() {
+    constexpr std::size_t deep = 200000U;
+    {
+        JsonValue current{};
+        current.kind = JsonKind::number;
+        current.text = "1";
+        for (std::size_t level = 1U; level < deep; ++level) {
+            JsonValue parent{};
+            parent.kind = JsonKind::array;
+            parent.items.push_back(std::move(current));
+            current = std::move(parent);
+        }
+        const JsonValue copy = current;
+        require(copy == current, "a deep copy compares equal");
+        JsonValue assigned{};
+        assigned = current;
+        assigned.items.front().items.front().boolean = true;
+        require(!(assigned == current), "a change two levels down compares unequal");
+    }
+    JsonLimits limits{};
+    limits.maximum_depth = json_depth_ceiling;
+    const std::string at_ceiling = std::string(json_depth_ceiling - 1U, '[') + "1" +
+                                   std::string(json_depth_ceiling - 1U, ']');
+    require(static_cast<bool>(read_json(at_ceiling, limits)), "a document at the ceiling reads");
+    const std::string past_ceiling = std::string(json_depth_ceiling, '[') + "1" +
+                                     std::string(json_depth_ceiling, ']');
+    require(read_json(past_ceiling, limits).error == JsonError::depth_exceeded,
+            "a document one level past the ceiling is refused");
+}
+
 int main() {
     test_documents();
     test_refusals();
     test_limits();
+    test_deep_values();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

@@ -1381,10 +1381,9 @@ static bool publishes_text_ranges(const SemanticNode& node) noexcept {
 }
 
 // Whether `node` or a node below it publishes text ranges.
-// Recurses once per semantic level. Control levels are bounded by
-// maximum_control_tree_depth (control.hpp); the virtual item levels a
-// control publishes below itself are not yet (an open target of the
-// depth rule, owner 2026-11-11).
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 static bool contains_text_ranges(const SemanticNode& node) {
     if (publishes_text_ranges(node)) return true;
     for (const SemanticNode& child : node.children) {
@@ -1574,10 +1573,9 @@ static bool text_range_selector(SEL selector) noexcept {
     return text;
 }
 
-// Recurses once per semantic level. Control levels are bounded by
-// maximum_control_tree_depth (control.hpp); the virtual item levels a
-// control publishes below itself are not yet (an open target of the
-// depth rule, owner 2026-11-11).
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 static bool contains_live_region(const SemanticNode& node) {
     if (node.role == SemanticRole::live_region) return true;
     for (const SemanticNode& child : node.children) {
