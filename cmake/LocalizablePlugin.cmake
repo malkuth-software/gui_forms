@@ -221,7 +221,14 @@ function(gui_forms_compile_with_localizable_plugin target)
     # generators compile in each target's own directory and keep it absolute.
     set(_gf_root "${CMAKE_SOURCE_DIR}")
     if(CMAKE_GENERATOR MATCHES "Ninja")
-        file(RELATIVE_PATH _gf_root "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}")
+        # From the real paths: the compiler resolves the root against its
+        # working directory, which is the build tree's real path, so a tree
+        # reached through a symbolic link (the M4's sanitizer trees on an
+        # external drive) would otherwise get a root that names nothing and
+        # the plugin would record absolute file names.
+        file(REAL_PATH "${CMAKE_BINARY_DIR}" _gf_binary_real)
+        file(REAL_PATH "${CMAKE_SOURCE_DIR}" _gf_source_real)
+        file(RELATIVE_PATH _gf_root "${_gf_binary_real}" "${_gf_source_real}")
         if(_gf_root STREQUAL "")
             set(_gf_root ".")
         endif()
