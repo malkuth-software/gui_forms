@@ -499,7 +499,7 @@ gui_forms::Control
       * - :cpp:func:`add_child <gui_forms::Control::add_child>`
         - Makes a control the frontmost child of this one, detaching it from its previous parent first.
       * - :cpp:func:`insert_child <gui_forms::Control::insert_child>`
-        - Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index moves it.
+        - Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index_from_top moves it.
       * - :cpp:func:`remove_child <gui_forms::Control::remove_child>`
         - Detaches the child with the given :cpp:class:`RuntimeId <gui_forms::RuntimeId>` and returns it, or returns null if there is no such child.
       * - :cpp:func:`child_index_from_top <gui_forms::Control::child_index_from_top>`
@@ -1341,7 +1341,7 @@ gui_forms::Control
 
    .. cpp:function:: void insert_child(Ptr child, std::size_t index)
 
-      Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index moves it. On failure the tree is unchanged.
+      Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index_from_top moves it. On failure the tree is unchanged.
 
    .. cpp:function:: Ptr remove_child(RuntimeId child)
 
