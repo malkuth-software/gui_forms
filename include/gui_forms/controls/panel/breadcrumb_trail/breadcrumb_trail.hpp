@@ -25,24 +25,28 @@ public:
                              std::string editor_stable_id = {});
     void initialize_control_tree();
 
-    [[nodiscard]] std::span<const BreadcrumbSegment> segments() const noexcept {
+    [[nodiscard]] std::span<const BreadcrumbSegment> segments() const& noexcept {
         return segments_;
     }
+    std::span<const BreadcrumbSegment> segments() const&& = delete;
     void set_segments(std::vector<BreadcrumbSegment> segments);
-    [[nodiscard]] std::span<const std::string> hidden_segment_ids() const noexcept {
+    [[nodiscard]] std::span<const std::string> hidden_segment_ids() const& noexcept {
         return hidden_segment_ids_;
     }
+    std::span<const std::string> hidden_segment_ids() const&& = delete;
 
     void begin_edit(std::string text, bool select_all = true);
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept {
         return editor_;
     }
-    [[nodiscard]] std::string_view overflow_stable_id() const noexcept {
+    [[nodiscard]] std::string_view overflow_stable_id() const& noexcept {
         return overflow_stable_id_;
     }
-    [[nodiscard]] std::string_view edit_stable_id() const noexcept {
+    std::string_view overflow_stable_id() const&& = delete;
+    [[nodiscard]] std::string_view edit_stable_id() const& noexcept {
         return edit_stable_id_;
     }
+    std::string_view edit_stable_id() const&& = delete;
 
     [[nodiscard]] Event<const std::string&>& segment_activated() noexcept {
         return segment_activated_;

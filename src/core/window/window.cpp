@@ -4903,7 +4903,7 @@ void SurfaceRoot::paint_from_cover(const std::span<const Control::Ptr> path,
     for (std::size_t level = 0; level + 1U < path.size(); ++level) {
         const Control& ancestor = *path[level];
         level_damage.push_back(Rect::intersection(absolute_child_viewport_of(ancestor), level_damage.back()));
-        siblings.push_back(ancestor.children_);
+        siblings.push_back(detail::lent_storage(ancestor.children_));
         retained_parents.push_back(ancestor.parent_.lock().get());
     }
     paint_recursive(path.back(), parent_origin_of(*path.back()), painter, level_damage.back(), plane,

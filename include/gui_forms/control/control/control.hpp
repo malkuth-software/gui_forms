@@ -3,6 +3,7 @@
 #include "gui_forms/types/cursor_image/cursor_image.hpp"
 
 #include "gui_forms/anatomy.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/binding_types.hpp"
@@ -387,7 +388,10 @@ public:
     [[nodiscard]] Ptr parent() const noexcept { return parent_.lock(); }
     // Back to front (painter order, as the C ABI's insert_child and
     // child_at count): index 0 paints first, the last child paints on top.
-    [[nodiscard]] std::span<const Ptr> children() const noexcept { return children_; }
+    // A borrowed view: in the sanitizer tree (GUI_FORMS_CHECKED_BORROWS) it
+    // reports a use after the child list changed or this control died.
+    [[nodiscard]] BorrowedSpan<Ptr> children() const& noexcept { return detail::lend_view(children_); }
+    BorrowedSpan<Ptr> children() const&& = delete;
     // Advances whenever the child list changes (an add, a removal, a new
     // order, a disposal), so a walk that indexes the live list instead of
     // copying it can tell that a callback changed it meanwhile (audit N84).
@@ -454,10 +458,14 @@ public:
     [[nodiscard]] Ptr get_next_control(const Ptr& control, bool forward) const;
     void bring_to_front();
     void send_to_back();
-    [[nodiscard]] Window* attached_window() const noexcept { return window_; }
+    // Borrowed back links: checked in the sanitizer tree, plain pointers
+    // otherwise. A detach (or this control's death) ends the copies lent.
+    [[nodiscard]] BorrowedPointer<Window> attached_window() const noexcept { return detail::lend_pointer(window_); }
     // The surface root whose table holds this control (null while detached).
     // Inside a sub-surface attached_window() is null and this is not.
-    [[nodiscard]] SurfaceRoot* attached_surface_root() const noexcept { return surface_root_; }
+    [[nodiscard]] BorrowedPointer<SurfaceRoot> attached_surface_root() const noexcept {
+        return detail::lend_pointer(surface_root_);
+    }
     // Resolves the authored font against the attached window's presentation
     // text scale. Custom controls should use this for both measurement and
     // painting so text, wrapping, hit geometry, and carets remain coherent.
@@ -569,9 +577,10 @@ public:
     [[nodiscard]] std::optional<Color> ambient_back_color() const noexcept;
     [[nodiscard]] std::optional<Color> ambient_fore_color() const noexcept;
     [[nodiscard]] std::span<const OwnerDecorationRecipe>
-    owned_decorations() const noexcept {
+    owned_decorations() const& noexcept {
         return owned_decorations_;
     }
+    std::span<const OwnerDecorationRecipe> owned_decorations() const&& = delete;
     void set_owned_decorations(const OwnerDecorationRecipe* decorations,
                                std::size_t decoration_count);
     void clear_owned_decorations();
@@ -1217,10 +1226,12 @@ protected:
     // The base states every control shares: normal, enabled or disabled,
     // focused and focus-visible. Overrides start from this and add their own.
     [[nodiscard]] AnatomyStateSet base_anatomy_states() const;
-    [[nodiscard]] Window* window() const noexcept { return window_; }
+    [[nodiscard]] BorrowedPointer<Window> window() const noexcept { return detail::lend_pointer(window_); }
     // The surface root whose control table holds this control; null while
     // detached. Set and cleared together with window().
-    [[nodiscard]] SurfaceRoot* surface_root() const noexcept { return surface_root_; }
+    [[nodiscard]] BorrowedPointer<SurfaceRoot> surface_root() const noexcept {
+        return detail::lend_pointer(surface_root_);
+    }
     // Chooses where this type's tooltip shows (ToolTipPresentation); bubble
     // by default. Call it from the constructor, or when the control changes
     // what it is (a ComboBox gaining or losing its edit field).
@@ -1626,7 +1637,9 @@ private:
         const void* event_key{};
         std::function<void()> publication;
     };
-    using ChildList = std::vector<Ptr>;
+    // A vector that ends the views lent from it at each change (a plain
+    // std::vector outside the sanitizer tree).
+    using ChildList = detail::LendingVector<Ptr>;
     using ProviderTextMap = std::map<std::uint64_t, std::string>;
     using BindablePropertyMap = std::map<std::string, BindableProperty>;
     using DeferredInitializationChangeList =
@@ -1696,8 +1709,8 @@ private:
     // are not inherited here.
     bool stops_inherited_colours_{};
     [[nodiscard]] const InheritedValues& inherited_values() const noexcept;
-    Window* window_{};
-    SurfaceRoot* surface_root_{};
+    detail::LendingPointer<Window> window_{};
+    detail::LendingPointer<SurfaceRoot> surface_root_{};
     // This control's slot in its surface root's control table while it is
     // attached (assigned and released with surface_root_); unassigned
     // otherwise.

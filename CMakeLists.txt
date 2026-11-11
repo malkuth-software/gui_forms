@@ -34,6 +34,15 @@ option(GUI_FORMS_BUILD_TESTS "Build automated proving-slice tests" ${PROJECT_IS_
 # so it builds with the tests; the programs (GUI_FORMS_BUILD_GALLERY) link it.
 option(GUI_FORMS_BUILD_GALLERY_MODEL "Build the Gallery model and the tests that read it" ${GUI_FORMS_BUILD_TESTS})
 option(GUI_FORMS_INSTALL_GALLERY_MODEL "Install the Gallery model as the GalleryModel package component" OFF)
+# Checked borrowed views (borrow sanitizer, gui_forms/borrow/borrowed_view/
+# borrowed_view.hpp; owner rulings 2026-11-11): the sanitizer tree turns it
+# on (tools/ci_build.py --sanitize). It changes the borrowed and lending
+# types, so the whole program, consumers included, is built one way: the
+# definition is public on gui_forms_core and every target here sees it.
+option(GUI_FORMS_CHECKED_BORROWS "Check borrowed views against their owners (the sanitizer tree)" OFF)
+if(GUI_FORMS_CHECKED_BORROWS)
+    add_compile_definitions(GUI_FORMS_CHECKED_BORROWS=1)
+endif()
 
 # Tests that open native windows which take focus, capture or activation fall
 # in two groups, by what they need from the desktop:
@@ -356,6 +365,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/motion_clock/motion_clock.cpp
     src/core/failure/fail_fast.cpp
     src/core/failure/failure_snapshot.cpp
+    src/core/borrow/borrowed_view/borrowed_view.cpp
     src/core/drag_engine/drag_engine.cpp
     src/core/drag_engine/scrub_gesture.cpp
     src/core/engine/effect_canvas/effect_canvas.cpp
@@ -544,6 +554,14 @@ set_property(TARGET gui_forms_core APPEND PROPERTY COMPATIBLE_INTERFACE_STRING G
 # This contributes no linker option to valid Core or Application consumers.
 target_link_options(gui_forms_core INTERFACE
     "$<$<STREQUAL:$<TARGET_PROPERTY:GUI_FORMS_CORE_LINKAGE>,application>:$<TARGET_PROPERTY:GUIForms::ERROR_do_not_link_static_Core_with_Application,TYPE>>")
+if(GUI_FORMS_CHECKED_BORROWS)
+    target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_CHECKED_BORROWS=1)
+endif()
+# dladdr names the code addresses in the fail-fast and borrow reports
+# (src/core/failure/fail_fast.cpp; glibc before 2.34 keeps it in libdl).
+if(UNIX)
+    target_link_libraries(gui_forms_core PRIVATE ${CMAKE_DL_LIBS})
+endif()
 if(WIN32)
     target_compile_definitions(gui_forms_core PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(gui_forms_core PUBLIC winpthread)
@@ -4565,6 +4583,31 @@ if(GUI_FORMS_BUILD_TESTS)
     set_tests_properties(gui_forms_fail_fast_shadow_frames PROPERTIES
         PASS_REGULAR_EXPRESSION "GUI.Forms: shadow frames \\(1 open, 1 recorded\\):[\r\n]+  #0 kind 3 fail-fast.frame click 0"
         FAIL_REGULAR_EXPRESSION "survived")
+
+    # Borrowed views (borrow sanitizer): `plain` uses fresh views and passes
+    # in both builds; in the checked build each stale mode must end the
+    # process with its report and never print "survived".
+    add_executable(gui_forms_borrowed_view_tests tests/borrowed_view_tests.cpp)
+    target_link_libraries(gui_forms_borrowed_view_tests PRIVATE gui_forms_controls gui_forms_core)
+    add_test(NAME gui_forms_borrowed_view_plain COMMAND gui_forms_borrowed_view_tests plain)
+    set_tests_properties(gui_forms_borrowed_view_plain PROPERTIES PASS_REGULAR_EXPRESSION "borrowed views: ok")
+    if(GUI_FORMS_CHECKED_BORROWS)
+        foreach(_gui_borrow_case IN ITEMS
+                "children|used after a structural change of its owner"
+                "back_link|used after a structural change of its owner"
+                "collection|used after a structural change of its owner"
+                "list_items|used after a structural change of its owner"
+                "owner_death|used after its owner was destroyed")
+            string(REPLACE "|" ";" _gui_borrow_fields "${_gui_borrow_case}")
+            list(GET _gui_borrow_fields 0 _gui_borrow_mode)
+            list(GET _gui_borrow_fields 1 _gui_borrow_text)
+            add_test(NAME gui_forms_borrowed_view_${_gui_borrow_mode}
+                     COMMAND gui_forms_borrowed_view_tests ${_gui_borrow_mode})
+            set_tests_properties(gui_forms_borrowed_view_${_gui_borrow_mode} PROPERTIES
+                PASS_REGULAR_EXPRESSION "GUI.Forms borrow sanitizer: a borrowed view was ${_gui_borrow_text}"
+                FAIL_REGULAR_EXPRESSION "survived")
+        endforeach()
+    endif()
 
     add_executable(gui_forms_program_options_tests tests/program_options_tests.cpp)
     target_link_libraries(gui_forms_program_options_tests PRIVATE gui_forms_core)

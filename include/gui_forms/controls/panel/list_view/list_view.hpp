@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp"
 #include "gui_forms/controls/panel/list_view/list_view_values/list_view_values.hpp"
@@ -201,7 +202,8 @@ public:
     ~ListView() override;
     void initialize_control_tree();
 
-    [[nodiscard]] std::span<const ListViewColumn> columns() const noexcept { return columns_; }
+    [[nodiscard]] std::span<const ListViewColumn> columns() const& noexcept { return columns_; }
+    std::span<const ListViewColumn> columns() const&& = delete;
     // Replaces the columns. Throws std::invalid_argument for an empty or
     // duplicate ID, invalid UTF-8, a width outside the minimum and maximum
     // column widths, or more than maximum_columns columns. Clears the sort
@@ -212,7 +214,8 @@ public:
     void set_column_width(std::size_t column, double width);
 
     // The items of an ordinary view; empty in virtual mode.
-    [[nodiscard]] std::span<const ListViewItem> items() const noexcept { return items_; }
+    [[nodiscard]] BorrowedSpan<ListViewItem> items() const& noexcept { return detail::lend_view(items_); }
+    BorrowedSpan<ListViewItem> items() const&& = delete;
     // Replaces the items. Throws std::invalid_argument for an empty or
     // duplicate ID or invalid UTF-8, and std::logic_error in virtual mode.
     void set_items(std::vector<ListViewItem> items);
@@ -232,7 +235,8 @@ public:
     // not collapse. set_groups throws std::invalid_argument for an empty or
     // repeated ID, invalid UTF-8, an unknown alignment, or more than
     // maximum_groups groups.
-    [[nodiscard]] std::span<const ListViewGroup> groups() const noexcept { return groups_; }
+    [[nodiscard]] std::span<const ListViewGroup> groups() const& noexcept { return groups_; }
+    std::span<const ListViewGroup> groups() const&& = delete;
     void set_groups(std::vector<ListViewGroup> groups);
     // Whether the items are shown in groups now.
     [[nodiscard]] bool grouped() const noexcept;
@@ -698,7 +702,7 @@ private:
     void reset_after_model_change(std::size_t count);
 
     std::vector<ListViewColumn> columns_{};
-    std::vector<ListViewItem> items_{};
+    detail::LendingVector<ListViewItem> items_{};
     ItemIndices item_indices_{};
     std::shared_ptr<ListViewItemSource> source_{};
     std::size_t virtual_count_{};

@@ -69,7 +69,8 @@ public:
     // ThemeDefinition).
     [[nodiscard]] static std::shared_ptr<const Theme> create(
         const ThemeDefinition& definition);
-    [[nodiscard]] std::string_view id() const noexcept { return definition_.id; }
+    [[nodiscard]] std::string_view id() const& noexcept { return definition_.id; }
+    std::string_view id() const&& = delete;
     [[nodiscard]] const BasicControlStyle& basic_style() const noexcept {
         return definition_.compatibility;
     }

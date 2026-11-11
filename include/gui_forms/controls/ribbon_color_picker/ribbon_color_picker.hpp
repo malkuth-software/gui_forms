@@ -48,7 +48,8 @@ public:
     // The palette colours, ten to a row; the ten standard colours by
     // default. Throws std::invalid_argument for an empty palette, a repeated
     // colour, or more than maximum_palette.
-    [[nodiscard]] std::span<const Color> palette() const noexcept { return palette_; }
+    [[nodiscard]] std::span<const Color> palette() const& noexcept { return palette_; }
+    std::span<const Color> palette() const&& = delete;
     void set_palette(std::vector<Color> palette);
     // The size the picker measures, in logical units at the current text
     // scale.

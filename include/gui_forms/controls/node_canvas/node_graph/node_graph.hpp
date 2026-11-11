@@ -223,8 +223,10 @@ public:
 
     // Every slot, live or free, in slot order (the order the canvas paints
     // and the router routes in); an identity is {index, record.generation}.
-    [[nodiscard]] std::span<const NodeRecord> node_slots() const noexcept { return nodes_; }
-    [[nodiscard]] std::span<const LinkRecord> link_slots() const noexcept { return links_; }
+    [[nodiscard]] std::span<const NodeRecord> node_slots() const& noexcept { return nodes_; }
+    std::span<const NodeRecord> node_slots() const&& = delete;
+    [[nodiscard]] std::span<const LinkRecord> link_slots() const& noexcept { return links_; }
+    std::span<const LinkRecord> link_slots() const&& = delete;
     [[nodiscard]] std::size_t node_count() const noexcept { return live_nodes_; }
     [[nodiscard]] std::size_t link_count() const noexcept { return live_links_; }
     // Advances on every successful operation; never zero.

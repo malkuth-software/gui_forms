@@ -192,7 +192,8 @@ public:
     void register_icon(std::string_view identifier, ImageId image, IconOverride policy);
     // The registered icons, in registration order, for a user theme's
     // compilation (ThemeCompileOptions::icons).
-    [[nodiscard]] std::span<const IconDeclaration> icon_declarations() const noexcept { return icons_; }
+    [[nodiscard]] std::span<const IconDeclaration> icon_declarations() const& noexcept { return icons_; }
+    std::span<const IconDeclaration> icon_declarations() const&& = delete;
     // The image to draw for the icon `identifier`: the selected user
     // theme's override of an overridable icon, else the program's image;
     // nullopt for an identifier not registered. A user theme is selected

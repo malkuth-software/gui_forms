@@ -88,13 +88,15 @@ public:
     [[nodiscard]] std::span<const ControlAnatomy> controls();
 
     // The findings of the last load or install.
-    [[nodiscard]] std::span<const ThemeCompileDiagnostic> diagnostics() const noexcept { return diagnostics_; }
+    [[nodiscard]] std::span<const ThemeCompileDiagnostic> diagnostics() const& noexcept { return diagnostics_; }
+    std::span<const ThemeCompileDiagnostic> diagnostics() const&& = delete;
     void replace_diagnostics(std::span<const ThemeCompileDiagnostic> findings);
     void clear_diagnostics() noexcept { diagnostics_.clear(); }
 
     // Every name published so far, withdrawn or not, for a compilation's
     // ThemeCompileOptions::published_values.
-    [[nodiscard]] std::span<const std::string> published_names() const noexcept { return published_names_; }
+    [[nodiscard]] std::span<const std::string> published_names() const& noexcept { return published_names_; }
+    std::span<const std::string> published_names() const&& = delete;
     // The input named name, or null. The pointer is valid until the next
     // publish of a new name.
     [[nodiscard]] PublishedInput* find_published(std::string_view name) noexcept;
@@ -116,7 +118,8 @@ public:
     // the window opened over root, if any.
     void attach_owned_window(gf_object root, Window& window);
     void detach_owned_window(gf_object root) noexcept;
-    [[nodiscard]] std::span<const OpenOwnedWindow> owned_windows() const noexcept { return owned_; }
+    [[nodiscard]] std::span<const OpenOwnedWindow> owned_windows() const& noexcept { return owned_; }
+    std::span<const OpenOwnedWindow> owned_windows() const&& = delete;
     // The window open over root: the running window for zero or the run's
     // root (run_root), an owned window for its root; null for any other
     // object or when that window is not open (N32).

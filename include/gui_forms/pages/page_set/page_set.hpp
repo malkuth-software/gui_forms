@@ -70,10 +70,11 @@ public:
         return selected_;
     }
     // Most recent first. The span is valid until the next edit.
-    [[nodiscard]] std::span<const PageId> activation_history() const noexcept {
+    [[nodiscard]] std::span<const PageId> activation_history() const& noexcept {
         const std::span<const PageId> history(history_);
         return history;
     }
+    std::span<const PageId> activation_history() const&& = delete;
     [[nodiscard]] bool batch_open() const noexcept {
         const bool open = batch_depth_ != 0U;
         return open;

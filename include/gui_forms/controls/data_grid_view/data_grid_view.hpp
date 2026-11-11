@@ -328,7 +328,8 @@ public:
     void initialize_control_tree();
 
     // -- columns ---------------------------------------------------------
-    [[nodiscard]] std::span<const DataGridViewColumn> columns() const noexcept { return columns_; }
+    [[nodiscard]] std::span<const DataGridViewColumn> columns() const& noexcept { return columns_; }
+    std::span<const DataGridViewColumn> columns() const&& = delete;
     // Replaces the columns. Unbound rows keep their values by position:
     // values past the new column count are dropped and new columns start
     // empty. Ends any edit and clears the selection and current cell. Throws

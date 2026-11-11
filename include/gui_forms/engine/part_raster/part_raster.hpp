@@ -42,7 +42,8 @@ public:
     // Whether record_opacity found every pixel opaque since the last view().
     [[nodiscard]] bool opaque() const noexcept { return opaque_; }
 
-    [[nodiscard]] std::span<const std::uint8_t> pixels() const noexcept { return pixels_; }
+    [[nodiscard]] std::span<const std::uint8_t> pixels() const& noexcept { return pixels_; }
+    std::span<const std::uint8_t> pixels() const&& = delete;
     [[nodiscard]] DeviceExtent extent() const noexcept { return extent_; }
     [[nodiscard]] std::size_t row_bytes() const noexcept { return row_bytes_; }
     [[nodiscard]] DeviceScale scale() const noexcept { return scale_; }

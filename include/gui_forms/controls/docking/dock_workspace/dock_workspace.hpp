@@ -271,7 +271,8 @@ public:
     // rejected layout changes nothing (DockRestoreStatus::kept_current).
     DockRestoreResult load_layout(std::string_view xml, const DockRestoreOptions& options = {});
     // The named layouts, in the order they were first saved.
-    [[nodiscard]] std::span<const DockNamedLayout> named_layouts() const noexcept { return named_layouts_; }
+    [[nodiscard]] std::span<const DockNamedLayout> named_layouts() const& noexcept { return named_layouts_; }
+    std::span<const DockNamedLayout> named_layouts() const&& = delete;
     // The named layout, or null.
     [[nodiscard]] const DockNamedLayout* find_named_layout(std::string_view name) const noexcept;
     // Saves the current layout under `name`, replacing a layout of that
@@ -303,14 +304,16 @@ public:
     [[nodiscard]] const std::optional<DockPanelId>& active_document() const noexcept { return active_document_; }
     // Most recently active first; only placed panels. Valid until the next
     // activation or layout change.
-    [[nodiscard]] std::span<const DockPanelId> tool_history() const noexcept {
+    [[nodiscard]] std::span<const DockPanelId> tool_history() const& noexcept {
         const std::span<const DockPanelId> history(tool_history_);
         return history;
     }
-    [[nodiscard]] std::span<const DockPanelId> document_history() const noexcept {
+    std::span<const DockPanelId> tool_history() const&& = delete;
+    [[nodiscard]] std::span<const DockPanelId> document_history() const& noexcept {
         const std::span<const DockPanelId> history(document_history_);
         return history;
     }
+    std::span<const DockPanelId> document_history() const&& = delete;
     // Makes a placed panel active: selects it in its stack, creates its
     // content, moves focus into it (through the site realizing it, main or
     // floating) and updates the tracks. A panel behind a side tab

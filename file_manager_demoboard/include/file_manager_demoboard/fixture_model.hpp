@@ -83,33 +83,43 @@ struct FixtureCriterionModule final {
 class FixtureCatalogue final {
 public:
     [[nodiscard]] static const FixtureCatalogue& instance();
-    [[nodiscard]] std::string_view id() const noexcept { return id_; }
+    [[nodiscard]] std::string_view id() const& noexcept { return id_; }
+    std::string_view id() const&& = delete;
     [[nodiscard]] std::uint64_t generation() const noexcept { return generation_; }
-    [[nodiscard]] std::string_view current_path() const noexcept {
+    [[nodiscard]] std::string_view current_path() const& noexcept {
         return current_path_;
     }
-    [[nodiscard]] std::span<const FixtureObject> project_objects() const noexcept {
+    std::string_view current_path() const&& = delete;
+    [[nodiscard]] std::span<const FixtureObject> project_objects() const& noexcept {
         return project_objects_;
     }
+    std::span<const FixtureObject> project_objects() const&& = delete;
     [[nodiscard]] const FixturePath& current_path_stack() const noexcept {
         return current_path_stack_;
     }
-    [[nodiscard]] std::span<const FixturePath> recent_paths() const noexcept {
+    [[nodiscard]] std::span<const FixturePath> recent_paths() const& noexcept {
         return recent_paths_;
     }
+    std::span<const FixturePath> recent_paths() const&& = delete;
     [[nodiscard]] std::span<const FixturePathCompletion> path_completions()
-        const noexcept { return path_completions_; }
-    [[nodiscard]] std::string_view search_query() const noexcept {
+        const& noexcept { return path_completions_; }
+    std::span<const FixturePathCompletion> path_completions() const&& = delete;
+    [[nodiscard]] std::string_view search_query() const& noexcept {
         return search_query_;
     }
+    std::string_view search_query() const&& = delete;
     [[nodiscard]] std::span<const FixtureSearchResult> search_results()
-        const noexcept { return search_results_; }
+        const& noexcept { return search_results_; }
+    std::span<const FixtureSearchResult> search_results() const&& = delete;
     [[nodiscard]] std::span<const FixtureCriterionModule> criteria_modules()
-        const noexcept { return criteria_modules_; }
+        const& noexcept { return criteria_modules_; }
+    std::span<const FixtureCriterionModule> criteria_modules() const&& = delete;
     [[nodiscard]] std::span<const FixtureCriterionModule> criterion_templates()
-        const noexcept { return criterion_templates_; }
+        const& noexcept { return criterion_templates_; }
+    std::span<const FixtureCriterionModule> criterion_templates() const&& = delete;
     [[nodiscard]] std::span<const FixtureObject> criteria_objects()
-        const noexcept { return criteria_objects_; }
+        const& noexcept { return criteria_objects_; }
+    std::span<const FixtureObject> criteria_objects() const&& = delete;
     [[nodiscard]] FixturePathResolution resolve_path(
         std::string_view input) const;
     [[nodiscard]] std::vector<FixturePathCompletion> complete_path(

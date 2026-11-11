@@ -239,7 +239,8 @@ struct AnchoredSession final {
     std::shared_ptr<AnchoredOverlayLayer> layer;
     // The anchor's window, observed while the overlay is connected: the
     // window detaches the overlay (closing its focus scope) before it goes.
-    Window* window = nullptr;
+    // Borrowed: the sanitizer tree reports a use after the window died.
+    BorrowedPointer<Window> window = nullptr;
     OverlayToken token;
     FocusScopeId scope{};
     std::unique_ptr<CallbackBinding> events;
@@ -290,7 +291,9 @@ void close_anchored_session(const std::shared_ptr<AnchoredSession>& session) noe
         return;
     }
     held.closed = true;
-    if (held.window != nullptr && held.scope && held.token.connected()) {
+    // The token first: a disconnected overlay's window may be gone, and the
+    // borrowed pointer must not be read then.
+    if (held.token.connected() && held.scope && held.window != nullptr) {
         try {
             static_cast<void>((*held.window).end_focus_scope(held.scope));
         } catch (...) {
@@ -419,7 +422,7 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
         // Window::open_overlay refuses a disabled or hidden anchor
         // (std::logic_error: GF_STATUS_INVALID_STATE).
         held.token = (*window).open_overlay(anchor_control, held.layer);
-        held.window = window;
+        held.window = (*window).presenting_window();
         if (measures) {
             const Size measured = (*content_control).measure(client);
             AnchoredOverlayPlacement attached = placement;

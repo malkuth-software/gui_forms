@@ -32,9 +32,10 @@ public:
     // at the next flush.
     void set_item_stable_ids(std::vector<std::string> stable_ids);
     [[nodiscard]] std::string item_stable_id(std::size_t index) const;
-    [[nodiscard]] std::span<const std::size_t> selected_indices() const noexcept {
+    [[nodiscard]] std::span<const std::size_t> selected_indices() const& noexcept {
         return selected_;
     }
+    std::span<const std::size_t> selected_indices() const&& = delete;
     [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept;
     void select_index(std::size_t index, bool extend = false, bool toggle = false);
     void clear_selection();

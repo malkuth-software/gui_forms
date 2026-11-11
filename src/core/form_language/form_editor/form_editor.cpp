@@ -138,9 +138,10 @@ public:
         return token_end(document_.tree.nodes[node.value].tokens.end.value - 1U);
     }
     // The line ending the document writes.
-    [[nodiscard]] std::string_view newline() const noexcept {
+    [[nodiscard]] std::string_view newline() const& noexcept {
         return document_.text.find("\r\n") != std::string::npos ? std::string_view("\r\n") : std::string_view("\n");
     }
+    std::string_view newline() const&& = delete;
     [[nodiscard]] std::size_t line_start(std::size_t offset) const noexcept {
         const std::size_t previous = document_.text.rfind('\n', offset == 0U ? 0U : offset - 1U);
         if (offset == 0U || previous == std::string::npos) return 0U;

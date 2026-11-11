@@ -56,8 +56,21 @@ template_harness, checked out beside this repository at the commit
 `tools/check_lifetime_rules.py`
 : The borrow and foreign-type checks the `house-style` job runs (house style
   sections 1 and 2). Heuristics over masked source, like the spelling
-  scanner; they do not check destruction order.
+  scanner; they do not check destruction order. After the harness's rules
+  the shim applies GUI.Forms' member-accessor rule
+  (`tools/check_member_views.py`): an inline accessor returning a view of a
+  data member (`std::span`, `std::string_view`, `BorrowedSpan`,
+  `BorrowedText`) is qualified `const&` and has a deleted `&&` overload.
   `python3 -B tools/check_lifetime_rules.py tests/semantic_tests.cpp`
+
+`tools/lifetime_lint.py`
+: Clang's experimental lifetime-safety analysis over the whole tree, in a
+  build tree of its own (`gui-forms-lifetime-lint` beside the plain tree),
+  report-only: it prints the findings, marks the six known false positives
+  of the cp28 run (a pointer taken through a local `std::unique_ptr` that
+  then moves into a container) and always exits 0. The checkpoint verify on
+  the M4 runs it; `--stx-prefix` links an stx package already built.
+  `python3 -B tools/lifetime_lint.py --jobs 4 --stx-prefix <stx-package>`
 
 `tools/check_state_machines.py`
 : The state-machine checker (house style sections 2 and 3). With

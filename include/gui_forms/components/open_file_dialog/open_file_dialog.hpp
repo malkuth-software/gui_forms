@@ -36,10 +36,12 @@ public:
     ~OpenFileDialog() override;
 
     // The host filters parsed from filter.
-    [[nodiscard]] std::span<const HostFileDialogFilter> filters() const noexcept { return filters_; }
+    [[nodiscard]] std::span<const HostFileDialogFilter> filters() const& noexcept { return filters_; }
+    std::span<const HostFileDialogFilter> filters() const&& = delete;
 
     // Every chosen path, in the host's order.
-    [[nodiscard]] std::span<const std::string> file_names() const noexcept { return file_names_; }
+    [[nodiscard]] std::span<const std::string> file_names() const& noexcept { return file_names_; }
+    std::span<const std::string> file_names() const&& = delete;
     // The first chosen file's name without its directory, and every chosen
     // file's (file_dialog_name_part).
     [[nodiscard]] std::string safe_file_name() const;

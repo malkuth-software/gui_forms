@@ -32,9 +32,10 @@ public:
     void clear() noexcept;
     [[nodiscard]] std::shared_ptr<Binding> find(
         std::string_view property_name) const;
-    [[nodiscard]] std::span<const std::shared_ptr<Binding>> items() const noexcept {
+    [[nodiscard]] std::span<const std::shared_ptr<Binding>> items() const& noexcept {
         return bindings_;
     }
+    std::span<const std::shared_ptr<Binding>> items() const&& = delete;
     [[nodiscard]] std::size_t size() const noexcept { return bindings_.size(); }
     [[nodiscard]] bool empty() const noexcept { return bindings_.empty(); }
     [[nodiscard]] DataSourceUpdateMode

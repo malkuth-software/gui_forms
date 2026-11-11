@@ -29,7 +29,8 @@ public:
     // One match per row, by row; missing rows match nothing. A match that
     // runs past its row's text is clamped to it.
     void set_matches(std::vector<TextMatchRange> matches);
-    [[nodiscard]] std::span<const TextMatchRange> matches() const noexcept { return matches_; }
+    [[nodiscard]] std::span<const TextMatchRange> matches() const& noexcept { return matches_; }
+    std::span<const TextMatchRange> matches() const&& = delete;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     struct ItemParts final {
         PartGeometry row;

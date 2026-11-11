@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
@@ -58,7 +59,8 @@ public:
 
     explicit BackstageView(StableId stable_id);
 
-    [[nodiscard]] std::span<const BackstageItemSpec> items() const noexcept { return items_; }
+    [[nodiscard]] BorrowedSpan<BackstageItemSpec> items() const& noexcept { return detail::lend_view(items_); }
+    BorrowedSpan<BackstageItemSpec> items() const&& = delete;
     // Replaces the column. The selection stays on a topic with the same ID,
     // else the first topic. Throws std::invalid_argument, keeping the old
     // items, for an empty or repeated ID, invalid UTF-8, a command without a
@@ -156,7 +158,7 @@ private:
     void select_topic(std::size_t item);
     void move_focus(bool forward);
 
-    std::vector<BackstageItemSpec> items_{};
+    detail::LendingVector<BackstageItemSpec> items_{};
     std::vector<SubscriptionToken> watches_{};
     std::optional<std::size_t> selected_{};
     std::optional<std::size_t> hot_{};
