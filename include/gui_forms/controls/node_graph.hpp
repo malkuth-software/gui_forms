@@ -18,13 +18,18 @@
 // argument before changing anything, so a refused operation leaves the
 // graph exactly as it was, and each successful one advances `revision`,
 // which the canvas and the link router read to know their caches are stale.
+// set_port_lamp is the exception: lamps are evaluation state, so a lamp
+// change advances `lamp_revision` instead and leaves `revision` (and every
+// cache keyed on the structure) alone.
 //
 // Undo (node graph spec section 5, question 3 option (a)): every document
 // operation (add_node, remove_node, move_nodes, set_node_bounds, set_title,
 // set_property, remove_property, connect, disconnect) appends one record
 // holding what its inverse needs; a step is one operation, or every
 // operation between begin_undo_group and the matching end_undo_group (one
-// gesture, one edit commit). undo and redo restore exact state: the same
+// gesture, one edit commit). rollback_undo_group cancels an open group
+// instead (Escape during a drag), restoring the state at its begin and
+// leaving no step. undo and redo restore exact state: the same
 // slots, generations, free lists and field bytes, so undoing to the start
 // saves the loaded document byte for byte. The log is bounded (UndoLimits:
 // 10,000 steps and 64 MiB by default, oldest dropped). set_port_lamp is
@@ -383,7 +388,9 @@ public:
     // appended after its other properties otherwise.
     [[nodiscard]] GraphResult set_property(NodeId node, std::string_view name, std::string_view value);
     [[nodiscard]] GraphResult remove_property(NodeId node, std::string_view name);
-    // Not recorded for undo and not saved (evaluation state).
+    // Not recorded for undo and not saved (evaluation state). A change
+    // advances lamp_revision, not revision; writing the lamp a port already
+    // shows changes neither.
     [[nodiscard]] GraphResult set_port_lamp(PortRef port, PortLamp lamp);
     // Links `from` (an output) to `to` (an input of another node, which has
     // no link yet). The first form names the link "l.<n>" from a counter
@@ -408,6 +415,18 @@ public:
     // load are refused while a group is open.
     void begin_undo_group() noexcept;
     [[nodiscard]] GraphResult end_undo_group() noexcept;
+    // Cancels the open group: reverts every operation recorded since the
+    // outermost begin_undo_group, newest first and exactly as undo does
+    // (same slots, generations, free lists, IDs and bytes), removes the
+    // group's step so neither undo nor redo sees it, and closes every open
+    // level, inner ones included (a later end_undo_group returns no_group).
+    // Advances the revision once when it reverted anything. The redo steps
+    // that existed before the group were discarded by its first operation,
+    // as by any new operation, and stay discarded. Lamps are not recorded,
+    // so lamp writes inside the group stay. no_group when no group is open;
+    // nothing_to_undo when recording is off (maximum_steps 0): the group is
+    // closed and its operations stay. Never allocates.
+    [[nodiscard]] GraphResult rollback_undo_group() noexcept;
     // Drops every step.
     [[nodiscard]] GraphResult clear_undo() noexcept;
     // Discards the redo steps, applies the new bound by dropping the oldest
@@ -516,8 +535,14 @@ public:
     std::span<const LinkRecord> link_slots() const&& = delete;
     [[nodiscard]] std::size_t node_count() const noexcept { return live_nodes_; }
     [[nodiscard]] std::size_t link_count() const noexcept { return live_links_; }
-    // Advances on every successful operation; never zero.
+    // Advances on every successful operation except set_port_lamp (and on
+    // undo, redo, load and a rollback that reverted something); never zero.
     [[nodiscard]] std::uint64_t revision() const noexcept { return revision_; }
+    // Advances on every set_port_lamp that changes a lamp; never zero.
+    // Lamps also change with the structure (load turns every lamp off; an
+    // undo can bring back a node with its lamps), so a painter of lamps
+    // watches both counters.
+    [[nodiscard]] std::uint64_t lamp_revision() const noexcept { return lamp_revision_; }
 
 private:
     enum class UndoOperation : std::uint8_t {
@@ -611,6 +636,7 @@ private:
     std::size_t live_nodes_{};
     std::size_t live_links_{};
     std::uint64_t revision_{1U};
+    std::uint64_t lamp_revision_{1U};
 
     // The undo log. Steps [first_step_, applied_steps_) can be undone and
     // [applied_steps_, size) redone; steps before first_step_ were dropped

@@ -495,6 +495,78 @@ void grouping() {
     require(graph.redo().status == GraphStatus::nothing_to_redo, "nothing to redo");
 }
 
+// rollback_undo_group cancels an open gesture: the graph returns exactly to
+// its state at the outermost begin, and no step is left to undo or redo.
+void rollback_groups() {
+    NodeGraph graph;
+    const NodeId a = add(graph, "a", 0.0, 0.0);
+    const NodeId b = add(graph, "b", 200.0, 0.0);
+    const NodeId c = add(graph, "c", 400.0, 0.0);
+    const LinkId ab = join(graph, a, b);
+    require(graph.set_title(c, "kept").status == GraphStatus::ok, "a step before the gesture");
+    require(graph.rollback_undo_group().status == GraphStatus::no_group, "no group, nothing to roll back");
+
+    const std::string start = saved(graph);
+    const std::size_t steps = graph.undo_steps();
+    const std::size_t bytes = graph.undo_bytes();
+    const std::size_t nodes = graph.node_slots().size();
+    const std::size_t links = graph.link_slots().size();
+    const std::array<NodeId, 2> selection{a, b};
+    graph.begin_undo_group();
+    for (int frame = 0; frame < 10; ++frame) {
+        require(graph.move_nodes(selection, WorldPoint{3.0, 1.0}).status == GraphStatus::ok, "a drag frame");
+    }
+    graph.begin_undo_group();
+    const NodeId d = add(graph, "d", 600.0, 0.0);
+    require(graph.connect(PortRef{c, PortIndex{1U}}, PortRef{d, PortIndex{0U}}).status == GraphStatus::ok &&
+                graph.disconnect(ab).status == GraphStatus::ok && graph.remove_node(a).status == GraphStatus::ok &&
+                graph.set_property(b, "gain", "2").status == GraphStatus::ok &&
+                graph.set_port_lamp(PortRef{c, PortIndex{0U}}, PortLamp::on).status == GraphStatus::ok,
+            "a nested group's operations");
+    const std::uint64_t before = graph.revision();
+    require(graph.rollback_undo_group().status == GraphStatus::ok, "the open gesture rolls back");
+    require(saved(graph) == start, "to the exact state at the outermost begin");
+    require(graph.undo_steps() == steps && graph.redo_steps() == 0U && graph.undo_bytes() == bytes,
+            "leaving no step on either stack");
+    require(graph.revision() > before, "the rollback advances the revision");
+    require(graph.node(a) != nullptr && graph.link(ab) != nullptr && graph.node(d) == nullptr &&
+                graph.find_link("l.2") == LinkId{},
+            "with the same identities as before the gesture");
+    require(graph.node_slots().size() == nodes && graph.link_slots().size() == links,
+            "and the same slot tables");
+    require((*graph.port(PortRef{c, PortIndex{0U}})).lamp == PortLamp::on, "lamps are not rolled back");
+    require(graph.end_undo_group().status == GraphStatus::no_group, "every level was closed");
+    require(graph.undo().status == GraphStatus::ok && (*graph.node(c)).title == "c",
+            "undo reaches the step before the gesture");
+    require(graph.redo().status == GraphStatus::ok && saved(graph) == start, "and redo returns");
+
+    // A redo step from before the group is discarded by its first operation
+    // (as by any new operation) and stays discarded.
+    require(graph.undo().status == GraphStatus::ok && graph.redo_steps() == 1U, "a redo step");
+    graph.begin_undo_group();
+    require(graph.set_title(b, "gone").status == GraphStatus::ok, "the group's first operation");
+    require(graph.rollback_undo_group().status == GraphStatus::ok && graph.redo_steps() == 0U &&
+                graph.undo_steps() == steps - 1U && (*graph.node(b)).title == "b",
+            "the rollback does not bring back discarded redo steps");
+
+    // An empty group rolls back to nothing: no step, no revision.
+    const std::uint64_t quiet = graph.revision();
+    graph.begin_undo_group();
+    require(graph.rollback_undo_group().status == GraphStatus::ok && graph.revision() == quiet &&
+                graph.undo_steps() == steps - 1U,
+            "an empty group rolls back without a change");
+
+    // Recording off: the operations stay and the group closes.
+    UndoLimits off{};
+    off.maximum_steps = 0U;
+    graph.set_undo_limits(off);
+    graph.begin_undo_group();
+    require(graph.set_title(b, "stays").status == GraphStatus::ok, "an unrecorded operation");
+    require(graph.rollback_undo_group().status == GraphStatus::nothing_to_undo && (*graph.node(b)).title == "stays",
+            "with recording off nothing can be rolled back");
+    require(graph.end_undo_group().status == GraphStatus::no_group, "but the group is closed");
+}
+
 void bound() {
     NodeGraph graph;
     const NodeId a = add(graph, "a", 0.0, 0.0);
@@ -971,6 +1043,7 @@ int main() {
     every_byte_round_trips();
     every_inverse();
     grouping();
+    rollback_groups();
     bound();
     seeded_edits_undo_to_the_start();
     malformed_documents();

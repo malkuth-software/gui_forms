@@ -125,6 +125,19 @@ void lamps_titles_and_arguments() {
             "a lamp shows an error");
     require(graph.set_port_lamp(PortRef{a, PortIndex{5U}}, PortLamp::on).status == GraphStatus::bad_port,
             "a lamp on a missing port is refused");
+    // Lamps are evaluation state: they advance their own counter, not the
+    // structural revision that caches are keyed on.
+    const std::uint64_t revision = graph.revision();
+    const std::uint64_t lamps = graph.lamp_revision();
+    require(graph.set_port_lamp(PortRef{a, PortIndex{0U}}, PortLamp::error).status == GraphStatus::ok &&
+                graph.revision() == revision && graph.lamp_revision() == lamps + 1U,
+            "a lamp change advances lamp_revision only");
+    require(graph.set_port_lamp(PortRef{a, PortIndex{0U}}, PortLamp::error).status == GraphStatus::ok &&
+                graph.revision() == revision && graph.lamp_revision() == lamps + 1U,
+            "writing the lamp a port already shows changes neither counter");
+    require(graph.set_port_lamp(PortRef{a, PortIndex{5U}}, PortLamp::off).status == GraphStatus::bad_port &&
+                graph.lamp_revision() == lamps + 1U,
+            "a refused lamp write changes neither counter");
     require(graph.set_title(a, "Renamed").status == GraphStatus::ok && (*graph.node(a)).title == "Renamed",
             "a title is set");
 
