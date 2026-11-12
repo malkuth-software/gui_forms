@@ -12,6 +12,17 @@ from audit_macos_minimum import audit
 from macos_runtime_manifest import verify
 
 
+def relocate_library(source: Path, scratch: Path, original: Path, payload: str) -> Path:
+    """Copy one build-tree dylib beside the relocated executable and point its
+    runtime search path at the restored payload instead of the build host's."""
+    relocated: Path = scratch / source.name
+    shutil.copy2(source, relocated)
+    subprocess.run(['install_name_tool', '-rpath', str(original / 'lib'),
+                    '@loader_path/' + payload + '/lib', str(relocated)], check=True)
+    subprocess.run(['codesign', '--force', '--sign', '-', str(relocated)], check=True)
+    return relocated
+
+
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive', type=Path, required=True)
@@ -31,12 +42,13 @@ def main() -> None:
             if not library.is_symlink():
                 if not audit(library):
                     raise RuntimeError('Restored runtime is not a Mach-O image: ' + str(library))
-        threading_name: str = 'libgui_forms_threading.0.dylib'
-        threading: Path = scratch / threading_name
-        shutil.copy2(executable.parent / threading_name, threading)
-        subprocess.run(['install_name_tool', '-rpath', str(original / 'lib'),
-                        '@loader_path/' + payload + '/lib', str(threading)], check=True)
-        subprocess.run(['codesign', '--force', '--sign', '-', str(threading)], check=True)
+        threading: Path = relocate_library(executable.parent / 'libgui_forms_threading.0.dylib',
+                                           scratch, original, payload)
+        # Test executables also link the shared test runtime (cmake/TestRuntime.cmake),
+        # which the build tree supplies through the rpath this script replaces.
+        test_runtime_source: Path = executable.parent / 'libgui_forms_test_runtime.dylib'
+        if test_runtime_source.is_file():
+            relocate_library(test_runtime_source, scratch, original, payload)
         copied: Path = scratch / executable.name
         shutil.copy2(executable, copied)
         # Match application packaging: change only this executable's runtime
