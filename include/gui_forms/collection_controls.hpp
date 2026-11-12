@@ -5,6 +5,7 @@
 #include "gui_forms/controls/object_view.hpp"
 #include "gui_forms/controls/list_view.hpp"
 #include "gui_forms/controls/tree_list_view.hpp"
+#include "gui_forms/controls/virtual_rows_view.hpp"
 #include "gui_forms/controls/data_grid_view.hpp"
 
 #include "gui_forms/controls/command_bar.hpp"

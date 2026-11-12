@@ -371,6 +371,17 @@
       "doc": "api/generated/gui_forms.TreeListView.rst"
     },
     {
+      "id": "virtual_rows_view",
+      "type": "VirtualRowsView",
+      "header": "gui_forms/controls/virtual_rows_view.hpp",
+      "category": "Selection from a list",
+      "purpose": "A very large number of owner-drawn rows of varying height on a height index: estimated heights refined lazily as rows are shown, scroll anchoring, only visible rows measured, painted and described.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.VirtualRowsView.rst"
+    },
+    {
       "id": "data_grid_view",
       "type": "DataGridView",
       "header": "gui_forms/controls/data_grid_view.hpp",
