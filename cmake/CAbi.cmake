@@ -96,6 +96,9 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_docking.cpp
     src/abi/stable/tables/abi_fonts.cpp
     src/abi/stable/tables/abi_help.cpp
+    src/abi/stable/tables/abi_classes.cpp
+    src/abi/stable/classes/abi_class_bridge.cpp
+    src/abi/stable/classes/generated/abi_class_registry.cpp
     src/abi/stable/tables/abi_splashscreen.cpp
     src/abi/stable/custom/abi_custom_control.cpp
     src/abi/stable/windows/abi_windows_paint_endpoint.cpp
@@ -198,6 +201,7 @@ find_package(Threads REQUIRED)
 add_library(gui_forms_abi_conformance_kit STATIC
     tests/abi/conformance/gf_conformance_bindings.c
     tests/abi/conformance/gf_conformance_callbacks.c
+    tests/abi/conformance/gf_conformance_classes.c
     tests/abi/conformance/gf_conformance_create.c
     tests/abi/conformance/gf_conformance_custom.c
     tests/abi/conformance/gf_conformance_diagnostics.c

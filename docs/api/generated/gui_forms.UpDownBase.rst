@@ -68,7 +68,7 @@ gui_forms::UpDownBase
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``UpDownBase``. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 28 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``UpDownBase``. Members declared here and by the counterpart: 3 supported, 0 deferred, 5 excluded, 23 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -166,23 +166,23 @@ Counterpart: ``UpDownBase``. Members declared here and by the counterpart: 3 sup
    * - method
      - ``OnTextBoxKeyDown``
      - none
-     - unclassified (hook)
+     - excluded: relay of UpDownBase's inner text box; editor() is public, subscribe to it (On\* hooks (d) list)
    * - method
      - ``OnTextBoxKeyPress``
      - none
-     - unclassified (hook)
+     - excluded: relay of UpDownBase's inner text box; editor() is public, subscribe to it (On\* hooks (d) list)
    * - method
      - ``OnTextBoxLostFocus``
      - none
-     - unclassified (hook)
+     - excluded: relay of UpDownBase's inner text box; editor() is public, subscribe to it (On\* hooks (d) list)
    * - method
      - ``OnTextBoxResize``
      - none
-     - unclassified (hook)
+     - excluded: relay of UpDownBase's inner text box; editor() is public, subscribe to it (On\* hooks (d) list)
    * - method
      - ``OnTextBoxTextChanged``
      - none
-     - unclassified (hook)
+     - excluded: relay of UpDownBase's inner text box; editor() is public, subscribe to it (On\* hooks (d) list)
    * - method
      - ``Select``
      - none

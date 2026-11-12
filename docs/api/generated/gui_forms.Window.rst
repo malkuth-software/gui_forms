@@ -584,7 +584,7 @@ gui_forms::Window
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Form``. Members declared here and by the counterpart: 217 supported, 10 deferred, 6 excluded, 139 unclassified; 232 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Form``. Members declared here and by the counterpart: 217 supported, 10 deferred, 10 excluded, 135 unclassified; 232 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1026,11 +1026,11 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 217 support
    * - method
      - ``OnInputLanguageChanged``
      - none
-     - unclassified (hook)
+     - excluded: Win32 keyboard-layout notification; no portable host capability (On\* hooks (d) list)
    * - method
      - ``OnInputLanguageChanging``
      - none
-     - unclassified (hook)
+     - excluded: Win32 keyboard-layout notification; no portable host capability (On\* hooks (d) list)
    * - method
      - ``OnLoad``
      - none
@@ -1038,7 +1038,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 217 support
    * - method
      - ``OnMaximizedBoundsChanged``
      - none
-     - unclassified (hook)
+     - excluded: window placement belongs to the host (On\* hooks (d) list)
    * - method
      - ``OnMaximumSizeChanged``
      - none
@@ -1070,7 +1070,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 217 support
    * - method
      - ``OnRightToLeftLayoutChanged``
      - none
-     - unclassified (hook)
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
    * - method
      - ``OnShown``
      - none

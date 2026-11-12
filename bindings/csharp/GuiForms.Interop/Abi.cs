@@ -25,6 +25,7 @@ public static unsafe class Abi
     public static ref readonly gf_diagnostics_table diagnostics => ref tables().diagnostics;
     public static ref readonly gf_windows_table windows => ref tables().windows;
     public static ref readonly gf_bindings_table bindings => ref tables().bindings;
+    public static ref readonly gf_classes_table classes => ref tables().classes;
 
     // Immutable once built: the published reference is the only writer's
     // hand-off, so readers need no lock.
@@ -38,10 +39,11 @@ public static unsafe class Abi
         public readonly gf_diagnostics_table diagnostics;
         public readonly gf_windows_table windows;
         public readonly gf_bindings_table bindings;
+        public readonly gf_classes_table classes;
 
         public Tables(gf_runtime_table runtime, gf_objects_table objects, gf_properties_table properties,
                       gf_events_table events, gf_dispatch_table dispatch, gf_diagnostics_table diagnostics,
-                      gf_windows_table windows, gf_bindings_table bindings)
+                      gf_windows_table windows, gf_bindings_table bindings, gf_classes_table classes)
         {
             this.runtime = runtime;
             this.objects = objects;
@@ -51,6 +53,7 @@ public static unsafe class Abi
             this.diagnostics = diagnostics;
             this.windows = windows;
             this.bindings = bindings;
+            this.classes = classes;
         }
     }
 
@@ -86,7 +89,9 @@ public static unsafe class Abi
             negotiate(Exports.get_diagnostics_table(out gf_diagnostics_table diagnostics), "diagnostics");
             negotiate(Exports.get_windows_table(out gf_windows_table windows), "windows");
             negotiate(Exports.get_bindings_table(out gf_bindings_table bindings), "bindings");
-            Tables made = new Tables(runtime, objects, properties, events, dispatch, diagnostics, windows, bindings);
+            negotiate(Exports.get_classes_table(out gf_classes_table classes), "classes");
+            Tables made = new Tables(runtime, objects, properties, events, dispatch, diagnostics, windows, bindings,
+                                     classes);
             negotiated = made;
             return made;
         }

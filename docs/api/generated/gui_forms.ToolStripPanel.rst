@@ -173,7 +173,7 @@ gui_forms::ToolStripPanel
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ToolStripPanel``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 18 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ToolStripPanel``. Members declared here and by the counterpart: 8 supported, 0 deferred, 1 excluded, 17 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -263,7 +263,7 @@ Counterpart: ``ToolStripPanel``. Members declared here and by the counterpart: 8
    * - method
      - ``OnRendererChanged``
      - none
-     - unclassified (hook)
+     - excluded: ToolStripRenderer is replaced by the theme engine; there is no renderer object (On\* hooks (d) list)
    * - method
      - ``PointToRow``
      - none

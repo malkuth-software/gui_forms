@@ -1337,3 +1337,432 @@ public unsafe struct gf_windows_paint_endpoint_table
     public delegate* unmanaged[Cdecl]<ulong, gf_paint_write_lease*, gf_status> begin_write;
     public delegate* unmanaged[Cdecl]<gf_paint_write_lease, uint, gf_status> end_write;
 }
+
+/// <summary>gf_segment_header (extensible, 8 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_segment_header
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+}
+
+/// <summary>gf_class_header (extensible, 24 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_class_header
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public gf_class_id class_id;
+    public uint segment_count;
+    public delegate* unmanaged[Cdecl]<void*, void> release;
+}
+
+/// <summary>gf_control_hooks (segment, 112 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_control_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_auto_size_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_back_color_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_causes_validation_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_cursor_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_dock_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_enabled_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_fore_color_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_margin_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_padding_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_right_to_left_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_tab_index_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_tab_stop_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_visible_changed;
+}
+
+/// <summary>gf_masked_text_box_hooks (segment, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_masked_text_box_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mask_changed;
+}
+
+/// <summary>gf_picture_box_hooks (segment, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_picture_box_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_size_mode_changed;
+}
+
+/// <summary>gf_combo_box_hooks (segment, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_combo_box_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_drop_down_style_changed;
+}
+
+/// <summary>gf_data_grid_view_hooks (segment, 184 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_data_grid_view_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_allow_user_to_delete_rows_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_allow_user_to_order_columns_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_allow_user_to_resize_columns_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_allow_user_to_resize_rows_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_alternating_rows_default_cell_style_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_auto_size_columns_mode_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_auto_size_rows_mode_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_background_color_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_border_style_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_cell_border_style_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_column_headers_border_style_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_column_headers_default_cell_style_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_column_headers_height_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_default_cell_style_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_edit_mode_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_grid_color_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_multi_select_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_read_only_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_row_headers_border_style_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_row_headers_default_cell_style_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_row_headers_width_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_rows_default_cell_style_changed;
+}
+
+/// <summary>gf_check_box_hooks (segment, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_check_box_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_appearance_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_checked_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_check_state_changed;
+}
+
+/// <summary>gf_radio_button_hooks (segment, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_radio_button_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_checked_changed;
+}
+
+/// <summary>gf_range_control_hooks (segment, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_range_control_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_value_changed;
+}
+
+/// <summary>gf_numeric_up_down_hooks (segment, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_numeric_up_down_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_value_changed;
+}
+
+/// <summary>gf_date_time_picker_hooks (segment, 24 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_date_time_picker_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_format_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_value_changed;
+}
+
+/// <summary>gf_button_base_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_button_base_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_button_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_button_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_link_label_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_link_label_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_label_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_label_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_picture_box_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_picture_box_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_picture_box_hooks* picture_box;
+}
+
+/// <summary>gf_progress_bar_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_progress_bar_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_range_control_hooks* range_control;
+}
+
+/// <summary>gf_sweep_scope_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_sweep_scope_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_range_control_hooks* range_control;
+}
+
+/// <summary>gf_list_box_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_list_box_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_check_box_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_check_box_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_check_box_hooks* check_box;
+}
+
+/// <summary>gf_radio_button_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_radio_button_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_radio_button_hooks* radio_button;
+}
+
+/// <summary>gf_range_control_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_range_control_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_range_control_hooks* range_control;
+}
+
+/// <summary>gf_track_bar_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_track_bar_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_range_control_hooks* range_control;
+}
+
+/// <summary>gf_panel_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_panel_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_group_box_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_group_box_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_material_panel_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_material_panel_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_card_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_card_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_container_control_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_container_control_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_user_control_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_user_control_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_page_strip_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_page_strip_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_page_view_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_page_view_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_navigation_pane_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_navigation_pane_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_dock_site_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_dock_site_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_dock_navigator_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_dock_navigator_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_scaled_panel_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_scaled_panel_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_scrollable_control_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_scrollable_control_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_scroll_bar_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_scroll_bar_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_range_control_hooks* range_control;
+}
+
+/// <summary>gf_tool_strip_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_tool_strip_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_gauge_base_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_gauge_base_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_range_control_hooks* range_control;
+}
+
+/// <summary>gf_dial_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_dial_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_range_control_hooks* range_control;
+}
+
+/// <summary>gf_raster_canvas_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_raster_canvas_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_text_box_base_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_text_box_base_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_list_control_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_list_control_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_up_down_base_class (class, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_up_down_base_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+}
+
+/// <summary>gf_classes_table (table, 24 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_classes_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_class_header*, gf_utf8_view, void*, gf_object*, gf_status> create;
+    public delegate* unmanaged[Cdecl]<gf_class_id, uint, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>*, gf_status> base_raiser;
+}

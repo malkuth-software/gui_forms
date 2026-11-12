@@ -2211,7 +2211,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 208 supported, 0 deferred, 5 excluded, 344 unclassified; 200 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 208 supported, 0 deferred, 12 excluded, 337 unclassified; 200 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -3205,11 +3205,11 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
    * - method
      - ``OnHandleCreated``
      - none
-     - unclassified (hook)
+     - excluded: no window handle: GUI.Forms controls are not native windows (ADR-001) (On\* hooks (d) list)
    * - method
      - ``OnHandleDestroyed``
      - none
-     - unclassified (hook)
+     - excluded: no window handle: GUI.Forms controls are not native windows (ADR-001) (On\* hooks (d) list)
    * - method
      - ``OnHelpRequested``
      - none
@@ -3217,7 +3217,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
    * - method
      - ``OnImeModeChanged``
      - none
-     - unclassified (hook)
+     - excluded: ImeMode is IMM32 conversion-mode control; the host owns the IME (On\* hooks (d) list)
    * - method
      - ``OnInvalidated``
      - none
@@ -3301,7 +3301,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
    * - method
      - ``OnNotifyMessage``
      - none
-     - unclassified (hook)
+     - excluded: Win32 message emulation is excluded (ADR-001) (On\* hooks (d) list)
    * - method
      - ``OnPaddingChanged``
      - ``on_padding_changed``
@@ -3365,7 +3365,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
    * - method
      - ``OnPrint``
      - none
-     - unclassified (hook)
+     - excluded: printing is excluded (On\* hooks (d) list)
    * - method
      - ``OnQueryContinueDrag``
      - none
@@ -3373,7 +3373,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
    * - method
      - ``OnRegionChanged``
      - none
-     - unclassified (hook)
+     - excluded: Region is an HRGN window shape; no Region property (On\* hooks (d) list)
    * - method
      - ``OnResize``
      - none
@@ -3389,7 +3389,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
    * - method
      - ``OnStyleChanged``
      - none
-     - unclassified (hook)
+     - excluded: Win32 window style bits; no counterpart (ADR-001) (On\* hooks (d) list)
    * - method
      - ``OnSystemColorsChanged``
      - none

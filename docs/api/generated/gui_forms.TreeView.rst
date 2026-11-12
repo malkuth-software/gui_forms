@@ -422,7 +422,7 @@ gui_forms::TreeView
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TreeView``. Members declared here and by the counterpart: 10 supported, 0 deferred, 1 excluded, 76 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TreeView``. Members declared here and by the counterpart: 10 supported, 0 deferred, 2 excluded, 75 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -736,7 +736,7 @@ Counterpart: ``TreeView``. Members declared here and by the counterpart: 10 supp
    * - method
      - ``OnRightToLeftLayoutChanged``
      - none
-     - unclassified (hook)
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
    * - method
      - ``Sort``
      - none

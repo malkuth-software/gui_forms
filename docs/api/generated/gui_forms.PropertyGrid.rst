@@ -457,7 +457,7 @@ gui_forms::PropertyGrid
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``PropertyGrid``. Members declared here and by the counterpart: 19 supported, 0 deferred, 0 excluded, 74 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``PropertyGrid``. Members declared here and by the counterpart: 19 supported, 0 deferred, 2 excluded, 72 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -727,11 +727,11 @@ Counterpart: ``PropertyGrid``. Members declared here and by the counterpart: 19 
    * - method
      - ``OnComComponentNameChanged``
      - none
-     - unclassified (hook)
+     - excluded: COM interop is excluded (On\* hooks (d) list)
    * - method
      - ``OnNotifyPropertyValueUIItemsChanged``
      - none
-     - unclassified (hook)
+     - excluded: design-time IPropertyValueUIService is excluded (On\* hooks (d) list)
    * - method
      - ``OnPropertySortChanged``
      - none

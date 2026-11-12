@@ -94,7 +94,7 @@ gui_forms::StatusStrip
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``StatusStrip``. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 10 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``StatusStrip``. Members declared here and by the counterpart: 1 supported, 0 deferred, 1 excluded, 9 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -148,4 +148,4 @@ Counterpart: ``StatusStrip``. Members declared here and by the counterpart: 1 su
    * - method
      - ``OnSpringTableLayoutCore``
      - none
-     - unclassified (hook)
+     - excluded: StatusStrip layout internals; not a public extension point here (On\* hooks (d) list)
