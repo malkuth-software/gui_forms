@@ -1,350 +1,288 @@
 #include "row_height_index.hpp"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <memory>
+#include <stdexcept>
 #include <utility>
 
 namespace gui_forms {
 
 namespace {
 
-[[nodiscard]] double usable_estimate(double estimated_height) noexcept {
-    if (!std::isfinite(estimated_height) || estimated_height <= 0.0) return 1.0;
-    return estimated_height;
+using stx_btree::HeightUnits;
+using stx_btree::RowCount;
+using stx_btree::RowIndex;
+using stx_btree::RowState;
+
+// The estimate in units: finite and > 0, else one logical unit; held
+// within [1 unit, the height limit].
+[[nodiscard]] std::int64_t estimate_units(double estimated_height) noexcept {
+    if (!std::isfinite(estimated_height) || estimated_height <= 0.0) {
+        const std::int64_t one = static_cast<std::int64_t>(RowHeightIndex::units_per_logical);
+        return one;
+    }
+    const double held = std::min(estimated_height, RowHeightIndex::maximum_height);
+    const std::int64_t units = std::llround(held * RowHeightIndex::units_per_logical);
+    const std::int64_t at_least_one = std::max<std::int64_t>(units, 1);
+    return at_least_one;
+}
+
+[[nodiscard]] double logical(std::int64_t units) noexcept {
+    const double value = static_cast<double>(units) / RowHeightIndex::units_per_logical;
+    return value;
+}
+
+[[nodiscard]] RowIndex row_index(std::size_t row) noexcept {
+    const RowIndex index{static_cast<std::uint64_t>(row)};
+    return index;
+}
+
+void require_within_limits(bool accepted) {
+    if (!accepted) throw std::length_error("RowHeightIndex: past its row or height limits");
 }
 
 } // namespace
 
-RowHeightIndex::RowHeightIndex(double estimated_height) : tree_(), estimate_(usable_estimate(estimated_height)) {}
+// -- cursor -------------------------------------------------------------------------
+
+std::size_t RowHeightIndex::Cursor::row() const noexcept {
+    const std::size_t position = static_cast<std::size_t>(cursor_.row().value);
+    return position;
+}
+
+double RowHeightIndex::Cursor::top() const noexcept {
+    return logical(cursor_.top().value);
+}
+
+double RowHeightIndex::Cursor::height() const noexcept {
+    return logical(cursor_.height().value);
+}
+
+bool RowHeightIndex::Cursor::measured() const noexcept {
+    const bool is_measured = !cursor_.at_end() && cursor_.state() == RowState::measured;
+    return is_measured;
+}
+
+bool RowHeightIndex::Cursor::at_end() const noexcept {
+    return cursor_.at_end();
+}
+
+// -- lifetime -----------------------------------------------------------------------
+
+RowHeightIndex::RowHeightIndex(double estimated_height)
+    : index_(std::make_unique<Index>(HeightUnits{estimate_units(estimated_height)})) {}
 
 RowHeightIndex::~RowHeightIndex() {}
 
 RowHeightIndex::RowHeightIndex(RowHeightIndex&& other) noexcept
-    : tree_(std::move(other.tree_)), estimate_(other.estimate_), revision_(other.revision_) {
+    : index_(std::move(other.index_)), batch_(std::move(other.batch_)), revision_(other.revision_) {
     ++other.revision_;
 }
 
 RowHeightIndex& RowHeightIndex::operator=(RowHeightIndex&& other) noexcept {
     if (this == &other) return *this;
-    tree_ = std::move(other.tree_);
-    estimate_ = other.estimate_;
+    index_ = std::move(other.index_);
+    batch_ = std::move(other.batch_);
     revision_ = std::max(revision_, other.revision_) + 1U;
     ++other.revision_;
     return *this;
 }
 
+// -- conversions --------------------------------------------------------------------
+
+std::int64_t RowHeightIndex::height_units(double height) noexcept {
+    const double held = std::clamp(height, 0.0, maximum_height);
+    const std::int64_t units = std::llround(held * units_per_logical);
+    return units;
+}
+
+double RowHeightIndex::stored_height(double height) noexcept {
+    if (!std::isfinite(height) || height < 0.0) return 0.0;
+    return logical(height_units(height));
+}
+
+double RowHeightIndex::stored_estimate(double estimated_height) noexcept {
+    return logical(estimate_units(estimated_height));
+}
+
+std::int64_t RowHeightIndex::offset_units(double offset) const noexcept {
+    if (std::isnan(offset)) return 0;
+    const std::int64_t total = (*index_).total().value;
+    const double scaled = std::floor(offset * units_per_logical);
+    if (scaled < 0.0) return -1;
+    if (scaled >= static_cast<double>(total)) return total;
+    // 0 <= scaled < total < 2^62 and scaled is integral: exact.
+    const std::int64_t units = static_cast<std::int64_t>(scaled);
+    return units;
+}
+
+// -- queries ------------------------------------------------------------------------
+
 void RowHeightIndex::assign(std::size_t count, double estimated_height) {
-    estimate_ = usable_estimate(estimated_height);
-    if (count > 0U) {
-        const Run run{count, estimate_, false};
-        tree_.assign(std::span<const Run>(&run, 1U), 0U);
-    } else {
-        tree_.clear();
-    }
+    const bool accepted = (*index_).assign(static_cast<RowCount>(count), HeightUnits{estimate_units(estimated_height)});
+    require_within_limits(accepted);
     ++revision_;
 }
 
 std::size_t RowHeightIndex::count() const noexcept {
-    return tree_.count();
+    const std::size_t rows = static_cast<std::size_t>((*index_).count());
+    return rows;
 }
 
 double RowHeightIndex::total_height() const noexcept {
-    return tree_.summary().height;
+    return logical((*index_).total().value);
 }
 
-// -- queries (iterative descents) --------------------------------------------
+double RowHeightIndex::estimated_height() const noexcept {
+    return logical((*index_).estimate().value);
+}
 
 double RowHeightIndex::offset_of(std::size_t row) const noexcept {
-    const Node* root = tree_.root();
-    if (row >= (*root).count) return (*root).summary.height;
-    double offset = 0.0;
-    const Node* node = root;
-    std::size_t remaining = row;
-    while (!(*node).leaf) {
-        std::size_t child = 0U;
-        while (child + 1U < (*node).children.size() && remaining >= (*node).child_counts[child]) {
-            remaining -= (*node).child_counts[child];
-            offset += (*node).child_summaries[child].height;
-            ++child;
-        }
-        node = (*node).children[child].get();
-    }
-    for (const Run& run : (*node).entries) {
-        if (remaining < run.count) {
-            offset += static_cast<double>(remaining) * run.height;
-            return offset;
-        }
-        remaining -= run.count;
-        offset += static_cast<double>(run.count) * run.height;
-    }
-    return offset;
+    return logical((*index_).offset_of(row_index(row)).value);
 }
 
 std::size_t RowHeightIndex::row_at(double offset) const noexcept {
-    const Node* root = tree_.root();
-    const std::size_t total = (*root).count;
-    if (total == 0U) return 0U;
-    if (!(offset > 0.0)) return 0U;
-    if (offset >= (*root).summary.height) return total - 1U;
-    std::size_t row = 0U;
-    double remaining = offset;
-    const Node* node = root;
-    while (!(*node).leaf) {
-        std::size_t child = 0U;
-        while (child + 1U < (*node).children.size() && remaining >= (*node).child_summaries[child].height) {
-            remaining -= (*node).child_summaries[child].height;
-            row += (*node).child_counts[child];
-            ++child;
-        }
-        node = (*node).children[child].get();
-    }
-    const std::vector<Run>& runs = (*node).entries;
-    for (std::size_t index = 0U; index < runs.size(); ++index) {
-        const Run& run = runs[index];
-        const double extent = static_cast<double>(run.count) * run.height;
-        const bool last = index + 1U == runs.size();
-        if (remaining < extent || last) {
-            std::size_t within = 0U;
-            if (run.height > 0.0) {
-                const double steps = std::floor(remaining / run.height);
-                within = steps > 0.0 ? static_cast<std::size_t>(steps) : 0U;
-            }
-            within = std::min(within, run.count - 1U);
-            const std::size_t found = std::min(row + within, total - 1U);
-            return found;
-        }
-        remaining -= extent;
-        row += run.count;
-    }
-    return total - 1U;
+    const RowIndex row = (*index_).row_at(HeightUnits{offset_units(offset)});
+    const std::size_t found = static_cast<std::size_t>(row.value);
+    return found;
 }
 
 double RowHeightIndex::height_of(std::size_t row) const noexcept {
-    if (row >= tree_.count()) return 0.0;
-    const Tree::Place place = tree_.find(row);
-    return (*place.leaf).entries[place.entry].height;
+    const stx_btree::RowExtent extent = (*index_).extent_of(row_index(row));
+    return logical(extent.height.value);
 }
 
 bool RowHeightIndex::measured(std::size_t row) const noexcept {
-    if (row >= tree_.count()) return false;
-    const Tree::Place place = tree_.find(row);
-    return (*place.leaf).entries[place.entry].measured;
+    if (row >= count()) return false;
+    const stx_btree::RowExtent extent = (*index_).extent_of(row_index(row));
+    const bool is_measured = extent.state == RowState::measured;
+    return is_measured;
 }
 
-// -- run upkeep --------------------------------------------------------------------
-
-// Joins runs[index] with an equal neighbour on either side (same height and
-// state); empty runs go.
-void RowHeightIndex::merge_neighbours(std::vector<Run>& runs, std::size_t index) {
-    if (index >= runs.size()) return;
-    if (index + 1U < runs.size() && runs[index + 1U].height == runs[index].height &&
-        runs[index + 1U].measured == runs[index].measured) {
-        runs[index].count += runs[index + 1U].count;
-        runs.erase(runs.begin() + static_cast<std::ptrdiff_t>(index + 1U));
-    }
-    if (index > 0U && runs[index - 1U].height == runs[index].height &&
-        runs[index - 1U].measured == runs[index].measured) {
-        runs[index - 1U].count += runs[index].count;
-        runs.erase(runs.begin() + static_cast<std::ptrdiff_t>(index));
-    }
+std::size_t RowHeightIndex::measured_count() const noexcept {
+    const std::size_t rows = static_cast<std::size_t>((*index_).measured_count());
+    return rows;
 }
 
-std::size_t RowHeightIndex::erase_from_leaf(std::vector<Run>& runs, std::size_t row, std::size_t count) {
-    std::size_t start = 0U;
-    std::size_t index = 0U;
-    std::size_t left = count;
-    while (index < runs.size() && left > 0U) {
-        const std::size_t run_count = runs[index].count;
-        const std::size_t run_end = start + run_count;
-        if (run_end <= row) {
-            start = run_end;
-            ++index;
-            continue;
-        }
-        // Where the erasure starts within this run, and how much of it goes.
-        const std::size_t from = std::max(row, start) - start;
-        const std::size_t taken = std::min(run_count - from, left);
-        runs[index].count = run_count - taken;
-        left -= taken;
-        if (runs[index].count == 0U) {
-            runs.erase(runs.begin() + static_cast<std::ptrdiff_t>(index));
-        } else {
-            start += runs[index].count;
-            ++index;
-        }
-    }
-    // The rows on either side of the gap may now be equal runs.
-    for (std::size_t join = 0U; join + 1U < runs.size();) {
-        const Run& left_run = runs[join];
-        const Run& right_run = runs[join + 1U];
-        if (left_run.height == right_run.height && left_run.measured == right_run.measured) {
-            runs[join].count += right_run.count;
-            runs.erase(runs.begin() + static_cast<std::ptrdiff_t>(join + 1U));
-        } else {
-            ++join;
-        }
-    }
-    const std::size_t erased = count - left;
-    return erased;
-}
-
-// -- edits ------------------------------------------------------------------------------
+// -- edits --------------------------------------------------------------------------
 
 bool RowHeightIndex::set_height(std::size_t row, double height) {
-    if (row >= tree_.count() || !std::isfinite(height) || height < 0.0) return false;
-    const Tree::Place place = tree_.find(row);
-    std::vector<Run>& runs = (*place.leaf).entries;
-    const std::size_t index = place.entry;
-    const Run run = runs[index];
-    if (run.measured && run.height == height) return false;
-    // The run becomes up to three: the rows before, the measured row, the
-    // rows after.
-    const std::size_t before = place.within;
-    const std::size_t after = run.count - place.within - 1U;
-    const Run measured_run{1U, height, true};
-    std::vector<Run> pieces{};
-    pieces.reserve(3U);
-    if (before > 0U) pieces.push_back(Run{before, run.height, run.measured});
-    pieces.push_back(measured_run);
-    if (after > 0U) pieces.push_back(Run{after, run.height, run.measured});
-    const std::ptrdiff_t at = static_cast<std::ptrdiff_t>(index);
-    runs.erase(runs.begin() + at);
-    runs.insert(runs.begin() + at, pieces.begin(), pieces.end());
-    const std::size_t measured_index = index + (before > 0U ? 1U : 0U);
-    merge_neighbours(runs, measured_index);
-    tree_.settle(place.leaf);
-    ++revision_;
+    if (!std::isfinite(height) || height < 0.0 || row >= count()) return false;
+    const bool changed = (*index_).set_height(row_index(row), HeightUnits{height_units(height)});
+    if (changed) ++revision_;
+    return changed;
+}
+
+bool RowHeightIndex::set_heights(std::size_t row, std::span<const double> heights) {
+    // Validates the whole batch before staging any of it.
+    for (const double height : heights) {
+        if (!std::isfinite(height) || height < 0.0) return false;
+    }
+    clear_staged();
+    batch_.reserve(heights.size());
+    for (const double height : heights) {
+        batch_.push_back(HeightUnits{height_units(height)});
+    }
+    const bool stored = store_staged(row, heights.size());
+    return stored;
+}
+
+void RowHeightIndex::clear_staged() noexcept {
+    batch_.clear();
+}
+
+bool RowHeightIndex::stage_height(double height) {
+    if (!std::isfinite(height) || height < 0.0) return false;
+    batch_.push_back(HeightUnits{height_units(height)});
     return true;
+}
+
+std::size_t RowHeightIndex::staged_count() const noexcept {
+    return batch_.size();
+}
+
+bool RowHeightIndex::store_staged(std::size_t row, std::size_t length) {
+    const std::size_t rows = count();
+    bool stored = false;
+    if (length == 0U) {
+        stored = true;
+    } else if (length <= batch_.size() && row < rows && length <= rows - row) {
+        const std::span<const HeightUnits> staged(batch_.data(), length);
+        stored = (*index_).set_heights(row_index(row), staged);
+        if (stored) ++revision_;
+    }
+    batch_.clear();
+    return stored;
 }
 
 void RowHeightIndex::insert(std::size_t row, std::size_t count) {
     if (count == 0U) return;
-    const std::size_t at = std::min(row, tree_.count());
-    const Tree::Place place = tree_.find_insertion(at);
-    std::vector<Run>& runs = (*place.leaf).entries;
-    const std::size_t index = place.entry;
-    const Run fresh{count, estimate_, false};
-    std::size_t placed = index;
-    if (index < runs.size() && place.within > 0U) {
-        // Inside a run: split it around the new rows.
-        const Run run = runs[index];
-        runs[index].count = place.within;
-        const Run tail{run.count - place.within, run.height, run.measured};
-        const std::ptrdiff_t after = static_cast<std::ptrdiff_t>(index + 1U);
-        runs.insert(runs.begin() + after, tail);
-        runs.insert(runs.begin() + after, fresh);
-        placed = index + 1U;
-    } else {
-        runs.insert(runs.begin() + static_cast<std::ptrdiff_t>(index), fresh);
-    }
-    merge_neighbours(runs, placed);
-    tree_.settle(place.leaf);
+    const bool accepted = (*index_).insert(row_index(row), static_cast<RowCount>(count));
+    require_within_limits(accepted);
     ++revision_;
 }
 
-void RowHeightIndex::erase(std::size_t row, std::size_t count) {
-    const std::size_t total = tree_.count();
-    if (count == 0U || row >= total) return;
-    const std::size_t taken = std::min(count, total - row);
-    if (row == 0U && taken == total) {
-        tree_.clear();
-        ++revision_;
-        return;
-    }
-    // Each pass descends from the root to the first row still to go and
-    // either detaches a child that the rest of the range covers whole (its
-    // subtree is not visited) or erases from one leaf. The rows left never
-    // pass the rows after `row`, so each pass removes at least one row, and
-    // the passes are bounded by the boundary nodes of the range.
-    std::size_t left = taken;
-    while (left > 0U) {
-        Node* node = tree_.root();
-        std::size_t remaining = row;
-        bool detached = false;
-        while (!(*node).leaf) {
-            std::size_t child = 0U;
-            while (child + 1U < (*node).children.size() && remaining >= (*node).child_counts[child]) {
-                remaining -= (*node).child_counts[child];
-                ++child;
-            }
-            const std::size_t child_count = (*node).child_counts[child];
-            if (remaining == 0U && child_count <= left) {
-                left -= child_count;
-                tree_.detach_child(node, child);
-                detached = true;
-                break;
-            }
-            node = (*node).children[child].get();
-        }
-        if (detached) continue;
-        left -= erase_from_leaf((*node).entries, remaining, left);
-        tree_.settle(node);
-    }
+void RowHeightIndex::erase(std::size_t row, std::size_t rows) {
+    if (rows == 0U || row >= count()) return;
+    (*index_).erase(row_index(row), static_cast<RowCount>(rows));
     ++revision_;
 }
 
-void RowHeightIndex::forget(std::size_t row, std::size_t count) {
-    const std::size_t total = tree_.count();
-    if (count == 0U || row >= total) return;
-    const std::size_t taken = std::min(count, total - row);
-    erase(row, taken);
-    insert(row, taken);
+void RowHeightIndex::forget(std::size_t row, std::size_t rows) {
+    if (rows == 0U || row >= count()) return;
+    const bool accepted = (*index_).forget(row_index(row), static_cast<RowCount>(rows));
+    require_within_limits(accepted);
+    ++revision_;
 }
 
-std::size_t RowHeightIndex::measured_count() const noexcept {
-    return tree_.summary().measured;
+void RowHeightIndex::coarsen(std::size_t row, std::size_t rows) {
+    if (rows == 0U || row >= count()) return;
+    (*index_).coarsen(row_index(row), static_cast<RowCount>(rows));
+    ++revision_;
 }
 
-// -- storage ----------------------------------------------------------------------------
+// -- cursors ------------------------------------------------------------------------
 
-std::size_t RowHeightIndex::node_bytes(const Node& node) noexcept {
-    std::size_t bytes = sizeof(Node);
-    bytes += node.entries.capacity() * sizeof(Run);
-    bytes += node.children.capacity() * sizeof(std::unique_ptr<Node>);
-    bytes += node.child_counts.capacity() * sizeof(std::size_t);
-    bytes += node.child_summaries.capacity() * sizeof(detail::RowSummary);
-    return bytes;
+void RowHeightIndex::seek_row(Cursor& cursor, std::size_t row) const noexcept {
+    (*index_).seek_row(cursor.cursor_, row_index(row));
 }
 
-std::size_t RowHeightIndex::storage_bytes() const noexcept {
-    // A depth-first walk with one frame (a node and its next child) per
-    // level; the depth never passes Tree::max_depth, and a deeper path
-    // (which the tree's invariants exclude) is not descended.
-    std::array<const Node*, Tree::max_depth + 1U> path{};
-    std::array<std::size_t, Tree::max_depth + 1U> next{};
-    std::size_t level = 0U;
-    path[0] = tree_.root();
-    std::size_t bytes = node_bytes(*path[0]);
-    while (true) {
-        const Node& node = *path[level];
-        const bool descend = !node.leaf && next[level] < node.children.size() && level + 1U < path.size();
-        if (descend) {
-            const Node* child = node.children[next[level]].get();
-            next[level] = next[level] + 1U;
-            level = level + 1U;
-            path[level] = child;
-            next[level] = 0U;
-            bytes += node_bytes(*child);
-            continue;
-        }
-        if (level == 0U) break;
-        level = level - 1U;
-    }
-    return bytes;
+void RowHeightIndex::seek_offset(Cursor& cursor, double offset) const noexcept {
+    (*index_).seek_offset(cursor.cursor_, HeightUnits{offset_units(offset)});
 }
+
+void RowHeightIndex::seek_offset_from(Cursor& cursor, double offset) const noexcept {
+    (*index_).seek_offset_from(cursor.cursor_, HeightUnits{offset_units(offset)});
+}
+
+void RowHeightIndex::advance(Cursor& cursor) const noexcept {
+    (*index_).advance(cursor.cursor_);
+}
+
+// -- storage ------------------------------------------------------------------------
 
 std::size_t RowHeightIndex::node_count() const noexcept {
-    return tree_.node_count();
+    return (*index_).node_count();
 }
 
 std::size_t RowHeightIndex::run_count() const noexcept {
-    return tree_.entry_total();
+    return (*index_).run_count();
 }
 
 std::size_t RowHeightIndex::depth() const noexcept {
-    return tree_.depth();
+    return (*index_).depth();
+}
+
+std::size_t RowHeightIndex::storage_bytes() const noexcept {
+    const std::size_t bytes = sizeof(Index) + (*index_).page_bytes();
+    return bytes;
+}
+
+const char* RowHeightIndex::invariant_failure() const noexcept {
+    const stx_btree::detail::InvariantReport report = (*index_).check_invariants();
+    if (report.ok) return nullptr;
+    return report.failure;
 }
 
 } // namespace gui_forms

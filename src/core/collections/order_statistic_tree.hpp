@@ -14,8 +14,9 @@ namespace gui_forms::detail {
 // The order-statistic B-tree family (audit N94, owner ruling D10 b). One node
 // shape and one set of node operations serve every sequence that needs a
 // position in O(log n): the binding view's slot sequences (BindingOrderTree,
-// used by BindingView and DataGridViewBoundIndex) and the row extents of long
-// lists (RowHeightIndex, used by TreeListView). Each holder is a thin facade
+// used by BindingView and DataGridViewBoundIndex). The row extents of long
+// lists (RowHeightIndex) are kept by stx_auxlib's stx_btree sequence tree
+// instead. Each holder is a thin facade
 // that keeps its own API and edits leaves; this tree keeps the counts, the
 // summaries, the splits, the removals and the depth.
 //

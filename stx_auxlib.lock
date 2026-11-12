@@ -1,0 +1,15 @@
+# The stx_auxlib commit GUI.Forms builds with: only stx_btree's header-only
+# sequence tree and RowHeightIndex (btree/include/stx_btree/), which the
+# controls' row height index (src/controls/collections/row_height_index.hpp)
+# adapts. cmake/StxAuxlib.cmake fetches this commit; a local checkout
+# replaces it with -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX_AUXLIB=<dir>, which
+# cmake/Stx.cmake also passes to the stx package (lockstep development).
+# stx's own stx_auxlib.lock is kept equal to this one while both have one.
+#
+# 3d9bed2 is stx_auxlib main 08c8132 (stx's pin) with the stx_btree sequence
+# tree, RowHeightIndex, their tests and the study (branch
+# claude/stx-btree-sequence-tree); stx_auxlib main has not taken it yet, so
+# until it does stx stays at 08c8132, whose SIMD level is the same.
+[stx_auxlib]
+repository = "malkuth-software/stx_auxlib"
+commit = "3d9bed2b99db16fc16541a0ee9abf35b2523d5de"

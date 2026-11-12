@@ -1052,8 +1052,10 @@ TreeListView::Layout TreeListView::layout_for(Rect client) const {
     placed.shown_rows = columns_.empty() ? 0U : shown_count();
     // Virtual mode: the height index estimates unmeasured rows at this row
     // height; a new estimate (font, scale, images) drops the kept heights.
+    // The index keeps the estimate in 1/64 units, so the comparison is
+    // with the estimate as it would be stored.
     const double estimate = row / scale;
-    if (row_source_ && (*row_heights_).estimated_height() != estimate) {
+    if (row_source_ && (*row_heights_).estimated_height() != RowHeightIndex::stored_estimate(estimate)) {
         (*row_heights_).assign((*row_heights_).count(), estimate);
     }
     const double header_height = columns_.empty() ? 0.0 : row + 2.0 * scale;

@@ -1,7 +1,7 @@
 {
   "notes": [
     "Third-party notices copied into each packaged program's licenses/ directory by tools/package_programs.py.",
-    "Paths are relative to the repository root unless prefixed with $GUI_FORMS_LLVM_RUNTIME (macOS runtime prefix), $MSYS_PREFIX (the CLANG64 tree on Windows) or $STX (the stx checkout the build consumed, at stx.lock's commit; package_programs.py --stx-source names another).",
+    "Paths are relative to the repository root unless prefixed with $GUI_FORMS_LLVM_RUNTIME (macOS runtime prefix), $MSYS_PREFIX (the CLANG64 tree on Windows) $STX (the stx checkout the build consumed, at stx.lock's commit; package_programs.py --stx-source names another) or $STX_AUXLIB (the stx_auxlib source the build took stx_btree's headers from, at stx_auxlib.lock's commit).",
     "optional=true entries are skipped with a log line when the file is absent (fetched dependencies, platform runtimes); the others fail the package.",
     "Windows binaries link the LLVM runtimes (libc++, libunwind, compiler-rt), winpthreads and the MinGW-w64 CRT statically; their licences are shipped although the LLVM exception does not require it for embedded runtime code.",
     "component names the row of THIRD_PARTY_NOTICES.md that covers the file; tools/package_programs.py checks every package against that file. One entry per line, so adding or removing a component is a one-line edit here and one row there."
@@ -19,6 +19,8 @@
     {"name": "stx_png.txt", "source": "$STX/stx_png/LICENSE", "component": "stx_png (the owned PNG codec)"},
     {"name": "stx_conv.txt", "source": "$STX/stx_conv/LICENSE", "component": "stx_conv (the owner's CONV resampler)"},
     {"name": "stx_rtf2md.txt", "source": "$STX/stx_rtf2md/LICENSE", "component": "stx_rtf2md (the owner's RTF and markdown converter)"},
+    {"name": "stx_btree.txt", "source": "$STX_AUXLIB/btree/LICENSE", "component": "stx_btree (the row height index's sequence tree, in stx_auxlib)"},
+    {"name": "stx_btree-NOTICE.txt", "source": "$STX_AUXLIB/btree/NOTICE", "component": "stx_btree (the row height index's sequence tree, in stx_auxlib)"},
     {"name": "HarfBuzz.txt", "source": "$STX/third_party/harfbuzz/COPYING", "component": "HarfBuzz"},
     {"name": "FreeType-FTL.txt", "source": "$STX/third_party/freetype/docs/FTL.TXT", "component": "FreeType"},
     {"name": "Skia.txt", "source": "$STX/stx_skia/LICENSE-Skia", "component": "Skia (in stx_skia)"},
