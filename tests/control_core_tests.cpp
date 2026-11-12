@@ -26,6 +26,7 @@
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/text.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -90,10 +91,10 @@ void test_event_state() {
 }
 
 // The control whose pointer handler disposes it (A6).
-class DisposingControl final : public Control {
+class DisposingControl final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit DisposingControl(StableId id) : Control(std::move(id)) {}
-    void on_pointer(PointerEvent& event) override {
+    explicit DisposingControl(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::down) dispose();
     }
 };

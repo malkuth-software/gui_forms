@@ -262,8 +262,6 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_context_menu_requested(ContextMenuRequest& request) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -346,6 +344,13 @@ public:
     [[nodiscard]] std::string tab_identity(const PageId& page) const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
     // The stable identity of the tab_panel node a page's tab controls, or
     // empty (owner decision DK-40). A strip alone shows no panels; PageView's
     // strip names the panel of a page that has content.
@@ -639,6 +644,12 @@ private:
     Event<const PageDoubleClick&> page_double_clicked_{};
     // property_codemod begin PageStrip (tools/property_families/page_strip.json; generated, do not edit)
 private:
+    // The mouse raisers' handling, and its routed form.
+    void handle_mouse(MouseEventArgs& arguments);
+    void handle_pointer(PointerEvent& event);
+    // The tab control hands its keyboard to its strip while it has focus
+    // (TabControl::on_key_down calls the strip's key raiser).
+    friend class TabControl;
     friend struct PageStripPlacementPropertyCapability<PageStrip>;
     friend struct PageStripItemSizingCapability<PageStrip>;
     friend struct PageStripItemWidthsCapability<PageStrip>;

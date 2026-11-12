@@ -161,7 +161,7 @@ bool SplitterGrip::begin_keyboard_drag() {
     return started;
 }
 
-void SplitterGrip::on_pointer(PointerEvent& event) {
+void SplitterGrip::handle_pointer(PointerEvent& event) {
     if (event.action != PointerAction::enter &&
         event.action != PointerAction::move &&
         event.action != PointerAction::leave) return;
@@ -172,6 +172,48 @@ void SplitterGrip::on_pointer(PointerEvent& event) {
     hot_ = hot;
     retarget_transition();
     invalidate(Dirty::paint);
+}
+
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void SplitterGrip::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void SplitterGrip::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void SplitterGrip::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void SplitterGrip::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void SplitterGrip::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
 }
 
 void SplitterGrip::on_focus_changed(bool focused) {

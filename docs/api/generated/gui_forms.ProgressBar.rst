@@ -284,8 +284,6 @@ gui_forms::ProgressBar
 
       The effects' ambient frame (MotionClock::enlist_control_ambient): their ticks due at ``now``, and their extent invalidated; false when the bar was not painted since its last frame.
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: Size measure(Size available) override
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
@@ -297,6 +295,22 @@ gui_forms::ProgressBar
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
 
    .. cpp:function:: void on_attached_to_window() override
 

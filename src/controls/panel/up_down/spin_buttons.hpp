@@ -70,9 +70,17 @@ public:
     // while the primary button went down on it and is still down.
     [[nodiscard]] AnatomyStateSet half_states(SpinHalf half) const noexcept;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
+
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
 
 private:
+    // The target phase in the routed form, from the mouse raisers.
+    void handle_pointer(PointerEvent& event);
     [[nodiscard]] SpinHalf half_at(Point window_position) const;
     void show(SpinHalf hot, SpinHalf pressed);
 

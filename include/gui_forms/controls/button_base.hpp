@@ -87,8 +87,6 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     // As in WinForms, a button clicks for the primary button only.
     [[nodiscard]] bool clicks_primary_button_only() const noexcept override;
     void on_focus_changed(bool focused) override;
@@ -121,6 +119,18 @@ public:
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_enter() override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
+
+    // ButtonBase's own Space and Enter handling, for a derived class's
+    // on_key_down and on_key_up that handle other keys first.
+    void activation_key_down(KeyEventArgs& arguments);
+    void activation_key_up(KeyEventArgs& arguments);
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     // Text and image placement inside a button face (stage T1). Paint and
     // published geometry share it. Rectangles are at rest: the pressed

@@ -195,11 +195,11 @@ typedef struct gf_control_hooks {
     gf_hook_entry on_lost_focus;
     /* Control::on_mouse_capture_changed: where mouse_capture_changed happens; base raises mouse_capture_changed. Since 1.3. */
     gf_hook_entry on_mouse_capture_changed;
-    /* Control::on_mouse_click: where mouse_click happens; base raises mouse_click; the event's fields are its MouseEventArgs. Since 1.3. */
+    /* Control::on_mouse_click: where mouse_click happens; base raises mouse_click; the event's fields are its MouseEventArgs, writable. Since 1.3. */
     gf_hook_entry on_mouse_click;
-    /* Control::on_mouse_double_click: where mouse_double_click happens; base raises mouse_double_click; the event's fields are its MouseEventArgs. Since 1.3. */
+    /* Control::on_mouse_double_click: where mouse_double_click happens; base raises mouse_double_click; the event's fields are its MouseEventArgs, writable. Since 1.3. */
     gf_hook_entry on_mouse_double_click;
-    /* Control::on_mouse_down: where mouse_down happens; base raises mouse_down; the event's fields are its MouseEventArgs. Since 1.3. */
+    /* Control::on_mouse_down: where mouse_down happens; base raises mouse_down; the event's fields are its MouseEventArgs, writable. Since 1.3. */
     gf_hook_entry on_mouse_down;
     /* Control::on_mouse_enter: where mouse_enter happens; base raises mouse_enter. Since 1.3. */
     gf_hook_entry on_mouse_enter;
@@ -207,11 +207,11 @@ typedef struct gf_control_hooks {
     gf_hook_entry on_mouse_hover;
     /* Control::on_mouse_leave: where mouse_leave happens; base raises mouse_leave. Since 1.3. */
     gf_hook_entry on_mouse_leave;
-    /* Control::on_mouse_move: where mouse_move happens; base raises mouse_move; the event's fields are its MouseEventArgs. Since 1.3. */
+    /* Control::on_mouse_move: where mouse_move happens; base raises mouse_move; the event's fields are its MouseEventArgs, writable. Since 1.3. */
     gf_hook_entry on_mouse_move;
-    /* Control::on_mouse_up: where mouse_up happens; base raises mouse_up; the event's fields are its MouseEventArgs. Since 1.3. */
+    /* Control::on_mouse_up: where mouse_up happens; base raises mouse_up; the event's fields are its MouseEventArgs, writable. Since 1.3. */
     gf_hook_entry on_mouse_up;
-    /* Control::on_mouse_wheel: where mouse_wheel happens; base raises mouse_wheel; the event's fields are its MouseEventArgs. Since 1.3. */
+    /* Control::on_mouse_wheel: where mouse_wheel happens; base raises mouse_wheel; the event's fields are its MouseEventArgs, writable. Since 1.3. */
     gf_hook_entry on_mouse_wheel;
     /* Control::on_paint_background: where paint_background happens; base raises no event yet. Since 1.3. */
     gf_hook_entry on_paint_background;

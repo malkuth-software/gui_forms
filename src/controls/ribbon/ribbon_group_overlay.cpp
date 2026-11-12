@@ -68,17 +68,64 @@ void RibbonGroupOverlay::on_paint(Painter& painter, Rect) {
     (*ribbon_).overlay_paint(painter, panel_);
 }
 
-void RibbonGroupOverlay::on_pointer(PointerEvent& event) {
+// The overlay's mouse and keys are the ribbon's (overlay_pointer,
+// overlay_key), before the events are raised.
+void RibbonGroupOverlay::forward_mouse(MouseEventArgs& arguments) {
     if (!ribbon_alive()) return;
     // The overlay may close (and detach) while the ribbon handles the event.
     const Control::Ptr lifetime = shared_from_this();
+    PointerEvent event = pointer_event_of(arguments);
     (*ribbon_).overlay_pointer(event, panel_);
+    arguments.handled = event.handled;
 }
 
-void RibbonGroupOverlay::on_key(KeyEvent& event) {
-    if (!ribbon_alive()) return;
+void RibbonGroupOverlay::on_mouse_down(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void RibbonGroupOverlay::on_mouse_up(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void RibbonGroupOverlay::on_mouse_move(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void RibbonGroupOverlay::on_mouse_wheel(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void RibbonGroupOverlay::on_mouse_leave() {
+    if (ribbon_alive()) {
+        const Control::Ptr lifetime = shared_from_this();
+        PointerEvent leave{};
+        leave.action = PointerAction::leave;
+        (*ribbon_).overlay_pointer(leave, panel_);
+    }
+    Control::on_mouse_leave();
+}
+
+void RibbonGroupOverlay::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    forward_key(arguments, KeyAction::down);
+}
+
+void RibbonGroupOverlay::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    forward_key(arguments, KeyAction::up);
+}
+
+// A key no subscriber handled.
+void RibbonGroupOverlay::forward_key(KeyEventArgs& arguments, KeyAction action) {
+    if (!ribbon_alive() || arguments.handled || arguments.released_by_deactivation) return;
     const Control::Ptr lifetime = shared_from_this();
+    KeyEvent event = key_event_of(arguments, action);
     (*ribbon_).overlay_key(event);
+    arguments.handled = event.handled;
 }
 
 void RibbonGroupOverlay::on_focus_changed(bool focused) {

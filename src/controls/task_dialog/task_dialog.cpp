@@ -151,11 +151,20 @@ public:
 
     [[nodiscard]] bool hit_test_local(Point) const override { return true; }
 
-    void on_pointer(PointerEvent& event) override {
-        if (event.action == PointerAction::down || event.action == PointerAction::up ||
-            event.action == PointerAction::wheel) {
-            event.handled = true;
-        }
+    // The dialog's backdrop swallows presses, releases and wheels.
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_down(arguments);
+    }
+
+    void on_mouse_up(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_up(arguments);
+    }
+
+    void on_mouse_wheel(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_wheel(arguments);
     }
 };
 

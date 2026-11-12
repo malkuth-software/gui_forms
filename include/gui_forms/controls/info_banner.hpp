@@ -54,8 +54,6 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
@@ -81,6 +79,12 @@ public:
     [[nodiscard]] Parts parts() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
 
@@ -98,6 +102,8 @@ private:
         Size natural{};
     };
     [[nodiscard]] Placement placement(Size size) const;
+    // Whether a window point is over the close actuator.
+    [[nodiscard]] bool over_close(Point window_position) const;
     [[nodiscard]] FontSpec title_font() const noexcept;
     [[nodiscard]] FontSpec message_font() const noexcept;
     // The actuator's states: hot and pressed as the pointer is.

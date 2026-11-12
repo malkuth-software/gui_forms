@@ -437,7 +437,7 @@ protected:
         }
     }
 
-    void on_mouse_click(const MouseEventArgs& arguments) override {
+    void on_mouse_click(MouseEventArgs& arguments) override {
         const HookKey hook{GF_CLASS_CONTROL, 30U};
         const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
@@ -448,7 +448,7 @@ protected:
         }
     }
 
-    void on_mouse_double_click(const MouseEventArgs& arguments) override {
+    void on_mouse_double_click(MouseEventArgs& arguments) override {
         const HookKey hook{GF_CLASS_CONTROL, 31U};
         const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
@@ -459,7 +459,7 @@ protected:
         }
     }
 
-    void on_mouse_down(const MouseEventArgs& arguments) override {
+    void on_mouse_down(MouseEventArgs& arguments) override {
         const HookKey hook{GF_CLASS_CONTROL, 32U};
         const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
@@ -503,7 +503,7 @@ protected:
         }
     }
 
-    void on_mouse_move(const MouseEventArgs& arguments) override {
+    void on_mouse_move(MouseEventArgs& arguments) override {
         const HookKey hook{GF_CLASS_CONTROL, 36U};
         const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
@@ -514,7 +514,7 @@ protected:
         }
     }
 
-    void on_mouse_up(const MouseEventArgs& arguments) override {
+    void on_mouse_up(MouseEventArgs& arguments) override {
         const HookKey hook{GF_CLASS_CONTROL, 37U};
         const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
@@ -525,7 +525,7 @@ protected:
         }
     }
 
-    void on_mouse_wheel(const MouseEventArgs& arguments) override {
+    void on_mouse_wheel(MouseEventArgs& arguments) override {
         const HookKey hook{GF_CLASS_CONTROL, 38U};
         const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
@@ -716,23 +716,23 @@ protected:
             Base::on_mouse_capture_changed();
             break;
         case 30U: {
-            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs* given = static_cast<MouseEventArgs*>(arguments.value);
             MouseEventArgs made{};
-            const MouseEventArgs& used = given != nullptr ? *given : made;
+            MouseEventArgs& used = given != nullptr ? *given : made;
             Base::on_mouse_click(used);
             break;
         }
         case 31U: {
-            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs* given = static_cast<MouseEventArgs*>(arguments.value);
             MouseEventArgs made{};
-            const MouseEventArgs& used = given != nullptr ? *given : made;
+            MouseEventArgs& used = given != nullptr ? *given : made;
             Base::on_mouse_double_click(used);
             break;
         }
         case 32U: {
-            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs* given = static_cast<MouseEventArgs*>(arguments.value);
             MouseEventArgs made{};
-            const MouseEventArgs& used = given != nullptr ? *given : made;
+            MouseEventArgs& used = given != nullptr ? *given : made;
             Base::on_mouse_down(used);
             break;
         }
@@ -746,23 +746,23 @@ protected:
             Base::on_mouse_leave();
             break;
         case 36U: {
-            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs* given = static_cast<MouseEventArgs*>(arguments.value);
             MouseEventArgs made{};
-            const MouseEventArgs& used = given != nullptr ? *given : made;
+            MouseEventArgs& used = given != nullptr ? *given : made;
             Base::on_mouse_move(used);
             break;
         }
         case 37U: {
-            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs* given = static_cast<MouseEventArgs*>(arguments.value);
             MouseEventArgs made{};
-            const MouseEventArgs& used = given != nullptr ? *given : made;
+            MouseEventArgs& used = given != nullptr ? *given : made;
             Base::on_mouse_up(used);
             break;
         }
         case 38U: {
-            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs* given = static_cast<MouseEventArgs*>(arguments.value);
             MouseEventArgs made{};
-            const MouseEventArgs& used = given != nullptr ? *given : made;
+            MouseEventArgs& used = given != nullptr ? *given : made;
             Base::on_mouse_wheel(used);
             break;
         }

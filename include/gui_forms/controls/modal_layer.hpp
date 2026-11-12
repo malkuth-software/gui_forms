@@ -69,7 +69,6 @@ public:
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
-    void on_pointer(PointerEvent& event) override;
     void on_key_bubble(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
@@ -84,6 +83,10 @@ public:
     [[nodiscard]] Parts parts() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void on_dispose() noexcept override;
 

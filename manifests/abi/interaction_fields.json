@@ -78,7 +78,7 @@
     "MenuItemInvocation": "menu_id: text, item_id: text, command_id: text, source_id: text",
     "MenuStripInvocation": "menu_strip_id: text, top_level_id: text, item.menu_id: text, item.item_id: text, item.command_id: text, item.source_id: text",
     "ModalLayerClosingEvent": "result: enumeration, cancel: boolean",
-    "MouseEventArgs": "button: enumeration, clicks: unsigned_integer, location: point, window_position: point, wheel_delta: point, modifiers: enumeration",
+    "MouseEventArgs": "button: enumeration, clicks: unsigned_integer, location: point, window_position: point, wheel_delta: point, modifiers: enumeration, action: enumeration, wheel_unit: enumeration, pointer_id: unsigned_integer, phase: enumeration, handled: boolean",
     "NavigationPaneOptionsRequest": "pane_id: text",
     "NavigationPaneState": "collapsed: boolean, button_count: unsigned_integer, hidden_pages: collection, page_order: collection",
     "NotifyIconClick": "button: enumeration",

@@ -78,14 +78,6 @@ public:
     // on_key_down sets handled before its base runs (with Placement::before).
     bool handle_key_before_base{};
 
-    void on_key(KeyEvent& event) override {
-        if (family_ == Family::keys) {
-            log_.push_back(std::string(event.action == KeyAction::down ? "on_key:down:" : "on_key:up:") +
-                           std::to_string(event.physical_key));
-        }
-        Panel::on_key(event);
-    }
-
     void arrange(Rect final_bounds) override {
         if (family_ == Family::frame) log_.push_back("arrange");
         Panel::arrange(final_bounds);
@@ -102,19 +94,19 @@ public:
     }
 
 protected:
-    void on_mouse_down(const MouseEventArgs& arguments) override {
+    void on_mouse_down(MouseEventArgs& arguments) override {
         const bool run = enter(Family::mouse, "mouse_down");
         if (run) Panel::on_mouse_down(arguments);
         leave(Family::mouse, "mouse_down");
     }
 
-    void on_mouse_up(const MouseEventArgs& arguments) override {
+    void on_mouse_up(MouseEventArgs& arguments) override {
         const bool run = enter(Family::mouse, "mouse_up");
         if (run) Panel::on_mouse_up(arguments);
         leave(Family::mouse, "mouse_up");
     }
 
-    void on_mouse_move(const MouseEventArgs& arguments) override {
+    void on_mouse_move(MouseEventArgs& arguments) override {
         const bool run = enter(Family::mouse, "mouse_move");
         if (run) Panel::on_mouse_move(arguments);
         leave(Family::mouse, "mouse_move");
@@ -138,7 +130,7 @@ protected:
         leave(Family::mouse, "click");
     }
 
-    void on_mouse_click(const MouseEventArgs& arguments) override {
+    void on_mouse_click(MouseEventArgs& arguments) override {
         const bool run = enter(Family::mouse, "mouse_click");
         if (run) Panel::on_mouse_click(arguments);
         leave(Family::mouse, "mouse_click");
@@ -157,6 +149,7 @@ protected:
         if (handle_key_before_base) arguments.handled = true;
         if (run) Panel::on_key_down(arguments);
         leave(Family::keys, name);
+        own_key("down", arguments);
     }
 
     void on_key_up(KeyEventArgs& arguments) override {
@@ -164,6 +157,14 @@ protected:
         const bool run = enter(Family::keys, name);
         if (run) Panel::on_key_up(arguments);
         leave(Family::keys, name);
+        if (!arguments.released_by_deactivation) own_key("up", arguments);
+    }
+
+    // A stock control's own key handling follows the base in its key
+    // raiser and skips a key already handled; the probe logs where it runs.
+    void own_key(const char* action, const KeyEventArgs& arguments) {
+        if (family_ != Family::keys || arguments.handled) return;
+        log_.push_back(std::string("own:") + action + ":" + std::to_string(arguments.physical_key));
     }
 
     void on_enter() override {
@@ -416,23 +417,23 @@ Log click_log(Placement placement) {
 
 void test_mouse_raisers_after_the_subscribers() {
     require_log(click_log(Placement::after),
-                Log{"event:mouse_down", "raiser:mouse_down", "event:click", "raiser:click", "event:mouse_click",
-                    "raiser:mouse_click", "event:mouse_up", "raiser:mouse_up", "event:mouse_capture_changed",
+                Log{"event:mouse_down", "raiser:mouse_down", "event:mouse_up", "raiser:mouse_up", "event:click",
+                    "raiser:click", "event:mouse_click", "raiser:mouse_click", "event:mouse_capture_changed",
                     "raiser:mouse_capture_changed"},
                 "code after the base runs after each mouse event's subscribers, in the events' own order");
 }
 
 void test_mouse_raisers_before_the_subscribers() {
     require_log(click_log(Placement::before),
-                Log{"raiser:mouse_down", "event:mouse_down", "raiser:click", "event:click", "raiser:mouse_click",
-                    "event:mouse_click", "raiser:mouse_up", "event:mouse_up", "raiser:mouse_capture_changed",
+                Log{"raiser:mouse_down", "event:mouse_down", "raiser:mouse_up", "event:mouse_up", "raiser:click",
+                    "event:click", "raiser:mouse_click", "event:mouse_click", "raiser:mouse_capture_changed",
                     "event:mouse_capture_changed"},
                 "code before the base runs before each mouse event's subscribers");
 }
 
 void test_mouse_raisers_suppress_the_subscribers() {
     require_log(click_log(Placement::suppress),
-                Log{"raiser:mouse_down", "raiser:click", "raiser:mouse_click", "raiser:mouse_up",
+                Log{"raiser:mouse_down", "raiser:mouse_up", "raiser:click", "raiser:mouse_click",
                     "raiser:mouse_capture_changed"},
                 "a raiser that does not call the base keeps each mouse event from its subscribers");
 }
@@ -450,6 +451,71 @@ void test_mouse_subscriber_reenters() {
                 Log{"event:mouse_down", "event:mouse_enter", "raiser:mouse_enter", "event:mouse_move",
                     "raiser:mouse_move", "raiser:mouse_down"},
                 "a move dispatched by a MouseDown subscriber raises its own raisers nested inside on_mouse_down");
+}
+
+// A panel that logs the presses bubbling to it.
+class BubbleLog final : public Panel {
+public:
+    BubbleLog(StableId stable_id, Log& log) : Panel(std::move(stable_id)), log_(log) {}
+
+    void on_pointer_bubble(PointerEvent& event) override {
+        if (event.action == PointerAction::down) log_.push_back("bubble:down");
+        Panel::on_pointer_bubble(event);
+    }
+
+private:
+    Log& log_;
+};
+
+// A panel whose MouseDown raiser logs the routed fields MouseEventArgs
+// carries and handles the press when told to.
+class HandlingPanel final : public Panel {
+public:
+    HandlingPanel(StableId stable_id, Log& log) : Panel(std::move(stable_id)), log_(log) {}
+
+    bool handle_press{};
+
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        const bool target = arguments.phase == EventPhase::target;
+        const bool press = arguments.action == PointerAction::down;
+        log_.push_back("down:id=" + std::to_string(arguments.pointer_id) + ":phase=" + (target ? "target" : "other") +
+                       ":action=" + (press ? "down" : "other") + ":at=" +
+                       std::to_string(static_cast<int>(arguments.location.x)) + "," +
+                       std::to_string(static_cast<int>(arguments.location.y)));
+        arguments.handled = handle_press;
+        Panel::on_mouse_down(arguments);
+    }
+
+private:
+    Log& log_;
+};
+
+// A press at (20, 30) on a panel at (10, 10) inside a logging root.
+Log handled_log(bool handle) {
+    Log log;
+    std::shared_ptr<BubbleLog> root = make_control<BubbleLog>(StableId("handled.root"), log);
+    std::shared_ptr<HandlingPanel> child = make_control<HandlingPanel>(StableId("handled.child"), log);
+    (*child).set_requested_bounds({10.0, 10.0, 80.0, 40.0});
+    (*child).handle_press = handle;
+    (*root).add_child(child);
+    Window window(root, Size{120.0, 80.0});
+    window.perform_layout();
+    PointerEvent down{};
+    down.action = PointerAction::down;
+    down.button = PointerButton::primary;
+    down.position = Point{20.0, 30.0};
+    down.pointer_id = 7U;
+    const bool handled = window.dispatch_pointer(down);
+    log.push_back(handled ? "handled" : "unhandled");
+    return log;
+}
+
+void test_mouse_handled_ends_the_bubble() {
+    require_log(handled_log(true), Log{"down:id=7:phase=target:action=down:at=10,20", "handled"},
+                "a MouseDown raiser runs at the target phase with the routed fields; handled ends the route");
+    require_log(handled_log(false), Log{"down:id=7:phase=target:action=down:at=10,20", "bubble:down", "unhandled"},
+                "a press the raiser leaves unhandled bubbles to the parent");
 }
 
 // The keys.
@@ -477,24 +543,24 @@ Log key_log(Placement placement, bool handle_before_base) {
 void test_key_raisers_after_the_subscribers() {
     const std::string a = std::to_string(PhysicalKey::a);
     require_log(key_log(Placement::after, false),
-                Log{"raiser:preview_key_down:" + a, "event:key_down:" + a, "raiser:key_down:" + a, "on_key:down:" + a,
-                    "event:key_up:" + a, "raiser:key_up:" + a, "on_key:up:" + a},
+                Log{"raiser:preview_key_down:" + a, "event:key_down:" + a, "raiser:key_down:" + a, "own:down:" + a,
+                    "event:key_up:" + a, "raiser:key_up:" + a, "own:up:" + a},
                 "code after the base runs after the key subscribers and before the control's own key handling");
 }
 
 void test_key_raisers_before_the_subscribers() {
     const std::string a = std::to_string(PhysicalKey::a);
     require_log(key_log(Placement::before, false),
-                Log{"raiser:preview_key_down:" + a, "raiser:key_down:" + a, "event:key_down:" + a, "on_key:down:" + a,
-                    "raiser:key_up:" + a, "event:key_up:" + a, "on_key:up:" + a},
+                Log{"raiser:preview_key_down:" + a, "raiser:key_down:" + a, "event:key_down:" + a, "own:down:" + a,
+                    "raiser:key_up:" + a, "event:key_up:" + a, "own:up:" + a},
                 "code before the base runs before the key subscribers (WinForms' OnKeyDown order)");
 }
 
 void test_key_raisers_suppress_the_subscribers() {
     const std::string a = std::to_string(PhysicalKey::a);
     require_log(key_log(Placement::suppress, false),
-                Log{"raiser:preview_key_down:" + a, "raiser:key_down:" + a, "on_key:down:" + a, "raiser:key_up:" + a,
-                    "on_key:up:" + a},
+                Log{"raiser:preview_key_down:" + a, "raiser:key_down:" + a, "own:down:" + a, "raiser:key_up:" + a,
+                    "own:up:" + a},
                 "a key raiser that does not call the base keeps the key from its subscribers, not from the control");
 }
 
@@ -502,7 +568,7 @@ void test_key_raiser_handles_before_the_subscribers() {
     const std::string a = std::to_string(PhysicalKey::a);
     require_log(key_log(Placement::before, true),
                 Log{"raiser:preview_key_down:" + a, "raiser:key_down:" + a, "event:key_down:" + a,
-                    "raiser:key_up:" + a, "event:key_up:" + a, "on_key:up:" + a},
+                    "raiser:key_up:" + a, "event:key_up:" + a, "own:up:" + a},
                 "handled set before the base: the subscribers still see the key, the control's handling does not");
 }
 
@@ -518,8 +584,8 @@ void test_key_subscriber_reenters() {
     const std::string b = std::to_string(PhysicalKey::b);
     require_log(fixture.log,
                 Log{"raiser:preview_key_down:" + a, "event:key_down:" + a, "raiser:preview_key_down:" + b,
-                    "event:key_down:" + b, "raiser:key_down:" + b, "on_key:down:" + b, "raiser:key_down:" + a,
-                    "on_key:down:" + a},
+                    "event:key_down:" + b, "raiser:key_down:" + b, "own:down:" + b, "raiser:key_down:" + a,
+                    "own:down:" + a},
                 "a key dispatched by a KeyDown subscriber runs its whole route nested inside on_key_down");
 }
 
@@ -663,6 +729,7 @@ int main() {
         test_mouse_raisers_before_the_subscribers();
         test_mouse_raisers_suppress_the_subscribers();
         test_mouse_subscriber_reenters();
+        test_mouse_handled_ends_the_bubble();
         test_key_raisers_after_the_subscribers();
         test_key_raisers_before_the_subscribers();
         test_key_raisers_suppress_the_subscribers();

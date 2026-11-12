@@ -44,6 +44,7 @@
 #include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/types/painter/painter.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -233,12 +234,12 @@ void test_info_banner_closing() {
     KeyEvent other{};
     other.action = KeyAction::down;
     other.physical_key = PhysicalKey::enter;
-    (*banner).on_key(other);
+    gui_forms::detail::ControlInputAccess::on_key(*banner, other);
     require((*banner).visible.read() && !other.handled, "keys other than Escape pass the banner by");
     KeyEvent escape{};
     escape.action = KeyAction::down;
     escape.physical_key = PhysicalKey::escape;
-    (*banner).on_key(escape);
+    gui_forms::detail::ControlInputAccess::on_key(*banner, escape);
     require(escape.handled && !(*banner).visible.read() && recorder.closed == 2, "Escape closes a shown banner");
 
     (*banner).visible = true;
@@ -285,12 +286,12 @@ void test_info_banner_actuator_action_and_threads() {
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = mark;
-    (*banner).on_pointer(press);
+    gui_forms::detail::ControlInputAccess::on_pointer(*banner, press);
     require(press.handled && (*banner).visible.read(), "pressing the close mark does not close yet");
     PointerEvent release = press;
     release.action = PointerAction::up;
     release.handled = false;
-    (*banner).on_pointer(release);
+    gui_forms::detail::ControlInputAccess::on_pointer(*banner, release);
     require(release.handled && !(*banner).visible.read() && recorder.closed == 1,
             "releasing over the close mark closes the banner");
 
@@ -441,7 +442,7 @@ void test_segmented_choice_group() {
     KeyEvent right{};
     right.action = KeyAction::down;
     right.physical_key = PhysicalKey::right;
-    (*group).on_key(right);
+    gui_forms::detail::ControlInputAccess::on_key(*group, right);
     window.perform_layout();
     require(right.handled && (*group).selected_index.read() == 2 &&
                 (*group).parts().selection.bounds == (*group).item(2).committed_arranged_bounds(),
@@ -608,12 +609,12 @@ void test_window_toasts() {
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = mark;
-    (*marked).on_pointer(press);
+    gui_forms::detail::ControlInputAccess::on_pointer(*marked, press);
     require(press.handled && window.toast_visible(), "pressing the close mark does not close yet");
     PointerEvent release = press;
     release.action = PointerAction::up;
     release.handled = false;
-    (*marked).on_pointer(release);
+    gui_forms::detail::ControlInputAccess::on_pointer(*marked, release);
     require(release.handled && !window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::closed,
             "releasing over the close mark dismisses the toast");
 
@@ -951,12 +952,12 @@ void test_search_field_in_window() {
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = mark;
-    (*field).on_pointer(press);
+    gui_forms::detail::ControlInputAccess::on_pointer(*field, press);
     require(press.handled && (*field).text.read() == "x", "pressing the clear mark does not clear yet");
     PointerEvent release = press;
     release.action = PointerAction::up;
     release.handled = false;
-    (*field).on_pointer(release);
+    gui_forms::detail::ControlInputAccess::on_pointer(*field, release);
     require(release.handled && (*field).text.read().empty(), "releasing over the clear mark clears the field");
 }
 

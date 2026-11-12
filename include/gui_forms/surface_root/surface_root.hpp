@@ -95,9 +95,12 @@ class SurfaceResourceAccess;
 class SurfaceEngineAccess;
 class SurfaceHandleAccess;
 class SurfaceHelpAccess;
+class SurfaceMouseRuleAccess;
 
-// The WinForms mouse events raise_mouse_events offers the window's rules
-// before raising them (SurfaceRoot::offer_mouse_rules_). The rules library
+// The WinForms mouse events whose raising offers the window's rules first
+// (SurfaceRoot::offer_mouse_rules_): MouseDown and MouseUp from Control's
+// base raisers (SurfaceMouseRuleAccess), the clicks from
+// raise_mouse_events. The rules library
 // maps them to its trigger kinds; events raised elsewhere as well (capture,
 // hover, the context menu) reach the rules through their subscriptions.
 enum class MouseRuleEvent : std::uint8_t {
@@ -1447,6 +1450,7 @@ private:
     friend class detail::SurfaceEngineAccess;
     friend class detail::SurfaceHandleAccess;
     friend class detail::SurfaceHelpAccess;
+    friend class detail::SurfaceMouseRuleAccess;
     // Key and text forwarding to a warm Popup window (Window::
     // forward_input_to_popup_window): while set, dispatch_key and
     // dispatch_text offer each event to the model of slot
@@ -1597,8 +1601,17 @@ private:
     // `hit` is the event's hit test so far (the hover's, for a move).
     bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
                        PointerHit& hit);
-    // Raises the WinForms mouse events for one routed pointer event on its
-    // target (Control's mouse_down and the rest), in WinForms' order.
+    // The MouseEventArgs of a routed pointer event on `target`.
+    [[nodiscard]] MouseEventArgs mouse_arguments(const Control& target, const PointerEvent& event);
+    // The route's target phase: the raiser of the event's action
+    // (on_mouse_down, on_mouse_up, on_mouse_move or on_mouse_wheel) on
+    // `target`, whose handled comes back into `event`. An enter or leave
+    // raises nothing here (the hover tracking raises them).
+    void raise_pointer_target(Control& target, PointerEvent& event);
+    // Raises the WinForms mouse events that follow one routed pointer
+    // event on its target: a release's clicks (Control::on_click and the
+    // rest) and the deferred capture change. MouseDown, MouseMove,
+    // MouseWheel and MouseUp are the route's target phase (route_pointer).
     void raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
                             const Control::Ptr& pressed_for_release, PointerHit& hit);
     // Offers one of those events on `control` to the window's rules before
@@ -2755,7 +2768,7 @@ private:
     // so the core never names RuleSet's members. offer_key_rules_ is the key
     // route's entry into them, set with them: route_key calls it first, and
     // a true result (a consuming rule) ends the key. offer_mouse_rules_ is
-    // raise_mouse_events' entry (offer_mouse_rules), with the same result.
+    // offer_mouse_rules' entry, with the same result.
     // Both null without rules.
     std::shared_ptr<RuleSet> rules_{};
     bool (*offer_key_rules_)(RuleSet& rules, KeyEvent& event){};

@@ -9,6 +9,7 @@
 #include "gui_forms/window.hpp"
 #include "../../display/chunk/display_chunk.hpp"
 #include "control_tree_walk.hpp"
+#include "../../surface_root/access/surface_mouse_rule_access.hpp"
 #include "../../surface_root/access/surface_tree_access.hpp"
 #include "../../theme/theme_compiler/control_inline_style.hpp"
 #include "../../theme/theme/kept_resolutions.hpp"
@@ -4386,10 +4387,8 @@ bool Control::hit_test_local(Point local_point) const {
 }
 
 void Control::on_pointer_preview(PointerEvent&) {}
-void Control::on_pointer(PointerEvent&) {}
 void Control::on_pointer_bubble(PointerEvent&) {}
 void Control::on_key_preview(KeyEvent&) {}
-void Control::on_key(KeyEvent&) {}
 void Control::on_key_bubble(KeyEvent&) {}
 void Control::on_text_input(TextInputEvent&) {}
 bool Control::process_mnemonic(char32_t character) {
@@ -4534,19 +4533,25 @@ void Control::on_context_menu_requested(ContextMenuRequest& request) {
 // has subscribers (the mouse and key records exist only once something
 // subscribed). tools/abi_class_tables.py reads the emitted event from these
 // bodies, so each stays one statement without braces.
-void Control::on_mouse_down(const MouseEventArgs& arguments) {
-    if (mouse_events_) (*mouse_events_).mouse_down.emit(arguments);
+// MouseDown and MouseUp reach the window's rules before the subscribers;
+// a consuming rule keeps them from the subscribers only.
+void Control::on_mouse_down(MouseEventArgs& arguments) {
+    const bool consumed = surface_root_ != nullptr &&
+        detail::SurfaceMouseRuleAccess::offer(*surface_root_, detail::MouseRuleEvent::mouse_down, *this, arguments);
+    if (!consumed && mouse_events_) (*mouse_events_).mouse_down.emit(arguments);
 }
 
-void Control::on_mouse_up(const MouseEventArgs& arguments) {
-    if (mouse_events_) (*mouse_events_).mouse_up.emit(arguments);
+void Control::on_mouse_up(MouseEventArgs& arguments) {
+    const bool consumed = surface_root_ != nullptr &&
+        detail::SurfaceMouseRuleAccess::offer(*surface_root_, detail::MouseRuleEvent::mouse_up, *this, arguments);
+    if (!consumed && mouse_events_) (*mouse_events_).mouse_up.emit(arguments);
 }
 
-void Control::on_mouse_move(const MouseEventArgs& arguments) {
+void Control::on_mouse_move(MouseEventArgs& arguments) {
     if (mouse_events_) (*mouse_events_).mouse_move.emit(arguments);
 }
 
-void Control::on_mouse_wheel(const MouseEventArgs& arguments) {
+void Control::on_mouse_wheel(MouseEventArgs& arguments) {
     if (mouse_events_) (*mouse_events_).mouse_wheel.emit(arguments);
 }
 
@@ -4574,11 +4579,11 @@ void Control::on_double_click() {
     if (mouse_events_) (*mouse_events_).double_click.emit();
 }
 
-void Control::on_mouse_click(const MouseEventArgs& arguments) {
+void Control::on_mouse_click(MouseEventArgs& arguments) {
     if (mouse_events_) (*mouse_events_).mouse_click.emit(arguments);
 }
 
-void Control::on_mouse_double_click(const MouseEventArgs& arguments) {
+void Control::on_mouse_double_click(MouseEventArgs& arguments) {
     if (mouse_events_) (*mouse_events_).mouse_double_click.emit(arguments);
 }
 
@@ -4588,6 +4593,7 @@ void Control::on_preview_key_down(PreviewKeyDownEventArgs& arguments) {
 
 void Control::on_key_down(KeyEventArgs& arguments) {
     if (key_events_) (*key_events_).key_down.emit(arguments);
+    if (arguments.suppress_key_press) arguments.handled = true;
 }
 
 void Control::on_key_press(KeyPressEventArgs& arguments) {
@@ -4596,6 +4602,7 @@ void Control::on_key_press(KeyPressEventArgs& arguments) {
 
 void Control::on_key_up(KeyEventArgs& arguments) {
     if (key_events_) (*key_events_).key_up.emit(arguments);
+    if (arguments.suppress_key_press) arguments.handled = true;
 }
 
 void Control::on_enter() {}

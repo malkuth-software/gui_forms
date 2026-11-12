@@ -795,10 +795,10 @@ public partial class Control : Component
         }
     }
 
-    /// <summary>Control::on_mouse_click: where mouse_click happens; base raises mouse_click; the event's fields are its MouseEventArgs. Windows Forms'
+    /// <summary>Control::on_mouse_click: where mouse_click happens; base raises mouse_click; the event's fields are its MouseEventArgs, writable. Windows Forms'
     /// Control.OnMouseClick. Call the base to run the subscribers.</summary>
     [Hook(Constants.GF_CLASS_CONTROL, 30u)]
-    protected virtual void OnMouseClick(EventArgs e)
+    protected virtual void OnMouseClick(MouseEventArgs e)
     {
         Hooks.call_base(this, HookKeys.control_on_mouse_click, "mouse_click"u8);
     }
@@ -813,7 +813,7 @@ public partial class Control : Component
         {
             Control target = (Control)Instances.from(instance);
             using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_click, self, native, base_raiser);
-            target.OnMouseClick(EventArgs.Empty);
+            target.OnMouseClick(MouseEventArgs.from_native(native));
         }
         catch (Exception failure)
         {
@@ -821,10 +821,10 @@ public partial class Control : Component
         }
     }
 
-    /// <summary>Control::on_mouse_double_click: where mouse_double_click happens; base raises mouse_double_click; the event's fields are its MouseEventArgs. Windows Forms'
+    /// <summary>Control::on_mouse_double_click: where mouse_double_click happens; base raises mouse_double_click; the event's fields are its MouseEventArgs, writable. Windows Forms'
     /// Control.OnMouseDoubleClick. Call the base to run the subscribers.</summary>
     [Hook(Constants.GF_CLASS_CONTROL, 31u)]
-    protected virtual void OnMouseDoubleClick(EventArgs e)
+    protected virtual void OnMouseDoubleClick(MouseEventArgs e)
     {
         Hooks.call_base(this, HookKeys.control_on_mouse_double_click, "mouse_double_click"u8);
     }
@@ -839,7 +839,7 @@ public partial class Control : Component
         {
             Control target = (Control)Instances.from(instance);
             using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_double_click, self, native, base_raiser);
-            target.OnMouseDoubleClick(EventArgs.Empty);
+            target.OnMouseDoubleClick(MouseEventArgs.from_native(native));
         }
         catch (Exception failure)
         {
@@ -847,10 +847,10 @@ public partial class Control : Component
         }
     }
 
-    /// <summary>Control::on_mouse_down: where mouse_down happens; base raises mouse_down; the event's fields are its MouseEventArgs. Windows Forms'
+    /// <summary>Control::on_mouse_down: where mouse_down happens; base raises mouse_down; the event's fields are its MouseEventArgs, writable. Windows Forms'
     /// Control.OnMouseDown. Call the base to run the subscribers.</summary>
     [Hook(Constants.GF_CLASS_CONTROL, 32u)]
-    protected virtual void OnMouseDown(EventArgs e)
+    protected virtual void OnMouseDown(MouseEventArgs e)
     {
         Hooks.call_base(this, HookKeys.control_on_mouse_down, "mouse_down"u8);
     }
@@ -865,7 +865,7 @@ public partial class Control : Component
         {
             Control target = (Control)Instances.from(instance);
             using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_down, self, native, base_raiser);
-            target.OnMouseDown(EventArgs.Empty);
+            target.OnMouseDown(MouseEventArgs.from_native(native));
         }
         catch (Exception failure)
         {
@@ -951,10 +951,10 @@ public partial class Control : Component
         }
     }
 
-    /// <summary>Control::on_mouse_move: where mouse_move happens; base raises mouse_move; the event's fields are its MouseEventArgs. Windows Forms'
+    /// <summary>Control::on_mouse_move: where mouse_move happens; base raises mouse_move; the event's fields are its MouseEventArgs, writable. Windows Forms'
     /// Control.OnMouseMove. Call the base to run the subscribers.</summary>
     [Hook(Constants.GF_CLASS_CONTROL, 36u)]
-    protected virtual void OnMouseMove(EventArgs e)
+    protected virtual void OnMouseMove(MouseEventArgs e)
     {
         Hooks.call_base(this, HookKeys.control_on_mouse_move, "mouse_move"u8);
     }
@@ -969,7 +969,7 @@ public partial class Control : Component
         {
             Control target = (Control)Instances.from(instance);
             using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_move, self, native, base_raiser);
-            target.OnMouseMove(EventArgs.Empty);
+            target.OnMouseMove(MouseEventArgs.from_native(native));
         }
         catch (Exception failure)
         {
@@ -977,10 +977,10 @@ public partial class Control : Component
         }
     }
 
-    /// <summary>Control::on_mouse_up: where mouse_up happens; base raises mouse_up; the event's fields are its MouseEventArgs. Windows Forms'
+    /// <summary>Control::on_mouse_up: where mouse_up happens; base raises mouse_up; the event's fields are its MouseEventArgs, writable. Windows Forms'
     /// Control.OnMouseUp. Call the base to run the subscribers.</summary>
     [Hook(Constants.GF_CLASS_CONTROL, 37u)]
-    protected virtual void OnMouseUp(EventArgs e)
+    protected virtual void OnMouseUp(MouseEventArgs e)
     {
         Hooks.call_base(this, HookKeys.control_on_mouse_up, "mouse_up"u8);
     }
@@ -995,7 +995,7 @@ public partial class Control : Component
         {
             Control target = (Control)Instances.from(instance);
             using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_up, self, native, base_raiser);
-            target.OnMouseUp(EventArgs.Empty);
+            target.OnMouseUp(MouseEventArgs.from_native(native));
         }
         catch (Exception failure)
         {
@@ -1003,10 +1003,10 @@ public partial class Control : Component
         }
     }
 
-    /// <summary>Control::on_mouse_wheel: where mouse_wheel happens; base raises mouse_wheel; the event's fields are its MouseEventArgs. Windows Forms'
+    /// <summary>Control::on_mouse_wheel: where mouse_wheel happens; base raises mouse_wheel; the event's fields are its MouseEventArgs, writable. Windows Forms'
     /// Control.OnMouseWheel. Call the base to run the subscribers.</summary>
     [Hook(Constants.GF_CLASS_CONTROL, 38u)]
-    protected virtual void OnMouseWheel(EventArgs e)
+    protected virtual void OnMouseWheel(MouseEventArgs e)
     {
         Hooks.call_base(this, HookKeys.control_on_mouse_wheel, "mouse_wheel"u8);
     }
@@ -1021,7 +1021,7 @@ public partial class Control : Component
         {
             Control target = (Control)Instances.from(instance);
             using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_wheel, self, native, base_raiser);
-            target.OnMouseWheel(EventArgs.Empty);
+            target.OnMouseWheel(MouseEventArgs.from_native(native));
         }
         catch (Exception failure)
         {

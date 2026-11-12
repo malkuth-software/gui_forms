@@ -17,8 +17,6 @@ public:
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -26,7 +24,19 @@ public:
     bool on_semantic_child_action(std::string_view stable_id, SemanticAction action,
                                   std::string_view value) override;
 
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
+
 private:
+    // The picker's handling of the palette's mouse and keys.
+    void forward_mouse(MouseEventArgs& arguments);
+    void forward_key(KeyEventArgs& arguments, KeyAction action);
     [[nodiscard]] bool picker_alive() const noexcept;
 
     RibbonColorPicker* picker_{};

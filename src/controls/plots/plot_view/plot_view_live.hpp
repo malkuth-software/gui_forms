@@ -147,10 +147,19 @@ public:
 protected:
     void on_attached_to_window() override;
     void on_detached_from_window() noexcept override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
 
 private:
+    // The routed form of a key the raisers left unhandled.
+    void handle_key(KeyEvent& event);
+    // The target phase in the routed form, from the mouse raisers.
+    void handle_pointer(PointerEvent& event);
     // One series' ring on this thread (channels and signals; copied
     // series read their PlotLiveColumns in place).
     struct SeriesData final {

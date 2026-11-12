@@ -21,6 +21,7 @@
 #include "gui_forms/platform/windows_host.hpp"
 #include "support/windows_desktop.hpp"
 #include "support/windows_own_window.hpp"
+#include "support/routed_input_probe.hpp"
 #endif
 
 namespace {
@@ -308,12 +309,12 @@ void check_character_normalization() {
 // WM_MOUSEWHEEL and WM_MOUSEHWHEEL both arrive as wheel events in lines: a
 // notch up scrolls up (positive y) and a tilt right scrolls right, which the
 // portable delta reports as negative x.
-class WheelRecorder final : public Control {
+class WheelRecorder final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit WheelRecorder(StableId id) : Control(std::move(id)) {}
+    explicit WheelRecorder(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
     std::vector<Point> deltas;
     std::vector<WheelDeltaUnit> units;
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (event.action != PointerAction::wheel) return;
         deltas.push_back(event.wheel_delta);
         units.push_back(event.wheel_unit);

@@ -66,6 +66,11 @@ HAND_WRITTEN: frozenset[str] = frozenset({
     'Control::Ptr',
 })
 
+# Payload structs an event lends read-only but a raiser lends writable (the
+# class tables' hook entries read the fields the entry wrote back): Control's
+# mouse raisers take a MouseEventArgs whose handled ends the route.
+LENT_WRITABLE: frozenset[str] = frozenset({'MouseEventArgs'})
+
 # Types no event field carries yet, with the family that takes them.
 DEFERRED: dict[str, str] = {
     'Painter&': 'owner-draw surfaces (C5d)',
@@ -338,6 +343,9 @@ def build() -> Catalog:
         argument: str
         for argument in split_arguments(declaration.payload):
             resolve(catalog, headers, argument, declaration.mutable, declaration.owner + '.' + declaration.name)
+    lent: str
+    for lent in sorted(LENT_WRITABLE):
+        resolve(catalog, headers, lent, True, 'raiser.' + lent)
     catalog.deferred = sorted(set(catalog.deferred))
     return catalog
 

@@ -18,6 +18,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 #include "../src/core/drag_engine/scrub_gesture.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <array>
 #include <cmath>
@@ -205,11 +206,11 @@ public:
 
 // A control owning a gesture, as ValueBar does: a primary press arms it,
 // the rest of the pointer stream goes to it, a click is counted.
-class ScrubPad final : public Control {
+class ScrubPad final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit ScrubPad(StableId stable_id) : Control(std::move(stable_id)), gesture(*this, target) {}
+    explicit ScrubPad(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), gesture(*this, target) {}
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::down && event.button == PointerButton::primary) {
             if (gesture.press(event, lock)) event.handled = true;
             return;

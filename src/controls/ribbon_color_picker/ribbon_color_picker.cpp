@@ -461,49 +461,64 @@ void RibbonColorPicker::palette_paint(Painter& painter) const {
 
 // -- input ---------------------------------------------------------------------
 
-void RibbonColorPicker::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
-    const Zone zone = event.action == PointerAction::leave ? Zone::none : zone_at(local);
-    if (event.action == PointerAction::leave || event.action == PointerAction::move ||
-        event.action == PointerAction::enter) {
-        if (hot_ != zone) {
-            hot_ = zone;
-            invalidate(Dirty::paint);
-        }
-        return;
+void RibbonColorPicker::set_hot_zone(Zone zone) {
+    if (hot_ != zone) {
+        hot_ = zone;
+        invalidate(Dirty::paint);
     }
-    if (event.button != PointerButton::primary || !enabled_to_use()) return;
-    const Control::Ptr lifetime = shared_from_this();
-    if (event.action == PointerAction::down) {
-        event.handled = zone != Zone::none;
+}
+
+// The hot zone follows the pointer's moves (the move that enters the
+// picker sets it).
+void RibbonColorPicker::on_mouse_move(MouseEventArgs& arguments) {
+    if (eligible_for_input()) set_hot_zone(zone_at(arguments.location));
+    Control::on_mouse_move(arguments);
+}
+
+void RibbonColorPicker::on_mouse_leave() {
+    if (eligible_for_input()) set_hot_zone(Zone::none);
+    Control::on_mouse_leave();
+}
+
+void RibbonColorPicker::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary && enabled_to_use()) {
+        const Control::Ptr lifetime = shared_from_this();
+        const Zone zone = zone_at(arguments.location);
+        arguments.handled = zone != Zone::none;
         if (zone == Zone::arrow) {
             if (palette_open_) {
                 close_palette();
             } else {
                 static_cast<void>(open_palette(MenuOpenMode::pointer));
             }
-            return;
+        } else {
+            pressed_ = zone;
+            invalidate(Dirty::paint);
         }
-        pressed_ = zone;
-        invalidate(Dirty::paint);
-        return;
     }
-    if (event.action != PointerAction::up) return;
-    const Zone pressed = pressed_;
-    pressed_ = Zone::none;
-    invalidate(Dirty::paint);
-    // A click on the face applies the current colour again.
-    if (pressed == Zone::face && zone == Zone::face) {
-        event.handled = true;
-        commit(value.read());
-    }
+    Control::on_mouse_down(arguments);
 }
 
-void RibbonColorPicker::on_key(KeyEvent& event) {
-    if (event.action != KeyAction::down || !enabled_to_use()) return;
-    const std::uint32_t key = event.physical_key;
+void RibbonColorPicker::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary && enabled_to_use()) {
+        const Control::Ptr lifetime = shared_from_this();
+        const Zone zone = zone_at(arguments.location);
+        const Zone pressed = pressed_;
+        pressed_ = Zone::none;
+        invalidate(Dirty::paint);
+        // A click on the face applies the current colour again.
+        if (pressed == Zone::face && zone == Zone::face) {
+            arguments.handled = true;
+            commit(value.read());
+        }
+    }
+    Control::on_mouse_up(arguments);
+}
+
+void RibbonColorPicker::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !enabled_to_use()) return;
+    const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::enter || key == PhysicalKey::space) {
         commit(value.read());
     } else if (key == PhysicalKey::down || key == PhysicalKey::f4) {
@@ -511,7 +526,7 @@ void RibbonColorPicker::on_key(KeyEvent& event) {
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 void RibbonColorPicker::on_focus_changed(bool focused) {
@@ -921,16 +936,63 @@ void RibbonColorPalette::on_paint(Painter& painter, Rect) {
     if (picker_alive()) (*picker_).palette_paint(painter);
 }
 
-void RibbonColorPalette::on_pointer(PointerEvent& event) {
+// The palette's mouse and keys are the picker's (palette_pointer,
+// palette_key), before the events are raised.
+void RibbonColorPalette::forward_mouse(MouseEventArgs& arguments) {
     if (!picker_alive()) return;
     const Control::Ptr lifetime = shared_from_this();
+    PointerEvent event = pointer_event_of(arguments);
     (*picker_).palette_pointer(event);
+    arguments.handled = event.handled;
 }
 
-void RibbonColorPalette::on_key(KeyEvent& event) {
-    if (!picker_alive()) return;
+void RibbonColorPalette::on_mouse_down(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void RibbonColorPalette::on_mouse_up(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void RibbonColorPalette::on_mouse_move(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void RibbonColorPalette::on_mouse_wheel(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void RibbonColorPalette::on_mouse_leave() {
+    if (picker_alive()) {
+        const Control::Ptr lifetime = shared_from_this();
+        PointerEvent leave{};
+        leave.action = PointerAction::leave;
+        (*picker_).palette_pointer(leave);
+    }
+    Control::on_mouse_leave();
+}
+
+void RibbonColorPalette::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    forward_key(arguments, KeyAction::down);
+}
+
+void RibbonColorPalette::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    forward_key(arguments, KeyAction::up);
+}
+
+// A key no subscriber handled.
+void RibbonColorPalette::forward_key(KeyEventArgs& arguments, KeyAction action) {
+    if (!picker_alive() || arguments.handled || arguments.released_by_deactivation) return;
     const Control::Ptr lifetime = shared_from_this();
+    KeyEvent event = key_event_of(arguments, action);
     (*picker_).palette_key(event);
+    arguments.handled = event.handled;
 }
 
 void RibbonColorPalette::on_focus_changed(bool focused) {

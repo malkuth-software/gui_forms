@@ -545,32 +545,42 @@ void BreadcrumbTrail::activate_visible(std::size_t index) {
     }
 }
 
-void BreadcrumbTrail::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input() || editing.read()) return;
-    if (event.action == PointerAction::move) {
-        const std::optional<std::size_t> hovered = visible_index_at(event.position);
+void BreadcrumbTrail::on_mouse_move(MouseEventArgs& arguments) {
+    if (eligible_for_input() && !editing.read()) {
+        const std::optional<std::size_t> hovered = visible_index_at(arguments.window_position);
         if (hovered != hovered_visible_) {
             hovered_visible_ = hovered;
             invalidate(Dirty::paint);
         }
-        return;
     }
-    if (event.action == PointerAction::leave) {
+    Control::on_mouse_move(arguments);
+}
+
+void BreadcrumbTrail::on_mouse_leave() {
+    if (eligible_for_input() && !editing.read()) {
         hovered_visible_.reset();
         invalidate(Dirty::paint);
-        return;
     }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down) {
+    Control::on_mouse_leave();
+}
+
+void BreadcrumbTrail::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && !editing.read() && arguments.button == PointerButton::primary) {
         if (window()) static_cast<void>((*window()).request_focus(shared_from_this()));
-        pressed_visible_ = visible_index_at(event.position);
-        event.handled = pressed_visible_.has_value();
-    } else if (event.action == PointerAction::up) {
-        const std::optional<std::size_t> released = visible_index_at(event.position);
+        pressed_visible_ = visible_index_at(arguments.window_position);
+        arguments.handled = pressed_visible_.has_value();
+    }
+    Control::on_mouse_down(arguments);
+}
+
+void BreadcrumbTrail::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && !editing.read() && arguments.button == PointerButton::primary) {
+        const std::optional<std::size_t> released = visible_index_at(arguments.window_position);
         if (released && released == pressed_visible_) activate_visible(*released);
-        event.handled = released.has_value();
+        arguments.handled = released.has_value();
         pressed_visible_.reset();
     }
+    Control::on_mouse_up(arguments);
 }
 
 void BreadcrumbTrail::on_key_preview(KeyEvent& event) {
@@ -583,9 +593,9 @@ void BreadcrumbTrail::on_key_preview(KeyEvent& event) {
     event.handled = true;
 }
 
-void BreadcrumbTrail::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.read() || editing.read() ||
-        event.action != KeyAction::down || visible_items_.empty()) return;
+void BreadcrumbTrail::on_key_down(KeyEventArgs& arguments) {
+    Panel::on_key_down(arguments);
+    if (arguments.handled || !focused_ || !enabled.read() || editing.read() || visible_items_.empty()) return;
     std::size_t active{};
     for (std::size_t index = 0U; index < visible_items_.size(); ++index) {
         const std::string_view identity = visible_stable_id(visible_items_[index]);
@@ -594,26 +604,26 @@ void BreadcrumbTrail::on_key(KeyEvent& event) {
             break;
         }
     }
-    if (event.physical_key == PhysicalKey::enter ||
-        event.physical_key == PhysicalKey::space) {
+    if (arguments.physical_key == PhysicalKey::enter ||
+        arguments.physical_key == PhysicalKey::space) {
         activate_visible(active);
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
     // Right to left the trail reads from the right: Left moves on.
     const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
     const std::uint32_t back_key = mirrored ? PhysicalKey::right : PhysicalKey::left;
     const std::uint32_t onward_key = mirrored ? PhysicalKey::left : PhysicalKey::right;
-    if (event.physical_key == back_key && active > 0U) --active;
-    else if (event.physical_key == onward_key &&
+    if (arguments.physical_key == back_key && active > 0U) --active;
+    else if (arguments.physical_key == onward_key &&
              active + 1U < visible_items_.size()) ++active;
-    else if (event.physical_key == PhysicalKey::home) active = 0U;
-    else if (event.physical_key == PhysicalKey::end) {
+    else if (arguments.physical_key == PhysicalKey::home) active = 0U;
+    else if (arguments.physical_key == PhysicalKey::end) {
         active = visible_items_.size() - 1U;
     } else return;
     active_id_ = std::string(visible_stable_id(visible_items_[active]));
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
-    event.handled = true;
+    arguments.handled = true;
 }
 
 void BreadcrumbTrail::on_focus_changed(bool focused) {

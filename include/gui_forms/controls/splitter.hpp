@@ -71,7 +71,6 @@ public:
     [[nodiscard]] Event<const DragInteraction&>& drag_ended() noexcept { return drag_interactions_.ended; }
 
     [[nodiscard]] Size measure(Size available) override;
-    void on_pointer(PointerEvent& event) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
@@ -96,6 +95,12 @@ public:
     [[nodiscard]] States states() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_enter() override;
+    void on_mouse_leave() override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
@@ -132,6 +137,8 @@ private:
     DragInteractionEvents drag_interactions_{};
     // property_codemod begin Splitter (tools/property_families/splitter.json; generated, do not edit)
 private:
+    void set_hot_from_pointer(bool inside);
+    void drag_pointer(MouseEventArgs& arguments);
     friend struct SplitterMinSizeCapability<Splitter>;
     friend struct SplitterMinExtraCapability<Splitter>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).

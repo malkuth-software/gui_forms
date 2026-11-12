@@ -77,7 +77,6 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
     [[nodiscard]] SemanticTextResult on_semantic_text_layout(SemanticTextLayout& layout) override;
@@ -102,6 +101,11 @@ public:
     [[nodiscard]] Parts parts() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void on_detached_from_window() noexcept override;
@@ -173,6 +177,8 @@ protected:
     virtual void on_text_changed();
 
 private:
+    bool over_clear(Point window_position) const;
+    void set_hot_clear(bool hot);
     friend struct SearchFieldTextCapability<SearchField>;
     friend struct SearchFieldPlaceholderTextCapability<SearchField>;
     friend struct SearchFieldSearchDelayCapability<SearchField>;

@@ -48,6 +48,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/window.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -284,7 +285,7 @@ void test_track_bar_follows() {
             "a right-to-left track bar puts its minimum at the right edge");
     KeyEvent left{};
     left.physical_key = PhysicalKey::left;
-    (*bar).on_key(left);
+    gui_forms::detail::ControlInputAccess::on_key(*bar, left);
     require(left.handled && (*bar).value.read() > 0.0, "on a right-to-left track bar Left moves the thumb left: up");
 }
 
@@ -483,11 +484,11 @@ void test_object_view_follows() {
     KeyEvent header{};
     header.action = KeyAction::down;
     header.physical_key = PhysicalKey::f6;
-    (*view).on_key(header);
+    gui_forms::detail::ControlInputAccess::on_key(*view, header);
     KeyEvent left{};
     left.action = KeyAction::down;
     left.physical_key = PhysicalKey::left;
-    (*view).on_key(left);
+    gui_forms::detail::ControlInputAccess::on_key(*view, left);
     const std::vector<ObjectView::Column> moved = (*view).realized_columns();
     require(left.handled && moved.size() >= 2U && moved[1].states.current && !moved[0].states.current,
             "on a right-to-left object view Left moves the header focus to the next column");

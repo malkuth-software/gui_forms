@@ -1,5 +1,6 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
+#include "support/routed_input_probe.hpp"
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -16,11 +17,11 @@ HostCapabilities capabilities() {
     result.available = HostCapability::cursor | HostCapability::pointer_capture | HostCapability::dialogs;
     return result;
 }
-class Root final : public Control {
+class Root final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    Root() : Control(StableId("cursor-root")) {}
+    Root() : gui_forms::tests::RoutedInputProbe<Control>(StableId("cursor-root")) {}
     unsigned motions{};
-    void on_pointer(PointerEvent&) override { ++motions; }
+    void routed_pointer(PointerEvent&) override { ++motions; }
 };
 class Services final : public HostServices {
 public:

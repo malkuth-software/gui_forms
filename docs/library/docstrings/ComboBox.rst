@@ -121,10 +121,12 @@ text_changed
 
 Methods
 -------
-on_pointer
-    Opens the overlay list on a primary press. The window calls it.
-on_key
-    Handles the keyboard input described under Notes. The window calls it.
+on_mouse_down
+    Opens the overlay list on a primary press, then raises the event. The
+    window calls it.
+on_key_down
+    Raises the event, then handles a key its subscribers left unhandled as
+    described under Notes. The window calls it.
 on_key_preview
     In the drop_down style, sees the editor's keys first and handles F4,
     Alt+Down, Up and Down, and Enter and Escape while the list is open. The

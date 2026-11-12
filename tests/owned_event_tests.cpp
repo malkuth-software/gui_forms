@@ -6,6 +6,7 @@
 #include "gui_forms/value.hpp"
 #include "gui_forms/collection_controls.hpp"
 #include "gui_forms/window.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <array>
 #include <cstddef>
@@ -735,7 +736,7 @@ void test_shared_scalar_state() {
             "accessibility must observe the bound value");
     gf::KeyEvent input{.action = gf::KeyAction::down,
                       .physical_key = gf::PhysicalKey::left};
-    first.on_key(input);
+    gui_forms::detail::ControlInputAccess::on_key(first, input);
     require(input.handled && observer.inputs == 1 && volume.get() == first.value.read(),
             "keyboard input must update the shared model and emit the input event");
     second.maximum = 50.0;
@@ -870,12 +871,12 @@ void test_command_bar_rebuild_and_keyboard() {
             "command bar must publish toolbar semantics and named item parts");
     static_cast<void>(window.request_focus((*bar).item(0).shared_from_this()));
     gf::KeyEvent right{.physical_key = gf::PhysicalKey::right};
-    (*bar).on_key(right);
+    gui_forms::detail::ControlInputAccess::on_key(*bar, right);
     require(right.handled && window.focused_control().get() == reused &&
                 !(*bar).item(0).tab_stop.read() && (*bar).item(1).tab_stop.read(),
             "arrow navigation must maintain a single tab stop");
     gf::KeyEvent tab{.physical_key = gf::PhysicalKey::tab};
-    (*bar).on_key(tab);
+    gui_forms::detail::ControlInputAccess::on_key(*bar, tab);
     require(!tab.handled, "Tab must leave command-bar traversal to the Window");
 
     const std::shared_ptr<gf::CommandBar> rebuilding =
@@ -921,7 +922,7 @@ void test_choice_group_state_and_rebuild() {
             "shrinking a choice list reuses controls and clears a removed selection");
     const int before = observer.choices;
     gf::KeyEvent right{.physical_key = gf::PhysicalKey::right};
-    (*group).on_key(right);
+    gui_forms::detail::ControlInputAccess::on_key(*group, right);
     require(right.handled && model.get() == 0 && observer.choices == before + 1,
             "arrow keys select choices through the shared model");
 }

@@ -85,10 +85,6 @@ public:
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
-    void on_pointer(PointerEvent& event) override;
-    // Escape closes a shown callout, whether focus is on the callout itself
-    // (on_key; the bubble phase passes over the focused control) or within it.
-    void on_key(KeyEvent& event) override;
     void on_key_bubble(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
@@ -110,6 +106,16 @@ public:
     class Layer;
 
 protected:
+    // Escape closes a shown callout, whether focus is on the callout itself
+    // (on_key_down; the bubble phase passes over the focused control) or within it.
+    void on_key_down(KeyEventArgs& arguments) override;
+
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void on_dispose() noexcept override;
 

@@ -16,6 +16,7 @@
 #include "gui_forms/text/markdown/markdown.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -37,10 +38,10 @@ using Log = std::vector<std::string>;
 
 // A focusable control that logs its own key and text handling and handles
 // nothing unless told to.
-class Probe final : public Control {
+class Probe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    Probe(StableId stable_id, Log& log) : Control(std::move(stable_id)), log_(log) { focusable = true; }
-    void on_key(KeyEvent& event) override {
+    Probe(StableId stable_id, Log& log) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), log_(log) { focusable = true; }
+    void routed_key(KeyEvent& event) override {
         log_.push_back(event.action == KeyAction::down ? "on_key:down" : "on_key:up");
         event.handled = handles_keys;
     }

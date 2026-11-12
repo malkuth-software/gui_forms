@@ -1049,7 +1049,7 @@ internal sealed class Direct17 : ButtonBase
         this.log = log;
     }
 
-    protected override void OnMouseClick(EventArgs e)
+    protected override void OnMouseClick(MouseEventArgs e)
     {
         log.marks.Add('B');
         if (log.mode == OverrideMode.suppress)
@@ -1063,7 +1063,7 @@ internal sealed class Direct17 : ButtonBase
     /// <summary>The hook called directly, as Windows Forms allows.</summary>
     public void raise_directly()
     {
-        OnMouseClick(EventArgs.Empty);
+        OnMouseClick(new MouseEventArgs());
     }
 }
 
@@ -1078,7 +1078,7 @@ internal sealed class Direct18 : ButtonBase
         this.log = log;
     }
 
-    protected override void OnMouseDoubleClick(EventArgs e)
+    protected override void OnMouseDoubleClick(MouseEventArgs e)
     {
         log.marks.Add('B');
         if (log.mode == OverrideMode.suppress)
@@ -1092,7 +1092,7 @@ internal sealed class Direct18 : ButtonBase
     /// <summary>The hook called directly, as Windows Forms allows.</summary>
     public void raise_directly()
     {
-        OnMouseDoubleClick(EventArgs.Empty);
+        OnMouseDoubleClick(new MouseEventArgs());
     }
 }
 
@@ -1107,7 +1107,7 @@ internal sealed class Direct19 : ButtonBase
         this.log = log;
     }
 
-    protected override void OnMouseDown(EventArgs e)
+    protected override void OnMouseDown(MouseEventArgs e)
     {
         log.marks.Add('B');
         if (log.mode == OverrideMode.suppress)
@@ -1121,7 +1121,7 @@ internal sealed class Direct19 : ButtonBase
     /// <summary>The hook called directly, as Windows Forms allows.</summary>
     public void raise_directly()
     {
-        OnMouseDown(EventArgs.Empty);
+        OnMouseDown(new MouseEventArgs());
     }
 }
 
@@ -1223,7 +1223,7 @@ internal sealed class Direct23 : ButtonBase
         this.log = log;
     }
 
-    protected override void OnMouseMove(EventArgs e)
+    protected override void OnMouseMove(MouseEventArgs e)
     {
         log.marks.Add('B');
         if (log.mode == OverrideMode.suppress)
@@ -1237,7 +1237,7 @@ internal sealed class Direct23 : ButtonBase
     /// <summary>The hook called directly, as Windows Forms allows.</summary>
     public void raise_directly()
     {
-        OnMouseMove(EventArgs.Empty);
+        OnMouseMove(new MouseEventArgs());
     }
 }
 
@@ -1252,7 +1252,7 @@ internal sealed class Direct24 : ButtonBase
         this.log = log;
     }
 
-    protected override void OnMouseUp(EventArgs e)
+    protected override void OnMouseUp(MouseEventArgs e)
     {
         log.marks.Add('B');
         if (log.mode == OverrideMode.suppress)
@@ -1266,7 +1266,7 @@ internal sealed class Direct24 : ButtonBase
     /// <summary>The hook called directly, as Windows Forms allows.</summary>
     public void raise_directly()
     {
-        OnMouseUp(EventArgs.Empty);
+        OnMouseUp(new MouseEventArgs());
     }
 }
 
@@ -1281,7 +1281,7 @@ internal sealed class Direct25 : ButtonBase
         this.log = log;
     }
 
-    protected override void OnMouseWheel(EventArgs e)
+    protected override void OnMouseWheel(MouseEventArgs e)
     {
         log.marks.Add('B');
         if (log.mode == OverrideMode.suppress)
@@ -1295,7 +1295,7 @@ internal sealed class Direct25 : ButtonBase
     /// <summary>The hook called directly, as Windows Forms allows.</summary>
     public void raise_directly()
     {
-        OnMouseWheel(EventArgs.Empty);
+        OnMouseWheel(new MouseEventArgs());
     }
 }
 

@@ -8,7 +8,9 @@ class CalendarOverlayLayer final : public Panel {
 public:
     explicit CalendarOverlayLayer(StableId stable_id);
     [[nodiscard]] Event<>& dismissed() noexcept { return dismissed_; }
-    void on_pointer(PointerEvent& event) override;
+
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
 
 private:
     Event<> dismissed_;

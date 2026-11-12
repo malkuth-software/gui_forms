@@ -58,7 +58,6 @@ public:
     // their ticks due at `now`, and their extent invalidated; false when
     // the bar was not painted since its last frame.
     bool on_ambient_frame(FrameTime now) override;
-    void on_pointer(PointerEvent& event) override;
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -84,6 +83,11 @@ public:
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
     void on_attached_to_window() override;
     void on_detached_from_window() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
@@ -185,6 +189,7 @@ public:
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
 private:
+    void note_effect_pointer(const PointerEvent& event);
     friend struct ProgressBarVisualStyleChoiceCapability<ProgressBar>;
     friend struct ProgressBarOverlayStyleChoiceCapability<ProgressBar>;
     friend struct ProgressBarStripeWidthCapability<ProgressBar>;

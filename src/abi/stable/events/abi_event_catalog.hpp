@@ -1046,6 +1046,7 @@ void append_field(EventFields& fields, std::string_view name, const MenuStripInv
 void append_field(EventFields& fields, std::string_view name, const ModalLayerClosingEvent& value);
 void read_field(EventFields& fields, std::string_view name, ModalLayerClosingEvent& value);
 void append_field(EventFields& fields, std::string_view name, const MouseEventArgs& value);
+void read_field(EventFields& fields, std::string_view name, MouseEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const NavigationPaneOptionsRequest& value);
 void append_field(EventFields& fields, std::string_view name, const NavigationPaneState& value);
 void append_field(EventFields& fields, std::string_view name, const NotifyIconClick& value);
@@ -2210,6 +2211,27 @@ inline void append_field(EventFields& fields, std::string_view name, const Mouse
     append_field(fields, "window_position", value.window_position);
     append_field(fields, "wheel_delta", value.wheel_delta);
     append_field(fields, "modifiers", value.modifiers);
+    append_field(fields, "action", value.action);
+    append_field(fields, "wheel_unit", value.wheel_unit);
+    append_field(fields, "pointer_id", value.pointer_id);
+    append_field(fields, "phase", value.phase);
+    append_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, MouseEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "button", value.button);
+    read_field(fields, "clicks", value.clicks);
+    read_field(fields, "location", value.location);
+    read_field(fields, "window_position", value.window_position);
+    read_field(fields, "wheel_delta", value.wheel_delta);
+    read_field(fields, "modifiers", value.modifiers);
+    read_field(fields, "action", value.action);
+    read_field(fields, "wheel_unit", value.wheel_unit);
+    read_field(fields, "pointer_id", value.pointer_id);
+    read_field(fields, "phase", value.phase);
+    read_field(fields, "handled", value.handled);
     fields.leave(prefix);
 }
 

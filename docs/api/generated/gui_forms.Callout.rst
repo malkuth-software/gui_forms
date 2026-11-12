@@ -152,12 +152,6 @@ gui_forms::Callout
 
    .. cpp:function:: Insets visual_outsets() const noexcept override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Escape closes a shown callout, whether focus is on the callout itself (on_key; the bubble phase passes over the focused control) or within it.
-
    .. cpp:function:: void on_key_bubble(KeyEvent& event) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -169,6 +163,32 @@ gui_forms::Callout
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
 
    .. cpp:function:: bool hit_test_local(Point local) const override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Escape closes a shown callout, whether focus is on the callout itself (on_key_down; the bubble phase passes over the focused control) or within it.
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 

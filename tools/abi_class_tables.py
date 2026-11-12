@@ -84,6 +84,36 @@ POINTER_BYTES: int = 8
 # Parameter types a default value cannot stand for: base called outside an
 # entry (a C# OnX called directly) refuses these raisers.
 NEEDS_RAISE_ARGUMENTS: frozenset[str] = frozenset({"PaintEventArgs"})
+
+# The managed arguments an OnX receives, by the C++ parameter type: a
+# hand-written class in bindings/csharp/GuiForms.Forms that reads the entry's
+# event fields (from_native) and writes back the ones a hook may set. Other
+# OnX take EventArgs.
+MANAGED_ARGUMENTS: dict[str, str] = {"MouseEventArgs": "MouseEventArgs"}
+
+
+def managed_arguments(raiser: "Raiser") -> str:
+    """The managed type of raiser's OnX parameter."""
+    parameter: Parameter | None = raiser.parameter
+    if parameter is None:
+        return "EventArgs"
+    return MANAGED_ARGUMENTS.get(parameter.type_name, "EventArgs")
+
+
+def managed_from_native(raiser: "Raiser") -> str:
+    """The expression an entry passes to raiser's OnX."""
+    managed: str = managed_arguments(raiser)
+    if managed == "EventArgs":
+        return "EventArgs.Empty"
+    return f"{managed}.from_native(native)"
+
+
+def managed_made(raiser: "Raiser") -> str:
+    """The arguments managed code passes when it calls raiser's OnX directly."""
+    managed: str = managed_arguments(raiser)
+    if managed == "EventArgs":
+        return "EventArgs.Empty"
+    return f"new {managed}()"
 # Words the C# hook names spell in capitals (OnChangeUICues).
 CSHARP_ACRONYMS: dict[str, str] = {"ui": "UI"}
 # The ABI types the outputs name.
@@ -961,7 +991,7 @@ def cs_class(model: Model, name: str) -> str:
                   f"    /// <summary>{raiser.cpp_class}::{raiser.method}: {raiser_text(raiser)}. Windows Forms'",
                   f"    /// {', '.join(sorted(set(raiser.winforms)))}. Call the base to run the subscribers.</summary>",
                   f"    [Hook(Constants.{constant(model, name)}, {entry_index(model, raiser)}u)]",
-                  f"    protected virtual void {raiser.hook_name}(EventArgs e)",
+                  f"    protected virtual void {raiser.hook_name}({managed_arguments(raiser)} e)",
                   "    {",
                   f'        Hooks.call_base(this, {key}, "{raiser.event_name}"u8);',
                   "    }",
@@ -977,7 +1007,7 @@ def cs_class(model: Model, name: str) -> str:
                   "        {",
                   f"            {name} target = ({name})Instances.from(instance);",
                   f"            using HookFrame frame = HookFrame.enter(target, {key}, self, native, base_raiser);",
-                  f"            target.{raiser.hook_name}(EventArgs.Empty);",
+                  f"            target.{raiser.hook_name}({managed_from_native(raiser)});",
                   "        }",
                   "        catch (Exception failure)",
                   "        {",
@@ -1706,7 +1736,7 @@ def csharp_direct_class(case: DirectCase, index: int) -> list[str]:
             "        this.log = log;",
             "    }",
             "",
-            f"    protected override void {raiser.hook_name}(EventArgs e)",
+            f"    protected override void {raiser.hook_name}({managed_arguments(raiser)} e)",
             "    {",
             "        log.marks.Add('B');",
             "        if (log.mode == OverrideMode.suppress)",
@@ -1720,7 +1750,7 @@ def csharp_direct_class(case: DirectCase, index: int) -> list[str]:
             "    /// <summary>The hook called directly, as Windows Forms allows.</summary>",
             "    public void raise_directly()",
             "    {",
-            f"        {raiser.hook_name}(EventArgs.Empty);",
+            f"        {raiser.hook_name}({managed_made(raiser)});",
             "    }",
             "}",
             ""]
@@ -1771,7 +1801,7 @@ def render_csharp_test(model: Model) -> str:
                   "        this.log = log;",
                   "    }",
                   "",
-                  f"    protected override void {raiser.hook_name}(EventArgs e)",
+                  f"    protected override void {raiser.hook_name}({managed_arguments(raiser)} e)",
                   "    {",
                   "        log.marks.Add('B');",
                   "        if (log.mode == OverrideMode.suppress)",
@@ -1785,7 +1815,7 @@ def render_csharp_test(model: Model) -> str:
                   "    /// <summary>The hook called directly, as Windows Forms allows.</summary>",
                   "    public void raise_directly()",
                   "    {",
-                  f"        {raiser.hook_name}(EventArgs.Empty);",
+                  f"        {raiser.hook_name}({managed_made(raiser)});",
                   "    }",
                   "}",
                   ""]

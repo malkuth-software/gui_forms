@@ -13,6 +13,7 @@
 #include "../src/core/application/splashscreen_surface.hpp"
 #include "../src/host/linux/application/linux_host_internal.hpp"
 #include "gui_forms/basic_controls.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
@@ -101,11 +102,11 @@ private:
 
 // The window's root: a grey ground that records where the last press
 // landed, in the window's logical units.
-class PressProbe final : public Control {
+class PressProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-  explicit PressProbe(StableId id) : Control(std::move(id)) {}
+  explicit PressProbe(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
   void on_paint(Painter &painter, Rect) override { painter.fill_rect(client_rectangle(), Color::rgba(128, 128, 128)); }
-  void on_pointer(PointerEvent &event) override {
+  void routed_pointer(PointerEvent &event) override {
     if (event.action != PointerAction::down)
       return;
     pressed = event.position;

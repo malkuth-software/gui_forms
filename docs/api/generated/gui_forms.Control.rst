@@ -1762,21 +1762,11 @@ gui_forms::Control
 
    .. cpp:function:: virtual void on_pointer_preview(PointerEvent& event)
 
-   .. cpp:function:: virtual void on_pointer(PointerEvent& event)
-
-      Override to handle a pointer event when this control is the target. Set
-      ``handled`` to stop it bubbling. ``on_pointer_preview`` runs before it from
-      the root down, and ``on_pointer_bubble`` after it from the parent up.
+      The pointer and key routes' preview (root to target) and bubble (target to root) phases. The target phase is the interaction raisers (on_mouse_down, on_key_down and the rest, below).
 
    .. cpp:function:: virtual void on_pointer_bubble(PointerEvent& event)
 
    .. cpp:function:: virtual void on_key_preview(KeyEvent& event)
-
-   .. cpp:function:: virtual void on_key(KeyEvent& event)
-
-      Override to handle a key while this control has focus. Set ``handled`` to
-      stop it bubbling and to keep it from accelerators, dialog keys and Tab
-      traversal. ``on_key_preview`` and ``on_key_bubble`` run around it.
 
    .. cpp:function:: virtual void on_key_bubble(KeyEvent& event)
 
@@ -1940,6 +1930,154 @@ gui_forms::Control
    .. cpp:function:: virtual void on_tab_stop_changed()
 
       *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_down(MouseEventArgs& arguments)
+
+      *Protected.*
+
+      Override to handle a press when this control is the pointer event's
+      target; ``on_mouse_up``, ``on_mouse_move`` and ``on_mouse_wheel`` take the
+      release, a move and a wheel turn the same way. Do the control's own
+      handling, then call the base, which raises the event to its
+      subscribers. Set ``handled`` in the arguments to stop the event bubbling.
+      ``on_pointer_preview`` runs before it from the root down, and
+      ``on_pointer_bubble`` after it from the parent up.
+
+   .. cpp:function:: virtual void on_mouse_up(MouseEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_move(MouseEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_wheel(MouseEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_enter()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_hover()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_leave()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_capture_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_click()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_double_click()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_click(MouseEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_double_click(MouseEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_preview_key_down(PreviewKeyDownEventArgs& arguments)
+
+      *Protected.*
+
+      The keys, on the focused control. on_preview_key_down runs first for a key down; setting is_input_key keeps the key from dialog processing. on_key_down and on_key_up are the target phase of the key route, after the window's own key_down and key_up and the preview route: the base raises the event and turns suppress_key_press into handled; a control's own key handling runs in its override after the base call, and only when handled is still clear, so a subscriber that sets handled keeps the key from the control as well as from the bubble route. on_key_press runs for the committed text a key produced, after the window's key_press. A key_up the window raises because it lost activation (released_by_deactivation) also runs on_key_up; a control's handling skips it.
+
+   .. cpp:function:: virtual void on_key_down(KeyEventArgs& arguments)
+
+      *Protected.*
+
+      Override to handle a key while this control has focus; ``on_key_up``
+      takes the release. Call the base first, which raises the event to its
+      subscribers, and skip a key they handled. Set ``handled`` to stop the key
+      bubbling and to keep it from accelerators, dialog keys and Tab
+      traversal. ``on_key_preview`` and ``on_key_bubble`` run around it.
+
+   .. cpp:function:: virtual void on_key_press(KeyPressEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_key_up(KeyEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_enter()
+
+      *Protected.*
+
+      Focus. When the control gains focus: on_enter, on_focus_changed(true), then on_got_focus, whose base raises focus_observed(true). When it loses focus: on_focus_changed(false), on_lost_focus (whose base raises focus_observed(false)), then on_leave. Validation (on_validating, on_validated) runs before the change, from perform_validation. on_enter and on_leave run on the focused control only: a container whose subtree gains or loses focus is not told yet, and they raise no event yet.
+
+   .. cpp:function:: virtual void on_got_focus()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_lost_focus()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_leave()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_validating(ControlValidationEvent& event)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_validated()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_help_requested(HelpRequestEvent& request)
+
+      *Protected.*
+
+      HelpProvider's request for this control (F1 or the help button), before the provider's own help_requested.
+
+   .. cpp:function:: virtual void on_drag_enter(DragEvent& event)
+
+      *Protected.*
+
+      A drag over a control that allows drops, by its action, after on_drag has seen it at the target phase. They raise no event yet; an override may set accepted_effect and handled as on_drag does.
+
+   .. cpp:function:: virtual void on_drag_over(DragEvent& event)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_drag_drop(DragEvent& event)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_drag_leave(DragEvent& event)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_layout()
+
+      *Protected.*
+
+      Runs in the window's layout pass right after arrange placed the control and its children, under the same rules as arrange. It raises no event yet.
+
+   .. cpp:function:: virtual void on_paint_background(PaintEventArgs& arguments)
+
+      *Protected.*
+
+      Paints the control's background, before its owned decorations and on_paint: the base paints the back colour and the authored surface. An override that does not call the base leaves the background unpainted. No event.
+
+   .. cpp:function:: virtual void on_change_ui_cues(bool visible)
+
+      *Protected.*
+
+      The window's focus cue appeared (visible) or went away, on the focused control after on_focus_cue_changed (Windows Forms' OnChangeUICues). It raises no event yet.
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -2211,7 +2349,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 208 supported, 0 deferred, 12 excluded, 337 unclassified; 200 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 229 supported, 0 deferred, 12 excluded, 314 unclassified; 198 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -3108,12 +3246,12 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
      - unclassified (untested)
    * - method
      - ``OnChangeUICues``
-     - none
-     - unclassified (hook)
+     - ``on_change_ui_cues``
+     - supported
    * - method
      - ``OnClick``
-     - none
-     - unclassified (hook)
+     - ``on_click``
+     - supported
    * - method
      - ``OnClientSizeChanged``
      - none
@@ -3152,8 +3290,8 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
      - unclassified (untested)
    * - method
      - ``OnDoubleClick``
-     - none
-     - unclassified (hook)
+     - ``on_double_click``
+     - unclassified (untested)
    * - method
      - ``OnDpiChangedAfterParent``
      - none
@@ -3164,28 +3302,28 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
      - unclassified (hook)
    * - method
      - ``OnDragDrop``
-     - none
-     - unclassified (hook)
+     - ``on_drag_drop``
+     - supported
    * - method
      - ``OnDragEnter``
-     - none
-     - unclassified (hook)
+     - ``on_drag_enter``
+     - supported
    * - method
      - ``OnDragLeave``
-     - none
-     - unclassified (hook)
+     - ``on_drag_leave``
+     - unclassified (untested)
    * - method
      - ``OnDragOver``
-     - none
-     - unclassified (hook)
+     - ``on_drag_over``
+     - unclassified (untested)
    * - method
      - ``OnEnabledChanged``
      - ``on_enabled_changed``
      - unclassified (untested)
    * - method
      - ``OnEnter``
-     - none
-     - unclassified (hook)
+     - ``on_enter``
+     - supported
    * - method
      - ``OnFontChanged``
      - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``RichTextBox``, ``Label``, ``ListBox``, ``CheckedListBox``, ``ComboBox``, ``TreeView``, ``ObjectView``, ``ListView``, ``DataGridView``, ``CheckBox``, ``RadioButton``, ``DateTimePicker``, ``MonthCalendar``, ``GroupBox``
@@ -3200,8 +3338,8 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
      - unclassified (hook)
    * - method
      - ``OnGotFocus``
-     - none
-     - unclassified (hook)
+     - ``on_got_focus``
+     - supported
    * - method
      - ``OnHandleCreated``
      - none
@@ -3212,8 +3350,8 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
      - excluded: no window handle: GUI.Forms controls are not native windows (ADR-001) (On\* hooks (d) list)
    * - method
      - ``OnHelpRequested``
-     - none
-     - unclassified (hook)
+     - ``on_help_requested``
+     - supported
    * - method
      - ``OnImeModeChanged``
      - none
@@ -3224,76 +3362,76 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
      - unclassified (hook)
    * - method
      - ``OnKeyDown``
-     - none
-     - unclassified (hook)
+     - ``on_key_down``
+     - supported
    * - method
      - ``OnKeyPress``
-     - none
-     - unclassified (hook)
+     - ``on_key_press``
+     - unclassified (untested)
    * - method
      - ``OnKeyUp``
-     - none
-     - unclassified (hook)
+     - ``on_key_up``
+     - supported
    * - method
      - ``OnLayout``
-     - none
-     - unclassified (hook)
+     - ``on_layout``
+     - supported
    * - method
      - ``OnLeave``
-     - none
-     - unclassified (hook)
+     - ``on_leave``
+     - supported
    * - method
      - ``OnLocationChanged``
      - none
      - unclassified (hook)
    * - method
      - ``OnLostFocus``
-     - none
-     - unclassified (hook)
+     - ``on_lost_focus``
+     - supported
    * - method
      - ``OnMarginChanged``
      - ``on_margin_changed``
      - unclassified (untested)
    * - method
      - ``OnMouseCaptureChanged``
-     - none
-     - unclassified (hook)
+     - ``on_mouse_capture_changed``
+     - supported
    * - method
      - ``OnMouseClick``
-     - none
-     - unclassified (hook)
+     - ``on_mouse_click``
+     - supported
    * - method
      - ``OnMouseDoubleClick``
-     - none
-     - unclassified (hook)
+     - ``on_mouse_double_click``
+     - unclassified (untested)
    * - method
      - ``OnMouseDown``
-     - none
-     - unclassified (hook)
+     - ``on_mouse_down``
+     - supported
    * - method
      - ``OnMouseEnter``
-     - none
-     - unclassified (hook)
+     - ``on_mouse_enter``
+     - supported
    * - method
      - ``OnMouseHover``
-     - none
-     - unclassified (hook)
+     - ``on_mouse_hover``
+     - unclassified (untested)
    * - method
      - ``OnMouseLeave``
-     - none
-     - unclassified (hook)
+     - ``on_mouse_leave``
+     - unclassified (untested)
    * - method
      - ``OnMouseMove``
-     - none
-     - unclassified (hook)
+     - ``on_mouse_move``
+     - supported
    * - method
      - ``OnMouseUp``
-     - none
-     - unclassified (hook)
+     - ``on_mouse_up``
+     - supported
    * - method
      - ``OnMouseWheel``
-     - none
-     - unclassified (hook)
+     - ``on_mouse_wheel``
+     - supported
    * - method
      - ``OnMove``
      - none
@@ -3312,8 +3450,8 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
      - supported
    * - method
      - ``OnPaintBackground``
-     - none
-     - unclassified (hook)
+     - ``on_paint_background``
+     - supported
    * - method
      - ``OnParentBackColorChanged``
      - none
@@ -3360,8 +3498,8 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
      - unclassified (hook)
    * - method
      - ``OnPreviewKeyDown``
-     - none
-     - unclassified (hook)
+     - ``on_preview_key_down``
+     - supported
    * - method
      - ``OnPrint``
      - none
@@ -3408,12 +3546,12 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
      - unclassified (carried)
    * - method
      - ``OnValidated``
-     - none
-     - unclassified (hook)
+     - ``on_validated``
+     - supported
    * - method
      - ``OnValidating``
-     - none
-     - unclassified (hook)
+     - ``on_validating``
+     - supported
    * - method
      - ``OnVisibleChanged``
      - ``on_visible_changed``
@@ -4204,10 +4342,6 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
      - unclassified (untested)
    * - method
      - GUI.Forms-only
-     - ``on_key``
-     - supported
-   * - method
-     - GUI.Forms-only
      - ``on_key_bubble``
      - supported
    * - method
@@ -4221,10 +4355,6 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
    * - method
      - GUI.Forms-only
      - ``on_paint_overlay``
-     - supported
-   * - method
-     - GUI.Forms-only
-     - ``on_pointer``
      - supported
    * - method
      - GUI.Forms-only

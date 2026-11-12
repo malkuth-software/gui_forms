@@ -1738,11 +1738,19 @@ gui_forms::DataGridView
 
    .. cpp:function:: Dirty fold_content_regions() noexcept override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+   .. cpp:function:: void on_mouse_leave() override
 
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
 
-   .. cpp:function:: void on_key(KeyEvent& event) override
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
 
    .. cpp:function:: void on_text_input(TextInputEvent& event) override
 

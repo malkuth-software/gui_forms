@@ -2,7 +2,7 @@
 // main sequence: the editor's events (committed, a delimiter in its text, an
 // accepted completion) call accept_entry; layout_for places the tokens and
 // the editor's field, and every reader of geometry goes through it;
-// on_key_preview and on_pointer select and remove tokens.
+// on_key_preview and the mouse raisers select and remove tokens.
 
 #include "gui_forms/controls/token_box.hpp"
 
@@ -422,7 +422,7 @@ TokenBox::TokenHit TokenBox::hit_token(Point window_point) const {
     return hit;
 }
 
-void TokenBox::on_pointer(PointerEvent& event) {
+void TokenBox::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     const TokenHit hit = hit_token(event.position);
     if (event.action == PointerAction::move || event.action == PointerAction::leave) {
@@ -463,6 +463,48 @@ void TokenBox::on_pointer(PointerEvent& event) {
         }
         event.handled = true;
     }
+}
+
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void TokenBox::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void TokenBox::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void TokenBox::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void TokenBox::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void TokenBox::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
 }
 
 void TokenBox::on_key_preview(KeyEvent& event) {

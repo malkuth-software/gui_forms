@@ -1790,10 +1790,13 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
                 leave.handled = false;
                 metrics_.record_callback_emitted();
                 set_pointer_over(*previous_hover, false);
-                (*previous_hover).on_pointer(leave);
-                (*previous_hover).publish_change(
-                    (*previous_hover).pointer_observed_, leave);
+                // MouseLeave carries the control's own handling of the
+                // crossing (its override) and then the subscribers, before
+                // the observers of the raw leave.
                 (*previous_hover).on_mouse_leave();
+                if ((*previous_hover).is_alive()) {
+                    (*previous_hover).publish_change((*previous_hover).pointer_observed_, leave);
+                }
             }
             hovered_ = next_hover;
             interaction.hover_entered(next_hover, event.position, input_time, pointer_settings);
@@ -1805,9 +1808,10 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
                 enter.handled = false;
                 metrics_.record_callback_emitted();
                 set_pointer_over(*next_hover, true);
-                (*next_hover).on_pointer(enter);
-                (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
                 (*next_hover).on_mouse_enter();
+                if ((*next_hover).is_alive()) {
+                    (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
+                }
             }
         } else {
             interaction.hover_moved(event.position, input_time, pointer_settings);
@@ -1819,8 +1823,10 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
         (*tool_tips_).pointer_pressed();
     } else if (event.action == PointerAction::leave) {
         // The pointer left the window: nothing is hovered until it returns,
-        // and the control it was over is no longer hot. The leave is routed
-        // below as before.
+        // and the control it was over is no longer hot: its MouseLeave
+        // (its own handling, then the subscribers). The leave is then
+        // routed through the preview and bubble phases as before; its
+        // target phase raises nothing.
         if (Control::Ptr previous_hover = hovered_.lock()) {
             set_pointer_over(*previous_hover, false);
             if (eligible(previous_hover)) {
@@ -1834,7 +1840,11 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
     sync_hover_wake();
     Control::Ptr pressed_for_release;
     Control::Ptr target;
+    // A raiser in the route may close and destroy this window.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     const bool handled = route_pointer(event, pressed_for_release, target, hit);
+    if ((*lifetime).window != presenting) return true;
     raise_mouse_events(event, target, pressed_for_release, hit);
     return handled;
 }
@@ -1935,7 +1945,11 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
         target_out = target;
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
-        (*target).on_pointer(event);
+        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+        Window* const presenting = (*lifetime).window;
+        raise_pointer_target(*target, event);
+        // A raiser may close this window (a subscriber's dialog OK).
+        if ((*lifetime).window != presenting) return true;
         // A handler may dispose its own control (audit A6).
         if ((*target).is_alive()) (*target).publish_change((*target).pointer_observed_, event);
     }
@@ -1956,6 +1970,52 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
     return event.handled;
 }
 
+MouseEventArgs SurfaceRoot::mouse_arguments(const Control& target, const PointerEvent& event) {
+    const bool press = event.action == PointerAction::down;
+    const bool release = event.action == PointerAction::up;
+    // WinForms' MouseEventArgs: the press's click count (the release
+    // carries the count of the press it ends), the control-relative
+    // position and the wheel delta; then the routed event's own fields.
+    const Rect bounds = target.absolute_bounds();
+    MouseEventArgs arguments{};
+    arguments.button = event.button;
+    arguments.clicks = press || release ? interaction_state().last_click_count() : 0U;
+    arguments.location = Point{event.position.x - bounds.x, event.position.y - bounds.y};
+    arguments.window_position = event.position;
+    arguments.wheel_delta = event.wheel_delta;
+    arguments.modifiers = event.modifiers;
+    arguments.action = event.action;
+    arguments.wheel_unit = event.wheel_unit;
+    arguments.pointer_id = event.pointer_id;
+    arguments.phase = event.phase;
+    arguments.handled = event.handled;
+    return arguments;
+}
+
+void SurfaceRoot::raise_pointer_target(Control& target, PointerEvent& event) {
+    MouseEventArgs arguments = mouse_arguments(target, event);
+    switch (event.action) {
+    case PointerAction::down:
+        target.on_mouse_down(arguments);
+        break;
+    case PointerAction::up:
+        target.on_mouse_up(arguments);
+        break;
+    case PointerAction::move:
+        target.on_mouse_move(arguments);
+        break;
+    case PointerAction::wheel:
+        target.on_mouse_wheel(arguments);
+        break;
+    case PointerAction::enter:
+    case PointerAction::leave:
+    default:
+        // The hover tracking raises MouseEnter and MouseLeave.
+        break;
+    }
+    event.handled = arguments.handled;
+}
+
 void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
                                      const Control::Ptr& pressed_for_release, PointerHit& hit) {
     if (!target) {
@@ -1964,43 +2024,17 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
         if (lost_capture) (*lost_capture).on_mouse_capture_changed();
         return;
     }
-    const bool press = event.action == PointerAction::down;
-    const bool release = event.action == PointerAction::up;
-    // WinForms' MouseEventArgs: the press's click count (the release
-    // carries the count of the press it ends), the control-relative
-    // position and the wheel delta.
-    const Rect bounds = (*target).absolute_bounds();
-    MouseEventArgs args{};
-    args.button = event.button;
-    args.clicks = press || release ? (*interaction_).last_click_count() : 0U;
-    args.location = Point{event.position.x - bounds.x, event.position.y - bounds.y};
-    args.window_position = event.position;
-    args.wheel_delta = event.wheel_delta;
-    args.modifiers = event.modifiers;
-    // The window's rules see MouseDown, MouseUp and the clicks before the
-    // control's subscribers (the owner's Q-C5); a rule that consumes one
-    // keeps it from them, and a consumed Click also from on_activate.
-    if (press) {
-        if (offer_mouse_rules(detail::MouseRuleEvent::mouse_down, *target, &args)) return;
-        (*target).on_mouse_down(args);
-        return;
-    }
-    if (event.action == PointerAction::move) {
-        (*target).on_mouse_move(args);
-        return;
-    }
-    if (event.action == PointerAction::wheel) {
-        (*target).on_mouse_wheel(args);
-        return;
-    }
-    if (!release) return;
+    if (event.action != PointerAction::up) return;
+    MouseEventArgs args = mouse_arguments(*target, event);
     // A release over the control the same button pressed is its click, for
     // any button as in WinForms (unless the control raises clicks for the
     // primary button only, as ButtonBase does): Click and MouseClick, or
     // DoubleClick and MouseDoubleClick for a press the host counted as a
     // double-click's second on a control with standard_click and
-    // standard_double_click; then
-    // MouseUp. A primary Click is followed by on_activate.
+    // standard_double_click. The window's rules see each before the
+    // control's subscribers (the owner's Q-C5); a rule that consumes one
+    // keeps it from them, and a consumed Click also from on_activate. A
+    // primary Click is followed by on_activate. MouseUp ran in the route.
     const Control::Ptr released_over = reuse_pointer_hit(hit, event.position);
     const bool primary = event.button == PointerButton::primary;
     const bool clicked = pressed_for_release && pressed_for_release == released_over &&
@@ -2057,12 +2091,6 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
                 if ((*lifetime).window != presenting) return;
             }
         }
-    }
-    if ((*lifetime).window != presenting) return;
-    if (eligible(target)) {
-        const bool up_consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_up, *target, &args);
-        if ((*lifetime).window != presenting) return;
-        if (!up_consumed) (*target).on_mouse_up(args);
     }
     if ((*lifetime).window != presenting) return;
     const Control::Ptr lost_capture = deferred_capture_changed_.lock();
@@ -2194,12 +2222,11 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     if (!eligible(target)) {
         return event.handled;
     }
-    // KeyDown or KeyUp on the focused control, before its own handling.
+    // The target phase: KeyDown or KeyUp on the focused control, whose
+    // override handles the key after its base raised the event.
+    event.phase = EventPhase::target;
     if (raise_control_key(*target, event, closed)) return true;
     if (closed || !eligible(target)) return true;
-    event.phase = EventPhase::target;
-    metrics_.record_callback_emitted();
-    (*target).on_key(event);
     if (!event.handled) {
         event.phase = EventPhase::bubble;
         for (ControlList::const_reverse_iterator iterator = route.rbegin();
@@ -2240,8 +2267,10 @@ bool SurfaceRoot::raise_control_key(Control& control, const KeyEvent& event, boo
     KeyEventArgs arguments = key_arguments(event);
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
-    // Counted where the events have subscribers, as before the raisers.
+    // Counted where the events have subscribers, as before the raisers,
+    // and once for the control's own handling (the target phase).
     if (control.key_events_) metrics_.record_callback_emitted();
+    metrics_.record_callback_emitted();
     if (event.action == KeyAction::down) {
         control.on_key_down(arguments);
     } else {

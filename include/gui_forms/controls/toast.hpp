@@ -69,7 +69,6 @@ public:
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
-    void on_pointer(PointerEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
@@ -90,10 +89,17 @@ public:
     [[nodiscard]] Parts parts() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
 
 private:
+    bool over_close(Point window_position) const;
+    void set_hot_close(bool hot);
     struct Placement final {
         Rect face{};
         Rect icon{};

@@ -133,22 +133,22 @@ void test_click_order() {
     const Subscriptions subscriptions(*fixture.probe, log, "probe");
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
     fixture.pointer(PointerAction::up, PointerButton::primary, {21.0, 20.0});
-    require(log == Log{"down:1", "click", "mouse_click:1", "up:1", "capture_changed"},
-            "MouseDown, Click, MouseClick, MouseUp, then the capture's end");
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1", "capture_changed"},
+            "MouseDown, MouseUp (the release's target phase), Click, MouseClick, then the capture's end");
     require((*fixture.probe).activations == 1, "the click activates the control once");
 
     log.clear();
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 2U);
     fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 2U);
-    require(log == Log{"down:2", "double_click", "mouse_double_click:2", "up:2", "capture_changed"},
-            "the host's second press: MouseDown, DoubleClick, MouseDoubleClick, MouseUp");
+    require(log == Log{"down:2", "up:2", "double_click", "mouse_double_click:2", "capture_changed"},
+            "the host's second press: MouseDown, MouseUp, DoubleClick, MouseDoubleClick");
     require((*fixture.probe).activations == 1, "a double-click is no activation");
 
     log.clear();
     (*fixture.probe).set_style(ControlStyles::standard_double_click, false);
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 2U);
     fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 2U);
-    require(log == Log{"down:2", "click", "mouse_click:2", "up:2", "capture_changed"} &&
+    require(log == Log{"down:2", "up:2", "click", "mouse_click:2", "capture_changed"} &&
                 (*fixture.probe).activations == 2,
             "without standard_double_click the second press is a click");
 
@@ -178,7 +178,7 @@ void test_release_elsewhere_and_other_buttons() {
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
     fixture.pointer(PointerAction::move, PointerButton::none, {60.0, 30.0});
     fixture.pointer(PointerAction::up, PointerButton::primary, {60.0, 30.0});
-    require(log == Log{"down:1", "click", "mouse_click:1", "up:1", "capture_changed"},
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1", "capture_changed"},
             "a press that wanders within the control still clicks");
 
     log.clear();
@@ -190,13 +190,13 @@ void test_release_elsewhere_and_other_buttons() {
     log.clear();
     fixture.pointer(PointerAction::down, PointerButton::secondary, {20.0, 20.0});
     fixture.pointer(PointerAction::up, PointerButton::secondary, {20.0, 20.0});
-    require(log == Log{"down:1", "click", "mouse_click:1", "up:1"} && (*fixture.probe).activations == 1,
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1"} && (*fixture.probe).activations == 1,
             "as in WinForms the secondary button clicks too, with no capture and no activation");
 
     log.clear();
     fixture.pointer(PointerAction::down, PointerButton::middle, {20.0, 20.0});
     fixture.pointer(PointerAction::up, PointerButton::middle, {20.0, 20.0});
-    require(log == Log{"down:1", "click", "mouse_click:1", "up:1"} && (*fixture.probe).activations == 1,
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1"} && (*fixture.probe).activations == 1,
             "the middle button clicks too, with no activation");
 
     log.clear();
@@ -225,8 +225,8 @@ void test_button_has_no_double_click() {
     up.click_count = 2U;
     window.dispatch_pointer(down);
     window.dispatch_pointer(up);
-    require(log == Log{"down:1", "click", "mouse_click:1", "up:1", "capture_changed", "down:2", "click",
-                        "mouse_click:2", "up:2", "capture_changed"},
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1", "capture_changed", "down:2", "up:2",
+                        "click", "mouse_click:2", "capture_changed"},
             "a button's double-click is two clicks");
 
     log.clear();
@@ -353,7 +353,8 @@ void test_window_destroyed_by_click() {
     PointerEvent release{PointerAction::up, PointerButton::primary, {20.0, 20.0}};
     Window* const window = fixture.window.get();
     static_cast<void>((*window).dispatch_pointer(release));
-    require(!fixture.window && log.empty(), "a window destroyed by its Click raises no MouseUp");
+    require(!fixture.window && log == Log{"up:1"},
+            "MouseUp precedes Click; a window destroyed by its Click raises nothing more");
 }
 
 void test_input_state() {

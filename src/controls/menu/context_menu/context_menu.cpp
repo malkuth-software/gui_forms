@@ -102,26 +102,58 @@ struct ContextMenu::Impl final {
             set_background(Color::rgba(0, 0, 0, 0));
         }
 
-        void on_pointer(PointerEvent& event) override {
-            if (impl_.outside_pointer_handler &&
-                impl_.outside_pointer_handler(event)) {
-                event.handled = true;
-                return;
-            }
-            if (event.phase == EventPhase::target &&
-                event.action == PointerAction::down &&
-                event.button != PointerButton::none) {
+        // The menu's owner sees a pointer event on the layer first (a menu
+        // bar switching menus); otherwise a press outside the panels closes
+        // the menu. The layer's leave reaches no owner.
+        void on_mouse_down(MouseEventArgs& arguments) override {
+            if (!offer_outside(arguments) && arguments.button != PointerButton::none) {
                 impl_.close();
-                event.handled = true;
+                arguments.handled = true;
             }
+            Control::on_mouse_down(arguments);
+        }
+
+        void on_mouse_up(MouseEventArgs& arguments) override {
+            static_cast<void>(offer_outside(arguments));
+            Control::on_mouse_up(arguments);
+        }
+
+        void on_mouse_move(MouseEventArgs& arguments) override {
+            static_cast<void>(offer_outside(arguments));
+            Control::on_mouse_move(arguments);
+        }
+
+        void on_mouse_wheel(MouseEventArgs& arguments) override {
+            static_cast<void>(offer_outside(arguments));
+            Control::on_mouse_wheel(arguments);
+        }
+
+        // Whether the owner's handler took the event (it is then handled).
+        bool offer_outside(MouseEventArgs& arguments) {
+            if (!impl_.outside_pointer_handler) return false;
+            const PointerEvent event = pointer_event_of(arguments);
+            const bool taken = impl_.outside_pointer_handler(event);
+            if (taken) arguments.handled = true;
+            return taken;
         }
 
         // While the panels show in Popup windows the layer holds the
         // owner's focus (a Popup never takes it) and passes keys and text
         // to the Popup whose panel has the menu's focus.
-        void on_key(KeyEvent& event) override {
-            if (event.phase != EventPhase::target) return;
-            if (impl_.forward_key(event)) event.handled = true;
+        void on_key_down(KeyEventArgs& arguments) override {
+            Control::on_key_down(arguments);
+            forward(arguments, KeyAction::down);
+        }
+
+        void on_key_up(KeyEventArgs& arguments) override {
+            Control::on_key_up(arguments);
+            forward(arguments, KeyAction::up);
+        }
+
+        // A key no subscriber handled goes to the open menu.
+        void forward(KeyEventArgs& arguments, KeyAction action) {
+            if (arguments.handled || arguments.released_by_deactivation) return;
+            if (impl_.forward_key(key_event_of(arguments, action))) arguments.handled = true;
         }
 
         void on_text_input(TextInputEvent& event) override {
@@ -200,14 +232,17 @@ struct ContextMenu::Impl final {
             return result;
         }
 
-        void on_pointer(PointerEvent& event) override {
-            if (event.action == PointerAction::wheel && event.wheel_delta.y != 0.0) {
-                impl_.scroll(depth_, event.wheel_delta.y > 0.0 ? -3 : 3);
-                event.handled = true;
-            } else if (event.action == PointerAction::down &&
-                       event.button != PointerButton::none) {
-                event.handled = true;
+        void on_mouse_wheel(MouseEventArgs& arguments) override {
+            if (arguments.wheel_delta.y != 0.0) {
+                impl_.scroll(depth_, arguments.wheel_delta.y > 0.0 ? -3 : 3);
+                arguments.handled = true;
             }
+            Control::on_mouse_wheel(arguments);
+        }
+
+        void on_mouse_down(MouseEventArgs& arguments) override {
+            if (arguments.button != PointerButton::none) arguments.handled = true;
+            Control::on_mouse_down(arguments);
         }
 
         void on_pointer_bubble(PointerEvent& event) override {
@@ -218,23 +253,24 @@ struct ContextMenu::Impl final {
             }
         }
 
-        void on_key(KeyEvent& event) override {
-            if (event.phase != EventPhase::target || event.action != KeyAction::down) return;
-            if (event.physical_key == PhysicalKey::down || event.physical_key == PhysicalKey::home) {
+        void on_key_down(KeyEventArgs& arguments) override {
+            Control::on_key_down(arguments);
+            if (arguments.handled) return;
+            if (arguments.physical_key == PhysicalKey::down || arguments.physical_key == PhysicalKey::home) {
                 impl_.focus_edge(depth_, false);
-            } else if (event.physical_key == PhysicalKey::up || event.physical_key == PhysicalKey::end) {
+            } else if (arguments.physical_key == PhysicalKey::up || arguments.physical_key == PhysicalKey::end) {
                 impl_.focus_edge(depth_, true);
-            } else if (event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::right) {
+            } else if (arguments.physical_key == PhysicalKey::left || arguments.physical_key == PhysicalKey::right) {
                 // Toward the reading end moves on: Right left to right,
                 // Left right to left.
                 const std::uint32_t onward = impl_.right_to_left ? PhysicalKey::left : PhysicalKey::right;
-                static_cast<void>(impl_.navigate_root(event.physical_key == onward ? 1 : -1));
-            } else if (event.physical_key == PhysicalKey::escape) {
+                static_cast<void>(impl_.navigate_root(arguments.physical_key == onward ? 1 : -1));
+            } else if (arguments.physical_key == PhysicalKey::escape) {
                 impl_.close();
             } else {
                 return;
             }
-            event.handled = true;
+            arguments.handled = true;
         }
 
         // A plain letter in an open menu acts as that item's mnemonic, as in
@@ -511,58 +547,70 @@ struct ContextMenu::Impl final {
             return side;
         }
 
-        void on_pointer(PointerEvent& event) override {
-            if (item_.kind == MenuItemKind::separator) return;
-            if (event.action == PointerAction::move) {
+        void on_mouse_move(MouseEventArgs& arguments) override {
+            if (item_.kind != MenuItemKind::separator) {
                 impl_.hover(depth_, index_);
-                event.handled = true;
-            } else if (event.action == PointerAction::down &&
-                       event.button == PointerButton::primary) {
-                pressed_ = true;
-                impl_.hover(depth_, index_);
-                event.handled = true;
-            } else if (event.action == PointerAction::up &&
-                       event.button == PointerButton::primary) {
-                const bool invoke = pressed_ && absolute_bounds().contains(event.position);
-                pressed_ = false;
-                if (invoke) impl_.activate(depth_, index_);
-                event.handled = true;
-            } else if (event.action == PointerAction::leave) {
-                pressed_ = false;
+                arguments.handled = true;
             }
+            Control::on_mouse_move(arguments);
         }
 
-        void on_key(KeyEvent& event) override {
-            if (!focused_ || event.action != KeyAction::down) return;
+        void on_mouse_down(MouseEventArgs& arguments) override {
+            if (item_.kind != MenuItemKind::separator && arguments.button == PointerButton::primary) {
+                pressed_ = true;
+                impl_.hover(depth_, index_);
+                arguments.handled = true;
+            }
+            Control::on_mouse_down(arguments);
+        }
+
+        void on_mouse_up(MouseEventArgs& arguments) override {
+            if (item_.kind != MenuItemKind::separator && arguments.button == PointerButton::primary) {
+                const bool invoke = pressed_ && absolute_bounds().contains(arguments.window_position);
+                pressed_ = false;
+                if (invoke) impl_.activate(depth_, index_);
+                arguments.handled = true;
+            }
+            Control::on_mouse_up(arguments);
+        }
+
+        void on_mouse_leave() override {
+            if (item_.kind != MenuItemKind::separator) pressed_ = false;
+            Control::on_mouse_leave();
+        }
+
+        void on_key_down(KeyEventArgs& arguments) override {
+            Control::on_key_down(arguments);
+            if (arguments.handled || !focused_) return;
             // A right-to-left menu opens submenus to the left: Left opens
             // one and Right closes it (WinForms' RightToLeft menus).
             const std::uint32_t onward = impl_.right_to_left ? PhysicalKey::left : PhysicalKey::right;
             const std::uint32_t backward = impl_.right_to_left ? PhysicalKey::right : PhysicalKey::left;
-            if (event.physical_key == PhysicalKey::down) {
+            if (arguments.physical_key == PhysicalKey::down) {
                 impl_.move_focus(depth_, index_, 1);
-            } else if (event.physical_key == PhysicalKey::up) {
+            } else if (arguments.physical_key == PhysicalKey::up) {
                 impl_.move_focus(depth_, index_, -1);
-            } else if (event.physical_key == PhysicalKey::home) {
+            } else if (arguments.physical_key == PhysicalKey::home) {
                 impl_.focus_edge(depth_, false);
-            } else if (event.physical_key == PhysicalKey::end) {
+            } else if (arguments.physical_key == PhysicalKey::end) {
                 impl_.focus_edge(depth_, true);
-            } else if (event.physical_key == onward) {
+            } else if (arguments.physical_key == onward) {
                 if (item_.kind == MenuItemKind::submenu) {
                     impl_.open_submenu(depth_, index_, true);
                 } else if (depth_ == 0U) {
                     static_cast<void>(impl_.navigate_root(1));
                 }
-            } else if (event.physical_key == backward) {
+            } else if (arguments.physical_key == backward) {
                 impl_.close_submenu(depth_);
-            } else if (event.physical_key == PhysicalKey::enter ||
-                       event.physical_key == PhysicalKey::space) {
+            } else if (arguments.physical_key == PhysicalKey::enter ||
+                       arguments.physical_key == PhysicalKey::space) {
                 impl_.activate(depth_, index_);
-            } else if (event.physical_key == PhysicalKey::escape) {
+            } else if (arguments.physical_key == PhysicalKey::escape) {
                 impl_.close();
             } else {
                 return;
             }
-            event.handled = true;
+            arguments.handled = true;
         }
 
         void on_text_input(TextInputEvent& event) override {

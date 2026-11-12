@@ -437,8 +437,6 @@ gui_forms::ScrollableControl
       Lays out docked and anchored children as :cpp:class:`Control <gui_forms::Control>` does, inside the
       viewport, then moves every anchored child by the scroll position.
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: void on_pointer_bubble(PointerEvent& event) override
 
    .. cpp:function:: std::vector<SemanticNode> semantic_virtual_children() const override
@@ -448,6 +446,44 @@ gui_forms::ScrollableControl
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+      The scroll bars' pointer handling, then the event.
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void scroll_pointer(MouseEventArgs& arguments)
+
+      *Protected.*
+
+      The scroll bars' own pointer handling, which the mouse raisers run before raising the event: a press, release or move on a bar (by arguments.action), or a wheel turn that scrolls. A derived control that handles first calls them from its raisers and raises the event through Control.
+
+   .. cpp:function:: void scroll_pointer(PointerEvent& event)
+
+      *Protected.*
+
+      The same handling in the routed form, for a control whose own handling reads it.
+
+   .. cpp:function:: void scroll_pointer_left()
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 

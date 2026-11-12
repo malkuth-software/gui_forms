@@ -72,6 +72,7 @@ class PropertyLink;
 struct HelpRequestEvent;
 
 namespace detail {
+class ControlInputAccess;
 class DisplayChunk;
 class KeptResolutions;
 // The control's kept cascade results (src/core/theme/theme/kept_resolutions.hpp).
@@ -1078,11 +1079,12 @@ public:
     [[nodiscard]] virtual ResizeAxes layout_resize_response() const noexcept;
     [[nodiscard]] virtual bool hit_test_local(Point local_point) const;
 
+    // The pointer and key routes' preview (root to target) and bubble
+    // (target to root) phases. The target phase is the interaction raisers
+    // (on_mouse_down, on_key_down and the rest, below).
     virtual void on_pointer_preview(PointerEvent& event);
-    virtual void on_pointer(PointerEvent& event);
     virtual void on_pointer_bubble(PointerEvent& event);
     virtual void on_key_preview(KeyEvent& event);
-    virtual void on_key(KeyEvent& event);
     virtual void on_key_bubble(KeyEvent& event);
     virtual void on_text_input(TextInputEvent& event);
     // Dialog characters are routed by Window only after the focused key route
@@ -1262,49 +1264,54 @@ protected:
 
     // The interaction raisers (Windows Forms' OnClick, OnMouseDown, OnKeyDown
     // and the rest; projects:desks/coordinator/ON_HOOKS_PLAN.md, step 4). The
-    // window calls each one on the UI thread where it raised the event
-    // before the raisers existed, so subscribers see the order the event
-    // headers state (mouse_events.hpp, key_events.hpp). The base raises the
-    // event; an override places its code before or after the base call, and
-    // one that does not call the base keeps the event from its subscribers.
-    // A raiser is called whether or not anything subscribes; MouseHover is
-    // the exception: the window arms its hover timer only for a control
-    // whose MouseHover has a subscriber or a rule, so on_mouse_hover runs
-    // only then. Overriding one changes nothing for the window's rules,
-    // which run before it (a rule that consumes MouseDown keeps the raiser
-    // from running) and never for the internal dispatch virtuals
-    // (on_pointer, on_key and their preview and bubble routes), which run
-    // as before.
+    // window calls each one on the UI thread at a fixed point of the event's
+    // dispatch, so subscribers see the order the event headers state
+    // (mouse_events.hpp, key_events.hpp). The base raises the event; an
+    // override places its code before or after the base call, and one that
+    // does not call the base keeps the event from its subscribers. A raiser
+    // is called whether or not anything subscribes; MouseHover is the
+    // exception: the window arms its hover timer only for a control whose
+    // MouseHover has a subscriber or a rule, so on_mouse_hover runs only
+    // then.
     //
-    // The mouse: on_mouse_down after the press's route, on_mouse_move and
-    // on_mouse_wheel after their routes, and on the release over the
-    // control the same button pressed on_click and on_mouse_click (or
-    // on_double_click and on_mouse_double_click), then on_mouse_up.
-    // on_mouse_enter and on_mouse_leave follow the pointer, after
-    // on_pointer has seen the crossing; on_mouse_capture_changed runs on
-    // the control losing the capture.
-    virtual void on_mouse_down(const MouseEventArgs& arguments);
-    virtual void on_mouse_up(const MouseEventArgs& arguments);
-    virtual void on_mouse_move(const MouseEventArgs& arguments);
-    virtual void on_mouse_wheel(const MouseEventArgs& arguments);
+    // The mouse. on_mouse_down, on_mouse_move, on_mouse_wheel and
+    // on_mouse_up are the target phase of the pointer route: they run on
+    // the target after the preview route, and setting handled ends the
+    // route there (no bubble). A control's own pointer handling runs in its
+    // override before the base call, so the subscribers see the state it
+    // left; the window's rules for MouseDown and MouseUp run in the base,
+    // before the subscribers, and a rule that consumes one keeps it from
+    // them only. After the route of a release over the control the same
+    // button pressed: on_click and on_mouse_click (or on_double_click and
+    // on_mouse_double_click), whose rules the window offers first. So
+    // on_mouse_up comes before on_click, where Windows Forms raises
+    // MouseUp last. on_mouse_enter and on_mouse_leave follow the pointer
+    // (the window's hover tracking, not the route); on_mouse_capture_changed
+    // runs on the control losing the capture, after the release's on_click.
+    virtual void on_mouse_down(MouseEventArgs& arguments);
+    virtual void on_mouse_up(MouseEventArgs& arguments);
+    virtual void on_mouse_move(MouseEventArgs& arguments);
+    virtual void on_mouse_wheel(MouseEventArgs& arguments);
     virtual void on_mouse_enter();
     virtual void on_mouse_hover();
     virtual void on_mouse_leave();
     virtual void on_mouse_capture_changed();
     virtual void on_click();
     virtual void on_double_click();
-    virtual void on_mouse_click(const MouseEventArgs& arguments);
-    virtual void on_mouse_double_click(const MouseEventArgs& arguments);
+    virtual void on_mouse_click(MouseEventArgs& arguments);
+    virtual void on_mouse_double_click(MouseEventArgs& arguments);
     // The keys, on the focused control. on_preview_key_down runs first for
     // a key down; setting is_input_key keeps the key from dialog
-    // processing. on_key_down and on_key_up run after the window's own
-    // key_down and key_up and the internal preview route, before on_key:
-    // setting handled (or suppress_key_press) ends the key there, so an
-    // override that sets it before calling the base keeps the key from the
-    // subscribers and from the control's own key handling, as returning
-    // without calling the base keeps it from the subscribers. on_key_press
-    // runs for the committed text a key produced, after the window's
-    // key_press. A released_by_deactivation key_up also runs on_key_up.
+    // processing. on_key_down and on_key_up are the target phase of the
+    // key route, after the window's own key_down and key_up and the preview
+    // route: the base raises the event and turns suppress_key_press into
+    // handled; a control's own key handling runs in its override after the
+    // base call, and only when handled is still clear, so a subscriber that
+    // sets handled keeps the key from the control as well as from the
+    // bubble route. on_key_press runs for the committed text a key
+    // produced, after the window's key_press. A key_up the window raises
+    // because it lost activation (released_by_deactivation) also runs
+    // on_key_up; a control's handling skips it.
     virtual void on_preview_key_down(PreviewKeyDownEventArgs& arguments);
     virtual void on_key_down(KeyEventArgs& arguments);
     virtual void on_key_press(KeyPressEventArgs& arguments);
@@ -1574,6 +1581,9 @@ private:
     friend detail::KeptResolutions& detail::kept_resolutions_of(const Control& control);
     friend class Window;
     friend class SurfaceRoot;
+    // Raises the target phase's raisers for an event handed to one control
+    // (src/core/control/control/control_input_access.hpp).
+    friend class detail::ControlInputAccess;
     friend class ContentRegion;
     // A content region's first pending item since its last gather: asks the
     // window to gather this control's regions after its next layout. False,

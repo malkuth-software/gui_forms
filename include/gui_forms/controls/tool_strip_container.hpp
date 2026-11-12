@@ -137,11 +137,9 @@ public:
 
     void arrange(Rect final_bounds) override;
     void on_pointer_preview(PointerEvent& event) override;
-    void on_pointer(PointerEvent& event) override;
     // Takes the move_panel command with the focus in a strip, and the
     // drag's keys.
     void on_key_preview(KeyEvent& event) override;
-    void on_key(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members; its states are Control's.
@@ -161,6 +159,12 @@ public:
     [[nodiscard]] Parts parts() const;
 
 protected:
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
+
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
@@ -301,6 +305,9 @@ private:
     // no private one.
     // property_codemod begin ToolStripContainer (tools/property_families/tool_strip_container.json; generated, do not edit)
 private:
+    // The mouse raisers' and keys' part in a strip move.
+    void drag_pointer(MouseEventArgs& arguments);
+    void drag_key(KeyEventArgs& arguments, KeyAction action);
     friend struct ToolStripContainerTopPanelVisibleCapability<ToolStripContainer>;
     friend struct ToolStripContainerBottomPanelVisibleCapability<ToolStripContainer>;
     friend struct ToolStripContainerLeftPanelVisibleCapability<ToolStripContainer>;

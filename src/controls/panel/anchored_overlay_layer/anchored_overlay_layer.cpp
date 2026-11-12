@@ -113,12 +113,12 @@ bool AnchoredOverlayLayer::hit_test_local(Point local_point) const {
     return Panel::hit_test_local(local_point);
 }
 
-void AnchoredOverlayLayer::on_pointer(PointerEvent& event) {
-    if (dismiss_on_click_away.read() && event.action == PointerAction::down &&
-        event.button == PointerButton::primary) {
+void AnchoredOverlayLayer::on_mouse_down(MouseEventArgs& arguments) {
+    if (dismiss_on_click_away.read() && arguments.button == PointerButton::primary) {
         dismiss_requested_.emit(OverlayDismissReason::click_away);
-        event.handled = true;
+        arguments.handled = true;
     }
+    Control::on_mouse_down(arguments);
 }
 
 void AnchoredOverlayLayer::on_key_preview(KeyEvent& event) {

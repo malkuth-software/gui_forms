@@ -138,8 +138,6 @@ public:
     void arrange(Rect final_bounds) override;
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
@@ -170,6 +168,13 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
     [[nodiscard]] bool paints_scrolled_content() const noexcept override { return true; }
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     [[nodiscard]] ItemSystemIndex publish_realized_item_system(std::size_t item) const override;
@@ -177,6 +182,8 @@ protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
 
 private:
+    // The mouse raisers' handling: the scroll bars', then the book's.
+    void handle_mouse(MouseEventArgs& arguments);
     // What a laid-out piece of text is.
     enum class PieceKind : std::uint8_t { text, link, marker, label };
     // One laid-out piece of text on one line: a byte range of a run, or of

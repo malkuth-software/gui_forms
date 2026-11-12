@@ -514,17 +514,7 @@ void SubSurfaceHost::on_window_active_changed(bool) {
     update_keyboard_focus(SubSurfaceFocusEntry::restore);
 }
 
-void SubSurfaceHost::on_pointer(PointerEvent& event) {
-    if (!thread_) return;
-    // The window sends an enter just before routing the move that caused
-    // it, at the same position: that move starts the sub-surface's own
-    // hover, so the enter is not forwarded (forwarded as a move it
-    // delivered every entering move twice).
-    if (event.action == PointerAction::enter) {
-        event.handled = true;
-        return;
-    }
-    hold_capture_for(event);
+void SubSurfaceHost::forward_pointer(const PointerEvent& event) {
     SubSurfaceInput input;
     input.kind = SubSurfaceInputKind::pointer;
     input.pointer = event;
@@ -532,11 +522,55 @@ void SubSurfaceHost::on_pointer(PointerEvent& event) {
     input.pointer.phase = EventPhase::target;
     input.pointer.handled = false;
     const std::uint64_t sequence = (*thread_).post_input(input);
-    event.handled = true;
     if (input.pointer.action != PointerAction::leave) return;
     // Requests the sub-surface made before it sees this leave are stale.
     pointer_left_sequence_ = sequence;
     revoke_requests(SubSurfaceToolTipOrigin::pointer);
+}
+
+void SubSurfaceHost::forward_mouse(MouseEventArgs& arguments) {
+    if (!thread_) return;
+    const PointerEvent event = pointer_event_of(arguments);
+    hold_capture_for(event);
+    forward_pointer(event);
+    arguments.handled = true;
+}
+
+void SubSurfaceHost::on_mouse_down(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void SubSurfaceHost::on_mouse_up(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void SubSurfaceHost::on_mouse_move(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void SubSurfaceHost::on_mouse_wheel(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+// The leave is posted where the window last saw the pointer: the move that
+// left the host, or the point where it left the window.
+void SubSurfaceHost::on_mouse_leave() {
+    SurfaceRoot* const root = attached_surface_root();
+    if (thread_ && root != nullptr) {
+        const InteractionSnapshot pointer = (*root).interaction_snapshot();
+        PointerEvent leave{};
+        leave.action = PointerAction::leave;
+        leave.position = pointer.pointer_position;
+        leave.modifiers = pointer.modifiers;
+        leave.pointer_id = 1U;
+        leave.click_count = 0U;
+        forward_pointer(leave);
+    }
+    Control::on_mouse_leave();
 }
 
 void SubSurfaceHost::hold_capture_for(const PointerEvent& event) {
@@ -574,15 +608,24 @@ std::optional<Rect> SubSurfaceHost::text_input_caret() const {
     return caret;
 }
 
-void SubSurfaceHost::on_key(KeyEvent& event) {
-    if (!thread_) return;
+void SubSurfaceHost::forward_key(KeyEventArgs& arguments, KeyAction action) {
+    if (!thread_ || arguments.handled || arguments.released_by_deactivation) return;
     SubSurfaceInput input;
     input.kind = SubSurfaceInputKind::key;
-    input.key = event;
-    input.key.phase = EventPhase::target;
+    input.key = key_event_of(arguments, action);
     input.key.handled = false;
     static_cast<void>((*thread_).post_input(input));
-    event.handled = true;
+    arguments.handled = true;
+}
+
+void SubSurfaceHost::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    forward_key(arguments, KeyAction::down);
+}
+
+void SubSurfaceHost::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    forward_key(arguments, KeyAction::up);
 }
 
 void SubSurfaceHost::on_text_input(TextInputEvent& event) {

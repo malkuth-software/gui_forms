@@ -841,9 +841,13 @@ public:
     // the next layout; a scroll redraws the whole grid and folds it.
     void gather_content_regions() override;
     [[nodiscard]] Dirty fold_content_regions() noexcept override;
-    void on_pointer(PointerEvent& event) override;
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
     void on_key_preview(KeyEvent& event) override;
-    void on_key(KeyEvent& event) override;
+    void on_key_down(KeyEventArgs& arguments) override;
     void on_text_input(TextInputEvent& event) override;
     void on_focus_changed(bool focused) override;
     void on_attachment_committed() noexcept override;
@@ -1701,6 +1705,10 @@ protected:
     virtual void on_edit_mode_changed();
 
 private:
+    // The routed form of a key the raisers left unhandled.
+    void handle_key(KeyEvent& event);
+    // The target phase in the routed form, from the mouse raisers.
+    void handle_pointer(PointerEvent& event);
     friend struct DataGridViewAutoSizeColumnsModeCapability<DataGridView>;
     friend struct DataGridViewAutoSizeRowsModeCapability<DataGridView>;
     friend struct DataGridViewClipboardCopyModeCapability<DataGridView>;

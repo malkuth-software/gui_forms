@@ -42,6 +42,7 @@
 #include "gui_forms/window/window.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/surface_material/presets/material_presets.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -124,10 +125,10 @@ public:
     explicit Stage(StableId stable_id) : Control(std::move(stable_id)) {}
 };
 
-class Tile final : public Control {
+class Tile final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Tile(StableId stable_id) : Control(std::move(stable_id)) {}
-    void on_pointer(PointerEvent& event) override {
+    explicit Tile(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) {}
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::enter) {
             hot = true;
             invalidate(Dirty::paint);

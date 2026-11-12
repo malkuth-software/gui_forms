@@ -1134,7 +1134,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
     painter.restore();
 }
 
-void ObjectView::on_pointer(PointerEvent& event) {
+void ObjectView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     if (has_details_columns() && details_pointer(event)) return;
     if (event.action == PointerAction::move) {
@@ -1210,6 +1210,48 @@ void ObjectView::on_pointer(PointerEvent& event) {
     }
 }
 
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void ObjectView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void ObjectView::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void ObjectView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void ObjectView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void ObjectView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
 // A context request comes from the host (Windows' WM_CONTEXTMENU, macOS's
 // menuForEvent: and show-menu action, the Linux desktop's convention). A
 // pointer request asks for the menu of the item under the pointer, which it
@@ -1242,7 +1284,7 @@ void ObjectView::on_context_menu_requested(ContextMenuRequest& request) {
     if (is_alive()) context_requested_.emit({target, request.window_position});
 }
 
-void ObjectView::on_key(KeyEvent& event) {
+void ObjectView::handle_key(KeyEvent& event) {
     if (has_details_columns() && event.modifiers == Modifier::alt) return;
     if (focused_ && enabled.read() && event.action == KeyAction::down &&
         has_details_columns() && details_key(event)) return;
@@ -1296,6 +1338,25 @@ void ObjectView::on_key(KeyEvent& event) {
         select_index(index, false, event.modifiers);
     }
     event.handled = true;
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void ObjectView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
+}
+
+void ObjectView::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    if (arguments.handled || arguments.released_by_deactivation) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::up);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 void ObjectView::type_select(std::string_view text) {

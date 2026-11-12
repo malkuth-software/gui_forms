@@ -32,8 +32,6 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
@@ -42,7 +40,19 @@ public:
     bool on_semantic_child_action(std::string_view stable_id, SemanticAction action,
                                   std::string_view value) override;
 
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
+
 private:
+    // The ribbon's handling of the overlay's mouse and keys.
+    void forward_mouse(MouseEventArgs& arguments);
+    void forward_key(KeyEventArgs& arguments, KeyAction action);
     [[nodiscard]] bool ribbon_alive() const noexcept;
 
     Ribbon* ribbon_{};

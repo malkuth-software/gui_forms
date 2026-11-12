@@ -734,7 +734,7 @@ MonthCalendar::Zone MonthCalendar::zone_at(Point local, DateTimeValue& date) con
     return Zone::none;
 }
 
-void MonthCalendar::on_pointer(PointerEvent& event) {
+void MonthCalendar::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     const Rect absolute = absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
@@ -793,13 +793,55 @@ void MonthCalendar::on_pointer(PointerEvent& event) {
     }
 }
 
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void MonthCalendar::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void MonthCalendar::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void MonthCalendar::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void MonthCalendar::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void MonthCalendar::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
 void MonthCalendar::move_focus(DateTimeValue target, bool extend) {
     const DateTimeValue reached = std::clamp(civil_date(target), minimum_, maximum_);
     if (!extend) anchor_ = reached;
     select(bounded_range(anchor_, reached), reached);
 }
 
-void MonthCalendar::on_key(KeyEvent& event) {
+void MonthCalendar::handle_key(KeyEvent& event) {
     if (!focused_ || !effectively_enabled() || event.action != KeyAction::down) return;
     const bool extend = has_modifier(event.modifiers, Modifier::shift);
     const std::uint32_t key = event.physical_key;
@@ -820,6 +862,17 @@ void MonthCalendar::on_key(KeyEvent& event) {
         return;
     }
     event.handled = true;
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void MonthCalendar::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 void MonthCalendar::on_focus_changed(bool focused) {

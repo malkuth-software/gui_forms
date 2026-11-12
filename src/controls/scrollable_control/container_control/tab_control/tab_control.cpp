@@ -767,15 +767,18 @@ void TabControl::on_key_preview(KeyEvent& event) {
 // the row, Home and End select (the strip's automatic activation). The
 // commands a tab control does not offer (closing, moving a tab) are left to
 // the controls around it, as is a context request (none reaches the strip).
-void TabControl::on_key(KeyEvent& event) {
-    if (event.handled || !strip_ || window() == nullptr ||
+void TabControl::on_key_down(KeyEventArgs& arguments) {
+    ContainerControl::on_key_down(arguments);
+    if (arguments.handled || !strip_ || window() == nullptr ||
         (*window()).focused_control().get() != this) return;
     const KeyMap& keys = effective_key_map();
-    const bool not_offered = keys.matches(KeyCommand::close_document, event) ||
-                             keys.matches(KeyCommand::move_tab_later, event) ||
-                             keys.matches(KeyCommand::move_tab_earlier, event);
+    // The key command table matches the routed form.
+    const KeyEvent pressed = key_event_of(arguments, KeyAction::down);
+    const bool not_offered = keys.matches(KeyCommand::close_document, pressed) ||
+                             keys.matches(KeyCommand::move_tab_later, pressed) ||
+                             keys.matches(KeyCommand::move_tab_earlier, pressed);
     if (not_offered) return;
-    (*strip_).on_key(event);
+    (*strip_).on_key_down(arguments);
 }
 
 // The strip shows the keyboard's tab while the control has focus.

@@ -47,7 +47,6 @@ public:
     [[nodiscard]] Control* part(std::string_view name, int index) const;
     void arrange(Rect bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_key(KeyEvent& event) override;
     void on_key_bubble(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
@@ -64,6 +63,8 @@ public:
     [[nodiscard]] Parts parts() const;
 
 protected:
+    void on_key_down(KeyEventArgs& arguments) override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
@@ -100,6 +101,8 @@ public:
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
 private:
+    // The routed form of a key the raisers left unhandled.
+    void handle_key(KeyEvent& event);
     friend struct ChoiceGroupPresentationCapability<ChoiceGroup>;
     friend struct ChoiceGroupSelectedIndexCapability<ChoiceGroup>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).

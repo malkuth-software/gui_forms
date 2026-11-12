@@ -2772,10 +2772,16 @@ class PencilCanvas final : public gf::RasterCanvas {
 public:
     explicit PencilCanvas(gf::StableId id) : gf::RasterCanvas(std::move(id)) {}
 
-    void on_pointer(gf::PointerEvent& event) override {
-        if (event.action != gf::PointerAction::down || !bitmap.read()) return;
+protected:
+    void on_mouse_down(gf::MouseEventArgs& arguments) override {
+        if (bitmap.read()) draw_at(arguments);
+        gf::RasterCanvas::on_mouse_down(arguments);
+    }
+
+private:
+    void draw_at(gf::MouseEventArgs& arguments) {
         const gui_drawing::PointF at =
-            client_to_bitmap(point_from_window(event.position));
+            client_to_bitmap(point_from_window(arguments.window_position));
         if (at.x < 0.0 || at.y < 0.0 ||
             at.x >= static_cast<double>((*bitmap.read()).width()) ||
             at.y >= static_cast<double>((*bitmap.read()).height())) {
@@ -2785,7 +2791,7 @@ public:
                               static_cast<std::uint32_t>(at.y),
                               gui_drawing::Color::from_rgb(0, 0, 0));
         static_cast<void>(synchronize_bitmap());
-        event.handled = true;
+        arguments.handled = true;
     }
 };
 

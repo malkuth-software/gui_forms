@@ -51,8 +51,6 @@ public:
 
     void on_paint(Painter& painter, Rect local_damage) override;
     void arrange(Rect final_bounds) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
@@ -95,6 +93,21 @@ public:
     [[nodiscard]] std::vector<Item> realized_items() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
+    // ListBox's own pointer and key handling, which its raisers run before
+    // raising the event. A derived list that handles first calls them in
+    // its own raisers and then raises the event through Control (mouse) or
+    // ListControl (keys), not through ListBox's raisers. list_pointer
+    // takes a press, release, move or wheel (by arguments.action).
+    void list_pointer(MouseEventArgs& arguments);
+    void list_pointer_left();
+    void list_key_down(KeyEventArgs& arguments);
     // Called by the items' prepare_edit after ListBox's own checks, before
     // anything changes: a subclass readies its per-item state (reserving)
     // or refuses the edit by throwing.

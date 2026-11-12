@@ -63,10 +63,14 @@ public:
         set_background(Color::rgba(0, 0, 0, 0));
     }
 
-    void on_pointer(PointerEvent& event) override {
-        if (event.action == PointerAction::down || event.action == PointerAction::up) {
-            event.handled = true;
-        }
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_down(arguments);
+    }
+
+    void on_mouse_up(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_up(arguments);
     }
 };
 

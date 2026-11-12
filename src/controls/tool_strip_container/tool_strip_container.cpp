@@ -730,25 +730,36 @@ void ToolStripContainer::on_pointer_preview(PointerEvent& event) {
     if (drag_.phase == ToolStripDragPhase::armed) event.handled = true;
 }
 
-void ToolStripContainer::on_pointer(PointerEvent& event) {
+void ToolStripContainer::on_mouse_move(MouseEventArgs& arguments) {
+    drag_pointer(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void ToolStripContainer::on_mouse_up(MouseEventArgs& arguments) {
+    drag_pointer(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+// A pointer drag of a strip follows the moves and ends on the primary
+// release; the keyboard move takes no pointer input.
+void ToolStripContainer::drag_pointer(MouseEventArgs& arguments) {
     if (drag_.phase != ToolStripDragPhase::armed && drag_.phase != ToolStripDragPhase::dragging) return;
-    // The keyboard move takes no pointer input.
     if (drag_.keyboard) return;
     const Control::Ptr keep = shared_from_this();
-    const Point local = local_point(event.position);
-    if (event.action == PointerAction::move) {
-        update_drag(local, event.modifiers);
-        event.handled = true;
+    const Point local = local_point(arguments.window_position);
+    if (arguments.action == PointerAction::move) {
+        update_drag(local, arguments.modifiers);
+        arguments.handled = true;
         return;
     }
-    if (event.action == PointerAction::up && event.button == PointerButton::primary) {
+    if (arguments.action == PointerAction::up && arguments.button == PointerButton::primary) {
         if (drag_.phase == ToolStripDragPhase::armed) {
             reset_drag();
         } else {
-            update_drag(local, event.modifiers);
+            update_drag(local, arguments.modifiers);
             end_drag(true);
         }
-        event.handled = true;
+        arguments.handled = true;
     }
 }
 
@@ -966,8 +977,22 @@ void ToolStripContainer::step_keyboard_panel(int step) {
     show_keyboard_target();
 }
 
-void ToolStripContainer::on_key(KeyEvent& event) {
+void ToolStripContainer::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    drag_key(arguments, KeyAction::down);
+}
+
+void ToolStripContainer::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    drag_key(arguments, KeyAction::up);
+}
+
+// A key no subscriber handled may move or end a keyboard strip move.
+void ToolStripContainer::drag_key(KeyEventArgs& arguments, KeyAction action) {
+    if (arguments.handled || arguments.released_by_deactivation) return;
+    KeyEvent event = key_event_of(arguments, action);
     static_cast<void>(handle_drag_key(event));
+    arguments.handled = event.handled;
 }
 
 // In paint order: the insertion line (the drop tint, T3-1), then the stamp

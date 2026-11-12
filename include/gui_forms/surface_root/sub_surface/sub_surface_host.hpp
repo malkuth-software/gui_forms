@@ -219,8 +219,17 @@ protected:
     void on_attached_to_window() override;
     void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
     // Forward to the sub-surface while it runs and mark the event handled.
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
+    // Forward the mouse to the sub-surface while it runs and mark it
+    // handled, then raise the event. The window's enter is not forwarded:
+    // the move that caused it starts the sub-surface's own hover.
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    // Forward a key no subscriber handled to the sub-surface.
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
     void on_text_input(TextInputEvent& event) override;
     void on_focus_changed(bool focused) override;
     // The sub-surface's published caret: its coordinates are the host's.
@@ -281,6 +290,13 @@ private:
     // Takes or releases the window's pointer capture for a forwarded press
     // or release (pressed_buttons_).
     void hold_capture_for(const PointerEvent& event);
+    // Posts one pointer event to the sub-surface (`event` in the window's
+    // coordinates): the mouse raisers' events and the leave.
+    void forward_pointer(const PointerEvent& event);
+    // Posts the mouse raiser's event and marks it handled.
+    void forward_mouse(MouseEventArgs& arguments);
+    // Posts one key event (a key no subscriber handled) and marks it handled.
+    void forward_key(KeyEventArgs& arguments, KeyAction action);
     // A key the sub-surface returned (KeyReturn): continues in the window.
     void continue_returned_key(const KeyEvent& event);
     // A semantics notice (SemanticsNotice): takes the newest snapshot and

@@ -383,30 +383,37 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
     }
 }
 
-void MenuStrip::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::move) {
-        const std::optional<std::size_t> index = index_at(event.position);
-        set_hot(index);
-        if (is_open() && index && active_index_ != index &&
-            items_[*index].enabled) {
-            static_cast<void>(open(*index, MenuOpenMode::pointer));
-        }
-        event.handled = hot_index_.has_value();
-    } else if (event.action == PointerAction::leave && !is_open()) {
-        set_hot({});
-    } else if (event.action == PointerAction::down &&
-               event.button == PointerButton::primary) {
-        const std::optional<std::size_t> index = index_at(event.position);
+void MenuStrip::on_mouse_move(MouseEventArgs& arguments) {
+    const std::optional<std::size_t> index = index_at(arguments.window_position);
+    set_hot(index);
+    if (is_open() && index && active_index_ != index &&
+        items_[*index].enabled) {
+        static_cast<void>(open(*index, MenuOpenMode::pointer));
+    }
+    arguments.handled = hot_index_.has_value();
+    Control::on_mouse_move(arguments);
+}
+
+void MenuStrip::on_mouse_leave() {
+    if (!is_open()) set_hot({});
+    Control::on_mouse_leave();
+}
+
+void MenuStrip::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) {
+        const std::optional<std::size_t> index = index_at(arguments.window_position);
         if (index && items_[*index].enabled) {
             if (active_index_ == index && is_open()) close();
             else static_cast<void>(open(*index, MenuOpenMode::pointer));
-            event.handled = true;
+            arguments.handled = true;
         }
     }
+    Control::on_mouse_down(arguments);
 }
 
-void MenuStrip::on_key(KeyEvent& event) {
-    if (!focused_ || event.action != KeyAction::down) return;
+void MenuStrip::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !focused_) return;
     std::optional<std::size_t> current = active_index_ ? active_index_ : hot_index_;
     if (!current) {
         for (std::size_t index = 0; index < items_.size(); ++index) {
@@ -417,27 +424,27 @@ void MenuStrip::on_key(KeyEvent& event) {
         }
     }
     if (!current) return;
-    if (event.physical_key == PhysicalKey::left ||
-        event.physical_key == PhysicalKey::right) {
+    if (arguments.physical_key == PhysicalKey::left ||
+        arguments.physical_key == PhysicalKey::right) {
         // Toward the reading end moves on.
         const std::uint32_t onward = effective_layout_direction() == LayoutDirection::right_to_left
             ? PhysicalKey::left : PhysicalKey::right;
         const std::optional<std::size_t> next = next_enabled(*current,
-            event.physical_key == onward ? 1 : -1);
+            arguments.physical_key == onward ? 1 : -1);
         if (next) {
             if (is_open()) static_cast<void>(open(*next));
             else set_hot(next);
         }
-    } else if (event.physical_key == PhysicalKey::down ||
-               event.physical_key == PhysicalKey::enter ||
-               event.physical_key == PhysicalKey::space) {
+    } else if (arguments.physical_key == PhysicalKey::down ||
+               arguments.physical_key == PhysicalKey::enter ||
+               arguments.physical_key == PhysicalKey::space) {
         static_cast<void>(open(*current));
-    } else if (event.physical_key == PhysicalKey::escape) {
+    } else if (arguments.physical_key == PhysicalKey::escape) {
         close();
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 void MenuStrip::on_focus_changed(bool focused) {

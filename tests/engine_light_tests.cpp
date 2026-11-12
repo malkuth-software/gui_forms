@@ -45,6 +45,7 @@
 #include "../src/core/engine/primitives/material/material_primitive.hpp"
 #include "../src/core/engine/primitives/light/sheen_primitive.hpp"
 #include "../src/core/engine/primitives/material/overlay_shadow_primitive.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -267,10 +268,10 @@ void too_wide_falls_back() {
 
 // A control showing a keyed sheen over a 100 by 30 face of radius 6, hot
 // while the pointer is over the control.
-class Glint final : public Control {
+class Glint final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Glint(StableId stable_id) : Control(std::move(stable_id)) {}
-    void on_pointer(PointerEvent& event) override {
+    explicit Glint(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) {}
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::enter) {
             hot = true;
             invalidate(Dirty::paint);

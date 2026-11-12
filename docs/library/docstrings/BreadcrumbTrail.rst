@@ -98,10 +98,12 @@ begin_edit
 arrange
     Lays out the segments for the new width, choosing which middle segments
     overflow, and sizes the editor to the whole row.
-on_pointer
-    Handles the pointer input described under Notes. The window calls it.
-on_key
-    Handles the keyboard input described under Notes. The window calls it.
+on_mouse_down
+    Handles the pointer input described under Notes, with the other mouse
+    raisers the class overrides, then raises the event. The window calls it.
+on_key_down
+    Raises the event, then handles a key its subscribers left unhandled as
+    described under Notes. The window calls it.
 on_key_preview
     Turns Tab in the editor into `edit_completion_requested` while
     completion is available. The window calls it.

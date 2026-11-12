@@ -46,80 +46,94 @@ public:
     void on_paint(Painter& painter, Rect) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
 
-    void on_pointer(PointerEvent& event) override {
-        if (!eligible_for_input()) return;
-        const Rect bounds = absolute_bounds();
-        const Point local{event.position.x - bounds.x, event.position.y - bounds.y};
-        if (event.action == PointerAction::move) {
-            const std::optional<std::size_t> next = cell_at(local);
+    void on_mouse_move(MouseEventArgs& arguments) override {
+        if (eligible_for_input()) {
+            const std::optional<std::size_t> next = cell_at(arguments.location);
             if (next != hovered_cell_) {
                 hovered_cell_ = next;
                 invalidate(Dirty::paint);
             }
-            return;
         }
-        if (event.action == PointerAction::leave) {
+        Control::on_mouse_move(arguments);
+    }
+
+    void on_mouse_leave() override {
+        if (eligible_for_input()) {
             hovered_cell_.reset();
             invalidate(Dirty::paint);
-            return;
         }
-        if (event.button != PointerButton::primary) return;
-        if (event.action == PointerAction::down) {
-            const double s = effective_text_scale();
-            if (local.y < 40.0 * s && local.x < 46.0 * s) {
-                change_month(-1);
-                pressed_cell_.reset();
-                header_pressed_ = true;
-                event.handled = true;
-                return;
-            }
-            if (local.y < 40.0 * s && local.x > bounds.width - 49.0 * s) {
-                change_month(1);
-                pressed_cell_.reset();
-                header_pressed_ = true;
-                event.handled = true;
-                return;
-            }
-            if (const std::optional<std::size_t> cell = cell_at(local)) {
-                const DateTimeValue date = cell_dates()[*cell];
-                if (civil_in_range(date, minimum_, maximum_)) {
-                    selected_ = std::clamp(date, minimum_, maximum_);
-                    pressed_cell_ = cell;
-                    invalidate(Dirty::paint | Dirty::semantics);
-                    event.handled = true;
-                }
-            }
-        } else if (event.action == PointerAction::up) {
-            const std::optional<std::size_t> cell = cell_at(local);
+        Control::on_mouse_leave();
+    }
+
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        if (eligible_for_input() && arguments.button == PointerButton::primary) press(arguments);
+        Control::on_mouse_down(arguments);
+    }
+
+    void on_mouse_up(MouseEventArgs& arguments) override {
+        if (eligible_for_input() && arguments.button == PointerButton::primary) {
+            const std::optional<std::size_t> cell = cell_at(arguments.location);
             const bool commit = pressed_cell_ && cell == pressed_cell_;
             const bool acknowledge = commit || pressed_cell_.has_value() || header_pressed_;
             pressed_cell_.reset();
             header_pressed_ = false;
             if (commit) committed_.emit(selected_);
-            event.handled = acknowledge;
+            arguments.handled = acknowledge;
+        }
+        Control::on_mouse_up(arguments);
+    }
+
+    // A press on the header's arrows changes the month; one on a day in
+    // range selects it.
+    void press(MouseEventArgs& arguments) {
+        const Point local = arguments.location;
+        const double s = effective_text_scale();
+        if (local.y < 40.0 * s && local.x < 46.0 * s) {
+            change_month(-1);
+            pressed_cell_.reset();
+            header_pressed_ = true;
+            arguments.handled = true;
+            return;
+        }
+        if (local.y < 40.0 * s && local.x > absolute_bounds().width - 49.0 * s) {
+            change_month(1);
+            pressed_cell_.reset();
+            header_pressed_ = true;
+            arguments.handled = true;
+            return;
+        }
+        if (const std::optional<std::size_t> cell = cell_at(local)) {
+            const DateTimeValue date = cell_dates()[*cell];
+            if (civil_in_range(date, minimum_, maximum_)) {
+                selected_ = std::clamp(date, minimum_, maximum_);
+                pressed_cell_ = cell;
+                invalidate(Dirty::paint | Dirty::semantics);
+                arguments.handled = true;
+            }
         }
     }
 
-    void on_key(KeyEvent& event) override {
-        if (!focused_ || event.action != KeyAction::down) return;
-        if (event.physical_key == PhysicalKey::escape) {
+    void on_key_down(KeyEventArgs& arguments) override {
+        Control::on_key_down(arguments);
+        if (arguments.handled || !focused_) return;
+        if (arguments.physical_key == PhysicalKey::escape) {
             cancelled_.emit();
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
-        if (event.physical_key == PhysicalKey::enter) {
+        if (arguments.physical_key == PhysicalKey::enter) {
             committed_.emit(selected_);
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
-        if (event.physical_key == PhysicalKey::left) move_selection(-1);
-        else if (event.physical_key == PhysicalKey::right) move_selection(1);
-        else if (event.physical_key == PhysicalKey::up) move_selection(-7);
-        else if (event.physical_key == PhysicalKey::down) move_selection(7);
-        else if (event.physical_key == PhysicalKey::page_up) change_month(-1);
-        else if (event.physical_key == PhysicalKey::page_down) change_month(1);
+        if (arguments.physical_key == PhysicalKey::left) move_selection(-1);
+        else if (arguments.physical_key == PhysicalKey::right) move_selection(1);
+        else if (arguments.physical_key == PhysicalKey::up) move_selection(-7);
+        else if (arguments.physical_key == PhysicalKey::down) move_selection(7);
+        else if (arguments.physical_key == PhysicalKey::page_up) change_month(-1);
+        else if (arguments.physical_key == PhysicalKey::page_down) change_month(1);
         else return;
-        event.handled = true;
+        arguments.handled = true;
     }
 
     void on_focus_changed(bool focused) override {

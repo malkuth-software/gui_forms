@@ -106,18 +106,23 @@ A pointer event goes first to `Control::on_pointer_preview` on each control
 from the root down to the target; a handler that sets `handled` stops it
 there. A primary press then focuses the target if it is focusable; if that
 focus change is refused, for example by validation, the press goes no
-further. Otherwise the target captures the pointer. The target's
-`Control::on_pointer` runs next, then `Control::on_pointer_bubble` on its
-ancestors up to the root.
-Releasing the primary button over the control it was pressed on calls that
-control's `Control::on_activate`, which is how a button raises `clicked`.
+further. Otherwise the target captures the pointer. The target's mouse
+raiser runs next (`Control::on_mouse_down`, `on_mouse_up`, `on_mouse_move`
+or `on_mouse_wheel`: the control's own handling, then the event's
+subscribers), then `Control::on_pointer_bubble` on its ancestors up to the
+root, unless the raiser set `handled`.
+Releasing a button over the control it was pressed on then raises Click and
+MouseClick (or DoubleClick and MouseDoubleClick) on that control, and for
+the primary button `Control::on_activate`, which is how a button raises
+`clicked`.
 The target is the control holding capture, or else the result of `hit_test`.
 Pointer moves raise enter and leave events on the control under the pointer.
 
 A key event goes first to accelerators registered to run before the focused
 control (when no focus scope is open), then through the focused control's
-route: `Control::on_key_preview` from the root down, `Control::on_key` on the
-focused control, and `Control::on_key_bubble` back up. If nothing handled
+route: `Control::on_key_preview` from the root down, `Control::on_key_down`
+or `Control::on_key_up` on the focused control, and `Control::on_key_bubble`
+back up. If nothing handled
 it, the window tries the other accelerators; then Alt with a letter or digit
 activates the matching mnemonic, Enter the `accept_button` and Escape the
 `cancel_button`; finally Tab and Shift+Tab move focus.

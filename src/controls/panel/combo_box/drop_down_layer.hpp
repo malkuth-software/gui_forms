@@ -20,8 +20,6 @@ public:
     explicit DropDownList(StableId stable_id);
     void initialize_control_tree();
     void arrange(Rect bounds) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     bool on_semantic_child_action(std::string_view id, SemanticAction action,
                                   std::string_view value) override;
     // Matches the scroll bar to the rows after the owner moves the selection.
@@ -42,12 +40,22 @@ public:
     [[nodiscard]] ItemParts drop_down_item_parts(std::size_t item) const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
     void paint_row_adornment(Painter& painter, std::size_t index, Rect row_bounds,
                              bool selected, bool focused) const override;
     void publish_realized_item_geometry(std::size_t item,
                                         std::span<PartGeometry> geometry) const override;
 
 private:
+    // The mouse raisers' handling: ListBox's, then the scroll bar's sync,
+    // unless the event is over the visible scroll bar.
+    void drop_down_pointer(MouseEventArgs& arguments);
     // The matched text of row `index`, whose row rectangle is `row`, in the
     // list's coordinates: the paint and the published part both use it.
     // Empty when the row matches nothing or is selected (the selected row's
@@ -64,8 +72,10 @@ class DropDownLayer final : public Panel {
 public:
     explicit DropDownLayer(StableId stable_id);
     [[nodiscard]] Event<>& dismissed() noexcept { return dismissed_; }
-    void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
+
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
 
 private:
     Event<> dismissed_;

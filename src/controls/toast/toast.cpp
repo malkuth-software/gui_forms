@@ -237,34 +237,52 @@ Insets Toast::visual_outsets() const noexcept {
 }
 
 // The close mark acts on release over it, as a button does.
-void Toast::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input() || !content_.closable) return;
-    const Rect client = client_rectangle();
-    const Placement placed = placement(Size{client.width, client.height});
-    const bool over = placed.close.contains(event.position);
-    if (event.action == PointerAction::move || event.action == PointerAction::leave) {
-        const bool hot = event.action == PointerAction::move && over;
-        if (hot != hot_close_) {
-            hot_close_ = hot;
-            invalidate(Dirty::paint);
-        }
-        return;
-    }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down && over) {
+void Toast::on_mouse_leave() {
+    set_hot_close(false);
+    Control::on_mouse_leave();
+}
+
+void Toast::on_mouse_move(MouseEventArgs& arguments) {
+    if (eligible_for_input() && content_.closable) set_hot_close(over_close(arguments.window_position));
+    Control::on_mouse_move(arguments);
+}
+
+void Toast::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && content_.closable && arguments.button == PointerButton::primary &&
+        over_close(arguments.window_position)) {
         pressed_close_ = true;
         set_pointer_capture(true);
         invalidate(Dirty::paint);
-        event.handled = true;
-        return;
+        arguments.handled = true;
     }
-    if (event.action == PointerAction::up && pressed_close_) {
+    Control::on_mouse_down(arguments);
+}
+
+void Toast::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && content_.closable && arguments.button == PointerButton::primary &&
+        pressed_close_) {
         pressed_close_ = false;
         set_pointer_capture(false);
         invalidate(Dirty::paint);
-        event.handled = true;
-        if (over) static_cast<void>(dismiss(ToastDismissReason::closed));
+        arguments.handled = true;
+        if (over_close(arguments.window_position)) {
+            static_cast<void>(dismiss(ToastDismissReason::closed));
+            if (!is_alive()) return;
+        }
     }
+    Control::on_mouse_up(arguments);
+}
+
+bool Toast::over_close(Point window_position) const {
+    const Rect client = client_rectangle();
+    const Placement placed = placement(Size{client.width, client.height});
+    return placed.close.contains(window_position);
+}
+
+void Toast::set_hot_close(bool hot) {
+    if (hot == hot_close_) return;
+    hot_close_ = hot;
+    invalidate(Dirty::paint);
 }
 
 SemanticDescriptor Toast::semantic_descriptor() const {

@@ -16,6 +16,7 @@
 #include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 #include "../src/core/failure/fail_fast.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -80,12 +81,12 @@ public:
     MotionValue value;
 };
 
-class ThrowingProbe final : public Control {
+class ThrowingProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit ThrowingProbe(StableId stable_id) : Control(std::move(stable_id)) {}
+    explicit ThrowingProbe(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) {}
 
 protected:
-    void on_pointer(PointerEvent&) override { throw std::runtime_error("injected event failure"); }
+    void routed_pointer(PointerEvent&) override { throw std::runtime_error("injected event failure"); }
 };
 
 void direct_mode() {

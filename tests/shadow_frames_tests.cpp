@@ -13,6 +13,7 @@
 #include "gui_forms/window/window.hpp"
 #include "support/clip_tracking_painter.hpp"
 #include "../src/core/failure/failure_snapshot.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <array>
 #include <cstddef>
@@ -237,9 +238,9 @@ struct Seen final {
     bool throw_on_pointer = false;
 };
 
-class FrameProbe final : public Control {
+class FrameProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    FrameProbe(StableId stable_id, Seen& seen) : Control(std::move(stable_id)), seen_(seen) {}
+    FrameProbe(StableId stable_id, Seen& seen) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), seen_(seen) {}
 
     Size measure(Size available) override {
         seen_.measure = copy_stack();
@@ -249,12 +250,11 @@ public:
         seen_.paint = copy_stack();
         Control::on_paint(painter, local_damage);
     }
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         seen_.pointer = copy_stack();
         if (seen_.throw_on_pointer) {
             throw std::runtime_error("the probe's pointer handler failed");
         }
-        Control::on_pointer(event);
     }
 
 private:

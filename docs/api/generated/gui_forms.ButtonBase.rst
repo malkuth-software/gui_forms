@@ -481,10 +481,6 @@ gui_forms::ButtonBase
 
    .. cpp:function:: Insets visual_outsets() const noexcept override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: bool clicks_primary_button_only() const noexcept override
 
       As in WinForms, a button clicks for the primary button only.
@@ -500,6 +496,44 @@ gui_forms::ButtonBase
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_enter() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void activation_key_down(KeyEventArgs& arguments)
+
+      *Protected.*
+
+      ButtonBase's own Space and Enter handling, for a derived class's on_key_down and on_key_up that handle other keys first.
+
+   .. cpp:function:: void activation_key_up(KeyEventArgs& arguments)
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 

@@ -253,33 +253,57 @@ Size Splitter::measure(Size) {
     return result;
 }
 
-void Splitter::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::enter || event.action == PointerAction::move ||
-        event.action == PointerAction::leave) {
-        // A splitter with nothing to resize ignores the pointer: no resize
-        // cursor and no hot face.
-        const bool hot = event.action != PointerAction::leave && enabled.read() && target() != nullptr;
-        if (hot) cursor = horizontal_axis() ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
-        if (hot_ != hot) {
-            hot_ = hot;
-            invalidate(Dirty::paint);
-        }
+// A splitter with nothing to resize ignores the pointer: no resize cursor
+// and no hot face.
+void Splitter::set_hot_from_pointer(bool inside) {
+    const bool hot = inside && enabled.read() && target() != nullptr;
+    if (hot) cursor = horizontal_axis() ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
+    if (hot_ != hot) {
+        hot_ = hot;
+        invalidate(Dirty::paint);
     }
+}
+
+void Splitter::on_mouse_enter() {
+    set_hot_from_pointer(true);
+    Control::on_mouse_enter();
+}
+
+void Splitter::on_mouse_leave() {
+    set_hot_from_pointer(false);
+    Control::on_mouse_leave();
+}
+
+void Splitter::on_mouse_down(MouseEventArgs& arguments) {
     SurfaceRoot* const root = surface_root();
-    if (root == nullptr) return;
-    if (event.action == PointerAction::down && event.button == PointerButton::primary && enabled.read()) {
-        if (!prepare_drag()) return;
+    if (root != nullptr && arguments.button == PointerButton::primary && enabled.read() && prepare_drag()) {
         // No threshold: the press starts the drag, as before the engine.
         DragEngine& engine = (*root).drag_engine();
-        const bool started = engine.arm(*drag_, *this, *this, 0U, event.position, absolute_bounds(), 0.0);
-        if (!started) return;
-        event.handled = true;
-        return;
+        const bool started = engine.arm(*drag_, *this, *this, 0U, arguments.window_position, absolute_bounds(), 0.0);
+        if (started) arguments.handled = true;
     }
+    Control::on_mouse_down(arguments);
+}
+
+void Splitter::on_mouse_move(MouseEventArgs& arguments) {
+    set_hot_from_pointer(true);
+    drag_pointer(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void Splitter::on_mouse_up(MouseEventArgs& arguments) {
+    drag_pointer(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+// A running drag takes the moves and the release.
+void Splitter::drag_pointer(MouseEventArgs& arguments) {
     if (!dragging_) return;
+    SurfaceRoot* const root = surface_root();
+    if (root == nullptr) return;
     DragEngine& engine = (*root).drag_engine();
     if (!engine.runs(*drag_)) return;
-    if (engine.pointer(event)) event.handled = true;
+    if (engine.pointer(pointer_event_of(arguments))) arguments.handled = true;
 }
 
 bool Splitter::prepare_drag() {
