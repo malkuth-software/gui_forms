@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/list_box_values.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/event.hpp"
 
@@ -33,6 +34,20 @@ struct GUI_FORMS_API VirtualRowIndex final {
     }
     friend bool operator<(VirtualRowIndex left, VirtualRowIndex right) noexcept {
         return left.value < right.value;
+    }
+};
+
+// A run of rows [first, first + count), count at least 1: one piece of an
+// extended selection (VirtualRowsView::selected_ranges).
+struct GUI_FORMS_API VirtualRowRange final {
+    VirtualRowIndex first{};
+    std::size_t count{};
+
+    friend bool operator==(VirtualRowRange left, VirtualRowRange right) noexcept {
+        return left.first == right.first && left.count == right.count;
+    }
+    friend bool operator!=(VirtualRowRange left, VirtualRowRange right) noexcept {
+        return !(left == right);
     }
 };
 
@@ -106,17 +121,36 @@ struct GUI_FORMS_API VirtualRowsCallbacks final {
     Delegate<VirtualRowDescription&> describe{};
 };
 
-// A change of the selected row, after it happened. A row erased while
-// selected reports `current` none.
+// A change of the selection, after it happened: the current row before and
+// after (the row the keyboard and the last press are at; in the single
+// mode the selected row) and how many rows are selected now. Raised when
+// the current row or the set of selected rows changes. A current row
+// erased reports `current` none.
 struct GUI_FORMS_API VirtualRowSelection final {
     std::optional<VirtualRowIndex> previous{};
     std::optional<VirtualRowIndex> current{};
+    std::size_t selected_count{};
+};
+
+// A scroll, after it settled (VirtualRowsView::scrolled): the first row
+// meeting the viewport, the scroll offset (logical units) and whether the
+// view now follows the tail.
+struct GUI_FORMS_API VirtualRowScroll final {
+    VirtualRowIndex first_visible{};
+    double offset{};
+    bool following_tail{};
 };
 
 // Work counters, for bounded-work checks and workload records. The totals
 // only grow; the "last" figures describe the most recent settle (a layout
-// or a scroll) and paint. index_runs walks the height index's leaves (O(runs));
-// the other fields are O(1).
+// or a scroll) and paint. index_runs walks the height index's leaves
+// (O(runs)) and index_bytes its nodes (O(nodes)); the other fields are
+// O(1). index_bytes is the heap the height index holds (nodes and their
+// arrays at capacity); index_measured the rows holding a measured height.
+// rows_forgotten counts measured rows the budget returned to the estimate
+// in budget_compactions compactions (set_measured_row_budget);
+// partial_repaints counts invalidate_rows calls that repainted only the
+// rows' rectangles.
 struct GUI_FORMS_API VirtualRowsStatistics final {
     std::uint64_t rows_measured{};
     std::uint64_t rows_painted{};
@@ -130,6 +164,11 @@ struct GUI_FORMS_API VirtualRowsStatistics final {
     std::size_t index_runs{};
     std::size_t index_nodes{};
     std::size_t index_depth{};
+    std::size_t index_bytes{};
+    std::size_t index_measured{};
+    std::uint64_t rows_forgotten{};
+    std::uint64_t budget_compactions{};
+    std::uint64_t partial_repaints{};
 };
 
 // A vertically scrolling list of a very large number of owner-drawn rows of
@@ -144,7 +183,19 @@ struct GUI_FORMS_API VirtualRowsStatistics final {
 // within the viewport or the overscan band (half a viewport above and
 // below); rows never shown stay estimated. A change of the content width
 // forgets every measured height (the index is reassigned to the estimate)
-// and measures again around the anchor; refresh_rows forgets chosen rows.
+// and measures again around the anchor; refresh_rows forgets chosen rows,
+// and invalidate_rows forgets them, measures those near the viewport again
+// at once and repaints them.
+//
+// Memory. The index holds a run per measured row whose neighbours differ
+// (about 24 bytes each, plus nodes). A measured-row budget
+// (set_measured_row_budget, none by default) bounds it: after a settle that
+// leaves more rows measured than the budget, every measured row outside the
+// keep window returns to the estimate. The keep window is the rows within
+// budget / 2 of the first visible row on each side, widened to cover the
+// settle's band (the viewport and its overscan), which is never forgotten;
+// so at most budget + 1 rows plus the band stay measured. The anchor keeps
+// the rows on screen still while heights above them change back.
 //
 // Anchoring. The anchor is the first row whose top is at or below the
 // viewport's top (the row straddling the top when no later row starts in
@@ -178,15 +229,34 @@ struct GUI_FORMS_API VirtualRowsStatistics final {
 // pixels moves the painted pixels with a scroll copy (scroll_content) and
 // repaints only the exposed band; otherwise the viewport is repainted.
 //
-// Keyboard (focused): Up and Down move the selection by a row, Page Up and
-// Page Down by a viewport, Home and End (with or without Ctrl) to the first
-// and last rows, each scrolling the selection into view; Enter and Space
-// activate the selected row (row_activated). A primary press selects the
-// row under the pointer; a double click activates it.
+// scrolled is raised after a scroll, a change of the rows or a layout moved
+// the offset or the first visible row, once the view is settled; when one
+// call raises both, scrolled comes before selection_changed.
+//
+// Selection (selection_mode, ListBox's modes and conventions). In
+// ListSelectionMode::one a row is selected or none. In multiple_extended
+// the selection is a set of rows kept as sorted, disjoint, non-adjacent
+// ranges (selected_ranges), with a current row and an anchor: a press
+// selects its row alone and sets the anchor, Shift with a press or a
+// navigation key selects the rows from the anchor to the new row, Ctrl (or
+// Command) with a press toggles its row and sets the anchor there, and a
+// drag from a press extends from the anchor to the row under the pointer
+// (with the pointer above or below the viewport, to the row just past that
+// edge, which scrolls into view: the view scrolls a row per pointer move).
+// Ctrl+Space toggles the current row.
+// Inserted rows are unselected; erased rows leave the selection.
+//
+// Keyboard (focused): Up and Down move the current row by a row, Page Up
+// and Page Down by a viewport, Home and End (with or without Ctrl) to the
+// first and last rows, each scrolling it into view; Enter and Space
+// activate the current row (row_activated). A double click activates the
+// row pressed.
 //
 // Accessibility: a list whose size is row_count() and whose children are the
 // realized rows only, each a list item named by describe, with its position
-// in the set, its selection and the focus, select, and press actions. After
+// in the set, its selection and the focus, select, and press actions (select
+// selects that row alone); the list is multiselectable in the extended
+// mode. After
 // the rows comes one live region, "<id>.announcements", always present and
 // named by the latest announcement: rows appended at the end (insert_rows
 // at row_count()) are counted and announced once per settle as "<n> new
@@ -239,6 +309,19 @@ public:
     // content changed): they return to the estimate and are measured again
     // when shown. Throws std::out_of_range for a range past the end.
     void refresh_rows(VirtualRowIndex first, std::size_t count);
+    // Rows whose content changed, keeping their count: forgets their
+    // measured heights, measures again at once those in the viewport's band
+    // (so the view keeps its anchor), and repaints them. When none of them
+    // in view changed height, only their rectangles are repainted;
+    // otherwise the viewport is. Throws std::out_of_range for a range past
+    // the end.
+    void invalidate_rows(VirtualRowIndex first, std::size_t count);
+
+    // The most rows kept measured (see the class comment); none, the
+    // default, keeps every measured row. Takes effect at the next settle,
+    // which a call starts.
+    void set_measured_row_budget(std::optional<std::size_t> rows);
+    [[nodiscard]] std::optional<std::size_t> measured_row_budget() const noexcept { return measured_budget_; }
 
     // The height unmeasured rows take. Changing it forgets every measured
     // height. Throws std::invalid_argument outside [minimum_row_height,
@@ -294,16 +377,40 @@ public:
     std::string_view announcement() const&& = delete;
 
     // -- selection ----------------------------------------------------------
+    // Switching to ListSelectionMode::one keeps the current row selected
+    // alone (raising selection_changed when that changes the set).
+    void set_selection_mode(ListSelectionMode mode);
+    [[nodiscard]] ListSelectionMode selection_mode() const noexcept { return selection_mode_; }
+    // The current row: in the single mode the selected row; in the extended
+    // mode the row the keyboard and the last press are at, which Ctrl may
+    // have unselected.
     [[nodiscard]] std::optional<VirtualRowIndex> selected_row() const noexcept;
-    // Selects a row (none: no row) and raises selection_changed when it
-    // changes; does not scroll. Throws std::out_of_range for a row past the
-    // end.
+    // Makes a row current and selects it alone (none: clears the
+    // selection), setting the anchor, and raises selection_changed when
+    // that changes anything; does not scroll. Throws std::out_of_range for
+    // a row past the end.
     void set_selected_row(std::optional<VirtualRowIndex> row);
+    // The selected rows, sorted, disjoint and non-adjacent; valid until the
+    // next change of the rows or the selection.
+    [[nodiscard]] std::span<const VirtualRowRange> selected_ranges() const& noexcept { return ranges_; }
+    std::span<const VirtualRowRange> selected_ranges() const&& = delete;
+    // Whether a row is selected (false past the end); O(log ranges).
+    [[nodiscard]] bool row_selected(VirtualRowIndex row) const noexcept;
+    // O(ranges).
+    [[nodiscard]] std::size_t selected_row_count() const noexcept;
+    // Selects the rows from `anchor` to `current` inclusive, in either
+    // order, alone; `current` becomes the current row and `anchor` the
+    // anchor. Throws std::logic_error in the single mode and
+    // std::out_of_range for a row past the end.
+    void select_range(VirtualRowIndex anchor, VirtualRowIndex current);
+    // Unselects every row; the current row stays.
+    void clear_selection();
 
     [[nodiscard]] VirtualRowsStatistics statistics() const noexcept;
 
     [[nodiscard]] Event<const VirtualRowSelection&>& selection_changed() noexcept { return selection_changed_; }
     [[nodiscard]] Event<VirtualRowIndex>& row_activated() noexcept { return row_activated_; }
+    [[nodiscard]] Event<const VirtualRowScroll&>& scrolled() noexcept { return scrolled_; }
 
     // -- Control ------------------------------------------------------------
     [[nodiscard]] Size measure(Size available) override;
@@ -357,6 +464,8 @@ protected:
     // key raiser an unhandled key to handle_key; then the base raises.
     void on_mouse_down(MouseEventArgs& arguments) override;
     void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_capture_changed() override;
     void on_mouse_wheel(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
     void on_key_down(KeyEventArgs& arguments) override;
@@ -367,6 +476,9 @@ private:
     // navigation and activation keys.
     void handle_pointer(PointerEvent& event);
     void handle_key(KeyEvent& event);
+    // A drag's move: extends the selection to the row under the pointer
+    // (see the class comment).
+    void drag_to(Point local);
     // Raised targets run under this guard: the view refuses changes to its
     // rows, callbacks and scroll until it ends (VirtualRowsCallbacks).
     class CallbackScope;
@@ -409,10 +521,29 @@ private:
     void update_scroll_bar();
     void sync_scroll_bar();
     void on_vertical_scroll(double value);
-    // Selects a row, scrolls it into view (nearest) and raises
-    // selection_changed when it changed.
-    void select_and_reveal(std::size_t row);
+    // How a press, a key or an action changes the selection.
+    enum class SelectGesture : std::uint8_t { replace, extend, toggle };
+    // Makes a row current, changes the selection by `gesture` (extend and
+    // toggle only in the extended mode; replace otherwise), scrolls the row
+    // into view (nearest) and raises selection_changed when anything
+    // changed.
+    void select_and_reveal(std::size_t row, SelectGesture gesture);
+    // Selection storage: one range alone, a toggled row, the ranges moved
+    // by an insertion or an erasure (returns whether a selected row was
+    // erased). The vector's storage is reused.
+    void select_only(std::size_t first, std::size_t count);
+    void toggle_row(std::size_t row);
+    void shift_selection_for_insert(std::size_t at, std::size_t count);
+    bool shift_selection_for_erase(std::size_t at, std::size_t count);
+    [[nodiscard]] bool selected_at(std::size_t row) const noexcept;
     void raise_selection(std::optional<std::size_t> previous);
+    // Forgets measured rows outside the keep window when more than the
+    // budget are measured (see the class comment); [band_first, band_end)
+    // is the settle's band.
+    void enforce_measured_budget(std::size_t band_first, std::size_t band_end);
+    // Raises scrolled when the offset or the first visible row moved since
+    // the last report.
+    void report_scroll();
     void activate(std::size_t row);
     [[nodiscard]] Rect row_rectangle(std::size_t row) const noexcept;
     [[nodiscard]] AnatomyStateSet row_states(std::size_t row) const;
@@ -455,8 +586,18 @@ private:
     std::size_t first_realized_{};
     std::size_t end_realized_{};
 
+    // The current row (selected_row()), the extended selection's ranges
+    // and anchor, and whether a press is dragging a range.
     std::optional<std::size_t> selected_{};
+    ListSelectionMode selection_mode_{ListSelectionMode::one};
+    std::vector<VirtualRowRange> ranges_{};
+    std::optional<std::size_t> selection_anchor_{};
+    bool dragging_{};
     std::optional<std::size_t> hot_{};
+    std::optional<std::size_t> measured_budget_{};
+    // The last scrolled report: the offset and the first visible row.
+    double reported_offset_{};
+    std::size_t reported_first_{};
     bool focused_{};
     // Set while a target runs (CallbackScope); semantics run targets from
     // const members, hence mutable.
@@ -479,6 +620,7 @@ private:
 
     Event<const VirtualRowSelection&> selection_changed_{};
     Event<VirtualRowIndex> row_activated_{};
+    Event<const VirtualRowScroll&> scrolled_{};
 };
 
 } // namespace gui_forms

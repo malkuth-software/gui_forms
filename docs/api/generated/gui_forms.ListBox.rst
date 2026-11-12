@@ -471,7 +471,7 @@ gui_forms::ListBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ListBox``. Members declared here and by the counterpart: 13 supported, 0 deferred, 1 excluded, 49 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ListBox``. Members declared here and by the counterpart: 14 supported, 0 deferred, 1 excluded, 48 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -553,7 +553,7 @@ Counterpart: ``ListBox``. Members declared here and by the counterpart: 13 suppo
    * - property
      - ``SelectionMode``
      - ``selection_mode``
-     - unclassified (untested)
+     - supported
    * - property
      - ``Sorted``
      - none

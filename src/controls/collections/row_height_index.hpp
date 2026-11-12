@@ -12,33 +12,42 @@ namespace gui_forms {
 namespace detail {
 
 // A run of rows sharing one height and state: the entries of a
-// RowHeightIndex. A node's summary is its subtree's total height.
+// RowHeightIndex.
 struct RowRun final {
     std::size_t count{};
     double height{};
     bool measured{};
 };
 
+// A node's summary: its subtree's total height and how many of its rows are
+// measured (so the whole index's measured rows are an O(1) read).
+struct RowSummary final {
+    double height{};
+    std::size_t measured{};
+};
+
 struct RowRuns final {
     using Entry = RowRun;
-    using Summary = double;
+    using Summary = RowSummary;
     static constexpr bool tracks_leaves = false;
 
     [[nodiscard]] static std::size_t entry_count(const RowRun& run) noexcept { return run.count; }
     [[nodiscard]] static std::uint32_t entry_key(const RowRun&) noexcept { return 0U; }
-    [[nodiscard]] static double summarize_entries(std::span<const RowRun> runs) noexcept {
-        double height = 0.0;
+    [[nodiscard]] static RowSummary summarize_entries(std::span<const RowRun> runs) noexcept {
+        RowSummary summary{};
         for (const RowRun& run : runs) {
-            height += static_cast<double>(run.count) * run.height;
+            summary.height += static_cast<double>(run.count) * run.height;
+            if (run.measured) summary.measured += run.count;
         }
-        return height;
+        return summary;
     }
-    [[nodiscard]] static double summarize_children(std::span<const double> heights) noexcept {
-        double height = 0.0;
-        for (const double child : heights) {
-            height += child;
+    [[nodiscard]] static RowSummary summarize_children(std::span<const RowSummary> children) noexcept {
+        RowSummary summary{};
+        for (const RowSummary& child : children) {
+            summary.height += child.height;
+            summary.measured += child.measured;
         }
-        return height;
+        return summary;
     }
 };
 
@@ -114,11 +123,21 @@ public:
     void insert(std::size_t row, std::size_t count);
     // Erases rows [row, row + count) clamped to the end.
     void erase(std::size_t row, std::size_t count);
+    // Returns rows [row, row + count) (clamped to the end) to the estimate,
+    // unmeasured; every row keeps its position. An erase and an insert of
+    // as many estimated rows, so the forgotten runs' nodes are released.
+    void forget(std::size_t row, std::size_t count);
+    // Rows holding a measured height, O(1) (the root's summary).
+    [[nodiscard]] std::size_t measured_count() const noexcept;
 
     // Storage, for bounded-memory checks: nodes and runs held.
     [[nodiscard]] std::size_t node_count() const noexcept;
     [[nodiscard]] std::size_t run_count() const noexcept;
     [[nodiscard]] std::size_t depth() const noexcept;
+    // The heap bytes the index holds: each node and the capacity of its
+    // entry, child, count and summary arrays. Walks every node (O(nodes))
+    // with one frame per level, no recursion and no allocation.
+    [[nodiscard]] std::size_t storage_bytes() const noexcept;
 
     // Advances on every change to a count or a height (assign, a
     // set_height that changed a value, insert, erase), so a holder can
@@ -130,6 +149,8 @@ private:
     using Node = Tree::Node;
 
     static void merge_neighbours(std::vector<Run>& runs, std::size_t index);
+    // One node's heap bytes (storage_bytes).
+    [[nodiscard]] static std::size_t node_bytes(const Node& node) noexcept;
     // Erases up to `count` rows of the leaf's runs from `row` (within the
     // leaf) and joins equal neighbours; returns the rows erased.
     static std::size_t erase_from_leaf(std::vector<Run>& runs, std::size_t row, std::size_t count);

@@ -196,6 +196,37 @@ void test_move() {
     require(target.offset_of(5U) == 83.0, "move assignment");
 }
 
+// The measured count is the root's summary, kept through edits; forget
+// returns a range to the estimate in place; storage_bytes follows the runs
+// and falls back once they are forgotten.
+void test_measured_count_forget_and_bytes() {
+    gui_forms::RowHeightIndex index(estimate);
+    index.assign(1'000'000U, estimate);
+    const std::size_t empty_bytes = index.storage_bytes();
+    require(index.measured_count() == 0U && empty_bytes > 0U, "a fresh index measures nothing and holds a node");
+    for (std::size_t row = 0U; row < 20'000U; ++row) {
+        index.set_height(row * 50U, 1.0 + static_cast<double>(row % 7U));
+    }
+    require(index.measured_count() == 20'000U, "every measured row is counted");
+    const std::size_t grown = index.storage_bytes();
+    require(grown > empty_bytes + 20'000U * sizeof(gui_forms::detail::RowRun),
+            "the bytes cover at least the measured runs");
+    index.erase(0U, 500U);
+    require(index.measured_count() == 19'990U, "an erase removes its measured rows from the count");
+    index.insert(0U, 500U);
+    const double before = index.offset_of(999'000U);
+    const double height = index.height_of(999'000U);
+    index.forget(500U, 498'500U);
+    require(index.count() == 1'000'000U && index.measured_count() == 10'020U,
+            "forget keeps the rows and returns its range to the estimate");
+    require(!index.measured(999U * 50U) && index.measured(999'000U) && index.height_of(999'000U) == height,
+            "rows outside the forgotten range keep their heights");
+    require(index.offset_of(999'000U) != before, "forgotten heights change the offsets after them");
+    index.forget(0U, index.count());
+    require(index.measured_count() == 0U && index.storage_bytes() < grown,
+            "forgetting every row releases the measured runs' storage");
+}
+
 } // namespace
 
 int main() {
@@ -204,6 +235,7 @@ int main() {
         test_million_rows();
         test_depth_follows_the_count();
         test_move();
+        test_measured_count_forget_and_bytes();
         std::cout << "row height index tests passed\n";
         return 0;
     } catch (const std::exception& error) {

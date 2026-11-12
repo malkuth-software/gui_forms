@@ -5,8 +5,9 @@
 // refinement, edits, insertions, erasures and a width change, scrolling to
 // an index in every alignment, a million rows with bounded work per settle
 // and per paint (counted, not timed), the keyboard, accessibility, right to
-// left, refusals, following the tail and the coalesced announcement of
-// appended rows. Heights are whole numbers so every sum is exact.
+// left, refusals, following the tail, the coalesced announcement of
+// appended rows, the measured-row budget, extended selection, the scrolled
+// event and row invalidation. Heights are whole numbers so every sum is exact.
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
@@ -29,6 +30,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -156,6 +158,16 @@ struct RecordActivation final {
     void operator()(VirtualRowIndex row) const { (*seen).push_back(row.value); }
 };
 
+struct RecordSelectedCount final {
+    std::vector<std::size_t>* seen{};
+    void operator()(const VirtualRowSelection& change) const { (*seen).push_back(change.selected_count); }
+};
+
+struct RecordScroll final {
+    std::vector<VirtualRowScroll>* seen{};
+    void operator()(const VirtualRowScroll& change) const { (*seen).push_back(change); }
+};
+
 std::shared_ptr<VirtualRowsView> make_view(SyntheticRows& rows, std::size_t count) {
     std::shared_ptr<VirtualRowsView> view = make_control<VirtualRowsView>(StableId("rows"));
     (*view).set_estimated_row_height(estimate);
@@ -174,6 +186,65 @@ bool key(Window& window, std::uint32_t physical) {
     KeyEvent event{KeyAction::down, physical};
     const bool handled = window.dispatch_key(event);
     return handled;
+}
+
+bool key_with(Window& window, std::uint32_t physical, Modifier modifiers) {
+    KeyEvent event{KeyAction::down, physical};
+    event.modifiers = modifiers;
+    const bool handled = window.dispatch_key(event);
+    return handled;
+}
+
+// The middle of a row, in window coordinates (the view is the root at the
+// origin).
+Point row_middle(const VirtualRowsView& view, std::size_t row) {
+    const Rect bounds = view.row_bounds(VirtualRowIndex{row});
+    const Point middle{bounds.x + bounds.width / 2.0, bounds.y + bounds.height / 2.0};
+    return middle;
+}
+
+void press_at(Window& window, Point point, Modifier modifiers) {
+    PointerEvent down{};
+    down.action = PointerAction::down;
+    down.button = PointerButton::primary;
+    down.position = point;
+    down.modifiers = modifiers;
+    static_cast<void>(window.dispatch_pointer(down));
+}
+
+void release_at(Window& window, Point point) {
+    PointerEvent up{};
+    up.action = PointerAction::up;
+    up.button = PointerButton::primary;
+    up.position = point;
+    static_cast<void>(window.dispatch_pointer(up));
+}
+
+void move_to(Window& window, Point point) {
+    PointerEvent move{};
+    move.action = PointerAction::move;
+    move.position = point;
+    static_cast<void>(window.dispatch_pointer(move));
+}
+
+void click_row(Window& window, const VirtualRowsView& view, std::size_t row, Modifier modifiers) {
+    const Point point = row_middle(view, row);
+    press_at(window, point, modifiers);
+    release_at(window, point);
+}
+
+bool ranges_are(const VirtualRowsView& view, const std::vector<VirtualRowRange>& expected) {
+    const std::span<const VirtualRowRange> ranges = view.selected_ranges();
+    if (ranges.size() != expected.size()) return false;
+    for (std::size_t index = 0U; index < ranges.size(); ++index) {
+        if (ranges[index] != expected[index]) return false;
+    }
+    return true;
+}
+
+VirtualRowRange rows_from(std::size_t first, std::size_t count) {
+    const VirtualRowRange range{VirtualRowIndex{first}, count};
+    return range;
 }
 
 bool wheel(Window& window, double lines) {
@@ -685,6 +756,200 @@ void append_announcements() {
     require((*view).announcement() == "2 new rows, 56 in all", "announcing again once turned back on");
 }
 
+// The measured-row budget: a long scroll keeps the measured rows (and so
+// the index's bytes) bounded, forgetting rows far from the view, and the
+// rows on screen keep their place when the budget forgets rows above them.
+void measured_row_budget() {
+    constexpr std::size_t budget = 2'000U;
+    // The band: the viewport and half a viewport above and below, over the
+    // shortest row (14 units), plus the straddling rows.
+    constexpr std::size_t band_rows = 600U / 14U + 2U;
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000'000U);
+    Window window(view, {400.0, 300.0});
+    window.perform_layout();
+    SyntheticRows open_rows;
+    std::shared_ptr<VirtualRowsView> open = make_view(open_rows, 1'000'000U);
+    Window open_window(open, {400.0, 300.0});
+    open_window.perform_layout();
+    require(!(*view).measured_row_budget().has_value(), "no budget by default");
+    (*view).set_measured_row_budget(budget);
+    for (std::size_t step = 0U; step < 400U; ++step) {
+        (*view).scroll_to_offset((*view).scroll_offset() + 2'500.0);
+        (*open).scroll_to_offset((*open).scroll_offset() + 2'500.0);
+        require((*view).statistics().index_measured <= budget + 1U + band_rows,
+                "the measured rows stay within the budget and the band");
+        require((*view).row_measured((*view).first_visible_row()), "the rows in view stay measured");
+    }
+    const VirtualRowsStatistics bounded = (*view).statistics();
+    const VirtualRowsStatistics unbounded = (*open).statistics();
+    require(unbounded.index_measured > 3U * budget && unbounded.budget_compactions == 0U,
+            "without a budget every measured row is kept");
+    require(bounded.rows_forgotten > 0U && bounded.budget_compactions > 0U &&
+                bounded.index_bytes < unbounded.index_bytes && bounded.index_runs < unbounded.index_runs,
+            "the budget forgets far rows and holds fewer bytes");
+
+    // A smaller budget forgets rows above the viewport at once; the anchor
+    // keeps the rows on screen still.
+    const VirtualRowIndex top = (*view).first_visible_row();
+    const double top_y = (*view).row_bounds(top).y;
+    (*view).set_measured_row_budget(200U);
+    require((*view).statistics().index_measured <= 201U + band_rows && (*view).first_visible_row() == top &&
+                (*view).row_bounds(top).y == top_y,
+            "forgetting rows above the view does not move the rows on screen");
+    (*view).set_measured_row_budget(std::nullopt);
+    require(!(*view).measured_row_budget().has_value(), "the budget can be lifted");
+}
+
+// Extended selection with ListBox's conventions: a press, Shift and Ctrl
+// presses, Shift with a key, Ctrl+Space, a drag past the viewport's edge,
+// insertions and erasures, the single mode, and the programmatic calls.
+void extended_selection() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 5'000U);
+    Window window(view, {400.0, 300.0});
+    window.perform_layout();
+    std::vector<std::size_t> counts;
+    SubscriptionToken counted = (*view).selection_changed().subscribe(RecordSelectedCount{&counts});
+    (*view).set_selection_mode(ListSelectionMode::multiple_extended);
+    require(has_semantic_state((*view).semantic_descriptor().states, SemanticState::multiselectable),
+            "the extended mode is multiselectable");
+
+    click_row(window, *view, 2U, Modifier::none);
+    require(ranges_are(*view, {rows_from(2U, 1U)}) && (*view).selected_row() == some_row(2U),
+            "a press selects its row alone");
+    click_row(window, *view, 5U, Modifier::shift);
+    require(ranges_are(*view, {rows_from(2U, 4U)}) && (*view).selected_row() == some_row(5U) &&
+                (*view).selected_row_count() == 4U && counts.back() == 4U,
+            "Shift with a press selects from the anchor");
+    click_row(window, *view, 3U, Modifier::control);
+    require(ranges_are(*view, {rows_from(2U, 1U), rows_from(4U, 2U)}) &&
+                !(*view).row_selected(VirtualRowIndex{3U}) && (*view).selected_row() == some_row(3U),
+            "Ctrl with a press toggles its row off, splitting the range");
+    click_row(window, *view, 3U, Modifier::control);
+    require(ranges_are(*view, {rows_from(2U, 4U)}), "toggling it back on joins the ranges");
+    require(key_with(window, PhysicalKey::down, Modifier::shift) && ranges_are(*view, {rows_from(3U, 2U)}) &&
+                (*view).selected_row() == some_row(4U),
+            "Shift+Down extends from the anchor the last Ctrl press set");
+    require(key_with(window, PhysicalKey::space, Modifier::control) && ranges_are(*view, {rows_from(3U, 1U)}) &&
+                (*view).selected_row() == some_row(4U),
+            "Ctrl+Space toggles the current row");
+    std::vector<SemanticNode> children = (*view).semantic_virtual_children();
+    require(has_semantic_state(children[3].states, SemanticState::selected) &&
+                !has_semantic_state(children[4].states, SemanticState::selected) &&
+                has_semantic_state(children[4].states, SemanticState::focused),
+            "the semantic rows show the ranges and the current row");
+
+    // A drag extends from the press to the row under the pointer, and past
+    // the viewport's bottom to the row just below it, which scrolls in.
+    press_at(window, row_middle(*view, 1U), Modifier::none);
+    move_to(window, row_middle(*view, 4U));
+    require(ranges_are(*view, {rows_from(1U, 4U)}), "a drag extends the range to the row under the pointer");
+    const std::size_t below = (*view).end_visible_row().value;
+    move_to(window, Point{100.0, 320.0});
+    const Rect revealed = (*view).row_bounds(VirtualRowIndex{below});
+    require(ranges_are(*view, {rows_from(1U, below)}) && (*view).selected_row() == some_row(below) &&
+                revealed.y + revealed.height == 300.0,
+            "past the bottom the drag takes the next row and scrolls it in");
+    release_at(window, Point{100.0, 320.0});
+    move_to(window, Point{100.0, 150.0});
+    require(ranges_are(*view, {rows_from(1U, below)}), "after the release a move does not select");
+
+    // Inserted rows are unselected; an erasure joins what it brings
+    // together and says so.
+    (*view).insert_rows(VirtualRowIndex{5U}, 2U);
+    require(ranges_are(*view, {rows_from(1U, 4U), rows_from(7U, below - 4U)}),
+            "rows inserted inside a range split it");
+    const std::size_t raised = counts.size();
+    (*view).erase_rows(VirtualRowIndex{3U}, 6U);
+    require(ranges_are(*view, {rows_from(1U, below - 4U)}) && counts.size() == raised + 1U &&
+                counts.back() == below - 4U,
+            "an erasure removes its rows from the ranges and joins the rest");
+
+    (*view).set_selection_mode(ListSelectionMode::one);
+    const std::size_t current = (*(*view).selected_row()).value;
+    require(ranges_are(*view, {rows_from(current, 1U)}) &&
+                !has_semantic_state((*view).semantic_descriptor().states, SemanticState::multiselectable),
+            "the single mode keeps the current row alone");
+    bool refused = false;
+    try {
+        (*view).select_range(VirtualRowIndex{0U}, VirtualRowIndex{2U});
+    } catch (const std::logic_error&) {
+        refused = true;
+    }
+    require(refused, "select_range is refused in the single mode");
+    (*view).set_selection_mode(ListSelectionMode::multiple_extended);
+    (*view).select_range(VirtualRowIndex{2U}, VirtualRowIndex{0U});
+    require(ranges_are(*view, {rows_from(0U, 3U)}) && (*view).selected_row() == some_row(0U),
+            "select_range selects between the anchor and the current row");
+    (*view).clear_selection();
+    require((*view).selected_ranges().empty() && (*view).selected_row() == some_row(0U) && counts.back() == 0U,
+            "clear_selection unselects every row and keeps the current one");
+    static_cast<void>(counted);
+}
+
+// scrolled: once per settled move of the offset or the first visible row,
+// with the tail state current; nothing for a scroll that moves nothing.
+void scrolled_event() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 10'000U);
+    Window window(view, {400.0, 300.0});
+    window.perform_layout();
+    std::vector<VirtualRowScroll> scrolls;
+    SubscriptionToken token = (*view).scrolled().subscribe(RecordScroll{&scrolls});
+    (*view).scroll_to_offset(500.0);
+    require(scrolls.size() == 1U && scrolls[0].offset == (*view).scroll_offset() &&
+                scrolls[0].first_visible == (*view).first_visible_row() && !scrolls[0].following_tail,
+            "a scroll is reported once, settled");
+    (*view).scroll_to_offset((*view).scroll_offset());
+    require(scrolls.size() == 1U, "a scroll that moves nothing is not reported");
+    (*view).set_follow_tail(true);
+    (*view).scroll_to_offset((*view).content_height());
+    require(scrolls.size() == 2U && scrolls.back().following_tail, "reaching the end reports following");
+    (*view).insert_rows(VirtualRowIndex{(*view).row_count()}, 5U);
+    require(scrolls.size() == 3U && scrolls.back().following_tail &&
+                scrolls.back().offset == (*view).scroll_offset(),
+            "appended rows that move a following view are reported");
+    require(wheel(window, 1.0) && scrolls.size() == 4U && !scrolls.back().following_tail,
+            "a scroll away from the end reports that following stopped");
+    static_cast<void>(token);
+}
+
+// invalidate_rows: measured again at once and repainted, only their
+// rectangles when nothing moved; rows above the view keep it still.
+void row_invalidation() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    Window window(view, {400.0, 300.0});
+    window.perform_layout();
+    const std::size_t measured = rows.measured;
+    const Rect before = (*view).row_bounds(VirtualRowIndex{3U});
+    (*view).invalidate_rows(VirtualRowIndex{2U}, 3U);
+    require(rows.measured == measured + 3U && (*view).row_measured(VirtualRowIndex{3U}) &&
+                (*view).row_bounds(VirtualRowIndex{3U}).y == before.y && (*view).statistics().partial_repaints == 1U,
+            "unchanged rows are measured again at once and only their rectangles repainted");
+
+    rows.shift = 7.0;
+    const Rect first = (*view).row_bounds(VirtualRowIndex{0U});
+    (*view).invalidate_rows(VirtualRowIndex{1U}, 1U);
+    require((*view).row_bounds(VirtualRowIndex{1U}).height == rows.height_for(1U, (*view).viewport_bounds().width) &&
+                (*view).row_bounds(VirtualRowIndex{0U}).y == first.y && (*view).statistics().partial_repaints == 1U,
+            "a row that changed height is measured again and the viewport repainted, the anchor kept");
+
+    (*view).scroll_to_row(VirtualRowIndex{500U}, VirtualRowAlignment::start);
+    (*view).invalidate_rows(VirtualRowIndex{0U}, 400U);
+    require((*view).row_bounds(VirtualRowIndex{500U}).y == 0.0 && (*view).statistics().partial_repaints == 1U,
+            "rows above the view change nothing on screen");
+    bool refused = false;
+    try {
+        (*view).invalidate_rows(VirtualRowIndex{999U}, 2U);
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused, "a range past the end is refused");
+    rows.shift = 0.0;
+}
+
 } // namespace
 
 int main() {
@@ -699,7 +964,11 @@ int main() {
     themed_background();
     follow_tail();
     append_announcements();
+    measured_row_budget();
+    extended_selection();
+    scrolled_event();
+    row_invalidation();
     std::cout << "VirtualRowsView: refinement invariants, anchor stability, scrolling to an index, a million rows "
-                 "with bounded work, keyboard, accessibility, right to left, refusals, the themed background, follow tail and append announcements passed\n";
+                 "with bounded work, keyboard, accessibility, right to left, refusals, the themed background, follow tail, append announcements, the measured-row budget, extended selection, scrolled and row invalidation passed\n";
     return 0;
 }

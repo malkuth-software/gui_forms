@@ -3659,7 +3659,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "selection_changed", "payload": "VirtualRowSelection", "mutable_payload": false},
-        {"name": "row_activated", "payload": "VirtualRowIndex", "mutable_payload": false}
+        {"name": "row_activated", "payload": "VirtualRowIndex", "mutable_payload": false},
+        {"name": "scrolled", "payload": "VirtualRowScroll", "mutable_payload": false}
       ]
     },
     {
