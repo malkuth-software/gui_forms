@@ -231,7 +231,7 @@ gui_forms::CommandBar
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 73 unclassified; 3 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 5 supported, 0 deferred, 2 excluded, 71 unclassified; 3 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -513,11 +513,11 @@ Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 5 supp
    * - method
      - ``OnPaintGrip``
      - none
-     - unclassified (hook)
+     - excluded: the grip is painted by role (T4); no renderer hook (On\* hooks (d) list)
    * - method
      - ``OnRendererChanged``
      - none
-     - unclassified (hook)
+     - excluded: ToolStripRenderer is replaced by the theme engine; there is no renderer object (On\* hooks (d) list)
    * - method
      - ``ResetMinimumSize``
      - none

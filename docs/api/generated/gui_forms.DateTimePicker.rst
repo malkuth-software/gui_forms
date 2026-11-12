@@ -415,7 +415,7 @@ gui_forms::DateTimePicker
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 47 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6 supported, 0 deferred, 1 excluded, 46 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -589,7 +589,7 @@ Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6
    * - method
      - ``OnRightToLeftLayoutChanged``
      - none
-     - unclassified (hook)
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
    * - method
      - ``OnValueChanged``
      - ``on_value_changed``

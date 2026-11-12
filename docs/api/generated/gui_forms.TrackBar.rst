@@ -270,7 +270,7 @@ gui_forms::TrackBar
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TrackBar``. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 30 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TrackBar``. Members declared here and by the counterpart: 12 supported, 0 deferred, 1 excluded, 29 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -404,7 +404,7 @@ Counterpart: ``TrackBar``. Members declared here and by the counterpart: 12 supp
    * - method
      - ``OnRightToLeftLayoutChanged``
      - none
-     - unclassified (hook)
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
    * - method
      - ``OnScroll``
      - none

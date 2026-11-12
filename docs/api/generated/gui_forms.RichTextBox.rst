@@ -550,7 +550,7 @@ gui_forms::RichTextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 supported, 0 deferred, 0 excluded, 60 unclassified; 22 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 supported, 0 deferred, 2 excluded, 58 unclassified; 22 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -764,7 +764,7 @@ Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 s
    * - method
      - ``OnImeChange``
      - none
-     - unclassified (hook)
+     - excluded: IMM32 notification; the host owns the IME (On\* hooks (d) list)
    * - method
      - ``OnLinkClicked``
      - none
@@ -772,7 +772,7 @@ Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 s
    * - method
      - ``OnProtected``
      - none
-     - unclassified (hook)
+     - excluded: the markdown run model has no protected ranges (W-Q1) (On\* hooks (d) list)
    * - method
      - ``OnSelectionChanged``
      - none

@@ -531,7 +531,7 @@ gui_forms::TabControl
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TabControl``. Members declared here and by the counterpart: 16 supported, 1 deferred, 1 excluded, 39 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TabControl``. Members declared here and by the counterpart: 16 supported, 1 deferred, 2 excluded, 38 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -697,7 +697,7 @@ Counterpart: ``TabControl``. Members declared here and by the counterpart: 16 su
    * - method
      - ``OnRightToLeftLayoutChanged``
      - none
-     - unclassified (hook)
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
    * - method
      - ``OnSelected``
      - none

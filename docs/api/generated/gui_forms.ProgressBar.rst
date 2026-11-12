@@ -318,7 +318,7 @@ gui_forms::ProgressBar
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ProgressBar``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 35 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ProgressBar``. Members declared here and by the counterpart: 8 supported, 0 deferred, 1 excluded, 34 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -452,7 +452,7 @@ Counterpart: ``ProgressBar``. Members declared here and by the counterpart: 8 su
    * - method
      - ``OnRightToLeftLayoutChanged``
      - none
-     - unclassified (hook)
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
    * - method
      - ``PerformStep``
      - none

@@ -226,7 +226,7 @@ gui_forms::PictureBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``PictureBox``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 35 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``PictureBox``. Members declared here and by the counterpart: 6 supported, 0 deferred, 2 excluded, 33 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -364,11 +364,11 @@ Counterpart: ``PictureBox``. Members declared here and by the counterpart: 6 sup
    * - method
      - ``OnLoadCompleted``
      - none
-     - unclassified (hook)
+     - excluded: no asynchronous URL loading: images are PNG resources (On\* hooks (d) list)
    * - method
      - ``OnLoadProgressChanged``
      - none
-     - unclassified (hook)
+     - excluded: no asynchronous URL loading: images are PNG resources (On\* hooks (d) list)
    * - method
      - ``OnSizeModeChanged``
      - ``on_size_mode_changed``
