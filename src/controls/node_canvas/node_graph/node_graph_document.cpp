@@ -863,8 +863,9 @@ std::uint32_t newer_generation(std::uint32_t generation) noexcept {
     return next;
 }
 
-// One past the largest n of the automatic IDs "l.<n>" among `links`, so the
-// automatic counter never hands out a loaded ID again.
+// One past the largest n of the IDs "l.<n>" among `links` (n in decimal,
+// leading zeros allowed, so "l.007" counts as 7), so the automatic counter
+// never hands out a loaded ID again. Order and gaps do not matter.
 std::uint64_t next_automatic_number(const std::vector<ParsedLink>& links) noexcept {
     std::uint64_t next = 1U;
     for (const ParsedLink& link : links) {
@@ -992,6 +993,8 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
     require_room(key_order_, parsed.order.size(), "node_graph.load");
     key_order_.assign(parsed.order.begin(), parsed.order.end());
 
+    // Read before the loop below moves the IDs out of `parsed.links`.
+    const std::uint64_t loaded_next_number = next_automatic_number(parsed.links);
     for (std::size_t index = 0U; index < link_count; ++index) {
         ParsedLink& parsed_link = parsed.links[index];
         LinkRecord link{};
@@ -1022,7 +1025,7 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
     link_key_order_.clear();
     require_room(link_key_order_, parsed.link_order.size(), "node_graph.load");
     link_key_order_.assign(parsed.link_order.begin(), parsed.link_order.end());
-    next_link_number_ = std::max(next_link_number_, next_automatic_number(parsed.links));
+    next_link_number_ = std::max(next_link_number_, loaded_next_number);
     live_nodes_ = node_count;
     live_links_ = link_count;
     advance();

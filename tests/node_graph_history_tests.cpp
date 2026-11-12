@@ -215,6 +215,49 @@ void link_ids() {
     require(next.status == GraphStatus::ok && (*loaded.link(next.link)).key == "l.8", "the automatic counter starts past every loaded l.<n>");
 }
 
+// Loaded IDs out of order, with gaps and leading zeros: "l.012" counts as
+// 12, and IDs that only look automatic ("l.", "l.x3", "l.-4") do not count.
+void gapped_link_ids() {
+    std::string document(sample_document);
+    const std::string_view one_port = "    port: input left 0.5 3 \"a\";\n";
+    document.replace(document.find(one_port), one_port.size(),
+                     "    port: input left 0.5 3 \"a\";\n"
+                     "    port: input left 0.5 3 \"b\";\n"
+                     "    port: input left 0.5 3 \"c\";\n"
+                     "    port: input left 0.5 3 \"d\";\n"
+                     "    port: input left 0.5 3 \"e\";\n");
+    const std::string_view one_link = "link l.1 noise:0 -> mix:0;\n";
+    document.replace(document.find(one_link), one_link.size(),
+                     "link l.3 noise:0 -> mix:0;\n"
+                     "link l.012 noise:0 -> mix:1;\n"
+                     "link l. noise:0 -> mix:2;\n"
+                     "link l.x3 noise:0 -> mix:3;\n"
+                     "link l.-4 noise:0 -> mix:4;\n");
+    NodeGraph graph;
+    require(graph.load(document).error == GraphLoadError::ok, "out-of-order, gapped and padded IDs load");
+    require(graph.link(graph.find_link("l.012")) != nullptr && graph.link(graph.find_link("l.-4")) != nullptr,
+            "each ID is kept as spelled");
+    const NodeId noise = graph.find_node("noise");
+    const NodeId extra = add(graph, "extra", 0.0, 200.0);
+    const GraphResult first = graph.connect(PortRef{noise, PortIndex{0U}}, PortRef{extra, PortIndex{0U}});
+    require(first.status == GraphStatus::ok && (*graph.link(first.link)).key == "l.13",
+            "the counter starts past the largest loaded number, whatever its spelling");
+    require(graph.disconnect(first.link).status == GraphStatus::ok, "the new link is removed");
+    const GraphResult again = graph.connect(PortRef{noise, PortIndex{0U}}, PortRef{extra, PortIndex{0U}});
+    require(again.status == GraphStatus::ok && (*graph.link(again.link)).key == "l.14",
+            "and does not go back to a freed or skipped number");
+    NodeGraph reloaded;
+    require(reloaded.load(saved(graph)).error == GraphLoadError::ok, "the edited graph reloads");
+    const GraphResult after = reloaded.connect(PortRef{reloaded.find_node("noise"), PortIndex{0U}},
+                                               PortRef{reloaded.find_node("mix"), PortIndex{0U}});
+    require(after.status == GraphStatus::occupied, "mix:0 still has its link");
+    const NodeId spare = add(reloaded, "spare", 0.0, 400.0);
+    const GraphResult next = reloaded.connect(PortRef{reloaded.find_node("noise"), PortIndex{0U}},
+                                              PortRef{spare, PortIndex{0U}});
+    require(next.status == GraphStatus::ok && (*reloaded.link(next.link)).key == "l.15",
+            "a reload of a saved graph continues the count");
+}
+
 void sample_format() {
     NodeGraph graph;
     NodeSpec noise{};
@@ -924,6 +967,7 @@ int main() {
     sample_format();
     tolerant_load();
     link_ids();
+    gapped_link_ids();
     every_byte_round_trips();
     every_inverse();
     grouping();
