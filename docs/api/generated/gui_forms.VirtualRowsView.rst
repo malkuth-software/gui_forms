@@ -136,7 +136,8 @@ gui_forms::VirtualRowsView
    those within half a viewport of it are measured. A change of the content
    width forgets the measured heights, since wrapped rows change height with
    it. Scrolling by whole device pixels moves the painted pixels instead of
-   repainting them when ``back_color`` is an opaque colour.
+   repainting them when the view's background is opaque: the theme's ground
+   for the view's surface, or ``back_color``, which overrides it per control.
 
    Rows appended between two layouts are announced once, at the next layout,
    with their count and the new total; screen readers speak the live region
@@ -365,7 +366,7 @@ gui_forms::VirtualRowsView
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 20 supported, 0 deferred, 0 excluded, 2 unclassified; 22 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 24 supported, 0 deferred, 0 excluded, 2 unclassified; 26 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -378,6 +379,14 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 20 s
      - Status
    * - property
      - GUI.Forms-only
+     - ``announcement``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``announces_appends``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``content_height``
      - supported
    * - property
@@ -387,6 +396,14 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 20 s
    * - property
      - GUI.Forms-only
      - ``first_visible_row``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``follow_tail``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``following_tail``
      - supported
    * - property
      - GUI.Forms-only
