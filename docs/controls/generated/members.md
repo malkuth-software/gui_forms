@@ -8,24 +8,24 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 1971 | 13 | 331 | 4181 | 2087 |
+| 1974 | 13 | 331 | 4164 | 2091 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 206 | 0 | 5 | 344 | 198 |
+| `Control` | `Control` | 208 | 0 | 5 | 344 | 200 |
 | `Component` | `Component` | 9 | 0 | 0 | 11 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 36 | 21 |
 | `Button` | `Button` | 6 | 0 | 0 | 6 | 5 |
 | `DropDownButton` | `ToolStripSplitButton` | 6 | 0 | 0 | 18 | 5 |
 | `LinkLabel` | `LinkLabel` | 1 | 0 | 0 | 17 | 0 |
 | `CommandBar` | `ToolStrip` | 5 | 0 | 0 | 73 | 3 |
-| `TextBox` | `TextBox` | 31 | 0 | 0 | 29 | 33 |
+| `TextBox` | `TextBox` | 23 | 0 | 0 | 28 | 31 |
 | `TokenBox` | GUI.Forms-only | 12 | 0 | 0 | 2 | 14 |
 | `SearchField` | GUI.Forms-only | 6 | 0 | 0 | 6 | 12 |
-| `MaskedTextBox` | `MaskedTextBox` | 14 | 0 | 0 | 40 | 7 |
-| `RichTextBox` | `RichTextBox` | 32 | 0 | 0 | 60 | 22 |
+| `MaskedTextBox` | `MaskedTextBox` | 16 | 0 | 0 | 38 | 7 |
+| `RichTextBox` | `RichTextBox` | 26 | 0 | 0 | 57 | 20 |
 | `Label` | `Label` | 7 | 0 | 1 | 36 | 9 |
 | `TextBlock` | GUI.Forms-only | 2 | 0 | 0 | 8 | 10 |
 | `Badge` | GUI.Forms-only | 3 | 0 | 0 | 4 | 7 |
@@ -42,9 +42,9 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `PlotAxisItem` | GUI.Forms-only | 2 | 0 | 0 | 8 | 10 |
 | `PlotSeriesItem` | GUI.Forms-only | 8 | 0 | 0 | 19 | 27 |
 | `PlotAnnotationItem` | GUI.Forms-only | 0 | 0 | 0 | 4 | 4 |
-| `ListBox` | `ListBox` | 12 | 0 | 1 | 51 | 14 |
+| `ListBox` | `ListBox` | 13 | 0 | 1 | 49 | 14 |
 | `CheckedListBox` | `CheckedListBox` | 12 | 0 | 0 | 18 | 6 |
-| `ComboBox` | `ComboBox` | 12 | 0 | 1 | 54 | 9 |
+| `ComboBox` | `ComboBox` | 11 | 0 | 1 | 54 | 9 |
 | `TreeView` | `TreeView` | 10 | 0 | 1 | 76 | 9 |
 | `ObjectView` | `ListView` | 20 | 0 | 1 | 108 | 18 |
 | `ListView` | `ListView` | 49 | 0 | 1 | 99 | 38 |
@@ -59,7 +59,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TrackBar` | `TrackBar` | 12 | 0 | 0 | 30 | 8 |
 | `ValueBar` | GUI.Forms-only | 18 | 0 | 0 | 19 | 37 |
 | `NumericUpDown` | `NumericUpDown` | 7 | 0 | 0 | 16 | 6 |
-| `DomainUpDown` | `DomainUpDown` | 5 | 0 | 0 | 13 | 5 |
+| `DomainUpDown` | `DomainUpDown` | 3 | 0 | 0 | 13 | 5 |
 | `ColorValueEditor` | GUI.Forms-only | 3 | 0 | 0 | 3 | 6 |
 | `FlagsValueEditor` | GUI.Forms-only | 1 | 0 | 0 | 6 | 7 |
 | `PropertyGrid` | `PropertyGrid` | 19 | 0 | 0 | 74 | 19 |
@@ -155,10 +155,10 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Binding` | `Binding` | 8 | 0 | 0 | 22 | 7 |
 | `BindingSource` | `BindingSource` | 45 | 0 | 0 | 60 | 28 |
 | `BindingContext` | `BindingContext` | 8 | 0 | 0 | 7 | 2 |
-| `TextBoxBase` | `TextBoxBase` | 1 | 0 | 0 | 46 | 0 |
-| `ListControl` | `ListControl` | 0 | 0 | 0 | 34 | 0 |
-| `UpDownBase` | `UpDownBase` | 1 | 0 | 0 | 30 | 1 |
-| `Window` | `Form` | 216 | 10 | 6 | 139 | 231 |
+| `TextBoxBase` | `TextBoxBase` | 11 | 0 | 0 | 40 | 4 |
+| `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
+| `UpDownBase` | `UpDownBase` | 3 | 0 | 0 | 28 | 1 |
+| `Window` | `Form` | 217 | 10 | 6 | 139 | 232 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -295,11 +295,11 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Question | Members |
 |---|---|
-| `carried` | 114 |
+| `carried` | 103 |
 | `hook` | 370 |
 | `nested` | 641 |
 | `no-entry` | 510 |
 | `review` | 13 |
-| `unmatched` | 1636 |
-| `untested` | 892 |
+| `unmatched` | 1633 |
+| `untested` | 889 |
 | `w-open` | 5 |
