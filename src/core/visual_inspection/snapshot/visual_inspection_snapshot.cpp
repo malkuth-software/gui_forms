@@ -111,6 +111,7 @@ const char* fill_kind_name(MaterialFillKind kind) noexcept {
     case MaterialFillKind::image: return "image";
     case MaterialFillKind::conic_gradient: return "conic_gradient";
     case MaterialFillKind::procedural: return "procedural";
+    case MaterialFillKind::finish: return "finish";
     }
     return "unknown";
 }
@@ -124,6 +125,20 @@ const char* procedural_pattern_name(ProceduralPattern pattern) noexcept {
     case ProceduralPattern::brushed_metal: return "brushed_metal";
     case ProceduralPattern::fresco: return "fresco";
     case ProceduralPattern::checker: return "checker";
+    }
+    return "unknown";
+}
+
+const char* finish_kind_name(FinishKind kind) noexcept {
+    switch (kind) {
+    case FinishKind::dusty_matte: return "dusty_matte";
+    case FinishKind::orange_peel: return "orange_peel";
+    case FinishKind::hammertone: return "hammertone";
+    case FinishKind::wrinkle: return "wrinkle";
+    case FinishKind::bead_blast: return "bead_blast";
+    case FinishKind::sand_cast: return "sand_cast";
+    case FinishKind::flat: return "flat";
+    case FinishKind::cloth_weave: return "cloth_weave";
     }
     return "unknown";
 }
@@ -313,6 +328,21 @@ void append_fill(std::ostringstream& output, const MaterialFillLayer& fill) {
         output << ",\"bloom\":";
         append_color(output, pattern.bloom);
         output << '}';
+    }
+    // A finish fill's parameters, only for one, so that other fills'
+    // snapshots are unchanged.
+    if (fill.kind == MaterialFillKind::finish) {
+        const FinishFill& finish = fill.finish;
+        output << ",\"finish\":{\"kind\":";
+        append_json_string(output, finish_kind_name(finish.kind));
+        output << ",\"seed\":" << finish.seed << ",\"grain\":" << finish.grain << ",\"paint\":";
+        append_color(output, finish.paint);
+        output << ",\"secondary\":";
+        append_color(output, finish.secondary);
+        output << ",\"light_azimuth_degrees\":" << finish.light_azimuth_degrees
+               << ",\"light_elevation_degrees\":" << finish.light_elevation_degrees
+               << ",\"ambient\":" << finish.ambient << ",\"relief\":" << finish.relief
+               << ",\"gloss\":" << finish.gloss << '}';
     }
     output << '}';
 }

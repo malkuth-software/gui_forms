@@ -159,6 +159,7 @@ property.fill-text-color	recipe-colours
 property.filter-blur	shadows-opacity-filters
 property.filter-colour	shadows-opacity-filters
 property.filter-drop-shadow	shadows-opacity-filters
+property.finish-fill	finish-fills
 property.font-family	fonts
 property.font-role	transforms-text
 property.font-size	fonts

@@ -381,6 +381,13 @@ void darken_fill(MaterialFillLayer& layer, const DarkRecipePlan& plan) noexcept 
         return;
     case MaterialFillKind::image:
     case MaterialFillKind::procedural: return; // Content, not chrome: kept.
+    case MaterialFillKind::finish:
+        // A painted or woven surface is chrome: its two colours darken as
+        // solid fills do; its relief and sheen are kept.
+        layer.finish.paint = detail::dark_colour(layer.finish.paint, fill_class(layer.finish.paint, layer.blend, plan));
+        layer.finish.secondary =
+            detail::dark_colour(layer.finish.secondary, fill_class(layer.finish.secondary, layer.blend, plan));
+        return;
     default: return; // A kind outside the enumeration is kept as it is.
     }
 }

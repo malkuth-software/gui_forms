@@ -91,7 +91,8 @@ std::optional<Color> base_colour_at(const MaterialFillLayer& fill, double positi
     case MaterialFillKind::radial_gradient:
     case MaterialFillKind::conic_gradient: return gradient_colour_at(fill.stops, position);
     case MaterialFillKind::image:
-    case MaterialFillKind::procedural: return std::nullopt;
+    case MaterialFillKind::procedural:
+    case MaterialFillKind::finish: return std::nullopt;
     }
     // A kind outside the enumeration is not sampled.
     return std::nullopt;

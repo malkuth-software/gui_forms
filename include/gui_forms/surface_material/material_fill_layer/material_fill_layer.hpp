@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
 #include "gui_forms/surface_material/procedural_fill/procedural_fill.hpp"
 #include "gui_forms/types.hpp"
 
@@ -39,6 +40,10 @@ enum class MaterialFillKind : std::uint8_t {
     solid, linear_gradient, radial_gradient, image, conic_gradient,
     // A built-in pattern generated per display scale (E10): `procedural`.
     procedural,
+    // A surface finish (skeudoindustrial surfaces, phase 1): painted per
+    // device pixel from its position and parameters, with no bitmap, by
+    // the material primitive's bake: `finish`.
+    finish,
 };
 // How an image fill covers its box: stretched over it; tiled from one tile
 // (image_scale, image_anchor, image_offset); as a nine-patch; or `single`,
@@ -87,6 +92,8 @@ struct GUI_FORMS_API MaterialFillLayer final {
     MaterialBlendMode blend{MaterialBlendMode::normal};
     // Read only by a procedural fill, with `opacity`.
     ProceduralFill procedural{};
+    // Read only by a finish fill, with `opacity`.
+    FinishFill finish{};
 
     [[nodiscard]] static MaterialFillLayer solid(Color color);
     [[nodiscard]] static MaterialFillLayer linear(
@@ -141,6 +148,8 @@ struct GUI_FORMS_API MaterialFillLayer final {
         double opacity = 1.0);
     [[nodiscard]] static MaterialFillLayer procedural_pattern(
         const ProceduralFill& pattern, double opacity = 1.0);
+    [[nodiscard]] static MaterialFillLayer finish_fill(
+        const FinishFill& finish, double opacity = 1.0);
     friend bool operator==(const MaterialFillLayer& left,
                            const MaterialFillLayer& right) noexcept(noexcept(
         left.kind == right.kind &&
@@ -158,7 +167,8 @@ struct GUI_FORMS_API MaterialFillLayer final {
         left.image_anchor == right.image_anchor && left.image_offset == right.image_offset &&
         left.period_degrees == right.period_degrees &&
         left.blend == right.blend &&
-        left.procedural == right.procedural)) {
+        left.procedural == right.procedural &&
+        left.finish == right.finish)) {
         return left.kind == right.kind &&
                left.coordinate_space == right.coordinate_space &&
                left.linear_geometry == right.linear_geometry &&
@@ -176,7 +186,8 @@ struct GUI_FORMS_API MaterialFillLayer final {
                left.image_offset == right.image_offset &&
                left.period_degrees == right.period_degrees &&
                left.blend == right.blend &&
-               left.procedural == right.procedural;
+               left.procedural == right.procedural &&
+               left.finish == right.finish;
     }
 };
 

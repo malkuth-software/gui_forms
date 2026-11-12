@@ -90,6 +90,8 @@ Color material_ground(const SurfaceMaterial& material) noexcept {
         return fill.color;
     case MaterialFillKind::procedural:
         return fill.procedural.ground;
+    case MaterialFillKind::finish:
+        return fill.finish.paint;
     }
     // A kind outside the enumeration: the layer's colour.
     return fill.color;

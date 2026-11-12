@@ -145,9 +145,11 @@ void inside_layers(const SurfaceMaterial& authored, SurfaceMaterial& inside) {
 }
 
 // A fill glass's material layers do not draw (they need image variants or a
-// generated pattern the engine lends only to the material primitive).
+// generated pattern the engine lends only to the material primitive, or,
+// for a finish, the material bake's own painting).
 bool lent_only_to_materials(const MaterialFillLayer& layer) noexcept {
-    const bool lent = layer.kind == MaterialFillKind::image || layer.kind == MaterialFillKind::procedural;
+    const bool lent = layer.kind == MaterialFillKind::image || layer.kind == MaterialFillKind::procedural ||
+                      layer.kind == MaterialFillKind::finish;
     return lent;
 }
 

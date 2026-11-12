@@ -174,6 +174,8 @@ Types
      -  
    * - :cpp:class:`FamiliarThemeBuild <gui_forms::FamiliarThemeBuild>`
      - A built theme and what building it measured.
+   * - :cpp:class:`FinishFill <gui_forms::FinishFill>`
+     - One finish's parameters.
    * - :cpp:class:`FontDeclaration <gui_forms::FontDeclaration>`
      - A part's font as the cascade resolved it: a text role, or, with ``inherit`` (D7), the parent control's, which the caller resolves at paint.
    * - :cpp:class:`FontSpec <gui_forms::FontSpec>`
@@ -2632,6 +2634,54 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: FinishFill final
+
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+   One finish's parameters. The defaults are the study's: its paint (#2f6e6c, a teal), its dust (#bdb6a8), a light from 125 degrees (counter-clockwise from the right) at 38 degrees above the surface, and ambient 0.32. - ``seed`` chooses the noise; equal parameters give equal bytes. - ``grain`` multiplies every feature's size, and the relief with it, so that a coarser finish keeps its slopes; within [0.5, 4]. - ``paint`` is the finish's colour; ``secondary`` the dust's (dusty matte, sand cast) or the weft's (cloth). Both are drawn opaque: their alpha is not read; the fill layer's opacity composites the finish. - The light's azimuth is a whole number of degrees in [0, 359] and its elevation one in [0, 90]: the kernel reads each degree's cosine and sine from a table, never libm. - ``ambient`` in [0, 1]; ``relief`` and ``gloss`` scale the finish's own relief and sheen, within [0, 4].
+
+   .. cpp:member:: FinishKind kind
+
+      Default: ``{FinishKind::orange_peel}``.
+
+   .. cpp:member:: std::int32_t seed
+
+      Default: ``{7}``.
+
+   .. cpp:member:: double grain
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: Color paint
+
+      Default: ``{Color::rgba(0x2f, 0x6e, 0x6c)}``.
+
+   .. cpp:member:: Color secondary
+
+      Default: ``{Color::rgba(0xbd, 0xb6, 0xa8)}``.
+
+   .. cpp:member:: std::int32_t light_azimuth_degrees
+
+      Default: ``{125}``.
+
+   .. cpp:member:: std::int32_t light_elevation_degrees
+
+      Default: ``{38}``.
+
+   .. cpp:member:: double ambient
+
+      Default: ``{0.32}``.
+
+   .. cpp:member:: double relief
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double gloss
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FontDeclaration final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -3259,6 +3309,8 @@ Types
 
    .. cpp:function:: static MaterialFillLayer procedural_pattern(const ProceduralFill& pattern, double opacity = 1.0)
 
+   .. cpp:function:: static MaterialFillLayer finish_fill(const FinishFill& finish, double opacity = 1.0)
+
    .. cpp:member:: MaterialFillKind kind
 
       Default: ``{MaterialFillKind::solid}``.
@@ -3334,6 +3386,10 @@ Types
    .. cpp:member:: ProceduralFill procedural
 
       Read only by a procedural fill, with ``opacity``.
+
+   .. cpp:member:: FinishFill finish
+
+      Read only by a finish fill, with ``opacity``.
 
 .. cpp:namespace:: gui_forms
 
@@ -6614,6 +6670,28 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FinishKind
+
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+   .. cpp:enumerator:: dusty_matte
+
+   .. cpp:enumerator:: orange_peel
+
+   .. cpp:enumerator:: hammertone
+
+   .. cpp:enumerator:: wrinkle
+
+   .. cpp:enumerator:: bead_blast
+
+   .. cpp:enumerator:: sand_cast
+
+   .. cpp:enumerator:: flat
+
+   .. cpp:enumerator:: cloth_weave
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: FontField
 
    ``#include <gui_forms/theme/theme/resolved_font.hpp>``
@@ -6901,6 +6979,8 @@ Enumerations
    .. cpp:enumerator:: conic_gradient
 
    .. cpp:enumerator:: procedural
+
+   .. cpp:enumerator:: finish
 
 .. cpp:namespace:: gui_forms
 
@@ -8706,6 +8786,26 @@ Functions, constants and aliases
 .. cpp:function:: bool valid_colour_matrix(const MaterialColourMatrix& matrix) noexcept
 
    Every entry finite and at most 256 in magnitude.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+.. cpp:var:: constexpr double minimum_finish_grain
+
+   The bounds valid_surface_material holds a finish to. Value: ``0.5``.
+
+.. cpp:var:: constexpr double maximum_finish_grain
+
+   Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_finish_scale
+
+   Value: ``4.0``.
+
+.. cpp:var:: constexpr std::int32_t maximum_finish_elevation_degrees
+
+   Value: ``90``.
 
 .. cpp:namespace:: gui_forms
 

@@ -236,7 +236,7 @@ only material fields selects the `material` primitive.
 
 | Area | Properties |
 |---|---|
-| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
+| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
@@ -256,6 +256,22 @@ pinstripe and 64px for the rest). The engine generates the pattern for each
 display scale in an idle frame and draws the ground until it is ready; a
 pattern layer takes no position, size or repetition. For example,
 `background: pattern(checker, #d4d0c8, #ffffff)`.
+
+`finish(<name>, <paint>, <second> [, <seed> [, <grain>]])` is a surface
+finish: paint or metal lit by one light from the upper left, painted for
+each device pixel as the part is baked, with no tile and no seam. The
+finishes are `dusty-matte` (flat enamel under settled dust; the second
+colour is the dust's), `orange-peel` (satin powder coat), `hammertone`
+(hammered enamel with aluminium flake), `wrinkle` (enamel cured into fine
+ridges), `bead-blast` (bare peened steel, in its own steel colour),
+`sand-cast` (a casting's skin under paint; the second colour is the
+dust's), `flat` (the paint as a plain solid) and `cloth-weave` (a plain
+weave; the paint is the warp's colour and the second the weft's). The
+seed, a whole number from 0 to 2147483647 (7 by default), chooses the
+noise; the grain, a number from 0.5 to 4 (1 by default), scales every
+feature. A finish layer, like a pattern, takes no position, size or
+repetition. For example,
+`background-image: finish(hammertone, #4d676d, #bdb6a8, 11)`.
 
 `reflection` mirrors the part's finished face (its fills, borders, glows,
 filters and mask; not its text), or with `backplane` the window's backplane
