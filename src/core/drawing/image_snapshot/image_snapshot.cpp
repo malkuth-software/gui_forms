@@ -10,7 +10,7 @@ std::size_t ImageSnapshot::row_bytes() const noexcept {
     return storage_ ? (*storage_).row_bytes : 0U;
 }
 
-std::span<const std::byte> ImageSnapshot::pixels() const noexcept {
+std::span<const std::byte> ImageSnapshot::pixels() const& noexcept {
     return storage_ ? std::span<const std::byte>((*storage_).data(), (*storage_).size())
                     : std::span<const std::byte>{};
 }
