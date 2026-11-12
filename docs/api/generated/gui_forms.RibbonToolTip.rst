@@ -276,3 +276,77 @@ gui_forms::RibbonToolTip
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 15 supported, 0 deferred, 0 excluded, 0 unclassified; 15 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``active_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_item_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overlay_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``shown_content``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``visible``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``help_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``visibility_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``has_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``hide``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_item_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show``
+     - supported

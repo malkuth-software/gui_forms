@@ -328,3 +328,181 @@ gui_forms::ToolStripContainer
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ToolStripContainer``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 25 unclassified; 16 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ToolStripContainer``
+     - ``ToolStripContainer``
+     - supported
+   * - property
+     - ``AutoScrollMargin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoScrollMinSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BackColor``
+     - ``back_color``
+     - unclassified (untested)
+   * - property
+     - ``BackgroundImage``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BottomToolStripPanel``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BottomToolStripPanelVisible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CausesValidation``
+     - ``causes_validation``
+     - unclassified (untested)
+   * - property
+     - ``ContentPanel``
+     - ``content_panel``
+     - supported
+   * - property
+     - ``ContextMenuStrip``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Controls``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ForeColor``
+     - ``fore_color``
+     - unclassified (untested)
+   * - property
+     - ``LeftToolStripPanel``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LeftToolStripPanelVisible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RightToolStripPanel``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RightToolStripPanelVisible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopToolStripPanel``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopToolStripPanelVisible``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CausesValidationChanged``
+     - ``causes_validation_changed``
+     - unclassified (untested)
+   * - event
+     - ``ContextMenuStripChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CursorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``bottom_panel``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_phase``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_stamp``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_suppressed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_target``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dragged_strip``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``keyboard_moving``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``left_panel``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``right_panel``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``top_panel``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``strip_moved``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_keyboard_move``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``cancel_drag``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``move_strip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_strip_into_row``
+     - supported

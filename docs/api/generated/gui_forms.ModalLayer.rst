@@ -137,3 +137,53 @@ gui_forms::ModalLayer
    .. cpp:member:: constexpr std::size_t modal_layer_property_count
 
       ModalLayer's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 3 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``close_on_escape``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``content``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``is_shown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``result``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``closed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``closing``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``modal_layer_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show``
+     - supported

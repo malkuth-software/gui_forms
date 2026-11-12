@@ -274,3 +274,81 @@ gui_forms::Panel
    .. cpp:member:: constexpr std::size_t panel_property_count
 
       Panel's property table: ScrollableControl's entries, then its own. Default: ``ScrollableControl::scrollable_control_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Panel``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 8 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Panel``
+     - ``Panel``
+     - supported
+   * - property
+     - ``AutoSizeMode``
+     - ``auto_size_mode``
+     - unclassified (untested)
+   * - property
+     - ``BorderStyle``
+     - ``border_style``
+     - unclassified (untested)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``KeyDown``
+     - ``key_down``
+     - supported
+   * - event
+     - ``KeyPress``
+     - ``key_press``
+     - supported
+   * - event
+     - ``KeyUp``
+     - ``key_up``
+     - supported
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``background``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``has_background_override``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``has_style_override``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_background``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_style``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``panel_property_entries``
+     - unclassified (untested)

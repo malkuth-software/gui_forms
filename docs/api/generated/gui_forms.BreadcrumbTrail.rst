@@ -411,3 +411,73 @@ gui_forms::BreadcrumbTrail
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 2 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``edit_stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hidden_segment_ids``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overflow_stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``segments``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``edit_cancelled``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``edit_committed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``edit_completion_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``edit_started``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``overflow_activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``segment_activated``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_edit``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)

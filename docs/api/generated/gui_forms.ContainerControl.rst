@@ -232,3 +232,97 @@ gui_forms::ContainerControl
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ContainerControl``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 11 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ContainerControl``
+     - ``ContainerControl``
+     - supported
+   * - property
+     - ``ActiveControl``
+     - ``active_control``
+     - supported
+   * - property
+     - ``AutoScaleDimensions``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoScaleFactor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoScaleMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoValidate``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CurrentAutoScaleDimensions``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ParentForm``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoValidateChanged``
+     - ``auto_validate_changed``
+     - supported
+   * - method
+     - ``OnAutoValidateChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``PerformAutoScale``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessTabKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ScaleMinMaxSize``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateDefaultButton``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Validate``
+     - ``validate``
+     - supported
+   * - method
+     - ``ValidateChildren``
+     - ``validate_children``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_auto_validate``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_active_control``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``contains_descendant``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_active_control``
+     - supported

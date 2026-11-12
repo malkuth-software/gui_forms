@@ -320,3 +320,157 @@ gui_forms::ToolTip
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ToolTip``. Members declared here and by the counterpart: 11 supported, 0 deferred, 0 excluded, 24 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ToolTip``
+     - ``ToolTip``
+     - supported
+   * - property
+     - ``Active``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutomaticDelay``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoPopDelay``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CreateParams``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``InitialDelay``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsBalloon``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``OwnerDraw``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ReshowDelay``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowAlways``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``StripAmpersands``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Tag``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ToolTipIcon``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ToolTipTitle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseAnimation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseFading``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Draw``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Popup``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CanExtend``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetToolTip``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Hide``
+     - ``hide``
+     - supported
+   * - method
+     - ``RemoveAll``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetToolTip``
+     - ``set_tool_tip``
+     - supported
+   * - method
+     - ``Show``
+     - ``show``
+     - supported
+   * - method
+     - ``StopTimer``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``active_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``visible``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``visibility_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``read``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tool_tip``
+     - unclassified (untested)

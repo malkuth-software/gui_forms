@@ -190,3 +190,121 @@ gui_forms::BindingNavigator
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``BindingNavigator``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 18 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``BindingNavigator``
+     - ``BindingNavigator``
+     - supported
+   * - property
+     - ``AddNewItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BindingSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CountItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CountItemFormat``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DeleteItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MoveFirstItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MoveLastItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MoveNextItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MovePreviousItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PositionItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RefreshItems``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AddStandardItems``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``BeginInit``
+     - ``begin_init``
+     - unclassified (untested)
+   * - method
+     - ``EndInit``
+     - ``end_init``
+     - unclassified (untested)
+   * - method
+     - ``OnRefreshItems``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``RefreshItemsCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Validate``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``add_new_command``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``delete_command``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``move_first_command``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``move_last_command``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``move_next_command``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``move_previous_command``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``adding_new``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)

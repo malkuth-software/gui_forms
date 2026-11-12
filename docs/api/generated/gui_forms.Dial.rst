@@ -108,3 +108,37 @@ gui_forms::Dial
    .. cpp:member:: constexpr std::size_t dial_property_count
 
       Dial's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 2U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 4 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``knob_bounds``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``pointer_angle``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``show_arc``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``tick_frequency``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``dial_property_entries``
+     - unclassified (untested)

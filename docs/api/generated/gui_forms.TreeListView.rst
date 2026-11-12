@@ -573,3 +573,157 @@ gui_forms::TreeListView
    .. cpp:member:: constexpr double maximum_indentation
 
       Default: ``96.0``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 31 supported, 0 deferred, 0 excluded, 4 unclassified; 35 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``column_order``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``columns``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``current_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``horizontal_offset``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``nodes``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_cells``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_columns``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_rows``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``row_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sort_column``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sort_order``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``top_row``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``virtual_mode``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``column_moved``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``column_width_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``expansion_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``sort_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``ensure_visible``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``expand_subtree``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``index_of``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``is_expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_column``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``node_id_at``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``refresh_rows``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``row_node_id``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``row_of``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_cell_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_width``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_row_source``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_sort``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``splice_rows``
+     - supported

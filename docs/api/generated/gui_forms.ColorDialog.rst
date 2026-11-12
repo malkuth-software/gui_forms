@@ -141,3 +141,73 @@ gui_forms::ColorDialog
    .. cpp:function:: void reset()
 
       Restores every setting to its default.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ColorDialog``. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 9 unclassified; 2 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ColorDialog``
+     - ``ColorDialog``
+     - supported
+   * - property
+     - ``AllowFullOpen``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AnyColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Color``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CustomColors``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FullOpen``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Instance``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Options``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowHelp``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SolidColorOnly``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``status``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - ``CommonDialog.Reset``
+     - ``reset``
+     - supported
+   * - method
+     - ``CommonDialog.ShowDialog``
+     - ``show_dialog``
+     - supported

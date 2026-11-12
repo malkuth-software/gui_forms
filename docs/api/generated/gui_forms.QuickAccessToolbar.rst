@@ -287,3 +287,57 @@ gui_forms::QuickAccessToolbar
    .. cpp:member:: constexpr std::size_t maximum_commands
 
       The most commands the toolbar may declare. Default: ``20U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 0 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``commands``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``customize_menu_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``customize_menu_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``shown_command_ids``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``customized``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``placement_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_customize_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``command_shown``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_command_shown``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_customize_menu``
+     - supported

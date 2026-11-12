@@ -285,3 +285,85 @@ gui_forms::DomainUpDown
    .. cpp:member:: constexpr std::size_t domain_up_down_property_count
 
       DomainUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 12 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``DomainUpDown``
+     - ``DomainUpDown``
+     - supported
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``SelectedIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Sorted``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Wrap``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectedItemChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnSelectedItemChanged``
+     - none
+     - unclassified (hook)
+   * - event
+     - GUI.Forms-only
+     - ``selected_index_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``domain_up_down_property_entries``
+     - unclassified (untested)
+   * - method
+     - ``UpDownBase.DownButton``
+     - ``down_button``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``prepare_edit``
+     - unclassified (untested)
+   * - method
+     - ``UpDownBase.UpButton``
+     - ``up_button``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``written``
+     - unclassified (untested)

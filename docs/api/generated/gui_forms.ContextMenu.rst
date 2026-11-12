@@ -281,3 +281,57 @@ gui_forms::ContextMenu
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ContextMenuStrip``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 1 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ContextMenuStrip``
+     - ``ContextMenu``
+     - supported
+   * - property
+     - ``SourceControl``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``is_open``
+     - supported
+   * - property
+     - ``ToolStrip.Items``
+     - ``items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``stable_id``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_invoked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``open_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - ``ToolStripDropDown.Close``
+     - ``close``
+     - supported
+   * - method
+     - ``ToolStripDropDown.Show``
+     - ``show``
+     - supported

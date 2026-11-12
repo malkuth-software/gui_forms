@@ -356,3 +356,137 @@ gui_forms::ImageList
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ImageList``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 14 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ImageList``
+     - ``ImageList``
+     - supported
+   * - property
+     - ``ColorDepth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Handle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HandleCreated``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Images``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImageSize``
+     - ``image_size``
+     - supported
+   * - property
+     - ``ImageStream``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Tag``
+     - ``tag``
+     - unclassified (untested)
+   * - property
+     - ``TransparentColor``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RecreateHandle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Draw``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``bound_window``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``empty``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``revision``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_image``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_png``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``belongs_to``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_tag``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``contains_key``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``index_of_key``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``key_at``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``remove_at``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``remove_by_key``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolve``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_key_name``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_variant_image``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_variant_png``
+     - supported

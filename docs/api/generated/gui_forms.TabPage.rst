@@ -131,3 +131,97 @@ gui_forms::TabPage
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``TabPage``. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 16 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``TabPage``
+     - ``TabPage``
+     - supported
+   * - property
+     - ``Enabled``
+     - ``enabled``
+     - supported
+   * - property
+     - ``ImageIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImageKey``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Location``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PreferredSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabIndex``
+     - ``tab_index``
+     - unclassified (untested)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``ToolTipText``
+     - ``tool_tip_text``
+     - supported
+   * - property
+     - ``UseVisualStyleBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Visible``
+     - ``visible``
+     - supported
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``DockChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``EnabledChanged``
+     - ``enabled_changed``
+     - unclassified (untested)
+   * - event
+     - ``LocationChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabIndexChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``VisibleChanged``
+     - ``visible_changed``
+     - unclassified (untested)
+   * - method
+     - ``GetTabPageOfComponent``
+     - none
+     - unclassified (unmatched)

@@ -612,3 +612,225 @@ gui_forms::ButtonBase
    .. cpp:member:: constexpr std::size_t button_base_property_count
 
       ButtonBase's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ButtonBase``. Members declared here and by the counterpart: 17 supported, 0 deferred, 0 excluded, 35 unclassified; 21 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ButtonBase``
+     - ``ButtonBase``
+     - supported
+   * - property
+     - ``AutoEllipsis``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Command``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CommandParameter``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FlatAppearance``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FlatStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Image``
+     - ``image``
+     - unclassified (untested)
+   * - property
+     - ``ImageAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImageIndex``
+     - ``image_index``
+     - supported
+   * - property
+     - ``ImageKey``
+     - ``image_key``
+     - supported
+   * - property
+     - ``ImageList``
+     - ``image_list``
+     - supported
+   * - property
+     - ``ImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsDefault``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TextAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TextImageRelation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseCompatibleTextRendering``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseMnemonic``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseVisualStyleBackColor``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``CommandCanExecuteChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CommandChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CommandParameterChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ImeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnCommandCanExecuteChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCommandChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCommandParameterChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRequestCommandExecute``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``ResetFlagsandPaint``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``command_connected``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``connection_topology``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``content_padding``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``focus_cue_visible``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_visual``
+     - unclassified (untested)
+   * - property
+     - ``Control.Font``
+     - ``font``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``has_style_override``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``hovered_visual``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pressed_visual``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``style``
+     - supported
+   * - property
+     - ``Control.Text``
+     - ``text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``text_alignment``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``visual_recipes_override``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``clicked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``expanded_changed``
+     - supported
+   * - event
+     - ``Control.TextChanged``
+     - ``text_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``bind``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``button_base_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_image``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_style``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_visual_recipes``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``perform_click``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_visual_recipes``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``unbind_command``
+     - unclassified (untested)

@@ -223,3 +223,53 @@ gui_forms::Component
       its state. :cpp:func:`dispose <gui_forms::Component::dispose>` and the destructor call it.
 
    .. cpp:type:: Ptr = std::shared_ptr<Component>
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 2 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``component_state``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``interactions``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_alive``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_disposed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``owned_subscription_count``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispose``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``own_revocable``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``own_subscription``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``property_table``
+     - supported

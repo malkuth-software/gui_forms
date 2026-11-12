@@ -140,3 +140,89 @@ gui_forms::LinkLabel
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``LinkLabel``. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 17 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``LinkLabel``
+     - ``LinkLabel``
+     - supported
+   * - property
+     - ``ActiveLinkColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DisabledLinkColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FlatStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LinkArea``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LinkBehavior``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LinkColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Links``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LinkVisited``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``OverrideCursor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``UseCompatibleTextRendering``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VisitedLinkColor``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LinkClicked``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnLinkClicked``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``PointInLink``
+     - none
+     - unclassified (unmatched)

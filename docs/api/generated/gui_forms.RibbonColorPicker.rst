@@ -254,3 +254,53 @@ gui_forms::RibbonColorPicker
    .. cpp:member:: constexpr std::size_t palette_columns
 
       Default: ``10U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 2 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``natural_size``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``palette``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``palette_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``palette_overlay``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_entries``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``palette_open_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_palette``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_palette``
+     - unclassified (untested)

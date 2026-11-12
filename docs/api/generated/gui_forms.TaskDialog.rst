@@ -351,3 +351,109 @@ gui_forms::TaskDialog
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``TaskDialog``. Members declared here and by the counterpart: 19 supported, 0 deferred, 0 excluded, 4 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - ``Handle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Close``
+     - ``close``
+     - supported
+   * - method
+     - ``ShowDialog``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowDialogAsync``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``checked_radio_button``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``expander_button``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``page``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presented_surface``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``progress_bar``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``result``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``shown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``surface``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``verification_check_box``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``button_clicked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``closed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``expanded_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``navigated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``radio_button_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``verification_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``button``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``radio_button``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_progress_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show``
+     - supported

@@ -288,3 +288,113 @@ gui_forms::DropDownButton
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ToolStripSplitButton``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 18 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ToolStripSplitButton``
+     - ``DropDownButton``
+     - supported
+   * - property
+     - ``AutoToolTip``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ButtonBounds``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ButtonPressed``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ButtonSelected``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownButtonBounds``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownButtonPressed``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownButtonSelected``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownButtonWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SplitterBounds``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ButtonClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ButtonDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DefaultItemChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnButtonClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnButtonDoubleClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDefaultItemChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``PerformButtonClick``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetDropDownButtonWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_open``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_close_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``perform_drop_down``
+     - supported

@@ -227,3 +227,129 @@ gui_forms::Splitter
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Splitter``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 19 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Splitter``
+     - ``Splitter``
+     - supported
+   * - property
+     - ``BorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MinExtra``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MinSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SplitPosition``
+     - ``split_position``
+     - supported
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Enter``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FontChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ImeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``KeyDown``
+     - ``key_down``
+     - unclassified (untested)
+   * - event
+     - ``KeyPress``
+     - ``key_press``
+     - unclassified (untested)
+   * - event
+     - ``KeyUp``
+     - ``key_up``
+     - unclassified (untested)
+   * - event
+     - ``Leave``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SplitterMoved``
+     - ``splitter_moved``
+     - supported
+   * - event
+     - ``SplitterMoving``
+     - ``splitter_moving``
+     - supported
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnSplitterMoved``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSplitterMoving``
+     - none
+     - unclassified (hook)
+   * - property
+     - GUI.Forms-only
+     - ``target``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drag_dropped``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drag_ended``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drag_started``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drag_target_changed``
+     - supported

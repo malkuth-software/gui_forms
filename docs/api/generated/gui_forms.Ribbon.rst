@@ -843,3 +843,193 @@ gui_forms::Ribbon
    .. cpp:member:: constexpr std::size_t maximum_recent_items
 
       The application menu's recent pane (phase 6): its items and caption ("Recent documents"). While there are recent items the application menu takes only command and separator items. Throws std::invalid_argument for an empty or repeated ID, invalid or multi-line UTF-8, more than maximum_recent_items, or recent items beside an application menu with other kinds (and set_application_menu likewise for such items beside recent ones). Default: ``50U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 38 supported, 0 deferred, 0 excluded, 6 unclassified; 44 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``application_menu``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``application_menu_overlay``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``backstage_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``first_visible_group``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``group_overlay``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``ladder_step``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``menu_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overlay_group``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``plane_hidden``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_commands``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_groups``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_overlay_commands``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_overlay_groups``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_tabs``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``recent_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scaling_counters``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scrolling``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tab_sets``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``tabs``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``application_menu_item_invoked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``backstage_open_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``command_clicked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``dialog_launcher_clicked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_item_invoked``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``minimized_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``recent_item_invoked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_tab_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``check_box``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_backstage``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_group_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_menus``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``combo_box``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``group_layouts``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``numeric_up_down``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reduction_ladder``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_tab_set_availability``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_application_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_backstage``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_drop_down``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_group_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_set_accent``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_set_availability``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_shown``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``text_box``
+     - supported

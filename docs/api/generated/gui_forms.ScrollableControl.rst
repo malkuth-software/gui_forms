@@ -557,3 +557,145 @@ gui_forms::ScrollableControl
    .. cpp:member:: constexpr std::size_t scrollable_control_property_count
 
       ScrollableControl's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ScrollableControl``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 16 unclassified; 13 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ScrollableControl``
+     - ``ScrollableControl``
+     - supported
+   * - property
+     - ``AutoScroll``
+     - ``auto_scroll``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollMargin``
+     - ``auto_scroll_margin``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollMinSize``
+     - ``auto_scroll_min_size``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollPosition``
+     - ``auto_scroll_position``
+     - unclassified (untested)
+   * - property
+     - ``DockPadding``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HorizontalScroll``
+     - ``horizontal_scroll``
+     - supported
+   * - property
+     - ``HScroll``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VerticalScroll``
+     - ``vertical_scroll``
+     - supported
+   * - property
+     - ``VScroll``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Scroll``
+     - ``scroll``
+     - supported
+   * - method
+     - ``AdjustFormScrollbars``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetScrollState``
+     - ``get_scroll_state``
+     - supported
+   * - method
+     - ``OnScroll``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``ScrollControlIntoView``
+     - ``scroll_control_into_view``
+     - supported
+   * - method
+     - ``ScrollToControl``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetAutoScrollMargin``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetDisplayRectLocation``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetScrollState``
+     - ``set_scroll_state``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hscroll``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``last_scroll_event``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scroll_event_revision``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scroll_position``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scroll_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scroll_target``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scrolling_smoothly``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``viewport_rectangle``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``vscroll``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``wheel_scrolls``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``scroll_by``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``scroll_to``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``scrollable_control_property_entries``
+     - unclassified (untested)

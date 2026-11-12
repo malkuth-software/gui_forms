@@ -466,3 +466,97 @@ gui_forms::PropertyList
       *Protected.*
 
       on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 4 unclassified; 20 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``content_height``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``groups``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``header_content``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``group_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``reset_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``row_expansion_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``value_committed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``replace_editor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_button``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``row_expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_description``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_group_expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_reset_enabled``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_row_expanded``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_validation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``value``
+     - supported

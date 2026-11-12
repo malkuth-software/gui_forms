@@ -80,3 +80,33 @@ gui_forms::WizardPage
    .. cpp:member:: constexpr std::size_t wizard_page_property_count
 
       WizardPage's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 0 supported, 0 deferred, 0 excluded, 4 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``can_advance``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``description``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``title``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``wizard_page_property_entries``
+     - unclassified (untested)

@@ -560,3 +560,273 @@ gui_forms::ComboBox
    .. cpp:member:: constexpr std::size_t combo_box_property_count
 
       ComboBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 6U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ComboBox``. Members declared here and by the counterpart: 11 supported, 0 deferred, 1 excluded, 52 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ComboBox``
+     - ``ComboBox``
+     - supported
+   * - property
+     - ``AutoCompleteCustomSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoCompleteMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoCompleteSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DrawMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownStyle``
+     - ``drop_down_style``
+     - unclassified (untested)
+   * - property
+     - ``DropDownWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DroppedDown``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FlatStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IntegralHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ItemHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``MaxDropDownItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaxLength``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``PreferredHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedText``
+     - ``selected_text``
+     - supported
+   * - property
+     - ``SelectionLength``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionStart``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Sorted``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - unclassified (untested)
+   * - event
+     - ``DrawItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DropDown``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DropDownClosed``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DropDownStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MeasureItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectedIndexChanged``
+     - ``selected_index_changed``
+     - supported
+   * - event
+     - ``SelectionChangeCommitted``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AddItemsCore``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - method
+     - ``BeginUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EndUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FindString``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FindStringExact``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemHeight``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnDrawItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDropDown``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDropDownClosed``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDropDownStyleChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMeasureItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelectedItemChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelectionChangeCommitted``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnTextUpdate``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``Select``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SelectAll``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_filter``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``placeholder_text``
+     - unclassified (untested)
+   * - property
+     - ``ListControl.SelectedIndex``
+     - ``selected_index``
+     - supported
+   * - property
+     - ``Control.Text``
+     - ``text``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``items_changed``
+     - supported
+   * - event
+     - ``Control.TextChanged``
+     - ``text_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``combo_box_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``prepare_edit``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``written``
+     - unclassified (untested)

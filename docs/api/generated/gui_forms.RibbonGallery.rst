@@ -426,3 +426,117 @@ gui_forms::RibbonGallery
    .. cpp:member:: constexpr std::chrono::milliseconds preview_dwell
 
       How long the pointer or keyboard focus rests on an item before it is previewed (owner decision RB-13, E1-1). Default: ``{300}``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 7 unclassified; 25 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``can_scroll_down``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``can_scroll_up``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``categories``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_columns``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_rows``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``first_visible_line``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``form``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``line_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``maximum_columns``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``minimum_columns``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``more_gallery``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overlay_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_categories``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``overlay_open_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``scroll_to_line``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_range``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_drop_down_size``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_more``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``width_for_columns``
+     - unclassified (untested)

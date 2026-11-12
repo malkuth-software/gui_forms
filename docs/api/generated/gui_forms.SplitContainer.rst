@@ -566,3 +566,213 @@ gui_forms::SplitContainer
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``SplitContainer``. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 37 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``SplitContainer``
+     - ``SplitContainer``
+     - supported
+   * - property
+     - ``AutoScrollMargin``
+     - ``auto_scroll_margin``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollMinSize``
+     - ``auto_scroll_min_size``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollPosition``
+     - ``auto_scroll_position``
+     - unclassified (untested)
+   * - property
+     - ``BorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Controls``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Dock``
+     - ``dock``
+     - unclassified (untested)
+   * - property
+     - ``FixedPanel``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsSplitterFixed``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Orientation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``Panel1``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Panel1Collapsed``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Panel1MinSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Panel2``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Panel2Collapsed``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Panel2MinSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SplitterDistance``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SplitterIncrement``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SplitterRectangle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SplitterWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ControlAdded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ControlRemoved``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SplitterMoved``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SplitterMoving``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``BeginInit``
+     - ``begin_init``
+     - unclassified (untested)
+   * - method
+     - ``EndInit``
+     - ``end_init``
+     - unclassified (untested)
+   * - method
+     - ``OnSplitterMoved``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSplitterMoving``
+     - none
+     - unclassified (hook)
+   * - property
+     - GUI.Forms-only
+     - ``first_collapse_origin``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``first_collapsed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``first_panel``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``second_collapse_origin``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``second_collapsed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``second_panel``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``splitter_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``splitter_seam_snapshot``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drag_dropped``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drag_ended``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drag_started``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drag_target_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``splitter_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)

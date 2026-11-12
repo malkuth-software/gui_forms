@@ -232,3 +232,37 @@ gui_forms::BackstageView
    .. cpp:member:: constexpr std::size_t maximum_items
 
       Development bounds, not measured capacity. Default: ``64U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 2 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``close_requested``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``topic_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``activate``
+     - unclassified (untested)

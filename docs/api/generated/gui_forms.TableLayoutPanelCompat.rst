@@ -456,3 +456,173 @@ gui_forms::TableLayoutPanelCompat
    .. cpp:member:: constexpr std::size_t table_layout_panel_compat_property_count
 
       TableLayoutPanelCompat's property table: Control's entries, then its own. Default: ``Control::control_property_count + 7U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``TableLayoutPanel``. Members declared here and by the counterpart: 13 supported, 0 deferred, 0 excluded, 26 unclassified; 13 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``TableLayoutPanel``
+     - ``TableLayoutPanelCompat``
+     - supported
+   * - property
+     - ``BorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CellBorderStyle``
+     - ``cell_border_style``
+     - unclassified (untested)
+   * - property
+     - ``ColumnCount``
+     - ``column_count``
+     - unclassified (untested)
+   * - property
+     - ``ColumnStyles``
+     - ``column_styles``
+     - supported
+   * - property
+     - ``Controls``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GrowStyle``
+     - ``grow_style``
+     - unclassified (untested)
+   * - property
+     - ``LayoutSettings``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RowCount``
+     - ``row_count``
+     - unclassified (untested)
+   * - property
+     - ``RowStyles``
+     - ``row_styles``
+     - supported
+   * - event
+     - ``CellPaint``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetCellPosition``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetColumn``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetColumnSpan``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetColumnWidths``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetControlFromPosition``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetPositionFromControl``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetRow``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetRowHeights``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetRowSpan``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnCellPaint``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``SetCellPosition``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetColumn``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetColumnSpan``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetRow``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetRowSpan``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``column_widths``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``layout_overflowed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``row_heights``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``spans``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``track_spacing``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``cell_position``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_cell``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``control_from_position``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``has_cell``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_row_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``table_child_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``table_layout_panel_compat_property_entries``
+     - unclassified (untested)

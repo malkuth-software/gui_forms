@@ -355,3 +355,89 @@ gui_forms::MenuStrip
       *Protected.*
 
       The model position of a realized (visible) top-level item.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 9 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``MenuStrip``
+     - ``MenuStrip``
+     - supported
+   * - property
+     - ``CanOverflow``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GripStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MdiWindowListItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowItemToolTips``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Stretch``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MenuActivate``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MenuDeactivate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnMenuActivate``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMenuDeactivate``
+     - none
+     - unclassified (hook)
+   * - property
+     - GUI.Forms-only
+     - ``active_index``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_open``
+     - supported
+   * - property
+     - ``ToolStrip.Items``
+     - ``items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_invoked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``open_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open``
+     - supported

@@ -42,7 +42,7 @@ The top bar has NumPy's five sections. Each is a directory with an index page.
 | `building/` | Building from source | hand |
 | `dev/` | Development: contributing, decisions (links to the records in the notes repository), roadmap, evidence | hand |
 | `release/` | Release notes; the current page (`unreleased.md`) includes `packaging/RELEASE_NOTES.md`, and earlier series and stages keep their own text | hand |
-| `controls/generated/` | Alphabetical and by-function control indexes from `tools/control_registry.py render`; the control schema page from `tools/control_schema.py render` | generated; do not edit |
+| `controls/generated/` | Alphabetical and by-function control indexes and the member manifest's summary from `tools/control_registry.py render`; the control schema page from `tools/control_schema.py render` | generated; do not edit |
 | `_static/` | `gui_forms.css` (adapted from NumPy's `numpy.css`), the logo mark and the card icons | hand |
 | `library/` | API reference inputs: docstrings, `manual.json`, archived captures; see `library/README.md` | hand; excluded |
 | `reference/` | Inputs of `tools/api_reference.py` (clang inventory, reviewed contracts) | generated or reviewed JSON; excluded |

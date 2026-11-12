@@ -275,3 +275,49 @@ gui_forms::TextBlock
    .. cpp:member:: constexpr std::size_t text_block_property_count
 
       TextBlock's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 6 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``font``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``foreground``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``line_height``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``resolved_font``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``text_align``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``text_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``text_block_property_entries``
+     - unclassified (untested)

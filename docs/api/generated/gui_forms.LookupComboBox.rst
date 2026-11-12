@@ -185,3 +185,81 @@ gui_forms::LookupComboBox
    .. cpp:member:: constexpr std::size_t lookup_combo_box_property_count
 
       LookupComboBox's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 7 unclassified; 16 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``columns``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``display_column``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``filter``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``filtered_rows``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``highlighted``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_dropped_down``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``max_drop_down_rows``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``rows``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selected_key``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``shown_text``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_key_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_drop_down``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``lookup_combo_box_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``open_drop_down``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``row_of``
+     - unclassified (untested)

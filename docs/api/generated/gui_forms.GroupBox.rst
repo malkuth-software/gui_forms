@@ -228,3 +228,109 @@ gui_forms::GroupBox
    .. cpp:member:: constexpr std::size_t group_box_property_count
 
       GroupBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 2U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``GroupBox``. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 20 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``GroupBox``
+     - ``GroupBox``
+     - supported
+   * - property
+     - ``AutoSizeMode``
+     - ``auto_size_mode``
+     - unclassified (untested)
+   * - property
+     - ``FlatStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``UseCompatibleTextRendering``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``Click``
+     - ``click``
+     - unclassified (untested)
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - unclassified (untested)
+   * - event
+     - ``KeyDown``
+     - ``key_down``
+     - unclassified (untested)
+   * - event
+     - ``KeyPress``
+     - ``key_press``
+     - unclassified (untested)
+   * - event
+     - ``KeyUp``
+     - ``key_up``
+     - unclassified (untested)
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - unclassified (untested)
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - unclassified (untested)
+   * - event
+     - ``MouseDown``
+     - ``mouse_down``
+     - unclassified (untested)
+   * - event
+     - ``MouseEnter``
+     - ``mouse_enter``
+     - unclassified (untested)
+   * - event
+     - ``MouseLeave``
+     - ``mouse_leave``
+     - unclassified (untested)
+   * - event
+     - ``MouseMove``
+     - ``mouse_move``
+     - unclassified (untested)
+   * - event
+     - ``MouseUp``
+     - ``mouse_up``
+     - unclassified (untested)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Control.Font``
+     - ``font``
+     - unclassified (untested)
+   * - property
+     - ``Control.Text``
+     - ``text``
+     - supported
+   * - event
+     - ``Control.TextChanged``
+     - ``text_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``group_box_property_entries``
+     - unclassified (untested)

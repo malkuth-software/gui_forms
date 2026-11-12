@@ -528,3 +528,245 @@ gui_forms::TabControl
    .. cpp:member:: constexpr std::size_t maximum_pages
 
       The most pages a tab control holds: its strip's set's capacity. Default: ``PageSetLimits::maximum_capacity``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``TabControl``. Members declared here and by the counterpart: 16 supported, 1 deferred, 1 excluded, 39 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``TabControl``
+     - ``TabControl``
+     - supported
+   * - property
+     - ``Alignment``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Appearance``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DrawMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HotTrack``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ItemSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Multiline``
+     - none
+     - deferred: Multiline wrapping is deferred by the owner (2026-10-28); tabs that do not fit scroll.
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``RightToLeftLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RowCount``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedTab``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowToolTips``
+     - none
+     - excluded: A TabPage's own tooltip text shows over its header; there is no switch (owner, 2026-10-28).
+   * - property
+     - ``SizeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabCount``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabPages``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Deselected``
+     - ``deselected``
+     - supported
+   * - event
+     - ``Deselecting``
+     - ``deselecting``
+     - supported
+   * - event
+     - ``DrawItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Selected``
+     - ``selected``
+     - supported
+   * - event
+     - ``SelectedIndexChanged``
+     - ``selected_index_changed``
+     - supported
+   * - event
+     - ``Selecting``
+     - ``selecting``
+     - supported
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``DeselectTab``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetControl``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItems``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetTabRect``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetToolTipText``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnDeselected``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDeselecting``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDrawItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRightToLeftLayoutChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelected``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelectedIndexChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelecting``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``RemoveAll``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SelectTab``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateTabSelection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``display_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overflowing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``page_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pages``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``style``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``draw_item_content``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_page``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``page_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove_page``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_bounds``
+     - supported

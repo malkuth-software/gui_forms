@@ -244,3 +244,37 @@ gui_forms::ExpandableSections
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 0 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``toggled``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``part``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_expanded``
+     - supported

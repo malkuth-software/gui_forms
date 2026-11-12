@@ -133,3 +133,53 @@ gui_forms::GaugeBase
    .. cpp:member:: constexpr std::size_t gauge_base_property_count
 
       GaugeBase's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 5 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``decimal_places``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``in_alarm``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``show_value``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``tick_frequency``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``tick_ratios``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``units``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``value_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``gauge_base_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``ratio_of``
+     - supported

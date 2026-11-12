@@ -342,3 +342,137 @@ gui_forms::Binding
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Binding``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 22 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Binding``
+     - ``Binding``
+     - supported
+   * - property
+     - ``BindableComponent``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BindingManagerBase``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BindingMemberInfo``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Control``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ControlUpdateMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataSourceNullValue``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataSourceUpdateMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormatInfo``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormatString``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormattingEnabled``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsBinding``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``NullValue``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PropertyName``
+     - ``property_name``
+     - unclassified (untested)
+   * - event
+     - ``BindingComplete``
+     - ``binding_complete``
+     - supported
+   * - event
+     - ``Format``
+     - ``format``
+     - unclassified (untested)
+   * - event
+     - ``Parse``
+     - ``parse``
+     - supported
+   * - method
+     - ``OnBindingComplete``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormat``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParse``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``ReadValue``
+     - ``read_value``
+     - supported
+   * - method
+     - ``WriteValue``
+     - ``write_value``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``data_member``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``options``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``source``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``target``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``validate``
+     - supported

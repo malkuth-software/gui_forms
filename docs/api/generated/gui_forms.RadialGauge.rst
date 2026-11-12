@@ -53,3 +53,7 @@ gui_forms::RadialGauge
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 0 supported, 0 deferred, 0 excluded, 0 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.

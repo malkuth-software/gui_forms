@@ -38,6 +38,9 @@ lab
   properties and interactions: the names theme and form documents address.
 - **Windows Forms divergences** lists every recorded difference from a
   Windows Forms control's observable behaviour, with its reason.
+- **Member manifest** counts every control's properties, events and methods
+  against Windows Forms: supported, deferred, excluded or not yet classified.
+  Each control's API reference page lists its own.
 - The [API reference](../api/index) lists every public type, member and
   enumeration, with one page per function category for the controls.
 
@@ -48,6 +51,7 @@ lab
 ../controls/generated/alphabetical
 ../controls/generated/schema
 ../controls/generated/winforms-divergences
+../controls/generated/members
 ```
 
 ## Conventions shared by every control

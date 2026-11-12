@@ -262,3 +262,73 @@ gui_forms::SaveFileDialog
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``SaveFileDialog``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 5 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``SaveFileDialog``
+     - ``SaveFileDialog``
+     - supported
+   * - property
+     - ``CheckWriteAccess``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CreatePrompt``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ExpandedMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``OverwritePrompt``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OpenFile``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FileDialog.FileNames``
+     - ``file_names``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``filters``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``status``
+     - supported
+   * - event
+     - ``FileDialog.FileOk``
+     - ``file_ok``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``read``
+     - supported
+   * - method
+     - ``CommonDialog.Reset``
+     - ``reset``
+     - supported
+   * - method
+     - ``CommonDialog.ShowDialog``
+     - ``show_dialog``
+     - supported

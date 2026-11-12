@@ -257,3 +257,121 @@ gui_forms::NotifyIcon
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``NotifyIcon``. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 14 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``NotifyIcon``
+     - ``NotifyIcon``
+     - supported
+   * - property
+     - ``BalloonTipIcon``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BalloonTipText``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BalloonTipTitle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ContextMenuStrip``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Icon``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Tag``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Text``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Visible``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BalloonTipClicked``
+     - ``balloon_tip_clicked``
+     - supported
+   * - event
+     - ``BalloonTipClosed``
+     - ``balloon_tip_closed``
+     - supported
+   * - event
+     - ``BalloonTipShown``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - supported
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - supported
+   * - event
+     - ``MouseClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseDown``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseMove``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseUp``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowBalloonTip``
+     - ``show_balloon_tip``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``shown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``status``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``supported``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``menu_item_invoked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``read``
+     - supported

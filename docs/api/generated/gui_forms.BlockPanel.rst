@@ -333,3 +333,61 @@ gui_forms::BlockPanel
    .. cpp:member:: constexpr std::size_t block_panel_property_count
 
       BlockPanel's property table: ScrollableControl's entries, then its own. Default: ``ScrollableControl::scrollable_control_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 4 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``laid_out_children``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``layout_outcome``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``layout_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``resolved_font``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``style``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``used_line_strut``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``block_panel_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``item_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_positioning``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_item_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``shared_margins``
+     - unclassified (untested)

@@ -314,3 +314,177 @@ gui_forms::Label
    .. cpp:member:: constexpr std::size_t label_property_count
 
       Label's property table: Control's entries, then its own. Default: ``Control::control_property_count + 6U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Label``. Members declared here and by the counterpart: 5 supported, 0 deferred, 1 excluded, 34 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Label``
+     - ``Label``
+     - supported
+   * - property
+     - ``AutoEllipsis``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FlatStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Image``
+     - on ``LinkLabel``
+     - unclassified (carried)
+   * - property
+     - ``ImageAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImageIndex``
+     - on ``LinkLabel``
+     - unclassified (carried)
+   * - property
+     - ``ImageKey``
+     - on ``LinkLabel``
+     - unclassified (carried)
+   * - property
+     - ``ImageList``
+     - on ``LinkLabel``
+     - unclassified (carried)
+   * - property
+     - ``ImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LiveSetting``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PreferredHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PreferredWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RenderTransparent``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``TextAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseCompatibleTextRendering``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseMnemonic``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ImeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``KeyDown``
+     - ``key_down``
+     - unclassified (untested)
+   * - event
+     - ``KeyPress``
+     - ``key_press``
+     - unclassified (untested)
+   * - event
+     - ``KeyUp``
+     - ``key_up``
+     - unclassified (untested)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextAlignChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CalcImageRenderBounds``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``DrawImage``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnTextAlignChanged``
+     - none
+     - unclassified (hook)
+   * - property
+     - GUI.Forms-only
+     - ``alignment``
+     - unclassified (untested)
+   * - property
+     - ``Control.Font``
+     - ``font``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``foreground``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``maximum_lines``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``resolved_font``
+     - supported
+   * - property
+     - ``Control.Text``
+     - ``text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``text_wrapping``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``vertical_alignment``
+     - unclassified (untested)
+   * - event
+     - ``Control.TextChanged``
+     - ``text_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``label_property_entries``
+     - unclassified (untested)

@@ -847,3 +847,237 @@ gui_forms::TextBox
    .. cpp:member:: constexpr std::size_t text_box_property_count
 
       TextBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``TextBox``. Members declared here and by the counterpart: 30 supported, 0 deferred, 0 excluded, 25 unclassified; 30 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``TextBox``
+     - ``TextBox``
+     - supported
+   * - property
+     - ``AcceptsReturn``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoCompleteCustomSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoCompleteMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoCompleteSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CharacterCasing``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PasswordChar``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PlaceholderText``
+     - ``placeholder_text``
+     - unclassified (untested)
+   * - property
+     - ``ScrollBars``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TextAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseSystemPasswordChar``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextAlignChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnTextAlignChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``Paste``
+     - ``paste``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``auto_complete_highlighted``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``auto_complete_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``auto_complete_suggestions``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``can_redo``
+     - supported
+   * - property
+     - ``TextBoxBase.CanUndo``
+     - ``can_undo``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``decorations``
+     - supported
+   * - property
+     - ``TextBoxBase.Multiline``
+     - ``multiline``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``password_protected``
+     - supported
+   * - property
+     - ``TextBoxBase.ReadOnly``
+     - ``read_only``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scroll_offset``
+     - supported
+   * - property
+     - ``TextBoxBase.SelectedText``
+     - ``selected_text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selection``
+     - supported
+   * - property
+     - ``Control.Text``
+     - ``text``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``auto_complete_accepted``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``auto_complete_open_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``cancelled``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``committed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - event
+     - ``Control.TextChanged``
+     - ``text_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``auto_complete_source_status``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_all_decorations``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_decorations``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_undo_history``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_auto_complete``
+     - unclassified (untested)
+   * - method
+     - ``TextBoxBase.Copy``
+     - ``copy``
+     - supported
+   * - method
+     - ``TextBoxBase.Cut``
+     - ``cut``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``delete_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``redo``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``replace_decorations``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``replace_selection``
+     - supported
+   * - method
+     - ``TextBoxBase.Select``
+     - ``select``
+     - supported
+   * - method
+     - ``TextBoxBase.SelectAll``
+     - ``select_all``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_auto_complete_anchor``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_edit_filter``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``styled_runs``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``text_box_property_entries``
+     - unclassified (untested)
+   * - method
+     - ``TextBoxBase.Undo``
+     - ``undo``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``utf16_offset``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``utf8_offset``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``validate_multiline_text``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``visual_line_count``
+     - supported

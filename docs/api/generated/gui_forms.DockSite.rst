@@ -859,3 +859,221 @@ gui_forms::DockSite
    .. cpp:member:: constexpr std::chrono::milliseconds flyout_slide_duration
 
       Default: ``{180}``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 44 supported, 0 deferred, 0 excluded, 7 unclassified; 51 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``collapsed_stacks``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``document_area_maximized``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_announcement``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_panes``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_phase``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_stamp``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_subject``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_suppressed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_target``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_targets``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``floating``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``floating_site``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flyout_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flyout_extent``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flyout_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flyout_panel``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flyout_reveal``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_seam``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``moving_window``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``navigator``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``navigator_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``position_menu_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_seams``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_stack_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_stacks``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_tiles``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``showing_remote_drag``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``workspace``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drag_ended``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``flyout_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``activate_relative_document``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``begin_keyboard_move``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``cancel_drag``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``close_flyout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_navigator``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``close_position_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``focus_seam``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``move_seam``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_flyout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_navigator``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``position_command_enabled``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``release_workspace``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``resize_flyout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``run_position_command``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``seam_identity``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_position_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``side_panels``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``side_strip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``stack_identity``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``stack_view``
+     - supported

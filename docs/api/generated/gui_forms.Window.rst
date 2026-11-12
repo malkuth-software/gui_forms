@@ -581,3 +581,1501 @@ gui_forms::Window
    .. cpp:member:: constexpr std::size_t picker_popup_window_slot
 
       The slot drop-downs and pickers lift their lists and panels into (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the slots below it, one per depth. Default: ``maximum_popup_windows - 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Form``. Members declared here and by the counterpart: 215 supported, 10 deferred, 6 excluded, 140 unclassified; 231 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Form``
+     - ``Window``
+     - supported
+   * - property
+     - ``AcceptButton``
+     - ``accept_button``
+     - supported
+   * - property
+     - ``ActiveForm``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ActiveMdiChild``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``AllowTransparency``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoScale``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - property
+     - ``AutoScaleBaseSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoSizeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CancelButton``
+     - ``cancel_button``
+     - supported
+   * - property
+     - ``ClientSize``
+     - ``client_size``
+     - supported
+   * - property
+     - ``ControlBox``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DesktopBounds``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DesktopLocation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DialogResult``
+     - ``dialog_result``
+     - supported
+   * - property
+     - ``FormBorderColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormBorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormCaptionBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormCaptionTextColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormCornerPreference``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormScreenCaptureMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HelpButton``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Icon``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsMdiChild``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``IsMdiContainer``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``IsRestrictedWindow``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``KeyPreview``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Location``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MainMenuStrip``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Margin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaximizeBox``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaximizedBounds``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MdiChildren``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``MdiChildrenMinimizedAnchorBottom``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``MdiParent``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``Menu``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 10.0:WFDEV006.
+   * - property
+     - ``MergedMenu``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 10.0:WFDEV006.
+   * - property
+     - ``MinimizeBox``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Modal``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Opacity``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``OwnedForms``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Owner``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RestoreBounds``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RightToLeftLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowIcon``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowInTaskbar``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowWithoutActivation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Size``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SizeGripStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``StartPosition``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabStop``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopLevel``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopMost``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TransparencyKey``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``WindowState``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Activated``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoValidateChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Closed``
+     - on ``ThreadExceptionDialog``
+     - unclassified (carried)
+   * - event
+     - ``Closing``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Deactivate``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DpiChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormBorderColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormCaptionBackColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormCaptionTextColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormClosed``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormClosing``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormCornerPreferenceChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``HelpButtonClicked``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``InputLanguageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``InputLanguageChanging``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Load``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MarginChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MaximizedBoundsChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MaximumSizeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MdiChildActivate``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - event
+     - ``MenuComplete``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MenuStart``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MinimumSizeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ResizeBegin``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ResizeEnd``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Shown``
+     - on ``ThreadExceptionDialog``
+     - unclassified (carried)
+   * - event
+     - ``TabIndexChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Activate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ActivateMdiChild``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - method
+     - ``AddOwnedForm``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ApplyAutoScaling``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - method
+     - ``CenterToParent``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CenterToScreen``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Close``
+     - on ``ThreadExceptionDialog``
+     - unclassified (carried)
+   * - method
+     - ``GetAutoScaleSize``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - method
+     - ``LayoutMdi``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - method
+     - ``OnActivated``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnClosed``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnClosing``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDeactivate``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDpiChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormBorderColorChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormCaptionBackColorChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormCaptionTextColorChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormClosed``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormClosing``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormCornerPreferenceChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnGetDpiScaledSize``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnHelpButtonClicked``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnInputLanguageChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnInputLanguageChanging``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnLoad``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMaximizedBoundsChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMaximumSizeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMdiChildActivate``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - method
+     - ``OnMenuComplete``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMenuStart``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMinimumSizeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnResizeBegin``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnResizeEnd``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRightToLeftLayoutChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnShown``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``RemoveOwnedForm``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetDesktopBounds``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetDesktopLocation``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Show``
+     - on ``ThreadExceptionDialog``
+     - unclassified (carried)
+   * - method
+     - ``ShowAsync``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowDialog``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowDialogAsync``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``active``
+     - supported
+   * - property
+     - ``ContainerControl.ActiveControl``
+     - ``active_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_focus_scope_root``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``application``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``application_theme``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``applied_chrome``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``backdrop_chain``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``backdrop_chain_resolution``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``backdrop_grant``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``backdrop_request``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``band_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``captured_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``captured_pointer_id``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``check_access``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``chrome``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``chrome_insets``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``compositor_state``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``containing_block_subtree_arranges``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``containing_block_watch_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``content_rect``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``content_surface_declared``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``control_table``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``corner_preference``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``cursor_capabilities``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``cursor_metrics``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``deferred_input_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dialog_key_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dispatcher``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dispatcher_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_engine_if_made``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dropped_layout_diagnostics``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``engine_parts``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focus_cue_visible``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focus_regions``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focus_scope_depth``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``has_live_surface_presentations``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``host_close_reason``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``host_services``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hovered_control``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``image_resource_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``image_resources``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``inline_with_theme_reported``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``interaction_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``invalidation_overlay_setting``
+     - unclassified (untested)
+   * - property
+     - ``Control.InvokeRequired``
+     - ``invoke_required``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``key_bindings``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``key_map``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``layout_diagnostics``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``layout_pass_sequence``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``metrics_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``motion_clock``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``needs_frame``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``next_wake``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``non_opaque_declared``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``occluded``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overrides``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``paint_lease_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``popup_windows_available``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``popup_windows_translucent``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presentation_availability``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presentation_base``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presentation_overrides``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presentation_settings``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presenting_window``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pressed_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``resources``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``root``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``root_slot``
+     - supported
+   * - method
+     - ``Control.Scale``
+     - ``scale``
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - property
+     - GUI.Forms-only
+     - ``scroll_copies_supported``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``semantic_generation``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``supported_chrome``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``text_metrics_provider``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``theme``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``theme_fallback``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``theme_ptr``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``toast_content``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``toast_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``toast_visible``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_item_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_settings``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_target``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_visible``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tips_shown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tips_shown_setting``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``user_theme_rules``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``validation_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``written_chrome``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``active_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``backdrop_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``control_availability_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``dialog_result_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``focus_scope_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``focused_control_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``frame_moved``
+     - unclassified (untested)
+   * - event
+     - ``Control.HelpRequested``
+     - ``help_requested``
+     - supported
+   * - event
+     - ``Control.KeyDown``
+     - ``key_down``
+     - supported
+   * - event
+     - ``Control.KeyPress``
+     - ``key_press``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``key_state_changed``
+     - supported
+   * - event
+     - ``Control.KeyUp``
+     - ``key_up``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``menu_opening``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``pointer_capture_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``popup_window_closed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``presentation_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``theme_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``toast_dismissed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``tool_tip_visibility_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_focus_region``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``announce_menu_opening``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``append_interactions``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_cursor_hidden``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_focus_scope``
+     - supported
+   * - method
+     - ``Control.BeginInvoke``
+     - ``begin_invoke``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_update``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cancel_drag``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cancel_frame_requests``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``capture_control``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``capture_pointer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``capture_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_key_bindings``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_layout_diagnostics``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``command_target``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``containing_block_dependent_count``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``control``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``control_focused``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``create_framebuffer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``declare_band``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``declare_content_surface``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``declare_non_opaque``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``declare_presentation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dismiss_toast``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_context_request``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_drag``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_host_hover``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_key``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_pointer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``drag_engine``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``drain_posted_work``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``end_focus_scope``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``fill_line_break_opportunities_utf8``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``find``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``flush``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``focus_target_of``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``forward_input_to_popup_window``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``hide_popup_window``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``hide_toast``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``hide_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``hit_test``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``invalidation_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``invalidation_overlay_enabled``
+     - supported
+   * - method
+     - ``Control.Invoke``
+     - ``invoke``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``is_key_down``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_bgra32_premultiplied``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_png``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``measure_text_extent_utf8``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``metrics``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_focus``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_focus_region``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_popup_window``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``note_live_surface_presented``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``notify_live_presented``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``notify_presented``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``offer_accelerators``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``open_native_popup``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_overlay``
+     - supported
+   * - event
+     - ``Control.Paint``
+     - ``paint``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``patch_bgra32_premultiplied``
+     - supported
+   * - method
+     - ``Control.PerformLayout``
+     - ``perform_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``perform_semantic_action``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``poll_frame_schedule``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``popup_window_model``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``popup_work_area``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``prepare_popup_window``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``publish_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``published_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``queue_live_surface_presentation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``raise_alert``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``rebind_key_command``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``record_presented_area``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``register_accelerator``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``release_control_snapshot``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``release_pointer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove_image``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``replace_bgra32_premultiplied``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``replace_png``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``report_frame_moved``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``report_full_screen``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_backdrop``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_content_scroll``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``request_focus``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_help``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_scroll_copy``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``request_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``require_live_surface_content``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_activity_metrics``
+     - supported
+   * - event
+     - ``Control.Resize``
+     - ``resize``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolve_command``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolve_text_layout_utf8``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``restore_focus``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``restore_key_command``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``route_command``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``rules``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``schedule_paint``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``schedule_ui_timer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``semantic_snapshot``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``semantic_text_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_band_appearance``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_command_target``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_dispatch_wake_handler``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_framebuffer_painter``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_input_time_source``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_invalidation_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_live_surface_idle_waiting``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_live_surface_idle_wake_handler``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_live_surface_pairing_listener``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_paint_wake_handler``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_semantic_text_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_text_scale``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_theme_override``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``share_key_bindings``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``shares_resources_with``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_popup_window``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_toast``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``shutdown_dispatcher``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``snapshot_control``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``take_damage``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``take_live_surface_presentations``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``take_scroll_copies``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``text_input_caret``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``undeclare_band``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``update_bgra32_premultiplied``
+     - unclassified (untested)
+   * - method
+     - ``ContainerControl.ValidateChildren``
+     - ``validate_children``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``validate_control``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``verify_access``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``visual_inspection_snapshot``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``warp_cursor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``withdraw_alert``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``withdraw_tool_tip_request``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``withdraw_value``
+     - supported

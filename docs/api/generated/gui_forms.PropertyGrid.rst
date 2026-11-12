@@ -454,3 +454,389 @@ gui_forms::PropertyGrid
    .. cpp:member:: constexpr std::size_t property_grid_property_count
 
       PropertyGrid's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``PropertyGrid``. Members declared here and by the counterpart: 19 supported, 0 deferred, 0 excluded, 74 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``PropertyGrid``
+     - ``PropertyGrid``
+     - supported
+   * - property
+     - ``BrowsableAttributes``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CanShowCommands``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CanShowVisualStyleGlyphs``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CategoryForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CategorySplitterColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CommandsActiveLinkColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CommandsBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CommandsBorderColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CommandsDisabledLinkColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CommandsForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CommandsLinkColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CommandsVisible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CommandsVisibleIfAvailable``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ContextMenuDefaultLocation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Controls``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultTabType``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DisabledItemForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DrawFlatToolbar``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HelpBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HelpBorderColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HelpForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HelpVisible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LargeButtons``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LineColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``PropertySort``
+     - ``property_sort``
+     - unclassified (untested)
+   * - property
+     - ``PropertyTabs``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedGridItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedItemWithFocusBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedItemWithFocusForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedObject``
+     - ``selected_object``
+     - supported
+   * - property
+     - ``SelectedObjects``
+     - ``selected_objects``
+     - supported
+   * - property
+     - ``SelectedTab``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowPropertyPageImage``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SortByCategoryImage``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SortByPropertyImage``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ToolbarVisible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ToolStripRenderer``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseCompatibleTextRendering``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ViewBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ViewBorderColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ViewForeColor``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``KeyDown``
+     - ``key_down``
+     - unclassified (untested)
+   * - event
+     - ``KeyPress``
+     - ``key_press``
+     - unclassified (untested)
+   * - event
+     - ``KeyUp``
+     - ``key_up``
+     - unclassified (untested)
+   * - event
+     - ``MouseDown``
+     - ``mouse_down``
+     - unclassified (untested)
+   * - event
+     - ``MouseEnter``
+     - ``mouse_enter``
+     - unclassified (untested)
+   * - event
+     - ``MouseLeave``
+     - ``mouse_leave``
+     - unclassified (untested)
+   * - event
+     - ``MouseMove``
+     - ``mouse_move``
+     - unclassified (untested)
+   * - event
+     - ``MouseUp``
+     - ``mouse_up``
+     - unclassified (untested)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PropertySortChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PropertyTabChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PropertyValueChanged``
+     - ``property_value_changed``
+     - supported
+   * - event
+     - ``SelectedGridItemChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectedObjectsChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CollapseAllGridItems``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreatePropertyTab``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ExpandAllGridItems``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnComComponentNameChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnNotifyPropertyValueUIItemsChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnPropertySortChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnPropertyTabChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnPropertyValueChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelectedGridItemChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelectedObjectsChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``RefreshTabs``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetSelectedProperty``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowEventsButton``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``last_error``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``property_list``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``edit_failed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_object_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``activate_property_editor``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``insert_collection_item``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_collection_item``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``property_expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``property_grid_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``refresh_properties``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove_collection_item``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_button``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``selected_descriptor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``selected_origin``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_property_expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``try_set_property_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``try_set_property_value``
+     - supported

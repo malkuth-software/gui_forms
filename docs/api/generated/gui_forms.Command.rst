@@ -311,3 +311,93 @@ gui_forms::Command
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 15 supported, 0 deferred, 0 excluded, 4 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``state``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``invoked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``state_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``bind_shortcut``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_checked``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``execute``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``execute_routed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_availability_reason``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_checked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_default_action``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_description``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_destructive``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_enabled``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_icon_id``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_mnemonic``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_shortcut``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_visible``
+     - supported
