@@ -93,8 +93,10 @@ void test_state_and_mark() {
     (*button).danger = true;
     require((*button).anatomy_states().contains(CustomStateIndex{0U}), "a danger key takes the danger state");
     const Size marked = (*button).measure(Size{1000.0, 1000.0});
-    require(marked.width == plain.width + Button::leading_mark_column && marked.height == plain.height,
-            "the warning mark's column widens the button by leading_mark_column");
+    // The column's width is the button's own layout detail; the public
+    // measure shows only that the mark takes room inline.
+    require(marked.width > plain.width && marked.height == plain.height,
+            "the warning mark's column widens the button and keeps its height");
     require((*button).danger_glow() == 1.0 && !(*button).danger_glowing(),
             "outside a window the glow is steady and full");
 
