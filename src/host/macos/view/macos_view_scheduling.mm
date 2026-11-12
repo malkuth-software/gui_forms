@@ -252,3 +252,10 @@ void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sende
 }
 
 @end
+
+// This unit's link anchor (macos_view.hpp): referenced from
+// link_view_categories in macos_view.mm so that the archive member holding
+// the Scheduling category is linked wherever GUIFormsView is.
+namespace gui_forms::host::macos {
+void gui_forms_macos_view_scheduling_anchor() noexcept {}
+} // namespace gui_forms::host::macos

@@ -370,3 +370,10 @@ std::string MacPaintPhase::json_fields(const std::string_view name) const {
 }
 
 @end
+
+// This unit's link anchor (macos_view.hpp): referenced from
+// link_view_categories in macos_view.mm so that the archive member holding
+// the Diagnostics category is linked wherever GUIFormsView is.
+namespace gui_forms::host::macos {
+void gui_forms_macos_view_diagnostics_anchor() noexcept {}
+} // namespace gui_forms::host::macos
