@@ -43,6 +43,11 @@ gui_forms::VirtualRowsView
 
       **row_count** : ``std::size_t``, read-only
 
+      **measured_row_budget** : ``std::optional<std::size_t>``
+         The most rows kept measured, or none (the default) for no bound. Past
+         it, measured rows far from the first visible row return to the
+         estimate after each settle; the viewport's band is always kept.
+
       **estimated_row_height** : ``double``
          The height rows take until measured. Changing it forgets every measured
          height.
@@ -75,12 +80,25 @@ gui_forms::VirtualRowsView
       **announcement** : ``std::string_view``, read-only
          The live region's current text, such as "6 new rows, 106 in all".
 
+      **selection_mode** : ``ListSelectionMode``
+         ``ListSelectionMode::one`` (the default) or ``multiple_extended``, with
+         ListBox's conventions: Shift extends from the anchor, Ctrl toggles, a
+         press drags a range, Ctrl+Space toggles the current row.
+
       **selected_row** : ``std::optional<VirtualRowIndex>``
-         -- selection ----------------------------------------------------------
+         The current row: in the single mode the selected row; in the extended mode the row the keyboard and the last press are at, which Ctrl may have unselected.
+
+      **selected_ranges** : ``std::span<const VirtualRowRange>``, read-only
+         The selected rows as sorted, disjoint ranges.
+
+      **selected_row_count** : ``std::size_t``, read-only
+         How many rows are selected.
 
       **statistics** : ``VirtualRowsStatistics``, read-only
          Work counters: rows measured, painted and described, scroll copies and
-         repaints, and the height index's runs, nodes and depth.
+         repaints, the height index's runs, nodes, depth, bytes and measured
+         rows, the rows the budget forgot, and the partial repaints of
+         invalidate_rows.
 
       **parts** : ``Parts``, read-only
 
@@ -96,6 +114,11 @@ gui_forms::VirtualRowsView
       **row_activated** : ``Event<VirtualRowIndex>``
          Raised on a double click, Enter or Space on the selected row, and on the
          accessibility press of a row.
+
+      **scrolled** : ``Event<const VirtualRowScroll&>``
+         Raised once the view is settled after a scroll, a change of the rows or
+         a layout moved the offset or the first visible row. It carries the
+         first visible row, the offset and whether the view follows the tail.
 
    :Inherited:
 
@@ -117,6 +140,8 @@ gui_forms::VirtualRowsView
         - Erases rows; a selected row among them is unselected.
       * - :cpp:func:`refresh_rows <gui_forms::VirtualRowsView::refresh_rows>`
         - Forgets the measured heights of rows whose content changed.
+      * - :cpp:func:`invalidate_rows <gui_forms::VirtualRowsView::invalidate_rows>`
+        - Rows whose content changed, keeping their count: measures again those near the viewport at once, keeping the anchor, and repaints them (only their rectangles when none in view changed height).
       * - :cpp:func:`row_measured <gui_forms::VirtualRowsView::row_measured>`
         - Whether a row has been measured at the current width; false past the end.
       * - :cpp:func:`scroll_to_offset <gui_forms::VirtualRowsView::scroll_to_offset>`
@@ -129,6 +154,12 @@ gui_forms::VirtualRowsView
         - A row's rectangle in local coordinates (it may lie outside the viewport).
       * - :cpp:func:`row_at <gui_forms::VirtualRowsView::row_at>`
         - The row under a local point inside the viewport, or none.
+      * - :cpp:func:`row_selected <gui_forms::VirtualRowsView::row_selected>`
+        - Whether a row is selected.
+      * - :cpp:func:`select_range <gui_forms::VirtualRowsView::select_range>`
+        - Selects the rows between an anchor and a current row (extended mode).
+      * - :cpp:func:`clear_selection <gui_forms::VirtualRowsView::clear_selection>`
+        - Unselects every row.
 
    .. rubric:: Notes
 
@@ -165,6 +196,16 @@ gui_forms::VirtualRowsView
       Sets :cpp:func:`row_callbacks <gui_forms::VirtualRowsView::row_callbacks>`; see the property's description above.
 
    .. cpp:function:: std::size_t row_count() const noexcept
+
+   .. cpp:function:: std::optional<std::size_t> measured_row_budget() const noexcept
+
+      The most rows kept measured, or none (the default) for no bound. Past
+      it, measured rows far from the first visible row return to the
+      estimate after each settle; the viewport's band is always kept.
+
+   .. cpp:function:: void set_measured_row_budget(std::optional<std::size_t> rows)
+
+      Sets :cpp:func:`measured_row_budget <gui_forms::VirtualRowsView::measured_row_budget>`; see the property's description above.
 
    .. cpp:function:: double estimated_row_height() const noexcept
 
@@ -219,18 +260,38 @@ gui_forms::VirtualRowsView
 
       The live region's current text, such as "6 new rows, 106 in all".
 
+   .. cpp:function:: ListSelectionMode selection_mode() const noexcept
+
+      ``ListSelectionMode::one`` (the default) or ``multiple_extended``, with
+      ListBox's conventions: Shift extends from the anchor, Ctrl toggles, a
+      press drags a range, Ctrl+Space toggles the current row.
+
+   .. cpp:function:: void set_selection_mode(ListSelectionMode mode)
+
+      Sets :cpp:func:`selection_mode <gui_forms::VirtualRowsView::selection_mode>`; see the property's description above.
+
    .. cpp:function:: std::optional<VirtualRowIndex> selected_row() const noexcept
 
-      -- selection ----------------------------------------------------------
+      The current row: in the single mode the selected row; in the extended mode the row the keyboard and the last press are at, which Ctrl may have unselected.
 
    .. cpp:function:: void set_selected_row(std::optional<VirtualRowIndex> row)
 
-      Selects a row (none: no row) and raises selection_changed when it changes; does not scroll. Throws std::out_of_range for a row past the end.
+      Makes a row current and selects it alone (none: clears the selection), setting the anchor, and raises selection_changed when that changes anything; does not scroll. Throws std::out_of_range for a row past the end.
+
+   .. cpp:function:: std::span<const VirtualRowRange> selected_ranges() const& noexcept
+
+      The selected rows as sorted, disjoint ranges.
+
+   .. cpp:function:: std::size_t selected_row_count() const noexcept
+
+      How many rows are selected.
 
    .. cpp:function:: VirtualRowsStatistics statistics() const noexcept
 
       Work counters: rows measured, painted and described, scroll copies and
-      repaints, and the height index's runs, nodes and depth.
+      repaints, the height index's runs, nodes, depth, bytes and measured
+      rows, the rows the budget forgot, and the partial repaints of
+      invalidate_rows.
 
    .. cpp:function:: Parts parts() const
 
@@ -249,6 +310,12 @@ gui_forms::VirtualRowsView
 
       Raised on a double click, Enter or Space on the selected row, and on the
       accessibility press of a row.
+
+   .. cpp:function:: Event<const VirtualRowScroll&>& scrolled() noexcept
+
+      Raised once the view is settled after a scroll, a change of the rows or
+      a layout moved the offset or the first visible row. It carries the
+      first visible row, the offset and whether the view follows the tail.
 
 
    .. rubric:: Methods
@@ -272,6 +339,12 @@ gui_forms::VirtualRowsView
 
       Forgets the measured heights of rows whose content changed.
 
+   .. cpp:function:: void invalidate_rows(VirtualRowIndex first, std::size_t count)
+
+      Rows whose content changed, keeping their count: measures again those
+      near the viewport at once, keeping the anchor, and repaints them (only
+      their rectangles when none in view changed height).
+
    .. cpp:function:: bool row_measured(VirtualRowIndex row) const noexcept
 
       Whether a row has been measured at the current width; false past the end.
@@ -294,6 +367,18 @@ gui_forms::VirtualRowsView
    .. cpp:function:: std::optional<VirtualRowIndex> row_at(Point local_point) const noexcept
 
       The row under a local point inside the viewport, or none.
+
+   .. cpp:function:: bool row_selected(VirtualRowIndex row) const noexcept
+
+      Whether a row is selected.
+
+   .. cpp:function:: void select_range(VirtualRowIndex anchor, VirtualRowIndex current)
+
+      Selects the rows between an anchor and a current row (extended mode).
+
+   .. cpp:function:: void clear_selection()
+
+      Unselects every row.
 
 
    .. rubric:: Extension points
@@ -342,6 +427,14 @@ gui_forms::VirtualRowsView
 
       *Protected.*
 
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_capture_changed() override
+
+      *Protected.*
+
    .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
 
       *Protected.*
@@ -384,7 +477,7 @@ gui_forms::VirtualRowsView
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 24 supported, 0 deferred, 0 excluded, 2 unclassified; 26 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 33 supported, 0 deferred, 0 excluded, 2 unclassified; 35 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -425,6 +518,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 24 s
      - supported
    * - property
      - GUI.Forms-only
+     - ``measured_row_budget``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``row_callbacks``
      - supported
    * - property
@@ -437,7 +534,19 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 24 s
      - supported
    * - property
      - GUI.Forms-only
+     - ``selected_ranges``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``selected_row``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selected_row_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selection_mode``
      - supported
    * - property
      - GUI.Forms-only
@@ -453,7 +562,15 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 24 s
      - supported
    * - event
      - GUI.Forms-only
+     - ``scrolled``
+     - supported
+   * - event
+     - GUI.Forms-only
      - ``selection_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_selection``
      - supported
    * - method
      - GUI.Forms-only
@@ -470,6 +587,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 24 s
    * - method
      - GUI.Forms-only
      - ``insert_rows``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``invalidate_rows``
      - supported
    * - method
      - GUI.Forms-only
@@ -493,9 +614,17 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 24 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``row_selected``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``scroll_to_offset``
      - supported
    * - method
      - GUI.Forms-only
      - ``scroll_to_row``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``select_range``
      - supported

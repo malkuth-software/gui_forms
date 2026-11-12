@@ -1,7 +1,9 @@
 #include "row_height_index.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <memory>
 #include <utility>
 
 namespace gui_forms {
@@ -49,14 +51,14 @@ std::size_t RowHeightIndex::count() const noexcept {
 }
 
 double RowHeightIndex::total_height() const noexcept {
-    return tree_.summary();
+    return tree_.summary().height;
 }
 
 // -- queries (iterative descents) --------------------------------------------
 
 double RowHeightIndex::offset_of(std::size_t row) const noexcept {
     const Node* root = tree_.root();
-    if (row >= (*root).count) return (*root).summary;
+    if (row >= (*root).count) return (*root).summary.height;
     double offset = 0.0;
     const Node* node = root;
     std::size_t remaining = row;
@@ -64,7 +66,7 @@ double RowHeightIndex::offset_of(std::size_t row) const noexcept {
         std::size_t child = 0U;
         while (child + 1U < (*node).children.size() && remaining >= (*node).child_counts[child]) {
             remaining -= (*node).child_counts[child];
-            offset += (*node).child_summaries[child];
+            offset += (*node).child_summaries[child].height;
             ++child;
         }
         node = (*node).children[child].get();
@@ -85,14 +87,14 @@ std::size_t RowHeightIndex::row_at(double offset) const noexcept {
     const std::size_t total = (*root).count;
     if (total == 0U) return 0U;
     if (!(offset > 0.0)) return 0U;
-    if (offset >= (*root).summary) return total - 1U;
+    if (offset >= (*root).summary.height) return total - 1U;
     std::size_t row = 0U;
     double remaining = offset;
     const Node* node = root;
     while (!(*node).leaf) {
         std::size_t child = 0U;
-        while (child + 1U < (*node).children.size() && remaining >= (*node).child_summaries[child]) {
-            remaining -= (*node).child_summaries[child];
+        while (child + 1U < (*node).children.size() && remaining >= (*node).child_summaries[child].height) {
+            remaining -= (*node).child_summaries[child].height;
             row += (*node).child_counts[child];
             ++child;
         }
@@ -283,7 +285,55 @@ void RowHeightIndex::erase(std::size_t row, std::size_t count) {
     ++revision_;
 }
 
+void RowHeightIndex::forget(std::size_t row, std::size_t count) {
+    const std::size_t total = tree_.count();
+    if (count == 0U || row >= total) return;
+    const std::size_t taken = std::min(count, total - row);
+    erase(row, taken);
+    insert(row, taken);
+}
+
+std::size_t RowHeightIndex::measured_count() const noexcept {
+    return tree_.summary().measured;
+}
+
 // -- storage ----------------------------------------------------------------------------
+
+std::size_t RowHeightIndex::node_bytes(const Node& node) noexcept {
+    std::size_t bytes = sizeof(Node);
+    bytes += node.entries.capacity() * sizeof(Run);
+    bytes += node.children.capacity() * sizeof(std::unique_ptr<Node>);
+    bytes += node.child_counts.capacity() * sizeof(std::size_t);
+    bytes += node.child_summaries.capacity() * sizeof(detail::RowSummary);
+    return bytes;
+}
+
+std::size_t RowHeightIndex::storage_bytes() const noexcept {
+    // A depth-first walk with one frame (a node and its next child) per
+    // level; the depth never passes Tree::max_depth, and a deeper path
+    // (which the tree's invariants exclude) is not descended.
+    std::array<const Node*, Tree::max_depth + 1U> path{};
+    std::array<std::size_t, Tree::max_depth + 1U> next{};
+    std::size_t level = 0U;
+    path[0] = tree_.root();
+    std::size_t bytes = node_bytes(*path[0]);
+    while (true) {
+        const Node& node = *path[level];
+        const bool descend = !node.leaf && next[level] < node.children.size() && level + 1U < path.size();
+        if (descend) {
+            const Node* child = node.children[next[level]].get();
+            next[level] = next[level] + 1U;
+            level = level + 1U;
+            path[level] = child;
+            next[level] = 0U;
+            bytes += node_bytes(*child);
+            continue;
+        }
+        if (level == 0U) break;
+        level = level - 1U;
+    }
+    return bytes;
+}
 
 std::size_t RowHeightIndex::node_count() const noexcept {
     return tree_.node_count();

@@ -540,6 +540,7 @@
     _ZGVZN9gui_forms15UserThemeHeader*;
     _ZGVZN9gui_forms15VirtualRowIndex*;
     _ZGVZN9gui_forms15VirtualRowPaint*;
+    _ZGVZN9gui_forms15VirtualRowRange*;
     _ZGVZN9gui_forms15VirtualRowsView*;
     _ZGVZN9gui_forms15WindowChromeHit*;
     _ZGVZN9gui_forms15WindowFrameDrag*;
@@ -637,6 +638,7 @@
     _ZGVZN9gui_forms16UserThemeFolders*;
     _ZGVZN9gui_forms16Utf8ScalarDecode*;
     _ZGVZN9gui_forms16ValueBarContrast*;
+    _ZGVZN9gui_forms16VirtualRowScroll*;
     _ZGVZN9gui_forms16WindowDispatcher*;
     _ZGVZN9gui_forms16WrongThreadError*;
     _ZGVZN9gui_forms17AbsoluteAxisInput*;
@@ -1978,6 +1980,7 @@
     _ZGVZNK9gui_forms15UserThemeHeader*;
     _ZGVZNK9gui_forms15VirtualRowIndex*;
     _ZGVZNK9gui_forms15VirtualRowPaint*;
+    _ZGVZNK9gui_forms15VirtualRowRange*;
     _ZGVZNK9gui_forms15VirtualRowsView*;
     _ZGVZNK9gui_forms15WindowChromeHit*;
     _ZGVZNK9gui_forms15WindowFrameDrag*;
@@ -2075,6 +2078,7 @@
     _ZGVZNK9gui_forms16UserThemeFolders*;
     _ZGVZNK9gui_forms16Utf8ScalarDecode*;
     _ZGVZNK9gui_forms16ValueBarContrast*;
+    _ZGVZNK9gui_forms16VirtualRowScroll*;
     _ZGVZNK9gui_forms16WindowDispatcher*;
     _ZGVZNK9gui_forms16WrongThreadError*;
     _ZGVZNK9gui_forms17AbsoluteAxisInput*;
@@ -3574,6 +3578,7 @@
     _ZN9gui_forms15UserThemeHeader*;
     _ZN9gui_forms15VirtualRowIndex*;
     _ZN9gui_forms15VirtualRowPaint*;
+    _ZN9gui_forms15VirtualRowRange*;
     _ZN9gui_forms15VirtualRowsView*;
     _ZN9gui_forms15WindowChromeHit*;
     _ZN9gui_forms15WindowFrameDrag*;
@@ -3707,6 +3712,7 @@
     _ZN9gui_forms16UserThemeFolders*;
     _ZN9gui_forms16Utf8ScalarDecode*;
     _ZN9gui_forms16ValueBarContrast*;
+    _ZN9gui_forms16VirtualRowScroll*;
     _ZN9gui_forms16WindowDispatcher*;
     _ZN9gui_forms16WrongThreadError*;
     _ZN9gui_forms16colour_role_nameB*;
@@ -6108,6 +6114,7 @@
     _ZNK[RO]9gui_forms15UserThemeHeader*;
     _ZNK[RO]9gui_forms15VirtualRowIndex*;
     _ZNK[RO]9gui_forms15VirtualRowPaint*;
+    _ZNK[RO]9gui_forms15VirtualRowRange*;
     _ZNK[RO]9gui_forms15VirtualRowsView*;
     _ZNK[RO]9gui_forms15WindowChromeHit*;
     _ZNK[RO]9gui_forms15WindowFrameDrag*;
@@ -6205,6 +6212,7 @@
     _ZNK[RO]9gui_forms16UserThemeFolders*;
     _ZNK[RO]9gui_forms16Utf8ScalarDecode*;
     _ZNK[RO]9gui_forms16ValueBarContrast*;
+    _ZNK[RO]9gui_forms16VirtualRowScroll*;
     _ZNK[RO]9gui_forms16WindowDispatcher*;
     _ZNK[RO]9gui_forms16WrongThreadError*;
     _ZNK[RO]9gui_forms17AbsoluteAxisInput*;
@@ -7546,6 +7554,7 @@
     _ZN[KRO]9gui_forms15UserThemeHeader*;
     _ZN[KRO]9gui_forms15VirtualRowIndex*;
     _ZN[KRO]9gui_forms15VirtualRowPaint*;
+    _ZN[KRO]9gui_forms15VirtualRowRange*;
     _ZN[KRO]9gui_forms15VirtualRowsView*;
     _ZN[KRO]9gui_forms15WindowChromeHit*;
     _ZN[KRO]9gui_forms15WindowFrameDrag*;
@@ -7643,6 +7652,7 @@
     _ZN[KRO]9gui_forms16UserThemeFolders*;
     _ZN[KRO]9gui_forms16Utf8ScalarDecode*;
     _ZN[KRO]9gui_forms16ValueBarContrast*;
+    _ZN[KRO]9gui_forms16VirtualRowScroll*;
     _ZN[KRO]9gui_forms16WindowDispatcher*;
     _ZN[KRO]9gui_forms16WrongThreadError*;
     _ZN[KRO]9gui_forms17AbsoluteAxisInput*;
@@ -8984,6 +8994,7 @@
     _ZT[VIST]N9gui_forms15UserThemeHeader*E;
     _ZT[VIST]N9gui_forms15VirtualRowIndex*E;
     _ZT[VIST]N9gui_forms15VirtualRowPaint*E;
+    _ZT[VIST]N9gui_forms15VirtualRowRange*E;
     _ZT[VIST]N9gui_forms15VirtualRowsView*E;
     _ZT[VIST]N9gui_forms15WindowChromeHit*E;
     _ZT[VIST]N9gui_forms15WindowFrameDrag*E;
@@ -9081,6 +9092,7 @@
     _ZT[VIST]N9gui_forms16UserThemeFolders*E;
     _ZT[VIST]N9gui_forms16Utf8ScalarDecode*E;
     _ZT[VIST]N9gui_forms16ValueBarContrast*E;
+    _ZT[VIST]N9gui_forms16VirtualRowScroll*E;
     _ZT[VIST]N9gui_forms16WindowDispatcher*E;
     _ZT[VIST]N9gui_forms16WrongThreadError*E;
     _ZT[VIST]N9gui_forms17AbsoluteAxisInput*E;
@@ -10422,6 +10434,7 @@
     _ZT[hvc]*9gui_forms15UserThemeHeader*;
     _ZT[hvc]*9gui_forms15VirtualRowIndex*;
     _ZT[hvc]*9gui_forms15VirtualRowPaint*;
+    _ZT[hvc]*9gui_forms15VirtualRowRange*;
     _ZT[hvc]*9gui_forms15VirtualRowsView*;
     _ZT[hvc]*9gui_forms15WindowChromeHit*;
     _ZT[hvc]*9gui_forms15WindowFrameDrag*;
@@ -10519,6 +10532,7 @@
     _ZT[hvc]*9gui_forms16UserThemeFolders*;
     _ZT[hvc]*9gui_forms16Utf8ScalarDecode*;
     _ZT[hvc]*9gui_forms16ValueBarContrast*;
+    _ZT[hvc]*9gui_forms16VirtualRowScroll*;
     _ZT[hvc]*9gui_forms16WindowDispatcher*;
     _ZT[hvc]*9gui_forms16WrongThreadError*;
     _ZT[hvc]*9gui_forms17AbsoluteAxisInput*;
@@ -11860,6 +11874,7 @@
     _ZZN9gui_forms15UserThemeHeader*;
     _ZZN9gui_forms15VirtualRowIndex*;
     _ZZN9gui_forms15VirtualRowPaint*;
+    _ZZN9gui_forms15VirtualRowRange*;
     _ZZN9gui_forms15VirtualRowsView*;
     _ZZN9gui_forms15WindowChromeHit*;
     _ZZN9gui_forms15WindowFrameDrag*;
@@ -11957,6 +11972,7 @@
     _ZZN9gui_forms16UserThemeFolders*;
     _ZZN9gui_forms16Utf8ScalarDecode*;
     _ZZN9gui_forms16ValueBarContrast*;
+    _ZZN9gui_forms16VirtualRowScroll*;
     _ZZN9gui_forms16WindowDispatcher*;
     _ZZN9gui_forms16WrongThreadError*;
     _ZZN9gui_forms17AbsoluteAxisInput*;
@@ -13298,6 +13314,7 @@
     _ZZNK9gui_forms15UserThemeHeader*;
     _ZZNK9gui_forms15VirtualRowIndex*;
     _ZZNK9gui_forms15VirtualRowPaint*;
+    _ZZNK9gui_forms15VirtualRowRange*;
     _ZZNK9gui_forms15VirtualRowsView*;
     _ZZNK9gui_forms15WindowChromeHit*;
     _ZZNK9gui_forms15WindowFrameDrag*;
@@ -13395,6 +13412,7 @@
     _ZZNK9gui_forms16UserThemeFolders*;
     _ZZNK9gui_forms16Utf8ScalarDecode*;
     _ZZNK9gui_forms16ValueBarContrast*;
+    _ZZNK9gui_forms16VirtualRowScroll*;
     _ZZNK9gui_forms16WindowDispatcher*;
     _ZZNK9gui_forms16WrongThreadError*;
     _ZZNK9gui_forms17AbsoluteAxisInput*;

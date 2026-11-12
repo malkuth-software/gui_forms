@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2021 | 13 | 367 | 4105 | 2115 |
+| 2031 | 13 | 367 | 4104 | 2124 |
 
 ## GUI.Forms types
 
@@ -42,14 +42,14 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `PlotAxisItem` | GUI.Forms-only | 2 | 0 | 0 | 8 | 10 |
 | `PlotSeriesItem` | GUI.Forms-only | 8 | 0 | 0 | 19 | 27 |
 | `PlotAnnotationItem` | GUI.Forms-only | 0 | 0 | 0 | 4 | 4 |
-| `ListBox` | `ListBox` | 13 | 0 | 1 | 49 | 14 |
+| `ListBox` | `ListBox` | 14 | 0 | 1 | 48 | 14 |
 | `CheckedListBox` | `CheckedListBox` | 12 | 0 | 0 | 18 | 6 |
 | `ComboBox` | `ComboBox` | 11 | 0 | 1 | 54 | 9 |
 | `TreeView` | `TreeView` | 10 | 0 | 2 | 75 | 9 |
 | `ObjectView` | `ListView` | 20 | 0 | 2 | 107 | 18 |
 | `ListView` | `ListView` | 49 | 0 | 2 | 98 | 38 |
 | `TreeListView` | GUI.Forms-only | 31 | 0 | 0 | 5 | 36 |
-| `VirtualRowsView` | GUI.Forms-only | 24 | 0 | 0 | 2 | 26 |
+| `VirtualRowsView` | GUI.Forms-only | 33 | 0 | 0 | 2 | 35 |
 | `DataGridView` | `DataGridView` | 130 | 0 | 0 | 330 | 79 |
 | `ChoiceGroup` | GUI.Forms-only | 6 | 0 | 0 | 3 | 9 |
 | `BreadcrumbTrail` | GUI.Forms-only | 12 | 0 | 0 | 3 | 15 |
@@ -302,5 +302,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1633 |
-| `untested` | 896 |
+| `untested` | 895 |
 | `w-open` | 5 |

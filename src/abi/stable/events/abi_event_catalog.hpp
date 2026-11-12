@@ -1130,6 +1130,7 @@ void append_field(EventFields& fields, std::string_view name, const TreeListSele
 void append_field(EventFields& fields, std::string_view name, const TreeListSortChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeSelectionChange& value);
 void append_field(EventFields& fields, std::string_view name, const VirtualRowIndex& value);
+void append_field(EventFields& fields, std::string_view name, const VirtualRowScroll& value);
 void append_field(EventFields& fields, std::string_view name, const VirtualRowSelection& value);
 void append_field(EventFields& fields, std::string_view name, const WindowBackdropGrant& value);
 void append_field(EventFields& fields, std::string_view name, const WizardPageChangingEvent& value);
@@ -2901,10 +2902,19 @@ inline void append_field(EventFields& fields, std::string_view name, const Virtu
     append_field(fields, name, value.value);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const VirtualRowScroll& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "first_visible", value.first_visible);
+    append_field(fields, "offset", value.offset);
+    append_field(fields, "following_tail", value.following_tail);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const VirtualRowSelection& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "previous", value.previous);
     append_field(fields, "current", value.current);
+    append_field(fields, "selected_count", value.selected_count);
     fields.leave(prefix);
 }
 
@@ -5251,6 +5261,15 @@ inline SubscriptionToken connect_scrollable_control_scroll(Component& source, co
     return token;
 }
 
+inline SubscriptionToken connect_virtual_rows_view_scrolled(Component& source, const EventSink& sink) {
+    VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).scrolled(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_search_field_search_requested(Component& source, const EventSink& sink) {
     SearchField* typed = dynamic_cast<SearchField*>(&source);
     if (typed == nullptr) {
@@ -5958,7 +5977,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 331> event_connectors{{
+inline constexpr std::array<EventConnector, 332> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6212,6 +6231,7 @@ inline constexpr std::array<EventConnector, 331> event_connectors{{
     {"run_worker_completed", "BackgroundWorker", &connect_background_worker_run_worker_completed},
     {"scroll", "RangeControl", &connect_range_control_scroll},
     {"scroll", "ScrollableControl", &connect_scrollable_control_scroll},
+    {"scrolled", "VirtualRowsView", &connect_virtual_rows_view_scrolled},
     {"search_requested", "SearchField", &connect_search_field_search_requested},
     {"section_toggled", "HelpBook", &connect_help_book_section_toggled},
     {"segment_activated", "BreadcrumbTrail", &connect_breadcrumb_trail_segment_activated},

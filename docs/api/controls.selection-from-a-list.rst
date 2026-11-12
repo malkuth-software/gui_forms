@@ -548,10 +548,14 @@ Related types
      - The view asks for one row's height (VirtualRowsCallbacks::measure).
    * - :cpp:class:`VirtualRowPaint <gui_forms::VirtualRowPaint>`
      - One row to draw (VirtualRowsCallbacks::paint).
+   * - :cpp:class:`VirtualRowRange <gui_forms::VirtualRowRange>`
+     - A run of rows [first, first + count), count at least 1: one piece of an extended selection (VirtualRowsView::selected_ranges).
    * - :cpp:class:`VirtualRowsCallbacks <gui_forms::VirtualRowsCallbacks>`
      - The application's row targets.
+   * - :cpp:class:`VirtualRowScroll <gui_forms::VirtualRowScroll>`
+     - A scroll, after it settled (VirtualRowsView::scrolled): the first row meeting the viewport, the scroll offset (logical units) and whether the view now follows the tail.
    * - :cpp:class:`VirtualRowSelection <gui_forms::VirtualRowSelection>`
-     - A change of the selected row, after it happened.
+     - A change of the selection, after it happened: the current row before and after (the row the keyboard and the last press are at; in the single mode the selected row) and how many rows are selected now.
    * - :cpp:class:`VirtualRowsStatistics <gui_forms::VirtualRowsStatistics>`
      - Work counters, for bounded-work checks and workload records.
    * - :cpp:class:`VirtualRowsView::Parts <gui_forms::VirtualRowsView::Parts>`
@@ -5303,6 +5307,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: VirtualRowRange final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   A run of rows [first, first + count), count at least 1: one piece of an extended selection (VirtualRowsView::selected_ranges).
+
+   .. cpp:member:: VirtualRowIndex first
+
+   .. cpp:member:: std::size_t count
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: VirtualRowsCallbacks final
 
    ``#include <gui_forms/controls/virtual_rows_view.hpp>``
@@ -5317,15 +5333,31 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: VirtualRowScroll final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   A scroll, after it settled (VirtualRowsView::scrolled): the first row meeting the viewport, the scroll offset (logical units) and whether the view now follows the tail.
+
+   .. cpp:member:: VirtualRowIndex first_visible
+
+   .. cpp:member:: double offset
+
+   .. cpp:member:: bool following_tail
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: VirtualRowSelection final
 
    ``#include <gui_forms/controls/virtual_rows_view.hpp>``
 
-   A change of the selected row, after it happened. A row erased while selected reports ``current`` none.
+   A change of the selection, after it happened: the current row before and after (the row the keyboard and the last press are at; in the single mode the selected row) and how many rows are selected now. Raised when the current row or the set of selected rows changes. A current row erased reports ``current`` none.
 
    .. cpp:member:: std::optional<VirtualRowIndex> previous
 
    .. cpp:member:: std::optional<VirtualRowIndex> current
+
+   .. cpp:member:: std::size_t selected_count
 
 .. cpp:namespace:: gui_forms
 
@@ -5333,7 +5365,7 @@ Related types
 
    ``#include <gui_forms/controls/virtual_rows_view.hpp>``
 
-   Work counters, for bounded-work checks and workload records. The totals only grow; the "last" figures describe the most recent settle (a layout or a scroll) and paint. index_runs walks the height index's leaves (O(runs)); the other fields are O(1).
+   Work counters, for bounded-work checks and workload records. The totals only grow; the "last" figures describe the most recent settle (a layout or a scroll) and paint. index_runs walks the height index's leaves (O(runs)) and index_bytes its nodes (O(nodes)); the other fields are O(1). index_bytes is the heap the height index holds (nodes and their arrays at capacity); index_measured the rows holding a measured height. rows_forgotten counts measured rows the budget returned to the estimate in budget_compactions compactions (set_measured_row_budget); partial_repaints counts invalidate_rows calls that repainted only the rows' rectangles.
 
    .. cpp:member:: std::uint64_t rows_measured
 
@@ -5358,6 +5390,16 @@ Related types
    .. cpp:member:: std::size_t index_nodes
 
    .. cpp:member:: std::size_t index_depth
+
+   .. cpp:member:: std::size_t index_bytes
+
+   .. cpp:member:: std::size_t index_measured
+
+   .. cpp:member:: std::uint64_t rows_forgotten
+
+   .. cpp:member:: std::uint64_t budget_compactions
+
+   .. cpp:member:: std::uint64_t partial_repaints
 
 .. cpp:namespace:: gui_forms
 

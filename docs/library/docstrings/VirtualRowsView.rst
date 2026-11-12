@@ -44,9 +44,23 @@ announces_appends
     On by default.
 announcement
     The live region's current text, such as "6 new rows, 106 in all".
+measured_row_budget
+    The most rows kept measured, or none (the default) for no bound. Past
+    it, measured rows far from the first visible row return to the
+    estimate after each settle; the viewport's band is always kept.
+selection_mode
+    ``ListSelectionMode::one`` (the default) or ``multiple_extended``, with
+    ListBox's conventions: Shift extends from the anchor, Ctrl toggles, a
+    press drags a range, Ctrl+Space toggles the current row.
+selected_ranges
+    The selected rows as sorted, disjoint ranges.
+selected_row_count
+    How many rows are selected.
 statistics
     Work counters: rows measured, painted and described, scroll copies and
-    repaints, and the height index's runs, nodes and depth.
+    repaints, the height index's runs, nodes, depth, bytes and measured
+    rows, the rows the budget forgot, and the partial repaints of
+    invalidate_rows.
 
 Events
 ------
@@ -57,6 +71,10 @@ selection_changed
 row_activated
     Raised on a double click, Enter or Space on the selected row, and on the
     accessibility press of a row.
+scrolled
+    Raised once the view is settled after a scroll, a change of the rows or
+    a layout moved the offset or the first visible row. It carries the
+    first visible row, the offset and whether the view follows the tail.
 
 Methods
 -------
@@ -69,6 +87,16 @@ erase_rows
     Erases rows; a selected row among them is unselected.
 refresh_rows
     Forgets the measured heights of rows whose content changed.
+invalidate_rows
+    Rows whose content changed, keeping their count: measures again those
+    near the viewport at once, keeping the anchor, and repaints them (only
+    their rectangles when none in view changed height).
+row_selected
+    Whether a row is selected.
+select_range
+    Selects the rows between an anchor and a current row (extended mode).
+clear_selection
+    Unselects every row.
 scroll_to_offset
     Scrolls to an offset, measuring the rows the new viewport shows.
 scroll_to_row

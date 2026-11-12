@@ -1010,6 +1010,7 @@ Properties beyond every control's: none.
 |---|---|
 | `selection_changed` | `VirtualRowSelection` |
 | `row_activated` | `VirtualRowIndex` |
+| `scrolled` | `VirtualRowScroll` |
 
 ## `data_grid_view` (DataGridView, control)
 
