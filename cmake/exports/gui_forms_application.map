@@ -430,6 +430,7 @@
     _ZGVZN9gui_forms14MarkdownLimits*;
     _ZGVZN9gui_forms14MaskEditResult*;
     _ZGVZN9gui_forms14MaskValidation*;
+    _ZGVZN9gui_forms14MaterialBlocks*;
     _ZGVZN9gui_forms14MaterialBorder*;
     _ZGVZN9gui_forms14MaterialShadow*;
     _ZGVZN9gui_forms14MediaCondition*;
@@ -778,6 +779,7 @@
     _ZGVZN9gui_forms18BindingWriteResult*;
     _ZGVZN9gui_forms18BlockFlowItemInput*;
     _ZGVZN9gui_forms18CalendarDimensions*;
+    _ZGVZN9gui_forms18CanvasTextureLayer*;
     _ZGVZN9gui_forms18ChildPropertyEntry*;
     _ZGVZN9gui_forms18CommandRouteResult*;
     _ZGVZN9gui_forms18CompiledThemeRules*;
@@ -880,6 +882,7 @@
     _ZGVZN9gui_forms19BindingProviderLink*;
     _ZGVZN9gui_forms19BlockFlowItemLayout*;
     _ZGVZN9gui_forms19BlockFlowItemResult*;
+    _ZGVZN9gui_forms19CanvasTextureLayers*;
     _ZGVZN9gui_forms19ControlStateRecipes*;
     _ZGVZN9gui_forms19ControlVisualRecipe*;
     _ZGVZN9gui_forms19CursorLeaseSnapshot*;
@@ -972,7 +975,6 @@
     _ZGVZN9gui_forms20CommandOverflowPanel*;
     _ZGVZN9gui_forms20CompositorGeneration*;
     _ZGVZN9gui_forms20ConnectedControlSeam*;
-    _ZGVZN9gui_forms20ControlCanvasTexture*;
     _ZGVZN9gui_forms20ControlStripePattern*;
     _ZGVZN9gui_forms20ControlVisualContext*;
     _ZGVZN9gui_forms20DataGridViewRowEvent*;
@@ -1914,6 +1916,7 @@
     _ZGVZNK9gui_forms14MarkdownLimits*;
     _ZGVZNK9gui_forms14MaskEditResult*;
     _ZGVZNK9gui_forms14MaskValidation*;
+    _ZGVZNK9gui_forms14MaterialBlocks*;
     _ZGVZNK9gui_forms14MaterialBorder*;
     _ZGVZNK9gui_forms14MaterialShadow*;
     _ZGVZNK9gui_forms14MediaCondition*;
@@ -2262,6 +2265,7 @@
     _ZGVZNK9gui_forms18BindingWriteResult*;
     _ZGVZNK9gui_forms18BlockFlowItemInput*;
     _ZGVZNK9gui_forms18CalendarDimensions*;
+    _ZGVZNK9gui_forms18CanvasTextureLayer*;
     _ZGVZNK9gui_forms18ChildPropertyEntry*;
     _ZGVZNK9gui_forms18CommandRouteResult*;
     _ZGVZNK9gui_forms18CompiledThemeRules*;
@@ -2364,6 +2368,7 @@
     _ZGVZNK9gui_forms19BindingProviderLink*;
     _ZGVZNK9gui_forms19BlockFlowItemLayout*;
     _ZGVZNK9gui_forms19BlockFlowItemResult*;
+    _ZGVZNK9gui_forms19CanvasTextureLayers*;
     _ZGVZNK9gui_forms19ControlStateRecipes*;
     _ZGVZNK9gui_forms19ControlVisualRecipe*;
     _ZGVZNK9gui_forms19CursorLeaseSnapshot*;
@@ -2456,7 +2461,6 @@
     _ZGVZNK9gui_forms20CommandOverflowPanel*;
     _ZGVZNK9gui_forms20CompositorGeneration*;
     _ZGVZNK9gui_forms20ConnectedControlSeam*;
-    _ZGVZNK9gui_forms20ControlCanvasTexture*;
     _ZGVZNK9gui_forms20ControlStripePattern*;
     _ZGVZNK9gui_forms20ControlVisualContext*;
     _ZGVZNK9gui_forms20DataGridViewRowEvent*;
@@ -3534,6 +3538,7 @@
     _ZN9gui_forms14MarkdownLimits*;
     _ZN9gui_forms14MaskEditResult*;
     _ZN9gui_forms14MaskValidation*;
+    _ZN9gui_forms14MaterialBlocks*;
     _ZN9gui_forms14MaterialBorder*;
     _ZN9gui_forms14MaterialShadow*;
     _ZN9gui_forms14MediaCondition*;
@@ -4086,6 +4091,7 @@
     _ZN9gui_forms18BindingWriteResult*;
     _ZN9gui_forms18BlockFlowItemInput*;
     _ZN9gui_forms18CalendarDimensions*;
+    _ZN9gui_forms18CanvasTextureLayer*;
     _ZN9gui_forms18ChildPropertyEntry*;
     _ZN9gui_forms18CommandRouteResult*;
     _ZN9gui_forms18CompiledThemeRules*;
@@ -4270,6 +4276,7 @@
     _ZN9gui_forms19BindingProviderLink*;
     _ZN9gui_forms19BlockFlowItemLayout*;
     _ZN9gui_forms19BlockFlowItemResult*;
+    _ZN9gui_forms19CanvasTextureLayers*;
     _ZN9gui_forms19ControlStateRecipes*;
     _ZN9gui_forms19ControlVisualRecipe*;
     _ZN9gui_forms19CursorLeaseSnapshot*;
@@ -4360,6 +4367,8 @@
     _ZN9gui_forms19build_help_contentsE*;
     _ZN9gui_forms19bundled_font_noticeB*;
     _ZN9gui_forms19bundled_font_noticeE*;
+    _ZN9gui_forms19canvas_texture_fillB*;
+    _ZN9gui_forms19canvas_texture_fillE*;
     _ZN9gui_forms19current_colours_fitB*;
     _ZN9gui_forms19current_colours_fitE*;
     _ZN9gui_forms19declares_item_stateB*;
@@ -4454,7 +4463,6 @@
     _ZN9gui_forms20CommandOverflowPanel*;
     _ZN9gui_forms20CompositorGeneration*;
     _ZN9gui_forms20ConnectedControlSeam*;
-    _ZN9gui_forms20ControlCanvasTexture*;
     _ZN9gui_forms20ControlStripePattern*;
     _ZN9gui_forms20ControlVisualContext*;
     _ZN9gui_forms20DataGridViewRowEvent*;
@@ -6208,6 +6216,7 @@
     _ZNK[RO]9gui_forms14MarkdownLimits*;
     _ZNK[RO]9gui_forms14MaskEditResult*;
     _ZNK[RO]9gui_forms14MaskValidation*;
+    _ZNK[RO]9gui_forms14MaterialBlocks*;
     _ZNK[RO]9gui_forms14MaterialBorder*;
     _ZNK[RO]9gui_forms14MaterialShadow*;
     _ZNK[RO]9gui_forms14MediaCondition*;
@@ -6556,6 +6565,7 @@
     _ZNK[RO]9gui_forms18BindingWriteResult*;
     _ZNK[RO]9gui_forms18BlockFlowItemInput*;
     _ZNK[RO]9gui_forms18CalendarDimensions*;
+    _ZNK[RO]9gui_forms18CanvasTextureLayer*;
     _ZNK[RO]9gui_forms18ChildPropertyEntry*;
     _ZNK[RO]9gui_forms18CommandRouteResult*;
     _ZNK[RO]9gui_forms18CompiledThemeRules*;
@@ -6658,6 +6668,7 @@
     _ZNK[RO]9gui_forms19BindingProviderLink*;
     _ZNK[RO]9gui_forms19BlockFlowItemLayout*;
     _ZNK[RO]9gui_forms19BlockFlowItemResult*;
+    _ZNK[RO]9gui_forms19CanvasTextureLayers*;
     _ZNK[RO]9gui_forms19ControlStateRecipes*;
     _ZNK[RO]9gui_forms19ControlVisualRecipe*;
     _ZNK[RO]9gui_forms19CursorLeaseSnapshot*;
@@ -6750,7 +6761,6 @@
     _ZNK[RO]9gui_forms20CommandOverflowPanel*;
     _ZNK[RO]9gui_forms20CompositorGeneration*;
     _ZNK[RO]9gui_forms20ConnectedControlSeam*;
-    _ZNK[RO]9gui_forms20ControlCanvasTexture*;
     _ZNK[RO]9gui_forms20ControlStripePattern*;
     _ZNK[RO]9gui_forms20ControlVisualContext*;
     _ZNK[RO]9gui_forms20DataGridViewRowEvent*;
@@ -7692,6 +7702,7 @@
     _ZN[KRO]9gui_forms14MarkdownLimits*;
     _ZN[KRO]9gui_forms14MaskEditResult*;
     _ZN[KRO]9gui_forms14MaskValidation*;
+    _ZN[KRO]9gui_forms14MaterialBlocks*;
     _ZN[KRO]9gui_forms14MaterialBorder*;
     _ZN[KRO]9gui_forms14MaterialShadow*;
     _ZN[KRO]9gui_forms14MediaCondition*;
@@ -8040,6 +8051,7 @@
     _ZN[KRO]9gui_forms18BindingWriteResult*;
     _ZN[KRO]9gui_forms18BlockFlowItemInput*;
     _ZN[KRO]9gui_forms18CalendarDimensions*;
+    _ZN[KRO]9gui_forms18CanvasTextureLayer*;
     _ZN[KRO]9gui_forms18ChildPropertyEntry*;
     _ZN[KRO]9gui_forms18CommandRouteResult*;
     _ZN[KRO]9gui_forms18CompiledThemeRules*;
@@ -8142,6 +8154,7 @@
     _ZN[KRO]9gui_forms19BindingProviderLink*;
     _ZN[KRO]9gui_forms19BlockFlowItemLayout*;
     _ZN[KRO]9gui_forms19BlockFlowItemResult*;
+    _ZN[KRO]9gui_forms19CanvasTextureLayers*;
     _ZN[KRO]9gui_forms19ControlStateRecipes*;
     _ZN[KRO]9gui_forms19ControlVisualRecipe*;
     _ZN[KRO]9gui_forms19CursorLeaseSnapshot*;
@@ -8234,7 +8247,6 @@
     _ZN[KRO]9gui_forms20CommandOverflowPanel*;
     _ZN[KRO]9gui_forms20CompositorGeneration*;
     _ZN[KRO]9gui_forms20ConnectedControlSeam*;
-    _ZN[KRO]9gui_forms20ControlCanvasTexture*;
     _ZN[KRO]9gui_forms20ControlStripePattern*;
     _ZN[KRO]9gui_forms20ControlVisualContext*;
     _ZN[KRO]9gui_forms20DataGridViewRowEvent*;
@@ -9176,6 +9188,7 @@
     _ZT[VIST]N9gui_forms14MarkdownLimits*E;
     _ZT[VIST]N9gui_forms14MaskEditResult*E;
     _ZT[VIST]N9gui_forms14MaskValidation*E;
+    _ZT[VIST]N9gui_forms14MaterialBlocks*E;
     _ZT[VIST]N9gui_forms14MaterialBorder*E;
     _ZT[VIST]N9gui_forms14MaterialShadow*E;
     _ZT[VIST]N9gui_forms14MediaCondition*E;
@@ -9524,6 +9537,7 @@
     _ZT[VIST]N9gui_forms18BindingWriteResult*E;
     _ZT[VIST]N9gui_forms18BlockFlowItemInput*E;
     _ZT[VIST]N9gui_forms18CalendarDimensions*E;
+    _ZT[VIST]N9gui_forms18CanvasTextureLayer*E;
     _ZT[VIST]N9gui_forms18ChildPropertyEntry*E;
     _ZT[VIST]N9gui_forms18CommandRouteResult*E;
     _ZT[VIST]N9gui_forms18CompiledThemeRules*E;
@@ -9626,6 +9640,7 @@
     _ZT[VIST]N9gui_forms19BindingProviderLink*E;
     _ZT[VIST]N9gui_forms19BlockFlowItemLayout*E;
     _ZT[VIST]N9gui_forms19BlockFlowItemResult*E;
+    _ZT[VIST]N9gui_forms19CanvasTextureLayers*E;
     _ZT[VIST]N9gui_forms19ControlStateRecipes*E;
     _ZT[VIST]N9gui_forms19ControlVisualRecipe*E;
     _ZT[VIST]N9gui_forms19CursorLeaseSnapshot*E;
@@ -9718,7 +9733,6 @@
     _ZT[VIST]N9gui_forms20CommandOverflowPanel*E;
     _ZT[VIST]N9gui_forms20CompositorGeneration*E;
     _ZT[VIST]N9gui_forms20ConnectedControlSeam*E;
-    _ZT[VIST]N9gui_forms20ControlCanvasTexture*E;
     _ZT[VIST]N9gui_forms20ControlStripePattern*E;
     _ZT[VIST]N9gui_forms20ControlVisualContext*E;
     _ZT[VIST]N9gui_forms20DataGridViewRowEvent*E;
@@ -10660,6 +10674,7 @@
     _ZT[hvc]*9gui_forms14MarkdownLimits*;
     _ZT[hvc]*9gui_forms14MaskEditResult*;
     _ZT[hvc]*9gui_forms14MaskValidation*;
+    _ZT[hvc]*9gui_forms14MaterialBlocks*;
     _ZT[hvc]*9gui_forms14MaterialBorder*;
     _ZT[hvc]*9gui_forms14MaterialShadow*;
     _ZT[hvc]*9gui_forms14MediaCondition*;
@@ -11008,6 +11023,7 @@
     _ZT[hvc]*9gui_forms18BindingWriteResult*;
     _ZT[hvc]*9gui_forms18BlockFlowItemInput*;
     _ZT[hvc]*9gui_forms18CalendarDimensions*;
+    _ZT[hvc]*9gui_forms18CanvasTextureLayer*;
     _ZT[hvc]*9gui_forms18ChildPropertyEntry*;
     _ZT[hvc]*9gui_forms18CommandRouteResult*;
     _ZT[hvc]*9gui_forms18CompiledThemeRules*;
@@ -11110,6 +11126,7 @@
     _ZT[hvc]*9gui_forms19BindingProviderLink*;
     _ZT[hvc]*9gui_forms19BlockFlowItemLayout*;
     _ZT[hvc]*9gui_forms19BlockFlowItemResult*;
+    _ZT[hvc]*9gui_forms19CanvasTextureLayers*;
     _ZT[hvc]*9gui_forms19ControlStateRecipes*;
     _ZT[hvc]*9gui_forms19ControlVisualRecipe*;
     _ZT[hvc]*9gui_forms19CursorLeaseSnapshot*;
@@ -11202,7 +11219,6 @@
     _ZT[hvc]*9gui_forms20CommandOverflowPanel*;
     _ZT[hvc]*9gui_forms20CompositorGeneration*;
     _ZT[hvc]*9gui_forms20ConnectedControlSeam*;
-    _ZT[hvc]*9gui_forms20ControlCanvasTexture*;
     _ZT[hvc]*9gui_forms20ControlStripePattern*;
     _ZT[hvc]*9gui_forms20ControlVisualContext*;
     _ZT[hvc]*9gui_forms20DataGridViewRowEvent*;
@@ -12144,6 +12160,7 @@
     _ZZN9gui_forms14MarkdownLimits*;
     _ZZN9gui_forms14MaskEditResult*;
     _ZZN9gui_forms14MaskValidation*;
+    _ZZN9gui_forms14MaterialBlocks*;
     _ZZN9gui_forms14MaterialBorder*;
     _ZZN9gui_forms14MaterialShadow*;
     _ZZN9gui_forms14MediaCondition*;
@@ -12492,6 +12509,7 @@
     _ZZN9gui_forms18BindingWriteResult*;
     _ZZN9gui_forms18BlockFlowItemInput*;
     _ZZN9gui_forms18CalendarDimensions*;
+    _ZZN9gui_forms18CanvasTextureLayer*;
     _ZZN9gui_forms18ChildPropertyEntry*;
     _ZZN9gui_forms18CommandRouteResult*;
     _ZZN9gui_forms18CompiledThemeRules*;
@@ -12594,6 +12612,7 @@
     _ZZN9gui_forms19BindingProviderLink*;
     _ZZN9gui_forms19BlockFlowItemLayout*;
     _ZZN9gui_forms19BlockFlowItemResult*;
+    _ZZN9gui_forms19CanvasTextureLayers*;
     _ZZN9gui_forms19ControlStateRecipes*;
     _ZZN9gui_forms19ControlVisualRecipe*;
     _ZZN9gui_forms19CursorLeaseSnapshot*;
@@ -12686,7 +12705,6 @@
     _ZZN9gui_forms20CommandOverflowPanel*;
     _ZZN9gui_forms20CompositorGeneration*;
     _ZZN9gui_forms20ConnectedControlSeam*;
-    _ZZN9gui_forms20ControlCanvasTexture*;
     _ZZN9gui_forms20ControlStripePattern*;
     _ZZN9gui_forms20ControlVisualContext*;
     _ZZN9gui_forms20DataGridViewRowEvent*;
@@ -13628,6 +13646,7 @@
     _ZZNK9gui_forms14MarkdownLimits*;
     _ZZNK9gui_forms14MaskEditResult*;
     _ZZNK9gui_forms14MaskValidation*;
+    _ZZNK9gui_forms14MaterialBlocks*;
     _ZZNK9gui_forms14MaterialBorder*;
     _ZZNK9gui_forms14MaterialShadow*;
     _ZZNK9gui_forms14MediaCondition*;
@@ -13976,6 +13995,7 @@
     _ZZNK9gui_forms18BindingWriteResult*;
     _ZZNK9gui_forms18BlockFlowItemInput*;
     _ZZNK9gui_forms18CalendarDimensions*;
+    _ZZNK9gui_forms18CanvasTextureLayer*;
     _ZZNK9gui_forms18ChildPropertyEntry*;
     _ZZNK9gui_forms18CommandRouteResult*;
     _ZZNK9gui_forms18CompiledThemeRules*;
@@ -14078,6 +14098,7 @@
     _ZZNK9gui_forms19BindingProviderLink*;
     _ZZNK9gui_forms19BlockFlowItemLayout*;
     _ZZNK9gui_forms19BlockFlowItemResult*;
+    _ZZNK9gui_forms19CanvasTextureLayers*;
     _ZZNK9gui_forms19ControlStateRecipes*;
     _ZZNK9gui_forms19ControlVisualRecipe*;
     _ZZNK9gui_forms19CursorLeaseSnapshot*;
@@ -14170,7 +14191,6 @@
     _ZZNK9gui_forms20CommandOverflowPanel*;
     _ZZNK9gui_forms20CompositorGeneration*;
     _ZZNK9gui_forms20ConnectedControlSeam*;
-    _ZZNK9gui_forms20ControlCanvasTexture*;
     _ZZNK9gui_forms20ControlStripePattern*;
     _ZZNK9gui_forms20ControlVisualContext*;
     _ZZNK9gui_forms20DataGridViewRowEvent*;

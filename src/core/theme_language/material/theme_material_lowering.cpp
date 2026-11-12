@@ -256,6 +256,29 @@ constexpr std::string_view finish_function_name = "finish";
 // integer, written non-negative.
 constexpr double maximum_finish_seed = 2147483647.0;
 
+// The patterns a canvas texture layer names in `procedural()`
+// (`background-texture`), every tiled built-in pattern: the fresco covers
+// a box and does not tile. A layer may instead be a surface finish,
+// written as `finish()` is in a fill (finish_names).
+struct CanvasTextureKind final {
+    std::string_view name{};
+    ProceduralPattern pattern{ProceduralPattern::felt};
+};
+
+constexpr std::array<CanvasTextureKind, 6> canvas_texture_kinds{{
+    {.name = "felt", .pattern = ProceduralPattern::felt},
+    {.name = "wood-grain", .pattern = ProceduralPattern::wood_grain},
+    {.name = "paper-fibre", .pattern = ProceduralPattern::paper_fibre},
+    {.name = "pinstripe", .pattern = ProceduralPattern::pinstripe},
+    {.name = "brushed-metal", .pattern = ProceduralPattern::brushed_metal},
+    {.name = "checker", .pattern = ProceduralPattern::checker},
+}};
+
+constexpr std::string_view procedural_function_name = "procedural";
+
+// The largest seed a texture layer admits: ProceduralFill::seed's range.
+constexpr double maximum_texture_seed = 4294967295.0;
+
 [[nodiscard]] const NamedGradient* gradient_function(std::string_view name) noexcept {
     for (const NamedGradient& gradient : gradient_functions) {
         if (equals_ascii_folded(name, gradient.name)) return &gradient;
@@ -431,7 +454,7 @@ public:
 
 private:
     bool fail(DiagnosticCode code, std::uint32_t token, std::string detail);
-    bool drop_unknown_functions();
+    bool drop_unknown_functions(MaterialProperty property);
     [[nodiscard]] std::size_t next(std::size_t index) const noexcept;
     [[nodiscard]] std::size_t count(ComponentRange range) const noexcept;
     void split(ComponentRange range, std::vector<ComponentRange>& parts) const;
@@ -456,6 +479,8 @@ private:
     bool read_gradient(std::size_t index, AuthoredGradient& gradient);
     bool read_pattern(std::size_t index, MaterialFillLayer& layer);
     bool read_finish(std::size_t index, MaterialFillLayer& layer);
+    bool read_procedural(std::size_t index, CanvasTextureLayer& layer);
+    bool read_texture_layer(ComponentRange range, CanvasTextureLayer& layer);
     bool read_image(std::size_t index, WrittenLayer& layer);
     bool read_resource_image(std::size_t index, MaterialFillLayer& layer);
     bool push_fills(std::span<const WrittenLayer> written);
@@ -550,13 +575,16 @@ bool MaterialReader::fail(DiagnosticCode code, std::uint32_t token, std::string 
 }
 
 // A function the material properties do not know is dropped with a warning
-// (B2: an unknown function), as it is anywhere in a sheet.
-bool MaterialReader::drop_unknown_functions() {
+// (B2: an unknown function), as it is anywhere in a sheet. `procedural` is
+// known to `background-texture` alone.
+bool MaterialReader::drop_unknown_functions(MaterialProperty property) {
+    const bool textured = property == MaterialProperty::background_texture;
     for (const ValueComponent& component : value_.components) {
         if (component.kind != ValueComponentKind::function) continue;
         if (gradient_function(component.text) != nullptr || filter_function(component.text) != nullptr) continue;
         if (equals_ascii_folded(component.text, pattern_function_name)) continue;
         if (equals_ascii_folded(component.text, finish_function_name)) continue;
+        if (textured && equals_ascii_folded(component.text, procedural_function_name)) continue;
         return fail(DiagnosticCode::unknown_function, component.token, clipped_theme_detail(component.text));
     }
     return true;
@@ -2867,36 +2895,52 @@ bool MaterialReader::lower_flow_style() {
     return true;
 }
 
-// `background-texture` (NODE_GRAPH_SPEC gap 2; cp31): `none`, or
-// `url("resource:<name>") multiply <percentage>`: an image resource the
-// manifest lists, multiplied at the percentage, from 0% to 3% (the design
-// language's sub-3 % texture rule, maximum_canvas_texture_contrast). A
-// higher contrast is out of range: the declaration is dropped, never
-// clamped silently. `multiply` is the only blend, and is written.
+// `background-texture` (NODE_GRAPH_SPEC gap 2; cp31): `none`, or one to
+// maximum_canvas_texture_layers comma-separated layers, bottom first, each
+// `procedural(<kind>, <seed>, <tile>, <strength>) multiply <percentage>`
+// (read_texture_layer). The layers are baked procedural surfaces, never an
+// image: the engine generates each pattern per display scale in an idle
+// frame (E10) and the canvas composites them under its grid. A contrast
+// above 3 % (the design language's sub-3 % texture rule,
+// maximum_canvas_texture_contrast) is out of range: the declaration is
+// dropped, never clamped silently. `multiply` is the only blend, and is
+// written; the canvas screens instead on a dark well.
 bool MaterialReader::lower_background_texture() {
-    RecipeDeclaration image = recipe_declaration(RecipeField::texture_image);
-    RecipeDeclaration contrast = recipe_declaration(RecipeField::texture_contrast);
+    RecipeDeclaration texture = recipe_declaration(RecipeField::texture_layers);
     const ValueComponent& first = value_.components[0U];
-    const std::size_t blend_index = next(0U);
-    if (blend_index >= value_.components.size() && keyword(0U, "none")) {
-        lowering_.recipe_fields.push_back(image);
-        lowering_.recipe_fields.push_back(contrast);
+    if (next(0U) >= value_.components.size() && keyword(0U, "none")) {
+        lowering_.recipe_fields.push_back(texture);
         return true;
     }
-    const std::size_t contrast_index = blend_index < value_.components.size() ? next(blend_index) : blend_index;
-    const bool three = contrast_index < value_.components.size() &&
-                       next(contrast_index) >= value_.components.size();
-    if (!three) {
-        return fail(DiagnosticCode::value_syntax, first.token, "none or url(...) multiply <percentage>");
+    std::vector<ComponentRange> layers{};
+    split(ComponentRange{0U, value_.components.size()}, layers);
+    if (layers.size() > maximum_canvas_texture_layers) {
+        return fail(DiagnosticCode::value_out_of_range, first.token, "at most three texture layers");
     }
-    if (first.kind != ValueComponentKind::resource) {
-        return fail(DiagnosticCode::value_wrong_kind, first.token, "an image resource");
+    for (const ComponentRange& range : layers) {
+        CanvasTextureLayer& layer = texture.texture.items[texture.texture.count];
+        if (!read_texture_layer(range, layer)) return false;
+        texture.texture.count = texture.texture.count + 1U;
     }
-    const ThemeImageResource* found = nullptr;
-    for (const ThemeImageResource& resource : images_) {
-        if (resource.resource == first.text) found = &resource;
+    lowering_.recipe_fields.push_back(texture);
+    return true;
+}
+
+// One texture layer: `procedural(...)` (read_procedural), `multiply` and a
+// percentage from 0% to 3%.
+bool MaterialReader::read_texture_layer(ComponentRange range, CanvasTextureLayer& layer) {
+    const std::uint32_t token = range.first < range.end ? value_.components[range.first].token : start_;
+    if (count(range) != 3U) {
+        return fail(DiagnosticCode::value_syntax, token, "none or procedural(...) multiply <percentage>");
     }
-    if (found == nullptr) return fail(DiagnosticCode::value_wrong_kind, first.token, "an image resource");
+    const std::size_t function_index = range.first;
+    const std::size_t blend_index = next(function_index);
+    const std::size_t contrast_index = next(blend_index);
+    const ValueComponent& function = value_.components[function_index];
+    const bool procedural = function.kind == ValueComponentKind::function &&
+                            equals_ascii_folded(function.text, procedural_function_name);
+    if (!procedural) return fail(DiagnosticCode::value_wrong_kind, function.token, "procedural(...)");
+    if (!read_procedural(function_index, layer)) return false;
     const ValueComponent& blend = value_.components[blend_index];
     if (blend.kind != ValueComponentKind::keyword) {
         return fail(DiagnosticCode::value_wrong_kind, blend.token, "multiply");
@@ -2911,12 +2955,57 @@ bool MaterialReader::lower_background_texture() {
     if (!(fraction >= 0.0 && fraction <= maximum_canvas_texture_contrast)) {
         return fail(DiagnosticCode::value_out_of_range, amount.token, clipped_theme_detail(amount.text));
     }
-    image.image = (*found).image;
-    image.image_size = (*found).pixel_size;
-    image.image_density = (*found).pixels_per_logical_pixel;
-    contrast.number = fraction;
-    lowering_.recipe_fields.push_back(image);
-    lowering_.recipe_fields.push_back(contrast);
+    layer.contrast = fraction;
+    return true;
+}
+
+// `procedural(<kind>, <seed>, <tile>, <strength>)`: a tiled built-in
+// pattern (canvas_texture_kinds), a whole seed from 0 to 4294967295, a tile
+// length from 2px to 96px (maximum_canvas_texture_tile) and a strength
+// from 0 to 1.
+bool MaterialReader::read_procedural(std::size_t index, CanvasTextureLayer& layer) {
+    const ValueComponent& function = value_.components[index];
+    std::vector<ComponentRange> arguments{};
+    split(ComponentRange{index + 1U, function.subtree_end}, arguments);
+    if (arguments.size() != 4U) {
+        return fail(DiagnosticCode::value_syntax, function.token, "a kind, a seed, a tile and a strength");
+    }
+    for (const ComponentRange& argument : arguments) {
+        if (count(argument) != 1U) return fail(DiagnosticCode::value_syntax, function.token, "one value per argument");
+    }
+    const CanvasTextureKind* named = nullptr;
+    for (const CanvasTextureKind& candidate : canvas_texture_kinds) {
+        if (keyword(arguments[0].first, candidate.name)) named = &candidate;
+    }
+    if (named == nullptr) {
+        return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
+                    "felt, wood-grain, paper-fibre, pinstripe, brushed-metal, checker, industrial-paint or "
+                    "cloth-weave");
+    }
+    const ValueComponent& seed = value_.components[arguments[1].first];
+    const bool whole = seed.kind == ValueComponentKind::number && seed.unit == ValueUnit::none &&
+                       std::isfinite(seed.number) && std::floor(seed.number) == seed.number;
+    if (!whole) return fail(DiagnosticCode::value_wrong_kind, seed.token, "a whole seed");
+    if (!(seed.number >= 0.0 && seed.number <= maximum_texture_seed)) {
+        return fail(DiagnosticCode::value_out_of_range, seed.token, clipped_theme_detail(seed.text));
+    }
+    BoxLength tile{};
+    if (!read_length(arguments[2].first, false, false, tile)) return false;
+    if (!(tile.units >= minimum_procedural_tile && tile.units <= maximum_canvas_texture_tile)) {
+        return fail(DiagnosticCode::value_out_of_range, value_.components[arguments[2].first].token,
+                    "a tile from 2px to 96px");
+    }
+    const ValueComponent& strength = value_.components[arguments[3].first];
+    if (strength.kind != ValueComponentKind::number || strength.unit != ValueUnit::none) {
+        return fail(DiagnosticCode::value_wrong_kind, strength.token, "a strength from 0 to 1");
+    }
+    if (!(strength.number >= 0.0 && strength.number <= 1.0)) {
+        return fail(DiagnosticCode::value_out_of_range, strength.token, clipped_theme_detail(strength.text));
+    }
+    layer.pattern = (*named).pattern;
+    layer.seed = static_cast<std::uint32_t>(seed.number);
+    layer.tile = tile.units;
+    layer.strength = strength.number;
     return true;
 }
 
@@ -3175,7 +3264,7 @@ void MaterialReader::lower(MaterialProperty property) {
         fail(DiagnosticCode::value_syntax, start_, "a value");
         return;
     }
-    if (!drop_unknown_functions()) return;
+    if (!drop_unknown_functions(property)) return;
     switch (property) {
     case MaterialProperty::background: static_cast<void>(lower_background()); return;
     case MaterialProperty::background_color: static_cast<void>(lower_background_colour()); return;
@@ -3539,8 +3628,8 @@ RecipePropertyFields recipe_property_fields(MaterialProperty property) noexcept 
         return result;
     }
     if (property == MaterialProperty::background_texture) {
-        result.fields = {RecipeField::texture_image, RecipeField::texture_contrast};
-        result.count = 2U;
+        result.fields[0] = RecipeField::texture_layers;
+        result.count = 1U;
         return result;
     }
     for (const RecipeLonghand& longhand : recipe_longhands) {

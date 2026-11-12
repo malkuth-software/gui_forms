@@ -6,18 +6,20 @@
 // - the paper canvas between grid lines is the theme's #fbfcfd, a minor
 //   grid line differs from it, and forced high contrast draws no minor line;
 // - dark is darker, and the blue variant is blue;
-// - a texture (a grain PNG made here, never shipped) multiplied at 3 %
-//   changes the canvas by at most 3 % of a channel, and somewhere;
+// - a texture (a baked felt pattern, no image) multiplied at 3 % changes
+//   the canvas by at most 3 % of a channel, and somewhere, once its
+//   pattern is made in idle frames; in dark it screens, within the same
+//   bound;
 // - two flow frames differ, and two still ones do not.
 //
 // Preview mode: `gui_forms_canvas_look_raster_tests --preview <directory>`
 // writes the review set as PNGs into an existing <directory> and checks
 // nothing: light and dark; each grid variant; forced high contrast; zoom
 // out, normal and in; close-ups of the links (and on blue) and the lamps
-// (and in dark); four flow frames; the texture off, on, and on in dark:
-// 22 files. It never opens a window.
+// (and in dark); four flow frames; the texture off; felt, paper fibre,
+// industrial paint and cloth weave each in light and dark; felt over paper
+// fibre: 29 files. It never opens a window.
 
-#include "../src/core/image/png_writer.hpp"
 #include "../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
 #include "gui_forms/control/control/control.hpp"
@@ -27,6 +29,7 @@
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/canvas_look/canvas_look.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
@@ -181,7 +184,7 @@ public:
         const CanvasLook look = resolve_canvas_look(effective_theme(), *this, visual_context());
         const CanvasView view = settings.view;
         const Rect area = client_rectangle();
-        paint_canvas_background(painter, look, area, view);
+        paint_canvas_background(painter, *this, look, area, view);
         for (const SampleLink& link : sample_links) {
             const std::array<Point, link_points> points = flattened_link(link, view);
             paint_canvas_link(painter, look, points, link.state, link.style);
@@ -259,51 +262,23 @@ SampleWindow made_sample(std::shared_ptr<ApplicationResources> resources) {
     return made;
 }
 
-// The grain: a 64 × 64 opaque grey noise PNG from the engine's
-// deterministic generator, made here for the test and never shipped.
-std::string grain_png() {
-    constexpr std::uint32_t side = 64U;
-    std::vector<std::uint8_t> rgba(static_cast<std::size_t>(side) * side * 4U);
-    for (std::size_t index = 0U; index < static_cast<std::size_t>(side) * side; ++index) {
-        const std::uint64_t bits = EffectRandom::hash(31U, 0U, index);
-        const std::uint8_t level = static_cast<std::uint8_t>(160U + bits % 96U);
-        rgba[index * 4U] = level;
-        rgba[index * 4U + 1U] = level;
-        rgba[index * 4U + 2U] = level;
-        rgba[index * 4U + 3U] = 255U;
-    }
-    image::PngEncodeInput input;
-    input.width = side;
-    input.height = side;
-    input.row_bytes = side * 4U;
-    input.pixels = std::as_bytes(std::span<const std::uint8_t>(rgba));
-    input.order = image::PngChannelOrder::rgba;
-    std::vector<std::byte> png{};
-    require(image::encode_png(input, png), "the grain encodes");
-    std::string bytes(png.size(), '\0');
-    for (std::size_t index = 0U; index < png.size(); ++index) bytes[index] = static_cast<char>(png[index]);
-    return bytes;
-}
-
 std::string hex_of(std::string_view bytes) {
     return theme_language::package_sha256_hex(theme_language::package_sha256(bytes));
 }
 
-// The default theme with the grain under its canvas at 3 %, compiled into
-// `resources` (so its image is the windows' image) and selected there.
-void select_grain_theme(ApplicationResources& resources) {
+// The default theme with `texture` (a background-texture value) under its
+// canvas, compiled from a sheet alone, no image in the package, into
+// `resources` and selected there.
+void select_texture_theme(ApplicationResources& resources, std::string_view texture) {
     // The theme declares both schemes, or a dark window would show
     // GUI.Forms' own theme instead (and no texture).
     const std::string sheet = ":root { color-scheme: light dark; }\n"
-                              "node-canvas::part(region) { background-texture: url(\"resource:canvas.grain\") "
-                              "multiply 3% }";
-    const std::string grain = grain_png();
+                              "node-canvas::part(region) { background-texture: " +
+                              std::string(texture) + " }";
     ThemePackage package{};
-    package.manifest = "{\"format\": \"gui-forms-theme/1\", \"name\": \"canvas-grain\", \"version\": \"1.0.0\", "
+    package.manifest = "{\"format\": \"gui-forms-theme/1\", \"name\": \"canvas-texture\", \"version\": \"1.0.0\", "
                        "\"engine\": \">=0.3\", \"sheet\": {\"path\": \"theme.theme.css\", \"sha256\": \"" +
-                       hex_of(sheet) + "\"}, \"resources\": [{\"name\": \"canvas.grain\", \"path\": \"grain.png\", "
-                                       "\"sha256\": \"" + hex_of(grain) + "\"}]}";
-    package.files.push_back(ThemePackageFile{"grain.png", grain});
+                       hex_of(sheet) + "\"}}";
     package.files.push_back(ThemePackageFile{"theme.theme.css", sheet});
     ThemeCompileOptions options{};
     options.controls = stock_control_anatomies();
@@ -311,12 +286,15 @@ void select_grain_theme(ApplicationResources& resources) {
     const ThemeLibrary library{};
     const ThemeCompileResult compiled = resources.compile_theme_package(package, library, options);
     for (const ThemeCompileDiagnostic& diagnostic : compiled.diagnostics()) {
-        std::cerr << "  grain theme: " << diagnostic.code << " " << diagnostic.name << " (" << diagnostic.detail
+        std::cerr << "  texture theme: " << diagnostic.code << " " << diagnostic.name << " (" << diagnostic.detail
                   << ")\n";
     }
-    require(compiled.succeeded(), "the grain theme compiles");
+    require(compiled.succeeded(), "the texture theme compiles");
     resources.set_theme(compiled.theme());
 }
+
+// The felt texture the checks use: full strength at 3 %.
+constexpr std::string_view felt_texture = "procedural(felt, 31, 64px, 1) multiply 3%";
 
 struct CaptureRequest final {
     ColourScheme scheme{ColourScheme::light};
@@ -332,6 +310,30 @@ WindowCapture captured(OffscreenAttachment& attached, const SampleWindow& sample
     require(capture.has_value() && (*capture).pixel_width == 520U && (*capture).pixel_height == 330U,
             "the sample graph is captured at its size");
     return *capture;
+}
+
+// Idle frames a capture may take to make its patterns: one a frame, at
+// most three layers.
+constexpr std::size_t maximum_settle_frames = 16U;
+
+// A capture with its procedural patterns made: the first paint queues them
+// and draws their grounds (E10), the idle frames make them, one a frame,
+// and the second capture shows them. Damage is taken first, since an idle
+// frame waits while a paint is pending. Bounded by maximum_settle_frames.
+WindowCapture settled(OffscreenAttachment& attached, const SampleWindow& sample, const CaptureRequest& request) {
+    static_cast<void>(captured(attached, sample, request));
+    Window& window = *sample.window;
+    FrameTime now = FrameClock::now();
+    std::size_t frame = 0U;
+    while (frame < maximum_settle_frames && window.engine_parts().patterns_waiting()) {
+        static_cast<void>(window.take_damage());
+        now += std::chrono::milliseconds(16);
+        static_cast<void>(window.poll_frame_schedule(now));
+        frame = frame + 1U;
+    }
+    require(!window.engine_parts().patterns_waiting(), "the texture's patterns are made in idle frames");
+    const WindowCapture shown = captured(attached, sample, request);
+    return shown;
 }
 
 // The capture's pixel at (x, y): B, G, R, A.
@@ -392,7 +394,7 @@ void texture_pixels() {
     const SampleWindow plain = made_sample(nullptr);
     (*plain.graph).settings.flow = false;
     std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
-    select_grain_theme(*resources);
+    select_texture_theme(*resources, felt_texture);
     const SampleWindow textured = made_sample(resources);
     (*textured.graph).settings.flow = false;
     const CaptureRequest dark{ColourScheme::dark, false};
@@ -407,8 +409,8 @@ void texture_pixels() {
     }
     {
         OffscreenAttachment attached(*raster, *textured.window);
-        on = captured(attached, textured, CaptureRequest{});
-        dark_on = captured(attached, textured, dark);
+        on = settled(attached, textured, CaptureRequest{});
+        dark_on = settled(attached, textured, dark);
     }
     int largest = 0;
     int changed = 0;
@@ -471,6 +473,14 @@ struct PreviewShot final {
     CanvasView view{};
 };
 
+// One texture shot: its file name, its background-texture value, and
+// whether a dark shot follows (name-dark).
+struct TextureShot final {
+    std::string_view name{};
+    std::string_view value{};
+    bool dark{};
+};
+
 void write_preview(const std::string& directory) {
     const std::unique_ptr<OffscreenRaster> raster = made_raster();
     const CanvasView normal{Point{0.5, 0.5}, 1.0};
@@ -522,13 +532,28 @@ void write_preview(const std::string& directory) {
         (*sample.graph).settings.still = true;
         write_capture(captured(attached, sample, light), directory, "texture-off");
     }
-    std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
-    select_grain_theme(*resources);
-    const SampleWindow textured = made_sample(resources);
-    (*textured.graph).settings.still = true;
-    OffscreenAttachment attached(*raster, *textured.window);
-    write_capture(captured(attached, textured, light), directory, "texture-on");
-    write_capture(captured(attached, textured, dark), directory, "texture-on-dark");
+    // Each texture kind in light and dark, then two layers: one window
+    // each, its theme compiled from a sheet alone.
+    const std::array<TextureShot, 5> textures{{
+        {"texture-felt", "procedural(felt, 31, 64px, 1) multiply 3%", true},
+        {"texture-paper-fibre", "procedural(paper-fibre, 17, 64px, 1) multiply 3%", true},
+        {"texture-industrial-paint", "procedural(industrial-paint, 5, 64px, 1) multiply 3%", true},
+        {"texture-cloth-weave", "procedural(cloth-weave, 9, 32px, 1) multiply 3%", true},
+        {"texture-layered",
+         "procedural(paper-fibre, 17, 64px, 1) multiply 2%, procedural(felt, 31, 48px, 1) multiply 2%", false},
+    }};
+    for (const TextureShot& texture : textures) {
+        std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+        select_texture_theme(*resources, texture.value);
+        const SampleWindow textured = made_sample(resources);
+        (*textured.graph).settings.still = true;
+        (*textured.graph).settings.flow = false;
+        OffscreenAttachment attached(*raster, *textured.window);
+        write_capture(settled(attached, textured, light), directory, texture.name);
+        if (!texture.dark) continue;
+        const std::string dark_name = std::string(texture.name) + "-dark";
+        write_capture(settled(attached, textured, dark), directory, dark_name);
+    }
 }
 
 } // namespace

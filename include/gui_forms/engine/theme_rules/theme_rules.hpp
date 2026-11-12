@@ -1147,10 +1147,10 @@ enum class RecipeField : std::uint8_t {
     // both 0 is `none`); `halo` (a width and a colour: a wider stroke drawn
     // under a link; width 0 is `none`); `corner-radius`; `grid-spacing` and
     // `grid-band` (the canvas grid's world spacing and the smallest minor
-    // spacing in view units); `background-texture` (a theme image tiled
-    // under the grid, multiplied at `texture_contrast`; no image is
-    // `none`); and `flow`, `flow-speed` and `flow-spacing` (the link flow
-    // effect's mark, speed and pitch).
+    // spacing in view units); `background-texture` (up to three baked
+    // procedural pattern layers under the grid, each multiplied at its own
+    // contrast; no layer is `none`); and `flow`, `flow-speed` and
+    // `flow-spacing` (the link flow effect's mark, speed and pitch).
     fill_colour,
     stroke_colour,
     stroke_dash,
@@ -1160,8 +1160,7 @@ enum class RecipeField : std::uint8_t {
     corner_radius,
     grid_spacing,
     grid_band,
-    texture_image,
-    texture_contrast,
+    texture_layers,
     flow_style,
     flow_speed,
     flow_spacing,
@@ -1225,6 +1224,12 @@ inline constexpr double maximum_canvas_grid_spacing = 512.0;
 inline constexpr double minimum_canvas_grid_band = 2.0;
 inline constexpr double maximum_canvas_grid_band = 128.0;
 inline constexpr double maximum_canvas_texture_contrast = 0.03;
+// A texture layer's tile is 2 to 96 logical units, so that one tile with
+// the material's outsets bakes within the material bound at scale 3
+// (maximum_material_block_side, ThemeEngine::paint_material_blocks); at
+// most three layers.
+inline constexpr double maximum_canvas_texture_tile = 96.0;
+inline constexpr std::size_t maximum_canvas_texture_layers = 3U;
 inline constexpr double maximum_canvas_flow_speed = 512.0;
 inline constexpr double minimum_canvas_flow_spacing = 4.0;
 inline constexpr double maximum_canvas_flow_spacing = 128.0;
@@ -1262,6 +1267,38 @@ inline constexpr double maximum_rule_font_size = 96.0;
 inline constexpr double minimum_rule_font_weight = 100.0;
 inline constexpr double maximum_rule_font_weight = 900.0;
 
+// One layer of the node canvas's texture (`background-texture`; cp31): a
+// built-in procedural pattern (ProceduralFill's `pattern`, `seed`, `tile`
+// in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units
+// and `strength` in [0, 1]) composited under the grid at `contrast`, a
+// fraction in [0, maximum_canvas_texture_contrast]. The canvas chooses the
+// pattern's colours (resolve_canvas_look): a theme sets its form only.
+struct GUI_FORMS_API CanvasTextureLayer final {
+    ProceduralPattern pattern{ProceduralPattern::felt};
+    std::uint32_t seed{};
+    double tile{64.0};
+    double strength{1.0};
+    double contrast{};
+    friend bool operator==(const CanvasTextureLayer& left, const CanvasTextureLayer& right) noexcept {
+        return left.pattern == right.pattern && left.seed == right.seed && left.tile == right.tile &&
+               left.strength == right.strength && left.contrast == right.contrast;
+    }
+};
+
+// The texture's layers, bottom first: capacity maximum_canvas_texture_layers,
+// `count` live (0 is `none`).
+struct GUI_FORMS_API CanvasTextureLayers final {
+    std::array<CanvasTextureLayer, maximum_canvas_texture_layers> items{};
+    std::size_t count{};
+    friend bool operator==(const CanvasTextureLayers& left, const CanvasTextureLayers& right) noexcept {
+        if (left.count != right.count) return false;
+        for (std::size_t index = 0U; index < left.count && index < left.items.size(); ++index) {
+            if (!(left.items[index] == right.items[index])) return false;
+        }
+        return true;
+    }
+};
+
 // One recipe field's declared value. `initial` is CSS's `initial`: the
 // floor's value, and the declaration still wins over those beneath it; its
 // value members are not read. Otherwise, by field:
@@ -1281,9 +1318,8 @@ inline constexpr double maximum_rule_font_weight = 900.0;
 // - the canvas fields: fill_colour, stroke_colour and halo_colour
 //   `colour`; stroke_dash, stroke_gap, halo_width, corner_radius,
 //   grid_spacing, grid_band and flow_spacing (logical units, em admitted),
-//   texture_contrast (a fraction) and flow_speed (world units a second)
-//   `number`; flow_style `flow_style`; texture_image `image`, `image_size`
-//   and `image_density`.
+//   and flow_speed (world units a second) `number`; flow_style
+//   `flow_style`; texture_layers `texture`.
 struct GUI_FORMS_API RecipeDeclaration final {
     RecipeField field{RecipeField::text};
     bool initial{};
@@ -1296,13 +1332,10 @@ struct GUI_FORMS_API RecipeDeclaration final {
     StripeSense stripe_sense{StripeSense::forward};
     StripeGloss stripe_gloss{StripeGloss::automatic};
     StripeReducedMotion stripe_reduced_motion{StripeReducedMotion::still};
-    // The canvas's keyword and image fields: flow_style's mark, and
-    // texture_image's image (none for `none`), its size in source pixels and
-    // its source pixels per logical unit (ThemeImageResource).
+    // The canvas's keyword and texture fields: flow_style's mark, and
+    // texture_layers' layers (none for `none`).
     CanvasFlowStyle flow_style{CanvasFlowStyle::none};
-    std::optional<ImageId> image{};
-    Size image_size{};
-    double image_density{1.0};
+    CanvasTextureLayers texture{};
     bool shadowed{};
     Point shadow_offset{};
     double shadow_blur{};
@@ -1328,8 +1361,7 @@ struct GUI_FORMS_API RecipeDeclaration final {
                left.needle_shape == right.needle_shape && left.stripe_sense == right.stripe_sense &&
                left.stripe_gloss == right.stripe_gloss &&
                left.stripe_reduced_motion == right.stripe_reduced_motion &&
-               left.flow_style == right.flow_style && left.image == right.image &&
-               left.image_size == right.image_size && left.image_density == right.image_density &&
+               left.flow_style == right.flow_style && left.texture == right.texture &&
                left.shadowed == right.shadowed && left.shadow_offset == right.shadow_offset &&
                left.shadow_blur == right.shadow_blur && left.origin == right.origin &&
                left.em_lengths == right.em_lengths && left.inherit == right.inherit &&

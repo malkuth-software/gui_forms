@@ -10,7 +10,9 @@
 // A canvas resolves its look once (resolve_canvas_look) and again only when
 // its theme, colour scheme, contrast or classes change, never per frame; it
 // then paints every frame from the record with the paint_canvas_ functions,
-// which allocate nothing and call no theme.
+// which call no theme resolution. All but the background allocate nothing;
+// the background hands each texture layer to the theme engine, which
+// bakes it into the window's part cache (paint_canvas_background).
 //
 // Coordinates: the paint functions draw in the painter's current
 // coordinates (view units). The background reads a CanvasView, which
@@ -135,20 +137,21 @@ struct GUI_FORMS_API CanvasFlow final {
 
 // How the texture meets the canvas: multiplied (darkening, on a light
 // canvas) or screened (lightening, on a dark one, where a multiplied grain
-// would change a near-black well by less than one level). Either way at the
-// texture's clamped contrast.
+// would change a near-black well by less than one level). Either way at
+// each layer's clamped contrast.
 enum class CanvasTextureBlend : std::uint8_t { multiply, screen };
 
 // Every canvas part in every state, as one theme draws them in one colour
-// scheme and contrast. `texture` is none where the theme sets none, and
-// always in forced high contrast. `titles` are the header's title ink by
+// scheme and contrast. `texture` holds the theme's procedural layers, bottom
+// first, each with its contrast clamped (layers of contrast 0 are dropped);
+// none where the theme sets none, and always in forced high contrast. `titles` are the header's title ink by
 // node state. The marquee is its area (`marquee`) and its dashed outline
 // (`marquee_outline`; no halo). A plain value: copy it, keep it, compare
 // it.
 struct GUI_FORMS_API CanvasLook final {
     CanvasArea background{};
     CanvasGrid grid{};
-    std::optional<ControlCanvasTexture> texture{};
+    CanvasTextureLayers texture{};
     CanvasTextureBlend texture_blend{CanvasTextureBlend::multiply};
     std::array<CanvasArea, canvas_node_state_count> nodes{};
     std::array<CanvasArea, canvas_node_state_count> headers{};
@@ -213,15 +216,33 @@ struct GUI_FORMS_API CanvasView final {
     }
 };
 
-// The canvas background over `area`: the region's colour, then the texture
-// (one multiply or screen group, as the look's texture_blend says, at the
-// clamped contrast holding one tiled pattern,
-// its tiles anchored at world (0, 0) and drawn at the image's own size at
-// every zoom, so the grain stays sharp), then the grid (the level
-// select_grid_level chooses for `view.zoom`, one fill_grid_pattern pass
-// with the level's fade). Draws a bounded number of commands whatever the
-// area: three at most, besides the group.
-GUI_FORMS_API void paint_canvas_background(Painter& painter, const CanvasLook& look, Rect area, CanvasView view);
+// The procedural fill a texture layer bakes (canvas_texture_fill): the
+// layer's pattern, seed, tile and strength, over the ground that leaves the
+// canvas unchanged under the blend (white under multiply, black under
+// screen), its figure the other extreme. So a pattern not yet generated
+// (its ground drawn meanwhile, E10) changes nothing, and a generated one
+// darkens or lightens by at most its strength times the layer's contrast.
+[[nodiscard]] GUI_FORMS_API ProceduralFill canvas_texture_fill(const CanvasTextureLayer& layer,
+                                                               CanvasTextureBlend blend) noexcept;
+
+// The canvas background of `canvas` over `area`: the region's colour, then
+// each texture layer, then the grid (the level select_grid_level chooses for
+// `view.zoom`, one fill_grid_pattern pass with the level's fade).
+// - A texture layer is a baked procedural surface, never an image: a
+//   material of the one procedural fill canvas_texture_fill makes, baked by
+//   the theme engine (ThemeEngine::paint_material_blocks, record
+//   `texture.<index>`) and drawn in one multiply or screen group, as the
+//   look's texture_blend says, at the layer's clamped contrast. Its tiles
+//   are anchored at world (0, 0) and stay at the tile's logical size at
+//   every zoom, so the grain stays sharp.
+// - Cost: the engine bakes a layer once per change of the look or the
+//   window's scale, never per frame, and generates its pattern in an idle
+//   frame; each paint draws, per layer, one raster per block of at most
+//   maximum_material_block_side device pixels.
+// A view that is not placed (a non-finite origin or zoom, or a zoom not
+// above 0) draws the colour alone.
+GUI_FORMS_API void paint_canvas_background(Painter& painter, const Control& canvas, const CanvasLook& look,
+                                           Rect area, CanvasView view);
 
 // A node's body `body` with its header band, the top `header_height` view
 // units (0 for none, clamped to the body), in `state`: the body's area, the

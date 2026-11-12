@@ -1877,7 +1877,7 @@ void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, Cont
 // The node canvas fields `fields` sets (RecipeField::fill_colour on; cp31),
 // over `canvas`, in place, with the stroke width (which the dial parts also
 // read as ControlVisualRecipe::stroke_width), so a canvas part can tell a
-// set width from the floor's. A texture without an image is `none`.
+// set width from the floor's. A texture of no layers is `none`.
 void apply_canvas_paint(const CompiledThemeRules::RecipeResolution& fields, ControlCanvasPaint& canvas) noexcept {
     const RecipeDeclaration* const fill = set_recipe_field(fields, RecipeField::fill_colour);
     if (fill != nullptr) canvas.fill = (*fill).colour;
@@ -1899,17 +1899,8 @@ void apply_canvas_paint(const CompiledThemeRules::RecipeResolution& fields, Cont
     if (spacing != nullptr) canvas.grid_spacing = (*spacing).number;
     const RecipeDeclaration* const band = set_recipe_field(fields, RecipeField::grid_band);
     if (band != nullptr) canvas.grid_band = (*band).number;
-    const RecipeDeclaration* const image = set_recipe_field(fields, RecipeField::texture_image);
-    if (image != nullptr && !(*image).image) canvas.texture.reset();
-    if (image != nullptr && (*image).image) {
-        ControlCanvasTexture texture{};
-        texture.image = *(*image).image;
-        texture.pixel_size = (*image).image_size;
-        texture.density = (*image).image_density;
-        const RecipeDeclaration* const contrast = set_recipe_field(fields, RecipeField::texture_contrast);
-        if (contrast != nullptr) texture.contrast = (*contrast).number;
-        canvas.texture = texture;
-    }
+    const RecipeDeclaration* const texture = set_recipe_field(fields, RecipeField::texture_layers);
+    if (texture != nullptr) canvas.texture = (*texture).texture;
     const RecipeDeclaration* const flow = set_recipe_field(fields, RecipeField::flow_style);
     if (flow != nullptr) canvas.flow = (*flow).flow_style;
     const RecipeDeclaration* const speed = set_recipe_field(fields, RecipeField::flow_speed);
@@ -2046,13 +2037,12 @@ void Theme::provenance(const Control& control, ControlVisualRole role, ControlVi
     CompiledThemeRules::FieldProvenance pass{};
     pass.level = CascadeLevel::forced_high_contrast;
     pass.layer = ThemeLayer::forced_high_contrast;
-    const std::array<RecipeField, 13> pass_colours{RecipeField::text,        RecipeField::outline_colour,
+    const std::array<RecipeField, 12> pass_colours{RecipeField::text,        RecipeField::outline_colour,
                                                    RecipeField::text_shadow, RecipeField::muted_text,
                                                    RecipeField::glyph,       RecipeField::default_outline_colour,
                                                    RecipeField::fill_text,   RecipeField::scrim_colour,
                                                    RecipeField::fill_colour, RecipeField::stroke_colour,
-                                                   RecipeField::halo_colour, RecipeField::texture_image,
-                                                   RecipeField::texture_contrast};
+                                                   RecipeField::halo_colour, RecipeField::texture_layers};
     for (const RecipeField field : pass_colours) result.recipe_fields[static_cast<std::size_t>(field)] = pass;
     for (CompiledThemeRules::FieldProvenance& field : result.recipe_fields) {
         if (!field.authored) field = pass;
@@ -2284,8 +2274,7 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
         fields.fields[static_cast<std::size_t>(RecipeField::fill_colour)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::stroke_colour)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::halo_colour)] = nullptr;
-        fields.fields[static_cast<std::size_t>(RecipeField::texture_image)] = nullptr;
-        fields.fields[static_cast<std::size_t>(RecipeField::texture_contrast)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::texture_layers)] = nullptr;
         bool any = false;
         for (const RecipeDeclaration* field : fields.fields) any = any || field != nullptr;
         fields.authored = any;

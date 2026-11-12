@@ -428,6 +428,7 @@ __ZGVZN9gui_forms14LookupComboBox*
 __ZGVZN9gui_forms14MarkdownLimits*
 __ZGVZN9gui_forms14MaskEditResult*
 __ZGVZN9gui_forms14MaskValidation*
+__ZGVZN9gui_forms14MaterialBlocks*
 __ZGVZN9gui_forms14MaterialBorder*
 __ZGVZN9gui_forms14MaterialShadow*
 __ZGVZN9gui_forms14MediaCondition*
@@ -776,6 +777,7 @@ __ZGVZN9gui_forms18BindingManagerBase*
 __ZGVZN9gui_forms18BindingWriteResult*
 __ZGVZN9gui_forms18BlockFlowItemInput*
 __ZGVZN9gui_forms18CalendarDimensions*
+__ZGVZN9gui_forms18CanvasTextureLayer*
 __ZGVZN9gui_forms18ChildPropertyEntry*
 __ZGVZN9gui_forms18CommandRouteResult*
 __ZGVZN9gui_forms18CompiledThemeRules*
@@ -878,6 +880,7 @@ __ZGVZN9gui_forms19BindingNotification*
 __ZGVZN9gui_forms19BindingProviderLink*
 __ZGVZN9gui_forms19BlockFlowItemLayout*
 __ZGVZN9gui_forms19BlockFlowItemResult*
+__ZGVZN9gui_forms19CanvasTextureLayers*
 __ZGVZN9gui_forms19ControlStateRecipes*
 __ZGVZN9gui_forms19ControlVisualRecipe*
 __ZGVZN9gui_forms19CursorLeaseSnapshot*
@@ -970,7 +973,6 @@ __ZGVZN9gui_forms20BindingContextChange*
 __ZGVZN9gui_forms20CommandOverflowPanel*
 __ZGVZN9gui_forms20CompositorGeneration*
 __ZGVZN9gui_forms20ConnectedControlSeam*
-__ZGVZN9gui_forms20ControlCanvasTexture*
 __ZGVZN9gui_forms20ControlStripePattern*
 __ZGVZN9gui_forms20ControlVisualContext*
 __ZGVZN9gui_forms20DataGridViewRowEvent*
@@ -1912,6 +1914,7 @@ __ZGVZNK9gui_forms14LookupComboBox*
 __ZGVZNK9gui_forms14MarkdownLimits*
 __ZGVZNK9gui_forms14MaskEditResult*
 __ZGVZNK9gui_forms14MaskValidation*
+__ZGVZNK9gui_forms14MaterialBlocks*
 __ZGVZNK9gui_forms14MaterialBorder*
 __ZGVZNK9gui_forms14MaterialShadow*
 __ZGVZNK9gui_forms14MediaCondition*
@@ -2260,6 +2263,7 @@ __ZGVZNK9gui_forms18BindingManagerBase*
 __ZGVZNK9gui_forms18BindingWriteResult*
 __ZGVZNK9gui_forms18BlockFlowItemInput*
 __ZGVZNK9gui_forms18CalendarDimensions*
+__ZGVZNK9gui_forms18CanvasTextureLayer*
 __ZGVZNK9gui_forms18ChildPropertyEntry*
 __ZGVZNK9gui_forms18CommandRouteResult*
 __ZGVZNK9gui_forms18CompiledThemeRules*
@@ -2362,6 +2366,7 @@ __ZGVZNK9gui_forms19BindingNotification*
 __ZGVZNK9gui_forms19BindingProviderLink*
 __ZGVZNK9gui_forms19BlockFlowItemLayout*
 __ZGVZNK9gui_forms19BlockFlowItemResult*
+__ZGVZNK9gui_forms19CanvasTextureLayers*
 __ZGVZNK9gui_forms19ControlStateRecipes*
 __ZGVZNK9gui_forms19ControlVisualRecipe*
 __ZGVZNK9gui_forms19CursorLeaseSnapshot*
@@ -2454,7 +2459,6 @@ __ZGVZNK9gui_forms20BindingContextChange*
 __ZGVZNK9gui_forms20CommandOverflowPanel*
 __ZGVZNK9gui_forms20CompositorGeneration*
 __ZGVZNK9gui_forms20ConnectedControlSeam*
-__ZGVZNK9gui_forms20ControlCanvasTexture*
 __ZGVZNK9gui_forms20ControlStripePattern*
 __ZGVZNK9gui_forms20ControlVisualContext*
 __ZGVZNK9gui_forms20DataGridViewRowEvent*
@@ -3532,6 +3536,7 @@ __ZN9gui_forms14LookupComboBox*
 __ZN9gui_forms14MarkdownLimits*
 __ZN9gui_forms14MaskEditResult*
 __ZN9gui_forms14MaskValidation*
+__ZN9gui_forms14MaterialBlocks*
 __ZN9gui_forms14MaterialBorder*
 __ZN9gui_forms14MaterialShadow*
 __ZN9gui_forms14MediaCondition*
@@ -4084,6 +4089,7 @@ __ZN9gui_forms18BindingManagerBase*
 __ZN9gui_forms18BindingWriteResult*
 __ZN9gui_forms18BlockFlowItemInput*
 __ZN9gui_forms18CalendarDimensions*
+__ZN9gui_forms18CanvasTextureLayer*
 __ZN9gui_forms18ChildPropertyEntry*
 __ZN9gui_forms18CommandRouteResult*
 __ZN9gui_forms18CompiledThemeRules*
@@ -4268,6 +4274,7 @@ __ZN9gui_forms19BindingNotification*
 __ZN9gui_forms19BindingProviderLink*
 __ZN9gui_forms19BlockFlowItemLayout*
 __ZN9gui_forms19BlockFlowItemResult*
+__ZN9gui_forms19CanvasTextureLayers*
 __ZN9gui_forms19ControlStateRecipes*
 __ZN9gui_forms19ControlVisualRecipe*
 __ZN9gui_forms19CursorLeaseSnapshot*
@@ -4358,6 +4365,8 @@ __ZN9gui_forms19build_help_contentsB*
 __ZN9gui_forms19build_help_contentsE*
 __ZN9gui_forms19bundled_font_noticeB*
 __ZN9gui_forms19bundled_font_noticeE*
+__ZN9gui_forms19canvas_texture_fillB*
+__ZN9gui_forms19canvas_texture_fillE*
 __ZN9gui_forms19current_colours_fitB*
 __ZN9gui_forms19current_colours_fitE*
 __ZN9gui_forms19declares_item_stateB*
@@ -4452,7 +4461,6 @@ __ZN9gui_forms20BindingContextChange*
 __ZN9gui_forms20CommandOverflowPanel*
 __ZN9gui_forms20CompositorGeneration*
 __ZN9gui_forms20ConnectedControlSeam*
-__ZN9gui_forms20ControlCanvasTexture*
 __ZN9gui_forms20ControlStripePattern*
 __ZN9gui_forms20ControlVisualContext*
 __ZN9gui_forms20DataGridViewRowEvent*
@@ -6206,6 +6214,7 @@ __ZNK[RO]9gui_forms14LookupComboBox*
 __ZNK[RO]9gui_forms14MarkdownLimits*
 __ZNK[RO]9gui_forms14MaskEditResult*
 __ZNK[RO]9gui_forms14MaskValidation*
+__ZNK[RO]9gui_forms14MaterialBlocks*
 __ZNK[RO]9gui_forms14MaterialBorder*
 __ZNK[RO]9gui_forms14MaterialShadow*
 __ZNK[RO]9gui_forms14MediaCondition*
@@ -6554,6 +6563,7 @@ __ZNK[RO]9gui_forms18BindingManagerBase*
 __ZNK[RO]9gui_forms18BindingWriteResult*
 __ZNK[RO]9gui_forms18BlockFlowItemInput*
 __ZNK[RO]9gui_forms18CalendarDimensions*
+__ZNK[RO]9gui_forms18CanvasTextureLayer*
 __ZNK[RO]9gui_forms18ChildPropertyEntry*
 __ZNK[RO]9gui_forms18CommandRouteResult*
 __ZNK[RO]9gui_forms18CompiledThemeRules*
@@ -6656,6 +6666,7 @@ __ZNK[RO]9gui_forms19BindingNotification*
 __ZNK[RO]9gui_forms19BindingProviderLink*
 __ZNK[RO]9gui_forms19BlockFlowItemLayout*
 __ZNK[RO]9gui_forms19BlockFlowItemResult*
+__ZNK[RO]9gui_forms19CanvasTextureLayers*
 __ZNK[RO]9gui_forms19ControlStateRecipes*
 __ZNK[RO]9gui_forms19ControlVisualRecipe*
 __ZNK[RO]9gui_forms19CursorLeaseSnapshot*
@@ -6748,7 +6759,6 @@ __ZNK[RO]9gui_forms20BindingContextChange*
 __ZNK[RO]9gui_forms20CommandOverflowPanel*
 __ZNK[RO]9gui_forms20CompositorGeneration*
 __ZNK[RO]9gui_forms20ConnectedControlSeam*
-__ZNK[RO]9gui_forms20ControlCanvasTexture*
 __ZNK[RO]9gui_forms20ControlStripePattern*
 __ZNK[RO]9gui_forms20ControlVisualContext*
 __ZNK[RO]9gui_forms20DataGridViewRowEvent*
@@ -7690,6 +7700,7 @@ __ZN[KRO]9gui_forms14LookupComboBox*
 __ZN[KRO]9gui_forms14MarkdownLimits*
 __ZN[KRO]9gui_forms14MaskEditResult*
 __ZN[KRO]9gui_forms14MaskValidation*
+__ZN[KRO]9gui_forms14MaterialBlocks*
 __ZN[KRO]9gui_forms14MaterialBorder*
 __ZN[KRO]9gui_forms14MaterialShadow*
 __ZN[KRO]9gui_forms14MediaCondition*
@@ -8038,6 +8049,7 @@ __ZN[KRO]9gui_forms18BindingManagerBase*
 __ZN[KRO]9gui_forms18BindingWriteResult*
 __ZN[KRO]9gui_forms18BlockFlowItemInput*
 __ZN[KRO]9gui_forms18CalendarDimensions*
+__ZN[KRO]9gui_forms18CanvasTextureLayer*
 __ZN[KRO]9gui_forms18ChildPropertyEntry*
 __ZN[KRO]9gui_forms18CommandRouteResult*
 __ZN[KRO]9gui_forms18CompiledThemeRules*
@@ -8140,6 +8152,7 @@ __ZN[KRO]9gui_forms19BindingNotification*
 __ZN[KRO]9gui_forms19BindingProviderLink*
 __ZN[KRO]9gui_forms19BlockFlowItemLayout*
 __ZN[KRO]9gui_forms19BlockFlowItemResult*
+__ZN[KRO]9gui_forms19CanvasTextureLayers*
 __ZN[KRO]9gui_forms19ControlStateRecipes*
 __ZN[KRO]9gui_forms19ControlVisualRecipe*
 __ZN[KRO]9gui_forms19CursorLeaseSnapshot*
@@ -8232,7 +8245,6 @@ __ZN[KRO]9gui_forms20BindingContextChange*
 __ZN[KRO]9gui_forms20CommandOverflowPanel*
 __ZN[KRO]9gui_forms20CompositorGeneration*
 __ZN[KRO]9gui_forms20ConnectedControlSeam*
-__ZN[KRO]9gui_forms20ControlCanvasTexture*
 __ZN[KRO]9gui_forms20ControlStripePattern*
 __ZN[KRO]9gui_forms20ControlVisualContext*
 __ZN[KRO]9gui_forms20DataGridViewRowEvent*
@@ -9174,6 +9186,7 @@ __ZT[VIST]N9gui_forms14LookupComboBox*E
 __ZT[VIST]N9gui_forms14MarkdownLimits*E
 __ZT[VIST]N9gui_forms14MaskEditResult*E
 __ZT[VIST]N9gui_forms14MaskValidation*E
+__ZT[VIST]N9gui_forms14MaterialBlocks*E
 __ZT[VIST]N9gui_forms14MaterialBorder*E
 __ZT[VIST]N9gui_forms14MaterialShadow*E
 __ZT[VIST]N9gui_forms14MediaCondition*E
@@ -9522,6 +9535,7 @@ __ZT[VIST]N9gui_forms18BindingManagerBase*E
 __ZT[VIST]N9gui_forms18BindingWriteResult*E
 __ZT[VIST]N9gui_forms18BlockFlowItemInput*E
 __ZT[VIST]N9gui_forms18CalendarDimensions*E
+__ZT[VIST]N9gui_forms18CanvasTextureLayer*E
 __ZT[VIST]N9gui_forms18ChildPropertyEntry*E
 __ZT[VIST]N9gui_forms18CommandRouteResult*E
 __ZT[VIST]N9gui_forms18CompiledThemeRules*E
@@ -9624,6 +9638,7 @@ __ZT[VIST]N9gui_forms19BindingNotification*E
 __ZT[VIST]N9gui_forms19BindingProviderLink*E
 __ZT[VIST]N9gui_forms19BlockFlowItemLayout*E
 __ZT[VIST]N9gui_forms19BlockFlowItemResult*E
+__ZT[VIST]N9gui_forms19CanvasTextureLayers*E
 __ZT[VIST]N9gui_forms19ControlStateRecipes*E
 __ZT[VIST]N9gui_forms19ControlVisualRecipe*E
 __ZT[VIST]N9gui_forms19CursorLeaseSnapshot*E
@@ -9716,7 +9731,6 @@ __ZT[VIST]N9gui_forms20BindingContextChange*E
 __ZT[VIST]N9gui_forms20CommandOverflowPanel*E
 __ZT[VIST]N9gui_forms20CompositorGeneration*E
 __ZT[VIST]N9gui_forms20ConnectedControlSeam*E
-__ZT[VIST]N9gui_forms20ControlCanvasTexture*E
 __ZT[VIST]N9gui_forms20ControlStripePattern*E
 __ZT[VIST]N9gui_forms20ControlVisualContext*E
 __ZT[VIST]N9gui_forms20DataGridViewRowEvent*E
@@ -10658,6 +10672,7 @@ __ZT[hvc]*9gui_forms14LookupComboBox*
 __ZT[hvc]*9gui_forms14MarkdownLimits*
 __ZT[hvc]*9gui_forms14MaskEditResult*
 __ZT[hvc]*9gui_forms14MaskValidation*
+__ZT[hvc]*9gui_forms14MaterialBlocks*
 __ZT[hvc]*9gui_forms14MaterialBorder*
 __ZT[hvc]*9gui_forms14MaterialShadow*
 __ZT[hvc]*9gui_forms14MediaCondition*
@@ -11006,6 +11021,7 @@ __ZT[hvc]*9gui_forms18BindingManagerBase*
 __ZT[hvc]*9gui_forms18BindingWriteResult*
 __ZT[hvc]*9gui_forms18BlockFlowItemInput*
 __ZT[hvc]*9gui_forms18CalendarDimensions*
+__ZT[hvc]*9gui_forms18CanvasTextureLayer*
 __ZT[hvc]*9gui_forms18ChildPropertyEntry*
 __ZT[hvc]*9gui_forms18CommandRouteResult*
 __ZT[hvc]*9gui_forms18CompiledThemeRules*
@@ -11108,6 +11124,7 @@ __ZT[hvc]*9gui_forms19BindingNotification*
 __ZT[hvc]*9gui_forms19BindingProviderLink*
 __ZT[hvc]*9gui_forms19BlockFlowItemLayout*
 __ZT[hvc]*9gui_forms19BlockFlowItemResult*
+__ZT[hvc]*9gui_forms19CanvasTextureLayers*
 __ZT[hvc]*9gui_forms19ControlStateRecipes*
 __ZT[hvc]*9gui_forms19ControlVisualRecipe*
 __ZT[hvc]*9gui_forms19CursorLeaseSnapshot*
@@ -11200,7 +11217,6 @@ __ZT[hvc]*9gui_forms20BindingContextChange*
 __ZT[hvc]*9gui_forms20CommandOverflowPanel*
 __ZT[hvc]*9gui_forms20CompositorGeneration*
 __ZT[hvc]*9gui_forms20ConnectedControlSeam*
-__ZT[hvc]*9gui_forms20ControlCanvasTexture*
 __ZT[hvc]*9gui_forms20ControlStripePattern*
 __ZT[hvc]*9gui_forms20ControlVisualContext*
 __ZT[hvc]*9gui_forms20DataGridViewRowEvent*
@@ -12142,6 +12158,7 @@ __ZZN9gui_forms14LookupComboBox*
 __ZZN9gui_forms14MarkdownLimits*
 __ZZN9gui_forms14MaskEditResult*
 __ZZN9gui_forms14MaskValidation*
+__ZZN9gui_forms14MaterialBlocks*
 __ZZN9gui_forms14MaterialBorder*
 __ZZN9gui_forms14MaterialShadow*
 __ZZN9gui_forms14MediaCondition*
@@ -12490,6 +12507,7 @@ __ZZN9gui_forms18BindingManagerBase*
 __ZZN9gui_forms18BindingWriteResult*
 __ZZN9gui_forms18BlockFlowItemInput*
 __ZZN9gui_forms18CalendarDimensions*
+__ZZN9gui_forms18CanvasTextureLayer*
 __ZZN9gui_forms18ChildPropertyEntry*
 __ZZN9gui_forms18CommandRouteResult*
 __ZZN9gui_forms18CompiledThemeRules*
@@ -12592,6 +12610,7 @@ __ZZN9gui_forms19BindingNotification*
 __ZZN9gui_forms19BindingProviderLink*
 __ZZN9gui_forms19BlockFlowItemLayout*
 __ZZN9gui_forms19BlockFlowItemResult*
+__ZZN9gui_forms19CanvasTextureLayers*
 __ZZN9gui_forms19ControlStateRecipes*
 __ZZN9gui_forms19ControlVisualRecipe*
 __ZZN9gui_forms19CursorLeaseSnapshot*
@@ -12684,7 +12703,6 @@ __ZZN9gui_forms20BindingContextChange*
 __ZZN9gui_forms20CommandOverflowPanel*
 __ZZN9gui_forms20CompositorGeneration*
 __ZZN9gui_forms20ConnectedControlSeam*
-__ZZN9gui_forms20ControlCanvasTexture*
 __ZZN9gui_forms20ControlStripePattern*
 __ZZN9gui_forms20ControlVisualContext*
 __ZZN9gui_forms20DataGridViewRowEvent*
@@ -13626,6 +13644,7 @@ __ZZNK9gui_forms14LookupComboBox*
 __ZZNK9gui_forms14MarkdownLimits*
 __ZZNK9gui_forms14MaskEditResult*
 __ZZNK9gui_forms14MaskValidation*
+__ZZNK9gui_forms14MaterialBlocks*
 __ZZNK9gui_forms14MaterialBorder*
 __ZZNK9gui_forms14MaterialShadow*
 __ZZNK9gui_forms14MediaCondition*
@@ -13974,6 +13993,7 @@ __ZZNK9gui_forms18BindingManagerBase*
 __ZZNK9gui_forms18BindingWriteResult*
 __ZZNK9gui_forms18BlockFlowItemInput*
 __ZZNK9gui_forms18CalendarDimensions*
+__ZZNK9gui_forms18CanvasTextureLayer*
 __ZZNK9gui_forms18ChildPropertyEntry*
 __ZZNK9gui_forms18CommandRouteResult*
 __ZZNK9gui_forms18CompiledThemeRules*
@@ -14076,6 +14096,7 @@ __ZZNK9gui_forms19BindingNotification*
 __ZZNK9gui_forms19BindingProviderLink*
 __ZZNK9gui_forms19BlockFlowItemLayout*
 __ZZNK9gui_forms19BlockFlowItemResult*
+__ZZNK9gui_forms19CanvasTextureLayers*
 __ZZNK9gui_forms19ControlStateRecipes*
 __ZZNK9gui_forms19ControlVisualRecipe*
 __ZZNK9gui_forms19CursorLeaseSnapshot*
@@ -14168,7 +14189,6 @@ __ZZNK9gui_forms20BindingContextChange*
 __ZZNK9gui_forms20CommandOverflowPanel*
 __ZZNK9gui_forms20CompositorGeneration*
 __ZZNK9gui_forms20ConnectedControlSeam*
-__ZZNK9gui_forms20ControlCanvasTexture*
 __ZZNK9gui_forms20ControlStripePattern*
 __ZZNK9gui_forms20ControlVisualContext*
 __ZZNK9gui_forms20DataGridViewRowEvent*

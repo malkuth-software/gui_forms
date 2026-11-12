@@ -60,6 +60,10 @@ Types
      - A link's stroke: its colour and width, its dash and gap (a dash of 0 is solid), and its halo, a wider stroke ``halo_width`` beyond each side drawn under it (0 draws none).
    * - :cpp:class:`CanvasLook <gui_forms::CanvasLook>`
      - Every canvas part in every state, as one theme draws them in one colour scheme and contrast.
+   * - :cpp:class:`CanvasTextureLayer <gui_forms::CanvasTextureLayer>`
+     - One layer of the node canvas's texture (``background-texture``; cp31): a built-in procedural pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]) composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast].
+   * - :cpp:class:`CanvasTextureLayers <gui_forms::CanvasTextureLayers>`
+     - The texture's layers, bottom first: capacity maximum_canvas_texture_layers, ``count`` live (0 is ``none``).
    * - :cpp:class:`CanvasView <gui_forms::CanvasView>`
      - Where the canvas lies in the painter's coordinates: ``origin`` is world (0, 0) and ``zoom`` view units per world unit (finite and positive; the background draws no grid otherwise).
    * - :cpp:class:`CheckerPattern <gui_forms::CheckerPattern>`
@@ -92,8 +96,6 @@ Types
      - The resolved recipe owns no renderer object.
    * - :cpp:class:`ControlCanvasPaint <gui_forms::ControlCanvasPaint>`
      - A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part.
-   * - :cpp:class:`ControlCanvasTexture <gui_forms::ControlCanvasTexture>`
-     - A node canvas part's tiled texture as a theme sets it (``background-texture``; NODE_GRAPH_SPEC gap 2, cp31): a theme image of ``pixel_size`` source pixels at ``density`` source pixels per logical unit, multiplied under the grid at ``contrast`` (0 to maximum_canvas_texture_contrast, the design language's sub-3 % rule).
    * - :cpp:class:`ControlPartMetrics <gui_forms::ControlPartMetrics>`
      -  
    * - :cpp:class:`ControlRoleRecipes <gui_forms::ControlRoleRecipes>`
@@ -242,6 +244,8 @@ Types
      - A marker drawn centred on each point: ``size`` its full width, ``fill`` its inside (ignored by the stroked shapes), ``edge`` its outline (or its lines, for the stroked shapes) ``edge_width`` wide.
    * - :cpp:class:`MaterialAssemblyContext <gui_forms::MaterialAssemblyContext>`
      - Replaces ``material`` with ``floor`` and the declarations of ``fields`` (the winning declaration of each field, by the field's position, null where none) in place: a part's assembled material (EC1); an ``initial`` declaration keeps the floor's value.
+   * - :cpp:class:`MaterialBlocks <gui_forms::MaterialBlocks>`
+     - A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
    * - :cpp:class:`MaterialBorder <gui_forms::MaterialBorder>`
      - MaterialBorder pairs an authored color and logical stroke width.
    * - :cpp:class:`MaterialBorderEdges <gui_forms::MaterialBorderEdges>`
@@ -928,13 +932,13 @@ Types
 
    ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
 
-   Every canvas part in every state, as one theme draws them in one colour scheme and contrast. ``texture`` is none where the theme sets none, and always in forced high contrast. ``titles`` are the header's title ink by node state. The marquee is its area (``marquee``) and its dashed outline (``marquee_outline``; no halo). A plain value: copy it, keep it, compare it.
+   Every canvas part in every state, as one theme draws them in one colour scheme and contrast. ``texture`` holds the theme's procedural layers, bottom first, each with its contrast clamped (layers of contrast 0 are dropped); none where the theme sets none, and always in forced high contrast. ``titles`` are the header's title ink by node state. The marquee is its area (``marquee``) and its dashed outline (``marquee_outline``; no halo). A plain value: copy it, keep it, compare it.
 
    .. cpp:member:: CanvasArea background
 
    .. cpp:member:: CanvasGrid grid
 
-   .. cpp:member:: std::optional<ControlCanvasTexture> texture
+   .. cpp:member:: CanvasTextureLayers texture
 
    .. cpp:member:: CanvasTextureBlend texture_blend
 
@@ -961,6 +965,42 @@ Types
    .. cpp:member:: CanvasLine marquee_outline
 
    .. cpp:member:: CanvasFlow flow
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasTextureLayer final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One layer of the node canvas's texture (``background-texture``; cp31): a built-in procedural pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]) composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]. The canvas chooses the pattern's colours (resolve_canvas_look): a theme sets its form only.
+
+   .. cpp:member:: ProceduralPattern pattern
+
+      Default: ``{ProceduralPattern::felt}``.
+
+   .. cpp:member:: std::uint32_t seed
+
+   .. cpp:member:: double tile
+
+      Default: ``{64.0}``.
+
+   .. cpp:member:: double strength
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double contrast
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasTextureLayers final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   The texture's layers, bottom first: capacity maximum_canvas_texture_layers, ``count`` live (0 is ``none``).
+
+   .. cpp:member:: std::array<CanvasTextureLayer, maximum_canvas_texture_layers> items
+
+   .. cpp:member:: std::size_t count
 
 .. cpp:namespace:: gui_forms
 
@@ -1432,7 +1472,7 @@ Types
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
 
-   A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part. Lengths are logical units, the grid's spacing world units, the flow's speed world units a second. The forced high-contrast records set the colours: the plate, the state's edge and the focus colour. ``texture`` is none for ``background-texture: none``.
+   A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part. Lengths are logical units, the grid's spacing world units, the flow's speed world units a second. The forced high-contrast records set the colours: the plate, the state's edge and the focus colour. ``texture`` holds no layer for ``background-texture: none``.
 
    .. cpp:member:: std::optional<Color> fill
 
@@ -1454,31 +1494,13 @@ Types
 
    .. cpp:member:: std::optional<double> grid_band
 
-   .. cpp:member:: std::optional<ControlCanvasTexture> texture
+   .. cpp:member:: std::optional<CanvasTextureLayers> texture
 
    .. cpp:member:: std::optional<CanvasFlowStyle> flow
 
    .. cpp:member:: std::optional<double> flow_speed
 
    .. cpp:member:: std::optional<double> flow_spacing
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: ControlCanvasTexture final
-
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
-
-   A node canvas part's tiled texture as a theme sets it (``background-texture``; NODE_GRAPH_SPEC gap 2, cp31): a theme image of ``pixel_size`` source pixels at ``density`` source pixels per logical unit, multiplied under the grid at ``contrast`` (0 to maximum_canvas_texture_contrast, the design language's sub-3 % rule).
-
-   .. cpp:member:: ImageId image
-
-   .. cpp:member:: Size pixel_size
-
-   .. cpp:member:: double density
-
-      Default: ``{1.0}``.
-
-   .. cpp:member:: double contrast
 
 .. cpp:namespace:: gui_forms
 
@@ -3407,6 +3429,24 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: MaterialBlocks final
+
+   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
+
+   A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
+
+   .. cpp:member:: PartKey key
+
+   .. cpp:member:: const SurfaceMaterial* material
+
+   .. cpp:member:: double period
+
+   .. cpp:member:: Point anchor
+
+   .. cpp:member:: Rect area
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MaterialBorder final
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
@@ -5251,7 +5291,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, and ``font_family`` for a numbered bundled family (FontSpec::family, zero for a role); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``; - the canvas fields: fill_colour, stroke_colour and halo_colour ``colour``; stroke_dash, stroke_gap, halo_width, corner_radius, grid_spacing, grid_band and flow_spacing (logical units, em admitted), texture_contrast (a fraction) and flow_speed (world units a second) ``number``; flow_style ``flow_style``; texture_image ``image``, ``image_size`` and ``image_density``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, and ``font_family`` for a numbered bundled family (FontSpec::family, zero for a role); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``; - the canvas fields: fill_colour, stroke_colour and halo_colour ``colour``; stroke_dash, stroke_gap, halo_width, corner_radius, grid_spacing, grid_band and flow_spacing (logical units, em admitted), and flow_speed (world units a second) ``number``; flow_style ``flow_style``; texture_layers ``texture``.
 
    .. cpp:member:: RecipeField field
 
@@ -5285,15 +5325,9 @@ Types
 
    .. cpp:member:: CanvasFlowStyle flow_style
 
-      The canvas's keyword and image fields: flow_style's mark, and texture_image's image (none for ``none``), its size in source pixels and its source pixels per logical unit (ThemeImageResource). Default: ``{CanvasFlowStyle::none}``.
+      The canvas's keyword and texture fields: flow_style's mark, and texture_layers' layers (none for ``none``). Default: ``{CanvasFlowStyle::none}``.
 
-   .. cpp:member:: std::optional<ImageId> image
-
-   .. cpp:member:: Size image_size
-
-   .. cpp:member:: double image_density
-
-      Default: ``{1.0}``.
+   .. cpp:member:: CanvasTextureLayers texture
 
    .. cpp:member:: bool shadowed
 
@@ -6095,6 +6129,10 @@ Types
    .. cpp:function:: void paint_clipped(Painter& painter, const Control& control, const PartPaint& part, std::span<const Rect> clips) const
 
       As paint, with what it draws repeated under each of ``clips`` (each in a save, clip_rect and restore; none for an empty span), the part planned, noted and baked once (N91): a pointed part's body and the strips of its nose.
+
+   .. cpp:function:: bool paint_material_blocks(Painter& painter, const Control& control, const MaterialBlocks& blocks) const
+
+      Paints ``blocks.material`` repeated over ``blocks.area`` of ``control`` (the node canvas's texture layers; cp31), through the material primitive and the window's caches as a keyed part is: - The block is square, a whole number of periods across: as many as fit maximum_material_block_side device pixels at the window's scale, and at least one. The primitive bakes it once into the record ``blocks.key`` names, and again only when the material, the scale or the block changes; panning bakes nothing. - A procedural fill's pattern is generated in an idle frame, never here (E10): until then the block shows the fill's ground, and the window repaints the area once the pattern is made. - The raster is then drawn at every block of the lattice that meets the area, in one save, clip_rect and restore. Draws nothing and returns false for a control in no window, an empty or non-finite area or anchor, a period outside its range, no material, a material the primitive refuses (its bake over the material bound) or no raster. Allocation failure propagates as std::bad_alloc, as paint's does. Not reentrant, as paint is not.
 
    .. cpp:function:: PartHitRegion hit_region(const Control& control, const PartPaint& part) const noexcept
 
@@ -8137,9 +8175,7 @@ Enumerations
 
    .. cpp:enumerator:: grid_band
 
-   .. cpp:enumerator:: texture_image
-
-   .. cpp:enumerator:: texture_contrast
+   .. cpp:enumerator:: texture_layers
 
    .. cpp:enumerator:: flow_style
 
@@ -9046,6 +9082,10 @@ Functions, constants and aliases
 
    The em of text in ``role`` on ``control`` (D5): the role's size in the control's theme's typography tokens times its window's text scale.
 
+.. cpp:var:: constexpr double maximum_material_block_side
+
+   The side, in device pixels, that paint_material_blocks fits whole periods into. With the material's outsets (8 logical units each side) a block of one composited pattern stays within the material bake bound (maximum_material_bake_effort, at 135 units a pixel) up to a 96-unit period at scale 3; a larger period or scale may be refused, and is then not drawn. Value: ``256.0``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
@@ -9368,6 +9408,14 @@ Functions, constants and aliases
 
    Value: ``0.03``.
 
+.. cpp:var:: constexpr double maximum_canvas_texture_tile
+
+   A texture layer's tile is 2 to 96 logical units, so that one tile with the material's outsets bakes within the material bound at scale 3 (maximum_material_block_side, ThemeEngine::paint_material_blocks); at most three layers. Value: ``96.0``.
+
+.. cpp:var:: constexpr std::size_t maximum_canvas_texture_layers
+
+   Value: ``3U``.
+
 .. cpp:var:: constexpr double maximum_canvas_flow_speed
 
    Value: ``512.0``.
@@ -9640,9 +9688,13 @@ Functions, constants and aliases
 
    The contrast a canvas texture is multiplied at: ``contrast`` clamped to [0, maximum_canvas_texture_contrast] (the design language's sub-3 % texture rule; the compiler already refuses more), 0 when not finite.
 
-.. cpp:function:: void paint_canvas_background(Painter& painter, const CanvasLook& look, Rect area, CanvasView view)
+.. cpp:function:: ProceduralFill canvas_texture_fill(const CanvasTextureLayer& layer, CanvasTextureBlend blend) noexcept
 
-   The canvas background over ``area``: the region's colour, then the texture (one multiply or screen group, as the look's texture_blend says, at the clamped contrast holding one tiled pattern, its tiles anchored at world (0, 0) and drawn at the image's own size at every zoom, so the grain stays sharp), then the grid (the level select_grid_level chooses for ``view.zoom``, one fill_grid_pattern pass with the level's fade). Draws a bounded number of commands whatever the area: three at most, besides the group.
+   The procedural fill a texture layer bakes (canvas_texture_fill): the layer's pattern, seed, tile and strength, over the ground that leaves the canvas unchanged under the blend (white under multiply, black under screen), its figure the other extreme. So a pattern not yet generated (its ground drawn meanwhile, E10) changes nothing, and a generated one darkens or lightens by at most its strength times the layer's contrast.
+
+.. cpp:function:: void paint_canvas_background(Painter& painter, const Control& canvas, const CanvasLook& look, Rect area, CanvasView view)
+
+   The canvas background of ``canvas`` over ``area``: the region's colour, then each texture layer, then the grid (the level select_grid_level chooses for ``view.zoom``, one fill_grid_pattern pass with the level's fade). - A texture layer is a baked procedural surface, never an image: a material of the one procedural fill canvas_texture_fill makes, baked by the theme engine (ThemeEngine::paint_material_blocks, record ``texture.<index>``) and drawn in one multiply or screen group, as the look's texture_blend says, at the layer's clamped contrast. Its tiles are anchored at world (0, 0) and stay at the tile's logical size at every zoom, so the grain stays sharp. - Cost: the engine bakes a layer once per change of the look or the window's scale, never per frame, and generates its pattern in an idle frame; each paint draws, per layer, one raster per block of at most maximum_material_block_side device pixels. A view that is not placed (a non-finite origin or zoom, or a zoom not above 0) draws the colour alone.
 
 .. cpp:function:: void paint_canvas_node(Painter& painter, const CanvasLook& look, Rect body, double header_height, CanvasNodeState state)
 

@@ -97,7 +97,7 @@ void test_field_names() {
         "stripe_pitch", "stripe_ratio", "stripe_angle", "stripe_lean", "stripe_direction", "stripe_speed",
         "stripe_colour", "stripe_ground_colour", "stripe_gloss", "stripe_reduced_motion",
         "fill_colour", "stroke_colour", "stroke_dash", "stroke_gap", "halo_width", "halo_colour", "corner_radius",
-        "grid_spacing", "grid_band", "texture_image", "texture_contrast", "flow_style", "flow_speed", "flow_spacing",
+        "grid_spacing", "grid_band", "texture_layers", "flow_style", "flow_speed", "flow_spacing",
     };
     require(names.size() == recipe_field_count, "every recipe field is named");
     for (std::size_t index = 0U; index < names.size(); ++index) {

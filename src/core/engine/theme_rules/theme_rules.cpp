@@ -1878,7 +1878,7 @@ constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "flare_colour", "edge_shadow_width", "edge_shadow_colour", "stripe_pitch", "stripe_ratio", "stripe_angle",
     "stripe_lean", "stripe_direction", "stripe_speed", "stripe_colour", "stripe_ground_colour", "stripe_gloss",
     "stripe_reduced_motion", "fill_colour", "stroke_colour", "stroke_dash", "stroke_gap", "halo_width",
-    "halo_colour", "corner_radius", "grid_spacing", "grid_band", "texture_image", "texture_contrast", "flow_style",
+    "halo_colour", "corner_radius", "grid_spacing", "grid_band", "texture_layers", "flow_style",
     "flow_speed", "flow_spacing",
 };
 
@@ -1940,8 +1940,7 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::corner_radius:
     case RecipeField::grid_spacing:
     case RecipeField::grid_band:
-    case RecipeField::texture_image:
-    case RecipeField::texture_contrast:
+    case RecipeField::texture_layers:
     case RecipeField::flow_style:
     case RecipeField::flow_speed:
     case RecipeField::flow_spacing:
@@ -1955,6 +1954,42 @@ std::string_view recipe_field_name(RecipeField field) noexcept {
     if (position >= recipe_field_count) return {};
     return recipe_field_names[position];
 }
+
+namespace {
+
+// Whether a canvas texture layer may use `pattern`: every tiled built-in
+// pattern; the fresco covers a box and does not tile. industrial_paint and
+// cloth_weave come from claude/cp31-industrial-surfaces.
+bool canvas_texture_pattern(ProceduralPattern pattern) noexcept {
+    switch (pattern) {
+    case ProceduralPattern::felt:
+    case ProceduralPattern::wood_grain:
+    case ProceduralPattern::paper_fibre:
+    case ProceduralPattern::pinstripe:
+    case ProceduralPattern::brushed_metal:
+    case ProceduralPattern::checker:
+    case ProceduralPattern::industrial_paint:
+    case ProceduralPattern::cloth_weave: return true;
+    case ProceduralPattern::fresco:
+    default: return false;
+    }
+}
+
+// No layer is `none`; each layer's pattern tiles, and its tile, strength
+// and contrast are within the canvas's limits.
+bool canvas_texture_admitted(const CanvasTextureLayers& texture) noexcept {
+    if (texture.count > texture.items.size()) return false;
+    for (std::size_t index = 0U; index < texture.count; ++index) {
+        const CanvasTextureLayer& layer = texture.items[index];
+        if (!canvas_texture_pattern(layer.pattern)) return false;
+        if (!in_range(layer.tile, minimum_procedural_tile, maximum_canvas_texture_tile)) return false;
+        if (!in_range(layer.strength, 0.0, 1.0)) return false;
+        if (!in_range(layer.contrast, 0.0, maximum_canvas_texture_contrast)) return false;
+    }
+    return true;
+}
+
+} // namespace
 
 bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept {
     switch (declaration.field) {
@@ -1981,16 +2016,7 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
         return in_range(declaration.number, minimum_canvas_grid_spacing, maximum_canvas_grid_spacing);
     case RecipeField::grid_band:
         return in_range(declaration.number, minimum_canvas_grid_band, maximum_canvas_grid_band);
-    // No image is `none`; an image has a size and a density.
-    case RecipeField::texture_image: {
-        if (!declaration.image) return true;
-        const bool sized = declaration.image_size.width >= 1.0 && declaration.image_size.height >= 1.0 &&
-                           std::isfinite(declaration.image_size.width) &&
-                           std::isfinite(declaration.image_size.height);
-        const bool dense = std::isfinite(declaration.image_density) && declaration.image_density > 0.0;
-        return (*declaration.image).value != 0U && sized && dense;
-    }
-    case RecipeField::texture_contrast: return in_range(declaration.number, 0.0, maximum_canvas_texture_contrast);
+    case RecipeField::texture_layers: return canvas_texture_admitted(declaration.texture);
     case RecipeField::flow_style:
         return declaration.flow_style == CanvasFlowStyle::none || declaration.flow_style == CanvasFlowStyle::dots ||
                declaration.flow_style == CanvasFlowStyle::dashes;

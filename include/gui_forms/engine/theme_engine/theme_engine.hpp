@@ -33,6 +33,31 @@ struct PartPaint;
 // control's theme's typography tokens times its window's text scale.
 [[nodiscard]] GUI_FORMS_API double text_role_em(const Control& control, TextRole role) noexcept;
 
+// The side, in device pixels, that paint_material_blocks fits whole periods
+// into. With the material's outsets (8 logical units each side) a block of
+// one composited pattern stays within the material bake bound
+// (maximum_material_bake_effort, at 135 units a pixel) up to a 96-unit
+// period at scale 3; a larger period or scale may be refused, and is then
+// not drawn.
+inline constexpr double maximum_material_block_side = 256.0;
+
+// A material repeated over an area (ThemeEngine::paint_material_blocks):
+// - `key` names the part's record (borrowed for the call);
+// - `material` is borrowed for the call;
+// - `period` is the material's repeat in logical units (a procedural
+//   fill's tile), within [minimum_procedural_tile,
+//   maximum_procedural_tile];
+// - the blocks lie on the lattice of whole periods through `anchor`, so
+//   that they stay where the caller anchors them as it pans, and are drawn
+//   where they meet `area`, clipped to it (the painter's coordinates).
+struct GUI_FORMS_API MaterialBlocks final {
+    PartKey key{};
+    const SurfaceMaterial* material{};
+    double period{};
+    Point anchor{};
+    Rect area{};
+};
+
 // The theme engine's entry point (T2 plan, ThemeEngine). paint_part hands it
 // every part; controls never call it directly.
 //
@@ -127,6 +152,26 @@ public:
     // strips of its nose.
     void paint_clipped(Painter& painter, const Control& control, const PartPaint& part,
                        std::span<const Rect> clips) const;
+
+    // Paints `blocks.material` repeated over `blocks.area` of `control`
+    // (the node canvas's texture layers; cp31), through the material
+    // primitive and the window's caches as a keyed part is:
+    // - The block is square, a whole number of periods across: as many as
+    //   fit maximum_material_block_side device pixels at the window's
+    //   scale, and at least one. The primitive bakes it once into the
+    //   record `blocks.key` names, and again only when the material, the
+    //   scale or the block changes; panning bakes nothing.
+    // - A procedural fill's pattern is generated in an idle frame, never
+    //   here (E10): until then the block shows the fill's ground, and the
+    //   window repaints the area once the pattern is made.
+    // - The raster is then drawn at every block of the lattice that meets
+    //   the area, in one save, clip_rect and restore.
+    // Draws nothing and returns false for a control in no window, an empty
+    // or non-finite area or anchor, a period outside its range, no
+    // material, a material the primitive refuses (its bake over the
+    // material bound) or no raster. Allocation failure propagates as
+    // std::bad_alloc, as paint's does. Not reentrant, as paint is not.
+    bool paint_material_blocks(Painter& painter, const Control& control, const MaterialBlocks& blocks) const;
 
     // The hit region of one part of `control` (E8, T1's hand-off): the
     // part's bounds and the shape its primitive draws there, as plan()

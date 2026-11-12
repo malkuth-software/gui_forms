@@ -118,22 +118,6 @@ struct GUI_FORMS_API ControlPartMetrics final {
     }
 };
 
-// A node canvas part's tiled texture as a theme sets it
-// (`background-texture`; NODE_GRAPH_SPEC gap 2, cp31): a theme image of
-// `pixel_size` source pixels at `density` source pixels per logical unit,
-// multiplied under the grid at `contrast` (0 to
-// maximum_canvas_texture_contrast, the design language's sub-3 % rule).
-struct GUI_FORMS_API ControlCanvasTexture final {
-    ImageId image{};
-    Size pixel_size{};
-    double density{1.0};
-    double contrast{};
-    friend bool operator==(const ControlCanvasTexture& left, const ControlCanvasTexture& right) noexcept {
-        return left.image == right.image && left.pixel_size == right.pixel_size && left.density == right.density &&
-               left.contrast == right.contrast;
-    }
-};
-
 // A node canvas part's paint as a theme sets it (RecipeField::fill_colour
 // to flow_spacing, and RecipeField::stroke_width as `stroke_width`; cp31),
 // each unset where no rule sets it:
@@ -141,7 +125,8 @@ struct GUI_FORMS_API ControlCanvasTexture final {
 // value it states for the part. Lengths are logical units, the grid's
 // spacing world units, the flow's speed world units a second. The forced
 // high-contrast records set the colours: the plate, the state's edge and
-// the focus colour. `texture` is none for `background-texture: none`.
+// the focus colour. `texture` holds no layer for `background-texture:
+// none`.
 struct GUI_FORMS_API ControlCanvasPaint final {
     std::optional<Color> fill{};
     std::optional<Color> stroke{};
@@ -153,7 +138,7 @@ struct GUI_FORMS_API ControlCanvasPaint final {
     std::optional<double> corner_radius{};
     std::optional<double> grid_spacing{};
     std::optional<double> grid_band{};
-    std::optional<ControlCanvasTexture> texture{};
+    std::optional<CanvasTextureLayers> texture{};
     std::optional<CanvasFlowStyle> flow{};
     std::optional<double> flow_speed{};
     std::optional<double> flow_spacing{};

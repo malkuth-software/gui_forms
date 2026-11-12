@@ -1,6 +1,7 @@
 #include "gui_forms/theme/canvas_look/canvas_look.hpp"
 
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
@@ -11,6 +12,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 namespace gui_forms {
 
@@ -460,12 +462,16 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
     look.grid.band.minimum_spacing = band;
     look.grid.band.maximum_spacing = band * grid_level_ratio;
     if (region.canvas.texture.has_value() && !context.high_contrast) {
-        ControlCanvasTexture texture = *region.canvas.texture;
-        texture.contrast = clamp_canvas_texture_contrast(texture.contrast);
-        const bool sized = texture.pixel_size.width >= 1.0 && texture.pixel_size.height >= 1.0 &&
-                           std::isfinite(texture.pixel_size.width) && std::isfinite(texture.pixel_size.height) &&
-                           std::isfinite(texture.density) && texture.density > 0.0;
-        if (sized && texture.contrast > 0.0) look.texture = texture;
+        // Each layer whose clamped contrast is above 0, in order.
+        const CanvasTextureLayers& authored = *region.canvas.texture;
+        const std::size_t authored_count = std::min(authored.count, authored.items.size());
+        for (std::size_t index = 0U; index < authored_count; ++index) {
+            CanvasTextureLayer layer = authored.items[index];
+            layer.contrast = clamp_canvas_texture_contrast(layer.contrast);
+            if (!(layer.contrast > 0.0)) continue;
+            look.texture.items[look.texture.count] = layer;
+            look.texture.count = look.texture.count + 1U;
+        }
     }
     if (dark) look.texture_blend = CanvasTextureBlend::screen;
 
@@ -569,37 +575,55 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
     return look;
 }
 
-void paint_canvas_background(Painter& painter, const CanvasLook& look, Rect area, CanvasView view) {
+ProceduralFill canvas_texture_fill(const CanvasTextureLayer& layer, CanvasTextureBlend blend) noexcept {
+    const bool screened = blend == CanvasTextureBlend::screen;
+    const Color white = Color::rgba(255, 255, 255);
+    const Color black = Color::rgba(0, 0, 0);
+    ProceduralFill fill{};
+    fill.pattern = layer.pattern;
+    fill.seed = layer.seed;
+    fill.tile = layer.tile;
+    fill.strength = layer.strength;
+    fill.ground = screened ? black : white;
+    fill.figure = screened ? white : black;
+    fill.accent = fill.ground;
+    return fill;
+}
+
+void paint_canvas_background(Painter& painter, const Control& canvas, const CanvasLook& look, Rect area,
+                             CanvasView view) {
     if (area.empty()) return;
     if (look.background.fill.alpha > 0U) painter.fill_rect(area, look.background.fill);
     const bool placed = std::isfinite(view.origin.x) && std::isfinite(view.origin.y) && std::isfinite(view.zoom) &&
                         view.zoom > 0.0;
-    if (look.texture.has_value() && placed) {
-        const ControlCanvasTexture& texture = *look.texture;
-        const double contrast = clamp_canvas_texture_contrast(texture.contrast);
-        const double tile_width = texture.pixel_size.width / texture.density;
-        const double tile_height = texture.pixel_size.height / texture.density;
-        const bool tiled = std::isfinite(tile_width) && std::isfinite(tile_height) && tile_width > 0.0 &&
-                           tile_height > 0.0;
-        if (tiled && contrast > 0.0) {
-            // The pattern starts at the tile corner at or before the area's
-            // corner on the world-anchored tile lattice, so the tiles stay
-            // where the canvas puts them as it pans.
-            const double columns_before = std::floor((area.x - view.origin.x) / tile_width);
-            const double rows_before = std::floor((area.y - view.origin.y) / tile_height);
-            const double left = view.origin.x + columns_before * tile_width;
-            const double top = view.origin.y + rows_before * tile_height;
-            const Rect destination{left, top, area.right() - left, area.bottom() - top};
-            const Size tile{tile_width, tile_height};
+    const std::size_t layer_count = std::min(look.texture.count, look.texture.items.size());
+    if (placed && layer_count > 0U) {
+        // One material, reused for each layer: its one fill is replaced in
+        // place, so the vector allocates once per paint.
+        const ThemeEngine& engine = canvas.effective_theme().engine();
+        const bool screened = look.texture_blend == CanvasTextureBlend::screen;
+        constexpr std::array<std::string_view, maximum_canvas_texture_layers> layer_keys{"texture.0", "texture.1",
+                                                                                          "texture.2"};
+        SurfaceMaterial material{};
+        for (std::size_t index = 0U; index < layer_count; ++index) {
+            const CanvasTextureLayer& layer = look.texture.items[index];
+            const double contrast = clamp_canvas_texture_contrast(layer.contrast);
+            if (!(contrast > 0.0)) continue;
+            material.fills.assign(1U, MaterialFillLayer::procedural_pattern(canvas_texture_fill(layer,
+                                                                                                 look.texture_blend)));
+            MaterialBlocks blocks{};
+            blocks.key = PartKey{layer_keys[index], {}, {}};
+            blocks.material = &material;
+            blocks.period = layer.tile;
+            blocks.anchor = view.origin;
+            blocks.area = area;
             PaintGroup group{};
             group.bounds = area;
             group.opacity = contrast;
-            const bool screened = look.texture_blend == CanvasTextureBlend::screen;
             group.composite = screened ? PaintGroupComposite::screen : PaintGroupComposite::multiply;
             group.isolated = true;
             painter.begin_group(group);
-            painter.fill_image_pattern(texture.image, texture.pixel_size, destination, tile, ImagePatternWrap::tile,
-                                       1.0);
+            static_cast<void>(engine.paint_material_blocks(painter, canvas, blocks));
             painter.end_group();
         }
     }

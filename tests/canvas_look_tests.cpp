@@ -1,8 +1,9 @@
 // The node canvas's look, theme side (cp31): the canvas anatomy; the
 // default theme's canvas recipes resolved in light, derived dark and forced
 // high contrast; the grid variants switched by class; the texture's
-// contrast clamp; the paint functions' commands (the background's fill,
-// texture group and grid level at three zooms, nodes, links with their
+// contrast clamp and its layers' fills; the paint functions' commands (the
+// background's fill, texture groups, the engine's baked blocks on the world
+// lattice, and the grid level at three zooms, nodes, links with their
 // halo and dashes, the marquee); and the link_flow effect: its frames
 // wanted only while a link flows and motion is not reduced, its still
 // pose at phase 0, and its phase following the ticks. Time comes from the
@@ -12,9 +13,11 @@
 #include "gui_forms/controls/link_flow_effects.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/theme/canvas_look/canvas_look.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <algorithm>
 #include <array>
@@ -77,6 +80,9 @@ public:
         const Pattern pattern{image, source_pixel_size, destination, logical_tile_size};
         patterns.push_back(pattern);
     }
+    void draw_part_raster(const std::shared_ptr<const PartRaster>&, Point origin, double) override {
+        rasters.push_back(origin);
+    }
 
     struct Fill final {
         Rect rect{};
@@ -110,6 +116,7 @@ public:
     std::vector<GridPattern> grids{};
     std::vector<PaintGroup> groups{};
     std::vector<Pattern> patterns{};
+    std::vector<Point> rasters{};
 };
 
 const FrameTime start{std::chrono::seconds(1000)};
@@ -191,7 +198,7 @@ void light_recipes() {
     const GridLevel rest = select_grid_level(look.grid.spacing, 1.0, look.grid.band);
     require(rest.minor_spacing == 16.0 && rest.fade >= 0.5, "minor lines show fully at zoom 1");
     require(look.texture_blend == CanvasTextureBlend::multiply, "a light texture multiplies");
-    require(!look.texture.has_value(), "the default theme sets no texture");
+    require(look.texture.count == 0U, "the default theme sets no texture");
     const CanvasArea& node = look.nodes[index_of(CanvasNodeState::normal)];
     require(same_rgb(node.fill, 255, 255, 255) && same_rgb(node.stroke, 0x63, 0x84, 0xb2) &&
                 node.stroke_width == 1.0 && node.corner_radius == 6.0,
@@ -280,7 +287,7 @@ void high_contrast_recipes() {
     const std::shared_ptr<Panel> canvas = make_control<Panel>(StableId("canvas.contrast"));
     const CanvasLook look = resolve_canvas_look(*theme, *canvas, contrast_context());
     require(!same_rgb(look.background.fill, 0xfb, 0xfc, 0xfd), "forced high contrast ignores the rules' colours");
-    require(!look.grid.minor_shown && !look.texture.has_value(), "no minor grid and no texture in high contrast");
+    require(!look.grid.minor_shown && look.texture.count == 0U, "no minor grid and no texture in high contrast");
     require(look.marquee.fill.alpha == 0U, "the marquee has no fill in high contrast");
     require(look.links[index_of(CanvasLinkState::selected)].halo_width == 2.0 &&
                 look.links[index_of(CanvasLinkState::normal)].halo_width == 0.0 &&
@@ -347,8 +354,32 @@ CanvasLook stock_look() {
     return look;
 }
 
+// Two layers: felt at 8 % (clamped to 3 %) and paper fibre at 0 (drawn
+// as nothing).
+CanvasTextureLayers two_layers() {
+    CanvasTextureLayers layers{};
+    layers.items[0] = CanvasTextureLayer{ProceduralPattern::felt, 7U, 64.0, 0.5, 0.08};
+    layers.items[1] = CanvasTextureLayer{ProceduralPattern::paper_fibre, 3U, 48.0, 1.0, 0.0};
+    layers.count = 2U;
+    return layers;
+}
+
+void texture_fills() {
+    const CanvasTextureLayer layer{ProceduralPattern::paper_fibre, 9U, 48.0, 0.75, 0.02};
+    const ProceduralFill multiplied = canvas_texture_fill(layer, CanvasTextureBlend::multiply);
+    require(multiplied.pattern == ProceduralPattern::paper_fibre && multiplied.seed == 9U && multiplied.tile == 48.0 &&
+                multiplied.strength == 0.75,
+            "a layer's fill keeps its pattern, seed, tile and strength");
+    require(multiplied.ground == Color::rgba(255, 255, 255) && multiplied.figure == Color::rgba(0, 0, 0),
+            "multiplied, the ground is white (no change while the pattern is made) and the figure black");
+    const ProceduralFill screened = canvas_texture_fill(layer, CanvasTextureBlend::screen);
+    require(screened.ground == Color::rgba(0, 0, 0) && screened.figure == Color::rgba(255, 255, 255),
+            "screened, the ground is black and the figure white");
+}
+
 void background_commands() {
     CanvasLook look = stock_look();
+    const std::shared_ptr<Panel> detached = make_control<Panel>(StableId("canvas.detached"));
     const Rect area{0.0, 0.0, 100.0, 100.0};
     CanvasView view{};
     view.origin = Point{5.0, 7.0};
@@ -356,43 +387,67 @@ void background_commands() {
     for (const double zoom : zooms) {
         view.zoom = zoom;
         RecordingPainter painter;
-        paint_canvas_background(painter, look, area, view);
+        paint_canvas_background(painter, *detached, look, area, view);
         require(painter.fills.size() == 1U && painter.groups.empty() && painter.grids.size() == 1U,
                 "an untextured background is one fill and one grid pass");
         const GridPattern& grid = painter.grids[0];
         require(grid.spacing >= 6.0 && grid.spacing < 24.0 && grid.origin == view.origin && grid.major_every == 4U,
                 "the grid level keeps the band at every zoom, anchored at world (0, 0)");
     }
-    look.texture = ControlCanvasTexture{ImageId{7U}, Size{64.0, 64.0}, 2.0, 0.08};
+    look.texture = two_layers();
     view.zoom = 1.0;
     RecordingPainter textured;
-    paint_canvas_background(textured, look, area, view);
-    require(textured.groups.size() == 1U && textured.group_ends == 1 && textured.patterns.size() == 1U,
-            "a texture is one group holding one pattern");
+    paint_canvas_background(textured, *detached, look, area, view);
+    require(textured.groups.size() == 1U && textured.group_ends == 1 && textured.patterns.empty(),
+            "each layer above 0 is one group, and no image pattern");
     const PaintGroup& group = textured.groups[0];
     require(group.composite == PaintGroupComposite::multiply && group.opacity == maximum_canvas_texture_contrast &&
                 group.isolated && group.bounds == area,
-            "the texture multiplies at the clamped contrast over the area");
-    const RecordingPainter::Pattern& pattern = textured.patterns[0];
-    require(pattern.image == ImageId{7U} && pattern.tile == Size{32.0, 32.0},
-            "tiles are the image's logical size (pixels over density)");
-    require(pattern.destination.x == -27.0 && pattern.destination.y == -25.0 &&
-                pattern.destination.width == 127.0 && pattern.destination.height == 125.0,
-            "the tiles are anchored on the world lattice through the origin");
-    view.origin = Point{37.0, 39.0};
+            "a layer multiplies at the clamped contrast over the area");
+    require(textured.rasters.empty(), "a canvas in no window bakes nothing");
+    look.texture_blend = CanvasTextureBlend::screen;
+    RecordingPainter screened;
+    paint_canvas_background(screened, *detached, look, area, view);
+    require(screened.groups.size() == 1U && screened.groups[0].composite == PaintGroupComposite::screen,
+            "a dark look screens");
+    look.texture_blend = CanvasTextureBlend::multiply;
+
+    // In a window at scale 1, the engine bakes the felt layer's block (four
+    // 64-unit tiles across: 256 device pixels) and draws it on the world
+    // lattice through the origin, clipped to the area.
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("canvas.root"));
+    const std::shared_ptr<Panel> attached = make_control<Panel>(StableId("canvas.attached"));
+    (*attached).set_requested_bounds(Rect{0.0, 0.0, 100.0, 100.0});
+    (*root).add_child(attached);
+    Window window(root, Size{100.0, 100.0});
+    window.perform_layout();
+    const EnginePrimitive* const material = builtin_primitive_registry().find("material");
+    require(material != nullptr, "the material primitive is built in");
+    const Insets outsets = (*material).descriptor().outsets;
+    RecordingPainter baked;
+    paint_canvas_background(baked, *attached, look, area, view);
+    require(baked.groups.size() == 1U && baked.rasters.size() == 4U && baked.saves == 1 && baked.restores == 1 &&
+                baked.clips.size() == 1U && baked.clips[0] == area,
+            "the layer's block is drawn at every lattice block meeting the area, clipped to it");
+    if (baked.rasters.size() == 4U) {
+        require(baked.rasters[0] == Point{5.0 - 256.0 - outsets.left, 7.0 - 256.0 - outsets.top} &&
+                    baked.rasters[3] == Point{5.0 - outsets.left, 7.0 - outsets.top},
+                "the blocks lie on the lattice through world (0, 0)");
+    }
+    view.origin = Point{5.0 + 256.0, 7.0};
     RecordingPainter panned;
-    paint_canvas_background(panned, look, area, view);
-    require(panned.patterns.size() == 1U && panned.patterns[0].destination.x == -27.0 &&
-                panned.patterns[0].destination.y == -25.0,
-            "a pan by one tile leaves the lattice where it was");
-    look.texture.reset();
+    paint_canvas_background(panned, *attached, look, area, view);
+    require(panned.rasters.size() == 4U && panned.rasters[3] == baked.rasters[3],
+            "a pan by one block leaves the lattice where it was");
+    view.origin = Point{5.0, 7.0};
+    look.texture = CanvasTextureLayers{};
     look.grid.minor_shown = false;
     RecordingPainter contrast;
-    paint_canvas_background(contrast, look, area, view);
+    paint_canvas_background(contrast, *detached, look, area, view);
     require(contrast.grids.size() == 1U && contrast.grids[0].minor.alpha == 0U, "a hidden minor grid is clear");
     view.zoom = std::numeric_limits<double>::quiet_NaN();
     RecordingPainter unplaced;
-    paint_canvas_background(unplaced, look, area, view);
+    paint_canvas_background(unplaced, *detached, look, area, view);
     require(unplaced.fills.size() == 1U && unplaced.grids.empty(), "an unplaced view draws the fill alone");
 }
 
@@ -555,6 +610,7 @@ int main() {
     high_contrast_recipes();
     grid_variants();
     texture_clamp();
+    texture_fills();
     background_commands();
     part_commands();
     flow_frames_wanted();

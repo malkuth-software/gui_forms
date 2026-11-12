@@ -1086,6 +1086,69 @@ void ThemeEngine::paint_clipped(Painter& painter, const Control& control, const 
     paint_planned(painter, control, part, decided, clips, &group);
 }
 
+bool ThemeEngine::paint_material_blocks(Painter& painter, const Control& control,
+                                        const MaterialBlocks& blocks) const {
+    SurfaceRoot* const window = control.attached_surface_root();
+    if (window == nullptr || blocks.material == nullptr) return false;
+    const Rect area = blocks.area;
+    const bool periodic = std::isfinite(blocks.period) && blocks.period >= minimum_procedural_tile &&
+                          blocks.period <= maximum_procedural_tile;
+    const bool anchored = std::isfinite(blocks.anchor.x) && std::isfinite(blocks.anchor.y);
+    if (!part_bounds_paintable(area) || !periodic || !anchored) return false;
+    const EnginePrimitive* const primitive = (*registry_).find("material");
+    if (primitive == nullptr) return false;
+    // The block: whole periods, as many as fit the side bound, at least one.
+    const double scale = (*window).scale();
+    const double period_pixels = blocks.period * scale;
+    const double fitting = std::floor(maximum_material_block_side / period_pixels);
+    const double periods = std::max(1.0, fitting);
+    const double side = periods * blocks.period;
+    const Size block{side, side};
+    const Insets outsets = (*primitive).descriptor().outsets;
+    PartRasterRequest request{};
+    request.primitive = primitive;
+    request.parameters = default_parameters((*primitive).descriptor());
+    request.target.logical_size = block;
+    request.target.scale = DeviceScale{scale};
+    request.target.material = blocks.material;
+    request.target.images = &(*window).image_resources();
+    request.extent = raster_extent(block, outsets, scale);
+    if (request.extent.width == 0U || request.extent.height == 0U) return false;
+    if (!(*primitive).accepts(request.parameters, request.target)) return false;
+    // The record, and where the area was drawn: the window repaints that
+    // extent when a pattern the bake awaits is made.
+    const std::optional<PartRecordHandle> record =
+        detail::SurfaceEngineAccess::note_part(*window, control, blocks.key, AnatomyStateSet{});
+    if (!record) return false;
+    const detail::SurfaceEngineAccess::PaintPlace place =
+        detail::SurfaceEngineAccess::paint_place(*window, control, painter);
+    const Rect extent = part_extent(area, place.origin, Insets{});
+    detail::SurfaceEngineAccess::note_paint(*window, *record, 0U, *place.painted_by, extent);
+    const PartRasterResult drawn = detail::SurfaceEngineAccess::part_raster(*window, *record, request);
+    if (!drawn.raster) return false;
+    // The lattice corner at or before the area's, then whole blocks to the
+    // area's far edges: a count bounded by the area over the block side.
+    const double columns_before = std::floor((area.x - blocks.anchor.x) / side);
+    const double rows_before = std::floor((area.y - blocks.anchor.y) / side);
+    const double left = blocks.anchor.x + columns_before * side;
+    const double top = blocks.anchor.y + rows_before * side;
+    const double column_span = std::ceil((area.right() - left) / side);
+    const double row_span = std::ceil((area.bottom() - top) / side);
+    const std::size_t columns = static_cast<std::size_t>(std::max(0.0, column_span));
+    const std::size_t rows = static_cast<std::size_t>(std::max(0.0, row_span));
+    painter.save();
+    painter.clip_rect(area);
+    for (std::size_t row = 0U; row < rows; ++row) {
+        const double y = top + static_cast<double>(row) * side - outsets.top;
+        for (std::size_t column = 0U; column < columns; ++column) {
+            const double x = left + static_cast<double>(column) * side - outsets.left;
+            painter.draw_part_raster(drawn.raster, Point{x, y}, 1.0);
+        }
+    }
+    painter.restore();
+    return true;
+}
+
 // N39: the state of one part's paint, which each stage of paint_planned
 // reads and leaves for the next. The materials made for this paint only
 // live here, so the request's material pointer stays valid through the

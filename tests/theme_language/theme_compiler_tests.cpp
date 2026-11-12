@@ -745,21 +745,16 @@ void test_warnings() {
     }
     require(each_refused, "each stripe value outside its range or vocabulary refuses its sheet with one error");
     // The node canvas's properties (cp31) are part fields too: admitted on
-    // a named part, range-checked, and refused on a control; the texture
-    // names a theme image, multiplies it, and admits at most 3 %.
-    const theme_language::ThemeImageResource grain{.resource = "icon.check",
-                                                   .image = ImageId{41U},
-                                                   .pixel_size = Size{64.0, 32.0},
-                                                   .pixels_per_logical_pixel = 2.0};
-    Options textured{};
-    textured.images = std::span<const theme_language::ThemeImageResource>(&grain, 1U);
+    // a named part, range-checked, and refused on a control; the texture is
+    // one to three baked procedural layers, each multiplied at most 3 %.
     const Compilation canvas = compile(
         "#a::part(face) { fill-color: #fbfcfd; stroke-color: rgb(99 132 178 / 22%); stroke-width: 1.5px;"
         " stroke-dash: 6px 4px; halo: rgb(47 105 190 / 30%) 4px; corner-radius: 6px; grid-spacing: 16px;"
         " grid-band: 12px; flow: dots; flow-speed: 48; flow-spacing: 16px;"
-        " background-texture: url(\"resource:icon.check\") multiply 2.5% }\n"
-        "#b::part(face) { stroke-dash: none; halo: none; flow: none; background-texture: none }",
-        textured);
+        " background-texture: procedural(felt, 7, 64px, 0.5) multiply 2.5%,"
+        " procedural(paper-fibre, 4294967295, 48px, 1) multiply 3%,"
+        " procedural(cloth-weave, 0, 16px, 0.75) multiply 1% }\n"
+        "#b::part(face) { stroke-dash: none; halo: none; flow: none; background-texture: none }");
     bool canvas_admitted = true;
     for (const ThemeDiagnostic& diagnostic : canvas.diagnostics) {
         if (diagnostic.code == DiagnosticCode::literal_colour_unremappable) continue;
@@ -770,34 +765,65 @@ void test_warnings() {
     require(canvas.outcome == CompileOutcome::compiled && canvas_admitted && canvas.sheet.rules.size() == 2U,
             "the node canvas properties compile on a named part");
     const RecipeDeclaration* texture = nullptr;
-    const RecipeDeclaration* contrast = nullptr;
+    const RecipeDeclaration* untextured = nullptr;
     const RecipeDeclaration* dash = nullptr;
     const RecipeDeclaration* gap = nullptr;
     const RecipeDeclaration* halo_width = nullptr;
     const RecipeDeclaration* flow = nullptr;
     if (canvas.sheet.rules.size() == 2U) {
         for (const RecipeDeclaration& field : canvas.sheet.rules[0].recipe_fields) {
-            if (field.field == RecipeField::texture_image) texture = &field;
-            if (field.field == RecipeField::texture_contrast) contrast = &field;
+            if (field.field == RecipeField::texture_layers) texture = &field;
             if (field.field == RecipeField::stroke_dash) dash = &field;
             if (field.field == RecipeField::stroke_gap) gap = &field;
             if (field.field == RecipeField::halo_width) halo_width = &field;
             if (field.field == RecipeField::flow_style) flow = &field;
         }
+        for (const RecipeDeclaration& field : canvas.sheet.rules[1].recipe_fields) {
+            if (field.field == RecipeField::texture_layers) untextured = &field;
+        }
     }
-    require(texture != nullptr && (*texture).image == std::optional<ImageId>(ImageId{41U}) &&
-                (*texture).image_size == Size{64.0, 32.0} && (*texture).image_density == 2.0,
-            "a texture lowers to its theme image, its pixel size and its density");
-    require(contrast != nullptr && (*contrast).number == 0.025, "a texture's contrast lowers to a fraction");
+    require(texture != nullptr && (*texture).texture.count == 3U, "a texture lowers to its three layers");
+    if (texture != nullptr && (*texture).texture.count == 3U) {
+        const CanvasTextureLayer& felt = (*texture).texture.items[0];
+        const CanvasTextureLayer& fibre = (*texture).texture.items[1];
+        const CanvasTextureLayer& weave = (*texture).texture.items[2];
+        require(felt.pattern == ProceduralPattern::felt && felt.seed == 7U && felt.tile == 64.0 &&
+                    felt.strength == 0.5 && felt.contrast == 0.025,
+                "a layer lowers to its pattern, seed, tile, strength and contrast fraction");
+        require(fibre.pattern == ProceduralPattern::paper_fibre && fibre.seed == 4294967295U &&
+                    fibre.contrast == 0.03,
+                "the largest seed and 3 % are admitted");
+        require(weave.pattern == ProceduralPattern::cloth_weave && weave.tile == 16.0 && weave.contrast == 0.01,
+                "the cloth weave is a texture kind");
+    }
+    require(untextured != nullptr && (*untextured).texture.count == 0U, "none lowers to no layer");
     require(dash != nullptr && (*dash).number == 6.0 && gap != nullptr && (*gap).number == 4.0,
             "stroke-dash lowers to its dash and its gap");
     require(halo_width != nullptr && (*halo_width).number == 4.0, "a halo's width is read in either order");
     require(flow != nullptr && (*flow).flow_style == CanvasFlowStyle::dots, "flow lowers to its mark");
-    const std::array<BadStripe, 9> bad_canvas{{
-        {"#a::part(face) { background-texture: url(\"resource:icon.check\") multiply 5% }",
+    const std::array<BadStripe, 17> bad_canvas{{
+        {"#a::part(face) { background-texture: procedural(felt, 0, 64px, 1) multiply 5% }",
          DiagnosticCode::value_out_of_range},
-        {"#a::part(face) { background-texture: url(\"resource:icon.check\") screen 2% }",
+        {"#a::part(face) { background-texture: procedural(felt, 0, 64px, 1) screen 2% }",
          DiagnosticCode::keyword_unknown},
+        {"#a::part(face) { background-texture: procedural(marble, 0, 64px, 1) multiply 2% }",
+         DiagnosticCode::value_wrong_kind},
+        {"#a::part(face) { background-texture: procedural(fresco, 0, 64px, 1) multiply 2% }",
+         DiagnosticCode::value_wrong_kind},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 97px, 1) multiply 2% }",
+         DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 1px, 1) multiply 2% }",
+         DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { background-texture: procedural(felt, 1.5, 64px, 1) multiply 2% }",
+         DiagnosticCode::value_wrong_kind},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 64px, 2) multiply 2% }",
+         DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 64px) multiply 2% }",
+         DiagnosticCode::value_syntax},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 64px, 1) multiply 1%,"
+         " procedural(felt, 1, 64px, 1) multiply 1%, procedural(felt, 2, 64px, 1) multiply 1%,"
+         " procedural(felt, 3, 64px, 1) multiply 1% }",
+         DiagnosticCode::value_out_of_range},
         {"#a::part(face) { stroke-dash: 80px 4px }", DiagnosticCode::value_out_of_range},
         {"#a::part(face) { halo: 20px #ffffff }", DiagnosticCode::value_out_of_range},
         {"#a::part(face) { corner-radius: 65px }", DiagnosticCode::value_out_of_range},
@@ -808,7 +834,7 @@ void test_warnings() {
     }};
     bool canvas_refused = true;
     for (const BadStripe& bad : bad_canvas) {
-        const Compilation refused = compile(bad.sheet, textured);
+        const Compilation refused = compile(bad.sheet);
         const bool one = refused.outcome == CompileOutcome::refused && refused.diagnostics.size() == 1U &&
                          refused.diagnostics[0].code == bad.code;
         if (!one) {
@@ -817,9 +843,11 @@ void test_warnings() {
         }
     }
     require(canvas_refused, "each canvas value outside its range or vocabulary refuses its sheet with one error");
-    const Compilation untextured = compile("#a::part(face) { background-texture: url(\"resource:icon.check\") multiply 1% }");
-    require(untextured.outcome == CompileOutcome::refused,
-            "a texture naming a resource that is not a theme image is refused");
+    const Compilation imaged = compile("#a::part(face) { background-texture: url(\"resource:icon.check\") multiply 1% }");
+    require(imaged.outcome == CompileOutcome::refused, "a texture is never an image");
+    const Compilation elsewhere = compile("#a::part(face) { background: procedural(felt, 0, 64px, 1) }");
+    require(elsewhere.outcome != CompileOutcome::compiled || !elsewhere.diagnostics.empty(),
+            "procedural() is known to background-texture alone");
     const Compilation control_canvas = compile("#a { fill-color: #ffffff; flow: dots }");
     require(control_canvas.outcome == CompileOutcome::compiled && control_canvas.diagnostics.size() == 2U &&
                 warned(control_canvas, DiagnosticCode::property_not_admitted, "fill-color") &&
