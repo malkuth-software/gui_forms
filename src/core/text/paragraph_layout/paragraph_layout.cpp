@@ -401,10 +401,12 @@ template <LineOutput Output>
     [[maybe_unused]] ScalarCursor cursor{};
     std::size_t line_count = 0U;
     double widest = 0.0;
+    std::size_t overflowing = 0U;
     std::size_t begin = 0U;
     while (begin < size) {
         const LineChoice choice = choose_line(pass, begin);
         widest = std::max(widest, choice.width);
+        if (choice.width > pass.limit) ++overflowing;
         if constexpr (Output == LineOutput::records) {
             if (line_count < lines.size()) {
                 ParagraphLine line{};
@@ -432,6 +434,7 @@ template <LineOutput Output>
     metrics.line_count = line_count;
     metrics.height = static_cast<double>(line_count) * style.line_box.height;
     metrics.widest_line = widest;
+    metrics.overflowing_lines = overflowing;
     metrics.status = pass.status;
     metrics.shaping_calls = pass.shaping_calls;
     metrics.shaped_bytes = pass.shaped_bytes;

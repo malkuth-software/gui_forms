@@ -1258,7 +1258,11 @@ Related types
 
    .. cpp:member:: TextResolutionStatus status
 
-      The least exact status the provider answered (exact, estimated or a missing face), in TextResolutionStatus's order. Default: ``{TextResolutionStatus::exact}``.
+      The least exact status the provider answered for the break opportunities, the cluster advances and every measurement (exact, estimated or a missing face), in TextResolutionStatus's order. It describes the text engine's answers only, never the fit: a provider using the white-space estimate for breaks (estimate_line_break_opportunities_utf8, TextMetricsProvider's default) makes it estimated at any width. Default: ``{TextResolutionStatus::exact}``.
+
+   .. cpp:member:: std::size_t overflowing_lines
+
+      The lines wider than ParagraphStyle::width (beyond the fit tolerance). When nothing fits (a width of zero, or narrower than a cluster) each line holds the smallest unit the overflow rule allows, a word under ParagraphOverflowWrap::normal and a cluster under break_word, and every line with visible text overflows. Zero when every line fits.
 
    .. cpp:member:: std::uint64_t shaping_calls
 
