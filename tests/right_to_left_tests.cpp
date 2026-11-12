@@ -349,8 +349,12 @@ void test_menu_strip_follows() {
     std::vector<MenuStripItemSpec> items(2U);
     items[0].stable_id = "rtl.menu.file";
     items[0].text = "File";
+    items[0].items.push_back(MenuItemSpec("rtl.menu.file.open", MenuItemKind::command,
+                                          std::make_shared<Command>("open", "Open")));
     items[1].stable_id = "rtl.menu.edit";
     items[1].text = "Edit";
+    items[1].items.push_back(MenuItemSpec("rtl.menu.edit.copy", MenuItemKind::command,
+                                          std::make_shared<Command>("copy", "Copy")));
     (*menu).set_items(std::move(items));
     Hosted hosted = host(menu, {0.0, 0.0, 300.0, 24.0}, "rtl.menu.root");
     // The item nodes carry each item's bounds in window coordinates.
