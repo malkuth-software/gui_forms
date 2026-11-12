@@ -23,7 +23,9 @@
 namespace gui_forms::detail {
 
 template <typename Value, AllocationSubsystem Subsystem>
-class CountedAllocator final {
+// Not final: libstdc++'s std::vector derives from its allocator (the empty
+// base optimisation), and a final allocator cannot be its base.
+class CountedAllocator {
 public:
     using value_type = Value;
     using size_type = std::size_t;
