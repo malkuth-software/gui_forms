@@ -160,7 +160,6 @@ inline constexpr std::array<SchemaCatalogEntry, 142> schema_catalog{{
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
     {"link_label", "LinkLabel", &describe_type<LinkLabel>, &create_type<LinkLabel>, &is_exact_type<LinkLabel>},
     {"command_bar", "CommandBar", &describe_type<CommandBar>, &create_type<CommandBar>, &is_exact_type<CommandBar>},
-    {"text_box_base", "TextBoxBase", &describe_type<TextBoxBase>, &create_type<TextBoxBase>, &is_exact_type<TextBoxBase>},
     {"text_box", "TextBox", &describe_type<TextBox>, &create_type<TextBox>, &is_exact_type<TextBox>},
     {"token_box", "TokenBox", &describe_type<TokenBox>, &create_type<TokenBox>, &is_exact_type<TokenBox>},
     {"search_field", "SearchField", &describe_type<SearchField>, &create_type<SearchField>, &is_exact_type<SearchField>},
@@ -182,7 +181,6 @@ inline constexpr std::array<SchemaCatalogEntry, 142> schema_catalog{{
     {"plot_axis_item", "PlotAxisItem", &describe_type<PlotAxisItem>, &create_type<PlotAxisItem>, &is_exact_type<PlotAxisItem>},
     {"plot_series_item", "PlotSeriesItem", &describe_type<PlotSeriesItem>, &create_type<PlotSeriesItem>, &is_exact_type<PlotSeriesItem>},
     {"plot_annotation_item", "PlotAnnotationItem", &describe_type<PlotAnnotationItem>, &create_type<PlotAnnotationItem>, &is_exact_type<PlotAnnotationItem>},
-    {"list_control", "ListControl", &describe_type<ListControl>, &create_type<ListControl>, &is_exact_type<ListControl>},
     {"list_box", "ListBox", &describe_type<ListBox>, &create_type<ListBox>, &is_exact_type<ListBox>},
     {"checked_list_box", "CheckedListBox", &describe_type<CheckedListBox>, &create_type<CheckedListBox>, &is_exact_type<CheckedListBox>},
     {"combo_box", "ComboBox", &describe_type<ComboBox>, &create_type<ComboBox>, &is_exact_type<ComboBox>},
@@ -199,7 +197,6 @@ inline constexpr std::array<SchemaCatalogEntry, 142> schema_catalog{{
     {"range_control", "RangeControl", &describe_type<RangeControl>, &create_type<RangeControl>, &is_exact_type<RangeControl>},
     {"track_bar", "TrackBar", &describe_type<TrackBar>, &create_type<TrackBar>, &is_exact_type<TrackBar>},
     {"value_bar", "ValueBar", &describe_type<ValueBar>, &create_type<ValueBar>, &is_exact_type<ValueBar>},
-    {"up_down_base", "UpDownBase", &describe_type<UpDownBase>, &create_type<UpDownBase>, &is_exact_type<UpDownBase>},
     {"numeric_up_down", "NumericUpDown", &describe_type<NumericUpDown>, &create_type<NumericUpDown>, &is_exact_type<NumericUpDown>},
     {"domain_up_down", "DomainUpDown", &describe_type<DomainUpDown>, &create_type<DomainUpDown>, &is_exact_type<DomainUpDown>},
     {"color_value_editor", "ColorValueEditor", &describe_type<ColorValueEditor>, &create_type<ColorValueEditor>, &is_exact_type<ColorValueEditor>},
@@ -297,6 +294,9 @@ inline constexpr std::array<SchemaCatalogEntry, 142> schema_catalog{{
     {"binding", "Binding", &describe_type<Binding>, &create_type<Binding>, &is_exact_type<Binding>},
     {"binding_source", "BindingSource", &describe_type<BindingSource>, &create_type<BindingSource>, &is_exact_type<BindingSource>},
     {"binding_context", "BindingContext", &describe_type<BindingContext>, &create_type<BindingContext>, &is_exact_type<BindingContext>},
+    {"text_box_base", "TextBoxBase", &describe_type<TextBoxBase>, &create_type<TextBoxBase>, &is_exact_type<TextBoxBase>},
+    {"list_control", "ListControl", &describe_type<ListControl>, &create_type<ListControl>, &is_exact_type<ListControl>},
+    {"up_down_base", "UpDownBase", &describe_type<UpDownBase>, &create_type<UpDownBase>, &is_exact_type<UpDownBase>},
 }};
 
 } // namespace gui_forms::abi1

@@ -160,7 +160,6 @@ inline constexpr std::array<FormCatalogEntry, 142> form_catalog{{
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
     {"link_label", "LinkLabel", "gui_forms/controls/link_label.hpp", &add_catalog_type<LinkLabel>},
     {"command_bar", "CommandBar", "gui_forms/controls/command_bar.hpp", &add_catalog_type<CommandBar>},
-    {"text_box_base", "TextBoxBase", "gui_forms/controls/text_box_base.hpp", &add_catalog_type<TextBoxBase>},
     {"text_box", "TextBox", "gui_forms/controls/text_box.hpp", &add_catalog_type<TextBox>},
     {"token_box", "TokenBox", "gui_forms/controls/token_box.hpp", &add_catalog_type<TokenBox>},
     {"search_field", "SearchField", "gui_forms/controls/search_field.hpp", &add_catalog_type<SearchField>},
@@ -182,7 +181,6 @@ inline constexpr std::array<FormCatalogEntry, 142> form_catalog{{
     {"plot_axis_item", "PlotAxisItem", "gui_forms/controls/plot_axis_item.hpp", &add_catalog_type<PlotAxisItem>},
     {"plot_series_item", "PlotSeriesItem", "gui_forms/controls/plot_series_item.hpp", &add_catalog_type<PlotSeriesItem>},
     {"plot_annotation_item", "PlotAnnotationItem", "gui_forms/controls/plot_annotation_item.hpp", &add_catalog_type<PlotAnnotationItem>},
-    {"list_control", "ListControl", "gui_forms/controls/list_control.hpp", &add_catalog_type<ListControl>},
     {"list_box", "ListBox", "gui_forms/controls/list_box.hpp", &add_catalog_type<ListBox>},
     {"checked_list_box", "CheckedListBox", "gui_forms/controls/checked_list_box.hpp", &add_catalog_type<CheckedListBox>},
     {"combo_box", "ComboBox", "gui_forms/controls/combo_box.hpp", &add_catalog_type<ComboBox>},
@@ -199,7 +197,6 @@ inline constexpr std::array<FormCatalogEntry, 142> form_catalog{{
     {"range_control", "RangeControl", "gui_forms/controls/range_control.hpp", &add_catalog_type<RangeControl>},
     {"track_bar", "TrackBar", "gui_forms/controls/track_bar.hpp", &add_catalog_type<TrackBar>},
     {"value_bar", "ValueBar", "gui_forms/controls/value_bar.hpp", &add_catalog_type<ValueBar>},
-    {"up_down_base", "UpDownBase", "gui_forms/controls/up_down_base.hpp", &add_catalog_type<UpDownBase>},
     {"numeric_up_down", "NumericUpDown", "gui_forms/controls/numeric_up_down.hpp", &add_catalog_type<NumericUpDown>},
     {"domain_up_down", "DomainUpDown", "gui_forms/controls/domain_up_down.hpp", &add_catalog_type<DomainUpDown>},
     {"color_value_editor", "ColorValueEditor", "gui_forms/controls/color_value_editor.hpp", &add_catalog_type<ColorValueEditor>},
@@ -297,6 +294,9 @@ inline constexpr std::array<FormCatalogEntry, 142> form_catalog{{
     {"binding", "Binding", "gui_forms/binding/binding/binding.hpp", &add_catalog_type<Binding>},
     {"binding_source", "BindingSource", "gui_forms/binding/binding_source/binding_source.hpp", &add_catalog_type<BindingSource>},
     {"binding_context", "BindingContext", "gui_forms/binding/binding_context/binding_context.hpp", &add_catalog_type<BindingContext>},
+    {"text_box_base", "TextBoxBase", "gui_forms/controls/text_box_base.hpp", &add_catalog_type<TextBoxBase>},
+    {"list_control", "ListControl", "gui_forms/controls/list_control.hpp", &add_catalog_type<ListControl>},
+    {"up_down_base", "UpDownBase", "gui_forms/controls/up_down_base.hpp", &add_catalog_type<UpDownBase>},
 }};
 
 } // namespace gui_forms::form_compiler

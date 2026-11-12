@@ -182,33 +182,6 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `scroll` | `ScrollEvent`, by reference |
 | `invoked` | `CommandItem` |
 
-## `text_box_base` (TextBoxBase, control)
-
-| Part | Role | Reuses | Own states |
-|---|---|---|---|
-| `region` | region |  |  |
-| `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
-| `horizontal_track` | track |  | hot, pressed |
-| `horizontal_thumb` | thumb |  | hot, pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
-| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
-| `vertical_track` | track |  | hot, pressed |
-| `vertical_thumb` | thumb |  | hot, pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
-| `scroll_corner` | face |  |  |
-| `focus` | focus |  |  |
-| `face` | face |  |  |
-| `edge` | edge |  |  |
-
-States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
-
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
-
-| Interaction | Payload |
-|---|---|
-| `scroll` | `ScrollEvent`, by reference |
-
 ## `text_box` (TextBox, control)
 
 | Part | Role | Reuses | Own states |
@@ -651,33 +624,6 @@ States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 Properties beyond every control's: `text` (text), `x` (number), `y` (number).
 
 Interactions beyond every control's: none.
-
-## `list_control` (ListControl, control)
-
-| Part | Role | Reuses | Own states |
-|---|---|---|---|
-| `region` | region |  |  |
-| `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
-| `horizontal_track` | track |  | hot, pressed |
-| `horizontal_thumb` | thumb |  | hot, pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
-| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
-| `vertical_track` | track |  | hot, pressed |
-| `vertical_thumb` | thumb |  | hot, pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
-| `scroll_corner` | face |  |  |
-| `focus` | focus |  |  |
-| `face` | face |  |  |
-| `edge` | edge |  |  |
-
-States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
-
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
-
-| Interaction | Payload |
-|---|---|
-| `scroll` | `ScrollEvent`, by reference |
 
 ## `list_box` (ListBox, control)
 
@@ -1350,33 +1296,6 @@ Properties beyond every control's: `default_value` (number), `label` (text), `ma
 | `value_changed` | `double` |
 | `scroll` | `RangeScrollEvent` |
 | `value_committed` | `double` |
-
-## `up_down_base` (UpDownBase, control)
-
-| Part | Role | Reuses | Own states |
-|---|---|---|---|
-| `region` | region |  |  |
-| `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
-| `horizontal_track` | track |  | hot, pressed |
-| `horizontal_thumb` | thumb |  | hot, pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
-| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
-| `vertical_track` | track |  | hot, pressed |
-| `vertical_thumb` | thumb |  | hot, pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
-| `scroll_corner` | face |  |  |
-| `focus` | focus |  |  |
-| `face` | face |  |  |
-| `edge` | edge |  |  |
-
-States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
-
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
-
-| Interaction | Payload |
-|---|---|
-| `scroll` | `ScrollEvent`, by reference |
 
 ## `numeric_up_down` (NumericUpDown, control)
 
@@ -3668,6 +3587,87 @@ Properties beyond every control's: none.
 | Interaction | Payload |
 |---|---|
 | `collection_changed` | `BindingContextChange` |
+
+## `text_box_base` (TextBoxBase, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `viewport` | region |  |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
+| `scroll_corner` | face |  |  |
+| `focus` | focus |  |  |
+| `face` | face |  |  |
+| `edge` | edge |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `scroll` | `ScrollEvent`, by reference |
+
+## `list_control` (ListControl, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `viewport` | region |  |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
+| `scroll_corner` | face |  |  |
+| `focus` | focus |  |  |
+| `face` | face |  |  |
+| `edge` | edge |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `scroll` | `ScrollEvent`, by reference |
+
+## `up_down_base` (UpDownBase, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `viewport` | region |  |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
+| `scroll_corner` | face |  |  |
+| `focus` | focus |  |  |
+| `face` | face |  |  |
+| `edge` | edge |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `scroll` | `ScrollEvent`, by reference |
 
 ## `window` (Window, component)
 
