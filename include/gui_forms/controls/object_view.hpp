@@ -20,6 +20,8 @@
 
 namespace gui_forms {
 
+struct PartPaint;
+
 enum class ObjectGlyph : std::uint8_t {
     folder,
     document,
@@ -326,6 +328,16 @@ private:
     void paint_glyph(Painter& painter, Rect bounds, ObjectGlyph glyph,
                      bool enabled) const;
     void paint_focus_ring_part(Painter& painter, Rect bounds) const;
+    // Right to left (Control::right_to_left) the view keeps its layout in
+    // reading order and mirrors it once at its edges, as ListView does
+    // (details_columns.hpp): every part it paints, clips to, publishes or
+    // describes goes through shown, every text run through
+    // paint_text_shown, and every pointer position through reading_local.
+    [[nodiscard]] bool mirrored() const noexcept;
+    [[nodiscard]] Rect shown(Rect reading) const noexcept;
+    [[nodiscard]] Point reading_local(Point absolute) const noexcept;
+    void paint_shown(Painter& painter, PartPaint part) const;
+    void paint_text_shown(Painter& painter, const PartPaint& part, Point origin, double width) const;
     void invalidate_hover_change(std::optional<std::size_t> previous, std::optional<std::size_t> next);
 
     detail::LendingVector<ObjectViewItem> items_{};
