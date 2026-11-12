@@ -3908,6 +3908,10 @@ Types
 
       One line of text turned a quarter about ``origin`` (see TextOrientation). ``origin`` is the start of the baseline, as for draw_text_utf8; the run advances up the surface (bottom_to_top) or down it (top_to_bottom), so the measured width of the text becomes its height. ``horizontal`` draws as draw_text_utf8. The base implementation is a minimal painter's fallback that draws the run horizontally from ``origin``, unturned; the recording and Skia painters turn it.
 
+   .. cpp:function:: virtual void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font, Color color)
+
+      One line of glyph runs a provider shaped earlier (GlyphRunsView, as a paragraph layout fills them), drawn at ``origin`` (the start of the baseline, as for draw_text_utf8) in ``font``'s size and colour without shaping again. A painter whose own engine shaped them, in its current face table (view.source), draws exactly the pixels draw_text_utf8 draws for view.text; for any other source, or runs whose glyph indices fall outside view.glyphs, it draws view.text with draw_text_utf8. That fallback is the base implementation, which the recording painter keeps (a recorded line is shaped again on replay); the Skia painter draws the runs.
+
    .. cpp:function:: virtual Size measure_text_utf8(std::string_view text, FontSpec font)
 
       Text controls need the same metrics used by the painter for caret hit testing, selection geometry, and horizontal viewport maintenance. The renderer owns those metrics; controls must not guess a fixed glyph width.

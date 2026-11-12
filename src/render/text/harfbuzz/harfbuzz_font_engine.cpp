@@ -1,21 +1,27 @@
 #include "harfbuzz_font_engine.hpp"
 #include "bounded_shape_workspace.hpp"
+#include "reusable_shape_workspace.hpp"
 #include "../../../core/text/unicode/unicode_grapheme.hpp"
 #include "../../../core/types/restrict/restrict.hpp"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_MODULE_H
 #include FT_TRUETYPE_TABLES_H
 #include <hb-ft.h>
 #include <hb.h>
 #include <SheenBidi/SheenBidi.h>
 #include <linebreak.h>
+#include <stx_text_allocation.h>
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace gui_forms::render::text {
@@ -100,19 +106,83 @@ std::vector<DirectionRun> visual_direction_runs(std::string_view utf8) {
     return runs;
 }
 
+// The engine's FreeType heap calls on this thread (allocations and
+// reallocations, not frees): HarfBuzzFontEngine::thread_native_allocations.
+thread_local std::uint64_t freetype_allocations = 0U;
+
+// The engine's FreeType memory: the C heap, as FreeType's default, with each
+// allocating call counted.
+void* counted_freetype_allocate(FT_Memory, long size) {
+    ++freetype_allocations;
+    void* const block = std::malloc(static_cast<std::size_t>(size));
+    return block;
+}
+
+void counted_freetype_release(FT_Memory, void* block) {
+    std::free(block);
+}
+
+void* counted_freetype_reallocate(FT_Memory, long, long new_size, void* block) {
+    ++freetype_allocations;
+    void* const moved = std::realloc(block, static_cast<std::size_t>(new_size));
+    return moved;
+}
+
+// The callbacks take their types from FreeType's declarations.
+static_assert(std::is_same_v<decltype(&counted_freetype_allocate), FT_Alloc_Func>);
+static_assert(std::is_same_v<decltype(&counted_freetype_release), FT_Free_Func>);
+static_assert(std::is_same_v<decltype(&counted_freetype_reallocate), FT_Realloc_Func>);
+
+// A FreeType library over the counted memory, set up as FT_Init_FreeType
+// sets one up (default modules, then properties from FREETYPE_PROPERTIES).
+// Not movable: the library keeps the address of `memory`.
 struct LibraryOwner final {
+    FT_MemoryRec_ memory{};
     FT_Library value{};
     LibraryOwner() {
-        const FT_Error initialized = FT_Init_FreeType(&value);
+        memory.user = nullptr;
+        memory.alloc = counted_freetype_allocate;
+        memory.free = counted_freetype_release;
+        memory.realloc = counted_freetype_reallocate;
+        const FT_Error initialized = FT_New_Library(&memory, &value);
         if (initialized != 0 || value == nullptr) {
             throw std::runtime_error("FreeType initialization failed");
         }
+        FT_Add_Default_Modules(value);
+        FT_Set_Default_Properties(value);
     }
     LibraryOwner(const LibraryOwner&) = delete;
     LibraryOwner& operator=(const LibraryOwner&) = delete;
     ~LibraryOwner() {
-        if (value != nullptr) FT_Done_FreeType(value);
+        if (value != nullptr) FT_Done_Library(value);
     }
+};
+
+// A process-unique identity for each engine (GlyphSource::engine): never
+// zero, never reused.
+[[nodiscard]] std::uint64_t next_engine_identity() noexcept {
+    static std::atomic<std::uint64_t> next{1U};
+    const std::uint64_t identity = next.fetch_add(1U, std::memory_order_relaxed);
+    return identity;
+}
+
+// Installs a SheenBidi arena for one bidi analysis (none: the C heap) and
+// restores the one installed before. Declared before the BidiOwner whose
+// objects it serves, so that they are released while it is installed.
+class SheenBidiArenaScope final {
+public:
+    explicit SheenBidiArenaScope(StxSheenBidiArena* arena) noexcept : active_(arena != nullptr) {
+        if (active_) previous_ = stx_sheenbidi_use_arena(arena);
+    }
+    ~SheenBidiArenaScope() {
+        if (active_) static_cast<void>(stx_sheenbidi_use_arena(previous_));
+    }
+    SheenBidiArenaScope(const SheenBidiArenaScope&) = delete;
+    SheenBidiArenaScope& operator=(const SheenBidiArenaScope&) = delete;
+
+private:
+    StxSheenBidiArena* previous_{};
+    bool active_{};
 };
 
 struct ReleaseFace final {
@@ -303,6 +373,8 @@ public:
     std::vector<Face> faces{};
     std::uint64_t next_face_id{1U};
     std::size_t bounded_face_limit{};
+    // This engine's GlyphSource::engine.
+    std::uint64_t identity{next_engine_identity()};
 
     [[nodiscard]] std::vector<Face*> candidates(FontSpec font) {
         std::vector<Face*> result{};
@@ -330,6 +402,37 @@ public:
         }
         std::stable_sort(result.begin(), result.end(), FacePreference{font});
         return result;
+    }
+
+    // candidates()'s answer written into `output` instead of a new vector:
+    // the same faces in the same order (FacePreference, stable, by
+    // insertion), opening a family face the first time text names its
+    // family as candidates() does. Returns the count; std::length_error when
+    // `output` is too short.
+    [[nodiscard]] std::size_t fill_candidates(FontSpec font, std::span<Face*> output) {
+        std::size_t count = 0U;
+        const FacePreference preference{font};
+        for (Face& face : faces) {
+            bool candidate = false;
+            if (face.named_family != 0U) {
+                if (face.named_family != font.family.value) continue;
+                if (face.face == nullptr && (!face.loader || !open_lazy(face))) continue;
+                candidate = true;
+            } else {
+                candidate = !face.role || *face.role == font.role ||
+                            (font.role != FontRole::content && *face.role == FontRole::content);
+            }
+            if (!candidate) continue;
+            if (count == output.size()) throw std::length_error("Face candidate capacity exceeded");
+            std::size_t position = count;
+            while (position != 0U && preference(&face, output[position - 1U])) {
+                output[position] = output[position - 1U];
+                --position;
+            }
+            output[position] = &face;
+            ++count;
+        }
+        return count;
     }
 
     [[nodiscard]] bool has_primary(FontRole role) const noexcept {
@@ -457,10 +560,13 @@ public:
         HarfBuzzBufferOwner buffer{nullptr, hb_buffer_destroy};
     };
 
-    template <bool Bounded = false>
+    // Bounded: the run is written into `bounded`'s arrays (Output is
+    // BoundedShapedText or StagedShaping, which share these members) and
+    // never grows them.
+    template <bool Bounded = false, typename Output = BoundedShapedText>
     void append_run(ShapeCall& call, ShapedText& result, Face& face, std::string_view utf8,
                     Utf8Range range, FontSpec font, double run_origin,
-                    bool add_trailing_spacing, bool rtl, BoundedShapedText* bounded = nullptr) {
+                    bool add_trailing_spacing, bool rtl, Output* bounded = nullptr) {
         if constexpr (Bounded) {
             if ((*bounded).run_count == (*bounded).run_capacity) {
                 throw std::length_error("Prepared run capacity exceeded");
@@ -657,7 +763,7 @@ public:
         if constexpr (Bounded) {
             (*bounded).runs[(*bounded).run_count] = BoundedFontRun{
                 .face = face.id, .source_range = range,
-                .glyph_begin = (*bounded).glyph_count, .glyph_count = count};
+                .glyph_begin = (*bounded).glyph_count, .glyph_count = count, .right_to_left = rtl};
             ++(*bounded).run_count;
             (*bounded).glyph_count += count;
         } else {
@@ -707,32 +813,38 @@ public:
     // visual covers twice that count. No array grows; native owners stay local.
     // Overlap rule: the text, edges and the four scratch arrays share no
     // element (asserted in debug and sanitizer builds), the promise
-    // fill_bounded_parts's restricted parameters make.
-    void fill_bounded_runs(const std::string_view utf8, const FontSpec font,
+    // fill_bounded_parts's restricted parameters make. `call` holds the
+    // call's fonts and HarfBuzz buffer (a buffer lent to it is reused);
+    // `arena`, when not null, serves the bidi analysis's SheenBidi
+    // allocations. Output is BoundedShapedText or StagedShaping.
+    template <typename Output>
+    void fill_bounded_runs(const std::string_view utf8, const FontSpec font, ShapeCall& call,
+        StxSheenBidiArena* const arena,
         const std::span<Face* const> candidates, const std::span<const std::size_t> edges,
         const std::span<char32_t> scalar_scratch, const std::span<WorkspaceFontSegment> segments,
         const std::span<WorkspaceDirectionRun> directions, const std::span<WorkspaceVisualSegment> visual,
-        BoundedShapedText& output) {
+        Output& output) {
         namespace overlap = gui_forms::detail;
         const std::array<overlap::ByteRange, 4> written{overlap::byte_range(scalar_scratch),
             overlap::byte_range(segments), overlap::byte_range(directions), overlap::byte_range(visual)};
         const std::array<overlap::ByteRange, 2> read{
             overlap::ByteRange{utf8.data(), utf8.size()}, overlap::byte_range(edges)};
         overlap::require_disjoint_writes(written, read);
-        fill_bounded_parts(utf8.data(), utf8.size(), font, candidates, edges.data(), edges.size(),
+        fill_bounded_parts(utf8.data(), utf8.size(), font, call, arena, candidates, edges.data(), edges.size(),
             scalar_scratch.data(), scalar_scratch.size(), segments.data(), segments.size(), directions.data(),
             directions.size(), visual.data(), visual.size(), output);
     }
 
     // fill_bounded_runs's work. Restricted parameters: no element is reached
     // through two of them (fill_bounded_runs checks it).
+    template <typename Output>
     void fill_bounded_parts(const char* GUI_FORMS_RESTRICT text, const std::size_t text_size, const FontSpec font,
-        const std::span<Face* const> candidates, const std::size_t* GUI_FORMS_RESTRICT edge_data,
+        ShapeCall& call, StxSheenBidiArena* const arena, const std::span<Face* const> candidates, const std::size_t* GUI_FORMS_RESTRICT edge_data,
         const std::size_t edge_count, char32_t* GUI_FORMS_RESTRICT scalar_data, const std::size_t scalar_size,
         WorkspaceFontSegment* GUI_FORMS_RESTRICT segment_data, const std::size_t segment_size,
         WorkspaceDirectionRun* GUI_FORMS_RESTRICT direction_data, const std::size_t direction_size,
         WorkspaceVisualSegment* GUI_FORMS_RESTRICT visual_data, const std::size_t visual_size,
-        BoundedShapedText& output) {
+        Output& output) {
         const std::string_view utf8(text, text_size);
         const std::span<const std::size_t> edges(edge_data, edge_count);
         const std::span<char32_t> scalar_scratch(scalar_data, scalar_size);
@@ -762,6 +874,7 @@ public:
             }
         }
 
+        const SheenBidiArenaScope arena_scope(arena);
         BidiOwner bidi{};
         const SBCodepointSequence sequence{SBStringEncodingUTF8, utf8.data(), utf8.size()};
         bidi.algorithm = SBAlgorithmCreate(&sequence);
@@ -809,7 +922,6 @@ public:
         }
         if (visual_count > output.run_capacity) throw std::length_error("Prepared run capacity exceeded");
         ShapedText metrics{};
-        Impl::ShapeCall call{};
         double origin = 0;
         for (std::size_t index = 0; index < visual_count; ++index) {
             const WorkspaceVisualSegment& segment = visual[index];
@@ -1095,7 +1207,8 @@ std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_bounded(
     const std::span<WorkspaceDirectionRun> direction_scratch(directions.get(), scalar_capacity);
     const std::span<WorkspaceVisualSegment> visual_scratch(visual.get(), visual_capacity);
     const std::span<Impl::Face* const> selected_faces(candidates.data(), candidate_count);
-    (*impl_).fill_bounded_runs(utf8, font, selected_faces, edges, scalar_scratch,
+    Impl::ShapeCall call{};
+    (*impl_).fill_bounded_runs(utf8, font, call, nullptr, selected_faces, edges, scalar_scratch,
         segment_scratch, direction_scratch, visual_scratch, output);
     return owner;
 }
@@ -1155,7 +1268,9 @@ std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_with_workspace(
             staged.run_capacity = limits.runs;
             staged.glyph_capacity = limits.glyphs;
             try {
-                (*impl_).fill_bounded_runs(utf8, font, selected, edges, scalars, segments, directions, visual, staged);
+                Impl::ShapeCall call{};
+                (*impl_).fill_bounded_runs(utf8, font, call, nullptr, selected, edges, scalars, segments, directions,
+                                           visual, staged);
             } catch (...) {
                 staged.run_capacity = run_capacity;
                 staged.glyph_capacity = glyph_capacity;
@@ -1168,6 +1283,121 @@ std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_with_workspace(
     }
     std::unique_ptr<BoundedShapedText> result = workspace.copy_result(limits.output_bytes, peak);
     return result;
+}
+
+std::unique_ptr<ReusableShapeWorkspace> HarfBuzzFontEngine::create_reusable_workspace() const {
+    std::unique_ptr<ReusableShapeWorkspace> workspace = std::make_unique<ReusableShapeWorkspace>((*impl_).identity);
+    return workspace;
+}
+
+GlyphSource HarfBuzzFontEngine::glyph_source() const noexcept {
+    GlyphSource source{};
+    source.engine = (*impl_).identity;
+    source.generation = static_cast<std::uint64_t>((*impl_).faces.size());
+    return source;
+}
+
+namespace {
+
+// Defined with the line metrics below.
+PrimaryLineMetrics sized_line_metrics(FT_Face face, FontFaceId id, FontSpec font);
+
+// Lends a reusable workspace's HarfBuzz buffer to one shape call and takes
+// it back when the call ends, also when shaping throws.
+class BufferLoan final {
+public:
+    BufferLoan(HarfBuzzBufferOwner& home, HarfBuzzBufferOwner& borrower) noexcept
+        : home_(home), borrower_(borrower) {
+        borrower_ = std::move(home_);
+    }
+    ~BufferLoan() { home_ = std::move(borrower_); }
+    BufferLoan(const BufferLoan&) = delete;
+    BufferLoan& operator=(const BufferLoan&) = delete;
+
+private:
+    HarfBuzzBufferOwner& home_;
+    HarfBuzzBufferOwner& borrower_;
+};
+
+[[nodiscard]] TextExtent refused_extent() noexcept {
+    TextExtent refused{};
+    refused.status = TextResolutionStatus::invalid_request;
+    return refused;
+}
+
+} // namespace
+
+TextExtent HarfBuzzFontEngine::shape_in_workspace(const std::string_view utf8, const FontSpec font,
+                                                  ReusableShapeWorkspace& workspace) {
+#if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
+    (*impl_).diagnostics = TextLayoutDiagnostics{};
+#endif
+    workspace.forget_shaping();
+    // Checks, before anything is shaped.
+    if (workspace.engine_ != (*impl_).identity || utf8.size() > workspace.capacity_ || !valid_font_spec(font) ||
+        utf8.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        return refused_extent();
+    }
+    const Utf8ValidationResult validation = validate_utf8(utf8);
+    if (!validation.valid()) return refused_extent();
+    std::array<Impl::Face*, maximum_faces> candidates{};
+    const std::size_t candidate_count = (*impl_).fill_candidates(font, candidates);
+    const std::uint64_t generation = static_cast<std::uint64_t>((*impl_).faces.size());
+    TextExtent extent{};
+    // As resolve(): without a primary face nothing is measured.
+    if (!(*impl_).has_primary(font.role) || candidate_count == 0U) {
+        extent.status = TextResolutionStatus::missing_primary_face;
+        workspace.keep_shaping(utf8.size(), generation);
+        return extent;
+    }
+    StagedShaping& staged = workspace.staged_;
+    if (utf8.empty()) {
+        staged.height = font.size;
+    } else {
+        const detail::GraphemeStorageStatus segmented = workspace.graphemes_.fill(utf8);
+        if (segmented != detail::GraphemeStorageStatus::success) return refused_extent();
+        const std::span<const std::size_t> edges = workspace.graphemes_.boundaries();
+        const std::size_t scalar_count = validation.scalar_count;
+        const std::span<char32_t> scalars(workspace.scalars_.data(), scalar_count);
+        const std::span<WorkspaceFontSegment> segments(workspace.segments_.data(), scalar_count);
+        const std::span<WorkspaceDirectionRun> directions(workspace.directions_.data(), scalar_count);
+        const std::span<WorkspaceVisualSegment> visual(workspace.visual_.data(), scalar_count * 2U);
+        const std::span<Impl::Face* const> selected(candidates.data(), candidate_count);
+        Impl::ShapeCall call{};
+        const BufferLoan loan(workspace.buffer_, call.buffer);
+        try {
+            (*impl_).fill_bounded_runs(utf8, font, call, workspace.arena_.get(), selected, edges, scalars, segments,
+                                       directions, visual, staged);
+        } catch (const std::length_error&) {
+            // More runs or glyphs than the workspace stages.
+            workspace.forget_shaping();
+            return refused_extent();
+        } catch (...) {
+            workspace.forget_shaping();
+            throw;
+        }
+    }
+    const Impl::Face& primary = *candidates[0];
+    extent.logical_size = {staged.width, staged.height};
+    extent.ascent = staged.ascent;
+    extent.descent = staged.descent;
+    extent.line_gap = sized_line_metrics(primary.face, primary.id, font).line_gap_device;
+    extent.status = staged.missing_primary_face
+        ? TextResolutionStatus::missing_primary_face
+        : staged.missing_clusters != 0U
+            ? TextResolutionStatus::missing_cluster_coverage
+            : TextResolutionStatus::exact;
+    workspace.keep_shaping(utf8.size(), generation);
+    return extent;
+}
+
+NativeAllocationCounts HarfBuzzFontEngine::thread_native_allocations() noexcept {
+    NativeAllocationCounts counts{};
+    counts.freetype = freetype_allocations;
+    counts.harfbuzz = stx_text_harfbuzz_allocations();
+    counts.sheenbidi_heap = stx_text_sheenbidi_heap_allocations();
+    counts.sheenbidi_arena = stx_text_sheenbidi_arena_allocations();
+    return counts;
 }
 
 std::size_t HarfBuzzFontEngine::face_count() const noexcept {

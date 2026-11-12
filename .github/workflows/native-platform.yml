@@ -308,7 +308,7 @@ jobs:
         if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && inputs.cold_build != true
         with:
           path: .ci/stx-package
-          key: gui-stx-package-v1-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
+          key: gui-stx-package-v1-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/stx_text_allocation/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       # The engine gate test writes its manifest for the engine-gate job (T2 E11).
       # A pull request runs the whole suite but builds only what its tests run
       # (--test-targets-only: no program, example, bundle or package, and no

@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -13,6 +14,8 @@
 #include <vector>
 
 namespace gui_forms {
+
+class ShapingWorkspace;
 
 // Text resolution is deliberately separate from FontSpec. FontSpec is the
 // committed renderer-neutral request; this record describes what a terminal
@@ -165,6 +168,24 @@ public:
     // bundled engine's painters answer from one shaping, with its clusters.
     [[nodiscard]] virtual TextResolutionStatus fill_cluster_advances_utf8(
         std::string_view utf8, FontSpec effective_font, std::span<double> advances);
+    // A reusable shaping workspace for shape_in_workspace_utf8
+    // (include/gui_forms/typography/shaping_workspace/), empty of capacity;
+    // the caller owns it and reserves it before use. Null when the provider
+    // has none, which is the default: callers then use the calls above. The
+    // bundled engine's painters create one. May allocate.
+    [[nodiscard]] virtual std::unique_ptr<ShapingWorkspace> create_shaping_workspace();
+    // One shaping of `utf8` in `effective_font` into `workspace`, which this
+    // provider created and which holds at least utf8.size() bytes: the
+    // shaping measure_text_extent_utf8 measures and Painter::draw_text_utf8
+    // draws, answered with the same extent and status, and kept in the
+    // workspace (its glyphs, runs and cluster advances) until the next
+    // shaping into it. With a reserved workspace the bundled engine
+    // allocates nothing here once each face the text needs has been opened.
+    // The status is invalid_request, with the workspace holding no shaping,
+    // for invalid UTF-8, an invalid font, a workspace of another provider or
+    // one too small, or (the default) a provider without workspaces.
+    [[nodiscard]] virtual TextExtent shape_in_workspace_utf8(
+        ShapingWorkspace& workspace, std::string_view utf8, FontSpec effective_font);
 };
 
 // Deterministic renderer-free line breaking: a line may end after a run of

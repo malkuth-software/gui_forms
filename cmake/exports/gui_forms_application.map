@@ -147,6 +147,7 @@
     _ZGVZN9gui_forms11EffectFrame*;
     _ZGVZN9gui_forms11EffectSetup*;
     _ZGVZN9gui_forms11FontCommand*;
+    _ZGVZN9gui_forms11GlyphSource*;
     _ZGVZN9gui_forms11GraphResult*;
     _ZGVZN9gui_forms11GridPattern*;
     _ZGVZN9gui_forms11HelpCatalog*;
@@ -302,6 +303,7 @@
     _ZGVZN9gui_forms13FlexItemCross*;
     _ZGVZN9gui_forms13FlexItemInput*;
     _ZGVZN9gui_forms13FlexItemStyle*;
+    _ZGVZN9gui_forms13GlyphRunsView*;
     _ZGVZN9gui_forms13GridItemInput*;
     _ZGVZN9gui_forms13GridItemStyle*;
     _ZGVZN9gui_forms13GridLevelBand*;
@@ -388,6 +390,7 @@
     _ZGVZN9gui_forms14GalleryCommand*;
     _ZGVZN9gui_forms14GalleryPreview*;
     _ZGVZN9gui_forms14GlyphPlacement*;
+    _ZGVZN9gui_forms14GlyphRunRecord*;
     _ZGVZN9gui_forms14GridItemLayout*;
     _ZGVZN9gui_forms14GridItemResult*;
     _ZGVZN9gui_forms14HelpBookLabels*;
@@ -518,6 +521,7 @@
     _ZGVZN9gui_forms15PartCornerRadii*;
     _ZGVZN9gui_forms15PartDeclaration*;
     _ZGVZN9gui_forms15PointerSettings*;
+    _ZGVZN9gui_forms15PositionedGlyph*;
     _ZGVZN9gui_forms15PreparedTextKey*;
     _ZGVZN9gui_forms15PrimitiveTarget*;
     _ZGVZN9gui_forms15ProgressBubbles*;
@@ -637,6 +641,7 @@
     _ZGVZN9gui_forms16SevenSegmentCell*;
     _ZGVZN9gui_forms16ShadowFrameScope*;
     _ZGVZN9gui_forms16ShadowStackState*;
+    _ZGVZN9gui_forms16ShapingWorkspace*;
     _ZGVZN9gui_forms16SourceByteOffset*;
     _ZGVZN9gui_forms16SplitChangeEvent*;
     _ZGVZN9gui_forms16SubSurfaceThread*;
@@ -727,6 +732,7 @@
     _ZGVZN9gui_forms17RibbonLadderEntry*;
     _ZGVZN9gui_forms17RuleSetStatistics*;
     _ZGVZN9gui_forms17ScrollableControl*;
+    _ZGVZN9gui_forms17ShapedGlyphCounts*;
     _ZGVZN9gui_forms17SplitSeamGeometry*;
     _ZGVZN9gui_forms17SplitSeamSnapshot*;
     _ZGVZN9gui_forms17SplitterMoveEvent*;
@@ -808,6 +814,7 @@
     _ZGVZN9gui_forms18PageControlContent*;
     _ZGVZN9gui_forms18PageSelectingEvent*;
     _ZGVZN9gui_forms18PaintLeaseSnapshot*;
+    _ZGVZN9gui_forms18ParagraphGlyphRuns*;
     _ZGVZN9gui_forms18PartGeometryBuffer*;
     _ZGVZN9gui_forms18PlotAnnotationItem*;
     _ZGVZN9gui_forms18PreparedFontSource*;
@@ -1604,6 +1611,7 @@
     _ZGVZNK9gui_forms11EffectFrame*;
     _ZGVZNK9gui_forms11EffectSetup*;
     _ZGVZNK9gui_forms11FontCommand*;
+    _ZGVZNK9gui_forms11GlyphSource*;
     _ZGVZNK9gui_forms11GraphResult*;
     _ZGVZNK9gui_forms11GridPattern*;
     _ZGVZNK9gui_forms11HelpCatalog*;
@@ -1759,6 +1767,7 @@
     _ZGVZNK9gui_forms13FlexItemCross*;
     _ZGVZNK9gui_forms13FlexItemInput*;
     _ZGVZNK9gui_forms13FlexItemStyle*;
+    _ZGVZNK9gui_forms13GlyphRunsView*;
     _ZGVZNK9gui_forms13GridItemInput*;
     _ZGVZNK9gui_forms13GridItemStyle*;
     _ZGVZNK9gui_forms13GridLevelBand*;
@@ -1845,6 +1854,7 @@
     _ZGVZNK9gui_forms14GalleryCommand*;
     _ZGVZNK9gui_forms14GalleryPreview*;
     _ZGVZNK9gui_forms14GlyphPlacement*;
+    _ZGVZNK9gui_forms14GlyphRunRecord*;
     _ZGVZNK9gui_forms14GridItemLayout*;
     _ZGVZNK9gui_forms14GridItemResult*;
     _ZGVZNK9gui_forms14HelpBookLabels*;
@@ -1975,6 +1985,7 @@
     _ZGVZNK9gui_forms15PartCornerRadii*;
     _ZGVZNK9gui_forms15PartDeclaration*;
     _ZGVZNK9gui_forms15PointerSettings*;
+    _ZGVZNK9gui_forms15PositionedGlyph*;
     _ZGVZNK9gui_forms15PreparedTextKey*;
     _ZGVZNK9gui_forms15PrimitiveTarget*;
     _ZGVZNK9gui_forms15ProgressBubbles*;
@@ -2094,6 +2105,7 @@
     _ZGVZNK9gui_forms16SevenSegmentCell*;
     _ZGVZNK9gui_forms16ShadowFrameScope*;
     _ZGVZNK9gui_forms16ShadowStackState*;
+    _ZGVZNK9gui_forms16ShapingWorkspace*;
     _ZGVZNK9gui_forms16SourceByteOffset*;
     _ZGVZNK9gui_forms16SplitChangeEvent*;
     _ZGVZNK9gui_forms16SubSurfaceThread*;
@@ -2184,6 +2196,7 @@
     _ZGVZNK9gui_forms17RibbonLadderEntry*;
     _ZGVZNK9gui_forms17RuleSetStatistics*;
     _ZGVZNK9gui_forms17ScrollableControl*;
+    _ZGVZNK9gui_forms17ShapedGlyphCounts*;
     _ZGVZNK9gui_forms17SplitSeamGeometry*;
     _ZGVZNK9gui_forms17SplitSeamSnapshot*;
     _ZGVZNK9gui_forms17SplitterMoveEvent*;
@@ -2265,6 +2278,7 @@
     _ZGVZNK9gui_forms18PageControlContent*;
     _ZGVZNK9gui_forms18PageSelectingEvent*;
     _ZGVZNK9gui_forms18PaintLeaseSnapshot*;
+    _ZGVZNK9gui_forms18ParagraphGlyphRuns*;
     _ZGVZNK9gui_forms18PartGeometryBuffer*;
     _ZGVZNK9gui_forms18PlotAnnotationItem*;
     _ZGVZNK9gui_forms18PreparedFontSource*;
@@ -3123,6 +3137,7 @@
     _ZN9gui_forms11EffectFrame*;
     _ZN9gui_forms11EffectSetup*;
     _ZN9gui_forms11FontCommand*;
+    _ZN9gui_forms11GlyphSource*;
     _ZN9gui_forms11GraphResult*;
     _ZN9gui_forms11GridPattern*;
     _ZN9gui_forms11HelpCatalog*;
@@ -3312,6 +3327,7 @@
     _ZN9gui_forms13FlexItemCross*;
     _ZN9gui_forms13FlexItemInput*;
     _ZN9gui_forms13FlexItemStyle*;
+    _ZN9gui_forms13GlyphRunsView*;
     _ZN9gui_forms13GridItemInput*;
     _ZN9gui_forms13GridItemStyle*;
     _ZN9gui_forms13GridLevelBand*;
@@ -3414,6 +3430,7 @@
     _ZN9gui_forms14GalleryCommand*;
     _ZN9gui_forms14GalleryPreview*;
     _ZN9gui_forms14GlyphPlacement*;
+    _ZN9gui_forms14GlyphRunRecord*;
     _ZN9gui_forms14GridItemLayout*;
     _ZN9gui_forms14GridItemResult*;
     _ZN9gui_forms14HelpBookLabels*;
@@ -3590,6 +3607,7 @@
     _ZN9gui_forms15PartCornerRadii*;
     _ZN9gui_forms15PartDeclaration*;
     _ZN9gui_forms15PointerSettings*;
+    _ZN9gui_forms15PositionedGlyph*;
     _ZN9gui_forms15PreparedTextKey*;
     _ZN9gui_forms15PrimitiveTarget*;
     _ZN9gui_forms15ProgressBubbles*;
@@ -3747,6 +3765,7 @@
     _ZN9gui_forms16SevenSegmentCell*;
     _ZN9gui_forms16ShadowFrameScope*;
     _ZN9gui_forms16ShadowStackState*;
+    _ZN9gui_forms16ShapingWorkspace*;
     _ZN9gui_forms16SourceByteOffset*;
     _ZN9gui_forms16SplitChangeEvent*;
     _ZN9gui_forms16SubSurfaceThread*;
@@ -3897,6 +3916,7 @@
     _ZN9gui_forms17RibbonLadderEntry*;
     _ZN9gui_forms17RuleSetStatistics*;
     _ZN9gui_forms17ScrollableControl*;
+    _ZN9gui_forms17ShapedGlyphCounts*;
     _ZN9gui_forms17SplitSeamGeometry*;
     _ZN9gui_forms17SplitSeamSnapshot*;
     _ZN9gui_forms17SplitterMoveEvent*;
@@ -4030,6 +4050,7 @@
     _ZN9gui_forms18PageControlContent*;
     _ZN9gui_forms18PageSelectingEvent*;
     _ZN9gui_forms18PaintLeaseSnapshot*;
+    _ZN9gui_forms18ParagraphGlyphRuns*;
     _ZN9gui_forms18PartGeometryBuffer*;
     _ZN9gui_forms18PlotAnnotationItem*;
     _ZN9gui_forms18PreparedFontSource*;
@@ -5794,6 +5815,7 @@
     _ZNK[RO]9gui_forms11EffectFrame*;
     _ZNK[RO]9gui_forms11EffectSetup*;
     _ZNK[RO]9gui_forms11FontCommand*;
+    _ZNK[RO]9gui_forms11GlyphSource*;
     _ZNK[RO]9gui_forms11GraphResult*;
     _ZNK[RO]9gui_forms11GridPattern*;
     _ZNK[RO]9gui_forms11HelpCatalog*;
@@ -5949,6 +5971,7 @@
     _ZNK[RO]9gui_forms13FlexItemCross*;
     _ZNK[RO]9gui_forms13FlexItemInput*;
     _ZNK[RO]9gui_forms13FlexItemStyle*;
+    _ZNK[RO]9gui_forms13GlyphRunsView*;
     _ZNK[RO]9gui_forms13GridItemInput*;
     _ZNK[RO]9gui_forms13GridItemStyle*;
     _ZNK[RO]9gui_forms13GridLevelBand*;
@@ -6035,6 +6058,7 @@
     _ZNK[RO]9gui_forms14GalleryCommand*;
     _ZNK[RO]9gui_forms14GalleryPreview*;
     _ZNK[RO]9gui_forms14GlyphPlacement*;
+    _ZNK[RO]9gui_forms14GlyphRunRecord*;
     _ZNK[RO]9gui_forms14GridItemLayout*;
     _ZNK[RO]9gui_forms14GridItemResult*;
     _ZNK[RO]9gui_forms14HelpBookLabels*;
@@ -6165,6 +6189,7 @@
     _ZNK[RO]9gui_forms15PartCornerRadii*;
     _ZNK[RO]9gui_forms15PartDeclaration*;
     _ZNK[RO]9gui_forms15PointerSettings*;
+    _ZNK[RO]9gui_forms15PositionedGlyph*;
     _ZNK[RO]9gui_forms15PreparedTextKey*;
     _ZNK[RO]9gui_forms15PrimitiveTarget*;
     _ZNK[RO]9gui_forms15ProgressBubbles*;
@@ -6284,6 +6309,7 @@
     _ZNK[RO]9gui_forms16SevenSegmentCell*;
     _ZNK[RO]9gui_forms16ShadowFrameScope*;
     _ZNK[RO]9gui_forms16ShadowStackState*;
+    _ZNK[RO]9gui_forms16ShapingWorkspace*;
     _ZNK[RO]9gui_forms16SourceByteOffset*;
     _ZNK[RO]9gui_forms16SplitChangeEvent*;
     _ZNK[RO]9gui_forms16SubSurfaceThread*;
@@ -6374,6 +6400,7 @@
     _ZNK[RO]9gui_forms17RibbonLadderEntry*;
     _ZNK[RO]9gui_forms17RuleSetStatistics*;
     _ZNK[RO]9gui_forms17ScrollableControl*;
+    _ZNK[RO]9gui_forms17ShapedGlyphCounts*;
     _ZNK[RO]9gui_forms17SplitSeamGeometry*;
     _ZNK[RO]9gui_forms17SplitSeamSnapshot*;
     _ZNK[RO]9gui_forms17SplitterMoveEvent*;
@@ -6455,6 +6482,7 @@
     _ZNK[RO]9gui_forms18PageControlContent*;
     _ZNK[RO]9gui_forms18PageSelectingEvent*;
     _ZNK[RO]9gui_forms18PaintLeaseSnapshot*;
+    _ZNK[RO]9gui_forms18ParagraphGlyphRuns*;
     _ZNK[RO]9gui_forms18PartGeometryBuffer*;
     _ZNK[RO]9gui_forms18PlotAnnotationItem*;
     _ZNK[RO]9gui_forms18PreparedFontSource*;
@@ -7251,6 +7279,7 @@
     _ZN[KRO]9gui_forms11EffectFrame*;
     _ZN[KRO]9gui_forms11EffectSetup*;
     _ZN[KRO]9gui_forms11FontCommand*;
+    _ZN[KRO]9gui_forms11GlyphSource*;
     _ZN[KRO]9gui_forms11GraphResult*;
     _ZN[KRO]9gui_forms11GridPattern*;
     _ZN[KRO]9gui_forms11HelpCatalog*;
@@ -7406,6 +7435,7 @@
     _ZN[KRO]9gui_forms13FlexItemCross*;
     _ZN[KRO]9gui_forms13FlexItemInput*;
     _ZN[KRO]9gui_forms13FlexItemStyle*;
+    _ZN[KRO]9gui_forms13GlyphRunsView*;
     _ZN[KRO]9gui_forms13GridItemInput*;
     _ZN[KRO]9gui_forms13GridItemStyle*;
     _ZN[KRO]9gui_forms13GridLevelBand*;
@@ -7492,6 +7522,7 @@
     _ZN[KRO]9gui_forms14GalleryCommand*;
     _ZN[KRO]9gui_forms14GalleryPreview*;
     _ZN[KRO]9gui_forms14GlyphPlacement*;
+    _ZN[KRO]9gui_forms14GlyphRunRecord*;
     _ZN[KRO]9gui_forms14GridItemLayout*;
     _ZN[KRO]9gui_forms14GridItemResult*;
     _ZN[KRO]9gui_forms14HelpBookLabels*;
@@ -7622,6 +7653,7 @@
     _ZN[KRO]9gui_forms15PartCornerRadii*;
     _ZN[KRO]9gui_forms15PartDeclaration*;
     _ZN[KRO]9gui_forms15PointerSettings*;
+    _ZN[KRO]9gui_forms15PositionedGlyph*;
     _ZN[KRO]9gui_forms15PreparedTextKey*;
     _ZN[KRO]9gui_forms15PrimitiveTarget*;
     _ZN[KRO]9gui_forms15ProgressBubbles*;
@@ -7741,6 +7773,7 @@
     _ZN[KRO]9gui_forms16SevenSegmentCell*;
     _ZN[KRO]9gui_forms16ShadowFrameScope*;
     _ZN[KRO]9gui_forms16ShadowStackState*;
+    _ZN[KRO]9gui_forms16ShapingWorkspace*;
     _ZN[KRO]9gui_forms16SourceByteOffset*;
     _ZN[KRO]9gui_forms16SplitChangeEvent*;
     _ZN[KRO]9gui_forms16SubSurfaceThread*;
@@ -7831,6 +7864,7 @@
     _ZN[KRO]9gui_forms17RibbonLadderEntry*;
     _ZN[KRO]9gui_forms17RuleSetStatistics*;
     _ZN[KRO]9gui_forms17ScrollableControl*;
+    _ZN[KRO]9gui_forms17ShapedGlyphCounts*;
     _ZN[KRO]9gui_forms17SplitSeamGeometry*;
     _ZN[KRO]9gui_forms17SplitSeamSnapshot*;
     _ZN[KRO]9gui_forms17SplitterMoveEvent*;
@@ -7912,6 +7946,7 @@
     _ZN[KRO]9gui_forms18PageControlContent*;
     _ZN[KRO]9gui_forms18PageSelectingEvent*;
     _ZN[KRO]9gui_forms18PaintLeaseSnapshot*;
+    _ZN[KRO]9gui_forms18ParagraphGlyphRuns*;
     _ZN[KRO]9gui_forms18PartGeometryBuffer*;
     _ZN[KRO]9gui_forms18PlotAnnotationItem*;
     _ZN[KRO]9gui_forms18PreparedFontSource*;
@@ -8708,6 +8743,7 @@
     _ZT[VIST]N9gui_forms11EffectFrame*E;
     _ZT[VIST]N9gui_forms11EffectSetup*E;
     _ZT[VIST]N9gui_forms11FontCommand*E;
+    _ZT[VIST]N9gui_forms11GlyphSource*E;
     _ZT[VIST]N9gui_forms11GraphResult*E;
     _ZT[VIST]N9gui_forms11GridPattern*E;
     _ZT[VIST]N9gui_forms11HelpCatalog*E;
@@ -8863,6 +8899,7 @@
     _ZT[VIST]N9gui_forms13FlexItemCross*E;
     _ZT[VIST]N9gui_forms13FlexItemInput*E;
     _ZT[VIST]N9gui_forms13FlexItemStyle*E;
+    _ZT[VIST]N9gui_forms13GlyphRunsView*E;
     _ZT[VIST]N9gui_forms13GridItemInput*E;
     _ZT[VIST]N9gui_forms13GridItemStyle*E;
     _ZT[VIST]N9gui_forms13GridLevelBand*E;
@@ -8949,6 +8986,7 @@
     _ZT[VIST]N9gui_forms14GalleryCommand*E;
     _ZT[VIST]N9gui_forms14GalleryPreview*E;
     _ZT[VIST]N9gui_forms14GlyphPlacement*E;
+    _ZT[VIST]N9gui_forms14GlyphRunRecord*E;
     _ZT[VIST]N9gui_forms14GridItemLayout*E;
     _ZT[VIST]N9gui_forms14GridItemResult*E;
     _ZT[VIST]N9gui_forms14HelpBookLabels*E;
@@ -9079,6 +9117,7 @@
     _ZT[VIST]N9gui_forms15PartCornerRadii*E;
     _ZT[VIST]N9gui_forms15PartDeclaration*E;
     _ZT[VIST]N9gui_forms15PointerSettings*E;
+    _ZT[VIST]N9gui_forms15PositionedGlyph*E;
     _ZT[VIST]N9gui_forms15PreparedTextKey*E;
     _ZT[VIST]N9gui_forms15PrimitiveTarget*E;
     _ZT[VIST]N9gui_forms15ProgressBubbles*E;
@@ -9198,6 +9237,7 @@
     _ZT[VIST]N9gui_forms16SevenSegmentCell*E;
     _ZT[VIST]N9gui_forms16ShadowFrameScope*E;
     _ZT[VIST]N9gui_forms16ShadowStackState*E;
+    _ZT[VIST]N9gui_forms16ShapingWorkspace*E;
     _ZT[VIST]N9gui_forms16SourceByteOffset*E;
     _ZT[VIST]N9gui_forms16SplitChangeEvent*E;
     _ZT[VIST]N9gui_forms16SubSurfaceThread*E;
@@ -9288,6 +9328,7 @@
     _ZT[VIST]N9gui_forms17RibbonLadderEntry*E;
     _ZT[VIST]N9gui_forms17RuleSetStatistics*E;
     _ZT[VIST]N9gui_forms17ScrollableControl*E;
+    _ZT[VIST]N9gui_forms17ShapedGlyphCounts*E;
     _ZT[VIST]N9gui_forms17SplitSeamGeometry*E;
     _ZT[VIST]N9gui_forms17SplitSeamSnapshot*E;
     _ZT[VIST]N9gui_forms17SplitterMoveEvent*E;
@@ -9369,6 +9410,7 @@
     _ZT[VIST]N9gui_forms18PageControlContent*E;
     _ZT[VIST]N9gui_forms18PageSelectingEvent*E;
     _ZT[VIST]N9gui_forms18PaintLeaseSnapshot*E;
+    _ZT[VIST]N9gui_forms18ParagraphGlyphRuns*E;
     _ZT[VIST]N9gui_forms18PartGeometryBuffer*E;
     _ZT[VIST]N9gui_forms18PlotAnnotationItem*E;
     _ZT[VIST]N9gui_forms18PreparedFontSource*E;
@@ -10165,6 +10207,7 @@
     _ZT[hvc]*9gui_forms11EffectFrame*;
     _ZT[hvc]*9gui_forms11EffectSetup*;
     _ZT[hvc]*9gui_forms11FontCommand*;
+    _ZT[hvc]*9gui_forms11GlyphSource*;
     _ZT[hvc]*9gui_forms11GraphResult*;
     _ZT[hvc]*9gui_forms11GridPattern*;
     _ZT[hvc]*9gui_forms11HelpCatalog*;
@@ -10320,6 +10363,7 @@
     _ZT[hvc]*9gui_forms13FlexItemCross*;
     _ZT[hvc]*9gui_forms13FlexItemInput*;
     _ZT[hvc]*9gui_forms13FlexItemStyle*;
+    _ZT[hvc]*9gui_forms13GlyphRunsView*;
     _ZT[hvc]*9gui_forms13GridItemInput*;
     _ZT[hvc]*9gui_forms13GridItemStyle*;
     _ZT[hvc]*9gui_forms13GridLevelBand*;
@@ -10406,6 +10450,7 @@
     _ZT[hvc]*9gui_forms14GalleryCommand*;
     _ZT[hvc]*9gui_forms14GalleryPreview*;
     _ZT[hvc]*9gui_forms14GlyphPlacement*;
+    _ZT[hvc]*9gui_forms14GlyphRunRecord*;
     _ZT[hvc]*9gui_forms14GridItemLayout*;
     _ZT[hvc]*9gui_forms14GridItemResult*;
     _ZT[hvc]*9gui_forms14HelpBookLabels*;
@@ -10536,6 +10581,7 @@
     _ZT[hvc]*9gui_forms15PartCornerRadii*;
     _ZT[hvc]*9gui_forms15PartDeclaration*;
     _ZT[hvc]*9gui_forms15PointerSettings*;
+    _ZT[hvc]*9gui_forms15PositionedGlyph*;
     _ZT[hvc]*9gui_forms15PreparedTextKey*;
     _ZT[hvc]*9gui_forms15PrimitiveTarget*;
     _ZT[hvc]*9gui_forms15ProgressBubbles*;
@@ -10655,6 +10701,7 @@
     _ZT[hvc]*9gui_forms16SevenSegmentCell*;
     _ZT[hvc]*9gui_forms16ShadowFrameScope*;
     _ZT[hvc]*9gui_forms16ShadowStackState*;
+    _ZT[hvc]*9gui_forms16ShapingWorkspace*;
     _ZT[hvc]*9gui_forms16SourceByteOffset*;
     _ZT[hvc]*9gui_forms16SplitChangeEvent*;
     _ZT[hvc]*9gui_forms16SubSurfaceThread*;
@@ -10745,6 +10792,7 @@
     _ZT[hvc]*9gui_forms17RibbonLadderEntry*;
     _ZT[hvc]*9gui_forms17RuleSetStatistics*;
     _ZT[hvc]*9gui_forms17ScrollableControl*;
+    _ZT[hvc]*9gui_forms17ShapedGlyphCounts*;
     _ZT[hvc]*9gui_forms17SplitSeamGeometry*;
     _ZT[hvc]*9gui_forms17SplitSeamSnapshot*;
     _ZT[hvc]*9gui_forms17SplitterMoveEvent*;
@@ -10826,6 +10874,7 @@
     _ZT[hvc]*9gui_forms18PageControlContent*;
     _ZT[hvc]*9gui_forms18PageSelectingEvent*;
     _ZT[hvc]*9gui_forms18PaintLeaseSnapshot*;
+    _ZT[hvc]*9gui_forms18ParagraphGlyphRuns*;
     _ZT[hvc]*9gui_forms18PartGeometryBuffer*;
     _ZT[hvc]*9gui_forms18PlotAnnotationItem*;
     _ZT[hvc]*9gui_forms18PreparedFontSource*;
@@ -11622,6 +11671,7 @@
     _ZZN9gui_forms11EffectFrame*;
     _ZZN9gui_forms11EffectSetup*;
     _ZZN9gui_forms11FontCommand*;
+    _ZZN9gui_forms11GlyphSource*;
     _ZZN9gui_forms11GraphResult*;
     _ZZN9gui_forms11GridPattern*;
     _ZZN9gui_forms11HelpCatalog*;
@@ -11777,6 +11827,7 @@
     _ZZN9gui_forms13FlexItemCross*;
     _ZZN9gui_forms13FlexItemInput*;
     _ZZN9gui_forms13FlexItemStyle*;
+    _ZZN9gui_forms13GlyphRunsView*;
     _ZZN9gui_forms13GridItemInput*;
     _ZZN9gui_forms13GridItemStyle*;
     _ZZN9gui_forms13GridLevelBand*;
@@ -11863,6 +11914,7 @@
     _ZZN9gui_forms14GalleryCommand*;
     _ZZN9gui_forms14GalleryPreview*;
     _ZZN9gui_forms14GlyphPlacement*;
+    _ZZN9gui_forms14GlyphRunRecord*;
     _ZZN9gui_forms14GridItemLayout*;
     _ZZN9gui_forms14GridItemResult*;
     _ZZN9gui_forms14HelpBookLabels*;
@@ -11993,6 +12045,7 @@
     _ZZN9gui_forms15PartCornerRadii*;
     _ZZN9gui_forms15PartDeclaration*;
     _ZZN9gui_forms15PointerSettings*;
+    _ZZN9gui_forms15PositionedGlyph*;
     _ZZN9gui_forms15PreparedTextKey*;
     _ZZN9gui_forms15PrimitiveTarget*;
     _ZZN9gui_forms15ProgressBubbles*;
@@ -12112,6 +12165,7 @@
     _ZZN9gui_forms16SevenSegmentCell*;
     _ZZN9gui_forms16ShadowFrameScope*;
     _ZZN9gui_forms16ShadowStackState*;
+    _ZZN9gui_forms16ShapingWorkspace*;
     _ZZN9gui_forms16SourceByteOffset*;
     _ZZN9gui_forms16SplitChangeEvent*;
     _ZZN9gui_forms16SubSurfaceThread*;
@@ -12202,6 +12256,7 @@
     _ZZN9gui_forms17RibbonLadderEntry*;
     _ZZN9gui_forms17RuleSetStatistics*;
     _ZZN9gui_forms17ScrollableControl*;
+    _ZZN9gui_forms17ShapedGlyphCounts*;
     _ZZN9gui_forms17SplitSeamGeometry*;
     _ZZN9gui_forms17SplitSeamSnapshot*;
     _ZZN9gui_forms17SplitterMoveEvent*;
@@ -12283,6 +12338,7 @@
     _ZZN9gui_forms18PageControlContent*;
     _ZZN9gui_forms18PageSelectingEvent*;
     _ZZN9gui_forms18PaintLeaseSnapshot*;
+    _ZZN9gui_forms18ParagraphGlyphRuns*;
     _ZZN9gui_forms18PartGeometryBuffer*;
     _ZZN9gui_forms18PlotAnnotationItem*;
     _ZZN9gui_forms18PreparedFontSource*;
@@ -13079,6 +13135,7 @@
     _ZZNK9gui_forms11EffectFrame*;
     _ZZNK9gui_forms11EffectSetup*;
     _ZZNK9gui_forms11FontCommand*;
+    _ZZNK9gui_forms11GlyphSource*;
     _ZZNK9gui_forms11GraphResult*;
     _ZZNK9gui_forms11GridPattern*;
     _ZZNK9gui_forms11HelpCatalog*;
@@ -13234,6 +13291,7 @@
     _ZZNK9gui_forms13FlexItemCross*;
     _ZZNK9gui_forms13FlexItemInput*;
     _ZZNK9gui_forms13FlexItemStyle*;
+    _ZZNK9gui_forms13GlyphRunsView*;
     _ZZNK9gui_forms13GridItemInput*;
     _ZZNK9gui_forms13GridItemStyle*;
     _ZZNK9gui_forms13GridLevelBand*;
@@ -13320,6 +13378,7 @@
     _ZZNK9gui_forms14GalleryCommand*;
     _ZZNK9gui_forms14GalleryPreview*;
     _ZZNK9gui_forms14GlyphPlacement*;
+    _ZZNK9gui_forms14GlyphRunRecord*;
     _ZZNK9gui_forms14GridItemLayout*;
     _ZZNK9gui_forms14GridItemResult*;
     _ZZNK9gui_forms14HelpBookLabels*;
@@ -13450,6 +13509,7 @@
     _ZZNK9gui_forms15PartCornerRadii*;
     _ZZNK9gui_forms15PartDeclaration*;
     _ZZNK9gui_forms15PointerSettings*;
+    _ZZNK9gui_forms15PositionedGlyph*;
     _ZZNK9gui_forms15PreparedTextKey*;
     _ZZNK9gui_forms15PrimitiveTarget*;
     _ZZNK9gui_forms15ProgressBubbles*;
@@ -13569,6 +13629,7 @@
     _ZZNK9gui_forms16SevenSegmentCell*;
     _ZZNK9gui_forms16ShadowFrameScope*;
     _ZZNK9gui_forms16ShadowStackState*;
+    _ZZNK9gui_forms16ShapingWorkspace*;
     _ZZNK9gui_forms16SourceByteOffset*;
     _ZZNK9gui_forms16SplitChangeEvent*;
     _ZZNK9gui_forms16SubSurfaceThread*;
@@ -13659,6 +13720,7 @@
     _ZZNK9gui_forms17RibbonLadderEntry*;
     _ZZNK9gui_forms17RuleSetStatistics*;
     _ZZNK9gui_forms17ScrollableControl*;
+    _ZZNK9gui_forms17ShapedGlyphCounts*;
     _ZZNK9gui_forms17SplitSeamGeometry*;
     _ZZNK9gui_forms17SplitSeamSnapshot*;
     _ZZNK9gui_forms17SplitterMoveEvent*;
@@ -13740,6 +13802,7 @@
     _ZZNK9gui_forms18PageControlContent*;
     _ZZNK9gui_forms18PageSelectingEvent*;
     _ZZNK9gui_forms18PaintLeaseSnapshot*;
+    _ZZNK9gui_forms18ParagraphGlyphRuns*;
     _ZZNK9gui_forms18PartGeometryBuffer*;
     _ZZNK9gui_forms18PlotAnnotationItem*;
     _ZZNK9gui_forms18PreparedFontSource*;

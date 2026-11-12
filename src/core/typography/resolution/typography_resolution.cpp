@@ -127,6 +127,16 @@ TextResolutionStatus TextMetricsProvider::fill_cluster_advances_utf8(
     return status;
 }
 
+std::unique_ptr<ShapingWorkspace> TextMetricsProvider::create_shaping_workspace() {
+    return nullptr;
+}
+
+TextExtent TextMetricsProvider::shape_in_workspace_utf8(ShapingWorkspace&, std::string_view, FontSpec) {
+    TextExtent refused{};
+    refused.status = TextResolutionStatus::invalid_request;
+    return refused;
+}
+
 TextResolutionStatus estimate_cluster_advances_utf8(
     std::string_view utf8, FontSpec effective_font, std::span<double> advances) noexcept {
     if (advances.size() != utf8.size() || !valid_font_spec(effective_font) || !validate_utf8(utf8).valid()) {
