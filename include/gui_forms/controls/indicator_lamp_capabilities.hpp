@@ -3,6 +3,7 @@
 #include "gui_forms/binding/property_cell/property_cell.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/indicator_lamp_values.hpp"
+#include "gui_forms/drawing/color/color.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -51,6 +52,32 @@ struct IndicatorLampTextCapability {
     }
 };
 
+// The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise). With the bake present the lens takes its aspect and whole look, its body included, and the bezel gives way; without it, and in forced high contrast, the theme's lens is drawn.
+template <typename Declaring>
+struct IndicatorLampLightPlanesCapability {
+    PropertyCell<std::string, IndicatorLampLightPlanesCapability<Declaring>> light_planes{};
+
+    static void assign(IndicatorLampLightPlanesCapability& capability, std::string incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.light_planes), incoming);
+        if (!capability.light_planes.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.light_planes));
+    }
+};
+
+// The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).
+template <typename Declaring>
+struct IndicatorLampLampColorCapability {
+    PropertyCell<std::optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color{};
+
+    static void assign(IndicatorLampLampColorCapability& capability, std::optional<Color> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.lamp_color), incoming);
+        if (!capability.lamp_color.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.lamp_color));
+    }
+};
+
 // IndicatorLampState as a property value; defined beside IndicatorLamp's table.
 template <>
 struct PropertyValueTraits<IndicatorLampState> {
@@ -62,6 +89,8 @@ struct PropertyValueTraits<IndicatorLampState> {
 // Every IndicatorLamp capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Declaring>,
-                                   public IndicatorLampTextCapability<Declaring> {};
+                                   public IndicatorLampTextCapability<Declaring>,
+                                   public IndicatorLampLightPlanesCapability<Declaring>,
+                                   public IndicatorLampLampColorCapability<Declaring> {};
 
 } // namespace gui_forms

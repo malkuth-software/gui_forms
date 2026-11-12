@@ -173,13 +173,23 @@ bool complete(const LightPlanes& planes) noexcept {
     return whole;
 }
 
-bool valid_name(std::string_view name) noexcept {
-    if (name.empty() || name.size() > 64U) return false;
-    for (const char c : name) {
-        const bool allowed = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_';
-        if (!allowed) return false;
-    }
-    return true;
+// One sRGB channel byte as linear light (the sRGB curve).
+double decoded_channel(std::uint8_t encoded) noexcept {
+    const double value = static_cast<double>(encoded) / 255.0;
+    if (value <= 0.04045) return value / 12.92;
+    const double linear = engine_power((value + 0.055) / 1.055, 2.4);
+    return linear;
+}
+
+bool same_drive(LampDrive a, LampDrive b) noexcept {
+    const bool same = a.colour.red == b.colour.red && a.colour.green == b.colour.green &&
+                      a.colour.blue == b.colour.blue && a.power == b.power;
+    return same;
+}
+
+bool same_settings(const LightComposite& a, const LightComposite& b) noexcept {
+    const bool same = a.room == b.room && a.exposure == b.exposure && a.press_mix == b.press_mix;
+    return same;
 }
 
 } // namespace
@@ -293,10 +303,61 @@ double lit_key_lean_degrees(double height_share) noexcept {
     return lean;
 }
 
+LampColour lamp_colour_from_srgb(Color colour) noexcept {
+    if (colour.is_empty()) return LampColour{};
+    const LampColour linear{decoded_channel(colour.red()), decoded_channel(colour.green()),
+                            decoded_channel(colour.blue())};
+    return linear;
+}
+
+std::shared_ptr<const PartRaster> LightPlaneRaster::composite(const std::shared_ptr<const LightPlanes>& planes,
+                                                              LampDrive drive, const LightComposite& settings,
+                                                              DeviceExtent extent, DeviceScale scale) {
+    if (!planes || extent.width == 0U || extent.height == 0U) {
+        release();
+        return nullptr;
+    }
+    const bool kept = raster_ && planes_ == planes && same_drive(drive_, drive) &&
+                      same_settings(settings_, settings) && (*raster_).extent() == extent &&
+                      (*raster_).scale() == scale;
+    if (kept) return raster_;
+    const std::shared_ptr<PartRaster> made = PartRaster::create(extent, scale);
+    if (!made) {
+        release();
+        return nullptr;
+    }
+    // Every lamp of the bake at the one drive.
+    std::array<LampDrive, maximum_light_plane_lamps> drives{};
+    drives.fill(drive);
+    const LightPlaneRect rect{0, 0, static_cast<std::int64_t>(extent.width), static_cast<std::int64_t>(extent.height)};
+    static_cast<void>(composite_light_planes(*planes, *planes, drives, settings, rect, (*made).view()));
+    (*made).record_opacity();
+    planes_ = planes;
+    raster_ = made;
+    drive_ = drive;
+    settings_ = settings;
+    composites_ = composites_ + 1U;
+    return raster_;
+}
+
+void LightPlaneRaster::release() noexcept {
+    planes_.reset();
+    raster_.reset();
+}
+
+bool light_plane_name_valid(std::string_view name) noexcept {
+    if (name.empty() || name.size() > 64U) return false;
+    for (const char c : name) {
+        const bool allowed = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_';
+        if (!allowed) return false;
+    }
+    return true;
+}
+
 LightPlaneCache::LightPlaneCache(std::filesystem::path directory) : directory_(std::move(directory)) {}
 
 std::shared_ptr<const LightPlanes> LightPlaneCache::lend(std::string_view name) {
-    if (!valid_name(name)) return nullptr;
+    if (!light_plane_name_valid(name)) return nullptr;
     for (const CachedBake& bake : bakes_) {
         if (bake.name == name) return bake.planes;
     }

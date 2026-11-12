@@ -1,5 +1,6 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/application/user_themes/user_themes.hpp"
+#include "gui_forms/engine/light_planes/light_planes.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window.hpp"
@@ -311,6 +312,25 @@ ImageLoadResult ApplicationResources::replace_png(ImageId image, std::span<const
         }
     }
     return result;
+}
+
+void ApplicationResources::set_light_plane_directory(std::filesystem::path directory) {
+    require_access("light-plane directory");
+    std::unique_ptr<engine_light::LightPlaneCache> made{};
+    if (!directory.empty()) made = std::make_unique<engine_light::LightPlaneCache>(std::move(directory));
+    light_planes_ = std::move(made);
+    // Any window may show a part composited from the old directory's bakes:
+    // the same whole repaint an image replacement makes.
+    for (std::size_t index = 0U; index < windows_.size(); ++index) {
+        detail::SurfaceResourceAccess::repaint_for_image_replacement(*windows_[index]);
+    }
+}
+
+std::shared_ptr<const engine_light::LightPlanes> ApplicationResources::lend_light_planes(std::string_view name) {
+    require_access("light-plane read");
+    if (!light_planes_) return nullptr;
+    std::shared_ptr<const engine_light::LightPlanes> lent = (*light_planes_).lend(name);
+    return lent;
 }
 
 bool ApplicationResources::remove_image(ImageId image) {

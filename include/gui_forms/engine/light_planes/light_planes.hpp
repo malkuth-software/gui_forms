@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/drawing/color/color.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 
 #include <cstddef>
@@ -58,6 +60,12 @@ inline constexpr LampColour lamp_red{1.0, 0.12, 0.04};
 inline constexpr LampColour lamp_green{0.16, 1.0, 0.25};
 inline constexpr LampColour lamp_blue{0.10, 0.35, 1.0};
 inline constexpr LampColour lamp_cyan{0.15, 0.85, 1.0};
+
+// A colour given as sRGB, such as a control's lamp colour property, as a
+// lamp's linear colour at unit power: each channel decoded by the sRGB
+// curve (through engine_power, so every host decodes alike). Alpha is
+// ignored; an empty colour is black.
+[[nodiscard]] GUI_FORMS_API LampColour lamp_colour_from_srgb(Color colour) noexcept;
 
 // One bake's planes, `width` × `height` pixels:
 // - `room`: the room's light, three floats a pixel (red, green, blue),
@@ -225,7 +233,46 @@ inline constexpr LitKeyBake dialog_key_study_bake{
 // tall (lamp_keys.cpp, shape_key).
 [[nodiscard]] GUI_FORMS_API double lit_key_lean_degrees(double height_share) noexcept;
 
+// -- a part's kept composite -----------------------------------------------------------------
+//
+// A part composited from a bake (PartPaint::light_planes, such as
+// IndicatorLamp's lens) keeps its last composite in one of these, owned by
+// the part's control, so that a repaint with nothing changed (a lamp
+// repainted for a neighbour's damage) draws the kept raster again instead
+// of compositing. Every lamp of the bake takes the one drive. It holds the
+// bake it composited, so a bake released elsewhere is never mistaken for a
+// new one at the same address. One thread: the painting one.
+class GUI_FORMS_API LightPlaneRaster final {
+public:
+    // The composite of `planes` over `extent` device pixels at `scale`,
+    // every lamp driven by `drive`: the kept raster when the bake, drive,
+    // settings, extent and scale are those it was made with, else a new
+    // one, then kept. Null, and nothing kept, when `planes` is null, the
+    // extent is empty, or no raster of that extent and scale can be made
+    // (PartRaster::create). Throws std::bad_alloc when a new raster cannot
+    // be stored (what was kept stays).
+    [[nodiscard]] std::shared_ptr<const PartRaster> composite(const std::shared_ptr<const LightPlanes>& planes,
+                                                              LampDrive drive, const LightComposite& settings,
+                                                              DeviceExtent extent, DeviceScale scale);
+    // Releases the kept raster and bake (a control leaving its window).
+    void release() noexcept;
+    // Composites made so far: one for each change of the inputs.
+    [[nodiscard]] std::size_t composites() const noexcept { return composites_; }
+
+private:
+    std::shared_ptr<const LightPlanes> planes_{};
+    std::shared_ptr<const PartRaster> raster_{};
+    LampDrive drive_{};
+    LightComposite settings_{};
+    std::size_t composites_{};
+};
+
 // -- shipped bakes ---------------------------------------------------------------------------
+
+// Whether `name` names a bake: 1 to 64 lower-case ASCII letters, digits and
+// '_' (the baker's stems, such as dialog_ok_up), so that a name never
+// leaves its directory.
+[[nodiscard]] GUI_FORMS_API bool light_plane_name_valid(std::string_view name) noexcept;
 
 // The bakes in one directory, each read the first time it is asked for
 // (`<directory>/<name>.f32`) and kept: a missing or defective file is

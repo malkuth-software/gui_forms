@@ -281,6 +281,7 @@
     _ZGVZN9gui_forms12engine_light14LightComposite*;
     _ZGVZN9gui_forms12engine_light14LightPlaneRect*;
     _ZGVZN9gui_forms12engine_light15LightPlaneCache*;
+    _ZGVZN9gui_forms12engine_light16LightPlaneRaster*;
     _ZGVZN9gui_forms12engine_light9LampDrive*;
     _ZGVZN9gui_forms13AmbientEffect*;
     _ZGVZN9gui_forms13AncestorBloom*;
@@ -529,6 +530,7 @@
     _ZGVZN9gui_forms15PageViewOptions*;
     _ZGVZN9gui_forms15PartCornerRadii*;
     _ZGVZN9gui_forms15PartDeclaration*;
+    _ZGVZN9gui_forms15PartLightPlanes*;
     _ZGVZN9gui_forms15PointerSettings*;
     _ZGVZN9gui_forms15PositionedGlyph*;
     _ZGVZN9gui_forms15PreparedTextKey*;
@@ -1754,6 +1756,7 @@
     _ZGVZNK9gui_forms12engine_light14LightComposite*;
     _ZGVZNK9gui_forms12engine_light14LightPlaneRect*;
     _ZGVZNK9gui_forms12engine_light15LightPlaneCache*;
+    _ZGVZNK9gui_forms12engine_light16LightPlaneRaster*;
     _ZGVZNK9gui_forms12engine_light9LampDrive*;
     _ZGVZNK9gui_forms13AmbientEffect*;
     _ZGVZNK9gui_forms13AncestorBloom*;
@@ -2002,6 +2005,7 @@
     _ZGVZNK9gui_forms15PageViewOptions*;
     _ZGVZNK9gui_forms15PartCornerRadii*;
     _ZGVZNK9gui_forms15PartDeclaration*;
+    _ZGVZNK9gui_forms15PartLightPlanes*;
     _ZGVZNK9gui_forms15PointerSettings*;
     _ZGVZNK9gui_forms15PositionedGlyph*;
     _ZGVZNK9gui_forms15PreparedTextKey*;
@@ -3317,6 +3321,7 @@
     _ZN9gui_forms12engine_light14LightComposite*;
     _ZN9gui_forms12engine_light14LightPlaneRect*;
     _ZN9gui_forms12engine_light15LightPlaneCache*;
+    _ZN9gui_forms12engine_light16LightPlaneRaster*;
     _ZN9gui_forms12engine_light17key_press_settledB*;
     _ZN9gui_forms12engine_light17key_press_settledE*;
     _ZN9gui_forms12engine_light17read_light_planesB*;
@@ -3325,8 +3330,12 @@
     _ZN9gui_forms12engine_light18lamp_cooling_powerE*;
     _ZN9gui_forms12engine_light20lit_key_lean_degreesB*;
     _ZN9gui_forms12engine_light20lit_key_lean_degreesE*;
+    _ZN9gui_forms12engine_light21lamp_colour_from_srgbB*;
+    _ZN9gui_forms12engine_light21lamp_colour_from_srgbE*;
     _ZN9gui_forms12engine_light22composite_light_planesB*;
     _ZN9gui_forms12engine_light22composite_light_planesE*;
+    _ZN9gui_forms12engine_light22light_plane_name_validB*;
+    _ZN9gui_forms12engine_light22light_plane_name_validE*;
     _ZN9gui_forms12engine_light9LampDrive*;
     _ZN9gui_forms12engine_powerB*;
     _ZN9gui_forms12engine_powerE*;
@@ -3653,6 +3662,7 @@
     _ZN9gui_forms15PageViewOptions*;
     _ZN9gui_forms15PartCornerRadii*;
     _ZN9gui_forms15PartDeclaration*;
+    _ZN9gui_forms15PartLightPlanes*;
     _ZN9gui_forms15PointerSettings*;
     _ZN9gui_forms15PositionedGlyph*;
     _ZN9gui_forms15PreparedTextKey*;
@@ -5996,6 +6006,7 @@
     _ZNK[RO]9gui_forms12engine_light14LightComposite*;
     _ZNK[RO]9gui_forms12engine_light14LightPlaneRect*;
     _ZNK[RO]9gui_forms12engine_light15LightPlaneCache*;
+    _ZNK[RO]9gui_forms12engine_light16LightPlaneRaster*;
     _ZNK[RO]9gui_forms12engine_light9LampDrive*;
     _ZNK[RO]9gui_forms13AmbientEffect*;
     _ZNK[RO]9gui_forms13AncestorBloom*;
@@ -6244,6 +6255,7 @@
     _ZNK[RO]9gui_forms15PageViewOptions*;
     _ZNK[RO]9gui_forms15PartCornerRadii*;
     _ZNK[RO]9gui_forms15PartDeclaration*;
+    _ZNK[RO]9gui_forms15PartLightPlanes*;
     _ZNK[RO]9gui_forms15PointerSettings*;
     _ZNK[RO]9gui_forms15PositionedGlyph*;
     _ZNK[RO]9gui_forms15PreparedTextKey*;
@@ -7469,6 +7481,7 @@
     _ZN[KRO]9gui_forms12engine_light14LightComposite*;
     _ZN[KRO]9gui_forms12engine_light14LightPlaneRect*;
     _ZN[KRO]9gui_forms12engine_light15LightPlaneCache*;
+    _ZN[KRO]9gui_forms12engine_light16LightPlaneRaster*;
     _ZN[KRO]9gui_forms12engine_light9LampDrive*;
     _ZN[KRO]9gui_forms13AmbientEffect*;
     _ZN[KRO]9gui_forms13AncestorBloom*;
@@ -7717,6 +7730,7 @@
     _ZN[KRO]9gui_forms15PageViewOptions*;
     _ZN[KRO]9gui_forms15PartCornerRadii*;
     _ZN[KRO]9gui_forms15PartDeclaration*;
+    _ZN[KRO]9gui_forms15PartLightPlanes*;
     _ZN[KRO]9gui_forms15PointerSettings*;
     _ZN[KRO]9gui_forms15PositionedGlyph*;
     _ZN[KRO]9gui_forms15PreparedTextKey*;
@@ -8942,6 +8956,7 @@
     _ZT[VIST]N9gui_forms12engine_light14LightComposite*E;
     _ZT[VIST]N9gui_forms12engine_light14LightPlaneRect*E;
     _ZT[VIST]N9gui_forms12engine_light15LightPlaneCache*E;
+    _ZT[VIST]N9gui_forms12engine_light16LightPlaneRaster*E;
     _ZT[VIST]N9gui_forms12engine_light9LampDrive*E;
     _ZT[VIST]N9gui_forms13AmbientEffect*E;
     _ZT[VIST]N9gui_forms13AncestorBloom*E;
@@ -9190,6 +9205,7 @@
     _ZT[VIST]N9gui_forms15PageViewOptions*E;
     _ZT[VIST]N9gui_forms15PartCornerRadii*E;
     _ZT[VIST]N9gui_forms15PartDeclaration*E;
+    _ZT[VIST]N9gui_forms15PartLightPlanes*E;
     _ZT[VIST]N9gui_forms15PointerSettings*E;
     _ZT[VIST]N9gui_forms15PositionedGlyph*E;
     _ZT[VIST]N9gui_forms15PreparedTextKey*E;
@@ -10415,6 +10431,7 @@
     _ZT[hvc]*9gui_forms12engine_light14LightComposite*;
     _ZT[hvc]*9gui_forms12engine_light14LightPlaneRect*;
     _ZT[hvc]*9gui_forms12engine_light15LightPlaneCache*;
+    _ZT[hvc]*9gui_forms12engine_light16LightPlaneRaster*;
     _ZT[hvc]*9gui_forms12engine_light9LampDrive*;
     _ZT[hvc]*9gui_forms13AmbientEffect*;
     _ZT[hvc]*9gui_forms13AncestorBloom*;
@@ -10663,6 +10680,7 @@
     _ZT[hvc]*9gui_forms15PageViewOptions*;
     _ZT[hvc]*9gui_forms15PartCornerRadii*;
     _ZT[hvc]*9gui_forms15PartDeclaration*;
+    _ZT[hvc]*9gui_forms15PartLightPlanes*;
     _ZT[hvc]*9gui_forms15PointerSettings*;
     _ZT[hvc]*9gui_forms15PositionedGlyph*;
     _ZT[hvc]*9gui_forms15PreparedTextKey*;
@@ -11888,6 +11906,7 @@
     _ZZN9gui_forms12engine_light14LightComposite*;
     _ZZN9gui_forms12engine_light14LightPlaneRect*;
     _ZZN9gui_forms12engine_light15LightPlaneCache*;
+    _ZZN9gui_forms12engine_light16LightPlaneRaster*;
     _ZZN9gui_forms12engine_light9LampDrive*;
     _ZZN9gui_forms13AmbientEffect*;
     _ZZN9gui_forms13AncestorBloom*;
@@ -12136,6 +12155,7 @@
     _ZZN9gui_forms15PageViewOptions*;
     _ZZN9gui_forms15PartCornerRadii*;
     _ZZN9gui_forms15PartDeclaration*;
+    _ZZN9gui_forms15PartLightPlanes*;
     _ZZN9gui_forms15PointerSettings*;
     _ZZN9gui_forms15PositionedGlyph*;
     _ZZN9gui_forms15PreparedTextKey*;
@@ -13361,6 +13381,7 @@
     _ZZNK9gui_forms12engine_light14LightComposite*;
     _ZZNK9gui_forms12engine_light14LightPlaneRect*;
     _ZZNK9gui_forms12engine_light15LightPlaneCache*;
+    _ZZNK9gui_forms12engine_light16LightPlaneRaster*;
     _ZZNK9gui_forms12engine_light9LampDrive*;
     _ZZNK9gui_forms13AmbientEffect*;
     _ZZNK9gui_forms13AncestorBloom*;
@@ -13609,6 +13630,7 @@
     _ZZNK9gui_forms15PageViewOptions*;
     _ZZNK9gui_forms15PartCornerRadii*;
     _ZZNK9gui_forms15PartDeclaration*;
+    _ZZNK9gui_forms15PartLightPlanes*;
     _ZZNK9gui_forms15PointerSettings*;
     _ZZNK9gui_forms15PositionedGlyph*;
     _ZZNK9gui_forms15PreparedTextKey*;

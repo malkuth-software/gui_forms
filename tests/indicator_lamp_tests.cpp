@@ -3,14 +3,22 @@
 // (and their absence under reduced motion and outside a window), that it
 // is never hit, and, drawn through the offscreen raster, that the lit lens
 // differs from the dark one in the default theme and every familiar theme
-// while not one pixel outside the lens changes. With GUI_FORMS_PREVIEW_DIR
-// set, the test also writes preview shots of each state in each theme.
+// while not one pixel outside the lens changes. The light-plane lens: the
+// light_planes and lamp_color properties, the kept composite
+// (engine_light::LightPlaneRaster) and the sRGB lamp colour, and through the
+// offscreen raster a lens composited from a bake written here (it takes the
+// bake's aspect, lights only inside the lens, never past the bake's
+// coverage, and changes colour with lamp_color), and the theme's lens where
+// the bake is missing, no directory is set, or high contrast is forced.
+// With GUI_FORMS_PREVIEW_DIR set, the test also writes preview shots of
+// each state in each theme.
 
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/indicator_lamp.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/engine/light_planes/light_planes.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
@@ -24,6 +32,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -290,6 +300,221 @@ void test_lights_only_the_lens() {
     }
 }
 
+// -- the light-plane lens ----------------------------------------------------------------
+
+void test_lamp_colour_and_kept_composite() {
+    const engine_light::LampColour white = engine_light::lamp_colour_from_srgb(Color::rgba(255, 255, 255));
+    require(std::abs(white.red - 1.0) < 1e-9 && std::abs(white.green - 1.0) < 1e-9 && std::abs(white.blue - 1.0) < 1e-9,
+            "sRGB white is unit light");
+    const engine_light::LampColour black = engine_light::lamp_colour_from_srgb(Color::rgba(0, 0, 0));
+    require(black.red == 0.0 && black.green == 0.0 && black.blue == 0.0, "sRGB black is no light");
+    const engine_light::LampColour amber = engine_light::lamp_colour_from_srgb(Color::rgba(255, 188, 80));
+    require(std::abs(amber.red - engine_light::lamp_amber.red) < 0.01 &&
+                std::abs(amber.green - engine_light::lamp_amber.green) < 0.01 &&
+                std::abs(amber.blue - engine_light::lamp_amber.blue) < 0.01,
+            "the page's amber decodes to the study's lamp amber");
+
+    std::shared_ptr<engine_light::LightPlanes> planes = std::make_shared<engine_light::LightPlanes>();
+    (*planes).width = 2U;
+    (*planes).height = 2U;
+    (*planes).lamp_count = 1U;
+    (*planes).room.assign(12U, 0.1F);
+    (*planes).lamps.assign(12U, 0.5F);
+    (*planes).coverage.assign(4U, 1.0F);
+    const std::shared_ptr<const engine_light::LightPlanes> bake = planes;
+    engine_light::LightPlaneRaster kept{};
+    const engine_light::LampDrive lit{engine_light::lamp_green, 1.0};
+    const engine_light::LightComposite settings{};
+    const DeviceExtent extent{4U, 4U};
+    const std::shared_ptr<const PartRaster> first = kept.composite(bake, lit, settings, extent, DeviceScale{1.0});
+    const std::shared_ptr<const PartRaster> again = kept.composite(bake, lit, settings, extent, DeviceScale{1.0});
+    require(first != nullptr && first == again && kept.composites() == 1U,
+            "an unchanged repaint draws the kept composite again");
+    const engine_light::LampDrive dimmer{engine_light::lamp_green, 0.5};
+    const std::shared_ptr<const PartRaster> dimmed = kept.composite(bake, dimmer, settings, extent, DeviceScale{1.0});
+    require(dimmed != nullptr && dimmed != first && kept.composites() == 2U, "a new power composites again");
+    const std::shared_ptr<const PartRaster> scaled = kept.composite(bake, dimmer, settings, DeviceExtent{8U, 8U},
+                                                                    DeviceScale{2.0});
+    require(scaled != nullptr && kept.composites() == 3U, "a new extent and scale composite again");
+    require(kept.composite(bake, dimmer, settings, DeviceExtent{0U, 4U}, DeviceScale{1.0}) == nullptr,
+            "an empty extent composites nothing");
+    require(kept.composite(nullptr, dimmer, settings, extent, DeviceScale{1.0}) == nullptr, "no bake composites nothing");
+}
+
+void test_light_plane_properties() {
+    const std::shared_ptr<IndicatorLamp> lamp = make_control<IndicatorLamp>(StableId("lamp"));
+    require((*lamp).light_planes.read().empty() && !(*lamp).lamp_color.read().has_value(),
+            "a new lamp names no bake and takes the theme's colour");
+    (*lamp).light_planes = std::string("indicator_clear_up");
+    require((*lamp).light_planes.read() == "indicator_clear_up", "a bake is named");
+    const std::array<std::string_view, 3> refused_names{{"Dialog_OK", "../dialog_ok_up", "dialog ok"}};
+    for (const std::string_view name : refused_names) {
+        bool refused = false;
+        try {
+            (*lamp).light_planes = std::string(name);
+        } catch (const std::invalid_argument&) {
+            refused = true;
+        }
+        require(refused && (*lamp).light_planes.read() == "indicator_clear_up",
+                "a name that is not a bake's is refused, keeping the old one: " + std::string(name));
+    }
+    (*lamp).light_planes = std::string{};
+    require((*lamp).light_planes.read().empty(), "an empty name draws the theme's lens");
+    (*lamp).lamp_color = std::optional<Color>{Color::rgba(111, 255, 137)};
+    require((*lamp).lamp_color.read() == std::optional<Color>{Color::rgba(111, 255, 137)}, "a lamp colour is kept");
+    require(!(*lamp).light_planes_shown(), "outside a window no bake is shown");
+}
+
+void put_word(std::vector<std::byte>& bytes, std::uint32_t word) {
+    for (std::uint32_t shift = 0U; shift < 32U; shift += 8U) {
+        bytes.push_back(static_cast<std::byte>((word >> shift) & 0xffU));
+    }
+}
+
+void put_float(std::vector<std::byte>& bytes, float value) {
+    std::uint32_t word = 0U;
+    std::memcpy(&word, &value, sizeof(word));
+    put_word(bytes, word);
+}
+
+// A 6 x 4 bake with one lamp in the baker's layout (lamp_keys.cpp,
+// write_buffers): covered inside, uncovered on its outer ring of pixels, so
+// that the ring shows whether any light reaches past the coverage.
+std::vector<std::byte> ringed_bake() {
+    constexpr std::uint32_t width = 6U;
+    constexpr std::uint32_t height = 4U;
+    std::vector<float> coverage{};
+    for (std::uint32_t y = 0U; y < height; ++y) {
+        for (std::uint32_t x = 0U; x < width; ++x) {
+            const bool edge = x == 0U || y == 0U || x == width - 1U || y == height - 1U;
+            coverage.push_back(edge ? 0.0F : 1.0F);
+        }
+    }
+    std::vector<std::byte> bytes{};
+    put_word(bytes, width);
+    put_word(bytes, height);
+    put_word(bytes, 1U);
+    // Room, then the lamp, each premultiplied by the coverage.
+    for (const float cover : coverage) {
+        for (std::size_t channel = 0U; channel < 3U; ++channel) put_float(bytes, 0.05F * cover);
+    }
+    for (const float cover : coverage) {
+        for (std::size_t channel = 0U; channel < 3U; ++channel) put_float(bytes, 0.6F * cover);
+    }
+    for (const float cover : coverage) put_float(bytes, cover);
+    return bytes;
+}
+
+std::filesystem::path write_test_bake() {
+    const std::filesystem::path directory = std::filesystem::temp_directory_path() / "gui_forms_indicator_lamp_tests";
+    std::filesystem::create_directories(directory);
+    const std::vector<std::byte> bytes = ringed_bake();
+    std::ofstream file(directory / "lamp_test_up.f32", std::ios::binary);
+    file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+    require(static_cast<bool>(file), "the test bake is written");
+    return directory;
+}
+
+// Whether every pixel of `picture` in the outer `ring` pixels of `lens`
+// (capture pixels) equals the capture's corner pixel, the window behind
+// the lamp.
+bool ring_untouched(const WindowCapture& picture, Rect lens, std::uint32_t ring) {
+    const std::uint32_t left = static_cast<std::uint32_t>(lens.x);
+    const std::uint32_t top = static_cast<std::uint32_t>(lens.y);
+    const std::uint32_t right = left + static_cast<std::uint32_t>(lens.width);
+    const std::uint32_t bottom = top + static_cast<std::uint32_t>(lens.height);
+    if (right > picture.pixel_width || bottom > picture.pixel_height) return false;
+    for (std::uint32_t y = top; y < bottom; ++y) {
+        for (std::uint32_t x = left; x < right; ++x) {
+            const bool inner = x >= left + ring && x < right - ring && y >= top + ring && y < bottom - ring;
+            if (inner) continue;
+            const std::size_t at = (static_cast<std::size_t>(y) * picture.pixel_width + x) * 4U;
+            for (std::size_t channel = 0U; channel < 4U; ++channel) {
+                if (picture.bgra[at + channel] != picture.bgra[channel]) return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool same_pixels(const WindowCapture& a, const WindowCapture& b) {
+    const bool same = a.pixel_width == b.pixel_width && a.pixel_height == b.pixel_height && a.bgra == b.bgra;
+    return same;
+}
+
+void set_high_contrast(Window& window, bool forced) {
+    PresentationSettings settings = window.presentation_base();
+    settings.high_contrast = forced;
+    window.set_presentation_settings(settings);
+}
+
+void test_baked_lens() {
+    OffscreenRasterOptions options{};
+    options.font_directory = GUI_FORMS_TEST_FONT_DIR;
+    OffscreenRasterCreateResult made_raster = OffscreenRaster::create(options);
+    require(made_raster.succeeded(), "the bundled faces make a raster");
+    if (!made_raster.succeeded()) return;
+    const std::unique_ptr<OffscreenRaster> raster = made_raster.take_raster();
+    const std::filesystem::path directory = write_test_bake();
+
+    // No directory: the name alone shows nothing.
+    LampWindow made = lamp_window(Size{30.0, 20.0}, {});
+    set_reduced_motion(*made.window, true);
+    (*made.lamp).light_planes = std::string("lamp_test_up");
+    (*made.window).perform_layout();
+    require(!(*made.lamp).light_planes_shown(), "without a light-plane directory the theme's lens is drawn");
+
+    (*(*made.window).resources()).set_light_plane_directory(directory);
+    (*made.window).perform_layout();
+    require((*made.lamp).light_planes_shown(), "with the bake present the lens is composited from it");
+    const IndicatorLamp::Parts parts = (*made.lamp).parts();
+    require(parts.lens.bounds == Rect{0.0, 0.0, 30.0, 20.0} && parts.bezel.bounds == parts.lens.bounds,
+            "the baked lens takes the bake's aspect over the client area, and the bezel gives way");
+
+    OffscreenAttachment attached(*raster, *made.window);
+    // The lens in the capture's pixels: the margin, then the client area.
+    const Rect lens{4.0, 4.0, 30.0, 20.0};
+    const std::optional<WindowCapture> dark = capture_lamp(attached, made);
+    (*made.lamp).lamp_color = std::optional<Color>{Color::rgba(111, 255, 137)};
+    (*made.lamp).state = IndicatorLampState::on;
+    const std::optional<WindowCapture> green = capture_lamp(attached, made);
+    (*made.lamp).lamp_color = std::optional<Color>{Color::rgba(255, 97, 56)};
+    const std::optional<WindowCapture> red = capture_lamp(attached, made);
+    require(dark.has_value() && green.has_value() && red.has_value(), "the baked lamp is captured");
+    if (!dark || !green || !red) return;
+    write_preview(*dark, "indicator_lamp_baked_off");
+    write_preview(*green, "indicator_lamp_baked_green");
+    write_preview(*red, "indicator_lamp_baked_red");
+    const Difference lit = compare(*dark, *green, lens);
+    require(lit.any && !lit.outside, "the baked lamp lights inside its lens only");
+    const Difference recoloured = compare(*green, *red, lens);
+    require(recoloured.any && !recoloured.outside, "one bake lights in each lamp colour, inside the lens only");
+    // Stretched five times, the bake's uncovered ring covers three device
+    // pixels on each side, where nothing may be drawn, lit or not.
+    require(ring_untouched(*dark, lens, 3U) && ring_untouched(*green, lens, 3U),
+            "no light reaches past the bake's coverage");
+
+    // A missing bake: the theme's lens, exactly as with none named.
+    (*made.lamp).light_planes = std::string("missing_bake");
+    (*made.window).perform_layout();
+    require(!(*made.lamp).light_planes_shown(), "a missing bake shows the theme's lens");
+    require((*made.lamp).parts().bezel.bounds == Rect{0.0, 0.0, 20.0, 20.0}, "and its round bezel's placement");
+    const std::optional<WindowCapture> missing = capture_lamp(attached, made);
+    (*made.lamp).light_planes = std::string{};
+    const std::optional<WindowCapture> unnamed = capture_lamp(attached, made);
+    require(missing.has_value() && unnamed.has_value() && same_pixels(*missing, *unnamed),
+            "a lamp whose bake is missing draws as one that names none");
+
+    // Forced high contrast: the role's colours stand, not the bake.
+    (*made.lamp).light_planes = std::string("lamp_test_up");
+    set_high_contrast(*made.window, true);
+    (*made.window).perform_layout();
+    require(!(*made.lamp).light_planes_shown(), "in forced high contrast the theme's lens is drawn");
+    set_high_contrast(*made.window, false);
+    (*made.window).perform_layout();
+    require((*made.lamp).light_planes_shown(), "and the bake again after it");
+}
+
 } // namespace
 
 int main() {
@@ -298,6 +523,9 @@ int main() {
     test_warm_up_and_cool_down();
     test_parts();
     test_lights_only_the_lens();
+    test_lamp_colour_and_kept_composite();
+    test_light_plane_properties();
+    test_baked_lens();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return EXIT_FAILURE;

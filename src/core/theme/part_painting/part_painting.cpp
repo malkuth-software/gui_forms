@@ -5,6 +5,7 @@
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/types/painter/painter.hpp"
@@ -1312,11 +1313,68 @@ void paint_primitive_accent_clipped(Painter& painter, const Control& control, co
 
 namespace {
 
+// Draws a light-plane part's composite at the part's origin, clipped to its
+// shape where it has a corner radius.
+void draw_light_plane_raster(Painter& painter, const PartPaint& part, const std::shared_ptr<const PartRaster>& raster) {
+    const Point origin{part.bounds.x, part.bounds.y};
+    if (!part.corner_radius) {
+        painter.draw_part_raster(raster, origin, 1.0);
+        return;
+    }
+    painter.save();
+    painter.clip_rounded_rect(part.bounds, std::max(0.0, *part.corner_radius));
+    painter.draw_part_raster(raster, origin, 1.0);
+    painter.restore();
+}
+
+// A part with light planes (PartPaint::light_planes): composited by its
+// control's kept raster over the part's bounds at the window's scale, and
+// drawn once, or under each of `clips`. False, drawing nothing, where the
+// recipe draws the part instead: forced high contrast, no bake or kept
+// raster, a part outside a surface root or too small for a device pixel,
+// or no raster of its size made.
+bool paint_light_plane_part(Painter& painter, const Control& control, const PartPaint& part,
+                            const std::span<const Rect> clips) {
+    const PartLightPlanes& light = *part.light_planes;
+    if (!light.planes || light.raster == nullptr || !paintable(part.bounds)) return false;
+    if (part_visual_context(control, part.states).high_contrast) return false;
+    const SurfaceRoot* const root = control.attached_surface_root();
+    if (root == nullptr) return false;
+    const double scale = (*root).scale();
+    const double device_width = std::round(part.bounds.width * scale);
+    const double device_height = std::round(part.bounds.height * scale);
+    // Checked before the conversion: PartRaster::create refuses a side past
+    // the bound in any case.
+    const double largest = static_cast<double>(maximum_part_raster_side);
+    if (!(device_width >= 1.0 && device_height >= 1.0 && device_width <= largest && device_height <= largest)) {
+        return false;
+    }
+    const DeviceExtent extent{static_cast<std::uint32_t>(device_width), static_cast<std::uint32_t>(device_height)};
+    const engine_light::LightComposite settings{};
+    const std::shared_ptr<const PartRaster> raster =
+        (*light.raster).composite(light.planes, light.drive, settings, extent, DeviceScale{scale});
+    if (!raster) return false;
+    if (clips.empty()) {
+        draw_light_plane_raster(painter, part, raster);
+        return true;
+    }
+    for (const Rect clip : clips) {
+        painter.save();
+        painter.clip_rect(clip);
+        draw_light_plane_raster(painter, part, raster);
+        painter.restore();
+    }
+    return true;
+}
+
 // paint_part with what it draws repeated under each of `clips` (N91). A
 // pointed or profiled part, which cuts itself by clips of its own, is
 // painted whole under each clip.
 void paint_part_clipped(Painter& painter, const Control& control, const PartPaint& part,
                         const std::span<const Rect> clips) {
+    // A bake carries the part's whole look; where it cannot be shown the
+    // part goes on to its recipe.
+    if (part.light_planes && paint_light_plane_part(painter, control, part, clips)) return;
     // Drawn in GUI.Forms' own theme in place of the application's (T4
     // theme variants): colours chosen against the other theme are not
     // applied, the part's own included.
