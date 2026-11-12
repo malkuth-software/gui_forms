@@ -37,6 +37,7 @@ PortRecord port_of(const char* name, PortDirection direction, PortSide side, dou
 // the right.
 NodeSpec spec_at(const char* title, double x, double y) {
     NodeSpec spec{};
+    spec.key = title;
     spec.title = title;
     spec.bounds = WorldRect{x, y, 100.0, 60.0};
     spec.ports.push_back(port_of("in", PortDirection::input, PortSide::left, 0.5));
