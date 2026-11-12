@@ -187,6 +187,16 @@ std::shared_ptr<const PropertyEnumDescriptor> layout_direction_property_enum_imp
     return value;
 }
 
+// Windows Forms' RightToLeft choices at its own values (RightToLeft).
+std::shared_ptr<const PropertyEnumDescriptor> right_to_left_property_enum_impl() {
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+        PropertyEnumDescriptor{
+            "right_to_left",
+            {{"no", 0}, {"yes", 1}, {"inherit", 2}},
+            false});
+    return value;
+}
+
 BindingValue current_enum_property_value_impl(
     std::shared_ptr<const PropertyEnumDescriptor> enumeration,
     std::int64_t value) {
@@ -412,6 +422,20 @@ BindingValue Control::cursor_property_value() const {
     return current;
 }
 
+BindingValue Control::right_to_left_property_value() const {
+    const RightToLeft spelled = right_to_left_of(layout_direction.read());
+    const BindingValue current = current_enum_property_value(right_to_left_property_enum(),
+                                                             static_cast<std::int64_t>(spelled));
+    return current;
+}
+
+// The table's write has already checked the choice against the enumeration.
+void Control::set_right_to_left_property_value(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    const RightToLeft spelled = static_cast<RightToLeft>(choice.value);
+    layout_direction = layout_direction_of(spelled);
+}
+
 void Control::set_cursor_property_value(const BindingValue& value) {
     const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
     if (choice.value == 0) {
@@ -495,6 +519,11 @@ Control::auto_size_mode_property_enum() {
 std::shared_ptr<const PropertyEnumDescriptor>
 Control::layout_direction_property_enum() {
     return layout_direction_property_enum_impl();
+}
+
+std::shared_ptr<const PropertyEnumDescriptor>
+Control::right_to_left_property_enum() {
+    return right_to_left_property_enum_impl();
 }
 
 BindingValue Control::current_enum_property_value(
@@ -687,6 +716,26 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         fore_color.invalidates_subtree = true;
         fore_color.nullable = true;
         return fore_color;
+    }
+    case RegisteredProperty::right_to_left: {
+        // Windows Forms' RightToLeft over the one stored direction: the
+        // same value as layout_direction, which stays the serialized and
+        // browsable spelling, so a form writes it once.
+        PropertyDescriptor right_to_left;
+        right_to_left.name = "right_to_left";
+        right_to_left.kind = BindingValueKind::enumeration;
+        right_to_left.category = "Appearance";
+        right_to_left.description =
+            "Windows Forms' RightToLeft: no, yes, or inherit the parent's direction (layout_direction).";
+        right_to_left.default_value = BindingValue{PropertyEnumValue{
+            "right_to_left", "inherit", 2}};
+        right_to_left.invalidation_effects = Dirty::arrange | Dirty::paint |
+            Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+        right_to_left.enumeration = right_to_left_property_enum();
+        right_to_left.bindable = false;
+        right_to_left.browsable = false;
+        right_to_left.serialization_visibility = PropertySerializationVisibility::hidden;
+        return right_to_left;
     }
     case RegisteredProperty::minimum_size: {
         PropertyDescriptor minimum_size;
@@ -1094,6 +1143,8 @@ const std::array<PropertyEntry, Control::control_property_count>& Control::contr
          &write_registered<RegisteredProperty::auto_size_mode>, nullptr, nullptr, nullptr, nullptr},
         {"layout_direction", &describe_registered<RegisteredProperty::layout_direction>, &read_registered<RegisteredProperty::layout_direction>,
          &write_registered<RegisteredProperty::layout_direction>, nullptr, nullptr, nullptr, nullptr},
+        {"right_to_left", &describe_registered<RegisteredProperty::right_to_left>, &read_registered<RegisteredProperty::right_to_left>,
+         &write_registered<RegisteredProperty::right_to_left>, nullptr, nullptr, nullptr, nullptr},
         {"tab_index", &describe_registered<RegisteredProperty::tab_index>, &read_registered<RegisteredProperty::tab_index>,
          &write_registered<RegisteredProperty::tab_index>, nullptr, nullptr, nullptr, nullptr},
         {"tab_stop", &describe_registered<RegisteredProperty::tab_stop>, &read_registered<RegisteredProperty::tab_stop>,
@@ -2356,7 +2407,16 @@ void Control::attach_child(Ptr child, std::size_t index) {
     std::optional<std::size_t> previous_index{};
     if (previous_parent) {
         previous_index = (*previous_parent).child_index_from_top((*child).runtime_id());
-        static_cast<void>((*previous_parent).remove_child((*child).runtime_id()));
+        // The move announces its net direction change once, below: the
+        // removal refreshes the moved subtree but announces nothing.
+        (*child).holds_direction_announcement_ = true;
+        try {
+            static_cast<void>((*previous_parent).remove_child((*child).runtime_id()));
+        } catch (...) {
+            (*child).holds_direction_announcement_ = false;
+            throw;
+        }
+        (*child).holds_direction_announcement_ = false;
     } else if ((*child).surface_root_) {
         throw std::logic_error("GUI.Forms cannot reparent another window root");
     }
@@ -2380,6 +2440,10 @@ void Control::attach_child(Ptr child, std::size_t index) {
     // A rollback below leaves the raised bounds high, which they may be.
     raise_height_bounds((*child).subtree_height_bound_);
     advance_inherited_generation();
+    // The whole moved subtree: a held removal above may have left any of
+    // it resolved but unannounced.
+    std::vector<Ptr> announcements{};
+    (*child).refresh_resolved_direction(DirectionWalk::whole_subtree, announcements);
     if (surface_root_) {
         try {
             (*surface_root_).attach_subtree(child, weak_from_this());
@@ -2393,11 +2457,16 @@ void Control::attach_child(Ptr child, std::size_t index) {
             (*child).parent_.reset();
             (*child).parent_link_ = nullptr;
             advance_inherited_generation();
+            // Resolved again as a root, unannounced: the restoring
+            // attachment announces whatever net change remains.
+            announcements.clear();
+            (*child).refresh_resolved_direction(DirectionWalk::whole_subtree, announcements);
             restore_to_previous_parent(child, previous_parent, previous_index);
             throw;
         }
     }
     invalidate_declared(invalidation::visual_tree);
+    announce_direction_changes(announcements);
 }
 
 void Control::require_nesting_room(Control& child, std::size_t depth) {
@@ -2520,6 +2589,8 @@ Control::Ptr Control::remove_child(RuntimeId child_id) {
         (*removed).parent_link_ = nullptr;
     }
     advance_inherited_generation();
+    std::vector<Ptr> announcements{};
+    (*removed).refresh_resolved_direction(DirectionWalk::changed_branches, announcements);
     detail::advance_style_epoch();
     (*removed).layout_slot_.reset();
     (*removed).anchor_reference_.reset();
@@ -2527,6 +2598,8 @@ Control::Ptr Control::remove_child(RuntimeId child_id) {
     // (audit N77).
     if (surface_root_) (*surface_root_).refresh_ancestor_summaries(*this);
     invalidate_declared(invalidation::visual_tree);
+    // A reparenting (attach_child) announces the net change itself.
+    if (!(*removed).holds_direction_announcement_) announce_direction_changes(announcements);
     return removed;
 }
 
@@ -2580,6 +2653,8 @@ void Control::clear_children() {
         throw std::logic_error("GUI.Forms cannot mutate the visual tree during lifecycle notification");
     }
     if (children_.empty()) return;
+    // Announced once every child has left.
+    std::vector<Ptr> announcements{};
     // Each child leaves as remove_child takes it, last first, but without
     // remove_child's search from the front for each one, and with one
     // refresh of the ancestors' flags and one invalidation for the whole
@@ -2601,12 +2676,14 @@ void Control::clear_children() {
             (*removed).parent_.reset();
             (*removed).parent_link_ = nullptr;
         }
+        (*removed).refresh_resolved_direction(DirectionWalk::changed_branches, announcements);
         (*removed).layout_slot_.reset();
         (*removed).anchor_reference_.reset();
     }
     advance_inherited_generation();
     if (surface_root_) (*surface_root_).refresh_ancestor_summaries(*this);
     invalidate_declared(invalidation::visual_tree);
+    announce_direction_changes(announcements);
 }
 
 void Control::set_requested_bounds(Rect bounds) {
@@ -3019,16 +3096,79 @@ void Control::prepare_write(const decltype(layout_direction)&, LayoutDirection& 
 }
 
 void Control::written(const decltype(layout_direction)&) {
-    advance_inherited_generation();
-    // Direction mirrors where children and text are placed, never their
-    // measured sizes; every descendant that inherits it moves.
-    constexpr Dirty effects = Dirty::arrange | Dirty::paint | Dirty::hit_test |
-                              Dirty::semantics | Dirty::accessibility;
-    invalidate_subtree(effects);
+    // Every control whose resolved direction changes, this one and the
+    // descendants that inherit it, is invalidated and announced; a write
+    // that leaves the resolved value as it was (inherit to an equal
+    // explicit value) moves nothing.
+    std::vector<Ptr> announcements{};
+    refresh_resolved_direction(DirectionWalk::changed_branches, announcements);
+    announce_direction_changes(announcements);
     on_layout_direction_changed();
 }
 
 void Control::on_layout_direction_changed() {}
+
+void Control::on_right_to_left_changed() {
+    const bool right_to_left = resolved_direction_ == LayoutDirection::right_to_left;
+    publish_change(right_to_left_changed_, right_to_left);
+}
+
+void Control::refresh_resolved_direction(DirectionWalk walk, std::vector<Ptr>& announcements) {
+    // One frame per control still to visit, with the resolved direction of
+    // its parent (already refreshed: the walk is preorder). Frames borrow
+    // the controls: the walk runs no callbacks, so the tree cannot change
+    // under it.
+    struct DirectionFrame final {
+        Control* control{nullptr};
+        LayoutDirection above{LayoutDirection::left_to_right};
+    };
+    const Ptr visual_parent = parent_.lock();
+    const LayoutDirection root_above = visual_parent ? (*visual_parent).resolved_direction_
+                                                     : LayoutDirection::left_to_right;
+    std::vector<DirectionFrame> pending{};
+    pending.reserve(children_.size() + 1U);
+    pending.push_back(DirectionFrame{this, root_above});
+    while (!pending.empty()) {
+        const DirectionFrame frame = pending.back();
+        pending.pop_back();
+        Control& current = *frame.control;
+        const LayoutDirection own = current.layout_direction.read();
+        const LayoutDirection resolved = own != LayoutDirection::inherit ? own : frame.above;
+        const bool changed = resolved != current.resolved_direction_;
+        current.resolved_direction_ = resolved;
+        if (resolved != current.announced_direction_) {
+            const Ptr held = current.weak_from_this().lock();
+            // A control not yet owned (inside its constructor) has no
+            // subscriber and is not attached: it takes the value silently.
+            if (held) announcements.push_back(held);
+            else current.announced_direction_ = resolved;
+        }
+        if (!changed && walk == DirectionWalk::changed_branches) continue;
+        // Pushed last to first, so the first child in painter order is
+        // visited (and announced) first.
+        for (std::size_t index = current.children_.size(); index > 0U; --index) {
+            const Ptr& child = current.children_[index - 1U];
+            if (child) pending.push_back(DirectionFrame{child.get(), resolved});
+        }
+    }
+}
+
+void Control::announce_direction_changes(const std::vector<Ptr>& announcements) {
+    // Direction mirrors where children, parts and text are placed, never
+    // their measured sizes.
+    constexpr Dirty effects = Dirty::arrange | Dirty::paint | Dirty::hit_test |
+                              Dirty::semantics | Dirty::accessibility;
+    for (const Ptr& changed : announcements) {
+        Control& control = *changed;
+        // A handler earlier in the list may have disposed the control, or
+        // announced it through a nested change.
+        if (!control.is_alive()) continue;
+        if (control.announced_direction_ == control.resolved_direction_) continue;
+        control.announced_direction_ = control.resolved_direction_;
+        control.invalidate(effects);
+        control.on_right_to_left_changed();
+    }
+}
 
 void Control::prepare_write(const decltype(tab_index)&, std::uint32_t&) {
     require_mutable();
@@ -3504,7 +3644,6 @@ const Control::InheritedValues& Control::inherited_values() const noexcept {
     computed.visible = visible.read() && !layout_collapsed_ && alive;
     computed.enabled = enabled.read() && alive;
     computed.ceremonial = ceremonial.read();
-    const LayoutDirection own_direction = layout_direction.read();
     const Ptr visual_parent = parent_.lock();
     if (visual_parent) {
         const InheritedValues& above = (*visual_parent).inherited_values();
@@ -3512,14 +3651,11 @@ const Control::InheritedValues& Control::inherited_values() const noexcept {
         if (!computed.back_color && !stops_inherited_colours_) computed.back_color = above.back_color;
         if (!computed.fore_color && !stops_inherited_colours_) computed.fore_color = above.fore_color;
         computed.cursor = cursor.read() ? *cursor.read() : above.cursor;
-        computed.direction = own_direction != LayoutDirection::inherit ? own_direction : above.direction;
         computed.visible = computed.visible && above.visible;
         computed.enabled = computed.enabled && above.enabled;
         computed.ceremonial = computed.ceremonial || above.ceremonial;
     } else {
         computed.cursor = cursor.read() ? *cursor.read() : CursorKind::arrow;
-        computed.direction = own_direction != LayoutDirection::inherit ? own_direction
-                                                                      : LayoutDirection::left_to_right;
     }
     computed.generation = now;
     inherited_ = computed;
@@ -3943,8 +4079,7 @@ bool Control::sizes_children_from_content() const noexcept { return true; }
 bool Control::measures_children_in_arrange() const noexcept { return false; }
 
 LayoutDirection Control::effective_layout_direction() const noexcept {
-    const LayoutDirection direction = inherited_values().direction;
-    return direction;
+    return resolved_direction_;
 }
 
 void Control::arrange(Rect final_bounds) {
@@ -4759,6 +4894,7 @@ void Control::disconnect_control_events() noexcept {
     tool_tip_text_changed_.disconnect_all();
     visible_changed_.disconnect_all();
     enabled_changed_.disconnect_all();
+    right_to_left_changed_.disconnect_all();
     causes_validation_changed_.disconnect_all();
     auto_size_changed_.disconnect_all();
     validating_.disconnect_all();
@@ -4796,10 +4932,11 @@ void Control::disconnect_control_events() noexcept {
 namespace {
 
 // The events Control adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 31> control_interactions{{
+constexpr std::array<InteractionDeclaration, 32> control_interactions{{
     {.name = "name_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "visible_changed", .payload = "bool", .mutable_payload = false},
     {.name = "enabled_changed", .payload = "bool", .mutable_payload = false},
+    {.name = "right_to_left_changed", .payload = "bool", .mutable_payload = false},
     {.name = "auto_size_changed", .payload = "bool", .mutable_payload = false},
     {.name = "causes_validation_changed", .payload = "bool", .mutable_payload = false},
     {.name = "validating", .payload = "ControlValidationEvent", .mutable_payload = true},

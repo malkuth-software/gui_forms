@@ -4509,6 +4509,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_layout_direction_tests
              COMMAND gui_forms_layout_direction_tests)
 
+    add_executable(gui_forms_right_to_left_tests
+        tests/right_to_left_tests.cpp
+    )
+    target_link_libraries(gui_forms_right_to_left_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_right_to_left_tests
+             COMMAND gui_forms_right_to_left_tests)
+
     # The layout fixture corpus against checked-in Chromium references
     # (notes:planning/stages/L-layout/PLAN.md section 6). The corpus path on the
     # command line also selects this test when the corpus changes.

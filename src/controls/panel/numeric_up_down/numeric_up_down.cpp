@@ -321,8 +321,18 @@ void NumericUpDown::arrange(Rect final_bounds) {
     const double inner_height = std::max(0.0, final_bounds.height - 2.0 * inset);
     const double column_width = std::min(button_width.read(), inner_width);
     const double field_width = std::max(0.0, inner_width - column_width);
-    if (editor_) set_child_layout(editor_, {inset, inset, field_width, inner_height});
-    if (spinner_) set_child_layout(spinner_, {inset + field_width, inset, column_width, inner_height});
+    // The spin column is at the right, or at the left when the control
+    // resolves right to left (Windows Forms' UpDownAlign follows
+    // RightToLeft).
+    Rect field{inset, inset, field_width, inner_height};
+    Rect column{inset + field_width, inset, column_width, inner_height};
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        const Rect frame{0.0, 0.0, final_bounds.width, final_bounds.height};
+        field = horizontally_mirrored(field, frame);
+        column = horizontally_mirrored(column, frame);
+    }
+    if (editor_) set_child_layout(editor_, field);
+    if (spinner_) set_child_layout(spinner_, column);
 }
 
 void NumericUpDown::on_key_preview(KeyEvent& event) {

@@ -56,6 +56,10 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] Rect local_bounds() const noexcept;
+    // Whether the value axis runs right to left: a horizontal bar whose
+    // resolved direction is right to left (Control::right_to_left), which
+    // puts its minimum at the right edge.
+    [[nodiscard]] bool mirrored_axis() const noexcept;
     bool set_value_from_input(double requested, RangeAction action);
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
