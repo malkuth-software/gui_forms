@@ -91,14 +91,18 @@ std::size_t paint_finish(const FinishFill& fill, double scale, FinishRect surfac
 // destination pixel with the layer's composite (MaterialEffortWeights's
 // image weight).
 //
-// Provisional (2026-11-12, not yet measured): estimated from the study's
-// work per pixel against the procedural felt's (four octaves of value
-// noise, 145): one value-noise sample costs about a felt octave in
-// doubles, a jittered-cell search about seven, the shading about two.
-// gui_forms_engine_finish_tests --measure prints what they should be:
-// the median of nine paints of a 256 × 256 surface at scale 1, in
-// nanoseconds per device pixel, beside the solid layer's ratio; the
-// integrator replaces these with the measured values.
+// Measured (2026-11-12, the integrator, Apple M4, Release, LLVM 22):
+// gui_forms_engine_finish_tests --measure, the median of nine paints of a
+// 256 × 256 surface at scale 1, two runs averaged, in nanoseconds per
+// device pixel: dusty matte 25.6, orange peel 12.2, hammertone 111,
+// wrinkle 34.3, bead blast 12.8, sand cast 63.4, flat 5.7, cloth weave
+// 13.5, glint 276. They are scaled by the budget's own calibration
+// (maximum_material_bake_effort's 20,000,000 units for the 4 ms bound: 5
+// units a nanosecond) and rounded up to a multiple of five. The solid
+// layer's ratio could not set the scale on that machine (it measures
+// 0.003 ns past the base, within noise); the flat finish's 30 beside the
+// solid layer's 25 agrees with the scale chosen. Rerun --measure and
+// rescale when a kernel changes.
 struct FinishEffortWeights final {
     std::uint32_t dusty_matte{};
     std::uint32_t orange_peel{};
@@ -112,20 +116,20 @@ struct FinishEffortWeights final {
 };
 
 inline constexpr FinishEffortWeights finish_effort_weights{
-    .dusty_matte = 330U,
-    .orange_peel = 250U,
-    .hammertone = 900U,
-    .wrinkle = 420U,
-    .bead_blast = 250U,
-    .sand_cast = 600U,
-    .flat = 60U,
-    .cloth_weave = 260U,
+    .dusty_matte = 130U,
+    .orange_peel = 65U,
+    .hammertone = 555U,
+    .wrinkle = 175U,
+    .bead_blast = 65U,
+    .sand_cast = 320U,
+    .flat = 30U,
+    .cloth_weave = 70U,
     // About six speck points in reach of each pixel, each four bins of an
-    // exponential, three hashes and a Poisson draw: some 2000. Over the
-    // budget past about 10,000 device pixels (a 100 x 100 face), where the
-    // material is refused and the built-in recipe draws: the glint's cost
-    // bound.
-    .glint = 2000U,
+    // exponential, three hashes and a Poisson draw: the dearest finish.
+    // With the base and the image composite, over the budget past about
+    // 13,000 device pixels (a 115 x 115 face), where the material is
+    // refused and the built-in recipe draws: the glint's cost bound.
+    .glint = 1380U,
 };
 
 // `kind`'s weight per painted device pixel; past the budget for a kind
