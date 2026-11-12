@@ -3906,6 +3906,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_package_compile_tests tests/theme_language/theme_package_compile_tests.cpp)
     target_link_libraries(gui_forms_theme_package_compile_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_package_compile_tests COMMAND gui_forms_theme_package_compile_tests)
+    # The GOST paint palette package (skeudoindustrial surfaces, phase 4).
+    add_executable(gui_forms_theme_gost_palette_tests tests/theme_language/theme_gost_palette_tests.cpp)
+    target_link_libraries(gui_forms_theme_gost_palette_tests PRIVATE gui_forms_controls)
+    target_compile_definitions(gui_forms_theme_gost_palette_tests PRIVATE
+        GUI_FORMS_GOST_PALETTE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/gost_paints")
+    add_test(NAME gui_forms_theme_gost_palette_tests COMMAND gui_forms_theme_gost_palette_tests)
     add_executable(gui_forms_theme_user_theme_tests tests/theme_language/theme_user_theme_tests.cpp)
     target_link_libraries(gui_forms_theme_user_theme_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_user_theme_tests COMMAND gui_forms_theme_user_theme_tests)
