@@ -224,7 +224,9 @@ void test_glyph_runs_paint_like_text(render::SkiaRaster& raster, render::SkiaRas
 // - global operator new and operator new[] (replaced above): every C++
 //   allocation, the library's and the standard library's;
 // - HarfBuzzFontEngine::thread_native_allocations(): FreeType's heap calls
-//   through the engine's FT_Memory, HarfBuzz's through its hb_malloc_impl
+//   through the engine's FT_Memory (a fallback face's glyph ink extents
+//   come from FT_Load_Glyph, which allocates for composite glyphs; the
+//   engine keeps them per glyph and size after the warm-up reads them), HarfBuzz's through its hb_malloc_impl
 //   hooks, and SheenBidi's calls that went to the C heap (all must stay
 //   zero), and SheenBidi's calls served by the workspace's arena (reported,
 //   not an allocation: the arena is reserved storage);

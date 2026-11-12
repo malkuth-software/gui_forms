@@ -34,7 +34,8 @@
 // - text_layout: the paragraph layout's reused storage (ParagraphBuffers'
 //   lines, collapsed text, break opportunities, advances, glyph runs and
 //   glyphs) and the bundled engine's shaping workspace arrays (its scalars,
-//   segments, runs, staged glyphs and SheenBidi arena); the workspace's
+//   segments, runs, staged glyphs and SheenBidi arena) and its fallback
+//   faces' glyph ink-extent caches; the workspace's
 //   grapheme tables and HarfBuzz buffer are not counted.
 //
 // Bytes are the bytes asked of operator new, without the allocator's own

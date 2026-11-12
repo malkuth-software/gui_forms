@@ -20,9 +20,11 @@
 #include <cmath>
 #include <cstdlib>
 #include <limits>
+#include <new>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::render::text {
 namespace {
@@ -277,6 +279,108 @@ template <typename GlyphMap>
     return covered;
 }
 
+// One face's glyph ink extents at shaping sizes, as HarfBuzz reads them
+// from FreeType (hb-ft's glyph extents call FT_Load_Glyph, which allocates a
+// list node for every composite glyph it loads, so reading them per shaping
+// allocated in steady state). An open-addressed table keyed by glyph id and
+// FreeType size (26.6), probed linearly; it records refusals as well as
+// extents. Growth doubles the table while it is more than half full, up to
+// maximum_entries; a full table at that size is emptied and refilled. find
+// never allocates; keep allocates only to grow, and a growth that fails
+// leaves the table as it was (the extents are then simply not kept). The
+// entries count under AllocationSubsystem::text_layout. One thread: the
+// engine's.
+class GlyphInkCache final {
+public:
+    struct Entry final {
+        // The glyph id plus one; zero marks an empty slot.
+        std::uint32_t glyph_plus_one{};
+        FT_F26Dot6 size{};
+        bool available{};
+        hb_glyph_extents_t extents{};
+    };
+
+    // The kept entry for `glyph` at `size`, or null.
+    [[nodiscard]] const Entry* find(const hb_codepoint_t glyph, const FT_F26Dot6 size) const noexcept {
+        if (entries_.empty() || glyph == std::numeric_limits<hb_codepoint_t>::max()) return nullptr;
+        const std::uint32_t wanted = static_cast<std::uint32_t>(glyph) + 1U;
+        const std::size_t mask = entries_.size() - 1U;
+        std::size_t slot = slot_of(wanted, size, mask);
+        for (std::size_t probes = 0U; probes < entries_.size(); ++probes) {
+            const Entry& entry = entries_[slot];
+            if (entry.glyph_plus_one == 0U) return nullptr;
+            if (entry.glyph_plus_one == wanted && entry.size == size) return &entry;
+            slot = (slot + 1U) & mask;
+        }
+        return nullptr;
+    }
+
+    // Keeps `glyph`'s extents (or their refusal) at `size`; not already kept.
+    void keep(const hb_codepoint_t glyph, const FT_F26Dot6 size, const bool available,
+              const hb_glyph_extents_t extents) noexcept {
+        if (glyph == std::numeric_limits<hb_codepoint_t>::max()) return;
+        if ((count_ + 1U) * 2U > entries_.size()) {
+            if (entries_.size() < maximum_entries) {
+                if (!grow()) return;
+            } else {
+                for (Entry& entry : entries_) entry = Entry{};
+                count_ = 0U;
+            }
+        }
+        Entry entry{};
+        entry.glyph_plus_one = static_cast<std::uint32_t>(glyph) + 1U;
+        entry.size = size;
+        entry.available = available;
+        entry.extents = extents;
+        place(entries_, entry);
+        ++count_;
+    }
+
+private:
+    using Entries = std::vector<Entry, gui_forms::detail::CountedAllocator<Entry, AllocationSubsystem::text_layout>>;
+    static constexpr std::size_t initial_entries = 64U;
+    // 8192 entries of 40 bytes: 320 KiB a face at most.
+    static constexpr std::size_t maximum_entries = 8192U;
+
+    [[nodiscard]] static std::size_t slot_of(const std::uint32_t glyph_plus_one, const FT_F26Dot6 size,
+                                             const std::size_t mask) noexcept {
+        const std::uint64_t size_bits = static_cast<std::uint64_t>(size);
+        const std::uint64_t mixed = (static_cast<std::uint64_t>(glyph_plus_one) * 0x9E3779B97F4A7C15ULL) ^
+                                    (size_bits * 0xC2B2AE3D27D4EB4FULL);
+        const std::size_t slot = static_cast<std::size_t>(mixed >> 32U) & mask;
+        return slot;
+    }
+
+    // Places `entry` in the first empty slot of its probe sequence; the
+    // table has one.
+    static void place(Entries& table, const Entry& entry) noexcept {
+        const std::size_t mask = table.size() - 1U;
+        std::size_t slot = slot_of(entry.glyph_plus_one, entry.size, mask);
+        while (table[slot].glyph_plus_one != 0U) slot = (slot + 1U) & mask;
+        table[slot] = entry;
+    }
+
+    // Doubles the table (or creates it), moving the kept entries; false,
+    // changing nothing, when the allocation fails.
+    [[nodiscard]] bool grow() noexcept {
+        const std::size_t capacity = entries_.empty() ? initial_entries : entries_.size() * 2U;
+        Entries grown{};
+        try {
+            grown.resize(capacity);
+        } catch (const std::bad_alloc&) {
+            return false;
+        }
+        for (const Entry& entry : entries_) {
+            if (entry.glyph_plus_one != 0U) place(grown, entry);
+        }
+        entries_.swap(grown);
+        return true;
+    }
+
+    Entries entries_{};
+    std::size_t count_{};
+};
+
 } // namespace
 
 class HarfBuzzFontEngine::Impl final {
@@ -313,6 +417,8 @@ public:
         // The numbered bundled family (FontSpec::family) this face belongs to, or zero for a
         // role or fallback face. A family face serves only text that names its family.
         std::uint8_t named_family{};
+        // A fallback face's glyph ink extents at shaping sizes (append_run).
+        GlyphInkCache ink_cache{};
 
         Face(FontFaceId id_value, std::optional<FontRole> role_value,
              std::uint16_t weight_value, bool italic_value,
@@ -334,7 +440,8 @@ public:
               family(std::move(other.family)), encoded(std::move(other.encoded)),
               face(std::exchange(other.face, nullptr)), shaping_font(std::move(other.shaping_font)),
               shaping_size(other.shaping_size), coverage(other.coverage),
-              loader(std::move(other.loader)), named_family(other.named_family) {}
+              loader(std::move(other.loader)), named_family(other.named_family),
+              ink_cache(std::move(other.ink_cache)) {}
         Face& operator=(Face&&) = delete;
     };
 
@@ -563,6 +670,26 @@ public:
     // Bounded: the run is written into `bounded`'s arrays (Output is
     // BoundedShapedText or StagedShaping, which share these members) and
     // never grows them.
+    // A face's ink extents of `glyph` at its shaping size: from the face's
+    // cache, or read once through `font` (hb-ft, FT_Load_Glyph) and kept.
+    // A font other than the face's kept one (a diagnostic substitute) is
+    // read directly. False when HarfBuzz has no extents for the glyph.
+    static bool glyph_ink_extents(Face& face, hb_font_t* font, const hb_codepoint_t glyph,
+                                  hb_glyph_extents_t& extents) {
+        if (font != face.shaping_font.get()) {
+            const bool direct = hb_font_get_glyph_extents(font, glyph, &extents) != 0;
+            return direct;
+        }
+        const GlyphInkCache::Entry* const kept = face.ink_cache.find(glyph, face.shaping_size);
+        if (kept != nullptr) {
+            extents = (*kept).extents;
+            return (*kept).available;
+        }
+        const bool available = hb_font_get_glyph_extents(font, glyph, &extents) != 0;
+        face.ink_cache.keep(glyph, face.shaping_size, available, extents);
+        return available;
+    }
+
     template <bool Bounded = false, typename Output = BoundedShapedText>
     void append_run(ShapeCall& call, ShapedText& result, Face& face, std::string_view utf8,
                     Utf8Range range, FontSpec font, double run_origin,
@@ -740,7 +867,7 @@ public:
                 run.glyphs.push_back(glyph);
             }
             hb_glyph_extents_t extents{};
-            if (!face.role && hb_font_get_glyph_extents(hb_font, infos[index].codepoint, &extents)) {
+            if (!face.role && glyph_ink_extents(face, hb_font, infos[index].codepoint, extents)) {
                 const double top = pen_y + offset_y - extents.y_bearing / 64.0;
                 const double bottom = top - extents.height / 64.0;
                 ink_ascent = std::max(ink_ascent, -top);
