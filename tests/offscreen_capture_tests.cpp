@@ -482,6 +482,46 @@ void atlas_deferred_fill_capture() {
     (*probe).atlas = nullptr;
 }
 
+// A slot no control has drawn (A13): the probe draws it unfilled (refused,
+// so its panel shows through) and fills it during the same paint. That frame
+// presents no slot pixels; the fill is written when the paint ends and
+// repaints the probe, and the next frame presents the new pixels.
+void atlas_first_draw_after_deferred_fill() {
+    const std::unique_ptr<OffscreenRaster> raster = made_raster();
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("atlas-first"));
+    const std::shared_ptr<AtlasFrameProbe> probe = std::make_shared<AtlasFrameProbe>(StableId("atlas-first.probe"));
+    (*probe).set_bounds(Rect{20.0, 10.0, 40.0, 40.0});
+    (*root).add_child(probe);
+    const Size size{80.0, 60.0};
+    Window window(root, size);
+    OffscreenAttachment attached(*raster, window);
+
+    ImageAtlasLayout layout{};
+    layout.slot_width = 8U;
+    layout.slot_height = 8U;
+    layout.slot_count = 2U;
+    ImageAtlas atlas(window.resources(), layout);
+    const ImageAtlasSlot slot = atlas.acquire(1U).slot;
+    const std::vector<std::byte> blue = solid_slot(255U, 0U, 0U);
+    (*probe).atlas = &atlas;
+    (*probe).slot = slot;
+    (*probe).refill = &blue;
+    window.perform_layout();
+
+    const std::array<std::uint8_t, 4> new_colour{255U, 0U, 0U, 255U};
+    const std::array<std::uint8_t, 4> first = presented_pixel(window, size, 24U, 14U);
+    require(!(*probe).drawn && (*probe).fill_result == ImageAtlasError::deferred,
+            "the unfilled slot drew nothing and its fill during the paint was deferred");
+    require(!near_pixel(first, new_colour), "the frame that deferred the fill presents no slot pixels");
+    require(atlas.filled(slot) && atlas.statistics().unfilled_draws == 1U,
+            "the fill was written when the paint ended and the unfilled draw was remembered");
+    require(has_dirty((*probe).dirty(), Dirty::paint), "the written fill damaged the probe for the next frame");
+
+    const std::array<std::uint8_t, 4> second = presented_pixel(window, size, 24U, 14U);
+    require((*probe).drawn && near_pixel(second, new_colour), "the next frame draws the slot's new pixels");
+    (*probe).atlas = nullptr;
+}
+
 int main() {
     raster_refusals();
     attachment_and_control_capture();
@@ -489,6 +529,7 @@ int main() {
     stock_catalogue();
     atlas_deferred_fill_pixels();
     atlas_deferred_fill_capture();
+    atlas_first_draw_after_deferred_fill();
     std::cout << "Offscreen capture: raster refusals, the attachment, control captures, specimen states, the "
                  "stock catalogue and atlas deferred-fill frames and captures passed\n";
     return EXIT_SUCCESS;

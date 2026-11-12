@@ -320,6 +320,10 @@ Related types
 
    .. cpp:member:: std::uint64_t user_overflows
 
+   .. cpp:member:: std::uint64_t unfilled_draws
+
+      Draws of an unfilled slot whose user was remembered for its fill (also counted in draw_refusals).
+
    .. cpp:member:: std::uint64_t users_damaged
 
       Controls asked to repaint because a slot they drew changed.
