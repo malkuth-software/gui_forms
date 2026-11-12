@@ -2349,7 +2349,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 230 supported, 0 deferred, 12 excluded, 313 unclassified; 198 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 231 supported, 0 deferred, 12 excluded, 312 unclassified; 198 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4279,7 +4279,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 230 supp
    * - method
      - GUI.Forms-only
      - ``measure_text_extent_utf8``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``measures_children_in_arrange``

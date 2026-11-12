@@ -8,13 +8,13 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2031 | 13 | 367 | 4104 | 2124 |
+| 2035 | 13 | 367 | 4100 | 2124 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 230 | 0 | 12 | 313 | 198 |
+| `Control` | `Control` | 231 | 0 | 12 | 312 | 198 |
 | `Component` | `Component` | 9 | 0 | 0 | 11 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 36 | 21 |
 | `Button` | `Button` | 6 | 0 | 0 | 6 | 5 |
@@ -27,7 +27,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `MaskedTextBox` | `MaskedTextBox` | 16 | 0 | 0 | 38 | 7 |
 | `RichTextBox` | `RichTextBox` | 26 | 0 | 2 | 55 | 20 |
 | `Label` | `Label` | 7 | 0 | 1 | 36 | 9 |
-| `TextBlock` | GUI.Forms-only | 2 | 0 | 0 | 8 | 10 |
+| `TextBlock` | GUI.Forms-only | 3 | 0 | 0 | 7 | 10 |
 | `Badge` | GUI.Forms-only | 3 | 0 | 0 | 4 | 7 |
 | `InfoBanner` | GUI.Forms-only | 3 | 0 | 0 | 5 | 8 |
 | `EmptyState` | GUI.Forms-only | 2 | 0 | 0 | 3 | 5 |
@@ -159,7 +159,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TextBoxBase` | `TextBoxBase` | 11 | 0 | 0 | 40 | 4 |
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
-| `Window` | `Form` | 218 | 10 | 10 | 134 | 232 |
+| `Window` | `Form` | 220 | 10 | 10 | 132 | 232 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -302,5 +302,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1633 |
-| `untested` | 895 |
+| `untested` | 891 |
 | `w-open` | 5 |
