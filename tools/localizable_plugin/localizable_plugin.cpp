@@ -226,7 +226,8 @@ public:
         return true;
     }
 
-    const std::vector<Record>& records() const noexcept { return records_; }
+    const std::vector<Record>& records() const& noexcept { return records_; }
+    const std::vector<Record>& records() const&& = delete;
 
 private:
     // `list.items.insert(0, "First")`: a member call on an annotated field

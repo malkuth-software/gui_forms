@@ -132,7 +132,8 @@ public:
 
     // The rows' IDs in presentation order, for set_virtual_rows and
     // set_virtual_row_order.
-    [[nodiscard]] const std::vector<DataGridViewRowId>& order() const noexcept { return order_; }
+    [[nodiscard]] const std::vector<DataGridViewRowId>& order() const& noexcept { return order_; }
+    const std::vector<DataGridViewRowId>& order() const&& = delete;
 
     // Orders the rows stably by one column's text; the values stay keyed by ID.
     void sort(std::size_t column, bool descending) {

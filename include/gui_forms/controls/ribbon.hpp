@@ -419,7 +419,8 @@ public:
     [[nodiscard]] RibbonScalingCounters scaling_counters() const noexcept { return counters_; }
 
     // The File tab's menu (its text is application_text).
-    [[nodiscard]] const std::vector<MenuItemSpec>& application_menu() const noexcept { return application_menu_; }
+    [[nodiscard]] const std::vector<MenuItemSpec>& application_menu() const& noexcept { return application_menu_; }
+    const std::vector<MenuItemSpec>& application_menu() const&& = delete;
     // Throws std::invalid_argument for an invalid menu.
     void set_application_menu(std::vector<MenuItemSpec> items);
     // Opens the File tab's file area: Backstage when the ribbon has one;

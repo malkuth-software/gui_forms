@@ -89,7 +89,8 @@ public:
     void set_deferred_frame_reports(bool enabled) noexcept { deferred_reports_ = enabled; }
     void flush_frame_reports();
 
-    [[nodiscard]] const std::string& trace() const noexcept { return trace_; }
+    [[nodiscard]] const std::string& trace() const& noexcept { return trace_; }
+    const std::string& trace() const&& = delete;
     void clear_trace() noexcept { trace_.clear(); }
     // Whether showing, hiding, framing and raising a window append to the
     // trace (on by default). An allocation count of those operations turns
@@ -228,9 +229,10 @@ public:
     void inject_open_fault(HeadlessOpenFault fault) noexcept { open_fault_ = fault; }
     // Models of runtime opens refused by refuse_and_keep, in refusal order;
     // owned here until the application ends.
-    [[nodiscard]] const std::vector<std::unique_ptr<Window>>& refused_models() const noexcept {
+    [[nodiscard]] const std::vector<std::unique_ptr<Window>>& refused_models() const& noexcept {
         return refused_models_;
     }
+    const std::vector<std::unique_ptr<Window>>& refused_models() const&& = delete;
     // Releases the models and protocol adapters of windows closed earlier.
     // A test calls it between steps, as a native host does at the end of a
     // loop turn, so a window is never released inside one of its own

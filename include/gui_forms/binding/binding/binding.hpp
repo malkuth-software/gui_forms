@@ -27,12 +27,14 @@ public:
     [[nodiscard]] std::shared_ptr<BindingSource> source() const noexcept {
         return source_.lock();
     }
-    [[nodiscard]] const std::string& property_name() const noexcept {
+    [[nodiscard]] const std::string& property_name() const& noexcept {
         return property_name_;
     }
-    [[nodiscard]] const std::string& data_member() const noexcept {
+    const std::string& property_name() const&& = delete;
+    [[nodiscard]] const std::string& data_member() const& noexcept {
         return data_member_;
     }
+    const std::string& data_member() const&& = delete;
     [[nodiscard]] const BindingOptions& options() const noexcept {
         return options_;
     }

@@ -22,16 +22,19 @@ public:
 
     void queue_dialog_result(HostDialogResult result);
     void set_dialog_handler(DialogHandler handler);
-    [[nodiscard]] const std::string& dialog_trace() const noexcept {
+    [[nodiscard]] const std::string& dialog_trace() const& noexcept {
         return dialog_trace_;
     }
-    [[nodiscard]] const std::string& sound_trace() const noexcept {
+    const std::string& dialog_trace() const&& = delete;
+    [[nodiscard]] const std::string& sound_trace() const& noexcept {
         return sound_trace_;
     }
+    const std::string& sound_trace() const&& = delete;
     // Tray icons, kept as requested so tests can read what an application
     // asked to show, and driven by simulated user actions.
     [[nodiscard]] const HostTrayIconRequest* tray_icon(HostTrayIconId icon_id) const noexcept;
-    [[nodiscard]] const std::string& tray_trace() const noexcept { return tray_trace_; }
+    [[nodiscard]] const std::string& tray_trace() const& noexcept { return tray_trace_; }
+    const std::string& tray_trace() const&& = delete;
     // Raises a tray event as a user action would; dropped for icons that are
     // not live.
     void simulate_tray_icon_event(HostTrayIconEvent event);
@@ -42,7 +45,8 @@ public:
     // failed, appends "backdrop=<name> accepted=<0|1>" and a newline to
     // backdrop_trace().
     [[nodiscard]] WindowBackdrop native_backdrop() const noexcept { return native_backdrop_; }
-    [[nodiscard]] const std::string& backdrop_trace() const noexcept { return backdrop_trace_; }
+    [[nodiscard]] const std::string& backdrop_trace() const& noexcept { return backdrop_trace_; }
+    const std::string& backdrop_trace() const&& = delete;
     // The next non-opaque application fails with backend_failure and leaves
     // the native backdrop unchanged, as a native call that failed would.
     void fail_next_backdrop() noexcept { fail_next_backdrop_ = true; }

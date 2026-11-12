@@ -90,7 +90,8 @@ public:
     [[nodiscard]] std::size_t unread_count(Folder folder) const noexcept;
     [[nodiscard]] std::size_t total_count() const noexcept { return messages_.size(); }
 
-    [[nodiscard]] const std::string& search() const noexcept { return search_; }
+    [[nodiscard]] const std::string& search() const& noexcept { return search_; }
+    const std::string& search() const&& = delete;
     // Filters the current folder on correspondent, subject, and preview. A
     // selected message that stops matching is deselected.
     bool set_search(std::string text);

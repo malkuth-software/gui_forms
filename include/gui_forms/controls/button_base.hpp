@@ -61,9 +61,10 @@ public:
     void set_image_list(std::shared_ptr<ImageList> image_list);
     [[nodiscard]] int image_index() const noexcept { return image_index_; }
     void set_image_index(int image_index);
-    [[nodiscard]] const std::string& image_key() const noexcept {
+    [[nodiscard]] const std::string& image_key() const& noexcept {
         return image_key_;
     }
+    const std::string& image_key() const&& = delete;
     void set_image_key(std::string image_key);
     // Executes the same validated command path used by mnemonics, semantic
     // press, and a Window accept/cancel button. Returns false when unavailable

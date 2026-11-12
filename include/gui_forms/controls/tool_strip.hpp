@@ -138,7 +138,8 @@ public:
     explicit ToolStrip(StableId stable_id);
     ~ToolStrip() override;
 
-    [[nodiscard]] const std::vector<ToolStripItemSpec>& items() const noexcept { return items_; }
+    [[nodiscard]] const std::vector<ToolStripItemSpec>& items() const& noexcept { return items_; }
+    const std::vector<ToolStripItemSpec>& items() const&& = delete;
     // Replaces the items. Throws std::invalid_argument for an empty or
     // duplicate ID, invalid UTF-8, a drop-down menu on a kind that has none,
     // a drop-down or split button without one, an invalid menu, a hosted

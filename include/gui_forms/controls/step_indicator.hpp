@@ -37,7 +37,8 @@ public:
     // throws std::invalid_argument and keeps the old steps). A current step
     // past the new last step moves to the last (to zero when empty).
     void set_steps(std::vector<std::string> steps);
-    [[nodiscard]] const std::vector<std::string>& steps() const noexcept { return steps_; }
+    [[nodiscard]] const std::vector<std::string>& steps() const& noexcept { return steps_; }
+    const std::vector<std::string>& steps() const&& = delete;
     // The step whose chip or name contains a local point, if any.
     [[nodiscard]] std::optional<std::size_t> step_at(Point local_point) const;
 

@@ -31,7 +31,8 @@ public:
     explicit ColorCommand(std::shared_ptr<Command> command);
 
     [[nodiscard]] const std::shared_ptr<Command>& command() const noexcept { return command_; }
-    [[nodiscard]] const std::string& stable_id() const noexcept { return (*command_).stable_id(); }
+    [[nodiscard]] const std::string& stable_id() const& noexcept { return (*command_).stable_id(); }
+    const std::string& stable_id() const&& = delete;
     [[nodiscard]] const CommandState& state() const noexcept { return (*command_).state(); }
 
     // The colour, or none for Automatic.

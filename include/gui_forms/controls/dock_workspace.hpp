@@ -172,7 +172,8 @@ public:
     explicit DockWorkspace(std::string stable_id);
     ~DockWorkspace() override;
 
-    [[nodiscard]] const std::string& stable_id() const noexcept { return stable_id_; }
+    [[nodiscard]] const std::string& stable_id() const& noexcept { return stable_id_; }
+    const std::string& stable_id() const&& = delete;
     // The layout. Restrictions, groups, saving and restoring go through it
     // directly; register panels through register_panel, so that their
     // titles and factories are known.

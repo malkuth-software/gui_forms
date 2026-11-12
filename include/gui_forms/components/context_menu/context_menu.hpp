@@ -111,12 +111,14 @@ public:
     explicit ContextMenu(std::string stable_id);
     ~ContextMenu() override;
 
-    [[nodiscard]] const std::string& stable_id() const noexcept {
+    [[nodiscard]] const std::string& stable_id() const& noexcept {
         return stable_id_;
     }
-    [[nodiscard]] const std::vector<MenuItemSpec>& items() const noexcept {
+    const std::string& stable_id() const&& = delete;
+    [[nodiscard]] const std::vector<MenuItemSpec>& items() const& noexcept {
         return items_;
     }
+    const std::vector<MenuItemSpec>& items() const&& = delete;
     void set_items(std::vector<MenuItemSpec> items);
 
     // Unknown modes throw invalid_argument without closing an existing overlay.

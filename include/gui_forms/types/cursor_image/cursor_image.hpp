@@ -19,7 +19,8 @@ class GUI_FORMS_API CursorImages final {
 public:
     static std::shared_ptr<const CursorImages> create(
         std::vector<CursorImage> images, double hotspot_x, double hotspot_y);
-    [[nodiscard]] const std::vector<CursorImage>& images() const noexcept { return images_; }
+    [[nodiscard]] const std::vector<CursorImage>& images() const& noexcept { return images_; }
+    const std::vector<CursorImage>& images() const&& = delete;
     [[nodiscard]] const CursorImage& select(double device_scale) const noexcept;
     [[nodiscard]] CursorImage rasterize(double device_scale) const;
     [[nodiscard]] int hotspot_x(const CursorImage& image) const noexcept;

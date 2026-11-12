@@ -44,9 +44,10 @@ public:
     [[nodiscard]] std::uint64_t generation() const noexcept { return generation_; }
     [[nodiscard]] PaintPlane plane() const noexcept { return plane_; }
     [[nodiscard]] Rect logical_bounds() const noexcept { return logical_bounds_; }
-    [[nodiscard]] const std::vector<DisplayCommand>& commands() const noexcept {
+    [[nodiscard]] const std::vector<DisplayCommand>& commands() const& noexcept {
         return commands_;
     }
+    const std::vector<DisplayCommand>& commands() const&& = delete;
     // A rectangle, in the chunk's own coordinates, that replaying it leaves
     // opaque whatever lay beneath (RecordingPainter::mark_opaque_cover), or
     // none.

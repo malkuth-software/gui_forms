@@ -135,7 +135,8 @@ public:
     // Bookmarks are stable IDs; the application keeps them in its settings
     // (bookmarks_changed says when).
     void set_bookmarks(std::vector<std::string> stable_ids);
-    [[nodiscard]] const std::vector<std::string>& bookmarks() const noexcept { return bookmarks_; }
+    [[nodiscard]] const std::vector<std::string>& bookmarks() const& noexcept { return bookmarks_; }
+    const std::vector<std::string>& bookmarks() const&& = delete;
     bool add_bookmark();
     bool remove_selected_bookmark();
 

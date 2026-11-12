@@ -143,7 +143,8 @@ public:
     // An unknown column throws std::invalid_argument and changes nothing.
     void set_sort(std::vector<BindingSortKey> keys);
     void remove_sort();
-    [[nodiscard]] const std::vector<BindingSortKey>& sort() const noexcept { return sort_; }
+    [[nodiscard]] const std::vector<BindingSortKey>& sort() const& noexcept { return sort_; }
+    const std::vector<BindingSortKey>& sort() const&& = delete;
     void set_filter(BindingFilter filter);
     void remove_filter();
     [[nodiscard]] const BindingFilter& filter() const noexcept { return filter_; }
@@ -180,9 +181,10 @@ public:
     void reset_current_item();
     bool reset_item(std::size_t index);
 
-    [[nodiscard]] const std::string& data_member() const noexcept {
+    [[nodiscard]] const std::string& data_member() const& noexcept {
         return data_member_;
     }
+    const std::string& data_member() const&& = delete;
     void set_data_member(std::string member);
     [[nodiscard]] CurrencyManager& currency_manager() noexcept {
         return *currency_manager_;
