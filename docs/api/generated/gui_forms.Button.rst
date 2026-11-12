@@ -349,7 +349,7 @@ gui_forms::Button
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Button``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 10 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Button``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 8 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -395,11 +395,11 @@ Counterpart: ``Button``. Members declared here and by the counterpart: 6 support
    * - property
      - GUI.Forms-only
      - ``danger_glow``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``danger_glowing``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``flat_border_width``

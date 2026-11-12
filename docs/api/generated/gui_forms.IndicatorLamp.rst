@@ -214,7 +214,7 @@ gui_forms::IndicatorLamp
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 5 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 5 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -228,11 +228,23 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 1 su
    * - property
      - GUI.Forms-only
      - ``changing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``lamp_color``
      - unclassified (untested)
    * - property
      - GUI.Forms-only
-     - ``power``
+     - ``light_planes``
      - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``light_planes_shown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``power``
+     - supported
    * - property
      - GUI.Forms-only
      - ``state``
