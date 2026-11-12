@@ -139,7 +139,7 @@ public:
                                             header_height},
                              .states = states,
                              .family = ControlVisualRole::menu_item};
-            header.text = column.header;
+            header.text = lend_paint_text(column.header);
             header.font = font;
             header.tone = PartTextTone::secondary;
             paint_part(painter, *this, header);
@@ -171,7 +171,7 @@ public:
                                                   std::max(0.0, width - cell_padding * 2.0), row_height},
                                    .states = row_states,
                                    .family = ControlVisualRole::menu_item};
-                    cell.text = row.cells[column];
+                    cell.text = lend_paint_text(row.cells[column]);
                     cell.font = font;
                     paint_part(painter, *this, cell);
                 }
@@ -340,7 +340,7 @@ void LookupComboBox::on_paint(Painter& painter, Rect) {
     const std::string shown = shown_text();
     PartPaint content{.role = PartRole::content, .bounds = placed.label, .states = states,
                       .family = ControlVisualRole::editor};
-    content.text = shown;
+    content.text = lend_paint_text(shown);
     content.font = field_font();
     paint_part(painter, *this, content);
     if (focused_ || dropped_down_) {

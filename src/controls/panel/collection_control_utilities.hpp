@@ -74,7 +74,7 @@ inline void paint_emphasized_text(Painter& painter, const Control& control, Poin
                                   PartPaint run) {
     if (text.empty()) return;
     if (terms.empty()) {
-        run.text = text;
+        run.text = lend_paint_text(text);
         paint_text_part_at(painter, control, run, origin, 0.0);
         return;
     }
@@ -94,19 +94,19 @@ inline void paint_emphasized_text(Painter& painter, const Control& control, Poin
             }
         }
         if (next == std::string::npos || next >= text.size()) {
-            run.text = text.substr(cursor);
+            run.text = lend_paint_text(text.substr(cursor));
             run.measured_text.reset();
             paint_text_part_at(painter, control, run, {x, origin.y}, 0.0);
             break;
         }
         if (next > cursor) {
-            run.text = text.substr(cursor, next - cursor);
+            run.text = lend_paint_text(text.substr(cursor, next - cursor));
             const Size prefix = painter.measure_text_utf8(run.text, run.font);
             run.measured_text = prefix;
             paint_text_part_at(painter, control, run, {x, origin.y}, prefix.width);
             x += prefix.width;
         }
-        run.text = text.substr(next, length);
+        run.text = lend_paint_text(text.substr(next, length));
         const Size emphasized = painter.measure_text_utf8(run.text, run.font);
         PartPaint highlight;
         highlight.family = ControlVisualRole::selection;

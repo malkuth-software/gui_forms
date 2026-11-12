@@ -948,7 +948,7 @@ void NavigationPane::paint_tab(Painter& painter, const TabSlot& slot) const {
         }
         part.role = PartRole::label;
         part.bounds = parts.nav_page_label.bounds;
-        part.text = text;
+        part.text = lend_paint_text(text);
         paint_part(painter, *this, part);
         return;
     }
@@ -967,7 +967,7 @@ void NavigationPane::paint_tab(Painter& painter, const TabSlot& slot) const {
     part.role = PartRole::label;
     part.bounds = parts.nav_overflow_label.bounds;
     part.alignment = PartTextAlignment::center;
-    part.text = initial;
+    part.text = lend_paint_text(initial);
     paint_part(painter, *this, part);
 }
 
@@ -995,7 +995,7 @@ void NavigationPane::on_paint(Painter& painter, Rect) {
         part.role = PartRole::caption;
         part.bounds = placed.header_label;
         part.font = header_font();
-        part.text = title;
+        part.text = lend_paint_text(title);
         paint_part(painter, *this, part);
         part.text = {};
         part.role = PartRole::well;
@@ -1043,7 +1043,7 @@ void NavigationPane::on_paint(Painter& painter, Rect) {
         caption.bounds = placed.collapsed_label;
         caption.states = target_states(caption_target);
         caption.font = header_font();
-        caption.text = title;
+        caption.text = lend_paint_text(title);
         caption.orientation = TextOrientation::bottom_to_top;
         caption.alignment = PartTextAlignment::end;
         paint_part(painter, *this, caption);
@@ -1089,7 +1089,7 @@ void NavigationPane::paint_flyout(Painter& painter, const Control& surface) cons
     part.role = PartRole::caption;
     part.bounds = placed.label;
     part.font = header_font();
-    part.text = title;
+    part.text = lend_paint_text(title);
     paint_part(painter, surface, part);
     part.text = {};
     part.role = PartRole::well;

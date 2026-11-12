@@ -406,7 +406,7 @@ void RibbonGallery::on_paint(Painter& painter, Rect) {
         part.states = {};
         part.role = PartRole::caption;
         part.bounds = caption.category_caption.bounds;
-        part.text = categories_[lines_[line].category].caption;
+        part.text = lend_paint_text(categories_[lines_[line].category].caption);
         paint_part(painter, *this, part);
         part.text = {};
         part.role = PartRole::divider;
@@ -440,7 +440,7 @@ void RibbonGallery::on_paint(Painter& painter, Rect) {
         if (item.item_label.present) {
             part.role = PartRole::label;
             part.bounds = item.item_label.bounds;
-            part.text = record.label;
+            part.text = lend_paint_text(record.label);
             part.alignment = PartTextAlignment::center;
             paint_part(painter, *this, part);
             part.text = {};

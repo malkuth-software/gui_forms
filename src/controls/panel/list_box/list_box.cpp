@@ -409,7 +409,7 @@ void ListBox::on_paint(Painter& painter, Rect) {
         text.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
         text.role = PartRole::content;
         text.states = row_states;
-        text.text = items.read()[index];
+        text.text = lend_paint_text(items.read()[index]);
         text.font = row_font;
         if (overridden) text.authored_foreground = selected && focused_ ? style().highlight : style().text;
         const double left = row_text_left();

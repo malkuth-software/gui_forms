@@ -513,11 +513,11 @@ void PlotEngine::paint(Painter& painter, const Control& owner, AnatomyStateSet s
     if (!options.title.empty()) {
         part.role = PartRole::caption;
         part.bounds = layout_.title;
-        part.text = options.title;
+        part.text = lend_paint_text(options.title);
         part.font = owner.effective_font(FontSpec{FontRole::control, 13.0, 600, false});
         part.alignment = PartTextAlignment::center;
         paint_part(painter, owner, part);
-        part.text = std::string_view{};
+        part.text = {};
     }
     part.family = ControlVisualRole::editor;
     part.role = PartRole::plot;
@@ -586,10 +586,10 @@ void PlotEngine::paint(Painter& painter, const Control& owner, AnatomyStateSet s
         part.alignment = PartTextAlignment::center;
         for (std::size_t index = 0U; index < laid; ++index) {
             part.bounds = placed[index];
-            part.text = annotations[index].text;
+            part.text = lend_paint_text(annotations[index].text);
             paint_part(painter, owner, part);
         }
-        part.text = std::string_view{};
+        part.text = {};
     }
 
     // The crosshair and its coordinates.
@@ -608,9 +608,9 @@ void PlotEngine::paint(Painter& painter, const Control& owner, AnatomyStateSet s
         part.font = label_font;
         part.alignment = PartTextAlignment::start;
         part.bounds = Rect{layout_.plot.x + 4.0, layout_.plot.y + 2.0, layout_.plot.width - 8.0, tick_label_height};
-        part.text = coordinates;
+        part.text = lend_paint_text(coordinates);
         paint_part(painter, owner, part);
-        part.text = std::string_view{};
+        part.text = {};
     }
 
     // The box being dragged and the kept selection.
@@ -711,7 +711,7 @@ void PlotEngine::paint_axes(Painter& painter, const Control& owner, AnatomyState
         for (std::size_t tick = 0U; tick < majors.size(); ++tick) {
             if (!majors[tick].labelled) continue;
             const std::string_view text = majors[tick].label.text();
-            part.text = text;
+            part.text = lend_paint_text(text);
             if (horizontal) {
                 const double width = painter.measure_text_utf8(text, label_font).width + 2.0;
                 const double y = side == plots::AxisSide::bottom ? band.y + tick_length
@@ -732,7 +732,7 @@ void PlotEngine::paint_axes(Painter& painter, const Control& owner, AnatomyState
         const std::string& title = horizontal ? x_labels_[index] : y_labels_[index];
         if (title.empty()) continue;
         part.role = PartRole::caption;
-        part.text = title;
+        part.text = lend_paint_text(title);
         part.alignment = PartTextAlignment::center;
         if (horizontal) {
             const double y = side == plots::AxisSide::bottom ? band.y + band.height - axis_title_band : band.y;
@@ -779,7 +779,7 @@ void PlotEngine::paint_legend(Painter& painter, const Control& owner, AnatomySta
         const Color color = series_color(owner, position);
         painter.fill_rect(legend_entries_[entry].swatch, hidden ? with_alpha(color, hidden_alpha) : color);
         part.bounds = legend_entries_[entry].label;
-        part.text = series[position].label;
+        part.text = lend_paint_text(series[position].label);
         part.tone = hidden ? PartTextTone::secondary : PartTextTone::ordinary;
         paint_part(painter, owner, part);
     }

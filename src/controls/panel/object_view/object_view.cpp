@@ -241,7 +241,7 @@ void paint_complete_name_inspection(Painter& painter, const Control& control,
         PartPaint label;
         label.family = ControlVisualRole::tool_tip;
         label.role = PartRole::label;
-        label.text = line;
+        label.text = lend_paint_text(line);
         label.font = inspection_font;
         paint_text_part_at(painter, control, label, {bubble.x + 8.0, baseline},
                            std::max(0.0, bubble.width - 16.0));
@@ -1045,7 +1045,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 const Size measured = painter.measure_text_utf8(line, body_font);
                 const double text_x = cell.x +
                     std::max(4.0, (cell.width - measured.width) * .5);
-                text.text = line;
+                text.text = lend_paint_text(line);
                 paint_text_shown(painter, text, {text_x, baseline}, measured.width);
                 baseline += line_height;
             }
@@ -1067,7 +1067,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                     std::max(0.0, cell.width - 10.0));
                 PartPaint secondary_text = text;
                 secondary_text.tone = PartTextTone::secondary;
-                secondary_text.text = display_secondary;
+                secondary_text.text = lend_paint_text(display_secondary);
                 secondary_text.font = secondary;
                 paint_text_shown(painter, secondary_text,
                                  {cell.x + 5.0, cell.y + cell.height - 5.0},
@@ -1090,7 +1090,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                     (paint_secondary ? 8.0 : 0.0));
             const std::string display_name = elide_text_end(
                 painter, item.name, body_font, name_width);
-            text.text = display_name;
+            text.text = lend_paint_text(display_name);
             paint_text_shown(painter, text,
                              {cell.x + 38.0, cell.y + cell.height * .5 + 4.0}, name_width);
             const bool name_truncated = display_name != item.name;
@@ -1107,7 +1107,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                     std::max(0.0, cell.x + cell.width - 6.0 - secondary_x));
                 PartPaint secondary_text = text;
                 secondary_text.tone = PartTextTone::secondary;
-                secondary_text.text = display_secondary;
+                secondary_text.text = lend_paint_text(display_secondary);
                 paint_text_shown(painter, secondary_text,
                                  {secondary_x, cell.y + cell.height * .5 + 4.0},
                                  std::max(0.0, cell.x + cell.width - 6.0 - secondary_x));
@@ -1888,7 +1888,7 @@ void ObjectView::paint_details(Painter& painter) {
         caption.family = ControlVisualRole::panel;
         caption.role = PartRole::label;
         caption.states = states;
-        caption.text = label;
+        caption.text = lend_paint_text(label);
         caption.font = body_font;
         caption.measured_text = label_measured;
         paint_text_shown(painter, caption,
@@ -1973,7 +1973,7 @@ void ObjectView::paint_details(Painter& painter) {
             if (value.availability != ObjectCellAvailability::available) {
                 content.states.insert(AnatomyState::unavailable);
             }
-            content.text = text;
+            content.text = lend_paint_text(text);
             content.font = body_font;
             content.measured_text = details_cache_[text_slot].measured;
             paint_text_shown(painter, content,

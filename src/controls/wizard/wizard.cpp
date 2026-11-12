@@ -292,14 +292,14 @@ void Wizard::on_paint(Painter& painter, Rect) {
         const std::string& heading = (*shown).title.read();
         PartPaint caption{.role = PartRole::caption, .bounds = placed.caption, .states = states,
                           .family = ControlVisualRole::panel};
-        caption.text = heading;
+        caption.text = lend_paint_text(heading);
         caption.font = heading_font();
         paint_part(painter, *this, caption);
         const std::string& line = (*shown).description.read();
         if (!line.empty()) {
             PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                             .family = ControlVisualRole::panel};
-            label.text = line;
+            label.text = lend_paint_text(line);
             label.font = description_font();
             label.tone = PartTextTone::secondary;
             paint_part(painter, *this, label);

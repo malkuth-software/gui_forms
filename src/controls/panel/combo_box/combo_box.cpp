@@ -868,7 +868,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     content.family = ControlVisualRole::editor;
     content.role = PartRole::content;
     content.states = states;
-    content.text = field_text;
+    content.text = lend_paint_text(field_text);
     content.font = field_font;
     content.bounds = {7.0, baseline - box_ascent, std::max(0.0, bounds.width - button_width - 10.0), box_height};
     if (mirrored) content.bounds = horizontally_mirrored(content.bounds, bounds);

@@ -728,7 +728,7 @@ Rect RichTextBox::paint_rows(Painter& painter) {
             cue.role = PartRole::content;
             cue.tone = PartTextTone::secondary;
             cue.states = states;
-            cue.text = hint;
+            cue.text = lend_paint_text(hint);
             cue.font = text_font(font.read());
             paint_text_part_at(painter, *this, cue, baseline, viewport.width);
         }

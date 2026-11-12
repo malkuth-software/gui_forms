@@ -154,7 +154,7 @@ void accents() {
     PartPaint label;
     label.role = PartRole::label;
     label.bounds = {0.0, 0.0, 60.0, 24.0};
-    label.text = "Format";
+    label.text = lend_paint_text("Format");
     label.accent = AccentIndex{2U};
     RecordingPainter text;
     paint_part(text, *control, label);

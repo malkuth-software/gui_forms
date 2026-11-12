@@ -4805,7 +4805,7 @@ if(GUI_FORMS_BUILD_TESTS)
                 "payload_death|dead" "payload_thread|thread" "payload_range|range"
                 "list_items|stale" "text_store|stale" "layout_workspace|stale" "write_lease|stale"
                 "raster_death|dead" "tool_strip_items|stale"
-                "inline_style|stale")
+                "inline_style|stale" "paint_text|dead")
             string(REPLACE "|" ";" _gui_borrow_fields "${_gui_borrow_case}")
             list(GET _gui_borrow_fields 0 _gui_borrow_mode)
             list(GET _gui_borrow_fields 1 _gui_borrow_fault)

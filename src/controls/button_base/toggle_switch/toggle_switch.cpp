@@ -193,14 +193,14 @@ void ToggleSwitch::on_paint(Painter& painter, Rect) {
     if (placed.label.width > 0.0) {
         PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                         .family = ControlVisualRole::choice};
-        label.text = shown;
+        label.text = lend_paint_text(shown);
         label.font = spec;
         paint_part(painter, *this, label);
     }
     if (placed.state.width > 0.0) {
         PartPaint state{.role = PartRole::label, .bounds = placed.state, .states = states,
                         .family = ControlVisualRole::choice};
-        state.text = state_text();
+        state.text = lend_paint_text(state_text());
         state.font = spec;
         paint_part(painter, *this, state);
     }

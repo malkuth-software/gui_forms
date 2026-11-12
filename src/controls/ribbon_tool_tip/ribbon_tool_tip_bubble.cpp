@@ -167,12 +167,12 @@ void RibbonToolTipBubble::on_paint(Painter& painter, Rect) {
     part.role = PartRole::label;
     part.font = layout_.title_font;
     part.bounds = layout_.title;
-    part.text = content_.title;
+    part.text = lend_paint_text(content_.title);
     paint_part(painter, *this, part);
     part.font = layout_.body_font;
     if (!layout_.shortcut.empty()) {
         part.bounds = layout_.shortcut;
-        part.text = content_.shortcut;
+        part.text = lend_paint_text(content_.shortcut);
         paint_part(painter, *this, part);
     }
     part.text = {};
@@ -186,14 +186,14 @@ void RibbonToolTipBubble::on_paint(Painter& painter, Rect) {
     part.role = PartRole::content;
     for (const RibbonToolTipLine& line : layout_.description) {
         part.bounds = line.bounds;
-        part.text = line.text;
+        part.text = lend_paint_text(line.text);
         paint_part(painter, *this, part);
     }
     // The reason a disabled command is unavailable reads as disabled text.
     part.states.insert(AnatomyState::disabled);
     for (const RibbonToolTipLine& line : layout_.disabled_reason) {
         part.bounds = line.bounds;
-        part.text = line.text;
+        part.text = lend_paint_text(line.text);
         paint_part(painter, *this, part);
     }
     part.states.erase(AnatomyState::disabled);
@@ -204,7 +204,7 @@ void RibbonToolTipBubble::on_paint(Painter& painter, Rect) {
         paint_part(painter, *this, part);
         part.role = PartRole::content;
         part.bounds = layout_.help_line;
-        part.text = content_.help_line;
+        part.text = lend_paint_text(content_.help_line);
         paint_part(painter, *this, part);
     }
 }

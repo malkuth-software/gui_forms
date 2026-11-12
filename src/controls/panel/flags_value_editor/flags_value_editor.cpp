@@ -487,7 +487,7 @@ void FlagsValueEditor::on_paint(Painter& painter, Rect damage) {
     content.font = font;
     content.authored_foreground = ink;
     const std::string label = display_label(value_.name);
-    content.text = label;
+    content.text = lend_paint_text(label);
     paint_text_part_at(painter, *this, content,
                        {7.0, std::max(font.size, (bounds.height + font.size) * 0.5 - 1.0)},
                        std::max(0.0, divider_x - 11.0));

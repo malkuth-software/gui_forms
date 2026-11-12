@@ -65,7 +65,7 @@ public:
         const std::string shown = text.read();
         PartPaint label{.role = PartRole::label, .bounds = bounds, .states = states,
                         .family = ControlVisualRole::choice};
-        label.text = shown;
+        label.text = lend_paint_text(shown);
         label.font = text_font(font.read());
         label.alignment = PartTextAlignment::center;
         paint_part(painter, *this, label);

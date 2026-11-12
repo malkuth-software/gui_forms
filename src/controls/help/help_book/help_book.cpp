@@ -707,7 +707,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
         title.family = ControlVisualRole::tool_tip;
         title.role = PartRole::label;
         title.font = text_font(FontSpec{FontRole::control, title_size, 400, false});
-        title.text = page_.title;
+        title.text = lend_paint_text(page_.title);
         // A fallback page's title is drawn in the secondary tone: the page
         // came, at least in part, from the program's built-in language.
         title.tone = page_.fallback ? PartTextTone::secondary : PartTextTone::ordinary;
@@ -830,7 +830,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
             PartPaint part{};
             part.role = PartRole::label;
             part.font = piece.font;
-            part.text = text;
+            part.text = lend_paint_text(text);
             part.family = ControlVisualRole::tool_tip;
             if (piece.kind == PieceKind::link) {
                 const std::size_t link = *page_.runs[piece.run].link;

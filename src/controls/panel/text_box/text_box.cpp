@@ -850,7 +850,7 @@ Rect TextBox::paint_multiline(Painter& painter) {
             PartPaint cue = text_part;
             cue.tone = PartTextTone::secondary;
             cue.authored_foreground.reset();
-            cue.text = empty_text;
+            cue.text = lend_paint_text(empty_text);
             paint_text_part_at(painter, *this, cue, {text_left_, 4.0 + line_ascent_}, width);
         }
     }
@@ -999,7 +999,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         paint_selection_band(painter, selection_bounds);
     }
     PartPaint text_part = text_part_template(content_font, false);
-    text_part.text = presented;
+    text_part.text = lend_paint_text(presented);
     text_part.measured_text = presented_size;
     if (!(*editing_).store().utf8().empty() && (!focused_ || (*editing_).selection().empty())) {
         paint_text_part_at(painter, *this, text_part, {origin_x, baseline}, 0.0);
@@ -1007,7 +1007,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         // Each glyph is drawn once: in the selection's ink inside the band,
         // in the text's ink to either side.
         PartPaint selected_part = text_part_template(content_font, true);
-        selected_part.text = presented;
+        selected_part.text = lend_paint_text(presented);
         selected_part.measured_text = presented_size;
         const double band_width = std::max(0.0, selection_end_x - selection_x);
         const double band_right = selection_x + band_width;
@@ -1031,7 +1031,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
             PartPaint cue = text_part_template(content_font, false);
             cue.tone = PartTextTone::secondary;
             cue.authored_foreground.reset();
-            cue.text = empty_text;
+            cue.text = lend_paint_text(empty_text);
             paint_text_part_at(painter, *this, cue, {text_left_, baseline}, viewport);
         }
     }

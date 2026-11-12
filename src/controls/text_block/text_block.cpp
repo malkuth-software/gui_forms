@@ -335,7 +335,7 @@ void TextBlock::on_paint(Painter& painter, Rect) {
         const double top = inset.top + static_cast<double>(index) * metrics.height;
         const Point origin{client.x + inset.left + line_x(line, content_width),
                            snap_text_baseline(client.y + top + metrics.baseline)};
-        part.text = run_text.substr(line.begin_byte, line.end_byte - line.begin_byte);
+        part.text = lend_paint_text(run_text.substr(line.begin_byte, line.end_byte - line.begin_byte));
         paint_text_part_at(painter, *this, part, origin, line.width);
     }
 }

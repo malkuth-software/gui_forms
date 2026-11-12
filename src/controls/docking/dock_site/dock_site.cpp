@@ -1421,7 +1421,7 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     part.role = PartRole::caption;
     part.bounds = moved(placed.label, offset);
     part.key = PartKey{"caption_label", item, {}};
-    part.text = slot.title;
+    part.text = lend_paint_text(slot.title);
     paint_part(painter, surface, part);
     part.text = {};
     // The grip (cp29: SDR#'s dotted caption grip), in every theme: the grip

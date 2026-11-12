@@ -1180,7 +1180,7 @@ void PageStrip::on_paint(Painter& painter, Rect) {
         part.states = own.list_count.states;
         part.role = PartRole::label;
         part.bounds = own.list_count.bounds;
-        part.text = placed.list_count_text;
+        part.text = lend_paint_text(placed.list_count_text);
         part.key = PartKey{"list_count", {}, {}};
         paint_part(painter, *this, part);
         part.text = {};
@@ -1243,7 +1243,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         part.role = PartRole::label;
         part.bounds = parts.tab_label.bounds;
         part.key = PartKey{"tab_label", paint_stable_id_, {}};
-        part.text = placed.tabs[position].label;
+        part.text = lend_paint_text(placed.tabs[position].label);
         paint_part(painter, *this, part);
         part.text = {};
     }

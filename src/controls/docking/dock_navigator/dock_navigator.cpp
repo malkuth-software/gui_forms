@@ -210,10 +210,10 @@ void DockNavigator::on_paint(Painter& painter, Rect) {
     part.font = heading_font();
     part.role = PartRole::caption;
     part.bounds = placed.tool_heading;
-    part.text = tool_heading_text;
+    part.text = lend_paint_text(tool_heading_text);
     paint_part(painter, *this, part);
     part.bounds = placed.document_heading;
-    part.text = document_heading_text;
+    part.text = lend_paint_text(document_heading_text);
     paint_part(painter, *this, part);
     part.font = row_font();
     part.family = ControlVisualRole::menu_item;
@@ -229,7 +229,7 @@ void DockNavigator::on_paint(Painter& painter, Rect) {
             paint_part(painter, *this, part);
             part.role = PartRole::label;
             part.bounds = entry_label_bounds(row);
-            part.text = held[index].title;
+            part.text = lend_paint_text(held[index].title);
             paint_part(painter, *this, part);
         }
     }

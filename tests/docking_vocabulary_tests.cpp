@@ -204,7 +204,7 @@ PartPaint side_label(TextOrientation orientation, PartTextAlignment alignment) {
     PartPaint label;
     label.role = PartRole::label;
     label.bounds = {10.0, 20.0, 24.0, 120.0};
-    label.text = "Toolbox";
+    label.text = lend_paint_text("Toolbox");
     label.font = FontSpec{FontRole::control, 12.0, 400, false, 0.0};
     label.orientation = orientation;
     label.alignment = alignment;

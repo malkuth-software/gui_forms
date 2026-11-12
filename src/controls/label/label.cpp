@@ -407,7 +407,7 @@ void Label::paint_label_text(Painter& painter, const std::string_view shown) con
     line.font = face;
     line.authored_foreground = fore_color.read();
     for (std::size_t index = 0; index < layout.lines.size(); ++index) {
-        line.text = layout.lines[index];
+        line.text = lend_paint_text(layout.lines[index]);
         paint_text_part_at(painter, *this, line, layout.origins[index], layout.widths[index]);
     }
 }

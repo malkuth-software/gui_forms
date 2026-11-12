@@ -619,7 +619,7 @@ void MonthCalendar::paint_day(Painter& painter, std::size_t month, std::size_t d
     part.font = day_font;
     part.alignment = PartTextAlignment::center;
     const std::string number = std::to_string(date.day);
-    part.text = number;
+    part.text = lend_paint_text(number);
     paint_part(painter, *this, part);
     part.text = {};
     if (parts.day_marker.present) {
@@ -651,13 +651,13 @@ void MonthCalendar::on_paint(Painter& painter, Rect) {
         label.font = title_font;
         label.bounds = parts.month_title.bounds;
         const std::string title = month_title_text(month);
-        label.text = title;
+        label.text = lend_paint_text(title);
         paint_part(painter, *this, label);
         label.font = body_font;
         for (std::size_t column = 0U; column < grid_columns; ++column) {
             label.bounds = weekday_parts(month, column).weekday_label.bounds;
             const std::string name = weekday_text(column);
-            label.text = name;
+            label.text = lend_paint_text(name);
             paint_part(painter, *this, label);
         }
         label.text = {};
@@ -670,7 +670,7 @@ void MonthCalendar::on_paint(Painter& painter, Rect) {
             for (std::size_t row = 0U; row < week_rows(month); ++row) {
                 label.bounds = week_parts(month, row).week_label.bounds;
                 const std::string week = week_text(month, row);
-                label.text = week;
+                label.text = lend_paint_text(week);
                 paint_part(painter, *this, label);
             }
             label.text = {};
@@ -707,7 +707,7 @@ void MonthCalendar::on_paint(Painter& painter, Rect) {
         today.font = body_font;
         today.bounds = control.today_label.bounds;
         const std::string text = today_text();
-        today.text = text;
+        today.text = lend_paint_text(text);
         paint_part(painter, *this, today);
     }
 }

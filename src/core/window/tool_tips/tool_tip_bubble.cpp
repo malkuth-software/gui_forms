@@ -168,7 +168,7 @@ void paint_tool_tip_bubble(Painter& painter, const Control& theme_source, const 
         label.bounds = {ToolTipBubble::horizontal_margin,
                         ToolTipBubble::vertical_margin + static_cast<double>(index) * lines.line_height,
                         line_width, lines.line_height};
-        label.text = lines.lines[index];
+        label.text = lend_paint_text(lines.lines[index]);
         label.font = lines.font;
         paint_part(painter, theme_source, label);
     }

@@ -18,6 +18,7 @@
 #include "overlay/overlay_attachment.hpp"
 #include "interaction/interaction_state.hpp"
 #include "../theme/theme_compiler/control_inline_style.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <array>
@@ -5009,6 +5010,10 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                                      recording_painter_};
             recording_control_ = control.get();
             recording_painter_ = &recorder;
+            // The text this control's parts lend (lend_paint_text) is valid
+            // until the recording below ends; a part record kept longer
+            // fails at its next read in the checked build.
+            const detail::PaintScope paint_scope;
             (*control).paint_back_color(recorder, logical_bounds);
             (*control).paint_authored_surface(recorder, logical_bounds);
             (*control).paint_owned_decorations(

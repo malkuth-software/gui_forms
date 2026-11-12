@@ -808,7 +808,7 @@ void DockSite::paint_drag_layer(Painter& painter) {
         if (drag_.source.height > 0.0) font.size = std::max(1.0, font.size * drag_.stamp.height / drag_.source.height);
         part.font = font;
         part.role = PartRole::label;
-        part.text = drag_.title;
+        part.text = lend_paint_text(drag_.title);
         paint_part(painter, *this, part);
         part.text = {};
         part.bounds = drag_image_bounds();

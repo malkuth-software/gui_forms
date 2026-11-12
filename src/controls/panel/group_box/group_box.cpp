@@ -103,7 +103,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     // The `caption` part, so a theme's `::part(caption) { color }` colours it.
     label.key = PartKey{"caption", {}, {}};
     label.states = states;
-    label.text = caption;
+    label.text = lend_paint_text(caption);
     label.font = caption_font;
     // Four units into the caption's gap, which caption_bounds mirrors.
     const Point caption_origin{gap.x + 4.0, std::max(caption_font.size, rule_y + caption_font.size * 0.36)};

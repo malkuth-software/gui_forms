@@ -118,7 +118,7 @@ Scene paint_control(const std::shared_ptr<gui_forms::detail::BundledFontSet>& fo
     label.role = PartRole::label;
     label.family = ControlVisualRole::button;
     label.bounds = {34.0, 0.0, 30.0, 24.0};
-    label.text = "Hb";
+    label.text = lend_paint_text("Hb");
     label.font = FontSpec{.role = FontRole::content, .size = 16.0};
     label.states = states;
     paint_part(painter, *control, label);

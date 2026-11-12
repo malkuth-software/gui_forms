@@ -456,7 +456,7 @@ void FontDialog::on_paint(Painter& painter, Rect) {
     part.bounds = parts.title.bounds;
     FontSpec title_font{FontRole::control, 13.0, 700, false};
     part.font = effective_font(title_font);
-    part.text = "Font";
+    part.text = lend_paint_text("Font");
     paint_part(painter, *this, part);
     part.text = {};
     part.family = ControlVisualRole::editor;
@@ -467,7 +467,7 @@ void FontDialog::on_paint(Painter& painter, Rect) {
     part.bounds = parts.preview_text.bounds;
     part.font = effective_font(selection_);
     part.alignment = PartTextAlignment::center;
-    part.text = preview_text.read();
+    part.text = lend_paint_text(preview_text.read());
     paint_part(painter, *this, part);
 }
 

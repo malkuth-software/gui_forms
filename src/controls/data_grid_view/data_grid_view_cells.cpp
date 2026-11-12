@@ -92,7 +92,7 @@ void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, con
         part.family = cell.visited ? ControlVisualRole::visited_link : ControlVisualRole::link;
         part.role = PartRole::content;
         part.bounds = parts.link.bounds;
-        part.text = text;
+        part.text = lend_paint_text(text);
         paint_part(painter, owner, part);
         part.text = {};
         if (parts.link_underline.present) {
@@ -116,7 +116,7 @@ void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, con
         for (std::size_t index = 0U; index < cell.lines.count; ++index) {
             const DataGridViewCellsTextRange line = snapshot.lines[cell.lines.first + index];
             part.bounds = {box.x, box.y + cell.line_height * static_cast<double>(index), box.width, cell.line_height};
-            part.text = text_of(snapshot, line);
+            part.text = lend_paint_text(text_of(snapshot, line));
             paint_part(painter, owner, part);
         }
         painter.restore();
@@ -126,7 +126,7 @@ void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, con
     } else if (default_content && parts.content.present && !cell.editing_text) {
         part.role = PartRole::content;
         part.bounds = parts.content.bounds;
-        part.text = text;
+        part.text = lend_paint_text(text);
         part.alignment = cell.alignment;
         part.authored_foreground = parts.content.authored_foreground;
         paint_part(painter, owner, part);
@@ -167,7 +167,7 @@ void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, con
         paint_part(painter, owner, part);
         part.role = PartRole::label;
         part.bounds = parts.button_label.bounds;
-        part.text = text;
+        part.text = lend_paint_text(text);
         part.alignment = PartTextAlignment::center;
         part.authored_foreground = parts.button_label.authored_foreground;
         paint_part(painter, owner, part);

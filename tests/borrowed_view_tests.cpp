@@ -34,6 +34,7 @@
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/live_surface/write_lease/live_surface_write_lease.hpp"
 #include "gui_forms/text/text_store/text_store.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
 #include <cstddef>
@@ -78,6 +79,7 @@ static_assert(std::is_same_v<decltype(std::declval<const TextStore&>().utf8()), 
 static_assert(std::is_same_v<decltype(std::declval<const PartRaster&>().pixels()), std::span<const std::uint8_t>>);
 static_assert(std::is_same_v<decltype(std::declval<LiveSurfaceWriteLease&>().pixels()), std::span<std::byte>>);
 static_assert(std::is_same_v<decltype(FileDialogOk{}.file_names), std::span<const std::string>>);
+static_assert(std::is_same_v<decltype(PartPaint{}.text), std::string_view>);
 // Stage 3 lenders are empty members: the ordinary layouts are unchanged.
 static_assert(std::is_empty_v<detail::BorrowLender>);
 #endif
@@ -234,6 +236,19 @@ int plain_mode() {
     const BorrowedText style = (*first).inline_style();
     const std::string_view expected_style = styled.succeeded() ? std::string_view("outline: 5px solid") : std::string_view();
     if (style != expected_style) return fail("inline style differs");
+
+    // A part's text is lent for the paint call (study row 7); outside any
+    // paint scope it is not tracked.
+    const std::string caption("Caption");
+    PartPaint loose{};
+    loose.text = lend_paint_text(caption);
+    if (loose.text != std::string_view("Caption")) return fail("untracked paint text differs");
+    {
+        const detail::PaintScope paint_scope;
+        PartPaint painted{};
+        painted.text = lend_paint_text(caption);
+        if (painted.text.size() != 7U) return fail("paint text differs");
+    }
 
     std::printf("borrowed views: ok\n");
     return EXIT_SUCCESS;
@@ -420,6 +435,17 @@ void inline_style_mode() {
     std::printf("read %zu bytes\n", style.size());
 }
 
+// A part record kept past its paint call, then a read.
+void paint_text_mode() {
+    const std::string caption("Caption");
+    PartPaint kept{};
+    {
+        const detail::PaintScope paint_scope;
+        kept.text = lend_paint_text(caption);
+    }
+    std::printf("read %zu bytes\n", kept.text.size());
+}
+
 // A layout workspace's view, then the next solve's storage, then a read.
 void layout_workspace_mode() {
     BlockFlowLayoutWorkspace workspace;
@@ -492,6 +518,7 @@ int main(int argc, char** argv) {
     else if (mode == "layout_workspace") layout_workspace_mode();
     else if (mode == "tool_strip_items") tool_strip_items_mode();
     else if (mode == "inline_style") inline_style_mode();
+    else if (mode == "paint_text") paint_text_mode();
     else if (mode == "write_lease") write_lease_mode();
     else if (mode == "raster_death") raster_death_mode();
     else {

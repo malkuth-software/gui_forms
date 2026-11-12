@@ -1000,7 +1000,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
         title.family = ControlVisualRole::panel;
         title.role = PartRole::caption;
         title.states = states;
-        title.text = group.title;
+        title.text = lend_paint_text(group.title);
         title.font = group_font;
         paint_text_part_at(painter, *this, title, {22.0 * s, group_baseline},
                            std::max(0.0, bounds.width - 22.0 * s));
@@ -1037,7 +1037,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
             name_part.family = ControlVisualRole::editor;
             name_part.role = PartRole::label;
             name_part.states = row_states;
-            name_part.text = row.name;
+            name_part.text = lend_paint_text(row.name);
             name_part.font = name_font;
             paint_text_part_at(painter, *this, name_part, {name.x, name_baseline}, name.width);
             if (row.editor == PropertyEditorKind::read_only) {
@@ -1045,7 +1045,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
                 value.family = ControlVisualRole::editor;
                 value.role = PartRole::content;
                 value.states = row_states;
-                value.text = row.value;
+                value.text = lend_paint_text(row.value);
                 value.font = value_font;
                 paint_text_part_at(painter, *this, value,
                                    {value_bounds.x,
@@ -1064,7 +1064,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
                 message.states.insert(AnatomyState::invalid);
                 // PartPaint::text borrows: the line is held here, past the paint.
                 const std::string line = "! " + row.validation_message;
-                message.text = line;
+                message.text = lend_paint_text(line);
                 message.font = validation_font;
                 paint_text_part_at(painter, *this, message,
                                    {validation.x,
