@@ -9,11 +9,13 @@
 #include "../src/core/surface_root/access/surface_engine_access.hpp"
 #include "../src/core/surface_root/access/surface_forwarding_access.hpp"
 #include "../src/core/surface_root/access/surface_handle_access.hpp"
+#include "../src/core/surface_root/access/surface_help_access.hpp"
 #include "../src/core/surface_root/access/surface_host_access.hpp"
 #include "../src/core/surface_root/access/surface_lifetime_access.hpp"
 #include "../src/core/surface_root/access/surface_request_access.hpp"
 #include "../src/core/surface_root/access/surface_resource_access.hpp"
 #include "../src/core/surface_root/access/surface_schedule_access.hpp"
+#include "../src/core/surface_root/access/surface_tree_access.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -43,6 +45,8 @@ static_assert(!std::is_default_constructible_v<detail::SurfaceHostAccess>);
 static_assert(!std::is_default_constructible_v<detail::SurfaceResourceAccess>);
 static_assert(!std::is_default_constructible_v<detail::SurfaceEngineAccess>);
 static_assert(!std::is_default_constructible_v<detail::SurfaceHandleAccess>);
+static_assert(!std::is_default_constructible_v<detail::SurfaceHelpAccess>);
+static_assert(!std::is_default_constructible_v<detail::SurfaceTreeAccess>);
 
 void test_lifetime_observer_expires_with_its_root() {
     const Control::Ptr root = make_control<Control>(StableId("capability.lifetime.root"));
@@ -105,6 +109,19 @@ void test_application_capability_is_empty_outside_a_run() {
             "a window outside a run observes no run state");
 }
 
+void test_tree_capability_follows_attachment() {
+    const Control::Ptr root = make_control<Control>(StableId("capability.tree.root"));
+    const Control::Ptr child = make_control<Control>(StableId("capability.tree.child"));
+    Window window(root, Size{80.0, 40.0});
+    require(!detail::SurfaceTreeAccess::in_lifecycle_notification(window),
+            "a root outside an attach or detach notification must say so");
+    (*root).add_child(child);
+    require((*child).attached_surface_root().get() == &window,
+            "a child added through the tree capability must be attached to the root");
+    static_cast<void>((*root).remove_child((*child).runtime_id()));
+    require(!(*child).attached(), "a child removed through the tree capability must be detached");
+}
+
 } // namespace
 
 int main() {
@@ -114,6 +131,7 @@ int main() {
         test_update_scope_leaves_through_the_handle_capability();
         test_forwarding_capability_reports_no_traversal_at_first();
         test_application_capability_is_empty_outside_a_run();
+        test_tree_capability_follows_attachment();
         std::cout << "gui_forms_surface_capability_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

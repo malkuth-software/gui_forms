@@ -5,13 +5,15 @@
 // sub-surface's program tooltip and tooltip items reaching its parent root.
 //
 // Holders: the tooltip routes (ToolTipPresenter, SubSurfaceToolTipRequester),
-// the alert routes (WindowAlerts, SubSurfaceAlertRequester) and
-// SubSurfaceHost.
+// the alert routes (WindowAlerts, SubSurfaceAlertRequester), SubSurfaceHost
+// and RibbonToolTip (covering what the enhanced tooltip describes).
 //
 // Stale use: the routes are owned by the root (SurfaceRoot::tool_tips_ and
 // alerts_) and shut down first in the derived root's destructor, so a route
 // never reaches a destroyed root. SubSurfaceHost reaches its root through
-// attached_surface_root(), null once it is detached, and then does nothing.
+// attached_surface_root(), null once it is detached, and then does nothing;
+// RibbonToolTip reaches its window through its lifetime observer and does
+// nothing once that has expired.
 // Answers are posted through the root's dispatcher to observed targets; a
 // target released by then receives nothing. The functions are static and
 // keep nothing.
@@ -23,6 +25,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace gui_forms::detail {
@@ -52,6 +55,11 @@ public:
                                         std::string text, Rect anchor,
                                         std::optional<std::chrono::milliseconds> duration) {
         root.show_requested_tool_tip(control, std::move(item_id), std::move(text), anchor, duration);
+    }
+    // While covered, the plain presenter shows no tooltip for `control`'s
+    // part `item_id` (empty: the control itself); covers count.
+    static void cover_tool_tip(SurfaceRoot& root, RuntimeId control, std::string_view item_id, bool covered) {
+        root.cover_tool_tip(control, item_id, covered);
     }
     // `control`'s part tooltips changed outside a layout.
     static void tool_tip_items_changed(SurfaceRoot& root, Control& control) { root.tool_tip_items_changed(control); }

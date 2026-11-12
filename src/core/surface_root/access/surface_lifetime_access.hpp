@@ -5,7 +5,9 @@
 // and for a background worker a share of the root's dispatcher queue state.
 //
 // Holders: Timer, AnimationTimer, BackgroundWorker, BindingSource,
-// BindingContext, ImageList and Application. Each takes what it needs while
+// BindingContext, ImageList, Application, ToolTip, RibbonToolTip,
+// ErrorProvider, HelpProvider, NotifyIcon, OpenFileDialog, SaveFileDialog and
+// the message box's help route. Each takes what it needs while
 // the root is alive (a constructor given the window, or a walk of live
 // windows) and keeps only the observing reference.
 //

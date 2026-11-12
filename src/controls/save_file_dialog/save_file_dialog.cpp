@@ -2,6 +2,7 @@
 
 #include "../file_dialog/file_dialog_support.hpp"
 #include "gui_forms/window.hpp"
+#include "../../core/surface_root/access/surface_lifetime_access.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
@@ -97,7 +98,7 @@ DialogResult SaveFileDialog::show_dialog(Window& owner) {
     // this dialog and its window; both are observed, and an absent one ends
     // the call without touching it.
     const std::weak_ptr<Presence> presence = presence_;
-    const std::weak_ptr<detail::WindowLifetime> window_lifetime = owner.lifetime_;
+    const std::weak_ptr<detail::WindowLifetime> window_lifetime = detail::SurfaceLifetimeAccess::observe(owner);
     const detail::ShowingScope showing(showing_, presence);
     std::string owner_id{};
     const Control::Ptr root = owner.root();

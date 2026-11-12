@@ -6,7 +6,8 @@
 // timer waiting for paint compares.
 //
 // Holders: ToolTipPresenter and ToastPresenter (one-shot wakes), MotionClock
-// (its single frame request), AnimationTimer (the cancellation count).
+// (its single frame request), AnimationTimer (the cancellation count),
+// CaretBlinkSchedule (the text controls' resting caret timer).
 //
 // Stale use: every token returned is revoked by the root's teardown
 // (release_tree cancels the frame requests) as well as by its holder, so no
@@ -32,6 +33,16 @@ public:
     [[nodiscard]] static FrameRequestToken request_tool_tip_wake(SurfaceRoot& root, FrameTime deadline,
                                                                  std::function<void(FrameTime)> callback) {
         FrameRequestToken result = root.request_tool_tip_wake(deadline, std::move(callback));
+        return result;
+    }
+    // A UI timer that rests while the window is occluded, for the caret
+    // blink (SurfaceRoot::schedule_resting_ui_timer).
+    [[nodiscard]] static FrameRequestToken schedule_resting_ui_timer(SurfaceRoot& root, Component& owner,
+                                                                     FrameInterval interval,
+                                                                     FrameTime first_deadline,
+                                                                     std::function<void(FrameTime)> callback) {
+        FrameRequestToken result =
+            root.schedule_resting_ui_timer(owner, interval, first_deadline, std::move(callback));
         return result;
     }
     // The motion clock's frame request (SurfaceRoot::request_motion_frames).

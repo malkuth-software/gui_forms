@@ -5,6 +5,8 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/window.hpp"
+#include "../../../core/surface_root/access/surface_help_access.hpp"
+#include "../../../core/surface_root/access/surface_lifetime_access.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
@@ -78,14 +80,14 @@ public:
 };
 
 HelpProvider::HelpProvider(Window& window)
-    : window_lifetime_(window.lifetime_),
+    : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)),
       provider_id_(next_help_provider_id.fetch_add(1U)) {
     window.verify_access("HelpProvider construction");
     accelerator_ = std::make_unique<AcceleratorHolder>(window.register_accelerator(
         *this, KeyGesture{PhysicalKey::f1, Modifier::none},
         FocusedHelpAccelerator{this}));
     window_fallback_ = std::make_unique<WindowFallback>(*this);
-    window.add_help_fallback(*window_fallback_);
+    detail::SurfaceHelpAccess::add_help_fallback(window, *window_fallback_);
 }
 
 HelpProvider::~HelpProvider() {
@@ -96,7 +98,7 @@ HelpProvider::~HelpProvider() {
             // Disposal refused off the UI thread: the window still must not
             // offer help to a destroyed provider.
             if (Window* owner = bound_window(); owner != nullptr && window_fallback_) {
-                (*owner).remove_help_fallback(*window_fallback_);
+                detail::SurfaceHelpAccess::remove_help_fallback(*owner, *window_fallback_);
             }
             accelerator_.reset();
             entries_.clear();
@@ -378,7 +380,7 @@ void HelpProvider::on_dispose() noexcept {
     entries_.clear();
     accelerator_.reset();
     if (Window* owner = bound_window(); owner != nullptr && window_fallback_) {
-        (*owner).remove_help_fallback(*window_fallback_);
+        detail::SurfaceHelpAccess::remove_help_fallback(*owner, *window_fallback_);
     }
     tag_.reset();
     window_lifetime_.reset();

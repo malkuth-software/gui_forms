@@ -3,6 +3,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "../../core/surface_root/access/surface_lifetime_access.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
@@ -23,7 +24,7 @@ constexpr std::string_view notify_icon_source = "notify_icon";
 
 } // namespace
 
-NotifyIcon::NotifyIcon(Window& window) : window_lifetime_(window.lifetime_) {
+NotifyIcon::NotifyIcon(Window& window) : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)) {
     window.verify_access("NotifyIcon construction");
 }
 

@@ -82,6 +82,7 @@ class MessageBoxHelpRoute;
 class InteractionState;
 struct CaretBlinkSchedule;
 // SurfaceRoot's named capabilities (src/core/surface_root/access/).
+class SurfaceTreeAccess;
 class SurfaceLifetimeAccess;
 class SurfaceScheduleAccess;
 class SurfaceRequestAccess;
@@ -91,6 +92,7 @@ class SurfaceHostAccess;
 class SurfaceResourceAccess;
 class SurfaceEngineAccess;
 class SurfaceHandleAccess;
+class SurfaceHelpAccess;
 
 // The WinForms mouse events raise_mouse_events offers the window's rules
 // before raising them (SurfaceRoot::offer_mouse_rules_). The rules library
@@ -1402,15 +1404,14 @@ protected:
 
 private:
     // Authority over the root's private state (B10). The derived roots are
-    // the root's owners and share its authority whole; Control is the tree's
-    // node, which the root attaches, marks and notifies through members of
-    // both. Every other party reaches the root through one of the named
+    // the root's owners and share its authority whole. Every other party,
+    // Control included, reaches the root through one of the named
     // capabilities in src/core/surface_root/access/, each a set of static
     // functions exposing only its group's operations, with its holders and
     // its stale-use rule stated in its header.
     friend class Window;
     friend class SubSurface;
-    friend class Control;
+    friend class detail::SurfaceTreeAccess;
     friend class detail::SurfaceLifetimeAccess;
     friend class detail::SurfaceScheduleAccess;
     friend class detail::SurfaceRequestAccess;
@@ -1420,20 +1421,7 @@ private:
     friend class detail::SurfaceResourceAccess;
     friend class detail::SurfaceEngineAccess;
     friend class detail::SurfaceHandleAccess;
-    // Parties in src/controls/ that still hold direct friendship: that
-    // directory was closed to this change (Control::RightToLeft in parallel).
-    // Each needs only SurfaceLifetimeAccess, plus the help fallbacks
-    // (HelpProvider), cover_tool_tip (RibbonToolTip) or the resting timer
-    // (CaretBlinkSchedule), and moves to a capability in a later fold.
-    friend struct detail::CaretBlinkSchedule;
-    friend class ToolTip;
-    friend class RibbonToolTip;
-    friend class ErrorProvider;
-    friend class HelpProvider;
-    friend class detail::MessageBoxHelpRoute;
-    friend class NotifyIcon;
-    friend class OpenFileDialog;
-    friend class SaveFileDialog;
+    friend class detail::SurfaceHelpAccess;
     // Key and text forwarding to a warm Popup window (Window::
     // forward_input_to_popup_window): while set, dispatch_key and
     // dispatch_text offer each event to the model of slot

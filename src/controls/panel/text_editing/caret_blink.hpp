@@ -3,6 +3,7 @@
 // CaretSettings, which the host reports from the platform's setting.
 
 #include "gui_forms/window.hpp"
+#include "../../../core/surface_root/access/surface_schedule_access.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -38,7 +39,7 @@ struct CaretBlinkSchedule final {
     [[nodiscard]] FrameRequestToken operator()(Component& owner, FrameInterval phase, FrameTime first_deadline,
                                                std::function<void(FrameTime)> tick) const {
         FrameRequestToken token =
-            (*window).schedule_resting_ui_timer(owner, phase, first_deadline, std::move(tick));
+            SurfaceScheduleAccess::schedule_resting_ui_timer(*window, owner, phase, first_deadline, std::move(tick));
         return token;
     }
 };
