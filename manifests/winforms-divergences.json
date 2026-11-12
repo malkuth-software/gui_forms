@@ -156,19 +156,19 @@
     },
     {
       "control": "Control",
-      "member": "mouse_up (handled)",
-      "winforms": "MouseEventArgs has no Handled; nothing a MouseUp handler does cancels Click.",
-      "gui_forms": "A MouseUp left handled cancels Click, MouseClick, DoubleClick, MouseDoubleClick and the activation.",
-      "reason": "The owner's input order, rule 3.",
+      "member": "mouse_up (suppress_click)",
+      "winforms": "MouseEventArgs has no field that cancels Click; MouseUp comes after Click and MouseClick.",
+      "gui_forms": "MouseEventArgs.suppress_click, set by a MouseUp raiser or its override (C# OnMouseUp), cancels Click, MouseClick, DoubleClick, MouseDoubleClick and the activation. handled only ends the route and cancels nothing.",
+      "reason": "The owner's input order, rule 3, refined 2026-11-12: handled already means consumed for routing inside the stock controls, so an explicit field cancels the derived events.",
       "source": "owner",
       "date": "2026-11-12"
     },
     {
       "control": "Control",
-      "member": "key_down (handled)",
-      "winforms": "Handled on KeyDown does not stop KeyPress; only SuppressKeyPress does.",
-      "gui_forms": "A KeyDown left handled, by the window or the control, cancels the KeyPress and the key's text, as suppress_key_press does; an input method's commit while a composition is open is kept.",
-      "reason": "The owner's input order, rule 3.",
+      "member": "key_down (suppress_key_press during a composition)",
+      "winforms": "SuppressKeyPress cancels the key's KeyPress; Handled does not.",
+      "gui_forms": "The same (handled does not cancel, suppress_key_press does), except that an input method's commit while a composition is open is kept after a suppressed KeyDown.",
+      "reason": "The owner's input order, rule 3: the commit is the input method's text, not the key's.",
       "source": "owner",
       "date": "2026-11-12"
     },

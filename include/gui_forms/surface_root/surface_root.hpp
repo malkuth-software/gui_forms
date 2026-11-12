@@ -1598,18 +1598,20 @@ private:
     // dispatch_pointer's route of one event to its target: preview, target
     // and bubble. Sets `pressed_for_release` to the control a release ends
     // the press of (any button), `target_out` to the event's target, and
-    // `release_handled` to whether a release's MouseUp (the target phase)
-    // set handled, which cancels its clicks (input order rule 3). `hit` is
+    // `click_suppressed` to whether a release's MouseUp (the target phase)
+    // set suppress_click, which cancels its clicks (input order rule 3;
+    // handled only ends the route). `hit` is
     // the event's hit test so far (the hover's, for a move).
     bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
-                       PointerHit& hit, bool& release_handled);
+                       PointerHit& hit, bool& click_suppressed);
     // The MouseEventArgs of a routed pointer event on `target`.
     [[nodiscard]] MouseEventArgs mouse_arguments(const Control& target, const PointerEvent& event);
     // The route's target phase: the raiser of the event's action
     // (on_mouse_down, on_mouse_up, on_mouse_move or on_mouse_wheel) on
-    // `target`, whose handled comes back into `event`. An enter or leave
-    // raises nothing here (the hover tracking raises them).
-    void raise_pointer_target(Control& target, PointerEvent& event);
+    // `target`, whose handled comes back into `event`; returns the
+    // arguments' suppress_click. An enter or leave raises nothing here (the
+    // hover tracking raises them).
+    [[nodiscard]] bool raise_pointer_target(Control& target, PointerEvent& event);
     // Raises the WinForms mouse events that follow one routed pointer
     // event on its target: a release's clicks (Control::on_click and the
     // rest) and the deferred capture change. MouseDown, MouseMove,
@@ -1617,14 +1619,14 @@ private:
     //
     // The input order (ADR-003 amendment, 2026-11-12): the clicks come
     // after the MouseUp that completes them, on the control the press
-    // began on only (rule 2); none when MouseUp was handled (rule 3); and
+    // began on only (rule 2); none when MouseUp set suppress_click (rule 3); and
     // the rest of them are dropped once a handler disposes or disables the
     // control, opens a modal (the window loses activation or opens a focus
     // scope), loses the capture or closes the window (rule 5).
     // `sequence_breaks` is input_sequence_breaks_ when the dispatch began.
     void raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
                             const Control::Ptr& pressed_for_release, PointerHit& hit,
-                            bool release_handled, std::uint64_t sequence_breaks);
+                            bool click_suppressed, std::uint64_t sequence_breaks);
     // Whether the derived events of the pointer sequence dispatch_pointer
     // began when input_sequence_breaks_ was `sequence_breaks` may go on to
     // `pressed` (rule 5): the window lives (`presenting` is still the one
@@ -1633,7 +1635,7 @@ private:
     // raise_mouse_events' part for a release with a target: Click and
     // MouseClick (then on_activate), or DoubleClick and MouseDoubleClick.
     void raise_release_clicks(const PointerEvent& event, Control& target, const Control::Ptr& pressed_for_release,
-                              PointerHit& hit, bool release_handled, std::uint64_t sequence_breaks);
+                              PointerHit& hit, bool click_suppressed, std::uint64_t sequence_breaks);
     // Ends every pointer sequence in progress (rule 5): counts a break and
     // forgets the presses whose release would click.
     void break_pointer_sequences() noexcept;

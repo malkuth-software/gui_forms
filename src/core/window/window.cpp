@@ -1850,10 +1850,10 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
     const std::uint64_t sequence_breaks = input_sequence_breaks_;
-    bool release_handled = false;
-    const bool handled = route_pointer(event, pressed_for_release, target, hit, release_handled);
+    bool click_suppressed = false;
+    const bool handled = route_pointer(event, pressed_for_release, target, hit, click_suppressed);
     if ((*lifetime).window != presenting) return true;
-    raise_mouse_events(event, target, pressed_for_release, hit, release_handled, sequence_breaks);
+    raise_mouse_events(event, target, pressed_for_release, hit, click_suppressed, sequence_breaks);
     return handled;
 }
 
@@ -1878,7 +1878,7 @@ Control::Ptr SurfaceRoot::reuse_pointer_hit(PointerHit& hit, Point position) {
 }
 
 bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
-                                PointerHit& hit, bool& release_handled) {
+                                PointerHit& hit, bool& click_suppressed) {
     Control::Ptr target = captured_.lock();
     if (!target) {
         target = reuse_pointer_hit(hit, event.position);
@@ -1955,10 +1955,10 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
         metrics_.record_callback_emitted();
         const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
         Window* const presenting = (*lifetime).window;
-        raise_pointer_target(*target, event);
+        const bool suppress_click = raise_pointer_target(*target, event);
         // A raiser may close this window (a subscriber's dialog OK).
         if ((*lifetime).window != presenting) return true;
-        release_handled = event.action == PointerAction::up && event.handled;
+        click_suppressed = event.action == PointerAction::up && suppress_click;
         // A handler may dispose its own control (audit A6).
         if ((*target).is_alive()) (*target).publish_change((*target).pointer_observed_, event);
     }
@@ -2001,7 +2001,7 @@ MouseEventArgs SurfaceRoot::mouse_arguments(const Control& target, const Pointer
     return arguments;
 }
 
-void SurfaceRoot::raise_pointer_target(Control& target, PointerEvent& event) {
+bool SurfaceRoot::raise_pointer_target(Control& target, PointerEvent& event) {
     MouseEventArgs arguments = mouse_arguments(target, event);
     switch (event.action) {
     case PointerAction::down:
@@ -2023,11 +2023,12 @@ void SurfaceRoot::raise_pointer_target(Control& target, PointerEvent& event) {
         break;
     }
     event.handled = arguments.handled;
+    return arguments.suppress_click;
 }
 
 void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
                                      const Control::Ptr& pressed_for_release, PointerHit& hit,
-                                     bool release_handled, std::uint64_t sequence_breaks) {
+                                     bool click_suppressed, std::uint64_t sequence_breaks) {
     // A click handler may close and destroy this window (a dialog's OK):
     // its lifetime record then names no window, and nothing more is raised.
     // The record is held so it outlives the window; it is checked after
@@ -2035,7 +2036,7 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
     if (target && event.action == PointerAction::up) {
-        raise_release_clicks(event, *target, pressed_for_release, hit, release_handled, sequence_breaks);
+        raise_release_clicks(event, *target, pressed_for_release, hit, click_suppressed, sequence_breaks);
         if ((*lifetime).window != presenting) return;
     }
     // MouseCaptureChanged on the control a primary release took the
@@ -2062,7 +2063,7 @@ bool SurfaceRoot::click_sequence_intact(const Control::Ptr& pressed, std::uint64
 
 void SurfaceRoot::raise_release_clicks(const PointerEvent& event, Control& target,
                                        const Control::Ptr& pressed_for_release, PointerHit& hit,
-                                       bool release_handled, std::uint64_t sequence_breaks) {
+                                       bool click_suppressed, std::uint64_t sequence_breaks) {
     // A release over the control the same button pressed is its click, for
     // any button as in WinForms (unless the control raises clicks for the
     // primary button only, as ButtonBase does): Click and MouseClick, or
@@ -2073,14 +2074,14 @@ void SurfaceRoot::raise_release_clicks(const PointerEvent& event, Control& targe
     // a rule that consumes one keeps it from them, and a consumed Click
     // also from on_activate. A primary Click is followed by on_activate.
     // All of them follow the MouseUp the route raised (rule 2), none when
-    // that MouseUp was handled (rule 3), and the rest are dropped once the
+    // that MouseUp set suppress_click (rule 3; handled only ends the route), and the rest are dropped once the
     // sequence breaks (rule 5: click_sequence_intact after every handler).
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
     MouseEventArgs args = mouse_arguments(target, event);
     const Control::Ptr released_over = reuse_pointer_hit(hit, event.position);
     const bool primary = event.button == PointerButton::primary;
-    const bool clicked = !release_handled && pressed_for_release && pressed_for_release == released_over &&
+    const bool clicked = !click_suppressed && pressed_for_release && pressed_for_release == released_over &&
                          click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting) &&
                          (primary || !(*pressed_for_release).clicks_primary_button_only());
     if (!clicked) return;
@@ -2282,10 +2283,10 @@ bool SurfaceRoot::raise_window_key(const KeyEvent& event, bool& closed) {
         closed = true;
         return true;
     }
-    // A handled KeyDown cancels its KeyPress and text (input order rule 3),
-    // except inside a composition, whose commit is the input method's.
-    const bool cancels_text = event.action == KeyAction::down && arguments.handled && !composition_open_;
-    if (arguments.suppress_key_press || cancels_text) suppress_key_text_ = true;
+    // suppress_key_press cancels the key's KeyPress and text (input order
+    // rule 3; handled only ends the route), except inside a composition,
+    // whose commit is the input method's.
+    if (arguments.suppress_key_press && !composition_open_) suppress_key_text_ = true;
     const bool handled = arguments.handled || arguments.suppress_key_press;
     return handled;
 }
@@ -2307,10 +2308,10 @@ bool SurfaceRoot::raise_control_key(Control& control, const KeyEvent& event, boo
         closed = true;
         return true;
     }
-    // A handled KeyDown cancels its KeyPress and text (input order rule 3),
-    // except inside a composition, whose commit is the input method's.
-    const bool cancels_text = event.action == KeyAction::down && arguments.handled && !composition_open_;
-    if (arguments.suppress_key_press || cancels_text) suppress_key_text_ = true;
+    // suppress_key_press cancels the key's KeyPress and text (input order
+    // rule 3; handled only ends the route), except inside a composition,
+    // whose commit is the input method's.
+    if (arguments.suppress_key_press && !composition_open_) suppress_key_text_ = true;
     const bool handled = arguments.handled || arguments.suppress_key_press;
     return handled;
 }

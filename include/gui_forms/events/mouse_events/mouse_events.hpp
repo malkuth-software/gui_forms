@@ -24,7 +24,11 @@ namespace gui_forms {
 // positive away from the user and to the right) and the modifiers held.
 // handled is HandledMouseEventArgs.Handled: a raiser that sets it ends the
 // pointer event's route at its target, so no ancestor's bubble handler sees
-// it (the subscribers still run when the raiser calls its base). The rest
+// it (the subscribers still run when the raiser calls its base); it
+// suppresses nothing else. suppress_click, set by a MouseUp raiser or its
+// override, cancels the release's Click and MouseClick (DoubleClick and
+// MouseDoubleClick on a double-click's second press) and the activation
+// (the owner's input order, rule 3); elsewhere it is ignored. The rest
 // have no WinForms counterpart: what the pointer did (action; enter and
 // leave reach no MouseEventArgs), the host's pointer identity (pointer_id;
 // one for the mouse), the route phase the raiser runs in (phase; target
@@ -42,6 +46,7 @@ struct GUI_FORMS_API MouseEventArgs final {
     std::uint32_t pointer_id{};
     EventPhase phase{EventPhase::target};
     bool handled{};
+    bool suppress_click{};
 };
 
 // The routed pointer event a MouseEventArgs carries, for code that takes

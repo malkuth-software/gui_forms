@@ -1,6 +1,7 @@
 // The WinForms mouse events (owner's mouse-event rule, 2026-11-08) in the
 // owner's input order (2026-11-12, ADR-003 amendment: MouseUp before Click,
-// a handled MouseUp cancelling the clicks, a broken sequence dropping them):
+// suppress_click on MouseUp cancelling the clicks, a broken sequence
+// dropping them):
 // their order, the host's click count deciding Click or DoubleClick under
 // ControlStyles, Button's lack of DoubleClick, MouseHover from the window's
 // timer or the host's report, MouseCaptureChanged, context-menu requests,
@@ -72,17 +73,20 @@ struct NoteRequest final {
     }
 };
 
-// Counts its activations; marks its MouseUp handled when told to.
+// Counts its activations; marks its MouseUp handled or suppress_click when
+// told to.
 class Probe final : public Control {
 public:
     explicit Probe(StableId stable_id) : Control(std::move(stable_id)) {}
     void on_activate() override { ++activations; }
     void on_mouse_up(MouseEventArgs& arguments) override {
         if (handle_up) arguments.handled = true;
+        if (suppress_click) arguments.suppress_click = true;
         Control::on_mouse_up(arguments);
     }
     int activations{};
     bool handle_up{};
+    bool suppress_click{};
 };
 
 // One subscriber to every mouse event of `control`, logging into `log`.
@@ -381,17 +385,26 @@ void test_double_click_sequence() {
     require((*fixture.probe).activations == 1, "only the first press activates");
 }
 
-// Input order rule 3: a handled MouseUp cancels Click, MouseClick and the
-// activation; the capture still ends.
-void test_handled_mouse_up_cancels_click() {
+// Input order rule 3: suppress_click on MouseUp cancels Click, MouseClick
+// and the activation, and the capture still ends; handled only ends the
+// route and cancels nothing.
+void test_suppress_click_cancels_click() {
     Fixture fixture;
     Log log;
     const Subscriptions subscriptions(*fixture.probe, log, "probe");
     (*fixture.probe).handle_up = true;
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
     fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});
-    require(log == Log{"down:1", "up:1", "capture_changed"} && (*fixture.probe).activations == 0,
-            "a handled MouseUp raises no Click, no MouseClick and no activation");
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1", "capture_changed"} &&
+                (*fixture.probe).activations == 1,
+            "a handled MouseUp still raises Click, MouseClick and the activation");
+    log.clear();
+    (*fixture.probe).handle_up = false;
+    (*fixture.probe).suppress_click = true;
+    fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
+    fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});
+    require(log == Log{"down:1", "up:1", "capture_changed"} && (*fixture.probe).activations == 1,
+            "suppress_click raises no Click, no MouseClick and no activation");
     log.clear();
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 2U);
     fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 2U);
@@ -585,7 +598,7 @@ int main() {
         test_context_requests();
         test_window_destroyed_by_click();
         test_double_click_sequence();
-        test_handled_mouse_up_cancels_click();
+        test_suppress_click_cancels_click();
         test_state_released_at_mouse_up();
         test_broken_sequence_drops_derived_events();
         test_input_state();

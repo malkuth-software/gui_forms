@@ -1,17 +1,19 @@
 // The arguments of the OnMouseDown, OnMouseUp, OnMouseMove, OnMouseWheel,
 // OnMouseClick and OnMouseDoubleClick hooks: Windows Forms' MouseEventArgs
 // (Button, Clicks, Location, Delta), with HandledMouseEventArgs' Handled,
+// suppress_click (the owner's input order, rule 3; no Windows Forms counterpart)
 // and the routed event's own fields. The values are the C++ MouseEventArgs's
 // members (include/gui_forms/events/mouse_events/mouse_events.hpp), read from
 // the fields of the native event the library lent the hook entry, by their
 // last name segment; a field the event does not carry keeps its zero value.
 //
 // Lifetime: the native event is lent for the entry's call. from_native reads
-// every value at once, so the object may outlive the call; handled writes the
-// native field only while the entry runs (events.write_field, which the
-// library applies to the C++ arguments when the hook returns: a MouseDown
-// handled there ends the pointer event's route). Set after the call, or on an
-// object managed code made, it changes only this object.
+// every value at once, so the object may outlive the call; handled and
+// suppress_click write the native field only while the entry runs
+// (events.write_field, which the library applies to the C++ arguments when
+// the hook returns: a MouseDown handled there ends the pointer event's route,
+// a MouseUp's suppress_click cancels its clicks). Set after the call, or on
+// an object managed code made, they change only this object.
 using System;
 using GuiForms.Interop;
 
@@ -26,6 +28,9 @@ public sealed unsafe class MouseEventArgs : EventArgs
     private readonly ulong handled_field;
     private readonly bool has_handled_field;
     private bool handled_value;
+    private readonly ulong suppress_click_field;
+    private readonly bool has_suppress_click_field;
+    private bool suppress_click_value;
 
     /// <summary>Empty arguments, for an OnX called directly by managed code.</summary>
     public MouseEventArgs()
@@ -86,6 +91,11 @@ public sealed unsafe class MouseEventArgs : EventArgs
                 handled_field = index;
                 has_handled_field = ((*field).flags & Constants.GF_EVENT_FIELD_WRITABLE) != 0u;
                 break;
+            case "suppress_click":
+                suppress_click_value = (*value).boolean != 0u;
+                suppress_click_field = index;
+                has_suppress_click_field = ((*field).flags & Constants.GF_EVENT_FIELD_WRITABLE) != 0u;
+                break;
             default:
                 // A field a later library adds: not read here.
                 break;
@@ -131,8 +141,8 @@ public sealed unsafe class MouseEventArgs : EventArgs
 
     /// <summary>
     /// Whether the event is handled, which ends its route (Windows Forms'
-    /// HandledMouseEventArgs.Handled). Written to the lent event while the
-    /// entry runs.
+    /// HandledMouseEventArgs.Handled) and suppresses nothing else. Written to
+    /// the lent event while the entry runs.
     /// </summary>
     public bool handled
     {
@@ -140,16 +150,39 @@ public sealed unsafe class MouseEventArgs : EventArgs
         set
         {
             handled_value = value;
-            if (native == null || !has_handled_field || !HookFrame.lends(native))
-            {
-                return;
-            }
-            gf_value written = default;
-            written.struct_size = (uint)sizeof(gf_value);
-            written.kind = Constants.GF_VALUE_KIND_BOOLEAN;
-            written.boolean = value ? 1u : 0u;
-            Abi.check(Abi.events.write_field(native, handled_field, &written));
+            write_boolean(has_handled_field, handled_field, value);
         }
+    }
+
+    /// <summary>
+    /// Set in OnMouseUp: cancels the release's Click and MouseClick (or
+    /// DoubleClick and MouseDoubleClick) and the activation. Windows Forms has
+    /// no counterpart; there MouseUp comes after Click. Written to the lent
+    /// event while the entry runs.
+    /// </summary>
+    public bool suppress_click
+    {
+        get => suppress_click_value;
+        set
+        {
+            suppress_click_value = value;
+            write_boolean(has_suppress_click_field, suppress_click_field, value);
+        }
+    }
+
+    // Writes a writable boolean field of the lent event while the entry runs;
+    // otherwise only this object changes.
+    private void write_boolean(bool has_field, ulong field, bool value)
+    {
+        if (native == null || !has_field || !HookFrame.lends(native))
+        {
+            return;
+        }
+        gf_value written = default;
+        written.struct_size = (uint)sizeof(gf_value);
+        written.kind = Constants.GF_VALUE_KIND_BOOLEAN;
+        written.boolean = value ? 1u : 0u;
+        Abi.check(Abi.events.write_field(native, field, &written));
     }
 
     private static long integer_of(gf_value* value)

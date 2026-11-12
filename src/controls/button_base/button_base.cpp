@@ -993,7 +993,7 @@ void ButtonBase::on_mouse_up(MouseEventArgs& arguments) {
         pointer_engaged_ = false;
         pointer_pressed_ = false;
         invalidate(Dirty::paint);
-        // Not handled: a handled MouseUp cancels Click and activation (input-order rule 3).
+        arguments.handled = true;
     }
     Control::on_mouse_up(arguments);
 }

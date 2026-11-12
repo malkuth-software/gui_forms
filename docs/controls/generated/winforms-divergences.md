@@ -65,22 +65,22 @@ records every difference here with its reason and the decision behind it.
 | Reason | The owner's input order, rule 5. |
 | Decision | owner, 2026-11-12 |
 
-### key_down (handled)
+### key_down (suppress_key_press during a composition)
 
 | | |
 |---|---|
-| Windows Forms | Handled on KeyDown does not stop KeyPress; only SuppressKeyPress does. |
-| GUI.Forms | A KeyDown left handled, by the window or the control, cancels the KeyPress and the key's text, as suppress_key_press does; an input method's commit while a composition is open is kept. |
-| Reason | The owner's input order, rule 3. |
+| Windows Forms | SuppressKeyPress cancels the key's KeyPress; Handled does not. |
+| GUI.Forms | The same (handled does not cancel, suppress_key_press does), except that an input method's commit while a composition is open is kept after a suppressed KeyDown. |
+| Reason | The owner's input order, rule 3: the commit is the input method's text, not the key's. |
 | Decision | owner, 2026-11-12 |
 
-### mouse_up (handled)
+### mouse_up (suppress_click)
 
 | | |
 |---|---|
-| Windows Forms | MouseEventArgs has no Handled; nothing a MouseUp handler does cancels Click. |
-| GUI.Forms | A MouseUp left handled cancels Click, MouseClick, DoubleClick, MouseDoubleClick and the activation. |
-| Reason | The owner's input order, rule 3. |
+| Windows Forms | MouseEventArgs has no field that cancels Click; MouseUp comes after Click and MouseClick. |
+| GUI.Forms | MouseEventArgs.suppress_click, set by a MouseUp raiser or its override (C# OnMouseUp), cancels Click, MouseClick, DoubleClick, MouseDoubleClick and the activation. handled only ends the route and cancels nothing. |
+| Reason | The owner's input order, rule 3, refined 2026-11-12: handled already means consumed for routing inside the stock controls, so an explicit field cancels the derived events. |
 | Decision | owner, 2026-11-12 |
 
 ### mouse_up, click, mouse_click (order)

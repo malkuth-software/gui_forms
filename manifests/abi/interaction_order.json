@@ -12,7 +12,7 @@
         {"event": "Control.mouse_click", "kind": "derived"},
         {"event": "Control.mouse_capture_changed", "kind": "deferred"}
       ],
-      "cancelled_by_handled": "Control.mouse_up",
+      "cancelled_by": {"event": "Control.mouse_up", "field": "suppress_click"},
       "dropped_when": ["control disposed", "modal opened", "capture lost"],
       "note": "a primary click then runs on_activate; mouse_capture_changed ends a primary press"
     },
@@ -26,7 +26,7 @@
         {"event": "Control.mouse_double_click", "kind": "derived"},
         {"event": "Control.mouse_capture_changed", "kind": "deferred"}
       ],
-      "cancelled_by_handled": "Control.mouse_up",
+      "cancelled_by": {"event": "Control.mouse_up", "field": "suppress_click"},
       "dropped_when": ["control disposed", "modal opened", "capture lost"],
       "note": "the second press of a double-click (after a click sequence): no click, mouse_click or on_activate"
     },
@@ -40,9 +40,9 @@
         {"event": "Window.key_up", "kind": "physical"},
         {"event": "Control.key_up", "kind": "physical"}
       ],
-      "cancelled_by_handled": "Control.key_down",
+      "cancelled_by": {"event": "Control.key_down", "field": "suppress_key_press"},
       "dropped_when": ["control disposed", "modal opened", "capture lost"],
-      "note": "a key_down handled by the window or the control cancels key_press and the text, except an IME commit"
+      "note": "suppress_key_press on the window's or the control's key_down cancels key_press and the text, except an IME commit"
     },
     "keyboard_activation": {
       "steps": [
@@ -50,7 +50,7 @@
         {"event": "Control.key_down", "kind": "physical"},
         {"event": "Control.key_up", "kind": "physical"}
       ],
-      "cancelled_by_handled": "Control.key_down",
+      "cancelled_by": {"event": "Control.key_down", "field": "suppress_key_press"},
       "dropped_when": ["control disposed", "modal opened", "capture lost"],
       "note": "Space or Enter on a button: the activation (its Click) follows key_up, with no mouse events"
     }

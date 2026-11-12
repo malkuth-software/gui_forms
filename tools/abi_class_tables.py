@@ -588,22 +588,25 @@ def reachable_segments(model: Model) -> set[str]:
 
 # Where the owner's input order (ADR-003 amendment, 2026-11-12) differs from
 # Windows Forms, the C# hook says so: physical events first, derived events
-# after them on the same target, handled cancelling the derived events, and
+# after them on the same target, suppress_click and suppress_key_press
+# (never handled) cancelling the derived events, and
 # a broken sequence dropping them.
 INPUT_ORDER_NOTES: dict[str, str] = {
     "on_mouse_up": ("Unlike Windows Forms, MouseUp comes before Click and MouseClick, with the button up and the "
-                    "capture released; setting e.handled cancels Click, MouseClick and the activation."),
-    "on_click": ("Unlike Windows Forms, Click follows MouseUp; it is dropped when MouseUp was handled, and the "
-                 "rest of the sequence is dropped when a handler disposes the control, opens a modal or the "
+                    "capture released; setting e.suppress_click cancels Click, MouseClick and the activation "
+                    "(e.handled only ends the route)."),
+    "on_click": ("Unlike Windows Forms, Click follows MouseUp; it is dropped when MouseUp set suppress_click, and "
+                 "the rest of the sequence is dropped when a handler disposes the control, opens a modal or the "
                  "capture is lost."),
-    "on_mouse_click": ("Unlike Windows Forms, MouseClick follows MouseUp and Click; it is dropped when MouseUp was "
-                       "handled or the sequence broke (the control disposed, a modal opened, the capture lost)."),
+    "on_mouse_click": ("Unlike Windows Forms, MouseClick follows MouseUp and Click; it is dropped when MouseUp set "
+                       "suppress_click or the sequence broke (the control disposed, a modal opened, the capture "
+                       "lost)."),
     "on_double_click": ("Unlike Windows Forms, DoubleClick follows the second MouseUp; that press raises no Click, "
-                        "and a handled MouseUp or a broken sequence drops it."),
+                        "and a MouseUp's suppress_click or a broken sequence drops it."),
     "on_mouse_double_click": ("Unlike Windows Forms, MouseDoubleClick follows the second MouseUp and DoubleClick; "
-                              "a handled MouseUp or a broken sequence drops it."),
-    "on_key_down": ("Setting e.handled cancels the key's KeyPress and text, as SuppressKeyPress does in Windows "
-                    "Forms, except an IME's commit."),
+                              "a MouseUp's suppress_click or a broken sequence drops it."),
+    "on_key_down": ("As in Windows Forms, setting suppress_key_press cancels the key's KeyPress and text and "
+                    "e.handled does not; unlike it, an input method's commit while a composition is open is kept."),
 }
 
 

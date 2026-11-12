@@ -2216,6 +2216,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Mouse
     append_field(fields, "pointer_id", value.pointer_id);
     append_field(fields, "phase", value.phase);
     append_field(fields, "handled", value.handled);
+    append_field(fields, "suppress_click", value.suppress_click);
     fields.leave(prefix);
 }
 
@@ -2232,6 +2233,7 @@ inline void read_field(EventFields& fields, std::string_view name, MouseEventArg
     read_field(fields, "pointer_id", value.pointer_id);
     read_field(fields, "phase", value.phase);
     read_field(fields, "handled", value.handled);
+    read_field(fields, "suppress_click", value.suppress_click);
     fields.leave(prefix);
 }
 

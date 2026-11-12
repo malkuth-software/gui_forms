@@ -395,7 +395,7 @@ public partial class Control : Component
 
     /// <summary>Control::on_click: where click happens; base raises click. Windows Forms'
     /// Control.OnClick. Call the base to run the subscribers.
-    /// Unlike Windows Forms, Click follows MouseUp; it is dropped when MouseUp was handled, and the rest of the sequence is dropped when a handler disposes the control, opens a modal or the capture is lost.
+    /// Unlike Windows Forms, Click follows MouseUp; it is dropped when MouseUp set suppress_click, and the rest of the sequence is dropped when a handler disposes the control, opens a modal or the capture is lost.
     /// </summary>
     [Hook(Constants.GF_CLASS_CONTROL, 14u)]
     protected virtual void OnClick(EventArgs e)
@@ -423,7 +423,7 @@ public partial class Control : Component
 
     /// <summary>Control::on_double_click: where double_click happens; base raises double_click. Windows Forms'
     /// Control.OnDoubleClick. Call the base to run the subscribers.
-    /// Unlike Windows Forms, DoubleClick follows the second MouseUp; that press raises no Click, and a handled MouseUp or a broken sequence drops it.
+    /// Unlike Windows Forms, DoubleClick follows the second MouseUp; that press raises no Click, and a MouseUp's suppress_click or a broken sequence drops it.
     /// </summary>
     [Hook(Constants.GF_CLASS_CONTROL, 15u)]
     protected virtual void OnDoubleClick(EventArgs e)
@@ -640,7 +640,7 @@ public partial class Control : Component
 
     /// <summary>Control::on_key_down: where key_down happens; base raises key_down; the event's fields are its KeyEventArgs, writable. Windows Forms'
     /// Control.OnKeyDown. Call the base to run the subscribers.
-    /// Setting e.handled cancels the key's KeyPress and text, as SuppressKeyPress does in Windows Forms, except an IME's commit.
+    /// As in Windows Forms, setting suppress_key_press cancels the key's KeyPress and text and e.handled does not; unlike it, an input method's commit while a composition is open is kept.
     /// </summary>
     [Hook(Constants.GF_CLASS_CONTROL, 23u)]
     protected virtual void OnKeyDown(EventArgs e)
@@ -830,7 +830,7 @@ public partial class Control : Component
 
     /// <summary>Control::on_mouse_click: where mouse_click happens; base raises mouse_click; the event's fields are its MouseEventArgs, writable. Windows Forms'
     /// Control.OnMouseClick. Call the base to run the subscribers.
-    /// Unlike Windows Forms, MouseClick follows MouseUp and Click; it is dropped when MouseUp was handled or the sequence broke (the control disposed, a modal opened, the capture lost).
+    /// Unlike Windows Forms, MouseClick follows MouseUp and Click; it is dropped when MouseUp set suppress_click or the sequence broke (the control disposed, a modal opened, the capture lost).
     /// </summary>
     [Hook(Constants.GF_CLASS_CONTROL, 30u)]
     protected virtual void OnMouseClick(MouseEventArgs e)
@@ -858,7 +858,7 @@ public partial class Control : Component
 
     /// <summary>Control::on_mouse_double_click: where mouse_double_click happens; base raises mouse_double_click; the event's fields are its MouseEventArgs, writable. Windows Forms'
     /// Control.OnMouseDoubleClick. Call the base to run the subscribers.
-    /// Unlike Windows Forms, MouseDoubleClick follows the second MouseUp and DoubleClick; a handled MouseUp or a broken sequence drops it.
+    /// Unlike Windows Forms, MouseDoubleClick follows the second MouseUp and DoubleClick; a MouseUp's suppress_click or a broken sequence drops it.
     /// </summary>
     [Hook(Constants.GF_CLASS_CONTROL, 31u)]
     protected virtual void OnMouseDoubleClick(MouseEventArgs e)
@@ -1021,7 +1021,7 @@ public partial class Control : Component
 
     /// <summary>Control::on_mouse_up: where mouse_up happens; base raises mouse_up; the event's fields are its MouseEventArgs, writable. Windows Forms'
     /// Control.OnMouseUp. Call the base to run the subscribers.
-    /// Unlike Windows Forms, MouseUp comes before Click and MouseClick, with the button up and the capture released; setting e.handled cancels Click, MouseClick and the activation.
+    /// Unlike Windows Forms, MouseUp comes before Click and MouseClick, with the button up and the capture released; setting e.suppress_click cancels Click, MouseClick and the activation (e.handled only ends the route).
     /// </summary>
     [Hook(Constants.GF_CLASS_CONTROL, 37u)]
     protected virtual void OnMouseUp(MouseEventArgs e)
