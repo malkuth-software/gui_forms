@@ -8,8 +8,10 @@
 #         -P file_manager_demoboard/tests/installed_consumer/run_installed_consumer.cmake
 #
 # SDK_ARGUMENTS carries the build tree's own settings (compiler, LLVM runtime,
-# generator), which this script does not choose. Each step fails the script
-# with its exit status.
+# generator), which this script does not choose; the consumer is configured
+# with them too, since a consumer built by another compiler links against
+# another C++ runtime than the SDK's. Each step fails the script with its
+# exit status.
 
 cmake_minimum_required(VERSION 3.25)
 
@@ -40,7 +42,8 @@ run_step("SDK install" "${CMAKE_COMMAND}" --install "${sdk_build}")
 run_step("consumer configure"
     "${CMAKE_COMMAND}" -S "${consumer_source}" -B "${consumer_build}"
     -DCMAKE_BUILD_TYPE=Release
-    "-DCMAKE_PREFIX_PATH=${sdk_prefix}")
+    "-DCMAKE_PREFIX_PATH=${sdk_prefix}"
+    ${SDK_ARGUMENTS})
 run_step("consumer build" "${CMAKE_COMMAND}" --build "${consumer_build}")
 run_step("consumer run" "${consumer_build}/gui_forms_installed_consumer")
 message(STATUS "run_installed_consumer: the installed SDK with GUIForms::Lab served the consumer")
