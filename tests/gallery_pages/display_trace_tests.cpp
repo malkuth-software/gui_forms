@@ -605,7 +605,8 @@ struct PageDigest final {
 // gains the VirtualRowsView group (its catalog caption and the page below
 // it); states-and-diagnostics counts five controls more (1766 -> 1771);
 // typography-and-inspection's inspected generation moves by one. Recorded
-// again: those three pages, in both tables.
+// again: those three pages in the first table, tree-and-object-views in the
+// second.
 //
 // cp29 I3 (RightToLeft): values-and-spinners' property grid shows the
 // RightToLeft row under Appearance where LayoutDirection stood under Layout

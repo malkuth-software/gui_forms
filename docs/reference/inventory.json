@@ -336984,7 +336984,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/virtual_rows_view.hpp",
       "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-      "line": 81,
+      "line": 86,
       "declaration": "struct GUI_FORMS_API VirtualRowDescription final",
       "comment": "",
       "access": "public",
@@ -337002,7 +337002,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 82,
+          "line": 87,
           "page": "gui-forms-virtualrowdescription-row-virtualrowindex-519513808e.html"
         },
         {
@@ -337017,7 +337017,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 83,
+          "line": 88,
           "page": "gui-forms-virtualrowdescription-name-std-string-07269dfccb.html"
         },
         {
@@ -337032,7 +337032,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 84,
+          "line": 89,
           "page": "gui-forms-virtualrowdescription-value-std-string-b05f2c0723.html"
         }
       ],
@@ -337140,7 +337140,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/virtual_rows_view.hpp",
       "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-      "line": 65,
+      "line": 68,
       "declaration": "struct GUI_FORMS_API VirtualRowPaint final",
       "comment": "",
       "access": "public",
@@ -337158,8 +337158,23 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 66,
+          "line": 69,
           "page": "gui-forms-virtualrowpaint-painter-painter-c4775b7053.html"
+        },
+        {
+          "id": "gui_forms::VirtualRowPaint::view|const Control *",
+          "name": "view",
+          "type": "const Control *",
+          "namespace": "gui_forms::VirtualRowPaint",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "const Control* view{}",
+          "comment": "",
+          "header": "gui_forms/controls/virtual_rows_view.hpp",
+          "source": "include/gui_forms/controls/virtual_rows_view.hpp",
+          "line": 70,
+          "page": "gui-forms-virtualrowpaint-view-const-control-45ad04270e.html"
         },
         {
           "id": "gui_forms::VirtualRowPaint::row|VirtualRowIndex",
@@ -337173,7 +337188,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 67,
+          "line": 71,
           "page": "gui-forms-virtualrowpaint-row-virtualrowindex-79301e92d5.html"
         },
         {
@@ -337188,8 +337203,23 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 68,
+          "line": 72,
           "page": "gui-forms-virtualrowpaint-bounds-rect-966ef9481a.html"
+        },
+        {
+          "id": "gui_forms::VirtualRowPaint::states|AnatomyStateSet",
+          "name": "states",
+          "type": "AnatomyStateSet",
+          "namespace": "gui_forms::VirtualRowPaint",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "AnatomyStateSet states{}",
+          "comment": "",
+          "header": "gui_forms/controls/virtual_rows_view.hpp",
+          "source": "include/gui_forms/controls/virtual_rows_view.hpp",
+          "line": 73,
+          "page": "gui-forms-virtualrowpaint-states-anatomystateset-d74cf7bcaa.html"
         },
         {
           "id": "gui_forms::VirtualRowPaint::selected|bool",
@@ -337203,7 +337233,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 69,
+          "line": 74,
           "page": "gui-forms-virtualrowpaint-selected-bool-0e4fadfc6e.html"
         },
         {
@@ -337218,7 +337248,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 70,
+          "line": 75,
           "page": "gui-forms-virtualrowpaint-hot-bool-d6ce9ae35c.html"
         },
         {
@@ -337233,7 +337263,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 71,
+          "line": 76,
           "page": "gui-forms-virtualrowpaint-focused-bool-590b816ef2.html"
         },
         {
@@ -337248,7 +337278,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 72,
+          "line": 77,
           "page": "gui-forms-virtualrowpaint-enabled-bool-27af021d80.html"
         },
         {
@@ -337263,7 +337293,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 73,
+          "line": 78,
           "page": "gui-forms-virtualrowpaint-mirrored-bool-045dac26cc.html"
         }
       ],
@@ -337277,7 +337307,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/virtual_rows_view.hpp",
       "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-      "line": 106,
+      "line": 111,
       "declaration": "struct GUI_FORMS_API VirtualRowSelection final",
       "comment": "",
       "access": "public",
@@ -337295,7 +337325,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 107,
+          "line": 112,
           "page": "gui-forms-virtualrowselection-previous-std-optional-virtualrowindex-dff8e44e3f.html"
         },
         {
@@ -337310,7 +337340,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 108,
+          "line": 113,
           "page": "gui-forms-virtualrowselection-current-std-optional-virtualrowindex-590d154e15.html"
         }
       ],
@@ -337324,7 +337354,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/virtual_rows_view.hpp",
       "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-      "line": 98,
+      "line": 103,
       "declaration": "struct GUI_FORMS_API VirtualRowsCallbacks final",
       "comment": "",
       "access": "public",
@@ -337342,7 +337372,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 99,
+          "line": 104,
           "page": "gui-forms-virtualrowscallbacks-measure-delegate-virtualrowmeasure-ad30f7f0d5.html"
         },
         {
@@ -337357,7 +337387,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 100,
+          "line": 105,
           "page": "gui-forms-virtualrowscallbacks-paint-delegate-virtualrowpaint-e81e30e052.html"
         },
         {
@@ -337372,7 +337402,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 101,
+          "line": 106,
           "page": "gui-forms-virtualrowscallbacks-describe-delegate-virtualrowdescription-104d35b1da.html"
         }
       ],
@@ -337386,7 +337416,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/virtual_rows_view.hpp",
       "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-      "line": 115,
+      "line": 120,
       "declaration": "struct GUI_FORMS_API VirtualRowsStatistics final",
       "comment": "",
       "access": "public",
@@ -337404,7 +337434,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 116,
+          "line": 121,
           "page": "gui-forms-virtualrowsstatistics-rows-measured-std-uint64-t-3fb74871b6.html"
         },
         {
@@ -337419,7 +337449,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 117,
+          "line": 122,
           "page": "gui-forms-virtualrowsstatistics-rows-painted-std-uint64-t-53b47e32b3.html"
         },
         {
@@ -337434,7 +337464,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 118,
+          "line": 123,
           "page": "gui-forms-virtualrowsstatistics-rows-described-std-uint64-t-5726b9949b.html"
         },
         {
@@ -337449,7 +337479,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 119,
+          "line": 124,
           "page": "gui-forms-virtualrowsstatistics-anchor-corrections-std-uint64-t-7487ded6ff.html"
         },
         {
@@ -337464,7 +337494,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 120,
+          "line": 125,
           "page": "gui-forms-virtualrowsstatistics-scroll-copies-std-uint64-t-403e9db2bf.html"
         },
         {
@@ -337479,7 +337509,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 121,
+          "line": 126,
           "page": "gui-forms-virtualrowsstatistics-scroll-repaints-std-uint64-t-73a952dbe3.html"
         },
         {
@@ -337494,7 +337524,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 122,
+          "line": 127,
           "page": "gui-forms-virtualrowsstatistics-last-settle-measured-std-size-t-20fc696182.html"
         },
         {
@@ -337509,7 +337539,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 123,
+          "line": 128,
           "page": "gui-forms-virtualrowsstatistics-last-settle-passes-std-size-t-24d3252f5b.html"
         },
         {
@@ -337524,7 +337554,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 124,
+          "line": 129,
           "page": "gui-forms-virtualrowsstatistics-last-paint-rows-std-size-t-755e9a33c3.html"
         },
         {
@@ -337539,7 +337569,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 125,
+          "line": 130,
           "page": "gui-forms-virtualrowsstatistics-index-runs-std-size-t-0b80f6e604.html"
         },
         {
@@ -337554,7 +337584,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 126,
+          "line": 131,
           "page": "gui-forms-virtualrowsstatistics-index-nodes-std-size-t-42273ea3a7.html"
         },
         {
@@ -337569,7 +337599,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 127,
+          "line": 132,
           "page": "gui-forms-virtualrowsstatistics-index-depth-std-size-t-af3200e93a.html"
         }
       ],
@@ -337583,7 +337613,7 @@
       "kind": "class",
       "header": "gui_forms/controls/virtual_rows_view.hpp",
       "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-      "line": 197,
+      "line": 202,
       "declaration": "class GUI_FORMS_API VirtualRowsView final : public Control",
       "comment": "",
       "access": "public",
@@ -337603,7 +337633,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 199,
+          "line": 204,
           "page": "gui-forms-virtualrowsview-initialize-tree-after-construction-const-bool-2993433579.html"
         },
         {
@@ -337618,7 +337648,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 201,
+          "line": 206,
           "page": "gui-forms-virtualrowsview-maximum-rows-const-std-size-t-95d8499a17.html"
         },
         {
@@ -337633,7 +337663,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 202,
+          "line": 207,
           "page": "gui-forms-virtualrowsview-minimum-row-height-const-double-ce24ab2cbc.html"
         },
         {
@@ -337648,7 +337678,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 203,
+          "line": 208,
           "page": "gui-forms-virtualrowsview-maximum-row-height-const-double-919ca2ef1a.html"
         },
         {
@@ -337663,7 +337693,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 204,
+          "line": 209,
           "page": "gui-forms-virtualrowsview-default-estimated-row-height-const-double-27fad7eb44.html"
         },
         {
@@ -337678,7 +337708,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 205,
+          "line": 210,
           "page": "gui-forms-virtualrowsview-maximum-measured-per-settle-const-std-size-t-700d82c7bf.html"
         },
         {
@@ -337693,7 +337723,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 206,
+          "line": 211,
           "page": "gui-forms-virtualrowsview-maximum-settle-passes-const-std-size-t-e5a1492ac5.html"
         },
         {
@@ -337714,7 +337744,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 208,
+          "line": 213,
           "page": "gui-forms-virtualrowsview-virtualrowsview-void-stableid-06226f3934.html"
         },
         {
@@ -337729,7 +337759,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 209,
+          "line": 214,
           "page": "gui-forms-virtualrowsview-virtualrowsview-void-noexcept-24918dd47e.html"
         },
         {
@@ -337750,7 +337780,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 210,
+          "line": 215,
           "page": "gui-forms-virtualrowsview-virtualrowsview-void-const-virtualrowsview-b634d74c3c.html"
         },
         {
@@ -337771,7 +337801,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 211,
+          "line": 216,
           "page": "gui-forms-virtualrowsview-operator-virtualrowsview-const-virtualrowsview-e996e30d29.html"
         },
         {
@@ -337786,7 +337816,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 212,
+          "line": 217,
           "page": "gui-forms-virtualrowsview-initialize-control-tree-void-e7b8623581.html"
         },
         {
@@ -337807,7 +337837,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 217,
+          "line": 222,
           "page": "gui-forms-virtualrowsview-set-row-callbacks-void-virtualrowscallbacks-4b91914087.html"
         },
         {
@@ -337822,7 +337852,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 218,
+          "line": 223,
           "page": "gui-forms-virtualrowsview-row-callbacks-const-virtualrowscallbacks-const-noexcept-7f0dbda5e3.html"
         },
         {
@@ -337843,7 +337873,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 223,
+          "line": 228,
           "page": "gui-forms-virtualrowsview-reset-rows-void-std-size-t-2cd0d6cbd4.html"
         },
         {
@@ -337858,7 +337888,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 224,
+          "line": 229,
           "page": "gui-forms-virtualrowsview-row-count-std-size-t-const-noexcept-4c4c368810.html"
         },
         {
@@ -337884,7 +337914,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 228,
+          "line": 233,
           "page": "gui-forms-virtualrowsview-insert-rows-void-virtualrowindex-std-size-t-0eaf994fd4.html"
         },
         {
@@ -337910,7 +337940,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 232,
+          "line": 237,
           "page": "gui-forms-virtualrowsview-erase-rows-void-virtualrowindex-std-size-t-b2c9677df5.html"
         },
         {
@@ -337936,7 +337966,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 236,
+          "line": 241,
           "page": "gui-forms-virtualrowsview-refresh-rows-void-virtualrowindex-std-size-t-65e053b17f.html"
         },
         {
@@ -337957,7 +337987,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 241,
+          "line": 246,
           "page": "gui-forms-virtualrowsview-set-estimated-row-height-void-double-e07c9974dc.html"
         },
         {
@@ -337972,7 +338002,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 242,
+          "line": 247,
           "page": "gui-forms-virtualrowsview-estimated-row-height-double-const-noexcept-7fadb16e88.html"
         },
         {
@@ -337993,7 +338023,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 245,
+          "line": 250,
           "page": "gui-forms-virtualrowsview-row-measured-bool-virtualrowindex-const-noexcept-b7f8bdc60d.html"
         },
         {
@@ -338008,7 +338038,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 249,
+          "line": 254,
           "page": "gui-forms-virtualrowsview-scroll-offset-double-const-noexcept-62b7d08354.html"
         },
         {
@@ -338023,7 +338053,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 251,
+          "line": 256,
           "page": "gui-forms-virtualrowsview-content-height-double-const-noexcept-8fd8a3cd97.html"
         },
         {
@@ -338038,7 +338068,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 253,
+          "line": 258,
           "page": "gui-forms-virtualrowsview-viewport-bounds-rect-const-noexcept-94f6b2f19d.html"
         },
         {
@@ -338059,7 +338089,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 258,
+          "line": 263,
           "page": "gui-forms-virtualrowsview-scroll-to-offset-void-double-56bf6277a3.html"
         },
         {
@@ -338085,7 +338115,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 261,
+          "line": 266,
           "page": "gui-forms-virtualrowsview-scroll-to-row-void-virtualrowindex-virtualrowalignment-8a29b8602b.html"
         },
         {
@@ -338100,7 +338130,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 264,
+          "line": 269,
           "page": "gui-forms-virtualrowsview-first-visible-row-virtualrowindex-const-noexcept-1ca6d36635.html"
         },
         {
@@ -338115,7 +338145,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 265,
+          "line": 270,
           "page": "gui-forms-virtualrowsview-end-visible-row-virtualrowindex-const-noexcept-3666405076.html"
         },
         {
@@ -338136,7 +338166,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 268,
+          "line": 273,
           "page": "gui-forms-virtualrowsview-row-bounds-rect-virtualrowindex-const-c95082b56a.html"
         },
         {
@@ -338157,7 +338187,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 270,
+          "line": 275,
           "page": "gui-forms-virtualrowsview-row-at-std-optional-virtualrowindex-point-const-noexcept-0de6a568d6.html"
         },
         {
@@ -338178,7 +338208,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 275,
+          "line": 280,
           "page": "gui-forms-virtualrowsview-set-follow-tail-void-bool-2dd1c0caee.html"
         },
         {
@@ -338193,7 +338223,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 276,
+          "line": 281,
           "page": "gui-forms-virtualrowsview-follow-tail-bool-const-noexcept-81831593a4.html"
         },
         {
@@ -338208,7 +338238,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 279,
+          "line": 284,
           "page": "gui-forms-virtualrowsview-following-tail-bool-const-noexcept-d13eebc201.html"
         },
         {
@@ -338229,7 +338259,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 284,
+          "line": 289,
           "page": "gui-forms-virtualrowsview-set-announces-appends-void-bool-4b3824e695.html"
         },
         {
@@ -338244,7 +338274,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 285,
+          "line": 290,
           "page": "gui-forms-virtualrowsview-announces-appends-bool-const-noexcept-c639269ef1.html"
         },
         {
@@ -338259,7 +338289,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 288,
+          "line": 293,
           "page": "gui-forms-virtualrowsview-announcement-std-string-view-const-noexcept-c0069ae73f.html"
         },
         {
@@ -338274,7 +338304,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 289,
+          "line": 294,
           "page": "gui-forms-virtualrowsview-announcement-std-string-view-const-c791faa2d6.html"
         },
         {
@@ -338289,7 +338319,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 292,
+          "line": 297,
           "page": "gui-forms-virtualrowsview-selected-row-std-optional-virtualrowindex-const-noexcept-4cf5536f52.html"
         },
         {
@@ -338310,7 +338340,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 296,
+          "line": 301,
           "page": "gui-forms-virtualrowsview-set-selected-row-void-std-optional-virtualrowindex-76c502e322.html"
         },
         {
@@ -338325,7 +338355,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 298,
+          "line": 303,
           "page": "gui-forms-virtualrowsview-statistics-virtualrowsstatistics-const-noexcept-8292a4e211.html"
         },
         {
@@ -338340,7 +338370,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 300,
+          "line": 305,
           "page": "gui-forms-virtualrowsview-selection-changed-event-const-virtualrowselection-noexcept-dc196d17b9.html"
         },
         {
@@ -338355,7 +338385,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 301,
+          "line": 306,
           "page": "gui-forms-virtualrowsview-row-activated-event-virtualrowindex-noexcept-6aaae42849.html"
         },
         {
@@ -338376,7 +338406,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 304,
+          "line": 309,
           "page": "gui-forms-virtualrowsview-measure-size-size-a6100262d0.html"
         },
         {
@@ -338397,7 +338427,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 305,
+          "line": 310,
           "page": "gui-forms-virtualrowsview-arrange-void-rect-eaf32e81ff.html"
         },
         {
@@ -338423,7 +338453,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 306,
+          "line": 311,
           "page": "gui-forms-virtualrowsview-on-paint-void-painter-rect-de841e2d7f.html"
         },
         {
@@ -338444,7 +338474,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 307,
+          "line": 312,
           "page": "gui-forms-virtualrowsview-on-pointer-void-pointerevent-9d98cc71b8.html"
         },
         {
@@ -338465,7 +338495,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 308,
+          "line": 313,
           "page": "gui-forms-virtualrowsview-on-key-void-keyevent-2488523828.html"
         },
         {
@@ -338486,7 +338516,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 309,
+          "line": 314,
           "page": "gui-forms-virtualrowsview-on-focus-changed-void-bool-a3cfe479f1.html"
         },
         {
@@ -338501,7 +338531,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 310,
+          "line": 315,
           "page": "gui-forms-virtualrowsview-semantic-descriptor-semanticdescriptor-const-d804415a0f.html"
         },
         {
@@ -338516,7 +338546,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 311,
+          "line": 316,
           "page": "gui-forms-virtualrowsview-semantic-virtual-children-std-vector-semanticnode-const-a6405577e2.html"
         },
         {
@@ -338547,7 +338577,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 312,
+          "line": 317,
           "page": "gui-forms-virtualrowsview-on-semantic-child-action-bool-std-string-view-semanticaction-std-string-view-8a55c373cc.html"
         },
         {
@@ -338562,7 +338592,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 314,
+          "line": 319,
           "page": "gui-forms-virtualrowsview-anatomy-const-controlanatomy-const-noexcept-9134a30c94.html"
         },
         {
@@ -338583,7 +338613,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 315,
+          "line": 320,
           "page": "gui-forms-virtualrowsview-append-interactions-void-std-vector-interactiondeclaration-const-c7c6067c93.html"
         },
         {
@@ -338598,7 +338628,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 316,
+          "line": 321,
           "page": "gui-forms-virtualrowsview-realized-item-count-std-size-t-const-6dced3956e.html"
         },
         {
@@ -338619,7 +338649,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 317,
+          "line": 322,
           "page": "gui-forms-virtualrowsview-realized-item-stable-id-std-string-std-size-t-const-3c21191254.html"
         },
         {
@@ -338640,7 +338670,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 318,
+          "line": 323,
           "page": "gui-forms-virtualrowsview-realized-item-anatomy-states-anatomystateset-std-size-t-const-2d09e75423.html"
         },
         {
@@ -338655,7 +338685,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 347,
+          "line": 352,
           "page": "gui-forms-virtualrowsview-parts-parts-const-2a242d66d9.html"
         },
         {
@@ -338670,7 +338700,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 348,
+          "line": 353,
           "page": "gui-forms-virtualrowsview-states-states-const-74e7933c91.html"
         },
         {
@@ -338691,7 +338721,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 351,
+          "line": 356,
           "page": "gui-forms-virtualrowsview-publish-part-geometry-void-std-span-partgeometry-const-45d0a4de6a.html"
         },
         {
@@ -338717,7 +338747,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 352,
+          "line": 357,
           "page": "gui-forms-virtualrowsview-publish-realized-item-geometry-void-std-size-t-std-span-partgeometry-const-5eec4c964d.html"
         }
       ],
@@ -338731,7 +338761,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/virtual_rows_view.hpp",
       "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-      "line": 321,
+      "line": 326,
       "declaration": "struct GUI_FORMS_API Parts final",
       "comment": "",
       "access": "public",
@@ -338749,7 +338779,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 322,
+          "line": 327,
           "page": "gui-forms-virtualrowsview-parts-region-partgeometry-45f9dd5002.html"
         },
         {
@@ -338764,7 +338794,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 323,
+          "line": 328,
           "page": "gui-forms-virtualrowsview-parts-well-partgeometry-21a68873de.html"
         },
         {
@@ -338779,7 +338809,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 324,
+          "line": 329,
           "page": "gui-forms-virtualrowsview-parts-vertical-scroll-bar-partgeometry-1e54137659.html"
         },
         {
@@ -338794,7 +338824,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 325,
+          "line": 330,
           "page": "gui-forms-virtualrowsview-parts-focus-partgeometry-6cfa0f00a5.html"
         }
       ],
@@ -338808,7 +338838,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/virtual_rows_view.hpp",
       "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-      "line": 335,
+      "line": 340,
       "declaration": "struct GUI_FORMS_API RowParts final",
       "comment": "",
       "access": "public",
@@ -338826,7 +338856,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 336,
+          "line": 341,
           "page": "gui-forms-virtualrowsview-rowparts-row-partgeometry-c9152e149a.html"
         },
         {
@@ -338841,7 +338871,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 337,
+          "line": 342,
           "page": "gui-forms-virtualrowsview-rowparts-row-face-partgeometry-950607c7f5.html"
         },
         {
@@ -338856,7 +338886,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 338,
+          "line": 343,
           "page": "gui-forms-virtualrowsview-rowparts-row-focus-partgeometry-40dcc56d4d.html"
         }
       ],
@@ -338870,7 +338900,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/virtual_rows_view.hpp",
       "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-      "line": 340,
+      "line": 345,
       "declaration": "struct GUI_FORMS_API RowStates final",
       "comment": "",
       "access": "public",
@@ -338888,7 +338918,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 341,
+          "line": 346,
           "page": "gui-forms-virtualrowsview-rowstates-selected-bool-98d72e626a.html"
         },
         {
@@ -338903,7 +338933,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 342,
+          "line": 347,
           "page": "gui-forms-virtualrowsview-rowstates-hot-bool-9abe78b482.html"
         },
         {
@@ -338918,7 +338948,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 343,
+          "line": 348,
           "page": "gui-forms-virtualrowsview-rowstates-current-bool-b6f1b2234f.html"
         },
         {
@@ -338933,7 +338963,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 344,
+          "line": 349,
           "page": "gui-forms-virtualrowsview-rowstates-disabled-bool-cd7fcfcc5f.html"
         },
         {
@@ -338948,7 +338978,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 345,
+          "line": 350,
           "page": "gui-forms-virtualrowsview-rowstates-focus-visible-bool-59aded463d.html"
         }
       ],
@@ -338962,7 +338992,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/virtual_rows_view.hpp",
       "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-      "line": 327,
+      "line": 332,
       "declaration": "struct GUI_FORMS_API States final",
       "comment": "",
       "access": "public",
@@ -338980,7 +339010,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 328,
+          "line": 333,
           "page": "gui-forms-virtualrowsview-states-normal-bool-e9c32d629e.html"
         },
         {
@@ -338995,7 +339025,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 329,
+          "line": 334,
           "page": "gui-forms-virtualrowsview-states-enabled-bool-16c70836b2.html"
         },
         {
@@ -339010,7 +339040,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 330,
+          "line": 335,
           "page": "gui-forms-virtualrowsview-states-disabled-bool-63418fb8b8.html"
         },
         {
@@ -339025,7 +339055,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 331,
+          "line": 336,
           "page": "gui-forms-virtualrowsview-states-focused-bool-b619517b82.html"
         },
         {
@@ -339040,7 +339070,7 @@
           "comment": "",
           "header": "gui_forms/controls/virtual_rows_view.hpp",
           "source": "include/gui_forms/controls/virtual_rows_view.hpp",
-          "line": 332,
+          "line": 337,
           "page": "gui-forms-virtualrowsview-states-focus-visible-bool-945329f96d.html"
         }
       ],
