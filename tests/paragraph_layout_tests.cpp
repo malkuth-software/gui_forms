@@ -279,7 +279,7 @@ const std::array<std::string_view, 6> corpus{
     "The quick brown fox jumps over the lazy dog while the cat sleeps",
     "one\ntwo three four\n\nfive",
     "AVAVAV AVAV AV AVAVAVAV AVA VAVAV",
-    "h\xc3\xa9llo w\xc3\xb6rld \xc3\xa7a va tr\xc3\xa8s bien",
+    "h\xc3\xa9llo w\xc3\xb6rld \xc3\xa7" "a va tr\xc3\xa8s bien",
     "trailing spaces   \nand   inner   runs ",
 };
 
