@@ -436,8 +436,16 @@ if(GUI_FORMS_BUILD_TESTS)
     # preinstalled SDK of version 10 or later and otherwise skips with a
     # notice in the log; nothing is downloaded or installed for it.
     find_program(GUI_FORMS_DOTNET NAMES dotnet HINTS "$ENV{ProgramFiles}/dotnet" "$ENV{DOTNET_ROOT}")
+    # In an AddressSanitizer tree the ASan runtime would be dlopen'ed into the
+    # dotnet process, where its interceptors cannot work; the C# checks run in
+    # the plain tree, and here the test reports itself skipped.
+    set(_gf_abi_csharp_sanitized OFF)
+    if(CMAKE_CXX_FLAGS MATCHES "-fsanitize=[^ ]*address")
+        set(_gf_abi_csharp_sanitized ON)
+    endif()
     add_test(NAME gui_forms_abi_csharp
         COMMAND ${CMAKE_COMMAND} -DDOTNET=${GUI_FORMS_DOTNET} -DPYTHON=${Python3_EXECUTABLE}
+            -DSANITIZED=${_gf_abi_csharp_sanitized}
             -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DLIBRARY_DIR=$<TARGET_FILE_DIR:gui_forms_abi>
             -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/gf_abi_csharp
             -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/csharp/gf_abi_csharp.cmake)

@@ -17,6 +17,12 @@ foreach(required PYTHON SOURCE_DIR LIBRARY_DIR WORK_DIR)
 endforeach()
 
 # The host's SDKs: one of major 10 or later builds the net10.0 projects.
+if(SANITIZED)
+    message(STATUS "gui_forms_abi_csharp: SKIPPED: ASan runtime is dlopen'ed into dotnet; "
+                   "interceptors unavailable; C# runs in the plain tree")
+    return()
+endif()
+
 set(sdk_found FALSE)
 set(sdk_list "")
 if(DOTNET AND EXISTS "${DOTNET}")
