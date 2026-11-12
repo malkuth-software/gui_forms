@@ -2,6 +2,7 @@
 
 #include "../../text/localizable/gui_forms_notes.hpp"
 #include "../primitives/kernel/box_blur.hpp"
+#include "../../surface_root/access/surface_engine_access.hpp"
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
@@ -471,7 +472,7 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
     // within its own surface (design note section 14).
     SurfaceRoot* const root = host.attached_surface_root();
     if (root == nullptr) return {};
-    const SurfaceRoot::EnginePaintPlace place = (*root).engine_paint_place(host, painter);
+    const detail::SurfaceEngineAccess::PaintPlace place = detail::SurfaceEngineAccess::paint_place(*root, host, painter);
     // A part recorded in the backplane plane would sample itself.
     if (place.painted_by == nullptr || (*place.painted_by).paint_plane() == PaintPlane::backplane) return {};
     const EffectDeclaration& declaration = *(*entry_).declaration;
@@ -480,11 +481,12 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
     if (declaration.time_model != EffectTimeModel::ambient) {
         PartKey key{};
         key.part = declaration.name;
-        const std::optional<PartRecordHandle> record = (*root).note_engine_part(host, key, AnatomyStateSet{});
+        const std::optional<PartRecordHandle> record =
+            detail::SurfaceEngineAccess::note_part(*root, host, key, AnatomyStateSet{});
         if (record) {
             const Rect extent{layer.x + place.origin.x, layer.y + place.origin.y, layer.width, layer.height};
-            (*root).note_engine_paint(*record, 0U, *place.painted_by, extent);
-            (*root).note_engine_backplane_reader(*record, true);
+            detail::SurfaceEngineAccess::note_paint(*root, *record, 0U, *place.painted_by, extent);
+            detail::SurfaceEngineAccess::note_backplane_reader(*root, *record, true);
         }
     }
     const std::optional<std::uint32_t> width = device_side(layer.width, scale);
@@ -496,7 +498,8 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
     const std::uint32_t half = flattened ? 0U : effect_backdrop_half(declaration.backdrop_margin, scale);
     const std::uint32_t margin = half * 3U;
     const Point raster_origin{place.window_origin.x + layer.x, place.window_origin.y + layer.y};
-    const SurfaceRoot::EngineBackplane lent = (*root).engine_backplane(raster_origin, extent, DeviceScale{scale}, margin);
+    const detail::SurfaceEngineAccess::Backplane lent =
+        detail::SurfaceEngineAccess::backplane(*root, raster_origin, extent, DeviceScale{scale}, margin);
     if (!lent.image) return {};
     BackdropKey key{};
     key.generation = lent.generation;

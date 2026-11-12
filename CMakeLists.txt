@@ -4749,6 +4749,10 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_timer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_timer_tests COMMAND gui_forms_timer_tests)
 
+    add_executable(gui_forms_surface_capability_tests tests/surface_capability_tests.cpp)
+    target_link_libraries(gui_forms_surface_capability_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_surface_capability_tests COMMAND gui_forms_surface_capability_tests)
+
     add_executable(gui_forms_dispatcher_tests tests/dispatcher_tests.cpp)
     target_link_libraries(gui_forms_dispatcher_tests PRIVATE
         gui_forms_host_headless

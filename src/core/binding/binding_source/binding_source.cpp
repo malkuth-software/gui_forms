@@ -8,6 +8,7 @@
 
 #include "../binding_view/binding_view.hpp"
 #include "../support/binding_support.hpp"
+#include "../../surface_root/access/surface_lifetime_access.hpp"
 
 #include <algorithm>
 #include <array>
@@ -184,7 +185,7 @@ bool BindingProviderLink::revoked() const noexcept {
 // Construction, ownership and access.
 
 BindingSource::BindingSource(Window& window)
-    : window_lifetime_(window.lifetime_),
+    : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)),
       currency_manager_(std::unique_ptr<CurrencyManager>(
           new CurrencyManager(*this))) {
     window.verify_access("BindingSource construction");

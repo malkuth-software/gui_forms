@@ -26,16 +26,12 @@
 
 namespace gui_forms {
 
-namespace detail {
-
 // The flash wake's target: the window whose band changes phase.
-struct BandFlashWake final {
+struct SurfaceRoot::BandFlashWake final {
     SurfaceRoot* root{};
 
     void operator()(FrameTime now) const { (*root).band_flash_due(now); }
 };
-
-} // namespace detail
 
 namespace {
 
@@ -210,7 +206,7 @@ void SurfaceRoot::refresh_band() {
     }
     if (band_.flash_wake.connected()) return;
     const FrameTime next = motion_clock_.now() + band_flash_half_period;
-    band_.flash_wake = request_one_shot_wake(next, detail::BandFlashWake{this});
+    band_.flash_wake = request_one_shot_wake(next, BandFlashWake{this});
 }
 
 void SurfaceRoot::band_flash_due(FrameTime now) {
@@ -222,7 +218,7 @@ void SurfaceRoot::band_flash_due(FrameTime now) {
     damage_band_strips(band_.reserved);
     // The next change half a period after this one; refresh_band keeps it,
     // or disconnects it when the flash was stilled meanwhile.
-    band_.flash_wake = request_one_shot_wake(now + band_flash_half_period, detail::BandFlashWake{this});
+    band_.flash_wake = request_one_shot_wake(now + band_flash_half_period, BandFlashWake{this});
     refresh_band();
 }
 

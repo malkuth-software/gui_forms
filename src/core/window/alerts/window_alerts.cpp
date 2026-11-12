@@ -1,4 +1,5 @@
 #include "window_alerts.hpp"
+#include "../../surface_root/access/surface_request_access.hpp"
 
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/window.hpp"
@@ -67,7 +68,7 @@ void WindowAlerts::answer(const AlertRecord& record, SurfaceRequestResult result
     outcome.id = record.id;
     outcome.result = result;
     outcome.choice = choice;
-    window_.deliver_request_answer(record.answer, outcome);
+    SurfaceRequestAccess::deliver_request_answer(window_, record.answer, outcome);
 }
 
 void WindowAlerts::show_next() {

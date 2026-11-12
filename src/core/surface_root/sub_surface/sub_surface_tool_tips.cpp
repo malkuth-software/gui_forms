@@ -1,4 +1,5 @@
 #include "sub_surface_tool_tips.hpp"
+#include "../access/surface_request_access.hpp"
 
 #include "sub_surface_channel.hpp"
 #include "sub_surface_request_posts.hpp"
@@ -277,7 +278,7 @@ void SubSurfaceToolTipRequester::request(const Control::Ptr& owner, std::uint64_
     if (!program_) {
         explicit_request_ = 0U;
         explicit_item_.clear();
-        root_.answer_tool_tip_request(id, SurfaceRequestResult::declined);
+        SurfaceRequestAccess::answer_tool_tip_request(root_, id, SurfaceRequestResult::declined);
     }
 }
 
@@ -296,7 +297,7 @@ void SubSurfaceToolTipRequester::hide() {
         const std::uint64_t id = explicit_request_;
         explicit_request_ = 0U;
         explicit_item_.clear();
-        root_.answer_tool_tip_request(id, SurfaceRequestResult::closed);
+        SurfaceRequestAccess::answer_tool_tip_request(root_, id, SurfaceRequestResult::closed);
     }
     revoke(program_);
 }
@@ -322,7 +323,7 @@ bool SubSurfaceToolTipRequester::receive_outcome(const SurfaceRequestOutcome& ou
     // stale one is asked again with the next configuration instead.
     const std::uint64_t root_request = slot == &program_ ? explicit_request_ : 0U;
     if (root_request != 0U && outcome.result != SurfaceRequestResult::stale) {
-        root_.answer_tool_tip_request(root_request, outcome.result);
+        SurfaceRequestAccess::answer_tool_tip_request(root_, root_request, outcome.result);
     }
     switch (outcome.result) {
     case SurfaceRequestResult::shown:

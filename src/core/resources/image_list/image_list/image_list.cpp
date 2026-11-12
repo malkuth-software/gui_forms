@@ -2,6 +2,7 @@
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "../../../surface_root/access/surface_lifetime_access.hpp"
 
 #include <algorithm>
 #include <array>
@@ -29,7 +30,7 @@ namespace {
 } // namespace
 
 ImageList::ImageList(Window& window, Size image_size)
-    : window_lifetime_(window.lifetime_), resources_(window.resources_),
+    : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)), resources_(window.resources()),
       image_size_(image_size) {
     window.verify_access("ImageList construction");
     validate_image_size(image_size_);
@@ -55,7 +56,7 @@ Window* ImageList::bound_window() const noexcept {
 
 bool ImageList::belongs_to(const Window& window) const noexcept {
     const std::shared_ptr<ApplicationResources> resources = resources_.lock();
-    const bool shared = resources && window.resources_ == resources;
+    const bool shared = resources && window.resources() == resources;
     return shared;
 }
 

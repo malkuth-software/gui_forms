@@ -2,6 +2,7 @@
 // Window's show_popup_window family and the standby that keeps them.
 
 #include "popup_standby.hpp"
+#include "../../surface_root/access/surface_application_access.hpp"
 
 #include <optional>
 #include <stdexcept>
@@ -18,13 +19,13 @@ void PopupStandby::SlotClosed::operator()() const {
 TransientWindow* PopupStandby::slot_window(const std::size_t slot) {
     PopupSlot& entry = slots_[slot];
     if (entry.window && (*entry.window).connected()) return entry.window.get();
-    if (native_popup_refusal(owner_.application_window_, HostTransientKind::popup) != NativePopupRefusal::none) {
+    if (native_popup_refusal(SurfaceApplicationAccess::application_window(owner_), HostTransientKind::popup) != NativePopupRefusal::none) {
         return nullptr;
     }
     entry.closed.disconnect();
     entry.window.reset();
     TransientWindowOpening opening{};
-    opening.owner = owner_.application_window_;
+    opening.owner = SurfaceApplicationAccess::application_window(owner_);
     opening.kind = HostTransientKind::popup;
     serial_ = serial_ + 1U;
     opening.serial = serial_;
@@ -38,7 +39,7 @@ TransientWindow* PopupStandby::slot_window(const std::size_t slot) {
 
 bool PopupStandby::show(const std::size_t slot, const Control::Ptr& content, const Rect bounds) {
     if (slot >= slots_.size()) return false;
-    const std::optional<Rect> desktop = desktop_placement(owner_.application_window_, bounds, monitors_);
+    const std::optional<Rect> desktop = desktop_placement(SurfaceApplicationAccess::application_window(owner_), bounds, monitors_);
     if (!desktop.has_value()) return false;
     TransientWindow* window = slot_window(slot);
     if (window == nullptr) return false;
@@ -54,7 +55,7 @@ bool PopupStandby::prepare(const std::size_t slot) {
 
 bool PopupStandby::move(const std::size_t slot, const Rect bounds) {
     if (slot >= slots_.size() || !slots_[slot].window) return false;
-    const std::optional<Rect> desktop = desktop_placement(owner_.application_window_, bounds, monitors_);
+    const std::optional<Rect> desktop = desktop_placement(SurfaceApplicationAccess::application_window(owner_), bounds, monitors_);
     if (!desktop.has_value()) return false;
     const bool moved = (*slots_[slot].window).move(*desktop);
     return moved;
@@ -74,7 +75,7 @@ Window* PopupStandby::model(const std::size_t slot) const noexcept {
 }
 
 std::optional<Rect> PopupStandby::work_area(const Point client_point) {
-    const std::optional<Rect> area = client_work_area(owner_.application_window_, client_point, monitors_);
+    const std::optional<Rect> area = client_work_area(SurfaceApplicationAccess::application_window(owner_), client_point, monitors_);
     return area;
 }
 

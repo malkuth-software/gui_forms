@@ -2,6 +2,9 @@
 
 #include "tool_tip_bubble.hpp"
 #include "../../application/transient_window.hpp"
+#include "../../surface_root/access/surface_schedule_access.hpp"
+#include "../../surface_root/access/surface_request_access.hpp"
+#include "../../surface_root/access/surface_application_access.hpp"
 #include "gui_forms/application.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -138,7 +141,7 @@ void ToolTipPresenter::wait(ToolTipOrigin origin, ToolTipSubject subject, FrameT
 }
 
 void ToolTipPresenter::arm(FrameTime deadline) {
-    wake_ = window_.request_tool_tip_wake(deadline, Wake{this});
+    wake_ = SurfaceScheduleAccess::request_tool_tip_wake(window_, deadline, Wake{this});
 }
 
 void ToolTipPresenter::woke(FrameTime now) {
@@ -271,14 +274,14 @@ TransientWindow* ToolTipPresenter::splash_window() {
     if (transient_refused_) return nullptr;
     // A run that cannot open one now (no run yet, a host without Splash
     // windows) is asked again on a later show; that check opens nothing.
-    if (native_popup_refusal(window_.application_window_, HostTransientKind::tool_tip) !=
+    if (native_popup_refusal(SurfaceApplicationAccess::application_window(window_), HostTransientKind::tool_tip) !=
         NativePopupRefusal::none) {
         return nullptr;
     }
     transient_closed_.disconnect();
     transient_.reset();
     TransientWindowOpening opening{};
-    opening.owner = window_.application_window_;
+    opening.owner = SurfaceApplicationAccess::application_window(window_);
     opening.kind = HostTransientKind::tool_tip;
     opening.serial = next_overlay_;
     ++next_overlay_;
@@ -303,7 +306,7 @@ bool ToolTipPresenter::show_in_splash(Showing& showing, ToolTipLines& lines) {
     (*transient_bubble_).set_content(showing.subject.text, lines);
     // An opaque Splash window (X11 without a compositing manager) holds the
     // face alone: no shadow (owner, 2026-11-08: Q-S2 (b)).
-    (*transient_bubble_).set_shadow(native_popup_translucent(window_.application_window_, window_));
+    (*transient_bubble_).set_shadow(native_popup_translucent(SurfaceApplicationAccess::application_window(window_), window_));
     const bool placed = position(showing);
     if (placed) adopt_bake();
     return placed;
@@ -324,7 +327,7 @@ void ToolTipPresenter::prebake(const ToolTipSubject& subject) {
     bake_lines_.font = (*control).effective_font(tool_tip_font);
     break_tool_tip_lines(*control, subject.text, window_.tool_tip_settings().maximum_width, bake_lines_);
     const Size face = tool_tip_face_size(bake_lines_);
-    const bool shadow = native_popup_translucent(window_.application_window_, window_);
+    const bool shadow = native_popup_translucent(SurfaceApplicationAccess::application_window(window_), window_);
     const Insets outsets = shadow ? overlay_shadow_outsets(*transient_bubble_) : Insets{};
     const double scale = (*root).scale();
     const Size whole{face.width + outsets.left + outsets.right, face.height + outsets.top + outsets.bottom};
@@ -428,7 +431,7 @@ bool ToolTipPresenter::position(Showing& showing) {
         const double y = anchored ? anchor.y + anchor.height + 7.0 : pointer_.y + 19.0;
         const Rect window_bounds{x - outsets.left, y - outsets.top, face.width + outsets.left + outsets.right,
                                  face.height + outsets.top + outsets.bottom};
-        const std::optional<Rect> desktop = desktop_placement(window_.application_window_, window_bounds, placement_monitors_);
+        const std::optional<Rect> desktop = desktop_placement(SurfaceApplicationAccess::application_window(window_), window_bounds, placement_monitors_);
         if (!desktop.has_value()) return false;
         if (!transient_layer_) transient_layer_ = make_control<ToolTipLayer>(StableId("tooltip.splash.layer"));
         if ((*transient_bubble_).parent() != transient_layer_) (*transient_layer_).add_child(transient_bubble_);
@@ -456,8 +459,7 @@ bool ToolTipPresenter::position(Showing& showing) {
 
 void ToolTipPresenter::raise(std::optional<ToolTipEvent> change) {
     if (!change) return;
-    window_.tool_tip_request_changed(*change);
-    window_.tool_tip_visibility_changed_.emit(*change);
+    SurfaceRequestAccess::publish_tool_tip_change(window_, *change);
     // Its storage serves the next event (a handler that opened or closed a
     // tooltip meanwhile took the spare and built its own).
     spare_event_ = std::move(*change);
@@ -768,7 +770,7 @@ void ToolTipPresenter::request(const Control::Ptr& owner, std::uint64_t id, std:
                        (*showing).subject.control.lock() == owner;
     // An owner that cannot show one now (hidden, or disabled without
     // disabled tooltips) leaves the presenter idle.
-    if (!shows) window_.answer_tool_tip_request(id, SurfaceRequestResult::declined);
+    if (!shows) SurfaceRequestAccess::answer_tool_tip_request(window_, id, SurfaceRequestResult::declined);
 }
 
 void ToolTipPresenter::withdraw(std::string_view item_id) {

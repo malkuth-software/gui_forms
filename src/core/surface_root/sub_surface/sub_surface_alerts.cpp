@@ -1,4 +1,5 @@
 #include "sub_surface_alerts.hpp"
+#include "../access/surface_request_access.hpp"
 
 #include "sub_surface_channel.hpp"
 #include "sub_surface_request_posts.hpp"
@@ -18,7 +19,7 @@ void SubSurfaceAlertRequester::answer(std::uint64_t id, const std::weak_ptr<Surf
     outcome.id = id;
     outcome.result = result;
     outcome.choice = choice;
-    root_.deliver_request_answer(target, outcome);
+    SurfaceRequestAccess::deliver_request_answer(root_, target, outcome);
 }
 
 void SubSurfaceAlertRequester::raise(AlertRecord record) {

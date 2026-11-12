@@ -2,6 +2,8 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/window/window.hpp"
+#include "../../surface_root/access/surface_schedule_access.hpp"
+#include "../../surface_root/access/surface_lifetime_access.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -125,8 +127,9 @@ bool AnimationTimer::cancelled_by_window(const State& state) noexcept {
     const std::shared_ptr<detail::WindowLifetime> recorded = state.window.lock();
     // Waiting outside any window, or since in another one: no cancellation
     // of the owner's present window can have passed the timer by.
-    if (window == nullptr || !recorded || recorded != (*window).lifetime_) return false;
-    const bool cancelled = (*window).frame_request_cancellations_ != state.window_cancellations;
+    if (window == nullptr || !recorded || !detail::SurfaceLifetimeAccess::is_lifetime_of(*window, recorded)) return false;
+    const bool cancelled =
+        detail::SurfaceScheduleAccess::frame_request_cancellations(*window) != state.window_cancellations;
     return cancelled;
 }
 
@@ -155,8 +158,8 @@ void AnimationTimer::schedule(const std::shared_ptr<State>& shared) {
     if (window == nullptr) {
         state.window.reset();
     } else {
-        state.window = (*window).lifetime_;
-        state.window_cancellations = (*window).frame_request_cancellations_;
+        state.window = detail::SurfaceLifetimeAccess::observe(*window);
+        state.window_cancellations = detail::SurfaceScheduleAccess::frame_request_cancellations(*window);
     }
     if (window == nullptr || !(*owner).effectively_visible()) {
         state.waiting_for_paint = true;

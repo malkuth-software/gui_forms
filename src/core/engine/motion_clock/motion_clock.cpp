@@ -7,6 +7,8 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/window.hpp"
 #include "../../failure/fail_fast.hpp"
+#include "../../surface_root/access/surface_schedule_access.hpp"
+#include "../../surface_root/access/surface_engine_access.hpp"
 
 #include <limits>
 #include <optional>
@@ -79,7 +81,7 @@ std::size_t MotionClock::ambient_place() {
         if (!ambient_[index].live && !ambient_[index].parked) free = index;
     }
     if (free == ambient_.size()) ambient_.reserve(ambient_.size() + 1U);
-    if (!request_.connected()) request_ = (*window_).request_motion_frames(now() + motion_frame_interval);
+    if (!request_.connected()) request_ = detail::SurfaceScheduleAccess::request_motion_frames(*window_, now() + motion_frame_interval);
     if (free == ambient_.size()) ambient_.emplace_back();
     return free;
 }
@@ -102,7 +104,7 @@ bool MotionClock::enlist_control_ambient(Control& control, FrameInterval interva
     }
     // A parked record is reused in place; it is no longer parked.
     const std::size_t place = parked ? *parked : ambient_place();
-    if (parked && !request_.connected()) request_ = (*window_).request_motion_frames(now() + motion_frame_interval);
+    if (parked && !request_.connected()) request_ = detail::SurfaceScheduleAccess::request_motion_frames(*window_, now() + motion_frame_interval);
     AmbientRecord& made = ambient_[place];
     made = AmbientRecord{};
     made.control = std::move(observed);
@@ -167,7 +169,7 @@ void MotionClock::stop_ambient(bool repaint) {
         existing.live = false;
         ambient_live_ = ambient_live_ - 1U;
         if (existing.control_address == nullptr) {
-            if (repaint) (*window_).repaint_engine_part(existing.part_slot, existing.part_generation);
+            if (repaint) detail::SurfaceEngineAccess::repaint_part(*window_, existing.part_slot, existing.part_generation);
             continue;
         }
         existing.parked = true;
@@ -184,7 +186,7 @@ void MotionClock::advance_ambient(FrameTime now) {
         if (!effect.live || effect.next > now) continue;
         const bool shown = effect.control_address != nullptr
             ? control_ambient_frame(effect, now)
-            : (*window_).engine_ambient_frame(effect.part_slot, effect.part_generation, effect.seen);
+            : detail::SurfaceEngineAccess::ambient_frame(*window_, effect.part_slot, effect.part_generation, effect.seen);
         if (!shown) {
             effect = AmbientRecord{};
             ambient_live_ = ambient_live_ - 1U;
@@ -207,7 +209,7 @@ void MotionClock::align_to_ambient() noexcept {
         if (!effect.live) continue;
         if (!earliest || effect.next < *earliest) earliest = effect.next;
     }
-    if (earliest) (*window_).set_motion_frame_deadline(*earliest);
+    if (earliest) detail::SurfaceScheduleAccess::set_motion_frame_deadline(*window_, *earliest);
 }
 
 MotionClock::Record* MotionClock::find(MotionRecordHandle handle) noexcept {
@@ -242,7 +244,7 @@ void MotionClock::enlist(MotionValue& value) {
     if (!reuse) slots_.emplace_back();
     if (!request_.connected()) {
         try {
-            request_ = (*window_).request_motion_frames(now() + motion_frame_interval);
+            request_ = detail::SurfaceScheduleAccess::request_motion_frames(*window_, now() + motion_frame_interval);
         } catch (...) {
             if (!reuse) slots_.pop_back();
             throw;
