@@ -5,6 +5,7 @@
 #include "gui_forms/controls/data_grid_view_types.hpp"
 #include "gui_forms/controls/tree_list_view.hpp"
 #include "gui_forms/controls/tree_view.hpp"
+#include "gui_forms/controls/virtual_rows_view.hpp"
 #include "gui_forms_lab/correspondence_view.hpp"
 
 namespace gallery_pages_tests {
@@ -157,6 +158,24 @@ void test_tree_and_object_views(gui_forms::Window& window) {
                 (*status).text.read().find("History of button.cpp") == 0U &&
                 (*grid).link_visited(*(*grid).row_position(DataGridViewRowId{"button.cpp"}), *history),
             "pressing a link cell must report the link and leave it visited");
+
+    // VirtualRowsView: the seeded message history, measured only near its
+    // viewport, its rows published with their senders and text.
+    const std::shared_ptr<VirtualRowsView> messages =
+        std::dynamic_pointer_cast<VirtualRowsView>(window.find("gallery.tree.messages"));
+    require(messages && (*messages).row_count() == 4000U && (*messages).follow_tail() &&
+                (*messages).statistics().rows_measured > 0U && (*messages).statistics().rows_measured < 200U,
+            "the VirtualRowsView must hold the seeded history and measure only the rows near its viewport");
+    const std::vector<SemanticNode> message_rows = (*messages).semantic_virtual_children();
+    require(message_rows.size() > 1U && message_rows[0].stable_id == "gallery.tree.messages.row-0" &&
+                !message_rows[0].name.empty() && !message_rows[0].value.empty(),
+            "the message rows must be published with their senders and text");
+    require((*messages).on_semantic_child_action("gallery.tree.messages.row-1", SemanticAction::select, {}) &&
+                (*status).text.read().find("VirtualRowsView message 2 from ") == 0U,
+            "selecting a message must report it");
+    require((*messages).on_semantic_child_action("gallery.tree.messages.row-2", SemanticAction::press, {}) &&
+                (*status).text.read() == "VirtualRowsView message 3 opened",
+            "pressing a message must activate it and report it");
 
     const std::string semantics = window.semantic_snapshot().to_json();
     require(semantics.find("gallery.tree.folders") != std::string::npos &&

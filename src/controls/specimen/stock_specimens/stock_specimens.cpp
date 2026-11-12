@@ -19,6 +19,7 @@
 #include "gui_forms/help/help_page/help_page.hpp"
 #include "gui_forms/pages/page_set/page_set.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/pages/types/page_set_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
@@ -700,6 +701,79 @@ StockSpecimenInstance make_tree_list_view(const StockSpecimen&, StableId id) {
         nodes[index].expanded = depths[index] == 0U;
     }
     (*control).set_nodes(std::move(nodes));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
+// VirtualRowsView borrows its row targets, so the specimen's are free
+// functions over fixed messages: nothing to outlive. Row r shows message
+// r % 6: a sender line and one to three message lines, each a theme label
+// part, so the rows vary in height as a chat history does.
+struct SpecimenMessage final {
+    std::string_view sender;
+    std::array<std::string_view, 3> lines;
+    std::size_t line_count;
+};
+
+constexpr std::array<SpecimenMessage, 6> specimen_messages{{
+    {"Harbour master", {"Pilot boat leaves at six.", "", ""}, 1U},
+    {"Quay office", {"The east berth is clear;", "the tender can come alongside", "after the tide turns."}, 3U},
+    {"Lighthouse", {"Lamp tested and logged.", "", ""}, 1U},
+    {"Chandlery", {"Two fenders and a coil of rope", "are ready at the counter.", ""}, 2U},
+    {"Harbour master", {"Fog warning lifted.", "", ""}, 1U},
+    {"Ferry desk", {"The evening crossing runs late;", "boarding opens at eight.", ""}, 2U},
+}};
+constexpr std::size_t specimen_message_rows = 600U;
+constexpr double specimen_line_height = 18.0;
+constexpr double specimen_row_padding = 4.0;
+
+void measure_specimen_message(VirtualRowMeasure& request) {
+    const SpecimenMessage& message = specimen_messages[request.row.value % specimen_messages.size()];
+    const double lines = static_cast<double>(message.line_count + 1U);
+    request.height = 2.0 * specimen_row_padding + lines * specimen_line_height;
+}
+
+void paint_specimen_message(VirtualRowPaint& request) {
+    const SpecimenMessage& message = specimen_messages[request.row.value % specimen_messages.size()];
+    const FontSpec body = (*request.view).text_font(FontSpec{});
+    PartPaint label;
+    label.family = ControlVisualRole::selection;
+    label.role = PartRole::label;
+    label.states = request.states;
+    label.bounds = {request.bounds.x + 8.0, request.bounds.y + specimen_row_padding, request.bounds.width - 16.0,
+                    specimen_line_height};
+    label.font = body;
+    label.font.weight = static_cast<std::uint16_t>(600U);
+    label.text = lend_paint_text(message.sender);
+    paint_part(*request.painter, *request.view, label);
+    label.font = body;
+    for (std::size_t line = 0U; line < message.line_count; ++line) {
+        label.bounds.y = label.bounds.y + specimen_line_height;
+        label.text = lend_paint_text(message.lines[line]);
+        paint_part(*request.painter, *request.view, label);
+    }
+    label.text = {};
+}
+
+void describe_specimen_message(VirtualRowDescription& request) {
+    const SpecimenMessage& message = specimen_messages[request.row.value % specimen_messages.size()];
+    request.name.append(message.sender);
+    for (std::size_t line = 0U; line < message.line_count; ++line) {
+        if (line > 0U) request.value.push_back(' ');
+        request.value.append(message.lines[line]);
+    }
+}
+
+StockSpecimenInstance make_virtual_rows_view(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<VirtualRowsView> control = make_control<VirtualRowsView>(std::move(id));
+    VirtualRowsCallbacks callbacks{};
+    callbacks.measure = Delegate<VirtualRowMeasure&>::bind<&measure_specimen_message>();
+    callbacks.paint = Delegate<VirtualRowPaint&>::bind<&paint_specimen_message>();
+    callbacks.describe = Delegate<VirtualRowDescription&>::bind<&describe_specimen_message>();
+    (*control).set_row_callbacks(callbacks);
+    (*control).set_estimated_row_height(2.0 * specimen_row_padding + 2.0 * specimen_line_height);
+    (*control).reset_rows(specimen_message_rows);
+    (*control).set_selected_row(VirtualRowIndex{1U});
     StockSpecimenInstance instance = alone(control);
     return instance;
 }

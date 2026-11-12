@@ -61,11 +61,16 @@ struct GUI_FORMS_API VirtualRowMeasure final {
 // past the viewport (the painter is clipped to it). The view has already
 // painted the row's plate by role (transparent, hot or selected) and paints
 // the focus cue over the handler's drawing. Right to left, `mirrored` is set
-// and the row's reading start is bounds' right edge.
+// and the row's reading start is bounds' right edge. `view` (never null in a
+// call) and `states` (the row item's anatomy states: selected, hot,
+// current, disabled) let the handler draw its content as theme parts with
+// paint_part(*painter, *view, part), so the row follows the theme.
 struct GUI_FORMS_API VirtualRowPaint final {
     Painter* painter{};
+    const Control* view{};
     VirtualRowIndex row{};
     Rect bounds{};
+    AnatomyStateSet states{};
     bool selected{};
     bool hot{};
     bool focused{};

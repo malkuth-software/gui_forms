@@ -102,7 +102,8 @@ public:
 
     void paint(VirtualRowPaint& request) {
         ++painted;
-        if (request.painter == nullptr) null_painter = true;
+        if (request.painter == nullptr || request.view != view) null_painter = true;
+        if (request.selected != request.states.contains(AnatomyState::selected)) states_disagree = true;
         if (request.mirrored) mirrored_seen = true;
         if (try_reentry && view != nullptr) {
             try {
@@ -134,6 +135,7 @@ public:
     std::size_t painted{};
     std::size_t described{};
     bool null_painter{};
+    bool states_disagree{};
     bool mirrored_seen{};
     bool try_reentry{};
     bool reentry_refused{};
@@ -360,7 +362,7 @@ void million_rows_bounded_work() {
     RecordingPainter painter;
     std::size_t painted = rows.painted;
     static_cast<void>(window.paint(painter, {0.0, 0.0, 400.0, 300.0}));
-    require(rows.painted > painted && rows.painted - painted <= paint_bound && !rows.null_painter,
+    require(rows.painted > painted && rows.painted - painted <= paint_bound && !rows.null_painter && !rows.states_disagree,
             "a paint draws only the visible rows");
 
     Sequence sequence;

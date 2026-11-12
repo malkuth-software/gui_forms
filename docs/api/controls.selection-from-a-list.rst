@@ -5279,13 +5279,17 @@ Related types
 
    ``#include <gui_forms/controls/virtual_rows_view.hpp>``
 
-   One row to draw (VirtualRowsCallbacks::paint). ``painter`` is borrowed for the call only and is never null in a call; ``bounds`` is the row's rectangle in the view's local coordinates, logical units, and may reach past the viewport (the painter is clipped to it). The view has already painted the row's plate by role (transparent, hot or selected) and paints the focus cue over the handler's drawing. Right to left, ``mirrored`` is set and the row's reading start is bounds' right edge.
+   One row to draw (VirtualRowsCallbacks::paint). ``painter`` is borrowed for the call only and is never null in a call; ``bounds`` is the row's rectangle in the view's local coordinates, logical units, and may reach past the viewport (the painter is clipped to it). The view has already painted the row's plate by role (transparent, hot or selected) and paints the focus cue over the handler's drawing. Right to left, ``mirrored`` is set and the row's reading start is bounds' right edge. ``view`` (never null in a call) and ``states`` (the row item's anatomy states: selected, hot, current, disabled) let the handler draw its content as theme parts with paint_part(*painter, *view, part), so the row follows the theme.
 
    .. cpp:member:: Painter* painter
+
+   .. cpp:member:: const Control* view
 
    .. cpp:member:: VirtualRowIndex row
 
    .. cpp:member:: Rect bounds
+
+   .. cpp:member:: AnatomyStateSet states
 
    .. cpp:member:: bool selected
 
