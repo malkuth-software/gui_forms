@@ -4,7 +4,7 @@
 // contrast clamp and its layers' fills; the paint functions' commands (the
 // background's fill, texture groups, the engine's baked blocks on the world
 // lattice, and the grid level at three zooms, nodes, links with their
-// halo and dashes, finish layers' blocks, the marquee, the focus ring, port labels, the knife and
+// halo and dashes, finish layers' world tiles, the marquee, the focus ring, port labels, the knife and
 // the link preview); one item's look (`:item()` rules for a socket type and
 // a node's ID); and the link_flow effect: its frames
 // wanted only while a link flows and motion is not reduced, its still
@@ -590,29 +590,50 @@ void background_commands() {
     require(panned.rasters.size() == 4U && panned.rasters[3] == baked.rasters[3],
             "a pan by one block leaves the lattice where it was");
 
-    // A finish layer: one block of whole 6-unit repeats, at most 256 device
-    // pixels (fewer where the bake refuses the larger), on the same
-    // lattice; in no window it bakes nothing.
+    // A finish layer: the world's finish tiles, 128 device pixels square
+    // on the lattice through world (0, 0). In no window it draws nothing;
+    // in a window the first paint queues its tiles and draws none, idle
+    // frames paint them, and the next paint draws them.
     look.texture = finish_layer();
     RecordingPainter unbaked_finish;
     paint_canvas_background(unbaked_finish, *detached, look, area, view);
     require(unbaked_finish.groups.size() == 1U && unbaked_finish.groups[0].opacity == 0.03 &&
                 unbaked_finish.rasters.empty(),
-            "a finish layer is one group at its contrast, and bakes nothing in no window");
+            "a finish layer is one group at its contrast, and draws nothing in no window");
+    RecordingPainter unheld;
+    paint_canvas_background(unheld, *attached, look, area, view);
+    require(unheld.groups.size() == 1U && unheld.rasters.empty() && window.engine_parts().finish_tiles_waiting(),
+            "the first paint queues the finish's tiles and paints none itself");
+    FrameTime now = FrameClock::now();
+    for (std::size_t frame = 0U; frame < 16U && window.engine_parts().finish_tiles_waiting(); ++frame) {
+        static_cast<void>(window.take_damage());
+        now += std::chrono::milliseconds(16);
+        static_cast<void>(window.poll_frame_schedule(now));
+    }
+    const RasterCacheStatistics made = window.engine_parts().cache_statistics();
+    require(!window.engine_parts().finish_tiles_waiting() && made.finish_tiles == 4U && made.finish_tile_bakes == 4U,
+            "idle frames paint the four tiles meeting the area");
     RecordingPainter finished;
     paint_canvas_background(finished, *attached, look, area, view);
-    const Point corner{5.0 - outsets.left, 7.0 - outsets.top};
-    bool at_corner = false;
-    for (const Point origin : finished.rasters) {
-        if (origin == corner) at_corner = true;
+    require(finished.rasters.size() == 4U && finished.saves == 1 && finished.clips.size() == 1U,
+            "the next paint draws every tile, clipped to the area");
+    if (finished.rasters.size() == 4U) {
+        require(finished.rasters[0] == Point{5.0 - 128.0, 7.0 - 128.0} && finished.rasters[3] == Point{5.0, 7.0},
+                "the tiles lie on the lattice through world (0, 0), 128 device pixels apart");
     }
-    require(finished.rasters.size() >= 4U && at_corner, "the finish's blocks lie on the lattice through world (0, 0)");
-    if (finished.rasters.size() >= 2U) {
-        const double side = finished.rasters[1].x - finished.rasters[0].x;
-        const double repeats = side / canvas_finish_repeat;
-        require(side > 0.0 && side <= 256.0 && std::floor(repeats) == repeats,
-                "a finish block is a whole number of repeats, at most 256 pixels");
-    }
+    view.origin = Point{8.0, 7.0};
+    RecordingPainter shifted;
+    paint_canvas_background(shifted, *attached, look, area, view);
+    const RasterCacheStatistics reused = window.engine_parts().cache_statistics();
+    require(shifted.rasters.size() == 4U && reused.finish_tile_bakes == made.finish_tile_bakes &&
+                !window.engine_parts().finish_tiles_waiting(),
+            "a pan within the same tiles reuses them");
+    view.zoom = 2.0;
+    RecordingPainter zoomed;
+    paint_canvas_background(zoomed, *attached, look, area, view);
+    require(zoomed.rasters.empty() && window.engine_parts().finish_tiles_waiting(),
+            "a new zoom names new tiles, painted again in idle frames");
+    view.zoom = 1.0;
     look.texture = two_layers();
     view.origin = Point{5.0, 7.0};
     look.texture = CanvasTextureLayers{};

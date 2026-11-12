@@ -18,7 +18,8 @@
 // out, normal and in; close-ups of the links (and on blue) and the lamps
 // (and in dark); four flow frames; the texture off; felt and paper fibre
 // (procedural), orange peel and cloth weave (finishes), each in light and
-// dark; felt over paper fibre: 29 files. It never opens a window.
+// dark; felt over paper fibre; the cloth weave close up across finish
+// tile boundaries: 30 files. It never opens a window.
 
 #include "../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
@@ -316,22 +317,24 @@ WindowCapture captured(OffscreenAttachment& attached, const SampleWindow& sample
 // most three layers.
 constexpr std::size_t maximum_settle_frames = 16U;
 
-// A capture with its procedural patterns made: the first paint queues them
-// and draws their grounds (E10), the idle frames make them, one a frame,
-// and the second capture shows them. Damage is taken first, since an idle
+// A capture with its procedural patterns and finish tiles made: the first
+// paint queues them and draws their grounds or nothing (E10, cp31), the
+// idle frames make them, and the second capture shows them. Damage is taken first, since an idle
 // frame waits while a paint is pending. Bounded by maximum_settle_frames.
 WindowCapture settled(OffscreenAttachment& attached, const SampleWindow& sample, const CaptureRequest& request) {
     static_cast<void>(captured(attached, sample, request));
     Window& window = *sample.window;
     FrameTime now = FrameClock::now();
     std::size_t frame = 0U;
-    while (frame < maximum_settle_frames && window.engine_parts().patterns_waiting()) {
+    while (frame < maximum_settle_frames &&
+           (window.engine_parts().patterns_waiting() || window.engine_parts().finish_tiles_waiting())) {
         static_cast<void>(window.take_damage());
         now += std::chrono::milliseconds(16);
         static_cast<void>(window.poll_frame_schedule(now));
         frame = frame + 1U;
     }
-    require(!window.engine_parts().patterns_waiting(), "the texture's patterns are made in idle frames");
+    require(!window.engine_parts().patterns_waiting() && !window.engine_parts().finish_tiles_waiting(),
+            "the texture's patterns and finish tiles are made in idle frames");
     const WindowCapture shown = captured(attached, sample, request);
     return shown;
 }
@@ -553,6 +556,20 @@ void write_preview(const std::string& directory) {
         if (!texture.dark) continue;
         const std::string dark_name = std::string(texture.name) + "-dark";
         write_capture(settled(attached, textured, dark), directory, dark_name);
+    }
+    // Finish tile boundaries, close up: the cloth weave (a broken thread
+    // would show a seam) at zoom 3 with world (0, 0) at the canvas's centre,
+    // so tile boundaries (every 128 device pixels at scale 1) run through
+    // x = 132, 260 and 388 and y = 37, 165 and 293 of the capture.
+    {
+        std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+        select_texture_theme(*resources, "finish(cloth-weave, #ffffff, #d8d8d8, 9) multiply 3%");
+        const SampleWindow textured = made_sample(resources);
+        (*textured.graph).settings.still = true;
+        (*textured.graph).settings.flow = false;
+        (*textured.graph).settings.view = CanvasView{Point{260.0, 165.0}, 3.0};
+        OffscreenAttachment attached(*raster, *textured.window);
+        write_capture(settled(attached, textured, light), directory, "texture-tile-boundary");
     }
 }
 

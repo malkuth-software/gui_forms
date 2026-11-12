@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <stdexcept>
+#include <vector>
 
 namespace gui_forms {
 namespace {
@@ -174,6 +175,20 @@ void SurfaceRoot::damage_pattern_waiters(PatternGeneration generation) {
     }
     // A generation outside the enumeration repaints nothing.
     return;
+}
+
+void SurfaceRoot::damage_finish_tile_waiters() {
+    std::vector<PartRecordHandle> waiters{};
+    engine_parts_.take_finish_tile_waiters(waiters);
+    EngineDamage damaged{};
+    for (const PartRecordHandle waiter : waiters) {
+        // A part released since it asked has a stale handle: nothing to
+        // repaint.
+        const EnginePartRecord* const record = engine_parts_.record(waiter);
+        if (record == nullptr) continue;
+        static_cast<void>(damage_engine_part(*record, damaged));
+    }
+    if (damaged.parts > 0U) metrics_.record_engine_input_damage(damaged.parts, damaged.area);
 }
 
 void SurfaceRoot::note_engine_backplane_reader(PartRecordHandle handle, bool reads) noexcept {

@@ -4,6 +4,7 @@
 #include "../primitives/material/material_primitive.hpp"
 #include "slice_assembly.hpp"
 #include "../../surface_root/access/surface_engine_access.hpp"
+#include "../primitives/finish/finish_world.hpp"
 #include "../primitives/procedural/procedural_pattern.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
@@ -755,6 +756,114 @@ bool EnginePartTable::awaits_pattern(const CachedPartRaster& cached) const noexc
     return stale;
 }
 
+std::shared_ptr<const PartRaster> EnginePartTable::finish_tile(const FinishTileKey& key, PartRecordHandle waiter,
+                                                               const std::uint64_t paint_sequence) {
+    for (HeldFinishTile& held : finish_tiles_) {
+        if (!(held.key == key)) continue;
+        held.last_used = paint_sequence;
+        statistics_.finish_tile_hits = statistics_.finish_tile_hits + 1U;
+        return held.raster;
+    }
+    statistics_.finish_tile_misses = statistics_.finish_tile_misses + 1U;
+    // A tile is painted only within the world's reach, at a scale that
+    // draws: any other is never queued.
+    const std::int64_t reach = engine_primitives::finish_world_reach / finish_tile_side;
+    const bool placed = key.column >= -reach && key.column < reach && key.row >= -reach && key.row < reach;
+    const bool scaled = std::isfinite(key.scale) && key.scale > 0.0 && std::isfinite(key.display_scale) &&
+                        key.display_scale > 0.0;
+    if (!placed || !scaled) return nullptr;
+    bool queued = false;
+    for (const FinishTileKey& waiting : finish_tile_queue_) {
+        if (waiting == key) queued = true;
+    }
+    if (!queued && finish_tile_queue_.size() < maximum_queued_finish_tiles) finish_tile_queue_.push_back(key);
+    statistics_.finish_tiles_queued = finish_tile_queue_.size();
+    bool noted = false;
+    for (const PartRecordHandle noted_waiter : finish_tile_waiters_) {
+        if (noted_waiter == waiter) noted = true;
+    }
+    if (!noted && finish_tile_waiters_.size() < maximum_finish_tile_waiters) finish_tile_waiters_.push_back(waiter);
+    return nullptr;
+}
+
+bool EnginePartTable::make_finish_tile_room(const std::size_t incoming, const std::uint64_t paint_sequence) noexcept {
+    while (statistics_.finish_tile_bytes + incoming > finish_tile_budget_bytes) {
+        // The least recently used tile the latest paint did not use.
+        bool found = false;
+        std::size_t oldest = 0U;
+        for (std::size_t index = 0U; index < finish_tiles_.size(); ++index) {
+            const bool latest = finish_tiles_[index].last_used + 1U >= paint_sequence;
+            if (latest) continue;
+            if (!found || finish_tiles_[index].last_used < finish_tiles_[oldest].last_used) oldest = index;
+            found = true;
+        }
+        if (!found) return false;
+        statistics_.finish_tile_bytes = statistics_.finish_tile_bytes - (*finish_tiles_[oldest].raster).pixels().size();
+        statistics_.finish_tiles = statistics_.finish_tiles - 1U;
+        statistics_.finish_tile_evictions = statistics_.finish_tile_evictions + 1U;
+        if (oldest + 1U != finish_tiles_.size()) finish_tiles_[oldest] = std::move(finish_tiles_.back());
+        finish_tiles_.pop_back();
+    }
+    return true;
+}
+
+bool EnginePartTable::generate_finish_tiles(const std::uint64_t paint_sequence) {
+    const DeviceExtent extent{finish_tile_side, finish_tile_side};
+    const std::size_t bytes = static_cast<std::size_t>(finish_tile_side) * finish_tile_side * part_raster_bytes_per_pixel;
+    const std::uint64_t pixels = static_cast<std::uint64_t>(finish_tile_side) * finish_tile_side;
+    // The scratch rows, made once for this idle frame's tiles.
+    engine_primitives::FinishScratch scratch{};
+    engine_primitives::reserve_finish_scratch(scratch, finish_tile_side);
+    std::uint64_t spent = 0U;
+    bool painted = false;
+    while (!finish_tile_queue_.empty()) {
+        const FinishTileKey key = finish_tile_queue_.front();
+        const std::uint64_t effort = engine_primitives::finish_effort_weight(key.finish.kind) * pixels;
+        if (painted && spent + effort > finish_tile_idle_effort) break;
+        finish_tile_queue_.pop_front();
+        statistics_.finish_tiles_queued = finish_tile_queue_.size();
+        bool held = false;
+        for (const HeldFinishTile& tile : finish_tiles_) {
+            if (tile.key == key) held = true;
+        }
+        if (held) continue;
+        // Room first, so that a tile that would not be held is not painted.
+        if (!make_finish_tile_room(bytes, paint_sequence)) {
+            statistics_.finish_tile_refusals = statistics_.finish_tile_refusals + 1U;
+            continue;
+        }
+        const std::shared_ptr<PartRaster> made = PartRaster::create(extent, DeviceScale{key.display_scale});
+        if (!made) continue;
+        const PartRasterView view = (*made).view();
+        const std::size_t written = engine_primitives::paint_world_finish(
+            key.finish, key.scale, key.column * finish_tile_side, key.row * finish_tile_side, view, scratch);
+        painted = true;
+        spent = spent + effort;
+        if (written == 0U) continue;
+        (*made).record_opacity();
+        finish_tiles_.reserve(finish_tiles_.size() + 1U);
+        // Commit: nothing below allocates.
+        finish_tiles_.push_back(HeldFinishTile{key, made, paint_sequence});
+        statistics_.finish_tiles = statistics_.finish_tiles + 1U;
+        statistics_.finish_tile_bytes = statistics_.finish_tile_bytes + bytes;
+        statistics_.finish_tile_bakes = statistics_.finish_tile_bakes + 1U;
+        finish_tile_made_ = true;
+    }
+    const bool drained = finish_tile_queue_.empty() && finish_tile_made_;
+    if (drained) finish_tile_made_ = false;
+    return drained;
+}
+
+bool EnginePartTable::finish_tiles_waiting() const noexcept {
+    const bool waiting = !finish_tile_queue_.empty();
+    return waiting;
+}
+
+void EnginePartTable::take_finish_tile_waiters(std::vector<PartRecordHandle>& waiters) {
+    waiters.clear();
+    waiters.swap(finish_tile_waiters_);
+}
+
 std::shared_ptr<PartRaster> EnginePartTable::shared_bake(const PartRasterRequest& request,
                                                          const std::uint64_t paint_sequence, const bool refresh,
                                                          const SharedUse use, std::optional<std::uint64_t>& awaited) {
@@ -1107,6 +1216,10 @@ void EnginePartTable::invalidate_rasters() noexcept {
     // The new theme's paints queue the patterns they need.
     pattern_queue_.clear();
     statistics_.procedural_queued = 0U;
+    // Finish tiles depend on their keys alone and are kept, as patterns
+    // are; the new theme's paints queue the tiles they need.
+    finish_tile_queue_.clear();
+    statistics_.finish_tiles_queued = 0U;
 }
 
 } // namespace gui_forms

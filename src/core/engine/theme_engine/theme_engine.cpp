@@ -1097,34 +1097,24 @@ bool ThemeEngine::paint_material_blocks(Painter& painter, const Control& control
     if (!part_bounds_paintable(area) || !periodic || !anchored) return false;
     const EnginePrimitive* const primitive = (*registry_).find("material");
     if (primitive == nullptr) return false;
-    // The block: whole periods, as many as fit the side bound, at least
-    // one; halved while the bake refuses it (a costly fill, such as a
-    // finish, at a large scale), at most maximum_material_block_halvings
-    // times, down to one period.
+    // The block: whole periods, as many as fit the side bound, at least one.
     const double scale = (*window).scale();
     const double period_pixels = blocks.period * scale;
     const double fitting = std::floor(maximum_material_block_side / period_pixels);
-    double periods = std::max(1.0, fitting);
+    const double periods = std::max(1.0, fitting);
+    const double side = periods * blocks.period;
+    const Size block{side, side};
     const Insets outsets = (*primitive).descriptor().outsets;
     PartRasterRequest request{};
     request.primitive = primitive;
     request.parameters = default_parameters((*primitive).descriptor());
+    request.target.logical_size = block;
     request.target.scale = DeviceScale{scale};
     request.target.material = blocks.material;
     request.target.images = &(*window).image_resources();
-    bool accepted = false;
-    double side = periods * blocks.period;
-    for (std::size_t halving = 0U; halving <= maximum_material_block_halvings; ++halving) {
-        side = periods * blocks.period;
-        const Size block{side, side};
-        request.target.logical_size = block;
-        request.extent = raster_extent(block, outsets, scale);
-        if (request.extent.width == 0U || request.extent.height == 0U) return false;
-        accepted = (*primitive).accepts(request.parameters, request.target);
-        if (accepted || periods <= 1.0) break;
-        periods = std::max(1.0, std::floor(periods / 2.0));
-    }
-    if (!accepted) return false;
+    request.extent = raster_extent(block, outsets, scale);
+    if (request.extent.width == 0U || request.extent.height == 0U) return false;
+    if (!(*primitive).accepts(request.parameters, request.target)) return false;
     // The record, and where the area was drawn: the window repaints that
     // extent when a pattern the bake awaits is made.
     const std::optional<PartRecordHandle> record =
@@ -1157,6 +1147,78 @@ bool ThemeEngine::paint_material_blocks(Painter& painter, const Control& control
     }
     painter.restore();
     return true;
+}
+
+namespace {
+
+// The most finish tiles one paint_finish_tiles call draws: a square of
+// 8192 device pixels. A larger area draws nothing.
+constexpr std::uint64_t maximum_finish_tiles_per_paint = 4096U;
+
+} // namespace
+
+bool ThemeEngine::paint_finish_tiles(Painter& painter, const Control& control, const FinishTiles& tiles) const {
+    SurfaceRoot* const window = control.attached_surface_root();
+    if (window == nullptr || tiles.finish == nullptr) return false;
+    const Rect area = tiles.area;
+    const bool anchored = std::isfinite(tiles.anchor.x) && std::isfinite(tiles.anchor.y);
+    const bool zoomed = std::isfinite(tiles.zoom) && tiles.zoom > 0.0;
+    if (!part_bounds_paintable(area) || !anchored || !zoomed) return false;
+    const double display_scale = (*window).scale();
+    const double kernel_scale = display_scale * tiles.zoom;
+    if (!(std::isfinite(kernel_scale) && kernel_scale > 0.0)) return false;
+    const std::optional<PartRecordHandle> record =
+        detail::SurfaceEngineAccess::note_part(*window, control, tiles.key, AnatomyStateSet{});
+    if (!record) return false;
+    const detail::SurfaceEngineAccess::PaintPlace place =
+        detail::SurfaceEngineAccess::paint_place(*window, control, painter);
+    const Rect extent = part_extent(area, place.origin, Insets{});
+    detail::SurfaceEngineAccess::note_paint(*window, *record, 0U, *place.painted_by, extent);
+    // World (0, 0) on the nearest device pixel of the window, so that every
+    // tile lands on whole pixels and none is resampled at its edges.
+    const double anchor_x_device = std::floor((place.window_origin.x + tiles.anchor.x) * display_scale + 0.5);
+    const double anchor_y_device = std::floor((place.window_origin.y + tiles.anchor.y) * display_scale + 0.5);
+    const double anchor_x = anchor_x_device / display_scale - place.window_origin.x;
+    const double anchor_y = anchor_y_device / display_scale - place.window_origin.y;
+    // The tiles meeting the area: world device pixels from the area's
+    // corners, divided into tiles. Their count is bounded by the area over
+    // a tile, the area by the window.
+    const double side_device = static_cast<double>(finish_tile_side);
+    const double side = side_device / display_scale;
+    const double first_column = std::floor((area.x - anchor_x) / side);
+    const double first_row = std::floor((area.y - anchor_y) / side);
+    const double column_span = std::ceil((area.right() - anchor_x) / side) - first_column;
+    const double row_span = std::ceil((area.bottom() - anchor_y) / side) - first_row;
+    const double most = static_cast<double>(maximum_finish_tiles_per_paint);
+    if (!(column_span > 0.0 && row_span > 0.0 && column_span * row_span <= most)) return false;
+    const std::int64_t columns = static_cast<std::int64_t>(column_span);
+    const std::int64_t rows = static_cast<std::int64_t>(row_span);
+    const std::int64_t column_start = static_cast<std::int64_t>(first_column);
+    const std::int64_t row_start = static_cast<std::int64_t>(first_row);
+    FinishTileKey key{};
+    key.finish = *tiles.finish;
+    key.display_scale = display_scale;
+    key.scale = kernel_scale;
+    bool complete = true;
+    painter.save();
+    painter.clip_rect(area);
+    for (std::int64_t row = 0; row < rows; ++row) {
+        key.row = row_start + row;
+        const double y = anchor_y + static_cast<double>(key.row) * side;
+        for (std::int64_t column = 0; column < columns; ++column) {
+            key.column = column_start + column;
+            const std::shared_ptr<const PartRaster> tile =
+                detail::SurfaceEngineAccess::finish_tile(*window, *record, key);
+            if (!tile) {
+                complete = false;
+                continue;
+            }
+            const double x = anchor_x + static_cast<double>(key.column) * side;
+            painter.draw_part_raster(tile, Point{x, y}, 1.0);
+        }
+    }
+    painter.restore();
+    return complete;
 }
 
 // N39: the state of one part's paint, which each stage of paint_planned

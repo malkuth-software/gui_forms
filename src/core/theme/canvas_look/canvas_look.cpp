@@ -735,26 +735,35 @@ void paint_canvas_background(Painter& painter, const Control& canvas, const Canv
             const CanvasTextureLayer& layer = look.texture.items[index];
             const double contrast = clamp_canvas_texture_contrast(layer.contrast);
             if (!(contrast > 0.0)) continue;
-            // A procedural layer repeats at its tile; a finish, which has no
-            // period, once a block of whole weave repeats.
-            const bool finished = layer.source == CanvasTextureSource::finish;
-            if (finished) {
-                material.fills.assign(1U, MaterialFillLayer::finish_fill(layer.finish));
-            } else {
-                const ProceduralFill fill = canvas_texture_fill(layer, look.texture_blend);
-                material.fills.assign(1U, MaterialFillLayer::procedural_pattern(fill));
-            }
-            MaterialBlocks blocks{};
-            blocks.key = PartKey{layer_keys[index], {}, {}};
-            blocks.material = &material;
-            blocks.period = finished ? canvas_finish_repeat : layer.tile;
-            blocks.anchor = view.origin;
-            blocks.area = area;
             PaintGroup group{};
             group.bounds = area;
             group.opacity = contrast;
             group.composite = screened ? PaintGroupComposite::screen : PaintGroupComposite::multiply;
             group.isolated = true;
+            // A finish is a property of the world, painted from the
+            // window's world tiles: continuous everywhere, panning and
+            // zooming with the canvas. A procedural layer repeats at its
+            // tile, which keeps its size at every zoom.
+            if (layer.source == CanvasTextureSource::finish) {
+                FinishTiles tiles{};
+                tiles.key = PartKey{layer_keys[index], {}, {}};
+                tiles.finish = &layer.finish;
+                tiles.anchor = view.origin;
+                tiles.zoom = view.zoom;
+                tiles.area = area;
+                painter.begin_group(group);
+                static_cast<void>(engine.paint_finish_tiles(painter, canvas, tiles));
+                painter.end_group();
+                continue;
+            }
+            const ProceduralFill fill = canvas_texture_fill(layer, look.texture_blend);
+            material.fills.assign(1U, MaterialFillLayer::procedural_pattern(fill));
+            MaterialBlocks blocks{};
+            blocks.key = PartKey{layer_keys[index], {}, {}};
+            blocks.material = &material;
+            blocks.period = layer.tile;
+            blocks.anchor = view.origin;
+            blocks.area = area;
             painter.begin_group(group);
             static_cast<void>(engine.paint_material_blocks(painter, canvas, blocks));
             painter.end_group();

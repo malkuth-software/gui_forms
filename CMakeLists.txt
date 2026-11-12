@@ -417,6 +417,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/primitives/material/material_raster.cpp
     src/core/engine/primitives/material/overlay_shadow_primitive.cpp
     src/core/engine/primitives/finish/finish_kernel.cpp
+    src/core/engine/primitives/finish/finish_world.cpp
     src/core/engine/light_planes/light_planes.cpp
     src/core/engine/primitives/procedural/procedural_pattern.cpp
     src/core/engine/primitives/light/sheen_primitive.cpp
@@ -3534,6 +3535,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_engine_finish_tests tests/engine_finish_tests.cpp)
     target_link_libraries(gui_forms_engine_finish_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_engine_finish_tests COMMAND gui_forms_engine_finish_tests)
+    add_executable(gui_forms_engine_finish_tile_tests tests/engine_finish_tile_tests.cpp)
+    target_link_libraries(gui_forms_engine_finish_tile_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_engine_finish_tile_tests COMMAND gui_forms_engine_finish_tile_tests)
     # Lamps and lit keys as baked light planes (phase 3): the bake file,
     # the composite, the envelopes and the cache; --preview <out> <bakes>.
     add_executable(gui_forms_engine_light_planes_tests tests/engine_light_planes_tests.cpp)

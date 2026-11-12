@@ -154,6 +154,7 @@
     _ZGVZN9gui_forms11EffectEntry*;
     _ZGVZN9gui_forms11EffectFrame*;
     _ZGVZN9gui_forms11EffectSetup*;
+    _ZGVZN9gui_forms11FinishTiles*;
     _ZGVZN9gui_forms11FontCommand*;
     _ZGVZN9gui_forms11GlyphSource*;
     _ZGVZN9gui_forms11GraphResult*;
@@ -316,6 +317,7 @@
     _ZGVZN9gui_forms13EffectPointer*;
     _ZGVZN9gui_forms13EngineVersion*;
     _ZGVZN9gui_forms13ErrorProvider*;
+    _ZGVZN9gui_forms13FinishTileKey*;
     _ZGVZN9gui_forms13FlexItemCross*;
     _ZGVZN9gui_forms13FlexItemInput*;
     _ZGVZN9gui_forms13FlexItemStyle*;
@@ -1642,6 +1644,7 @@
     _ZGVZNK9gui_forms11EffectEntry*;
     _ZGVZNK9gui_forms11EffectFrame*;
     _ZGVZNK9gui_forms11EffectSetup*;
+    _ZGVZNK9gui_forms11FinishTiles*;
     _ZGVZNK9gui_forms11FontCommand*;
     _ZGVZNK9gui_forms11GlyphSource*;
     _ZGVZNK9gui_forms11GraphResult*;
@@ -1804,6 +1807,7 @@
     _ZGVZNK9gui_forms13EffectPointer*;
     _ZGVZNK9gui_forms13EngineVersion*;
     _ZGVZNK9gui_forms13ErrorProvider*;
+    _ZGVZNK9gui_forms13FinishTileKey*;
     _ZGVZNK9gui_forms13FlexItemCross*;
     _ZGVZNK9gui_forms13FlexItemInput*;
     _ZGVZNK9gui_forms13FlexItemStyle*;
@@ -3192,6 +3196,7 @@
     _ZN9gui_forms11EffectEntry*;
     _ZN9gui_forms11EffectFrame*;
     _ZN9gui_forms11EffectSetup*;
+    _ZN9gui_forms11FinishTiles*;
     _ZN9gui_forms11FontCommand*;
     _ZN9gui_forms11GlyphSource*;
     _ZN9gui_forms11GraphResult*;
@@ -3412,6 +3417,7 @@
     _ZN9gui_forms13EffectPointer*;
     _ZN9gui_forms13EngineVersion*;
     _ZN9gui_forms13ErrorProvider*;
+    _ZN9gui_forms13FinishTileKey*;
     _ZN9gui_forms13FlexItemCross*;
     _ZN9gui_forms13FlexItemInput*;
     _ZN9gui_forms13FlexItemStyle*;
@@ -5954,6 +5960,7 @@
     _ZNK[RO]9gui_forms11EffectEntry*;
     _ZNK[RO]9gui_forms11EffectFrame*;
     _ZNK[RO]9gui_forms11EffectSetup*;
+    _ZNK[RO]9gui_forms11FinishTiles*;
     _ZNK[RO]9gui_forms11FontCommand*;
     _ZNK[RO]9gui_forms11GlyphSource*;
     _ZNK[RO]9gui_forms11GraphResult*;
@@ -6116,6 +6123,7 @@
     _ZNK[RO]9gui_forms13EffectPointer*;
     _ZNK[RO]9gui_forms13EngineVersion*;
     _ZNK[RO]9gui_forms13ErrorProvider*;
+    _ZNK[RO]9gui_forms13FinishTileKey*;
     _ZNK[RO]9gui_forms13FlexItemCross*;
     _ZNK[RO]9gui_forms13FlexItemInput*;
     _ZNK[RO]9gui_forms13FlexItemStyle*;
@@ -7442,6 +7450,7 @@
     _ZN[KRO]9gui_forms11EffectEntry*;
     _ZN[KRO]9gui_forms11EffectFrame*;
     _ZN[KRO]9gui_forms11EffectSetup*;
+    _ZN[KRO]9gui_forms11FinishTiles*;
     _ZN[KRO]9gui_forms11FontCommand*;
     _ZN[KRO]9gui_forms11GlyphSource*;
     _ZN[KRO]9gui_forms11GraphResult*;
@@ -7604,6 +7613,7 @@
     _ZN[KRO]9gui_forms13EffectPointer*;
     _ZN[KRO]9gui_forms13EngineVersion*;
     _ZN[KRO]9gui_forms13ErrorProvider*;
+    _ZN[KRO]9gui_forms13FinishTileKey*;
     _ZN[KRO]9gui_forms13FlexItemCross*;
     _ZN[KRO]9gui_forms13FlexItemInput*;
     _ZN[KRO]9gui_forms13FlexItemStyle*;
@@ -8930,6 +8940,7 @@
     _ZT[VIST]N9gui_forms11EffectEntry*E;
     _ZT[VIST]N9gui_forms11EffectFrame*E;
     _ZT[VIST]N9gui_forms11EffectSetup*E;
+    _ZT[VIST]N9gui_forms11FinishTiles*E;
     _ZT[VIST]N9gui_forms11FontCommand*E;
     _ZT[VIST]N9gui_forms11GlyphSource*E;
     _ZT[VIST]N9gui_forms11GraphResult*E;
@@ -9092,6 +9103,7 @@
     _ZT[VIST]N9gui_forms13EffectPointer*E;
     _ZT[VIST]N9gui_forms13EngineVersion*E;
     _ZT[VIST]N9gui_forms13ErrorProvider*E;
+    _ZT[VIST]N9gui_forms13FinishTileKey*E;
     _ZT[VIST]N9gui_forms13FlexItemCross*E;
     _ZT[VIST]N9gui_forms13FlexItemInput*E;
     _ZT[VIST]N9gui_forms13FlexItemStyle*E;
@@ -10418,6 +10430,7 @@
     _ZT[hvc]*9gui_forms11EffectEntry*;
     _ZT[hvc]*9gui_forms11EffectFrame*;
     _ZT[hvc]*9gui_forms11EffectSetup*;
+    _ZT[hvc]*9gui_forms11FinishTiles*;
     _ZT[hvc]*9gui_forms11FontCommand*;
     _ZT[hvc]*9gui_forms11GlyphSource*;
     _ZT[hvc]*9gui_forms11GraphResult*;
@@ -10580,6 +10593,7 @@
     _ZT[hvc]*9gui_forms13EffectPointer*;
     _ZT[hvc]*9gui_forms13EngineVersion*;
     _ZT[hvc]*9gui_forms13ErrorProvider*;
+    _ZT[hvc]*9gui_forms13FinishTileKey*;
     _ZT[hvc]*9gui_forms13FlexItemCross*;
     _ZT[hvc]*9gui_forms13FlexItemInput*;
     _ZT[hvc]*9gui_forms13FlexItemStyle*;
@@ -11906,6 +11920,7 @@
     _ZZN9gui_forms11EffectEntry*;
     _ZZN9gui_forms11EffectFrame*;
     _ZZN9gui_forms11EffectSetup*;
+    _ZZN9gui_forms11FinishTiles*;
     _ZZN9gui_forms11FontCommand*;
     _ZZN9gui_forms11GlyphSource*;
     _ZZN9gui_forms11GraphResult*;
@@ -12068,6 +12083,7 @@
     _ZZN9gui_forms13EffectPointer*;
     _ZZN9gui_forms13EngineVersion*;
     _ZZN9gui_forms13ErrorProvider*;
+    _ZZN9gui_forms13FinishTileKey*;
     _ZZN9gui_forms13FlexItemCross*;
     _ZZN9gui_forms13FlexItemInput*;
     _ZZN9gui_forms13FlexItemStyle*;
@@ -13394,6 +13410,7 @@
     _ZZNK9gui_forms11EffectEntry*;
     _ZZNK9gui_forms11EffectFrame*;
     _ZZNK9gui_forms11EffectSetup*;
+    _ZZNK9gui_forms11FinishTiles*;
     _ZZNK9gui_forms11FontCommand*;
     _ZZNK9gui_forms11GlyphSource*;
     _ZZNK9gui_forms11GraphResult*;
@@ -13556,6 +13573,7 @@
     _ZZNK9gui_forms13EffectPointer*;
     _ZZNK9gui_forms13EngineVersion*;
     _ZZNK9gui_forms13ErrorProvider*;
+    _ZZNK9gui_forms13FinishTileKey*;
     _ZZNK9gui_forms13FlexItemCross*;
     _ZZNK9gui_forms13FlexItemInput*;
     _ZZNK9gui_forms13FlexItemStyle*;

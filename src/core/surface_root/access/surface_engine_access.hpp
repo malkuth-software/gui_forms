@@ -94,6 +94,13 @@ public:
         const PartRasterResult result = root.engine_unkeyed_raster(request);
         return result;
     }
+    // The finish tile held for `key`, or null once queued
+    // (SurfaceRoot::engine_finish_tile).
+    [[nodiscard]] static std::shared_ptr<const PartRaster> finish_tile(SurfaceRoot& root, PartRecordHandle waiter,
+                                                                       const FinishTileKey& key) {
+        std::shared_ptr<const PartRaster> result = root.engine_finish_tile(waiter, key);
+        return result;
+    }
     static void queue_keyframe(SurfaceRoot& root, const PartRasterRequest& request) {
         root.engine_queue_keyframe(request);
     }

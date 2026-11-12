@@ -196,6 +196,10 @@ Types
      - A built theme and what building it measured.
    * - :cpp:class:`FinishFill <gui_forms::FinishFill>`
      - One finish's parameters.
+   * - :cpp:class:`FinishTileKey <gui_forms::FinishTileKey>`
+     -  
+   * - :cpp:class:`FinishTiles <gui_forms::FinishTiles>`
+     - A surface finish over an area, in world coordinates (ThemeEngine::paint_finish_tiles; cp31, the node canvas's finish texture): - ``key`` names the part's record (borrowed for the call); - ``finish`` is borrowed for the call; - ``anchor`` is world (0, 0) in the painter's coordinates and ``zoom`` the view units per world unit, so the finish is a property of the world: it pans with it and grows with the zoom; - ``area`` is where it is drawn, clipped to it (the painter's coordinates).
    * - :cpp:class:`FontDeclaration <gui_forms::FontDeclaration>`
      - A part's font as the cascade resolved it: a text role, or, with ``inherit`` (D7), the parent control's, which the caller resolves at paint.
    * - :cpp:class:`FontSpec <gui_forms::FontSpec>`
@@ -245,7 +249,7 @@ Types
    * - :cpp:class:`MaterialAssemblyContext <gui_forms::MaterialAssemblyContext>`
      - Replaces ``material`` with ``floor`` and the declarations of ``fields`` (the winning declaration of each field, by the field's position, null where none) in place: a part's assembled material (EC1); an ``initial`` declaration keeps the floor's value.
    * - :cpp:class:`MaterialBlocks <gui_forms::MaterialBlocks>`
-     - A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; a material with no period of its own (a finish) passes the unit its blocks should be a whole number of, and then repeats once a block; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
+     - A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
    * - :cpp:class:`MaterialBorder <gui_forms::MaterialBorder>`
      - MaterialBorder pairs an authored color and logical stroke width.
    * - :cpp:class:`MaterialBorderEdges <gui_forms::MaterialBorderEdges>`
@@ -2611,6 +2615,8 @@ Types
 
    .. cpp:function:: bool patterns_waiting() const noexcept
 
+   .. cpp:function:: bool finish_tiles_waiting() const noexcept
+
    .. cpp:function:: RasterCacheStatistics cache_statistics() const noexcept
 
 
@@ -2651,6 +2657,16 @@ Types
    .. cpp:function:: bool awaits_pattern(const CachedPartRaster& cached) const noexcept
 
       Whether ``cached`` drew a ground for a pattern made since.
+
+   .. cpp:function:: std::shared_ptr<const PartRaster> finish_tile(const FinishTileKey& key, PartRecordHandle waiter, std::uint64_t paint_sequence)
+
+      World finish tiles (cp31). finish_tile returns the tile held for ``key``, marked used by ``paint_sequence``, or null after queueing it (unless queued already or the queue is full) and noting ``waiter``, the part that asked, to be repainted. Nothing is painted inside a paint. generate_finish_tiles paints queued tiles, oldest first, until an idle frame's effort (finish_tile_idle_effort) is spent, at least one; it returns true when it held a tile and the queue is then empty: the waiters are to be repainted (take_finish_tile_waiters), once for the whole queue rather than once a tile. Allocation failure propagates as std::bad_alloc and leaves the tile being painted unheld.
+
+   .. cpp:function:: bool generate_finish_tiles(std::uint64_t paint_sequence)
+
+   .. cpp:function:: void take_finish_tile_waiters(std::vector<PartRecordHandle>& waiters)
+
+      Moves the parts waiting for finish tiles into ``waiters`` (cleared first) and forgets them.
 
    .. cpp:function:: PartRasterResult raster_without_record(const PartRasterRequest& request, std::uint64_t paint_sequence)
 
@@ -2975,6 +2991,46 @@ Types
    .. cpp:member:: GlintPreset glint
 
       Default: ``{GlintPreset::sand_blast}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FinishTileKey final
+
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+
+   .. cpp:member:: FinishFill finish
+
+   .. cpp:member:: double display_scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: std::int64_t column
+
+   .. cpp:member:: std::int64_t row
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FinishTiles final
+
+   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
+
+   A surface finish over an area, in world coordinates (ThemeEngine::paint_finish_tiles; cp31, the node canvas's finish texture): - ``key`` names the part's record (borrowed for the call); - ``finish`` is borrowed for the call; - ``anchor`` is world (0, 0) in the painter's coordinates and ``zoom`` the view units per world unit, so the finish is a property of the world: it pans with it and grows with the zoom; - ``area`` is where it is drawn, clipped to it (the painter's coordinates).
+
+   .. cpp:member:: PartKey key
+
+   .. cpp:member:: const FinishFill* finish
+
+   .. cpp:member:: Point anchor
+
+   .. cpp:member:: double zoom
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: Rect area
 
 .. cpp:namespace:: gui_forms
 
@@ -3447,7 +3503,7 @@ Types
 
    ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
 
-   A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; a material with no period of its own (a finish) passes the unit its blocks should be a whole number of, and then repeats once a block; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
+   A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
 
    .. cpp:member:: PartKey key
 
@@ -5279,6 +5335,24 @@ Types
 
       Bakes whose image mask's variant was asked for and not lent (E9.6): the part, or the backplane region, was drawn unmasked, as the built-in path draws it.
 
+   .. cpp:member:: std::uint64_t finish_tile_bakes
+
+      World finish tiles (cp31): painted in idle frames, lent from those held, asked for before they were ready (nothing drawn there yet), evicted to keep within finish_tile_budget_bytes, and not held for want of room among tiles the latest paint used; held now, their bytes, and queued now.
+
+   .. cpp:member:: std::uint64_t finish_tile_hits
+
+   .. cpp:member:: std::uint64_t finish_tile_misses
+
+   .. cpp:member:: std::uint64_t finish_tile_evictions
+
+   .. cpp:member:: std::uint64_t finish_tile_refusals
+
+   .. cpp:member:: std::size_t finish_tiles
+
+   .. cpp:member:: std::size_t finish_tile_bytes
+
+   .. cpp:member:: std::size_t finish_tiles_queued
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: RecipeDeclaration final
@@ -6130,7 +6204,11 @@ Types
 
    .. cpp:function:: bool paint_material_blocks(Painter& painter, const Control& control, const MaterialBlocks& blocks) const
 
-      Paints ``blocks.material`` repeated over ``blocks.area`` of ``control`` (the node canvas's texture layers; cp31), through the material primitive and the window's caches as a keyed part is: - The block is square, a whole number of periods across: as many as fit maximum_material_block_side device pixels at the window's scale, and at least one, halved while the primitive refuses it (maximum_material_block_halvings). The primitive bakes it once into the record ``blocks.key`` names, and again only when the material, the scale or the block changes; panning bakes nothing. - A procedural fill's pattern is generated in an idle frame, never here (E10): until then the block shows the fill's ground, and the window repaints the area once the pattern is made. - A finish is painted with the block, anchored at the block's corner, so it repeats once a block. - The raster is then drawn at every block of the lattice that meets the area, in one save, clip_rect and restore. Draws nothing and returns false for a control in no window, an empty or non-finite area or anchor, a period outside its range, no material, a material the primitive refuses (its bake over the material bound) or no raster. Allocation failure propagates as std::bad_alloc, as paint's does. Not reentrant, as paint is not.
+      Paints ``blocks.material`` repeated over ``blocks.area`` of ``control`` (the node canvas's texture layers; cp31), through the material primitive and the window's caches as a keyed part is: - The block is square, a whole number of periods across: as many as fit maximum_material_block_side device pixels at the window's scale, and at least one. The primitive bakes it once into the record ``blocks.key`` names, and again only when the material, the scale or the block changes; panning bakes nothing. - A procedural fill's pattern is generated in an idle frame, never here (E10): until then the block shows the fill's ground, and the window repaints the area once the pattern is made. - The raster is then drawn at every block of the lattice that meets the area, in one save, clip_rect and restore. Draws nothing and returns false for a control in no window, an empty or non-finite area or anchor, a period outside its range, no material, a material the primitive refuses (its bake over the material bound) or no raster. Allocation failure propagates as std::bad_alloc, as paint's does. Not reentrant, as paint is not.
+
+   .. cpp:function:: bool paint_finish_tiles(Painter& painter, const Control& control, const FinishTiles& tiles) const
+
+      Paints ``tiles.finish`` over ``tiles.area`` of ``control`` from the window's world finish tiles (EnginePartTable::finish_tile; cp31): - The finish is evaluated at world device pixels, at the window's scale times the zoom, on the lattice of finish_tile_side-pixel tiles through world (0, 0) (snapped to the nearest device pixel, so tiles land on whole pixels). Each tile is the kernel at those pixels, so adjacent tiles join exactly: no period, and no seam. - A tile not held is queued for an idle frame and its place left bare; once the queue is painted the window repaints the area (the record ``tiles.key`` names). Panning reuses the tiles held; a new zoom or scale names new tiles, painted again in idle frames. - Cost: one draw_part_raster per tile meeting the area, inside one save, clip_rect and restore; nothing is painted inside the paint. Draws nothing and returns false for a control in no window, an empty or non-finite area, anchor or zoom, or no finish; otherwise returns whether every tile was held. Not reentrant, as paint is not.
 
    .. cpp:function:: PartHitRegion hit_region(const Control& control, const PartPaint& part) const noexcept
 
@@ -9036,6 +9114,26 @@ Functions, constants and aliases
 
    The most procedural patterns queued for idle frames at once (E10). A pattern that does not fit is queued again when a paint next asks for it. Value: ``32U``.
 
+.. cpp:var:: constexpr std::uint32_t finish_tile_side
+
+   World finish tiles (cp31; the node canvas's finish texture): squares of finish_tile_side device pixels of a surface finish evaluated at world device pixels (engine_primitives::paint_world_finish), so that held tiles join with no seam. A tile is named by its finish, the display scale its raster is drawn at, the kernel's scale (device pixels per world unit: the display scale times the canvas's zoom), and its column and row on the lattice of tiles through the world's origin: tile (c, r) covers world device pixels [c * side, (c + 1) * side) by [r * side, (r + 1) * side). A paint takes the tiles held and queues the rest; idle frames paint them (EnginePartTable::generate_finish_tiles). Value: ``128U``.
+
+.. cpp:var:: constexpr std::size_t finish_tile_budget_bytes
+
+   The most bytes of finish tiles one window keeps: 512 tiles of 64 KiB, a 2900-pixel square of one layer. The least recently used tile is evicted first, never one the latest paint used: a tile that finds no room is not held (counted as a refusal) and its place stays bare. A proposed default. Value: ``32U * 1024U * 1024U``.
+
+.. cpp:var:: constexpr std::size_t maximum_queued_finish_tiles
+
+   The most finish tiles queued for idle frames at once; a tile that does not fit is queued again when a paint next asks for it. Value: ``256U``.
+
+.. cpp:var:: constexpr std::uint64_t finish_tile_idle_effort
+
+   The effort one idle frame spends painting finish tiles, in the material bake's effort units (finish_effort_weight per device pixel): four orange-peel tiles, one of hammertone. At least one tile is painted whatever its cost. Value: ``16'000'000U``.
+
+.. cpp:var:: constexpr std::size_t maximum_finish_tile_waiters
+
+   The most parts waiting for finish tiles at once; a part beyond it is repainted when the window next repaints it. Value: ``32U``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
@@ -9109,10 +9207,6 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_material_block_side
 
    The side, in device pixels, that paint_material_blocks fits whole periods into. With the material's outsets (8 logical units each side) a block of one composited pattern stays within the material bake bound (maximum_material_bake_effort, at 135 units a pixel) up to a 96-unit period at scale 3; a larger period or scale may be refused, and is then not drawn. Value: ``256.0``.
-
-.. cpp:var:: constexpr std::size_t maximum_material_block_halvings
-
-   How often paint_material_blocks halves a block the bake refuses before it draws nothing: a block of 256 device pixels shrinks to 16 at most. Value: ``4U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -9532,10 +9626,6 @@ Functions, constants and aliases
 
    Value: ``900.0``.
 
-.. cpp:var:: constexpr double canvas_finish_repeat
-
-   A canvas texture's finish repeats every whole number of these logical units (two of the cloth weave's 3-unit threads), so that a woven finish meets itself across a block's edge. Value: ``6.0``.
-
 .. cpp:var:: constexpr std::uint32_t custom_property_undefined
 
    One rule. ``label`` names it in diagnostics (T3: its source position). ``requires_engine``, when set, is the engine version the rule needs, in place of its sheet's. Its transitions and its ambient effect cascade as declarations do: for each property, the transition of the last matching rule that declares one (for a parameter, among the rules selecting the part's primitive), and the ambient effect of the last matching rule that declares one. Its material fields (EC1) cascade the same way, each on its own, from every matching rule, whatever primitive it selects: they change a part only where its primitive draws a theme material. Its recipe fields (RecipeField) cascade the same way for the control as a whole. ``specificity``, when set, is the rule's specificity in place of the one its selector gives (T3 engine change EC2): a rule expanded from CSS's ``:is()`` takes its most specific argument's. A class or stable-ID rule with a given specificity then needs a class or an ID in it rather than in its selector; an inline style still needs its selector's stable ID. Custom properties defined in more than one place (T3 P12, EC7; owner decision of 2026-10-29), resolved per part when the theme loads: each definition of such a name is a scoped definition of the rule that declares it, at the rule's level, selector and media; and a rule that reads such names is lowered once per combination of their candidate definitions, each copy holding the combination as its conditions. A part's winning definition of a name is the last matching one in ascending precedence, or none; a copy applies to a part only where every condition names the part's winner. A name defined once is substituted when the theme loads, and is not scoped. Names are written with their ``--``; a definition is identified by a number unique in the sheet. Value: ``0xFFFF'FFFFU``.
@@ -9730,7 +9820,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void paint_canvas_background(Painter& painter, const Control& canvas, const CanvasLook& look, Rect area, CanvasView view)
 
-   The canvas background of ``canvas`` over ``area``: the region's colour, then each texture layer, then the grid (the level select_grid_level chooses for ``view.zoom``, one fill_grid_pattern pass with the level's fade). - A texture layer is a baked surface, never an image: a material of one fill, the procedural fill canvas_texture_fill makes or the layer's finish in its theme's colours, baked by the theme engine (ThemeEngine::paint_material_blocks, record ``texture.<index>``) and drawn in one multiply or screen group, as the look's texture_blend says, at the layer's clamped contrast. Its blocks are anchored at world (0, 0) and stay at their logical size at every zoom, so the grain stays sharp. A procedural layer repeats at its tile; a finish, which has no period, repeats once a block, a whole number of canvas_finish_repeat units across (at most maximum_material_block_side device pixels, smaller for a costly finish); where a block meets the next the finish does not continue, a seam drawn at the layer's contrast (at most 3 %). - Cost: the engine bakes a layer once per change of the look or the window's scale, never per frame, and generates its pattern in an idle frame (a finish is painted in that one bake); each paint draws, per layer, one raster per block of at most maximum_material_block_side device pixels. A view that is not placed (a non-finite origin or zoom, or a zoom not above 0) draws the colour alone.
+   The canvas background of ``canvas`` over ``area``: the region's colour, then each texture layer, then the grid (the level select_grid_level chooses for ``view.zoom``, one fill_grid_pattern pass with the level's fade). - A procedural layer is a baked pattern, never an image: a material of the one procedural fill canvas_texture_fill makes, baked by the theme engine (ThemeEngine::paint_material_blocks, record ``texture.<index>``). Its tiles are anchored at world (0, 0) and stay at the tile's logical size at every zoom, so the grain stays sharp. - A finish layer is the layer's finish, in its theme's colours, as a property of the world: evaluated at world device pixels at the window's scale times the zoom, from the window's world finish tiles (ThemeEngine::paint_finish_tiles, record ``texture.<index>``), so it is continuous everywhere, with no period and no seam between tiles, and pans and zooms with the canvas. - Each layer is drawn in one multiply or screen group, as the look's texture_blend says, at the layer's clamped contrast. - Cost: a procedural layer is baked once per change of the look or the window's scale, its pattern generated in an idle frame; a finish tile is painted in an idle frame, once per tile, scale and zoom, and kept while the window's finish tile budget allows (panning reuses them, a new zoom paints new ones; until then the place shows no finish). Each paint draws, per layer, one raster per block or tile meeting the area. A view that is not placed (a non-finite origin or zoom, or a zoom not above 0) draws the colour alone.
 
 .. cpp:function:: void paint_canvas_node(Painter& painter, const CanvasLook& look, Rect body, double header_height, CanvasNodeState state)
 

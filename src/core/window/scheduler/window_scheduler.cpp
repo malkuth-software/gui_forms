@@ -217,13 +217,19 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
         if ((*request).kind == detail::FrameRequestKind::engine_idle) {
             (*request).deadline = now + (*request).interval;
             // Idle: no motion runs and nothing waits to be painted. One
-            // procedural pattern (E10), else one keyframe, per idle frame,
-            // so that none stalls a frame; patterns first, since parts
-            // show their fills' ground until theirs are made.
+            // procedural pattern (E10), else an idle frame's finish tiles
+            // (cp31), else one keyframe, per idle frame, so that none
+            // stalls a frame; patterns and tiles first, since parts show
+            // their fills' ground, or no finish, until theirs are made.
             if (motion_clock_.armed() || paint_pending()) continue;
             if (engine_parts_.patterns_waiting()) {
                 const PatternGeneration generation = engine_parts_.generate_pattern(paint_leases_completed_);
                 damage_pattern_waiters(generation);
+                continue;
+            }
+            if (engine_parts_.finish_tiles_waiting()) {
+                const bool drained = engine_parts_.generate_finish_tiles(paint_leases_completed_);
+                if (drained) damage_finish_tile_waiters();
                 continue;
             }
             const bool waiting = engine_parts_.bake_idle_keyframe(&image_resources(), paint_leases_completed_);

@@ -1279,11 +1279,6 @@ inline constexpr double maximum_rule_font_weight = 900.0;
 // (`procedural()`) or a surface finish (`finish()`).
 enum class CanvasTextureSource : std::uint8_t { procedural, finish };
 
-// A canvas texture's finish repeats every whole number of these logical
-// units (two of the cloth weave's 3-unit threads), so that a woven finish
-// meets itself across a block's edge.
-inline constexpr double canvas_finish_repeat = 6.0;
-
 // One layer of the node canvas's texture (`background-texture`; cp31),
 // composited under the grid at `contrast`, a fraction in
 // [0, maximum_canvas_texture_contrast]:

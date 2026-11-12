@@ -561,6 +561,13 @@ PartRasterResult SurfaceRoot::engine_part_raster(PartRecordHandle handle, const 
     return result;
 }
 
+std::shared_ptr<const PartRaster> SurfaceRoot::engine_finish_tile(PartRecordHandle waiter, const FinishTileKey& key) {
+    std::shared_ptr<const PartRaster> tile = engine_parts_.finish_tile(key, waiter, paint_leases_completed_);
+    // A tile not held is painted in an idle frame.
+    if (engine_parts_.finish_tiles_waiting()) arm_engine_idle();
+    return tile;
+}
+
 void SurfaceRoot::engine_queue_keyframe(const PartRasterRequest& request) {
     engine_parts_.queue_idle_keyframe(request);
     if (engine_parts_.idle_keyframes_waiting()) arm_engine_idle();

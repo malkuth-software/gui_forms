@@ -9,6 +9,7 @@
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -415,6 +416,19 @@ struct GUI_FORMS_API RasterCacheStatistics final {
     // the part, or the backplane region, was drawn unmasked, as the
     // built-in path draws it.
     std::uint64_t image_mask_fallbacks{};
+    // World finish tiles (cp31): painted in idle frames, lent from those
+    // held, asked for before they were ready (nothing drawn there yet),
+    // evicted to keep within finish_tile_budget_bytes, and not held for
+    // want of room among tiles the latest paint used; held now, their
+    // bytes, and queued now.
+    std::uint64_t finish_tile_bakes{};
+    std::uint64_t finish_tile_hits{};
+    std::uint64_t finish_tile_misses{};
+    std::uint64_t finish_tile_evictions{};
+    std::uint64_t finish_tile_refusals{};
+    std::size_t finish_tiles{};
+    std::size_t finish_tile_bytes{};
+    std::size_t finish_tiles_queued{};
 };
 
 // One backplane image's region (E9-B): `extent` device pixels at `scale`,
@@ -448,6 +462,46 @@ inline constexpr std::size_t maximum_idle_keyframes = 64U;
 // The most procedural patterns queued for idle frames at once (E10). A
 // pattern that does not fit is queued again when a paint next asks for it.
 inline constexpr std::size_t maximum_queued_patterns = 32U;
+
+// World finish tiles (cp31; the node canvas's finish texture): squares of
+// finish_tile_side device pixels of a surface finish evaluated at world
+// device pixels (engine_primitives::paint_world_finish), so that held
+// tiles join with no seam. A tile is named by its finish, the display
+// scale its raster is drawn at, the kernel's scale (device pixels per world
+// unit: the display scale times the canvas's zoom), and its column and row
+// on the lattice of tiles through the world's origin: tile (c, r) covers
+// world device pixels [c * side, (c + 1) * side) by [r * side, (r + 1) *
+// side). A paint takes the tiles held and queues the rest; idle frames
+// paint them (EnginePartTable::generate_finish_tiles).
+inline constexpr std::uint32_t finish_tile_side = 128U;
+struct GUI_FORMS_API FinishTileKey final {
+    FinishFill finish{};
+    double display_scale{1.0};
+    double scale{1.0};
+    std::int64_t column{};
+    std::int64_t row{};
+    friend bool operator==(const FinishTileKey& left, const FinishTileKey& right) noexcept {
+        return left.finish == right.finish && left.display_scale == right.display_scale &&
+               left.scale == right.scale && left.column == right.column && left.row == right.row;
+    }
+};
+// The most bytes of finish tiles one window keeps: 512 tiles of 64 KiB,
+// a 2900-pixel square of one layer. The least recently used tile is
+// evicted first, never one the latest paint used: a tile that finds no
+// room is not held (counted as a refusal) and its place stays bare. A
+// proposed default.
+inline constexpr std::size_t finish_tile_budget_bytes = 32U * 1024U * 1024U;
+// The most finish tiles queued for idle frames at once; a tile that does
+// not fit is queued again when a paint next asks for it.
+inline constexpr std::size_t maximum_queued_finish_tiles = 256U;
+// The effort one idle frame spends painting finish tiles, in the
+// material bake's effort units (finish_effort_weight per device pixel):
+// four orange-peel tiles, one of hammertone. At least one tile is painted
+// whatever its cost.
+inline constexpr std::uint64_t finish_tile_idle_effort = 16'000'000U;
+// The most parts waiting for finish tiles at once; a part beyond it is
+// repainted when the window next repaints it.
+inline constexpr std::size_t maximum_finish_tile_waiters = 32U;
 
 // What EnginePartTable::generate_pattern did (E10): nothing was queued
 // (none); a pattern was made, and the parts whose rasters drew a ground
@@ -555,6 +609,24 @@ public:
     [[nodiscard]] bool patterns_waiting() const noexcept;
     // Whether `cached` drew a ground for a pattern made since.
     [[nodiscard]] bool awaits_pattern(const CachedPartRaster& cached) const noexcept;
+
+    // World finish tiles (cp31). finish_tile returns the tile held for
+    // `key`, marked used by `paint_sequence`, or null after queueing it
+    // (unless queued already or the queue is full) and noting `waiter`, the
+    // part that asked, to be repainted. Nothing is painted inside a paint.
+    // generate_finish_tiles paints queued tiles, oldest first, until an
+    // idle frame's effort (finish_tile_idle_effort) is spent, at least one;
+    // it returns true when it held a tile and the queue is then empty: the
+    // waiters are to be repainted (take_finish_tile_waiters), once for the
+    // whole queue rather than once a tile. Allocation failure propagates
+    // as std::bad_alloc and leaves the tile being painted unheld.
+    [[nodiscard]] std::shared_ptr<const PartRaster> finish_tile(const FinishTileKey& key, PartRecordHandle waiter,
+                                                                std::uint64_t paint_sequence);
+    bool generate_finish_tiles(std::uint64_t paint_sequence);
+    [[nodiscard]] bool finish_tiles_waiting() const noexcept;
+    // Moves the parts waiting for finish tiles into `waiters` (cleared
+    // first) and forgets them.
+    void take_finish_tile_waiters(std::vector<PartRecordHandle>& waiters);
 
     // A raster for a part painted without a key, which has no record: drawn
     // for this paint and never kept (status uncached), assembled from a
@@ -754,6 +826,10 @@ private:
                       std::uint64_t paint_sequence);
     // Subtracts `held`'s bytes and its count from the statistics.
     void forget_variant(const HeldImageVariant& held) noexcept;
+    // Evicts the least recently used finish tiles until `incoming` more
+    // bytes fit finish_tile_budget_bytes, sparing tiles used by the paint
+    // before `paint_sequence`; returns whether they fit.
+    bool make_finish_tile_room(std::size_t incoming, std::uint64_t paint_sequence) noexcept;
 
     std::vector<RecordSlot> slots_;
     std::vector<std::uint32_t> free_slots_;
@@ -803,6 +879,20 @@ private:
     // in use, so lookups scan them. All made at backplane_generation_.
     std::vector<HeldBackplane> backplanes_;
     std::uint64_t backplane_generation_{};
+    // A finish tile held: its key, and the paint that last used it.
+    struct HeldFinishTile final {
+        FinishTileKey key{};
+        std::shared_ptr<const PartRaster> raster{};
+        std::uint64_t last_used{};
+    };
+    // The finish tiles, in no order (at most the budget's 512), looked up
+    // by scanning; the tiles waiting for idle frames, oldest first; the
+    // parts to repaint when they are made; and whether a tile was held
+    // since the queue last emptied.
+    std::vector<HeldFinishTile> finish_tiles_;
+    std::deque<FinishTileKey> finish_tile_queue_;
+    std::vector<PartRecordHandle> finish_tile_waiters_;
+    bool finish_tile_made_{};
     // Keyframes waiting for idle frames, oldest first; each a request kept
     // as a cached raster's description, its raster null.
     std::deque<CachedPartRaster> idle_keyframes_;

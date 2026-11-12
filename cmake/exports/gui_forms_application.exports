@@ -152,6 +152,7 @@ __ZGVZN9gui_forms11DragTracker*
 __ZGVZN9gui_forms11EffectEntry*
 __ZGVZN9gui_forms11EffectFrame*
 __ZGVZN9gui_forms11EffectSetup*
+__ZGVZN9gui_forms11FinishTiles*
 __ZGVZN9gui_forms11FontCommand*
 __ZGVZN9gui_forms11GlyphSource*
 __ZGVZN9gui_forms11GraphResult*
@@ -314,6 +315,7 @@ __ZGVZN9gui_forms13EffectColours*
 __ZGVZN9gui_forms13EffectPointer*
 __ZGVZN9gui_forms13EngineVersion*
 __ZGVZN9gui_forms13ErrorProvider*
+__ZGVZN9gui_forms13FinishTileKey*
 __ZGVZN9gui_forms13FlexItemCross*
 __ZGVZN9gui_forms13FlexItemInput*
 __ZGVZN9gui_forms13FlexItemStyle*
@@ -1640,6 +1642,7 @@ __ZGVZNK9gui_forms11DragTracker*
 __ZGVZNK9gui_forms11EffectEntry*
 __ZGVZNK9gui_forms11EffectFrame*
 __ZGVZNK9gui_forms11EffectSetup*
+__ZGVZNK9gui_forms11FinishTiles*
 __ZGVZNK9gui_forms11FontCommand*
 __ZGVZNK9gui_forms11GlyphSource*
 __ZGVZNK9gui_forms11GraphResult*
@@ -1802,6 +1805,7 @@ __ZGVZNK9gui_forms13EffectColours*
 __ZGVZNK9gui_forms13EffectPointer*
 __ZGVZNK9gui_forms13EngineVersion*
 __ZGVZNK9gui_forms13ErrorProvider*
+__ZGVZNK9gui_forms13FinishTileKey*
 __ZGVZNK9gui_forms13FlexItemCross*
 __ZGVZNK9gui_forms13FlexItemInput*
 __ZGVZNK9gui_forms13FlexItemStyle*
@@ -3190,6 +3194,7 @@ __ZN9gui_forms11DragTracker*
 __ZN9gui_forms11EffectEntry*
 __ZN9gui_forms11EffectFrame*
 __ZN9gui_forms11EffectSetup*
+__ZN9gui_forms11FinishTiles*
 __ZN9gui_forms11FontCommand*
 __ZN9gui_forms11GlyphSource*
 __ZN9gui_forms11GraphResult*
@@ -3410,6 +3415,7 @@ __ZN9gui_forms13EffectColours*
 __ZN9gui_forms13EffectPointer*
 __ZN9gui_forms13EngineVersion*
 __ZN9gui_forms13ErrorProvider*
+__ZN9gui_forms13FinishTileKey*
 __ZN9gui_forms13FlexItemCross*
 __ZN9gui_forms13FlexItemInput*
 __ZN9gui_forms13FlexItemStyle*
@@ -5952,6 +5958,7 @@ __ZNK[RO]9gui_forms11DragTracker*
 __ZNK[RO]9gui_forms11EffectEntry*
 __ZNK[RO]9gui_forms11EffectFrame*
 __ZNK[RO]9gui_forms11EffectSetup*
+__ZNK[RO]9gui_forms11FinishTiles*
 __ZNK[RO]9gui_forms11FontCommand*
 __ZNK[RO]9gui_forms11GlyphSource*
 __ZNK[RO]9gui_forms11GraphResult*
@@ -6114,6 +6121,7 @@ __ZNK[RO]9gui_forms13EffectColours*
 __ZNK[RO]9gui_forms13EffectPointer*
 __ZNK[RO]9gui_forms13EngineVersion*
 __ZNK[RO]9gui_forms13ErrorProvider*
+__ZNK[RO]9gui_forms13FinishTileKey*
 __ZNK[RO]9gui_forms13FlexItemCross*
 __ZNK[RO]9gui_forms13FlexItemInput*
 __ZNK[RO]9gui_forms13FlexItemStyle*
@@ -7440,6 +7448,7 @@ __ZN[KRO]9gui_forms11DragTracker*
 __ZN[KRO]9gui_forms11EffectEntry*
 __ZN[KRO]9gui_forms11EffectFrame*
 __ZN[KRO]9gui_forms11EffectSetup*
+__ZN[KRO]9gui_forms11FinishTiles*
 __ZN[KRO]9gui_forms11FontCommand*
 __ZN[KRO]9gui_forms11GlyphSource*
 __ZN[KRO]9gui_forms11GraphResult*
@@ -7602,6 +7611,7 @@ __ZN[KRO]9gui_forms13EffectColours*
 __ZN[KRO]9gui_forms13EffectPointer*
 __ZN[KRO]9gui_forms13EngineVersion*
 __ZN[KRO]9gui_forms13ErrorProvider*
+__ZN[KRO]9gui_forms13FinishTileKey*
 __ZN[KRO]9gui_forms13FlexItemCross*
 __ZN[KRO]9gui_forms13FlexItemInput*
 __ZN[KRO]9gui_forms13FlexItemStyle*
@@ -8928,6 +8938,7 @@ __ZT[VIST]N9gui_forms11DragTracker*E
 __ZT[VIST]N9gui_forms11EffectEntry*E
 __ZT[VIST]N9gui_forms11EffectFrame*E
 __ZT[VIST]N9gui_forms11EffectSetup*E
+__ZT[VIST]N9gui_forms11FinishTiles*E
 __ZT[VIST]N9gui_forms11FontCommand*E
 __ZT[VIST]N9gui_forms11GlyphSource*E
 __ZT[VIST]N9gui_forms11GraphResult*E
@@ -9090,6 +9101,7 @@ __ZT[VIST]N9gui_forms13EffectColours*E
 __ZT[VIST]N9gui_forms13EffectPointer*E
 __ZT[VIST]N9gui_forms13EngineVersion*E
 __ZT[VIST]N9gui_forms13ErrorProvider*E
+__ZT[VIST]N9gui_forms13FinishTileKey*E
 __ZT[VIST]N9gui_forms13FlexItemCross*E
 __ZT[VIST]N9gui_forms13FlexItemInput*E
 __ZT[VIST]N9gui_forms13FlexItemStyle*E
@@ -10416,6 +10428,7 @@ __ZT[hvc]*9gui_forms11DragTracker*
 __ZT[hvc]*9gui_forms11EffectEntry*
 __ZT[hvc]*9gui_forms11EffectFrame*
 __ZT[hvc]*9gui_forms11EffectSetup*
+__ZT[hvc]*9gui_forms11FinishTiles*
 __ZT[hvc]*9gui_forms11FontCommand*
 __ZT[hvc]*9gui_forms11GlyphSource*
 __ZT[hvc]*9gui_forms11GraphResult*
@@ -10578,6 +10591,7 @@ __ZT[hvc]*9gui_forms13EffectColours*
 __ZT[hvc]*9gui_forms13EffectPointer*
 __ZT[hvc]*9gui_forms13EngineVersion*
 __ZT[hvc]*9gui_forms13ErrorProvider*
+__ZT[hvc]*9gui_forms13FinishTileKey*
 __ZT[hvc]*9gui_forms13FlexItemCross*
 __ZT[hvc]*9gui_forms13FlexItemInput*
 __ZT[hvc]*9gui_forms13FlexItemStyle*
@@ -11904,6 +11918,7 @@ __ZZN9gui_forms11DragTracker*
 __ZZN9gui_forms11EffectEntry*
 __ZZN9gui_forms11EffectFrame*
 __ZZN9gui_forms11EffectSetup*
+__ZZN9gui_forms11FinishTiles*
 __ZZN9gui_forms11FontCommand*
 __ZZN9gui_forms11GlyphSource*
 __ZZN9gui_forms11GraphResult*
@@ -12066,6 +12081,7 @@ __ZZN9gui_forms13EffectColours*
 __ZZN9gui_forms13EffectPointer*
 __ZZN9gui_forms13EngineVersion*
 __ZZN9gui_forms13ErrorProvider*
+__ZZN9gui_forms13FinishTileKey*
 __ZZN9gui_forms13FlexItemCross*
 __ZZN9gui_forms13FlexItemInput*
 __ZZN9gui_forms13FlexItemStyle*
@@ -13392,6 +13408,7 @@ __ZZNK9gui_forms11DragTracker*
 __ZZNK9gui_forms11EffectEntry*
 __ZZNK9gui_forms11EffectFrame*
 __ZZNK9gui_forms11EffectSetup*
+__ZZNK9gui_forms11FinishTiles*
 __ZZNK9gui_forms11FontCommand*
 __ZZNK9gui_forms11GlyphSource*
 __ZZNK9gui_forms11GraphResult*
@@ -13554,6 +13571,7 @@ __ZZNK9gui_forms13EffectColours*
 __ZZNK9gui_forms13EffectPointer*
 __ZZNK9gui_forms13EngineVersion*
 __ZZNK9gui_forms13ErrorProvider*
+__ZZNK9gui_forms13FinishTileKey*
 __ZZNK9gui_forms13FlexItemCross*
 __ZZNK9gui_forms13FlexItemInput*
 __ZZNK9gui_forms13FlexItemStyle*

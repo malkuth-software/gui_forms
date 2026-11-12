@@ -8,7 +8,6 @@
 #include <optional>
 #include <span>
 
-#include <cstddef>
 #include <cstdint>
 
 namespace gui_forms {
@@ -41,18 +40,13 @@ struct PartPaint;
 // period at scale 3; a larger period or scale may be refused, and is then
 // not drawn.
 inline constexpr double maximum_material_block_side = 256.0;
-// How often paint_material_blocks halves a block the bake refuses before
-// it draws nothing: a block of 256 device pixels shrinks to 16 at most.
-inline constexpr std::size_t maximum_material_block_halvings = 4U;
 
 // A material repeated over an area (ThemeEngine::paint_material_blocks):
 // - `key` names the part's record (borrowed for the call);
 // - `material` is borrowed for the call;
 // - `period` is the material's repeat in logical units (a procedural
 //   fill's tile), within [minimum_procedural_tile,
-//   maximum_procedural_tile]; a material with no period of its own (a
-//   finish) passes the unit its blocks should be a whole number of, and
-//   then repeats once a block;
+//   maximum_procedural_tile];
 // - the blocks lie on the lattice of whole periods through `anchor`, so
 //   that they stay where the caller anchors them as it pans, and are drawn
 //   where they meet `area`, clipped to it (the painter's coordinates).
@@ -61,6 +55,24 @@ struct GUI_FORMS_API MaterialBlocks final {
     const SurfaceMaterial* material{};
     double period{};
     Point anchor{};
+    Rect area{};
+};
+
+// A surface finish over an area, in world coordinates
+// (ThemeEngine::paint_finish_tiles; cp31, the node canvas's finish
+// texture):
+// - `key` names the part's record (borrowed for the call);
+// - `finish` is borrowed for the call;
+// - `anchor` is world (0, 0) in the painter's coordinates and `zoom` the
+//   view units per world unit, so the finish is a property of the world:
+//   it pans with it and grows with the zoom;
+// - `area` is where it is drawn, clipped to it (the painter's
+//   coordinates).
+struct GUI_FORMS_API FinishTiles final {
+    PartKey key{};
+    const FinishFill* finish{};
+    Point anchor{};
+    double zoom{1.0};
     Rect area{};
 };
 
@@ -164,15 +176,12 @@ public:
     // primitive and the window's caches as a keyed part is:
     // - The block is square, a whole number of periods across: as many as
     //   fit maximum_material_block_side device pixels at the window's
-    //   scale, and at least one, halved while the primitive refuses it
-    //   (maximum_material_block_halvings). The primitive bakes it once into the
+    //   scale, and at least one. The primitive bakes it once into the
     //   record `blocks.key` names, and again only when the material, the
     //   scale or the block changes; panning bakes nothing.
     // - A procedural fill's pattern is generated in an idle frame, never
     //   here (E10): until then the block shows the fill's ground, and the
     //   window repaints the area once the pattern is made.
-    // - A finish is painted with the block, anchored at the block's corner,
-    //   so it repeats once a block.
     // - The raster is then drawn at every block of the lattice that meets
     //   the area, in one save, clip_rect and restore.
     // Draws nothing and returns false for a control in no window, an empty
@@ -181,6 +190,24 @@ public:
     // material bound) or no raster. Allocation failure propagates as
     // std::bad_alloc, as paint's does. Not reentrant, as paint is not.
     bool paint_material_blocks(Painter& painter, const Control& control, const MaterialBlocks& blocks) const;
+
+    // Paints `tiles.finish` over `tiles.area` of `control` from the
+    // window's world finish tiles (EnginePartTable::finish_tile; cp31):
+    // - The finish is evaluated at world device pixels, at the window's
+    //   scale times the zoom, on the lattice of finish_tile_side-pixel tiles
+    //   through world (0, 0) (snapped to the nearest device pixel, so tiles
+    //   land on whole pixels). Each tile is the kernel at those pixels, so
+    //   adjacent tiles join exactly: no period, and no seam.
+    // - A tile not held is queued for an idle frame and its place left
+    //   bare; once the queue is painted the window repaints the area
+    //   (the record `tiles.key` names). Panning reuses the tiles held; a
+    //   new zoom or scale names new tiles, painted again in idle frames.
+    // - Cost: one draw_part_raster per tile meeting the area, inside one
+    //   save, clip_rect and restore; nothing is painted inside the paint.
+    // Draws nothing and returns false for a control in no window, an empty
+    // or non-finite area, anchor or zoom, or no finish; otherwise returns
+    // whether every tile was held. Not reentrant, as paint is not.
+    bool paint_finish_tiles(Painter& painter, const Control& control, const FinishTiles& tiles) const;
 
     // The hit region of one part of `control` (E8, T1's hand-off): the
     // part's bounds and the shape its primitive draws there, as plan()
