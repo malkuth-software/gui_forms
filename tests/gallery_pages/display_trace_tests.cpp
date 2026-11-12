@@ -601,6 +601,12 @@ struct PageDigest final {
 // the marching stripes as filled bands inside the fill's rim, anchored to
 // the track start. Recorded again: ranges-and-progress, in both tables.
 //
+// cp29 2b fold A (VirtualRowsView on the Gallery): tree-and-object-views
+// gains the VirtualRowsView group (its catalog caption and the page below
+// it); states-and-diagnostics counts five controls more (1766 -> 1771);
+// typography-and-inspection's inspected generation moves by one. Recorded
+// again: those three pages, in both tables.
+//
 // cp29 I3 (RightToLeft): values-and-spinners' property grid shows the
 // RightToLeft row under Appearance where LayoutDirection stood under Layout
 // (the same number of rows, so no control count moved). Recorded again:
@@ -634,7 +640,7 @@ constexpr std::array<PageDigest, 39> expected_digests{{
     {"ranges-and-progress", 0x21bb4c38624ff1c5ULL},
     {"containers-and-focus", 0x7a147f43899427feULL},
     {"animation-laboratory", 0x012b20e3f2b3054bULL},
-    {"states-and-diagnostics", 0x19f9cde672d20ad0ULL},
+    {"states-and-diagnostics", 0xcc411e76fa14f358ULL},
     {"text-and-input", 0xa7c31b1feca4d0c3ULL},
     {"collections-and-overlays", 0xa16bd2a26faeecfcULL},
     {"values-and-spinners", 0xd55cf8c841fa03b8ULL},
@@ -649,13 +655,13 @@ constexpr std::array<PageDigest, 39> expected_digests{{
     {"dock-and-anchor", 0x2ec9d27284bc71aeULL},
     {"docking-workspace", 0xdd5cf422db0cb1fdULL},
     {"commands-and-menus", 0x7416b5efe3076cd5ULL},
-    {"tree-and-object-views", 0xcdf653de16d55af1ULL},
+    {"tree-and-object-views", 0xf8fca6921826a4b3ULL},
     {"choices-and-sections", 0xeefddae9df9bdf55ULL},
     {"value-editors", 0x45325f86b2f5b229ULL},
     {"responsive-layouts", 0x7c07027ef8c225b4ULL},
     {"anchored-overlays", 0xde97b467c60786f3ULL},
     {"live-surfaces", 0x07be9c907f18bf54ULL},
-    {"typography-and-inspection", 0x5f03ea941f8fc3b6ULL},
+    {"typography-and-inspection", 0xb4286c114c146320ULL},
     {"semantic-feedback", 0x6ac799406e3b440cULL},
     {"notices-and-badges", 0x9fbdac082237ebf8ULL},
     {"input-and-rules", 0xc0720a3c709f7259ULL},
@@ -704,7 +710,7 @@ constexpr std::array<PageDigest, 39> professional_digests{{
     {"dock-and-anchor", 0x0504443e20c47503ULL},
     {"docking-workspace", 0x6fe854f65c854c1fULL},
     {"commands-and-menus", 0x215110526653494cULL},
-    {"tree-and-object-views", 0xd74e618c357e34c1ULL},
+    {"tree-and-object-views", 0x44b0305c3c3f6222ULL},
     {"choices-and-sections", 0x009caf304a8692f1ULL},
     {"value-editors", 0xd057a6a5b7824070ULL},
     {"responsive-layouts", 0xfbb75a6b47383648ULL},
