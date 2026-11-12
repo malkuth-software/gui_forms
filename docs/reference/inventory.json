@@ -389644,7 +389644,7 @@
       "comment": "",
       "header": "gui_forms/controls/button_content_types.hpp",
       "source": "include/gui_forms/controls/button_content_types.hpp",
-      "line": 51,
+      "line": 55,
       "page": "gui-forms-mirrored-text-image-relation-textimagerelation-textimagerelation-noexcept-9b9ab5a336.html"
     },
     {
@@ -414554,7 +414554,7 @@
       "comment": "",
       "header": "gui_forms/controls/button_content_types.hpp",
       "source": "include/gui_forms/controls/button_content_types.hpp",
-      "line": 61,
+      "line": 69,
       "page": "gui-forms-types-content-alignment-const-typetag-contentalignment-6984c235bb.html"
     },
     {
@@ -414839,7 +414839,7 @@
       "comment": "",
       "header": "gui_forms/controls/button_content_types.hpp",
       "source": "include/gui_forms/controls/button_content_types.hpp",
-      "line": 62,
+      "line": 70,
       "page": "gui-forms-types-text-image-relation-const-typetag-textimagerelation-4d1fc7ef23.html"
     },
     {
