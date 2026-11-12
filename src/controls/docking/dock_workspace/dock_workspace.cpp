@@ -468,8 +468,11 @@ DockCloseOutcome DockWorkspace::run_close() {
         const std::vector<DockPanelId> asked(request.documents.begin() + static_cast<std::ptrdiff_t>(request.next),
                                              request.documents.begin() +
                                                  static_cast<std::ptrdiff_t>(request.next + count));
+        // The raise owns the payload's view; declared after `asked`, so the
+        // view ends before the copy does.
+        const detail::BorrowScope raise;
         DockDocumentClosing closing{};
-        closing.documents = asked;
+        closing.documents = raise.lend_view(std::span<const DockPanelId>(asked.data(), asked.size()));
         closing.cause = request.cause;
         document_closing_.emit(closing);
         // A handler may have disposed the workspace, which drops the

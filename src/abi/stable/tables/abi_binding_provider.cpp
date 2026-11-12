@@ -76,18 +76,29 @@ private:
     FailureRecord saved_;
 };
 
-// Lent text copied, or empty for text whose size has no data.
-std::string copy_lent(gf_utf8_view view) {
+// The text a provider's callback lent (gf_abi.h: valid until the library's
+// next callback on the provider), as a call-scope borrow of `answer`, the
+// scope of that callback's answer, which ends before the next callback. In
+// the checked build a use after the scope fails; the library copies the
+// text inside it. Empty for text whose size has no data.
+BorrowedText lend_caller_text(const detail::BorrowScope& answer, gf_utf8_view view) {
     if (view.data == nullptr || view.size == 0U) {
-        return {};
+        return BorrowedText();
     }
-    std::string copied(view.data, static_cast<std::size_t>(view.size));
+    const std::string_view text(view.data, static_cast<std::size_t>(view.size));
+    BorrowedText lent = answer.lend_text(text);
+    return lent;
+}
+
+// Lent text copied.
+std::string copy_lent(const BorrowedText& lent) {
+    std::string copied(unchecked_view(lent));
     return copied;
 }
 
 // Lent text copied and cut to maximum bytes on a whole UTF-8 sequence.
-std::string copy_lent_bounded(gf_utf8_view view, std::size_t maximum) {
-    std::string copied = copy_lent(view);
+std::string copy_lent_bounded(const BorrowedText& lent, std::size_t maximum) {
+    std::string copied = copy_lent(lent);
     if (copied.size() > maximum) {
         copied.resize(utf8_prefix_length(copied, maximum));
     }
@@ -174,6 +185,8 @@ bool AbiBindingProvider::read_cell(std::size_t row, std::size_t column, BindingV
 }
 
 bool AbiBindingProvider::read_stable_id(std::size_t row, std::string& stable_id) {
+    // The answer's scope: the identity's text is borrowed until it ends.
+    const detail::BorrowScope answer;
     gf_utf8_view identity{};
     const gf_status status =
         callbacks_.read_stable_id(callbacks_.context, static_cast<std::uint64_t>(row), &identity);
@@ -181,7 +194,7 @@ bool AbiBindingProvider::read_stable_id(std::size_t row, std::string& stable_id)
         identity.size > binding_maximum_text_bytes) {
         return false;
     }
-    stable_id = copy_lent(identity);
+    stable_id = copy_lent(lend_caller_text(answer, identity));
     return true;
 }
 
@@ -190,6 +203,7 @@ BindingWriteResult AbiBindingProvider::write_cell(std::size_t row, std::size_t c
     if (!lend_value(value, record)) {
         return BindingWriteResult{BindingWriteStatus::kind_mismatch, "the value has no C form a provider takes"};
     }
+    const detail::BorrowScope answer;
     std::uint32_t accepted = 0U;
     gf_utf8_view reason{};
     const gf_status status = callbacks_.write_value(callbacks_.context, static_cast<std::uint64_t>(row),
@@ -200,7 +214,8 @@ BindingWriteResult AbiBindingProvider::write_cell(std::size_t row, std::size_t c
     if (accepted == 1U) {
         return BindingWriteResult{BindingWriteStatus::accepted, {}};
     }
-    return BindingWriteResult{BindingWriteStatus::refused, copy_lent_bounded(reason, binding_maximum_error_bytes)};
+    return BindingWriteResult{BindingWriteStatus::refused,
+                              copy_lent_bounded(lend_caller_text(answer, reason), binding_maximum_error_bytes)};
 }
 
 bool AbiBindingProvider::cell_read_only(std::size_t row, std::size_t column) {
@@ -221,6 +236,7 @@ bool AbiBindingProvider::read_error(std::size_t row, std::size_t column, std::st
     if (callbacks_.read_cell_state == nullptr) {
         return false;
     }
+    const detail::BorrowScope answer;
     std::uint32_t read_only = 0U;
     gf_utf8_view error{};
     const gf_status status = callbacks_.read_cell_state(callbacks_.context, static_cast<std::uint64_t>(row),
@@ -228,7 +244,7 @@ bool AbiBindingProvider::read_error(std::size_t row, std::size_t column, std::st
     if (status != GF_STATUS_OK || error.size == 0U) {
         return false;
     }
-    text = copy_lent_bounded(error, binding_maximum_error_bytes);
+    text = copy_lent_bounded(lend_caller_text(answer, error), binding_maximum_error_bytes);
     return !text.empty();
 }
 

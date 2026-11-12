@@ -100,7 +100,9 @@ APPEND = re.compile(r'void ([\w:]+)::append_interactions\(std::vector<Interactio
                     r'(?:const )?\{(.*?)\n\}', re.S)
 CLASS = re.compile(r'^(?:class|struct) (?:GUI_FORMS_API )?(\w+)(?: final)?\s*(?::\s*([^{;]*))?\{', re.M)
 OPTIONAL = re.compile(r'^std::optional<(.+)>$')
-VECTOR = re.compile(r'^std::(?:vector|span)<(?:const )?(.+)>$')
+# A collection: a vector, a span, or a borrowed span (a call-scope payload,
+# gui_forms/borrow/borrowed_view/borrowed_view.hpp), whose element follows.
+VECTOR = re.compile(r'^(?:std::(?:vector|span)|BorrowedSpan)<(?:const )?(.+)>$')
 POINTER = re.compile(r'^(?:std::shared_ptr<(\w+)>|(\w+)\*)$')
 
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 
 #include <cstddef>
@@ -63,11 +64,12 @@ struct GUI_FORMS_API FileDialogFilterParse final {
 
 // Raised by a file dialog after the user accepts and before the dialog
 // takes the names (Windows Forms' FileOk). `file_names` holds the chosen
-// paths and stays valid for the handler's call only. Setting `cancel` keeps
+// paths and stays valid for the handler's call only (a call-scope borrow:
+// the sanitizer tree reports a use after the raise). Setting `cancel` keeps
 // the dialog's old names and shows the dialog again with the same settings,
 // where Windows Forms keeps its dialog open.
 struct GUI_FORMS_API FileDialogOk final {
-    std::span<const std::string> file_names{};
+    BorrowedSpan<std::string> file_names{};
     bool cancel{};
 };
 

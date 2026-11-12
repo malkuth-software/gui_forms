@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/controls/dock_workspace_values.hpp"
@@ -60,12 +61,13 @@ enum class DockCloseCause : std::uint8_t { document, all_documents, other_docume
 // Documents about to close at the user's request (DockWorkspace::
 // document_closing). `documents` is the one document asked about (each) or
 // every document of the request (combined), in the request's order; it is
-// valid only while the event is raised. A handler sets `cancel` to keep
+// a call-scope borrow, valid only while the event is raised (the sanitizer
+// tree reports a use after the raise). A handler sets `cancel` to keep
 // them, which ends the request with nothing closed, or `defer` to answer
 // later with DockWorkspace::answer_close (an asynchronous prompt). With
 // neither set, the request goes on.
 struct GUI_FORMS_API DockDocumentClosing final {
-    std::span<const DockPanelId> documents{};
+    BorrowedSpan<DockPanelId> documents{};
     DockCloseCause cause{DockCloseCause::document};
     bool cancel{};
     bool defer{};
