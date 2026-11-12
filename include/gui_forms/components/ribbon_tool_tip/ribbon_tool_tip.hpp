@@ -101,7 +101,8 @@ public:
     void hide();
     [[nodiscard]] bool visible() const noexcept;
     [[nodiscard]] std::shared_ptr<Control> active_control() const noexcept;
-    [[nodiscard]] const std::string& active_item_id() const noexcept { return visible_item_; }
+    [[nodiscard]] const std::string& active_item_id() const& noexcept { return visible_item_; }
+    const std::string& active_item_id() const&& = delete;
     // What the visible tooltip shows (empty when none is visible).
     [[nodiscard]] const RibbonToolTipContent& shown_content() const noexcept { return shown_content_; }
     // The overlay's bounds in window coordinates (empty when none).

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
@@ -27,7 +28,9 @@ public:
     explicit CommandBar(StableId id);
     ~CommandBar() override;
     void set_items(std::vector<CommandItem> items);
-    [[nodiscard]] std::span<const CommandItem> items() const noexcept;
+    // Borrowed: the next set_items ends the views lent so far (the sanitizer
+    // tree reports a later use).
+    [[nodiscard]] BorrowedSpan<CommandItem> items() const noexcept;
     [[nodiscard]] Event<const CommandItem&>& invoked() noexcept { return invoked_; }
     // Named skin part "item". The returned borrow lasts until list replacement.
     [[nodiscard]] Button& item(int index) const;

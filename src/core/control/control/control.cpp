@@ -1488,6 +1488,7 @@ bool Control::collect_inline_restyles(const Theme& theme, std::vector<detail::In
 void Control::commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles) {
     for (detail::InlineRestyle& restyle : restyles) {
         (*restyle.control).inline_style_ = std::move(restyle.style);
+        (*restyle.control).inline_style_lender_.invalidate();
         (*restyle.control).invalidate(Dirty::paint | (*restyle.control).refresh_text_font());
     }
     restyles.clear();
@@ -1508,6 +1509,7 @@ void Control::refresh_inline_style() {
         return;
     }
     inline_style_ = std::move(compiled);
+    inline_style_lender_.invalidate();
     invalidate(Dirty::paint | refresh_text_font());
 }
 
@@ -3577,6 +3579,7 @@ InlineStyleResult Control::set_inline_style(std::string_view text) {
     if (text.empty()) {
         if (inline_style_ == nullptr) return InlineStyleResult::applied({});
         inline_style_.reset();
+        inline_style_lender_.invalidate();
         // The caches keyed by the style's address are dropped: a later
         // style may be allocated where this one was.
         invalidate(Dirty::paint | refresh_text_font());
@@ -3589,13 +3592,15 @@ InlineStyleResult Control::set_inline_style(std::string_view text) {
     // A refused style changes nothing (B2).
     if (compiled == nullptr) return InlineStyleResult::refused(std::move(diagnostics));
     inline_style_ = std::move(compiled);
+    inline_style_lender_.invalidate();
     invalidate(Dirty::paint | refresh_text_font());
     return InlineStyleResult::applied(std::move(diagnostics));
 }
 
-std::string_view Control::inline_style() const noexcept {
-    if (inline_style_ == nullptr) return {};
-    return (*inline_style_).text;
+BorrowedText Control::inline_style() const noexcept {
+    std::string_view text{};
+    if (inline_style_ != nullptr) text = (*inline_style_).text;
+    return detail::lend_text(text, inline_style_lender_);
 }
 
 const CompiledThemeRules* Control::inline_style_rules() const noexcept {

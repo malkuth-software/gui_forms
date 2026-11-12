@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/controls/lookup_combo_box_capabilities.hpp"
@@ -70,12 +71,14 @@ public:
     // The columns; a header must be valid UTF-8 and a width finite and
     // positive (std::invalid_argument, changing nothing).
     void set_columns(std::vector<LookupColumn> columns);
-    [[nodiscard]] const std::vector<LookupColumn>& columns() const noexcept { return columns_; }
+    [[nodiscard]] BorrowedSpan<LookupColumn> columns() const& noexcept { return detail::lend_view(columns_); }
+    BorrowedSpan<LookupColumn> columns() const&& = delete;
     // The rows; keys must be distinct and non-empty and every text valid
     // UTF-8 (std::invalid_argument, changing nothing). A selected key no
     // row has any more is cleared (raising selected_key_changed).
     void set_rows(std::vector<LookupRow> rows);
-    [[nodiscard]] const std::vector<LookupRow>& rows() const noexcept { return rows_; }
+    [[nodiscard]] BorrowedSpan<LookupRow> rows() const& noexcept { return detail::lend_view(rows_); }
+    BorrowedSpan<LookupRow> rows() const&& = delete;
     // The row with `key`, if any.
     [[nodiscard]] std::optional<std::size_t> row_of(std::string_view key) const noexcept;
     // The text the field shows: the filter while open and typed into, else
@@ -86,9 +89,11 @@ public:
     void close_drop_down();
     [[nodiscard]] bool is_dropped_down() const noexcept { return dropped_down_; }
     // The typed filter while open (empty when closed).
-    [[nodiscard]] const std::string& filter() const noexcept { return filter_; }
+    [[nodiscard]] const std::string& filter() const& noexcept { return filter_; }
+    const std::string& filter() const&& = delete;
     // The rows the open list shows, as indices into rows(), in order.
-    [[nodiscard]] const std::vector<std::size_t>& filtered_rows() const noexcept { return filtered_; }
+    [[nodiscard]] BorrowedSpan<std::size_t> filtered_rows() const& noexcept { return detail::lend_view(filtered_); }
+    BorrowedSpan<std::size_t> filtered_rows() const&& = delete;
     // The highlighted position in filtered_rows(), if any.
     [[nodiscard]] std::optional<std::size_t> highlighted() const noexcept { return highlighted_; }
 
@@ -143,9 +148,9 @@ private:
     void on_overlay_revoked();
     void release_overlay() noexcept;
 
-    std::vector<LookupColumn> columns_{};
-    std::vector<LookupRow> rows_{};
-    std::vector<std::size_t> filtered_{};
+    detail::LendingVector<LookupColumn> columns_{};
+    detail::LendingVector<LookupRow> rows_{};
+    detail::LendingVector<std::size_t> filtered_{};
     std::optional<std::size_t> highlighted_{};
     std::string filter_{};
     std::shared_ptr<AnchoredOverlayLayer> layer_{};

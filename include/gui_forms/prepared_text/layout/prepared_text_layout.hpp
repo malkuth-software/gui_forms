@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/prepared_text/types/prepared_text_types.hpp"
 
 #include <memory>
@@ -79,8 +80,9 @@ public:
     [[nodiscard]] std::int32_t left() const noexcept;
     [[nodiscard]] std::int32_t top() const noexcept;
     [[nodiscard]] PreparedTextMetrics metrics() const noexcept;
-    // Top-left gray8, tightly packed rows; borrow ends at release/replacement.
-    [[nodiscard]] std::span<const std::uint8_t> pixels() const noexcept;
+    // Top-left gray8, tightly packed rows; borrow ends at release/replacement
+    // (the sanitizer tree reports a later use).
+    [[nodiscard]] BorrowedSpan<std::uint8_t> pixels() const noexcept;
 private:
     friend struct detail::PreparedTextAccess;
     std::unique_ptr<detail::PreparedMaskStorage> storage_{};

@@ -10,7 +10,9 @@
 
 namespace gui_forms::detail {
 
-NativePopupRecord::NativePopupRecord(Window* model) noexcept : model_(model) {}
+NativePopupRecord::NativePopupRecord(Window* model) noexcept : model_() {
+    if (model != nullptr) model_ = (*model).window_ref();
+}
 
 void NativePopupRecord::bind(ApplicationWindowHandle window) noexcept {
     window_ = std::move(window);
@@ -42,7 +44,8 @@ bool NativePopupRecord::connected() const noexcept {
 
 Window* NativePopupRecord::model() const noexcept {
     if (!connected()) return nullptr;
-    return model_;
+    Window* const model = model_.get();
+    return model;
 }
 
 HostWindowId NativePopupRecord::id() const noexcept {

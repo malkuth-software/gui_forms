@@ -1388,7 +1388,7 @@ void TreeListView::paint_column(Painter& painter, const Layout& placed, std::siz
     part.bounds = parts.column_label.bounds;
     part.alignment = text_alignment(columns_[column].alignment);
     details_detail::elide_to_width(painter, columns_[column].text, part.font, part.bounds.width, paint_text_);
-    part.text = paint_text_;
+    part.text = lend_paint_text(paint_text_);
     paint_shown(painter, placed, part);
     part.text = {};
     part.alignment = PartTextAlignment::start;
@@ -1454,7 +1454,7 @@ void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t
     part.role = PartRole::content;
     part.bounds = parts.text.bounds;
     details_detail::elide_to_width(painter, node.text, part.font, part.bounds.width, paint_text_);
-    part.text = paint_text_;
+    part.text = lend_paint_text(paint_text_);
     paint_shown(painter, placed, part);
     part.text = {};
     part.states = cell_states(row);
@@ -1466,7 +1466,7 @@ void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t
         part.alignment = text_alignment(columns_[column].alignment);
         details_detail::elide_to_width(painter, column_text(node, column), part.font, part.bounds.width,
                                        paint_text_);
-        part.text = paint_text_;
+        part.text = lend_paint_text(paint_text_);
         paint_shown(painter, placed, part);
         part.text = {};
     }

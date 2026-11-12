@@ -135,7 +135,9 @@ DialogResult SaveFileDialog::show_dialog(Window& owner) {
             extended.append(extension);
             if (file_dialog_text_valid(extended)) path = std::move(extended);
         }
-        FileDialogOk ok{chosen, false};
+        // The raise owns the payload's view of the chosen path.
+        const detail::BorrowScope raise;
+        FileDialogOk ok{raise.lend_view(std::span<const std::string>(chosen.data(), chosen.size())), false};
         file_ok_.emit(ok);
         if (presence.expired() || !is_alive()) return DialogResult::cancel;
         if (!ok.cancel) {

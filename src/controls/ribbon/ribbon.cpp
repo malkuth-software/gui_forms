@@ -1277,7 +1277,7 @@ void Ribbon::on_paint(Painter& painter, Rect) {
     part.key = PartKey{"application_button", {}, {}};
     paint_part(painter, *this, part);
     part.role = PartRole::label;
-    part.text = application_label;
+    part.text = lend_paint_text(application_label);
     part.alignment = PartTextAlignment::center;
     part.bounds = own.application_label.bounds;
     part.key = PartKey{"application_label", {}, {}};
@@ -1385,7 +1385,7 @@ void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, 
     const std::string label = parse_mnemonic_text(tabs_[tab].text).display_text;
     part.role = PartRole::label;
     part.bounds = parts.tab_label.bounds;
-    part.text = label;
+    part.text = lend_paint_text(label);
     part.font = tab_label_font(states);
     part.alignment = PartTextAlignment::center;
     part.key = PartKey{"tab_label", id, {}};
@@ -1438,7 +1438,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             part.role = PartRole::label;
             part.bounds = parts.group_button_label.bounds;
             part.alignment = PartTextAlignment::center;
-            part.text = groups[group].caption;
+            part.text = lend_paint_text(groups[group].caption);
             part.key = PartKey{"group_button_label", group_id, {}};
             paint_part(painter, *this, part);
             part.text = {};
@@ -1459,7 +1459,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
         part.role = PartRole::caption;
         part.bounds = parts.group_caption.bounds;
         part.alignment = PartTextAlignment::center;
-        part.text = groups[group].caption;
+        part.text = lend_paint_text(groups[group].caption);
         part.key = PartKey{"group_caption", group_id, {}};
         paint_part(painter, *this, part);
         part.text = {};
@@ -1494,7 +1494,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 part.bounds = command_part.command_label.bounds;
                 // part.text views the label: it lives here until the paint.
                 const std::string label = command_text(spec);
-                part.text = label;
+                part.text = lend_paint_text(label);
                 paint_part(painter, *this, part);
                 part.text = {};
             }
@@ -1540,7 +1540,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 const bool large = layout_command_size(group_layout, spec, command) == RibbonCommandSize::large;
                 part.role = PartRole::label;
                 part.bounds = command_part.command_label.bounds;
-                part.text = label;
+                part.text = lend_paint_text(label);
                 part.alignment = large ? PartTextAlignment::center : PartTextAlignment::start;
                 part.key = PartKey{"command_label", command_id, {}};
                 paint_part(painter, *this, part);
@@ -1574,7 +1574,7 @@ void Ribbon::paint_label_command(Painter& painter, PartPaint& part, const Ribbon
     part.bounds = command_part.command_label.bounds;
     // Kept alive while the part borrows it.
     const std::string label = command_text(spec);
-    part.text = label;
+    part.text = lend_paint_text(label);
     part.alignment = PartTextAlignment::start;
     part.key = PartKey{"command_label", spec.stable_id, {}};
     paint_part(painter, *this, part);

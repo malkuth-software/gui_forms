@@ -29,14 +29,14 @@ std::shared_ptr<Command> make_action(std::string_view navigator_id, std::string_
     return command;
 }
 
-bool has_item(const std::vector<ToolStripItemSpec>& items, std::string_view item_id) noexcept {
+bool has_item(BorrowedSpan<ToolStripItemSpec> items, std::string_view item_id) noexcept {
     for (const ToolStripItemSpec& item : items) {
         if (item.stable_id == item_id) return true;
     }
     return false;
 }
 
-bool has_text_box(const std::vector<ToolStripItemSpec>& items, std::string_view item_id) noexcept {
+bool has_text_box(BorrowedSpan<ToolStripItemSpec> items, std::string_view item_id) noexcept {
     for (const ToolStripItemSpec& item : items) {
         if (item.stable_id == item_id) return item.kind == ToolStripItemKind::text_box;
     }
@@ -148,7 +148,7 @@ void BindingNavigator::refresh() {
     (*move_last_).set_enabled(current && position < last);
     (*add_new_).set_enabled(source_ != nullptr && allow_new);
     (*delete_).set_enabled(current && allow_remove);
-    const std::vector<ToolStripItemSpec>& shown = items();
+    const BorrowedSpan<ToolStripItemSpec> shown = items();
     if (has_item(shown, count_item)) set_item_text(count_item, "of " + std::to_string(count));
     if (has_text_box(shown, position_item)) {
         const std::shared_ptr<TextBox> box = text_box(position_item);

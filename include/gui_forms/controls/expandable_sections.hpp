@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
@@ -24,7 +25,9 @@ public:
     explicit ExpandableSections(StableId id);
     ~ExpandableSections() override;
     void set_items(std::vector<SectionItem> items);
-    [[nodiscard]] std::span<const SectionItem> items() const noexcept;
+    // Borrowed: the next set_items ends the views lent so far (the sanitizer
+    // tree reports a later use).
+    [[nodiscard]] BorrowedSpan<SectionItem> items() const noexcept;
     [[nodiscard]] bool expanded(int index) const;
     void set_expanded(int index, bool expanded);
     [[nodiscard]] Event<int, bool>& toggled() noexcept { return toggled_; }

@@ -286,7 +286,8 @@ public:
     // built-in layer resolves, whatever the translation and user files say.
     void set_built_in_only(bool built_in_only) noexcept;
     [[nodiscard]] bool built_in_only() const noexcept { return built_in_only_; }
-    [[nodiscard]] const std::string& language() const noexcept { return language_; }
+    [[nodiscard]] const std::string& language() const& noexcept { return language_; }
+    const std::string& language() const&& = delete;
 
     // Resolves every field of `stable_id` from the highest layer in force
     // that gives it.

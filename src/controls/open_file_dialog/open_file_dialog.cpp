@@ -118,7 +118,10 @@ DialogResult OpenFileDialog::show_dialog(Window& owner) {
         const HostPathDialogResult* const paths = std::get_if<HostPathDialogResult>(&answer.payload);
         if (paths == nullptr || (*paths).outcome != HostDialogOutcome::accepted) return DialogResult::cancel;
         if (!is_alive() || !detail::window_alive(window_lifetime)) return DialogResult::cancel;
-        FileDialogOk ok{(*paths).paths, false};
+        // The raise owns the payload's view of the answer's paths.
+        const detail::BorrowScope raise;
+        const std::span<const std::string> chosen((*paths).paths.data(), (*paths).paths.size());
+        FileDialogOk ok{raise.lend_view(chosen), false};
         file_ok_.emit(ok);
         if (presence.expired() || !is_alive()) return DialogResult::cancel;
         if (!ok.cancel) {

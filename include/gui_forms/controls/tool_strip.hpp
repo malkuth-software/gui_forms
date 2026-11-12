@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
@@ -138,7 +139,10 @@ public:
     explicit ToolStrip(StableId stable_id);
     ~ToolStrip() override;
 
-    [[nodiscard]] const std::vector<ToolStripItemSpec>& items() const noexcept { return items_; }
+    // A view of the specs, valid until the next set_items (checked builds
+    // fail fast on a later read); copy it to keep the specs.
+    [[nodiscard]] BorrowedSpan<ToolStripItemSpec> items() const& noexcept { return detail::lend_view(items_); }
+    BorrowedSpan<ToolStripItemSpec> items() const&& = delete;
     // Replaces the items. Throws std::invalid_argument for an empty or
     // duplicate ID, invalid UTF-8, a drop-down menu on a kind that has none,
     // a drop-down or split button without one, an invalid menu, a hosted
@@ -327,7 +331,7 @@ private:
     void on_command_state(const CommandState& state);
     [[nodiscard]] std::vector<MenuItemSpec> overflow_menu() const;
 
-    std::vector<ToolStripItemSpec> items_{};
+    detail::LendingVector<ToolStripItemSpec> items_{};
     std::vector<ItemState> item_states_{};
     std::unique_ptr<ContextMenu> overlay_{};
     // The item whose menu is open; none with the overflow menu or no menu.

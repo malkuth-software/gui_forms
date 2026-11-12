@@ -273,7 +273,7 @@ void BackstageView::on_paint(Painter& painter, Rect) {
         const std::string label = item_text(items_[item]);
         part.role = PartRole::label;
         part.bounds = parts.item_label.bounds;
-        part.text = label;
+        part.text = lend_paint_text(label);
         part.key = PartKey{"item_label", id, {}};
         paint_part(painter, *this, part);
         part.text = {};

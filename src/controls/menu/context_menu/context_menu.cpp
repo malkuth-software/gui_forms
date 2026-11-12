@@ -456,7 +456,7 @@ struct ContextMenu::Impl final {
             label.family = ControlVisualRole::menu_item;
             label.role = PartRole::label;
             label.states = states;
-            label.text = display_text;
+            label.text = lend_paint_text(display_text);
             label.font = font;
             // A destructive command's red ink, provisionally an authored
             // colour until the theme has a text tone for it (asked).
@@ -479,7 +479,7 @@ struct ContextMenu::Impl final {
                 shortcut.role = PartRole::label;
                 shortcut.tone = PartTextTone::secondary;
                 shortcut.states = states;
-                shortcut.text = item_.command_state.shortcut;
+                shortcut.text = lend_paint_text(item_.command_state.shortcut);
                 shortcut.font = shortcut_font;
                 shortcut.measured_text = size;
                 // Right-aligned in the shortcut column, before the chevron's

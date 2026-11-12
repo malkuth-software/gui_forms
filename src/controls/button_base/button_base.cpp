@@ -650,7 +650,7 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
             label.family = ink.family;
             label.role = PartRole::label;
             label.states = ink.states;
-            label.text = lines[index];
+            label.text = lend_paint_text(lines[index]);
             label.font = resolved_font;
             label.bounds = {x + offset.x, baseline - box_ascent, right - x, box_height};
             label.authored_foreground = ink.authored;

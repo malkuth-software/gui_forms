@@ -1229,9 +1229,10 @@ public:
         navigate(history_[index_].path[slot].first);
     }
 
-    [[nodiscard]] const std::string& current_id() const noexcept {
+    [[nodiscard]] const std::string& current_id() const& noexcept {
         return history_[index_].id;
     }
+    const std::string& current_id() const&& = delete;
 
     void restore_projection() { apply(); }
 

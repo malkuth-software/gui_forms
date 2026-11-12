@@ -111,6 +111,7 @@
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/controls/text_block.hpp"
 #include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
 #include "gui_forms/controls/toast.hpp"
 #include "gui_forms/controls/toggle_switch.hpp"
 #include "gui_forms/controls/token_box.hpp"
@@ -5273,6 +5274,15 @@ inline SubscriptionToken connect_domain_up_down_selected_index_changed(Component
     return token;
 }
 
+inline SubscriptionToken connect_list_box_selected_index_changed(Component& source, const EventSink& sink) {
+    ListBox* typed = dynamic_cast<ListBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selected_index_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_tab_control_selected_index_changed(Component& source, const EventSink& sink) {
     TabControl* typed = dynamic_cast<TabControl*>(&source);
     if (typed == nullptr) {
@@ -5899,7 +5909,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 329> event_connectors{{
+inline constexpr std::array<EventConnector, 330> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6160,6 +6170,7 @@ inline constexpr std::array<EventConnector, 329> event_connectors{{
     {"selected_changed", "Button", &connect_button_selected_changed},
     {"selected_index_changed", "ComboBox", &connect_combo_box_selected_index_changed},
     {"selected_index_changed", "DomainUpDown", &connect_domain_up_down_selected_index_changed},
+    {"selected_index_changed", "ListBox", &connect_list_box_selected_index_changed},
     {"selected_index_changed", "TabControl", &connect_tab_control_selected_index_changed},
     {"selected_key_changed", "LookupComboBox", &connect_lookup_combo_box_selected_key_changed},
     {"selected_object_changed", "PropertyGrid", &connect_property_grid_selected_object_changed},

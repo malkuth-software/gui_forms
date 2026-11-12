@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/choice_group_values.hpp"
@@ -34,7 +35,9 @@ public:
     explicit ChoiceGroup(StableId id);
     ~ChoiceGroup() override;
     void set_items(std::vector<ChoiceItem> items);
-    [[nodiscard]] std::span<const ChoiceItem> items() const noexcept;
+    // Borrowed: the next set_items ends the views lent so far (the sanitizer
+    // tree reports a later use).
+    [[nodiscard]] BorrowedSpan<ChoiceItem> items() const noexcept;
     void bind(Value<int>& selection);
     void unbind() noexcept;
     // Raised after a change of selected_index, with the new index.

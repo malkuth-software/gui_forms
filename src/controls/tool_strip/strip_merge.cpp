@@ -275,7 +275,8 @@ void undo_step(const MergeStep<Top>& step, std::vector<Top>& target, std::vector
 // The items as the strip shows them now: check-on-click state the strip
 // holds goes into the specs, so it survives the move.
 std::vector<ToolStripItemSpec> current_items(const ToolStrip& strip) {
-    std::vector<ToolStripItemSpec> items = strip.items();
+    const BorrowedSpan<ToolStripItemSpec> shown = strip.items();
+    std::vector<ToolStripItemSpec> items(shown.begin(), shown.end());
     for (ToolStripItemSpec& item : items) {
         if (item.command || !item.check_on_click) continue;
         item.checked = strip.item_checked(item.stable_id);

@@ -43,6 +43,14 @@ constexpr double baseline_below_middle = 4.0;
 // The active row's focus ring sits this far inside the row.
 constexpr double focus_ring_inset = 1.0;
 
+// ListControl's selected index for a selection kept sorted: its first item,
+// or none.
+std::optional<std::size_t> first_selected(const std::vector<std::size_t>& selection) noexcept {
+    if (selection.empty()) return std::nullopt;
+    const std::optional<std::size_t> first(selection.front());
+    return first;
+}
+
 } // namespace
 using namespace input_control_detail;
 
@@ -130,8 +138,10 @@ void ListBox::written(const decltype(items)&, const CollectionEdit& edit) {
     if (selection_changed || top_before != top_index_) effects |= Dirty::paint;
     invalidate(effects);
     if (selection_changed) {
+        const bool index_moved = record_selected_index(first_selected(selected_));
         publish_change(selection_changed_,
                        ListSelectionChange{edit_selection_, selected_, active_index_});
+        if (index_moved) publish_change(selected_index_changed_, selected_index());
     }
 }
 
@@ -200,11 +210,6 @@ void ListBox::written(const decltype(selection_mode)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-std::optional<std::size_t> ListBox::selected_index() const noexcept {
-    return selected_.empty() ? std::optional<std::size_t>{}
-                             : std::optional<std::size_t>{selected_.front()};
-}
-
 void ListBox::apply_selection(std::vector<std::size_t> selection,
                               std::optional<std::size_t> active) {
     std::sort(selection.begin(), selection.end());
@@ -215,8 +220,10 @@ void ListBox::apply_selection(std::vector<std::size_t> selection,
     active_index_ = active;
     if (previous == selected_ && previous_active == active_index_) return;
     invalidate(Dirty::paint | Dirty::semantics);
+    const bool index_moved = record_selected_index(first_selected(selected_));
     publish_change(selection_changed_,
                    ListSelectionChange{previous, selected_, active_index_});
+    if (index_moved) publish_change(selected_index_changed_, selected_index());
 }
 
 void ListBox::select_index(std::size_t index, bool extend, bool toggle) {
@@ -409,7 +416,7 @@ void ListBox::on_paint(Painter& painter, Rect) {
         text.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
         text.role = PartRole::content;
         text.states = row_states;
-        text.text = items.read()[index];
+        text.text = lend_paint_text(items.read()[index]);
         text.font = row_font;
         if (overridden) text.authored_foreground = selected && focused_ ? style().highlight : style().text;
         const double left = row_text_left();
@@ -767,8 +774,10 @@ std::vector<ListBox::Item> ListBox::realized_items() const {
 
 namespace {
 
-// The events ListBox adds to those of Panel, in declaration order.
-constexpr std::array<InteractionDeclaration, 2> list_box_interactions{{
+// The events ListBox adds to those of Panel, in declaration order:
+// ListControl's, then its own.
+constexpr std::array<InteractionDeclaration, 3> list_box_interactions{{
+    {.name = "selected_index_changed", .payload = "std::optional<std::size_t>", .mutable_payload = false},
     {.name = "selection_changed", .payload = "ListSelectionChange", .mutable_payload = false},
     {.name = "item_activated", .payload = "std::size_t", .mutable_payload = false},
 }};

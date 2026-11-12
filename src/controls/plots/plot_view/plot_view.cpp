@@ -107,7 +107,7 @@ PlotView::~PlotView() {
 
 std::vector<PlotSeriesItem*> PlotView::series_items() const {
     std::vector<PlotSeriesItem*> items;
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     for (std::size_t index = 0U; index < all.size(); ++index) {
         PlotSeriesItem* const item = dynamic_cast<PlotSeriesItem*>(all[index].get());
         if (item != nullptr) items.push_back(item);
@@ -121,7 +121,7 @@ void PlotView::collect_series(std::vector<detail::PlotEngineSeries>& series,
     series.clear();
     if (annotations != nullptr) (*annotations).clear();
     if (items != nullptr) (*items).clear();
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     for (std::size_t index = 0U; index < all.size(); ++index) {
         Control* const child = all[index].get();
         PlotSeriesItem* const item = dynamic_cast<PlotSeriesItem*>(child);
@@ -164,7 +164,7 @@ void PlotView::take_axes(bool force) {
     std::size_t x_count = 0U;
     std::size_t y_count = 0U;
     std::uint64_t signature = 0U;
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     for (std::size_t index = 0U; index < all.size(); ++index) {
         const PlotAxisItem* const item = dynamic_cast<const PlotAxisItem*>(all[index].get());
         if (item == nullptr) continue;
@@ -375,7 +375,7 @@ void PlotView::arrange(Rect final_bounds) {
     (*engine_).layout(local, !title.read().empty());
     fit_and_follow();
     // Items take no space; the live host covers the plot.
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     for (std::size_t index = 0U; index < all.size(); ++index) {
         const bool host = live_host_ && all[index] == live_host_;
         set_child_layout(all[index], host ? local : Rect{});
@@ -547,7 +547,7 @@ void PlotView::send_live_update(bool reset_view) {
     const std::span<const plots::Axis> ys = (*engine_).model().y_axes();
     std::size_t x_seen = 0U;
     std::size_t y_seen = 0U;
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     std::vector<const PlotAxisItem*> axis_items;
     for (std::size_t index = 0U; index < all.size(); ++index) {
         const PlotAxisItem* const item = dynamic_cast<const PlotAxisItem*>(all[index].get());

@@ -211,7 +211,8 @@ public:
 class SetterButton final : public Control {
 public:
     explicit SetterButton(StableId stable_id) : Control(std::move(stable_id)) {}
-    [[nodiscard]] const std::string& text() const noexcept { return text_; }
+    [[nodiscard]] const std::string& text() const& noexcept { return text_; }
+    const std::string& text() const&& = delete;
     void set_text(std::string text) {
         if (text_ == text) return;
         text_ = std::move(text);

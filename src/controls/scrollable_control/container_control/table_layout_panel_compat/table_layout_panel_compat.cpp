@@ -745,7 +745,7 @@ Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace&
 
     // The children, held for the pass: a measure callback may change the
     // tree, so each is revalidated after it is measured.
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     workspace.retained.assign(all.begin(), all.end());
     workspace.automatic.clear();
     workspace.overflow.clear();

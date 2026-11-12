@@ -7,9 +7,10 @@ returns a view of one of its object's members borrows from `*this`, its
 implicit argument, so `make_buffer().parts()` would hand out a view of a
 temporary that ends with the statement. The rule: an inline member function
 without parameters that returns a view (`std::span`, `std::string_view`,
-`BorrowedSpan`, `BorrowedMutableSpan`, `BorrowedText`) of a data member
-(its body names an identifier ending in `_`) is qualified `const&` (or `&`)
-and has a deleted `&&` overload of the same name in the same file.
+`BorrowedSpan`, `BorrowedMutableSpan`, `BorrowedText`) or a const reference
+to a container (`const std::vector<T>&`, `const std::string&`) of a data
+member (its body names an identifier ending in `_`) is qualified `const&`
+(or `&`) and has a deleted `&&` overload of the same name in the same file.
 
 Virtual and static members are left out: a virtual accessor's ref
 qualifier would have to change in every override, and a static one
@@ -27,10 +28,15 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 
-VIEW: str = r"(?:std\s*::\s*span\s*<[^;{}()]*>|std\s*::\s*(?:u8)?string_view|Borrowed(?:Mutable)?Span\s*<[^;{}()]*>|BorrowedText)"
+# A view type, or a const reference to a member container (std::vector,
+# std::string): the same borrow of *this (borrow sanitizer study section
+# 2.8). The container's arguments hold no `&`, so an Event<const
+# std::vector<T>&>& accessor is not read as one.
+VIEW: str = (r"(?:std\s*::\s*span\s*<[^;{}()]*>|std\s*::\s*(?:u8)?string_view|Borrowed(?:Mutable)?Span\s*<[^;{}()]*>"
+             r"|BorrowedText|const\s+std\s*::\s*(?:vector\s*<[^;{}()&]*>|(?:u8)?string)\s*&)")
 ACCESSOR: re.Pattern[str] = re.compile(
     r"(?P<prefix>(?:\[\[nodiscard\]\]\s*)?(?:(?:inline|constexpr|virtual|static|friend)\s+)*)"
-    r"(?P<ret>(?:typename\s+)?(?:[\w:]+\s*::\s*)?" + VIEW + r")\s+"
+    r"(?P<ret>(?:typename\s+)?(?:[\w:]+\s*::\s*)?" + VIEW + r")\s*"
     r"(?P<name>[A-Za-z_]\w*)\s*\(\s*\)\s*(?P<quals>(?:const\s*)?(?:&&|&)?)\s*(?:noexcept\s*)?"
     r"(?P<override>(?:override|final)\s*)*(?P<end>\{|=\s*delete|;)")
 

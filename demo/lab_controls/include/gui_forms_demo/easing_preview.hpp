@@ -41,9 +41,10 @@ public:
     [[nodiscard]] bool has_style_override() const noexcept { return style_override_.has_value(); }
     void set_style(BasicControlStyle style);
     void clear_style();
-    [[nodiscard]] const std::vector<EasingPreviewTrack>& tracks() const noexcept {
+    [[nodiscard]] const std::vector<EasingPreviewTrack>& tracks() const& noexcept {
         return tracks_;
     }
+    const std::vector<EasingPreviewTrack>& tracks() const&& = delete;
     void set_tracks(std::vector<EasingPreviewTrack> tracks);
     [[nodiscard]] MotionPolicy effective_motion_policy() const noexcept;
     [[nodiscard]] double phase() const noexcept { return phase_; }

@@ -322,7 +322,8 @@ public:
 
     [[nodiscard]] const LocaleLayer& layer(LocaleLayerKind which) const& noexcept;
     const LocaleLayer& layer(LocaleLayerKind which) const&& = delete;
-    [[nodiscard]] const std::string& built_in_language() const noexcept { return built_in_language_; }
+    [[nodiscard]] const std::string& built_in_language() const& noexcept { return built_in_language_; }
+    const std::string& built_in_language() const&& = delete;
     [[nodiscard]] const LocaleFileInfo& translation_info() const noexcept { return translation_info_; }
     // The translation's language while one is set, else the built-in one.
     [[nodiscard]] const std::string& current_language() const noexcept;

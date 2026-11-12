@@ -1,5 +1,6 @@
 #pragma once
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
@@ -145,9 +146,57 @@ struct GUI_FORMS_API PartProfile final {
     Color edge_shadow_colour{};
 };
 
+// PartPaint::text is lent for one paint call (borrow sanitizer study,
+// section 2.5, row 7). lend_paint_text stamps `text` from the innermost
+// paint scope on the calling thread; the window opens one around each
+// control's on_paint, so in the checked build a record (or a view taken from
+// it) kept past that call fails at its next read, and so does one whose
+// owner's text was replaced during the call by a nested scope's end. Outside
+// any paint scope (a test or a bake painting a part directly) the text is
+// not tracked. The ordinary build returns `text` unchanged.
+#if GUI_FORMS_CHECKED_BORROWS
+[[nodiscard]] GUI_FORMS_API BorrowedText lend_paint_text(std::string_view text);
+#else
+[[nodiscard]] inline BorrowedText lend_paint_text(std::string_view text) noexcept {
+    return text;
+}
+#endif
+
+namespace detail {
+
+// The owner of the text one paint call lends (lend_paint_text). Declared
+// before the call it covers and destroyed after it; scopes nest (a nested
+// window paint), the innermost lending. One thread: the painting one.
+#if GUI_FORMS_CHECKED_BORROWS
+class GUI_FORMS_API PaintScope final {
+public:
+    PaintScope() noexcept;
+    ~PaintScope();
+    PaintScope(const PaintScope&) = delete;
+    PaintScope& operator=(const PaintScope&) = delete;
+
+    [[nodiscard]] BorrowedText lend_text(std::string_view text) const;
+
+private:
+    BorrowScope scope_;
+    // The scope this one hides, restored when it ends.
+    const PaintScope* outer_;
+};
+#else
+class GUI_FORMS_API PaintScope final {
+public:
+    PaintScope() noexcept {}
+    PaintScope(const PaintScope&) = delete;
+    PaintScope& operator=(const PaintScope&) = delete;
+};
+#endif
+
+} // namespace detail
+
 // One part to paint, in the control's local coordinates. `text`, `image` and
 // `mark` are read only by roles that show them (label, caption and content;
-// icon and image; glyph and indicator). `text` is borrowed for the call. `font` is an
+// icon and image; glyph and indicator). `text` is lent for the call
+// (lend_paint_text). `font` is an
 // effective font (Control::effective_font). `corner_radius`, when set, gives
 // a surface part its shape; the theme (T4) will own shapes, so a control sets
 // it only where today's recipe has no shape for the part. `orientation` and
@@ -159,7 +208,7 @@ struct GUI_FORMS_API PartPaint final {
     AnatomyStateSet states{};
     ControlVisualRole family{ControlVisualRole::panel};
     PartMark mark{PartMark::none};
-    std::string_view text{};
+    BorrowedText text{};
     FontSpec font{};
     PartTextAlignment alignment{PartTextAlignment::start};
     // The text's reading direction (§8.5; owner decision DK-35, J4). A

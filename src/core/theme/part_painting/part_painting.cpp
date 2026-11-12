@@ -1563,4 +1563,39 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     return;
 }
 
+#if GUI_FORMS_CHECKED_BORROWS
+namespace {
+
+// The innermost paint scope on this thread, or null outside any paint call.
+// Each thread paints its own windows, so the stack is per thread.
+thread_local const detail::PaintScope* innermost_paint_scope = nullptr;
+
+} // namespace
+
+detail::PaintScope::PaintScope() noexcept : scope_(), outer_(innermost_paint_scope) {
+    innermost_paint_scope = this;
+}
+
+detail::PaintScope::~PaintScope() {
+    innermost_paint_scope = outer_;
+}
+
+BorrowedText detail::PaintScope::lend_text(std::string_view text) const {
+    const BorrowedText lent = scope_.lend_text(text);
+    return lent;
+}
+
+BorrowedText lend_paint_text(std::string_view text) {
+    const detail::PaintScope* const scope = innermost_paint_scope;
+    if (scope == nullptr) {
+        // No paint call to tie the text to: an empty stamp, which every
+        // check accepts.
+        const BorrowedText untracked(text.data(), text.size(), detail::BorrowStamp{});
+        return untracked;
+    }
+    const BorrowedText lent = (*scope).lend_text(text);
+    return lent;
+}
+#endif
+
 } // namespace gui_forms

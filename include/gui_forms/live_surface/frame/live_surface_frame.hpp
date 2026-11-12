@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/live_surface/types/live_surface_types.hpp"
 
 #include <cstddef>
@@ -43,7 +44,10 @@ public:
     [[nodiscard]] Rect damage() const noexcept { return damage_; }
     // The producer's label given at publish (LiveSurfaceWriteLease::publish).
     [[nodiscard]] std::uint64_t content_tag() const noexcept { return content_tag_; }
-    [[nodiscard]] std::span<const std::byte> pixels() const noexcept;
+    // Borrowed from the frame's buffer: valid while this lease holds it. The
+    // sanitizer tree reports a use after the producer took the buffer back
+    // (this lease gone) or after the buffer died; any thread may read it.
+    [[nodiscard]] BorrowedSpan<std::byte> pixels() const noexcept;
 
 private:
     friend class LiveSurface;

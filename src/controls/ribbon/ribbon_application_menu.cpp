@@ -200,7 +200,7 @@ void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, part);
     part.role = PartRole::caption;
     part.bounds = placed.caption;
-    part.text = (*ribbon_).recent_caption.read();
+    part.text = lend_paint_text((*ribbon_).recent_caption.read());
     paint_part(painter, *this, part);
     part.text = {};
     const double scale = effective_text_scale();
@@ -238,7 +238,7 @@ void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
         const std::string label = row_text(entry);
         part.role = PartRole::label;
         part.bounds = {entry.bounds.x + left, entry.bounds.y, std::max(0.0, entry.bounds.width - left), entry.bounds.height};
-        part.text = label;
+        part.text = lend_paint_text(label);
         paint_part(painter, *this, part);
         part.text = {};
         if (submenu) {

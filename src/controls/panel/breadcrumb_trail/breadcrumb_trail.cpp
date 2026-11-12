@@ -365,7 +365,7 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
         label.family = family;
         label.role = PartRole::label;
         label.states = item_states;
-        label.text = text;
+        label.text = lend_paint_text(text);
         label.font = item_font;
         paint_text_part_at(painter, *this, label, {text_x, baseline},
                            std::max(0.0, item.bounds.x + item.bounds.width - text_x));
@@ -468,7 +468,7 @@ void BreadcrumbTrail::paint_raised(Painter& painter) {
         label.family = family;
         label.role = PartRole::label;
         label.states = item_states;
-        label.text = text;
+        label.text = lend_paint_text(text);
         label.font = item_font;
         const Rect reading_label{text_x, baseline - box_ascent, std::max(0.0, shoulder - text_x - 2.0), box_height};
         label.bounds = mirrored ? horizontally_mirrored(reading_label, bounds) : reading_label;

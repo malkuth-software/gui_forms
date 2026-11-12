@@ -45,7 +45,8 @@ public:
     // The reference services themselves, for tests that drive or read their
     // simulated native state (the backdrop, stage T5).
     [[nodiscard]] HeadlessHostServices& headless_services() noexcept { return services_; }
-    [[nodiscard]] const std::string& trace() const noexcept { return trace_; }
+    [[nodiscard]] const std::string& trace() const& noexcept { return trace_; }
+    const std::string& trace() const&& = delete;
 
 private:
     void request_dispatcher_wake() noexcept;

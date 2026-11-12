@@ -68,7 +68,7 @@ inline bool tab_index_before(const Control::Ptr& left, const Control::Ptr& right
 // (control.hpp), within its stack budget of 4 KiB per level.
 inline Control::Ptr first_focusable(const Control::Ptr& root) {
     if (!root) return {};
-    const std::span<const Control::Ptr> children = (*root).children();
+    const Control::ChildView children = (*root).children();
     std::vector<Control::Ptr> ordered(children.begin(), children.end());
     std::stable_sort(ordered.begin(), ordered.end(), &tab_index_before);
     for (const Control::Ptr& child : ordered) {

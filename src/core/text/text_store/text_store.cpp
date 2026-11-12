@@ -348,6 +348,7 @@ TextEditResult TextStore::replace(Utf8Range range, std::string_view replacement,
     const std::string removed_text(text_, start, removed_bytes);
     text_.reserve(std::max(old_size, next_size));
     text_.replace(start, removed_bytes, replacement);
+    text_lender_.invalidate();
     bool styles_changed = false;
     try {
       std::vector<TextStyleSpan> transformed = transform_style_spans(
@@ -432,6 +433,7 @@ void TextStore::set_style_spans(std::span<const TextStyleSpan> spans) {
       return;
     }
     style_spans_ = std::move(normalized);
+    text_lender_.invalidate();
     ++revision_;
     ++style_update_count_;
   } catch (const std::invalid_argument &) {

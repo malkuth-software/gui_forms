@@ -794,7 +794,7 @@ void TaskDialog::paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeo
     if (label.present) {
         part.role = PartRole::label;
         part.bounds = label.bounds;
-        part.text = icon_letter(icon);
+        part.text = lend_paint_text(icon_letter(icon));
         part.alignment = PartTextAlignment::center;
         FontSpec letter = part.font;
         letter.weight = 700;
@@ -819,7 +819,7 @@ void TaskDialog::on_paint(Painter& painter, Rect) {
         paint_part(painter, *this, part);
         part.role = PartRole::label;
         part.bounds = parts.caption.bounds;
-        part.text = page_.caption;
+        part.text = lend_paint_text(page_.caption);
         paint_part(painter, *this, part);
         part.text = {};
     }

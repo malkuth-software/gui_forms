@@ -547,12 +547,12 @@ void ValueBar::paint_texts(Painter& painter, AnatomyStateSet states, std::option
     text.font = font;
     text.authored_foreground = over_fill;
     if (!name.empty()) {
-        text.text = name;
+        text.text = lend_paint_text(name);
         text.alignment = PartTextAlignment::start;
         if (!over_fill) text.key = PartKey{"label", {}, {}};
         paint_part(painter, *this, text);
     }
-    text.text = shown;
+    text.text = lend_paint_text(shown);
     text.alignment = name.empty() ? PartTextAlignment::center : PartTextAlignment::end;
     text.key = std::nullopt;
     if (!over_fill) text.key = PartKey{"value", {}, {}};

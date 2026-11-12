@@ -391,7 +391,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
         label.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
         label.role = PartRole::content;
         label.states = row_states;
-        label.text = item.text;
+        label.text = lend_paint_text(item.text);
         label.font = row_font;
         if (overridden) label.authored_foreground = selected && focused_ ? style().highlight : style().text;
         const double label_baseline = y + std::max(row_font.size, row_height * 0.5 + 4.0);

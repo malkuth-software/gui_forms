@@ -212,7 +212,7 @@ public:
         part.role = PartRole::label;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{10.0, 10.0, 60.0, 20.0};
-        part.text = "Label";
+        part.text = lend_paint_text("Label");
         return part;
     }
 };

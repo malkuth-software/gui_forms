@@ -450,7 +450,7 @@ void paint_path() {
 
     PartPaint label = face;
     label.role = PartRole::label;
-    label.text = "Text";
+    label.text = lend_paint_text("Text");
     const ThemeEngine::PartPlan label_plan = (*theme).engine().plan(*control, label);
     require(label_plan.drawing == ThemeEngine::PartDrawing::built_in_recipe, "a part no rule matches is built in");
 

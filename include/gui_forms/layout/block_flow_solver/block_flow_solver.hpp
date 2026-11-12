@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -157,14 +158,14 @@ enum class BlockFlowSolveOutcome : std::uint8_t {
 // item or line count does.
 class GUI_FORMS_API BlockFlowLayoutWorkspace final {
 public:
-    [[nodiscard]] std::span<const BlockFlowItemResult> items() const& noexcept {
-        return std::span<const BlockFlowItemResult>(items_.data(), items_.size());
+    [[nodiscard]] BorrowedSpan<BlockFlowItemResult> items() const& noexcept {
+        return detail::lend_view(items_.data(), items_.size(), solve_lender_);
     }
-    std::span<const BlockFlowItemResult> items() const&& = delete;
-    [[nodiscard]] std::span<const BlockFlowLine> lines() const& noexcept {
-        return std::span<const BlockFlowLine>(lines_.data(), lines_.size());
+    BorrowedSpan<BlockFlowItemResult> items() const&& = delete;
+    [[nodiscard]] BorrowedSpan<BlockFlowLine> lines() const& noexcept {
+        return detail::lend_view(lines_.data(), lines_.size(), solve_lender_);
     }
-    std::span<const BlockFlowLine> lines() const&& = delete;
+    BorrowedSpan<BlockFlowLine> lines() const&& = delete;
     // The block end of the last line box or nonempty block, where the
     // content ends before its trailing margins.
     [[nodiscard]] double content_height() const noexcept { return content_height_; }
@@ -195,6 +196,10 @@ private:
     CollapsedMargin leading_margin_{};
     CollapsedMargin trailing_margin_{};
     bool leading_open_{};
+    // Stamps the views above per solve (borrow sanitizer, stage 3): the
+    // next solve or reserve ends the views lent so far, and the sanitizer
+    // tree reports a later use. Empty in the ordinary build.
+    [[no_unique_address]] detail::BorrowLender solve_lender_{};
 };
 
 // Lays the items out. `items` is borrowed for the call. On refusal the

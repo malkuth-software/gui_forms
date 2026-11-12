@@ -8,8 +8,24 @@
 #include "gui_forms/detail/storage_growth.hpp"
 
 #include <cmath>
+#include <cstring>
 #include <string>
 #include <variant>
+
+// The checked build poisons the scratch an invoke lent once it returns
+// (abi_event_fields.hpp); AddressSanitizer's interface, when it is present.
+#if GUI_FORMS_CHECKED_BORROWS
+#if defined(__SANITIZE_ADDRESS__)
+#define GUI_FORMS_EVENT_SCRATCH_POISONED 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define GUI_FORMS_EVENT_SCRATCH_POISONED 1
+#endif
+#endif
+#endif
+#if defined(GUI_FORMS_EVENT_SCRATCH_POISONED)
+#include <sanitizer/asan_interface.h>
+#endif
 
 namespace gui_forms::abi1 {
 namespace {
@@ -84,18 +100,27 @@ gf_status check_written(const gf_value& value, SlotIdentity slot) {
 
 EventFields::~EventFields() {
     release();
+#if GUI_FORMS_CHECKED_BORROWS
+    reclaim_lent_scratch();
+#endif
 }
 
 bool EventFields::claim() noexcept {
     if (claimed_) {
         return false;
     }
+#if GUI_FORMS_CHECKED_BORROWS
+    reclaim_lent_scratch();
+#endif
     claimed_ = true;
     return true;
 }
 
 void EventFields::release() noexcept {
     end_publication();
+#if GUI_FORMS_CHECKED_BORROWS
+    retire_lent_scratch();
+#endif
     for (const gf_object object : lent_) {
         const gf_status released = registry().release(object, lend_slot);
         static_cast<void>(released);
@@ -253,6 +278,11 @@ void EventFields::mark_optional(std::size_t mark, std::string_view name, bool ab
 void EventFields::publish(gf_event& event, bool single_argument) {
     records_.clear();
     records_.reserve(fields_.size());
+#if GUI_FORMS_CHECKED_BORROWS
+    // Room to record every region release() retires: a name and a value
+    // per field, the texts and the records.
+    retired_.reserve(fields_.size() * 2U + texts_used_ + 1U);
+#endif
     std::vector<EventFields*>& frames = active_frames();
     detail::reserve_one_more(frames);
     std::size_t index = 0U;
@@ -289,6 +319,63 @@ void EventFields::end_publication() noexcept {
     }
     event_ = nullptr;
 }
+
+#if GUI_FORMS_CHECKED_BORROWS
+namespace {
+
+// What retired scratch reads as when nothing poisons it: an unlikely byte,
+// so a kept record shows garbage rather than the old values.
+constexpr unsigned char retired_scratch_byte = 0xA5U;
+
+} // namespace
+
+void EventFields::retire_region(void* address, std::size_t size) noexcept {
+    if (address == nullptr || size == 0U) {
+        return;
+    }
+    std::memset(address, retired_scratch_byte, size);
+    if (retired_.size() == retired_.capacity()) {
+        return;
+    }
+    RetiredRegion region{};
+    region.address = address;
+    region.size = size;
+    retired_.push_back(region);
+#if defined(GUI_FORMS_EVENT_SCRATCH_POISONED)
+    ASAN_POISON_MEMORY_REGION(address, size);
+#endif
+}
+
+void EventFields::retire_lent_scratch() noexcept {
+    std::size_t index = 0U;
+    // The characters only, never a string's own fields: poisoning stays
+    // inside [data, data + size), which the string reads only to copy out.
+    for (index = 0U; index < fields_.size(); ++index) {
+        std::string& name = names_[index];
+        retire_region(name.data(), name.size());
+        retire_region(&values_[index], sizeof(gf_value));
+    }
+    for (index = 0U; index < texts_used_; ++index) {
+        std::string& text = texts_[index];
+        retire_region(text.data(), text.size());
+    }
+    // The records are scribbled only: release() clears records_ next, and
+    // the library's own vector annotation then poisons them where it is on.
+    if (!records_.empty()) {
+        std::memset(static_cast<void*>(records_.data()), retired_scratch_byte,
+                    records_.size() * sizeof(gf_event_field));
+    }
+}
+
+void EventFields::reclaim_lent_scratch() noexcept {
+#if defined(GUI_FORMS_EVENT_SCRATCH_POISONED)
+    for (const RetiredRegion& region : retired_) {
+        ASAN_UNPOISON_MEMORY_REGION(region.address, region.size);
+    }
+#endif
+    retired_.clear();
+}
+#endif
 
 bool EventFields::written(std::string_view name, gf_value& value) const {
     std::size_t index = 0U;

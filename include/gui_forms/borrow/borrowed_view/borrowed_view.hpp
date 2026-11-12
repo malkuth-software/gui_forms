@@ -44,7 +44,23 @@
 // A view converts implicitly to the plain view in the checked build too
 // (the stamp is checked once, at the conversion): a caller that keeps the
 // plain std::span is not tracked after that. Spell the borrowed alias
-// (Control::ChildView, BorrowedSpan<T>) to keep the check.
+// (Control::ChildView, BorrowedSpan<T>) to keep the check, and unchecked_view
+// where the plain view is wanted on purpose (a callee that takes std::span
+// and returns before the owner can change).
+//
+// Owners whose views cross threads (the live-surface leases, image pixel
+// storage) lend from a lender made with BorrowThreading::any_thread: its
+// generation is atomic and its views skip the thread check.
+//
+// Call-scope borrows: a detail::BorrowScope is the owner of what a raise or
+// a call lends (an event payload's span, caller-lent text); the views it
+// lends end when the scope does, so a handler that keeps one fails at its
+// next use.
+//
+// Mixed modes are an ODR violation (the types differ). In the checked build
+// every unit that includes this header refers to gui_forms_checked_borrows_v1,
+// which only a checked library defines, so a checked consumer linked against
+// an ordinary library fails at link time instead of misbehaving.
 //
 // Views are made from a pointer and a length, never from a container: the
 // cp28 -ftime-trace study measured libc++'s constrained range constructor
@@ -65,19 +81,48 @@
 #include <vector>
 
 #if GUI_FORMS_CHECKED_BORROWS
+#include <atomic>
 #include <initializer_list>
 #include <iterator>
 #include <memory>
 #include <ranges>
-#include <string>
 #include <thread>
+#endif
+
+#if GUI_FORMS_CHECKED_BORROWS
+// The checked library's link marker (see the header comment). Defined only
+// in a library built with GUI_FORMS_CHECKED_BORROWS.
+extern "C" {
+GUI_FORMS_API extern const int gui_forms_checked_borrows_v1;
+}
 #endif
 
 namespace gui_forms {
 
+namespace detail {
+
+// Which threads may use the views a lender lends. owner_thread (the
+// default): the thread each view was lent on, the rule for UI-thread state
+// (controls, surface roots, collections). any_thread: lenders whose storage
+// is shared across threads (leases, immutable pixel storage); the checked
+// build makes their record at construction and advances it atomically.
+enum class BorrowThreading : std::uint8_t {
+    owner_thread,
+    any_thread,
+};
+
+} // namespace detail
+
 #if GUI_FORMS_CHECKED_BORROWS
 
 namespace detail {
+
+// Every checked unit refers to the marker, so the link needs a checked
+// library. `used` keeps the reference in an optimized unit that never reads
+// it.
+#if defined(__GNUC__) || defined(__clang__)
+[[gnu::used]] static const int* const checked_borrows_link_marker = &gui_forms_checked_borrows_v1;
+#endif
 
 // Why a check failed.
 enum class BorrowFault : std::uint8_t {
@@ -94,15 +139,16 @@ enum class BorrowFault : std::uint8_t {
 };
 
 // One lending storage's state, shared by the storage and every stamp, so a
-// stamp outlives the storage and can tell that it died. Written only on the
-// owner's thread.
+// stamp outlives the storage and can tell that it died. Written by the
+// owner; atomic so an any_thread lender's views read it from other threads
+// (relaxed: a view checks only its own lender's record).
 struct GUI_FORMS_API BorrowOwnerState final {
     // Advanced by every structural change.
-    std::uint64_t generation{};
+    std::atomic<std::uint64_t> generation{0U};
     // Cleared by the storage's destructor.
-    bool alive{true};
+    std::atomic<bool> alive{true};
     // The return address of the last change (the code that made it).
-    const void* last_change_site{};
+    std::atomic<const void*> last_change_site{nullptr};
 };
 
 // What a view carries in the checked build. An empty stamp (no owner) is a
@@ -112,6 +158,8 @@ struct GUI_FORMS_API BorrowStamp final {
     std::uint64_t generation{};
     // The return address of the lending call (the accessor's caller).
     const void* creation_site{};
+    // The thread the view was lent on; the default id (no thread) for an
+    // any_thread lender's view.
     std::thread::id thread{};
 };
 
@@ -125,20 +173,35 @@ struct GUI_FORMS_API BorrowStamp final {
 inline void require_current(const BorrowStamp& stamp) noexcept {
     if (!stamp.owner) return;
     const BorrowOwnerState& state = *stamp.owner;
-    if (!state.alive) fail_borrow(stamp, BorrowFault::owner_destroyed);
-    if (state.generation != stamp.generation) fail_borrow(stamp, BorrowFault::structurally_invalidated);
-    if (std::this_thread::get_id() != stamp.thread) fail_borrow(stamp, BorrowFault::wrong_thread);
+    if (!state.alive.load(std::memory_order_relaxed)) fail_borrow(stamp, BorrowFault::owner_destroyed);
+    if (state.generation.load(std::memory_order_relaxed) != stamp.generation) {
+        fail_borrow(stamp, BorrowFault::structurally_invalidated);
+    }
+    const bool any_thread = stamp.thread == std::thread::id();
+    if (!any_thread && std::this_thread::get_id() != stamp.thread) fail_borrow(stamp, BorrowFault::wrong_thread);
 }
 
-// The owner-state of one lending storage (ruling 5: a shared record). The
-// record is made at the first loan, so storage that never lends allocates
-// nothing. A copy lends afresh; an assignment ends the views lent so far.
+// The owner-state of one lending storage (ruling 5: a shared record). An
+// owner_thread lender makes the record at the first loan, so storage that
+// never lends allocates nothing; an any_thread lender makes it at
+// construction (std::bad_alloc), so no thread races to make it. A copy lends
+// afresh; an assignment ends the views lent so far.
 class GUI_FORMS_API BorrowLender final {
 public:
-    BorrowLender() noexcept : state_() {}
-    BorrowLender(const BorrowLender&) noexcept : state_() {}
+    BorrowLender() noexcept : state_(), threading_(BorrowThreading::owner_thread) {}
+    explicit BorrowLender(BorrowThreading threading);
+    BorrowLender(const BorrowLender& other);
+    // A moved owner's storage now belongs to the new owner: the source's
+    // views end (its record advances) and the record moves along, so an
+    // owner's implicit move stays noexcept.
+    BorrowLender(BorrowLender&& other) noexcept;
     BorrowLender& operator=(const BorrowLender&) noexcept {
         invalidate();
+        return *this;
+    }
+    BorrowLender& operator=(BorrowLender&& other) noexcept {
+        invalidate();
+        other.invalidate();
         return *this;
     }
     ~BorrowLender();
@@ -154,6 +217,7 @@ public:
 
 private:
     mutable std::shared_ptr<BorrowOwnerState> state_;
+    BorrowThreading threading_;
 };
 
 // A random-access iterator over a borrowed view that checks the stamp at
@@ -271,6 +335,12 @@ public:
     // `size` elements at `data`, lent at `stamp`.
     BasicBorrowedSpan(Element* data, std::size_t size, detail::BorrowStamp stamp) noexcept
         : data_(data), size_(size), stamp_(std::move(stamp)) {}
+    // A mutable view read as a const one (BorrowedMutableSpan<T> to
+    // BorrowedSpan<T>), keeping the stamp.
+    template <typename Other>
+        requires(!std::is_same_v<Other, Element> && std::is_convertible_v<Other (*)[], Element (*)[]>)
+    BasicBorrowedSpan(const BasicBorrowedSpan<Other>& other) noexcept
+        : data_(other.data_), size_(other.size_), stamp_(other.stamp_) {}
 
     [[nodiscard]] std::size_t size() const noexcept {
         detail::require_current(stamp_);
@@ -335,14 +405,21 @@ public:
         BasicBorrowedSpan part(data_ + (size_ - count), count, stamp_);
         return part;
     }
-    // The plain view, untracked from here on: the stamp is checked once.
-    operator std::span<Element>() const noexcept {
+    // The plain view, untracked from here on: the stamp is checked once. A
+    // mutable view also converts to the plain const view (as std::span<T>
+    // to std::span<const T>).
+    template <typename Other>
+        requires std::is_convertible_v<Element (*)[], Other (*)[]>
+    operator std::span<Other>() const noexcept {
         detail::require_current(stamp_);
-        const std::span<Element> plain(data_, size_);
+        const std::span<Other> plain(data_, size_);
         return plain;
     }
 
 private:
+    template <typename Other>
+    friend class BasicBorrowedSpan;
+
     Element* data_;
     std::size_t size_;
     detail::BorrowStamp stamp_;
@@ -397,11 +474,25 @@ public:
         BorrowedText part(data_ + offset, length, stamp_);
         return part;
     }
+    [[nodiscard]] std::size_t length() const noexcept {
+        const std::size_t count = size();
+        return count;
+    }
     // The plain view, untracked from here on: the stamp is checked once.
     operator std::string_view() const noexcept {
         detail::require_current(stamp_);
         const std::string_view plain(data_, size_);
         return plain;
+    }
+    // Comparisons with text, as std::string_view's (each checks the stamp).
+    friend bool operator==(const BorrowedText& left, const BorrowedText& right) noexcept {
+        const std::string_view left_text = left;
+        const std::string_view right_text = right;
+        return left_text == right_text;
+    }
+    friend bool operator==(const BorrowedText& left, std::string_view right) noexcept {
+        const std::string_view left_text = left;
+        return left_text == right;
     }
 
 private:
@@ -466,6 +557,8 @@ public:
     using const_reverse_iterator = typename storage_type::const_reverse_iterator;
 
     LendingVector() : storage_(), lender_() {}
+    explicit LendingVector(size_type count) : storage_(count), lender_() {}
+    LendingVector(size_type count, const Element& element) : storage_(count, element), lender_() {}
     LendingVector(storage_type elements) : storage_(std::move(elements)), lender_() {}
     LendingVector(std::initializer_list<Element> elements) : storage_(elements), lender_() {}
     LendingVector(const LendingVector& other) : storage_(other.storage_), lender_() {}
@@ -719,7 +812,76 @@ template <typename Element>
 template <typename Element>
 const std::vector<Element>& lent_storage(const LendingVector<Element>&& storage) = delete;
 
+// Views of storage an owner keeps beside a lender of its own (a lease's
+// buffer, a layout workspace stamped per solve, a text store's characters):
+// `size` elements at `data`, stamped by `lender`. The owner calls
+// lender.invalidate() at each structural change. A public owner declares
+// the lender [[no_unique_address]] (empty in the ordinary build).
+template <typename Element>
+[[nodiscard]] BorrowedSpan<Element> lend_view(const Element* data, std::size_t size, const BorrowLender& lender) {
+    BorrowedSpan<Element> view(data, size, lender.stamp());
+    return view;
+}
+template <typename Element>
+[[nodiscard]] BorrowedMutableSpan<Element> lend_mutable_view(Element* data, std::size_t size,
+                                                             const BorrowLender& lender) {
+    BorrowedMutableSpan<Element> view(data, size, lender.stamp());
+    return view;
+}
+[[nodiscard]] inline BorrowedText lend_text(std::string_view text, const BorrowLender& lender) {
+    BorrowedText view(text.data(), text.size(), lender.stamp());
+    return view;
+}
+
+// The owner of what one raise or call lends (house style section 5: the
+// lifetime is the scope's, not a comment's). Declared before the record it
+// fills; the views it lends end with it, so a handler that kept a payload's
+// span or a caller's text fails at its next use (owner_destroyed). Lives on
+// the raising thread.
+class GUI_FORMS_API BorrowScope final {
+public:
+    BorrowScope() noexcept : lender_() {}
+    BorrowScope(const BorrowScope&) = delete;
+    BorrowScope& operator=(const BorrowScope&) = delete;
+
+    template <typename Element>
+    [[nodiscard]] BorrowedSpan<Element> lend_view(std::span<const Element> elements) const {
+        BorrowedSpan<Element> view(elements.data(), elements.size(), lender_.stamp());
+        return view;
+    }
+    template <typename Element>
+    [[nodiscard]] BorrowedMutableSpan<Element> lend_mutable_view(std::span<Element> elements) const {
+        BorrowedMutableSpan<Element> view(elements.data(), elements.size(), lender_.stamp());
+        return view;
+    }
+    [[nodiscard]] BorrowedText lend_text(std::string_view text) const {
+        BorrowedText view(text.data(), text.size(), lender_.stamp());
+        return view;
+    }
+
+private:
+    BorrowLender lender_;
+};
+
 } // namespace detail
+
+// The plain view of `view`, valid in both builds: the checked build checks
+// the stamp once here and the result is not tracked. For a callee that takes
+// the plain view and returns before the owner can change.
+template <typename Element>
+[[nodiscard]] std::span<Element> unchecked_view(const BasicBorrowedSpan<Element>& view) noexcept {
+    const std::span<Element> plain = view;
+    return plain;
+}
+[[nodiscard]] inline std::string_view unchecked_view(const BorrowedText& view) noexcept {
+    const std::string_view plain = view;
+    return plain;
+}
+template <typename Target>
+[[nodiscard]] Target* unchecked_view(const BorrowedPointer<Target>& pointer) noexcept {
+    Target* const plain = pointer;
+    return plain;
+}
 
 #else // the ordinary build: the plain views
 
@@ -737,6 +899,49 @@ template <typename Element>
 using LendingVector = std::vector<Element>;
 template <typename Target>
 using LendingPointer = Target*;
+
+// The checked build's lender, empty here: owners that keep storage beside a
+// lender hold one in both builds. A public class declares it
+// [[no_unique_address]], so its ordinary layout and size are unchanged.
+class GUI_FORMS_API BorrowLender final {
+public:
+    BorrowLender() noexcept {}
+    explicit BorrowLender(BorrowThreading) noexcept {}
+    void invalidate() noexcept {}
+};
+
+// The ordinary build's call scope: lends the plain views.
+class GUI_FORMS_API BorrowScope final {
+public:
+    BorrowScope() noexcept {}
+    BorrowScope(const BorrowScope&) = delete;
+    BorrowScope& operator=(const BorrowScope&) = delete;
+
+    template <typename Element>
+    [[nodiscard]] BorrowedSpan<Element> lend_view(std::span<const Element> elements) const noexcept {
+        return elements;
+    }
+    template <typename Element>
+    [[nodiscard]] BorrowedMutableSpan<Element> lend_mutable_view(std::span<Element> elements) const noexcept {
+        return elements;
+    }
+    [[nodiscard]] BorrowedText lend_text(std::string_view text) const noexcept { return text; }
+};
+
+template <typename Element>
+[[nodiscard]] inline BorrowedSpan<Element> lend_view(const Element* data, std::size_t size,
+                                                     const BorrowLender&) noexcept {
+    const BorrowedSpan<Element> view(data, size);
+    return view;
+}
+template <typename Element>
+[[nodiscard]] inline BorrowedMutableSpan<Element> lend_mutable_view(Element* data, std::size_t size,
+                                                                    const BorrowLender&) noexcept {
+    const BorrowedMutableSpan<Element> view(data, size);
+    return view;
+}
+[[nodiscard]] inline BorrowedText lend_text(std::string_view text, const BorrowLender&) noexcept { return text; }
+
 
 // A view of every element of `storage`, from its pointer and length (not
 // std::span's range constructor; see the header comment).
@@ -770,6 +975,17 @@ template <typename Element>
 const std::vector<Element>& lent_storage(const LendingVector<Element>&& storage) = delete;
 
 } // namespace detail
+
+// The plain view (the identity here; see the checked build).
+template <typename Element>
+[[nodiscard]] inline std::span<Element> unchecked_view(std::span<Element> view) noexcept {
+    return view;
+}
+[[nodiscard]] inline std::string_view unchecked_view(std::string_view view) noexcept { return view; }
+template <typename Target>
+[[nodiscard]] inline Target* unchecked_view(Target* pointer) noexcept {
+    return pointer;
+}
 
 // The ordinary build compiles exactly the plain views (ruling 2).
 static_assert(std::is_same_v<BorrowedSpan<int>, std::span<const int>>);

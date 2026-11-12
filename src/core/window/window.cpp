@@ -18,6 +18,7 @@
 #include "overlay/overlay_attachment.hpp"
 #include "interaction/interaction_state.hpp"
 #include "../theme/theme_compiler/control_inline_style.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <array>
@@ -74,7 +75,7 @@ std::size_t next_child_position(const Control& parent, const Control* visited, s
                                 std::uint64_t& revision) noexcept {
     if (parent.children_revision() == revision) return position + 1U;
     revision = parent.children_revision();
-    const std::span<const Control::Ptr> children = parent.children();
+    const Control::ChildView children = parent.children();
     for (std::size_t index = 0U; index < children.size(); ++index) {
         if (children[index].get() == visited) return index + 1U;
     }
@@ -247,7 +248,7 @@ void note_hidden_subtree(const Control::Ptr& control, const Control::Ptr& focuse
         pending.pop_back();
         if (!current || !(*current).is_alive() || !(*current).effectively_visible()) continue;
         note_hidden_control(current, focused, hidden);
-        const std::span<const Control::Ptr> children = (*current).children();
+        const Control::ChildView children = (*current).children();
         for (std::size_t index = 0; index < children.size(); ++index) {
             pending.push_back(children[index]);
         }
@@ -5009,6 +5010,10 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                                      recording_painter_};
             recording_control_ = control.get();
             recording_painter_ = &recorder;
+            // The text this control's parts lend (lend_paint_text) is valid
+            // until the recording below ends; a part record kept longer
+            // fails at its next read in the checked build.
+            const detail::PaintScope paint_scope;
             (*control).paint_back_color(recorder, logical_bounds);
             (*control).paint_authored_surface(recorder, logical_bounds);
             (*control).paint_owned_decorations(

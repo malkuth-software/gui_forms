@@ -24,9 +24,10 @@ public:
     void clear_checked();
     [[nodiscard]] AcceleratorToken bind_shortcut(Window& window, KeyGesture gesture);
 
-    [[nodiscard]] const std::string& stable_id() const noexcept {
+    [[nodiscard]] const std::string& stable_id() const& noexcept {
         return stable_id_;
     }
+    const std::string& stable_id() const&& = delete;
     [[nodiscard]] const CommandState& state() const noexcept { return state_; }
     void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
     void set_description(std::string description);

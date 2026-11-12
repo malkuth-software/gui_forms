@@ -708,6 +708,11 @@ public:
 class SchemaTextBoxBase final : public TextBoxBase {
 public:
     explicit SchemaTextBoxBase(StableId stable_id) : TextBoxBase(std::move(stable_id)) {}
+
+protected:
+    // A sample has no editing engine: the editing surface does nothing.
+    [[nodiscard]] detail::TextEditingEngine* editing_engine() const noexcept override { return nullptr; }
+    void apply_selection(TextSelection) override {}
 };
 
 class SchemaListControl final : public ListControl {
@@ -718,6 +723,9 @@ public:
 class SchemaUpDownBase final : public UpDownBase {
 public:
     explicit SchemaUpDownBase(StableId stable_id) : UpDownBase(std::move(stable_id)) {}
+    // A sample has no steps.
+    void up_button() override {}
+    void down_button() override {}
 };
 
 void record_control(const Control& control, std::vector<TypeRecord>& records) {

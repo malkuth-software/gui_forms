@@ -23,6 +23,8 @@ struct CommandBar::Entry final {
 struct CommandBar::Revision final {
     std::vector<CommandItem> items{};
     std::vector<std::shared_ptr<Entry>> entries{};
+    // Stamps items(): replacing the revision ends the views lent from it.
+    detail::BorrowLender lender{};
 };
 
 struct CommandBar::ItemClick final {
@@ -59,9 +61,11 @@ CommandBar::CommandBar(StableId id) : Panel(std::move(id)) {
 }
 CommandBar::~CommandBar() = default;
 
-std::span<const CommandItem> CommandBar::items() const noexcept {
-    if (!revision_) return {};
-    return (*revision_).items;
+BorrowedSpan<CommandItem> CommandBar::items() const noexcept {
+    if (!revision_) return BorrowedSpan<CommandItem>();
+    const std::vector<CommandItem>& current = (*revision_).items;
+    BorrowedSpan<CommandItem> view = detail::lend_view(current.data(), current.size(), (*revision_).lender);
+    return view;
 }
 
 Button& CommandBar::item(const int index) const {
@@ -123,6 +127,9 @@ void CommandBar::set_items(std::vector<CommandItem> items) {
     try {
         clear_shortcuts();
         const std::shared_ptr<Revision> previous = std::exchange(revision_, next);
+        // The items lent from the previous revision end here, even while a
+        // callback still holds that revision.
+        if (previous) (*previous).lender.invalidate();
         if (previous) {
             for (const std::shared_ptr<Entry>& entry : (*previous).entries) {
                 const std::vector<std::shared_ptr<Entry>>::const_iterator found =

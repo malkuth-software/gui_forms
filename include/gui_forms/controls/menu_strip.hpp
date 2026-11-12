@@ -56,9 +56,10 @@ public:
     explicit MenuStrip(StableId stable_id);
     ~MenuStrip() override;
 
-    [[nodiscard]] const std::vector<MenuStripItemSpec>& items() const noexcept {
+    [[nodiscard]] const std::vector<MenuStripItemSpec>& items() const& noexcept {
         return items_;
     }
+    const std::vector<MenuStripItemSpec>& items() const&& = delete;
     void set_items(std::vector<MenuStripItemSpec> items);
     [[nodiscard]] std::optional<std::size_t> active_index() const noexcept {
         return active_index_;

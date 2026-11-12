@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
 #include <cstdint>
@@ -17,8 +18,11 @@ class GUI_FORMS_API TextStore final {
 public:
     explicit TextStore(std::string_view text = {}, TextStoreLimits limits = {});
 
-    [[nodiscard]] std::string_view utf8() const& noexcept { return text_; }
-    std::string_view utf8() const&& = delete;
+    // Borrowed: every edit (replace, set_text, set_style_spans) ends the
+    // views lent so far; the sanitizer tree reports a later use. Byte
+    // offsets taken from a view stay valid as numbers.
+    [[nodiscard]] BorrowedText utf8() const& noexcept { return detail::lend_text(text_, text_lender_); }
+    BorrowedText utf8() const&& = delete;
     [[nodiscard]] Utf8Offset utf8_size() const noexcept {
         return Utf8Offset(text_.size());
     }
@@ -38,10 +42,10 @@ public:
     [[nodiscard]] const TextStoreLimits& limits() const noexcept {
         return limits_;
     }
-    [[nodiscard]] std::span<const TextStyleSpan> style_spans() const& noexcept {
-        return std::span<const TextStyleSpan>(style_spans_.data(), style_spans_.size());
+    [[nodiscard]] BorrowedSpan<TextStyleSpan> style_spans() const& noexcept {
+        return detail::lend_view(style_spans_.data(), style_spans_.size(), text_lender_);
     }
-    std::span<const TextStyleSpan> style_spans() const&& = delete;
+    BorrowedSpan<TextStyleSpan> style_spans() const&& = delete;
 
     void set_text(std::string_view text);
     [[nodiscard]] TextEditResult replace(
@@ -100,6 +104,10 @@ private:
     std::uint64_t metadata_rebuild_count_{};
     std::uint64_t rejected_mutation_count_{};
     mutable std::uint64_t rejected_position_query_count_{};
+    // Stamps utf8() and style_spans(); every change of text_ or
+    // style_spans_ ends the views lent so far. Empty (no storage) in the
+    // ordinary build.
+    [[no_unique_address]] detail::BorrowLender text_lender_{};
 };
 
 } // namespace gui_forms

@@ -721,7 +721,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
         part.bounds = parts.item_label.bounds;
         part.key = PartKey{"item_label", item.stable_id, index};
         const std::string text = item_text(item);
-        part.text = text;
+        part.text = lend_paint_text(text);
         paint_part(painter, *this, part);
         part.text = {};
     }

@@ -50,7 +50,7 @@ bool ToolStripPanel::vertical() const noexcept {
 
 std::vector<std::shared_ptr<ToolStrip>> ToolStripPanel::strips() const {
     std::vector<std::shared_ptr<ToolStrip>> joined;
-    const std::span<const Control::Ptr> owned = children();
+    const Control::ChildView owned = children();
     joined.reserve(owned.size());
     for (const Control::Ptr& child : owned) {
         // join() adds only ToolStrips; a control added otherwise is skipped.
@@ -120,7 +120,7 @@ void ToolStripPanel::place(std::shared_ptr<ToolStrip> strip, const std::shared_p
     // panel's stacking order).
     std::optional<std::size_t> position{};
     if (before) {
-        const std::span<const Control::Ptr> owned = children();
+        const Control::ChildView owned = children();
         for (std::size_t index = 0U; index < owned.size(); ++index) {
             if (owned[index] == before) position = index;
         }

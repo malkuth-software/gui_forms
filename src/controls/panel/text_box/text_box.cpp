@@ -123,16 +123,6 @@ TextBox::~TextBox() {
     }
 }
 
-TextSelection TextBox::selection() const noexcept {
-    const TextSelection result = (*editing_).selection();
-    return result;
-}
-
-bool TextBox::can_undo() const noexcept {
-    const bool result = (*editing_).can_undo();
-    return result;
-}
-
 bool TextBox::can_redo() const noexcept {
     const bool result = (*editing_).can_redo();
     return result;
@@ -303,16 +293,6 @@ void TextBox::written(const decltype(font)&) {
     on_font_changed();
 }
 
-void TextBox::select(Utf8Offset anchor, Utf8Offset caret) {
-    require_mutable();
-    const TextStore& store = (*editing_).store();
-    if (!store.is_grapheme_boundary(anchor) ||
-        !store.is_grapheme_boundary(caret)) {
-        throw std::out_of_range("TextBox selection must use grapheme boundaries");
-    }
-    set_selection({anchor, caret});
-}
-
 Utf16Offset TextBox::utf16_offset(Utf8Offset position) const {
     const Utf16Offset result = (*editing_).store().utf16_offset(position);
     return result;
@@ -320,25 +300,6 @@ Utf16Offset TextBox::utf16_offset(Utf8Offset position) const {
 
 Utf8Offset TextBox::utf8_offset(Utf16Offset position) const {
     const Utf8Offset result = (*editing_).store().utf8_offset(position);
-    return result;
-}
-
-void TextBox::select_all() {
-    set_selection({Utf8Offset(0U), (*editing_).store().utf8_size()});
-}
-
-std::string TextBox::selected_text() const {
-    const std::string result = (*editing_).selected_text();
-    return result;
-}
-
-void TextBox::clear_undo_history() {
-    require_mutable();
-    (*editing_).clear_history();
-}
-
-bool TextBox::undo() {
-    const bool result = (*editing_).undo();
     return result;
 }
 
@@ -357,19 +318,13 @@ bool TextBox::delete_selection() {
     return result;
 }
 
-bool TextBox::copy() {
-    const bool result = (*editing_).copy();
-    return result;
+detail::TextEditingEngine* TextBox::editing_engine() const noexcept {
+    detail::TextEditingEngine* const engine = editing_.get();
+    return engine;
 }
 
-bool TextBox::cut() {
-    const bool result = (*editing_).cut();
-    return result;
-}
-
-bool TextBox::paste() {
-    const bool result = (*editing_).paste();
-    return result;
+void TextBox::apply_selection(TextSelection selection) {
+    set_selection(selection);
 }
 
 void TextBox::set_selection(TextSelection selection, bool reveal_caret) {
@@ -468,7 +423,7 @@ void TextBox::rebuild_multiline_rows(const double width) {
     line_ascent_ = metrics.ascent > 0.0 ? metrics.ascent : content_font.size;
     const ResolvedTextLayout tab_metrics = resolve_text_layout_utf8("    ", content_font);
     const double tab_width = std::max(1.0, tab_metrics.logical_size.width);
-    const std::string_view source = (*editing_).text();
+    const BorrowedText source = (*editing_).text();
     const std::size_t logical_count = (*editing_).store().line_count();
     std::size_t maximum_line_bytes = 0U;
     for (std::size_t logical = 0U; logical < logical_count; ++logical) {
@@ -811,7 +766,7 @@ Rect TextBox::paint_multiline(Painter& painter) {
             continue;
         }
         if (selected) paint_selection_band(painter, selection_bounds);
-        const std::string_view source = (*editing_).text();
+        const BorrowedText source = (*editing_).text();
         if (!selected) {
             for (const VisualRun& run : row.runs) {
                 const Point baseline{origin + run.x, y + line_ascent_};
@@ -850,7 +805,7 @@ Rect TextBox::paint_multiline(Painter& painter) {
             PartPaint cue = text_part;
             cue.tone = PartTextTone::secondary;
             cue.authored_foreground.reset();
-            cue.text = empty_text;
+            cue.text = lend_paint_text(empty_text);
             paint_text_part_at(painter, *this, cue, {text_left_, 4.0 + line_ascent_}, width);
         }
     }
@@ -999,7 +954,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         paint_selection_band(painter, selection_bounds);
     }
     PartPaint text_part = text_part_template(content_font, false);
-    text_part.text = presented;
+    text_part.text = lend_paint_text(presented);
     text_part.measured_text = presented_size;
     if (!(*editing_).store().utf8().empty() && (!focused_ || (*editing_).selection().empty())) {
         paint_text_part_at(painter, *this, text_part, {origin_x, baseline}, 0.0);
@@ -1007,7 +962,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         // Each glyph is drawn once: in the selection's ink inside the band,
         // in the text's ink to either side.
         PartPaint selected_part = text_part_template(content_font, true);
-        selected_part.text = presented;
+        selected_part.text = lend_paint_text(presented);
         selected_part.measured_text = presented_size;
         const double band_width = std::max(0.0, selection_end_x - selection_x);
         const double band_right = selection_x + band_width;
@@ -1031,7 +986,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
             PartPaint cue = text_part_template(content_font, false);
             cue.tone = PartTextTone::secondary;
             cue.authored_foreground.reset();
-            cue.text = empty_text;
+            cue.text = lend_paint_text(empty_text);
             paint_text_part_at(painter, *this, cue, {text_left_, baseline}, viewport);
         }
     }

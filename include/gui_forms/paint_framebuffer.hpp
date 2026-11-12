@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -16,14 +17,17 @@ class ImageRegistry;
 // premultiplied sRGB BGRA8 on every host: blue, green, red and alpha bytes in
 // memory order, the one format of every surface and raster. The buffer
 // survives begin/end; callers may restore cached pixels before drawing damage.
-// A painter and pixel span are borrowed only for this object's lifetime.
+// A painter and pixel span are borrowed only for this object's lifetime;
+// pixels() is a borrowed view stamped by the framebuffer (an implementation
+// lends it from a detail::BorrowLender it keeps), so the sanitizer tree
+// reports a use after the framebuffer died.
 class GUI_FORMS_API PaintFramebuffer {
 public:
     virtual ~PaintFramebuffer() = default;
     virtual bool begin(const ImageRegistry& images, Rect damage) = 0;
     virtual void end() = 0;
     virtual Painter& painter() noexcept = 0;
-    virtual std::span<std::byte> pixels() noexcept = 0;
+    virtual BorrowedMutableSpan<std::byte> pixels() noexcept = 0;
     virtual std::size_t row_bytes() const noexcept = 0;
     virtual std::uint32_t width() const noexcept = 0;
     virtual std::uint32_t height() const noexcept = 0;

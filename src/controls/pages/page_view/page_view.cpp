@@ -43,7 +43,7 @@ public:
     void arrange(Rect final_bounds) override {
         arrange_self(final_bounds);
         const Rect fill{0.0, 0.0, final_bounds.width, final_bounds.height};
-        const std::span<const Control::Ptr> hosted = children();
+        const Control::ChildView hosted = children();
         for (const Control::Ptr& child : hosted) set_child_layout(child, fill);
     }
 

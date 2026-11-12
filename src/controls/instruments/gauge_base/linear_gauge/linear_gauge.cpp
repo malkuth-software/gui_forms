@@ -203,7 +203,7 @@ void LinearGauge::on_paint(Painter& painter, Rect) {
         const std::string shown = value_text();
         PartPaint caption{.role = PartRole::caption, .bounds = placed_rect(placed, placed.caption), .states = states,
                           .family = ControlVisualRole::panel};
-        caption.text = shown;
+        caption.text = lend_paint_text(shown);
         caption.font = value_font(caption_size());
         caption.alignment = PartTextAlignment::center;
         paint_part(painter, *this, caption);

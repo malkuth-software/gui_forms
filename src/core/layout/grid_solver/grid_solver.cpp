@@ -1036,6 +1036,7 @@ void clear_layout(std::vector<GridItemResult>& items, std::vector<GridTrack>& co
 } // namespace
 
 void GridLayoutWorkspace::reserve(std::size_t count) {
+    solve_lender_.invalidate();
     items_.reserve(count);
     column_placements_.reserve(count);
     row_placements_.reserve(count);
@@ -1067,6 +1068,8 @@ double GridLayoutWorkspace::area_extent(std::size_t index, GridAxis axis) const 
 
 GridSolveOutcome place_grid_items(const GridContainerStyle& style, const GridContainerInput& container,
                                   std::span<const GridItemInput> items, GridLayoutWorkspace& workspace) {
+    // A new solve: the views of the last one end (they may relocate below).
+    workspace.solve_lender_.invalidate();
     workspace.placed_ = false;
     workspace.columns_sized_ = false;
     workspace.rows_sized_ = false;

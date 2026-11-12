@@ -449,7 +449,7 @@ void RibbonColorPicker::palette_paint(Painter& painter) const {
         if (parts.entry_label.present) {
             part.role = PartRole::label;
             part.bounds = parts.entry_label.bounds;
-            part.text = "Automatic";
+            part.text = lend_paint_text("Automatic");
             paint_part(painter, surface, part);
             part.text = {};
         }

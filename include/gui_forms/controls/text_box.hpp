@@ -23,37 +23,6 @@
 
 namespace gui_forms {
 
-struct GUI_FORMS_API TextSelection final {
-    Utf8Offset anchor{};
-    Utf8Offset caret{};
-
-    [[nodiscard]] Utf8Offset start() const noexcept {
-        const std::size_t first = std::min(anchor.value(), caret.value());
-        const Utf8Offset result(first);
-        return result;
-    }
-    [[nodiscard]] Utf8Offset end() const noexcept {
-        const std::size_t last = std::max(anchor.value(), caret.value());
-        const Utf8Offset result(last);
-        return result;
-    }
-    [[nodiscard]] std::size_t length() const noexcept {
-        const Utf8Offset first = start();
-        const Utf8Offset last = end();
-        const std::size_t result = last.value() - first.value();
-        return result;
-    }
-    [[nodiscard]] bool empty() const noexcept {
-        const bool result = anchor == caret;
-        return result;
-    }
-    friend constexpr bool operator==(const TextSelection& left,
-                                     const TextSelection& right) noexcept {
-        const bool result = left.anchor == right.anchor && left.caret == right.caret;
-        return result;
-    }
-};
-
 // The kind of user edit a TextBox offers its edit filter.
 enum class TextEditKind : std::uint8_t {
     typing,    // text input (including composition), Tab and Enter in a multiline box, replace_selection
@@ -124,8 +93,8 @@ public:
         const bool result = use_system_password_character.read() || password_character.read() != U'\0';
         return result;
     }
-    [[nodiscard]] TextSelection selection() const noexcept;
-    void select(Utf8Offset anchor, Utf8Offset caret);
+    // The selection, select, select_all, selected_text, can_undo, undo,
+    // clear_undo_history and the clipboard are TextBoxBase's.
     // The UTF-16 position of a byte offset in the text, and the byte offset
     // of a UTF-16 position, as the box's text store converts them (a
     // Windows Forms selection is in UTF-16 units). Throw std::out_of_range
@@ -133,20 +102,10 @@ public:
     // halves of a surrogate pair.
     [[nodiscard]] Utf16Offset utf16_offset(Utf8Offset position) const;
     [[nodiscard]] Utf8Offset utf8_offset(Utf16Offset position) const;
-    void select_all();
-    [[nodiscard]] std::string selected_text() const;
-    [[nodiscard]] bool can_undo() const noexcept;
     [[nodiscard]] bool can_redo() const noexcept;
-    bool undo();
     bool redo();
-    // Establish a new history boundary without replacing text, moving the
-    // selection/viewport, or publishing text/selection change events.
-    void clear_undo_history();
     bool replace_selection(std::string_view replacement);
     bool delete_selection();
-    bool copy();
-    bool cut();
-    bool paste();
     // The edit filter sees every user edit (TextEditKind) after the TextBox's
     // own checks (read-only, UTF-8, grapheme boundaries) and before it is
     // applied; a composite control uses it to refuse or rewrite input, as
@@ -280,6 +239,9 @@ protected:
     void on_auto_scroll_changed(Point previous_position) override;
     void on_detached_from_window() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
+    // TextBoxBase's hooks: the engine this box owns, and set_selection.
+    [[nodiscard]] detail::TextEditingEngine* editing_engine() const noexcept override;
+    void apply_selection(TextSelection selection) override;
 
 private:
     // What the empty field shows in light grey: the placeholder, else the

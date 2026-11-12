@@ -74,11 +74,15 @@ public:
     HelpTopic& operator=(HelpTopic&&) = delete;
 
     [[nodiscard]] const StableId& stable_id() const noexcept { return stable_id_; }
-    [[nodiscard]] const std::string& title() const noexcept { return title_; }
-    [[nodiscard]] const std::string& body() const noexcept { return body_; }
+    [[nodiscard]] const std::string& title() const& noexcept { return title_; }
+    const std::string& title() const&& = delete;
+    [[nodiscard]] const std::string& body() const& noexcept { return body_; }
+    const std::string& body() const&& = delete;
     [[nodiscard]] const HelpPlace& place() const noexcept { return place_; }
-    [[nodiscard]] const std::string& help_line() const noexcept { return help_line_; }
-    [[nodiscard]] const std::string& keywords() const noexcept { return keywords_; }
+    [[nodiscard]] const std::string& help_line() const& noexcept { return help_line_; }
+    const std::string& help_line() const&& = delete;
+    [[nodiscard]] const std::string& keywords() const& noexcept { return keywords_; }
+    const std::string& keywords() const&& = delete;
 
     // The first declared topic, in declaration order, or null; `next` walks
     // the rest. The pointers stay valid while the topics live.

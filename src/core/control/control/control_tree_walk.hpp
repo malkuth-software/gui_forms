@@ -65,7 +65,7 @@ inline Control* SubtreeWalk::next() noexcept {
     last_ = nullptr;
     while (depth_ > 0U) {
         Frame& frame = frames_[depth_ - 1U];
-        const std::span<const Control::Ptr> children = (*frame.control).children();
+        const Control::ChildView children = (*frame.control).children();
         if (frame.next_child >= children.size()) {
             --depth_;
             continue;

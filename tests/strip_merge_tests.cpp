@@ -47,7 +47,7 @@ MenuItemSpec menu_command(const std::string& id, const std::string& text, MergeA
     return item;
 }
 
-std::string ids(const std::vector<ToolStripItemSpec>& items) {
+std::string ids(BorrowedSpan<ToolStripItemSpec> items) {
     std::string joined{};
     for (const ToolStripItemSpec& item : items) {
         if (!joined.empty()) joined += ' ';

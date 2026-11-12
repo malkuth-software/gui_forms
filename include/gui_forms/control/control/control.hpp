@@ -415,8 +415,22 @@ public:
     // child_at count): index 0 paints first, the last child paints on top.
     // A borrowed view: in the sanitizer tree (GUI_FORMS_CHECKED_BORROWS) it
     // reports a use after the child list changed or this control died.
-    [[nodiscard]] BorrowedSpan<Ptr> children() const& noexcept { return detail::lend_view(children_); }
-    BorrowedSpan<Ptr> children() const&& = delete;
+    // Spell ChildView to keep the check; a walk that calls out to code that
+    // may edit the tree (measure, arrange, events) walks child_count() and
+    // child_at() instead.
+    using ChildView = BorrowedSpan<Ptr>;
+    [[nodiscard]] ChildView children() const& noexcept { return detail::lend_view(children_); }
+    ChildView children() const&& = delete;
+    // The number of children, and the child at `index` in children()'s order
+    // as a shared copy (null past the end). The copy keeps the child alive
+    // across a callback; re-read child_count() after one, since the list may
+    // have changed (children_revision() tells).
+    [[nodiscard]] std::size_t child_count() const noexcept { return children_.size(); }
+    [[nodiscard]] Ptr child_at(std::size_t index) const {
+        if (index >= children_.size()) return Ptr();
+        Ptr child = children_[index];
+        return child;
+    }
     // Advances whenever the child list changes (an add, a removal, a new
     // order, a disposal), so a walk that indexes the live list instead of
     // copying it can tell that a callback changed it meanwhile (audit N84).
@@ -711,8 +725,10 @@ public:
     // theme compiles it again (ApplicationResources::set_theme,
     // set_theme_override, attachment).
     [[nodiscard]] InlineStyleResult set_inline_style(std::string_view text);
-    // The inline style's text in force; empty without one.
-    [[nodiscard]] std::string_view inline_style() const noexcept;
+    // The inline style's text in force; empty without one. Valid until the
+    // style is set, cleared or recompiled for a theme change (checked
+    // builds fail fast on a later read).
+    [[nodiscard]] BorrowedText inline_style() const noexcept;
     // Its compiled rules (CompiledThemeRules::compile_inline), or null
     // without one; the cascade reads them for this control alone.
     [[nodiscard]] const CompiledThemeRules* inline_style_rules() const noexcept;
@@ -1849,6 +1865,8 @@ private:
                           ControlStyles::standard_double_click |
                           ControlStyles::selectable};
     std::shared_ptr<const detail::ControlInlineStyle> inline_style_;
+    // Ends inline_style() views whenever inline_style_ is replaced.
+    [[no_unique_address]] detail::BorrowLender inline_style_lender_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
     std::optional<SurfaceMaterial> authored_surface_material_;

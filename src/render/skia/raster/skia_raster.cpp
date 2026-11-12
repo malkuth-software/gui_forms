@@ -924,6 +924,9 @@ bool SkiaRaster::register_bundled_fonts(std::shared_ptr<gui_forms::detail::Bundl
 class SkiaFramebuffer final : public PaintFramebuffer {
 public:
     SkiaRaster raster;
+    // Stamps pixels(): the raster's buffer keeps its place for the
+    // framebuffer's life, so only the framebuffer's death ends the views.
+    gui_forms::detail::BorrowLender lender;
     bool begin(const ImageRegistry& images, Rect damage) override {
         if (!raster.synchronize_images(images)) return false;
         DamageRegion region;
@@ -933,8 +936,10 @@ public:
     }
     void end() override { raster.end_frame(); }
     Painter& painter() noexcept override { return raster; }
-    std::span<std::byte> pixels() noexcept override {
-        return {static_cast<std::byte*>(const_cast<void*>(raster.pixels())), raster.byte_size()};
+    BorrowedMutableSpan<std::byte> pixels() noexcept override {
+        std::byte* const bytes = static_cast<std::byte*>(const_cast<void*>(raster.pixels()));
+        BorrowedMutableSpan<std::byte> view = gui_forms::detail::lend_mutable_view(bytes, raster.byte_size(), lender);
+        return view;
     }
     std::size_t row_bytes() const noexcept override { return raster.row_bytes(); }
     std::uint32_t width() const noexcept override { return raster.pixel_width(); }

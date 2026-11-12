@@ -185,14 +185,14 @@ void StepIndicator::on_paint(Painter& painter, Rect) {
             const std::string number = decimal(index + 1U);
             PartPaint label{.role = PartRole::label, .bounds = step.chip, .states = chip_states,
                             .family = ControlVisualRole::selection};
-            label.text = number;
+            label.text = lend_paint_text(number);
             label.font = numbers;
             label.alignment = PartTextAlignment::center;
             paint_part(painter, *this, label);
         }
         PartPaint caption{.role = PartRole::caption, .bounds = step.caption, .states = states,
                           .family = ControlVisualRole::panel};
-        caption.text = steps_[index];
+        caption.text = lend_paint_text(steps_[index]);
         caption.font = captions;
         caption.alignment = PartTextAlignment::center;
         caption.tone = index == current ? PartTextTone::ordinary : PartTextTone::secondary;

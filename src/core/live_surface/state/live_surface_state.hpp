@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/live_surface/types/live_surface_types.hpp"
 
 #include <atomic>
@@ -15,6 +16,11 @@ struct LiveSurfaceBuffer final {
     LiveSurfaceDescription description{};
     std::uint64_t row_bytes{};
     std::vector<std::byte> pixels;
+    // Stamps the leases' pixel views (borrow sanitizer, stage 3). A write
+    // lease's views end when it publishes or abandons the buffer; a frame's
+    // when the producer acquires the buffer again for writing. Readers and
+    // the producer are on different threads, so any_thread.
+    BorrowLender lender{BorrowThreading::any_thread};
 };
 
 struct LiveSurfaceWake final {

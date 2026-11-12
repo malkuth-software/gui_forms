@@ -478,7 +478,8 @@ public:
     [[nodiscard]] Rect drag_stamp() const noexcept;
     // What the drag announces now ("Output: dock right of Properties"), or
     // empty while idle.
-    [[nodiscard]] const std::string& drag_announcement() const noexcept { return drag_.announcement; }
+    [[nodiscard]] const std::string& drag_announcement() const& noexcept { return drag_.announcement; }
+    const std::string& drag_announcement() const&& = delete;
     // Starts the keyboard move mode for a panel docked in this site, on the
     // first planned target. False, starting nothing, for any other panel,
     // while a drag runs, or when there is no target.

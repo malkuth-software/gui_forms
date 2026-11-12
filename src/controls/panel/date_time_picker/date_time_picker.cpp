@@ -280,7 +280,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     content.font = field_font;
     content.authored_foreground = ink;
     const std::string text = formatted_value();
-    content.text = text;
+    content.text = lend_paint_text(text);
     const Size measured = painter.measure_text_utf8(text, field_font);
     const double box_height = std::max(measured.height, field_font.size * 1.2);
     const double box_ascent = std::max(field_font.size, box_height * 0.82);

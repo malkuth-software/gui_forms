@@ -81,7 +81,8 @@ public:
     CommandTarget(const CommandTarget&) = delete;
     CommandTarget& operator=(const CommandTarget&) = delete;
 
-    [[nodiscard]] const std::string& name() const noexcept { return name_; }
+    [[nodiscard]] const std::string& name() const& noexcept { return name_; }
+    const std::string& name() const&& = delete;
 
     // Installs the handler for the command with identity `command_id`,
     // replacing any it had. An empty identity or an unbound delegate throws

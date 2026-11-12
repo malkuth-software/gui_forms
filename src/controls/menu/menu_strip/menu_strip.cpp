@@ -364,7 +364,7 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
         label.family = ControlVisualRole::menu_item;
         label.role = PartRole::label;
         label.states = plate_states;
-        label.text = text;
+        label.text = lend_paint_text(text);
         label.font = item_font;
         paint_text_part_at(painter, *this, label,
                            {text_x, item.y + std::max(item_font.size, item.height * 0.5 + item_font.size * 0.35)},

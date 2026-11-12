@@ -44,7 +44,7 @@ bool valid_format(MaskTextFormat format) noexcept {
 } // namespace
 
 MaskedTextBox::MaskedTextBox(StableId stable_id, std::string initial_mask)
-    : TextBoxBase(std::move(stable_id)), provider_(std::move(initial_mask)) {
+    : TextBoxBase(std::move(stable_id), UndoHistory::none), provider_(std::move(initial_mask)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     border_style = BorderStyle::none;
     published_text_ = text.read();
@@ -397,6 +397,17 @@ MaskEditResult MaskedTextBox::place_text(std::string_view incoming) {
     provider_ = std::move(candidate);
     show_provider();
     return result;
+}
+
+detail::TextEditingEngine* MaskedTextBox::editing_engine() const noexcept {
+    if (!editor_) return nullptr;
+    detail::TextEditingEngine* const engine = engine_of(*editor_);
+    return engine;
+}
+
+void MaskedTextBox::apply_selection(TextSelection selection) {
+    // The field shows the selection and raises its own selection_changed.
+    if (editor_) (*editor_).select(selection.anchor, selection.caret);
 }
 
 void MaskedTextBox::clear() {

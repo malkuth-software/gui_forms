@@ -223,7 +223,8 @@ public:
     [[nodiscard]] Event<HelpPrintRequest&>& print_requested() noexcept { return print_requested_; }
     [[nodiscard]] Event<const std::vector<std::string>&>& bookmarks_changed() noexcept { return bookmarks_changed_; }
     void set_bookmarks(std::vector<std::string> stable_ids);
-    [[nodiscard]] const std::vector<std::string>& bookmarks() const noexcept { return bookmarks_; }
+    [[nodiscard]] const std::vector<std::string>& bookmarks() const& noexcept { return bookmarks_; }
+    const std::vector<std::string>& bookmarks() const&& = delete;
 
     // The accelerators' targets in an attached window: F1 shows the focused
     // control's help (ending What's This when it is on), Shift+F1 enters

@@ -58,9 +58,10 @@ public:
     explicit QuickAccessToolbar(StableId stable_id);
     ~QuickAccessToolbar() override;
 
-    [[nodiscard]] const std::vector<QuickAccessToolbarCommand>& commands() const noexcept {
+    [[nodiscard]] const std::vector<QuickAccessToolbarCommand>& commands() const& noexcept {
         return commands_;
     }
+    const std::vector<QuickAccessToolbarCommand>& commands() const&& = delete;
     // Declares the commands, in toolbar order, and shows those marked shown,
     // replacing any customization. Throws std::invalid_argument for a missing
     // command, an empty or repeated command ID, or more than
@@ -70,9 +71,10 @@ public:
     // set_shown_command_ids this may include IDs that name no declared
     // command: they are kept in place and show nothing, so a saved state
     // from a later version survives a round trip.
-    [[nodiscard]] const std::vector<std::string>& shown_command_ids() const noexcept {
+    [[nodiscard]] const std::vector<std::string>& shown_command_ids() const& noexcept {
         return shown_ids_;
     }
+    const std::vector<std::string>& shown_command_ids() const&& = delete;
     // Shows exactly these commands, in this order (restoring saved state).
     // Emits no customized events. Throws std::invalid_argument for an empty,
     // invalid UTF-8 or repeated ID, or more than maximum_commands IDs.

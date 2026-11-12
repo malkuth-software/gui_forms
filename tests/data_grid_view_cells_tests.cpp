@@ -111,7 +111,9 @@ public:
     }
     void end() override {}
     Painter& painter() noexcept override { return painter_; }
-    std::span<std::byte> pixels() noexcept override { return pixels_; }
+    BorrowedMutableSpan<std::byte> pixels() noexcept override {
+        return detail::lend_mutable_view(pixels_.data(), pixels_.size(), lender_);
+    }
     std::size_t row_bytes() const noexcept override { return static_cast<std::size_t>(width_) * 4U; }
     std::uint32_t width() const noexcept override { return width_; }
     std::uint32_t height() const noexcept override { return height_; }
@@ -122,6 +124,7 @@ private:
     std::vector<std::byte> pixels_;
     std::shared_ptr<TextLog> log_;
     TextPainter painter_;
+    detail::BorrowLender lender_;
 };
 
 // The window's framebuffer painter: makes TextFramebuffers sharing one log.

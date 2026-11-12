@@ -18,8 +18,10 @@ namespace gui_forms {
 // of the control, and the two subscriptions the control holds on them. Each
 // derived class makes the parts in its initialize_control_tree (the field's
 // configuration and the subscriptions' targets are its own); until then
-// both are null. It declares no virtual function of its own: the stepping
-// and the text each derived class gives the field are its own.
+// both are null. Its own virtual functions are the stepping pair Windows
+// Forms makes abstract here (UpButton, DownButton; owner-accepted base
+// proposal, CP29 I5): each derived class steps its own way, and the text it
+// gives the field stays its own.
 class GUI_FORMS_API UpDownBase : public Panel {
 public:
     ~UpDownBase() override;
@@ -28,6 +30,13 @@ public:
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
     // Focus on the control goes to its edit field (null without one).
     [[nodiscard]] Ptr focus_target() const override { return editor_; }
+
+    // One step up and one step down, as the spin column's halves step: the
+    // derived class says what a step is (NumericUpDown adds or subtracts its
+    // increment within the range; DomainUpDown moves to the previous or the
+    // next item). Neither moves the focus.
+    virtual void up_button() = 0;
+    virtual void down_button() = 0;
 
 protected:
     explicit UpDownBase(StableId stable_id);

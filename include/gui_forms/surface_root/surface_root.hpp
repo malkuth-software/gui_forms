@@ -44,6 +44,7 @@
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -432,6 +433,26 @@ struct GUI_FORMS_API WindowCapture final {
 // live-surface composition, host key-map seeding, resize and scale); a
 // sub-surface (stage S2) is one whose output is a LiveSurface. The root is
 // bound to the thread that constructs it and never changes thread.
+// A weak handle on a Window, for a holder that keeps it across callbacks
+// (borrow sanitizer study, section 2.5: retention is not a borrow). Built on
+// the root's lifetime record (detail::WindowLifetime), which the Window
+// clears in its destructor and releases with itself, so a holder never reads
+// a freed window. Made by SurfaceRoot::window_ref(); UI thread only.
+class GUI_FORMS_API WindowRef final {
+public:
+    WindowRef() noexcept : lifetime_() {}
+    explicit WindowRef(std::weak_ptr<detail::WindowLifetime> lifetime) noexcept : lifetime_(std::move(lifetime)) {}
+
+    // The window while it lives, else null. A borrow for the current call:
+    // read it again after any callback rather than keeping the pointer.
+    [[nodiscard]] Window* get() const noexcept;
+    // Forgets the window.
+    void reset() noexcept { lifetime_.reset(); }
+
+private:
+    std::weak_ptr<detail::WindowLifetime> lifetime_;
+};
+
 class GUI_FORMS_API SurfaceRoot {
 public:
     SurfaceRoot(const SurfaceRoot&) = delete;
@@ -448,6 +469,9 @@ public:
     [[nodiscard]] BorrowedPointer<Window> presenting_window() const noexcept {
         return detail::lend_pointer(presenting_window_);
     }
+    // A weak handle on the Window this root is (one that answers null for a
+    // root presented some other way): what a holder keeps across callbacks.
+    [[nodiscard]] WindowRef window_ref() const;
 
     // Posts `callback` to run on the root's thread at its next dispatcher
     // turn (drain_posted_work). The owned overload cancels the work when

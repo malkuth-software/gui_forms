@@ -52,7 +52,7 @@ public:
         PartPaint content = face;
         content.role = PartRole::content;
         content.bounds = text_bounds_;
-        content.text = text_;
+        content.text = lend_paint_text(text_);
         content.font = font_;
         content.alignment = PartTextAlignment::start;
         paint_part(painter, *this, content);

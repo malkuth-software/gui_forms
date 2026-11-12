@@ -1516,7 +1516,7 @@ void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, cons
     if (parts.row_header_label.present) {
         part.role = PartRole::label;
         part.bounds = parts.row_header_label.bounds;
-        part.text = rows.read()[row.value].header_text;
+        part.text = lend_paint_text(rows.read()[row.value].header_text);
         part.alignment = text_alignment(style.alignment, *this);
         part.authored_foreground = parts.row_header_label.authored_foreground;
         paint_part(painter, *this, part);
@@ -1653,7 +1653,7 @@ void DataGridView::paint_column_header(Painter& painter, std::size_t column, con
         const DataGridViewColumn& definition = columns_[column];
         part.role = PartRole::label;
         part.bounds = parts.column_label.bounds;
-        part.text = definition.header_text;
+        part.text = lend_paint_text(definition.header_text);
         part.alignment = text_alignment(style.alignment, *this);
         part.authored_foreground = parts.column_label.authored_foreground;
         paint_part(painter, *this, part);

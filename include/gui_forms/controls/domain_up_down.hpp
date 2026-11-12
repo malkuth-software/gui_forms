@@ -48,8 +48,8 @@ public:
 
     // The previous item (up) or the next (down). With no selection, up
     // selects the last item and down the first. No effect without items.
-    void up_button();
-    void down_button();
+    void up_button() override;
+    void down_button() override;
 
     // Raised after the selection changes, with the new selection.
     [[nodiscard]] Event<std::optional<std::size_t>>& selected_index_changed() noexcept {

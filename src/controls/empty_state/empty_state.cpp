@@ -193,7 +193,7 @@ void EmptyState::on_paint(Painter& painter, Rect) {
     if (!heading.empty()) {
         PartPaint caption{.role = PartRole::caption, .bounds = placed.caption, .states = states,
                           .family = ControlVisualRole::panel};
-        caption.text = heading;
+        caption.text = lend_paint_text(heading);
         caption.font = title_font();
         caption.alignment = PartTextAlignment::center;
         paint_part(painter, *this, caption);
@@ -202,7 +202,7 @@ void EmptyState::on_paint(Painter& painter, Rect) {
     if (!body.empty()) {
         PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                         .family = ControlVisualRole::panel};
-        label.text = body;
+        label.text = lend_paint_text(body);
         label.font = description_font();
         label.alignment = PartTextAlignment::center;
         label.tone = PartTextTone::secondary;

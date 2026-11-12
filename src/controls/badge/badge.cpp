@@ -127,7 +127,7 @@ void Badge::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, face);
     if (shown.empty()) return;
     PartPaint label{.role = PartRole::label, .bounds = chip, .states = states, .family = ControlVisualRole::badge};
-    label.text = shown;
+    label.text = lend_paint_text(shown);
     label.font = chip_font();
     label.alignment = PartTextAlignment::center;
     paint_part(painter, *this, label);

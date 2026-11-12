@@ -177,7 +177,7 @@ void append_control_help_fields(const SurfaceRoot& window, LocaleLayer& layer) {
             record.stable_id = std::string(control.stable_id().value());
             found.push_back(std::move(record));
         }
-        const std::span<const Control::Ptr> children = control.children();
+        const Control::ChildView children = control.children();
         for (std::size_t index = children.size(); index > 0U; --index) {
             const Control::Ptr& child = children[index - 1U];
             if (child) pending.push_back(SkeletonVisit{child, visit.depth + 1U});
@@ -206,7 +206,7 @@ void append_help_skeleton(const SurfaceRoot& window, std::vector<HelpSkeletonNod
         const SkeletonVisit visit = std::move(pending.back());
         pending.pop_back();
         const Control& control = *visit.control;
-        const std::span<const Control::Ptr> children = control.children();
+        const Control::ChildView children = control.children();
         HelpSkeletonNode node{};
         node.stable_id = std::string(control.stable_id().value());
         node.name = skeleton_name(control);

@@ -383,7 +383,7 @@ void TokenBox::on_paint(Painter& painter, Rect) {
         paint_part(painter, *this, part);
         part.role = PartRole::label;
         part.bounds = placement.label;
-        part.text = token.text;
+        part.text = lend_paint_text(token.text);
         part.font = token_font;
         paint_part(painter, *this, part);
         part.text = {};

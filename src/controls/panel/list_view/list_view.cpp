@@ -1676,7 +1676,7 @@ void ListView::paint_column(Painter& painter, const Layout& placed, std::size_t 
     part.bounds = parts.column_label.bounds;
     part.alignment = text_alignment(columns_[column].alignment);
     details_detail::elide_to_width(painter, columns_[column].text, part.font, part.bounds.width, paint_text_);
-    part.text = paint_text_;
+    part.text = lend_paint_text(paint_text_);
     paint_shown(painter, placed, part);
     part.text = {};
     part.alignment = PartTextAlignment::start;
@@ -1771,7 +1771,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
     part.alignment = view.read() == ListViewView::large_icon ? PartTextAlignment::center : PartTextAlignment::start;
     if (default_content) {
         details_detail::elide_to_width(painter, item.text, part.font, part.bounds.width, paint_text_);
-        part.text = paint_text_;
+        part.text = lend_paint_text(paint_text_);
         paint_shown(painter, placed, part);
         part.text = {};
     }
@@ -1804,7 +1804,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
             part.alignment = text_alignment(columns_[column].alignment);
             details_detail::elide_to_width(painter, column_text(item, column), part.font, part.bounds.width,
                                            paint_text_);
-            part.text = paint_text_;
+            part.text = lend_paint_text(paint_text_);
             paint_shown(painter, placed, part);
             part.text = {};
         }
@@ -1854,7 +1854,7 @@ bool ListView::paint_tile_lines(Painter& painter, const Layout& placed, std::siz
         }
         details_detail::elide_to_width(painter, column_text(item, column), part.font, bounds.width, paint_text_);
         part.bounds = bounds;
-        part.text = paint_text_;
+        part.text = lend_paint_text(paint_text_);
         paint_shown(painter, placed, part);
         part.text = {};
     }
@@ -1876,7 +1876,7 @@ void ListView::paint_group(Painter& painter, const Layout& placed, std::size_t b
     part.alignment = group < groups_.size() ? text_alignment(groups_[group].header_alignment)
                                             : PartTextAlignment::start;
     details_detail::elide_to_width(painter, group_header(group), part.font, part.bounds.width, paint_text_);
-    part.text = paint_text_;
+    part.text = lend_paint_text(paint_text_);
     paint_shown(painter, placed, part);
     part.text = {};
     part.role = PartRole::divider;

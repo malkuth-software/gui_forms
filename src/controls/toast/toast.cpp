@@ -217,7 +217,7 @@ void Toast::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, icon);
     PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                     .family = ControlVisualRole::notice};
-    label.text = content_.message;
+    label.text = lend_paint_text(content_.message);
     label.font = message_font();
     paint_part(painter, *this, label);
     if (content_.closable) {

@@ -1622,11 +1622,13 @@ public:
     // How many scoped custom property names the rules' conditions read
     // (P12).
     [[nodiscard]] std::size_t scoped_name_count() const noexcept { return scoped_names_.size(); }
-    [[nodiscard]] const std::vector<RuleDiagnostic>& diagnostics() const noexcept { return diagnostics_; }
+    [[nodiscard]] const std::vector<RuleDiagnostic>& diagnostics() const& noexcept { return diagnostics_; }
+    const std::vector<RuleDiagnostic>& diagnostics() const&& = delete;
 
     // The published values the sheet's expressions read, in position order
     // (an invalid name is kept empty, so later positions stay).
-    [[nodiscard]] const std::vector<std::string>& published_values() const noexcept { return published_values_; }
+    [[nodiscard]] const std::vector<std::string>& published_values() const& noexcept { return published_values_; }
+    const std::vector<std::string>& published_values() const&& = delete;
     // The position of the published value `name`, or none when the sheet
     // does not read it.
     [[nodiscard]] std::optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept;

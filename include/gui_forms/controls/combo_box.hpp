@@ -23,6 +23,11 @@ namespace gui_forms {
 
 class GUI_FORMS_API ComboBox final : public ListControl, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox> {
 public:
+    // The selected_index cell, which hides ListControl::selected_index()
+    // here; ListControl's reads the same index. selected_index_changed is
+    // ListControl's.
+    using ComboBoxSelectedIndexCapability<ComboBox>::selected_index;
+
     explicit ComboBox(StableId stable_id);
     ~ComboBox() override;
 
@@ -51,9 +56,6 @@ public:
     }
     std::span<const std::size_t> drop_down_items() const&& = delete;
 
-    [[nodiscard]] Event<std::optional<std::size_t>>& selected_index_changed() noexcept {
-        return selected_index_changed_;
-    }
     [[nodiscard]] Event<bool>& drop_down_changed() noexcept {
         return drop_down_changed_;
     }
@@ -195,7 +197,6 @@ private:
     std::string filter_pattern_;
     // The items as candidates, for the list_items source; rebuilt with them.
     std::shared_ptr<AutoCompleteStringCollection> list_items_source_;
-    Event<std::optional<std::size_t>> selected_index_changed_;
     Event<bool> drop_down_changed_;
     Event<> items_changed_;
     Event<const std::string&> text_changed_;
