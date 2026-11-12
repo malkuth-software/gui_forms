@@ -29,6 +29,9 @@ include/gui_forms/ that belongs to those archives, and writes the lists:
         marks; exits 1 when there is one.
     python3 -B tools/export_annotations.py exports
         Rewrites the export lists that differ from the marks.
+    python3 -B tools/export_annotations.py selftest
+        Checks the generated globs against mangled sample names (libstdc++'s
+        ABI tags among them); `check` without HEADER arguments runs it too.
     python3 -B tools/export_annotations.py count [HEADER...]
         Prints the number of annotated classes and functions, and of each
         library's export patterns.
@@ -61,6 +64,7 @@ instantiated in each consumer; none is explicitly instantiated in a library).
 """
 
 import argparse
+import fnmatch
 import pathlib
 import re
 import sys
@@ -710,7 +714,12 @@ def patterns_of(finding):
     variable at namespace scope exports every declaration of its name in
     its namespace: the mangled parameter types are not derived here, so an
     overload that is not marked but is defined in the library is exported
-    with it. Each glob holds a wildcard, so a glob that matches nothing
+    with it. An ABI tag follows the name it tags (libstdc++'s implicit
+    B5cxx11 on a function returning std::string: _ZN9gui_forms15registered_name
+    B5cxx11E...), so a function also gets the glob with B after its name,
+    which covers any tags; a class's globs already reach its tagged members,
+    and a tagged class name, since they continue after the class's name.
+    Each glob holds a wildcard, so a glob that matches nothing
     (a declaration compiled into another library) is no error for ld64 or
     a version script."""
     components = finding.components
@@ -718,7 +727,7 @@ def patterns_of(finding):
     if finding.kind == 'function':
         if len(components) == 1:
             return [f'_Z{prefix}*']
-        return [f'_ZN{prefix}E*']
+        return [f'_ZN{prefix}E*', f'_ZN{prefix}B*']
     if len(components) == 1:
         # A class in the global namespace: its type is encoded unnested.
         return [f'_ZN{prefix}*', f'_ZN[KRO]{prefix}*', f'_ZNK[RO]{prefix}*',
@@ -768,11 +777,66 @@ def stale_exports():
     return stale
 
 
+# A header and the mangled names (libstdc++ spelling, with its implicit ABI
+# tags) its marks must export and must not.
+SELFTEST_HEADER = '''
+namespace gui_forms {
+class GUI_FORMS_API Button {
+public:
+    std::string text() const;
+};
+GUI_FORMS_API std::string registered_name(TypeName type);
+GUI_FORMS_API bool operator==(const Button& left, const Button& right);
+namespace theme_language {
+GUI_FORMS_API std::string package_sha256_hex(const Sha256Digest& digest);
+}
+}
+'''
+SELFTEST_EXPORTED = (
+    '_ZN9gui_forms15registered_nameB5cxx11ENS_8TypeNameE',
+    '_ZN9gui_forms15registered_nameENS_8TypeNameE',
+    '_ZN9gui_forms14theme_language18package_sha256_hexB5cxx11ERKNS_12Sha256DigestE',
+    '_ZNK9gui_forms6Button4textB5cxx11Ev',
+    '_ZTVN9gui_forms6ButtonE',
+    '_ZTIN9gui_forms6ButtonE',
+    '_ZThn8_N9gui_forms6Button4textB5cxx11Ev',
+    '_ZN9gui_formseqERKNS_6ButtonES2_',
+)
+SELFTEST_LOCAL = (
+    '_ZN9gui_forms16registered_namesB5cxx11Ev',
+    '_ZN9gui_forms15registered_name4partEv',
+    '_ZNSt6vectorIN9gui_forms6ButtonESaIS1_EE9push_backERKS1_',
+    '_ZN9gui_forms7ButtonsC1Ev',
+)
+
+
+def selftest():
+    """Checks the globs against SELFTEST_HEADER's names; returns the
+    failures."""
+    patterns = set()
+    for finding in scan(SELFTEST_HEADER):
+        if finding.annotated == MACRO and not finding.nested:
+            patterns.update(patterns_of(finding))
+    failures = []
+    for name in SELFTEST_EXPORTED:
+        if not any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns):
+            failures.append(f'selftest: {name} is not exported')
+    for name in SELFTEST_LOCAL:
+        if any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns):
+            failures.append(f'selftest: {name} is exported')
+    return failures
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    parser.add_argument('mode', choices=('apply', 'check', 'count', 'exports'))
+    parser.add_argument('mode', choices=('apply', 'check', 'count', 'exports', 'selftest'))
     parser.add_argument('headers', nargs='*')
     arguments = parser.parse_args()
+    if arguments.mode == 'selftest':
+        failures = selftest()
+        for failure in failures:
+            print(failure)
+        return 1 if failures else 0
     if arguments.mode == 'exports':
         EXPORTS.mkdir(parents=True, exist_ok=True)
         for path, text in stale_exports():
@@ -812,6 +876,9 @@ def main():
         return 0
     stale = []
     if not arguments.headers:
+        for failure in selftest():
+            print(failure)
+            missing += 1
         stale = stale_exports()
         for path, _ in stale:
             print(f'{path.relative_to(ROOT)}: differs from the {MACRO} marks; run '
