@@ -330,3 +330,73 @@ gui_forms::RangeControl
    .. cpp:member:: constexpr std::size_t range_control_property_count
 
       RangeControl's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 6 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``maximum``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``minimum``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``normalized_value``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``style``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``value``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``range_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``scroll``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``bind``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``increment``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_value_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``range_control_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_range``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``unbind``
+     - unclassified (untested)

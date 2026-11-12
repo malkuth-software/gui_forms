@@ -112,3 +112,41 @@ gui_forms::StepIndicator
    .. cpp:member:: constexpr std::size_t step_indicator_property_count
 
       StepIndicator's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 2 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``current_step``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``steps``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``current_step_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``step_clicked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``step_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``step_indicator_property_entries``
+     - unclassified (untested)

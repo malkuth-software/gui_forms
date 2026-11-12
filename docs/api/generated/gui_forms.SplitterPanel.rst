@@ -107,3 +107,109 @@ gui_forms::SplitterPanel
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``SplitterPanel``. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 19 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``SplitterPanel``
+     - ``SplitterPanel``
+     - supported
+   * - property
+     - ``Anchor``
+     - ``anchor``
+     - unclassified (untested)
+   * - property
+     - ``AutoSize``
+     - ``auto_size``
+     - unclassified (untested)
+   * - property
+     - ``BorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Dock``
+     - ``dock``
+     - unclassified (untested)
+   * - property
+     - ``DockPadding``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Height``
+     - ``height``
+     - supported
+   * - property
+     - ``Location``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaximumSize``
+     - ``maximum_size``
+     - unclassified (untested)
+   * - property
+     - ``MinimumSize``
+     - ``minimum_size``
+     - unclassified (untested)
+   * - property
+     - ``Name``
+     - ``name``
+     - unclassified (untested)
+   * - property
+     - ``Parent``
+     - ``parent``
+     - unclassified (untested)
+   * - property
+     - ``Size``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabIndex``
+     - ``tab_index``
+     - unclassified (untested)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``Visible``
+     - ``visible``
+     - supported
+   * - property
+     - ``Width``
+     - ``width``
+     - supported
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``DockChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LocationChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabIndexChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``VisibleChanged``
+     - ``visible_changed``
+     - unclassified (untested)

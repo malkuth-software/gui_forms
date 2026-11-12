@@ -439,3 +439,273 @@ gui_forms::ListBox
    .. cpp:member:: constexpr std::size_t list_box_property_count
 
       ListBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 2U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ListBox``. Members declared here and by the counterpart: 12 supported, 0 deferred, 1 excluded, 51 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ListBox``
+     - ``ListBox``
+     - supported
+   * - property
+     - ``BorderStyle``
+     - ``border_style``
+     - unclassified (untested)
+   * - property
+     - ``ColumnWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CustomTabOffsets``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DrawMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HorizontalExtent``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HorizontalScrollbar``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IntegralHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ItemHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``MultiColumn``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``PreferredHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ScrollAlwaysVisible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedIndices``
+     - ``selected_indices``
+     - supported
+   * - property
+     - ``SelectedItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionMode``
+     - ``selection_mode``
+     - unclassified (untested)
+   * - property
+     - ``Sorted``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseCustomTabOffsets``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseTabStops``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - supported
+   * - event
+     - ``DrawItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MeasureItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - unclassified (untested)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectedIndexChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AddItemsCore``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - method
+     - ``BeginUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ClearSelected``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateItemCollection``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EndUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FindString``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FindStringExact``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemHeight``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemRectangle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetSelected``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``IndexFromPoint``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnDrawItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMeasureItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``SetSelected``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Sort``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``WmReflectCommand``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - ``ListControl.SelectedIndex``
+     - ``selected_index``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_selection``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``item_stable_id``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``list_box_property_entries``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_items_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_items_changing``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``paint_row_adornment``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``prepare_edit``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``row_text_left``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``select_index``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_item_stable_ids``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``written``
+     - unclassified (untested)

@@ -244,3 +244,65 @@ gui_forms::SearchField
    .. cpp:member:: constexpr std::size_t search_field_property_count
 
       SearchField's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 6 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``busy``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``placeholder_text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``text``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``cleared``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``search_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``text_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_text_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``search_field_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``search_now``
+     - unclassified (untested)

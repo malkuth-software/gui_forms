@@ -48,7 +48,7 @@ A minimal program against the installed SDK:
 ```cmake
 cmake_minimum_required(VERSION 3.25)
 project(hello LANGUAGES CXX)
-find_package(GUIForms 0.2 CONFIG REQUIRED)
+find_package(GUIForms 0.6 CONFIG REQUIRED)
 add_executable(hello main.cpp)
 target_link_libraries(hello PRIVATE GUIForms::Application)
 ```

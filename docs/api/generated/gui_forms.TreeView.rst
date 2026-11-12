@@ -419,3 +419,365 @@ gui_forms::TreeView
       *Protected.*
 
       on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``TreeView``. Members declared here and by the counterpart: 10 supported, 0 deferred, 1 excluded, 76 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``TreeView``
+     - ``TreeView``
+     - supported
+   * - property
+     - ``BorderStyle``
+     - ``border_style``
+     - unclassified (untested)
+   * - property
+     - ``CheckBoxes``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DrawMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FullRowSelect``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HideSelection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HotTracking``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImageIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImageKey``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Indent``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ItemHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LabelEdit``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LineColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Nodes``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``PathSeparator``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RightToLeftLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Scrollable``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedImageIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedImageKey``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedNode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowLines``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowNodeToolTips``
+     - none
+     - excluded: Data items have no tooltips; the tree reveals cut-off text in place (owner, 2026-10-28).
+   * - property
+     - ``ShowPlusMinus``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowRootLines``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Sorted``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``StateImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopNode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TreeViewNodeSorter``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VisibleCount``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AfterCheck``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AfterCollapse``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AfterExpand``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AfterLabelEdit``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AfterSelect``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BeforeCheck``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BeforeCollapse``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BeforeExpand``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BeforeLabelEdit``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BeforeSelect``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DrawNode``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemDrag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``NodeMouseClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``NodeMouseDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``NodeMouseHover``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``BeginUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CollapseAll``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EndUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ExpandAll``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemRenderStyles``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetNodeAt``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetNodeCount``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``HitTest``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnAfterCheck``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnAfterCollapse``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnAfterExpand``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnAfterLabelEdit``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnAfterSelect``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnBeforeCheck``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnBeforeCollapse``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnBeforeExpand``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnBeforeLabelEdit``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnBeforeSelect``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDrawNode``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemDrag``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnNodeMouseClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnNodeMouseDoubleClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnNodeMouseHover``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRightToLeftLayoutChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``Sort``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``active_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``top_row``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``expansion_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``expanded``
+     - supported
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_expanded``
+     - supported

@@ -230,3 +230,57 @@ gui_forms::RibbonFontControl
    .. cpp:member:: constexpr std::size_t maximum_sizes
 
       Default: ``64U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 1 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``families``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``family_box``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``family_width``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``natural_size``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``size_box``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``size_width``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sizes``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_field_widths``
+     - supported

@@ -698,3 +698,165 @@ gui_forms::PageStrip
    .. cpp:function:: void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 30 supported, 0 deferred, 0 excluded, 7 unclassified; 37 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``dragged_page``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_page``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hidden_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``insertion_mark``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overflowing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``page_list_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``page_list_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``page_set``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``visible_pages``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``widths_frozen``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``draw_item_content``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``page_close_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``page_context_menu_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``page_double_clicked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``page_drag_started``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``page_invoked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``page_pin_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cancel_drag``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_insertion_mark``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_page_list``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_unhandled``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``ensure_visible``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``insertion_position_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_selected``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``page_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``page_panel_identity``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``release_page_set``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``scroll_backward``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``scroll_forward``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``select_relative``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_insertion_mark``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_page_list``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_family``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``tab_identity``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_parts_of``
+     - supported

@@ -40,3 +40,205 @@ gui_forms::TextBoxBase
 
       :cpp:class:`RichTextBox <gui_forms::RichTextBox>`
          A field for styled text, kept as markdown.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``TextBoxBase``. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 46 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - ``AcceptsTab``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BorderStyle``
+     - ``border_style``
+     - unclassified (untested)
+   * - property
+     - ``CanUndo``
+     - on ``TextBox``, ``RichTextBox``
+     - unclassified (carried)
+   * - property
+     - ``HideSelection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Lines``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaxLength``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Modified``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Multiline``
+     - on ``TextBox``
+     - unclassified (carried)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``PreferredHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ReadOnly``
+     - on ``TextBox``
+     - unclassified (carried)
+   * - property
+     - ``SelectedText``
+     - on ``TextBox``, ``RichTextBox``
+     - unclassified (carried)
+   * - property
+     - ``SelectionLength``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionStart``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShortcutsEnabled``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TextLength``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``WordWrap``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AcceptsTabChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BorderStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - supported
+   * - event
+     - ``HideSelectionChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ModifiedChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - unclassified (untested)
+   * - event
+     - ``MultilineChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ReadOnlyChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AppendText``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Clear``
+     - on ``MaskedTextBox``, ``RichTextBox``
+     - unclassified (carried)
+   * - method
+     - ``ClearUndo``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Copy``
+     - on ``TextBox``, ``RichTextBox``
+     - unclassified (carried)
+   * - method
+     - ``Cut``
+     - on ``TextBox``, ``RichTextBox``
+     - unclassified (carried)
+   * - method
+     - ``DeselectAll``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetCharFromPosition``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetCharIndexFromPosition``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetFirstCharIndexFromLine``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetFirstCharIndexOfCurrentLine``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetLineFromCharIndex``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetPositionFromCharIndex``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Paste``
+     - on ``TextBox``, ``RichTextBox``
+     - unclassified (carried)
+   * - method
+     - ``ScrollToCaret``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Select``
+     - on ``TextBox``, ``RichTextBox``
+     - unclassified (carried)
+   * - method
+     - ``SelectAll``
+     - on ``TextBox``, ``RichTextBox``
+     - unclassified (carried)
+   * - method
+     - ``Undo``
+     - on ``TextBox``, ``RichTextBox``
+     - unclassified (carried)

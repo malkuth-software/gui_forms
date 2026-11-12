@@ -337,3 +337,73 @@ gui_forms::TokenBox
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 2 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selected_token``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tokens``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_token_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``token_added``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``token_removed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_token``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_tokens``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``remove_token``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``select_token``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``token_index``
+     - supported

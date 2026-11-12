@@ -368,3 +368,61 @@ gui_forms::Card
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 1 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``body``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_card_layout``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_visual``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``footer``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``header``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hovered_visual``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pressed_visual``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``uses_theme_layout``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_card_layout_to_theme``
+     - supported

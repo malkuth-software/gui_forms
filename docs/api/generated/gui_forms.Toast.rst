@@ -178,3 +178,37 @@ gui_forms::Toast
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       The action button is made after construction (make_control calls initialize_control_tree), since add_child needs a shared owner. Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 1 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``action``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``content``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``action_invoked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)

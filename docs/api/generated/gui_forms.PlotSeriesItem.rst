@@ -223,3 +223,125 @@ gui_forms::PlotSeriesItem
    .. cpp:member:: constexpr std::size_t plot_series_item_property_count
 
       PlotSeriesItem's property table: Control's entries, then its own. Default: ``Control::control_property_count + 6U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 19 unclassified; 27 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``borrowed_x``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``borrowed_y``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``channel``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``column_samples``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``data_revision``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``data_source``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``hidden``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``kind``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``label``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``pyramid``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``revision``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``signal``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``source``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``x_axis``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``x_order``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``y_axis``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``append_points``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``borrow_points``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_points``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``consume_channel``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``live_channel``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``plot_series_item_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``push_points``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``run_signal_frame``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_points``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_values``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``use_ring``
+     - supported

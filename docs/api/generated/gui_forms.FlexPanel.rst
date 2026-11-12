@@ -330,3 +330,45 @@ gui_forms::FlexPanel
    .. cpp:member:: constexpr std::size_t flex_panel_property_count
 
       FlexPanel's property table: ScrollableControl's entries, then its own. Default: ``ScrollableControl::scrollable_control_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 2 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``laid_out_children``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``layout_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``style``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``flex_panel_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``item_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_positioning``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_item_layout``
+     - supported

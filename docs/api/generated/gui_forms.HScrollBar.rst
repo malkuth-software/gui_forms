@@ -71,3 +71,21 @@ gui_forms::HScrollBar
    .. rubric:: Extension points
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``HScrollBar``. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 0 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``HScrollBar``
+     - ``HScrollBar``
+     - supported

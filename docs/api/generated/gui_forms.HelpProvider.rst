@@ -287,3 +287,109 @@ gui_forms::HelpProvider
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``HelpProvider``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 7 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``HelpProvider``
+     - ``HelpProvider``
+     - supported
+   * - property
+     - ``HelpNamespace``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Tag``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CanExtend``
+     - ``can_extend``
+     - supported
+   * - method
+     - ``GetHelpKeyword``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetHelpNavigator``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetHelpString``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetShowHelp``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetShowHelp``
+     - ``reset_show_help``
+     - supported
+   * - method
+     - ``SetHelpKeyword``
+     - ``set_help_keyword``
+     - supported
+   * - method
+     - ``SetHelpNavigator``
+     - ``set_help_navigator``
+     - supported
+   * - method
+     - ``SetHelpString``
+     - ``set_help_string``
+     - supported
+   * - method
+     - ``SetShowHelp``
+     - ``set_show_help``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``snapshot``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``help_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``help_keyword``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``help_navigator``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``help_string``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``read``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_help``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_help``
+     - supported

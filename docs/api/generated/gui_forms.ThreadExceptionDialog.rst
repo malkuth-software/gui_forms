@@ -164,3 +164,53 @@ gui_forms::ThreadExceptionDialog
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ThreadExceptionDialog``. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 2 unclassified; 3 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ThreadExceptionDialog``
+     - ``ThreadExceptionDialog``
+     - supported
+   * - event
+     - ``AutoSizeChanged``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``report``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``result``
+     - supported
+   * - event
+     - ``Form.Shown``
+     - ``shown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``task_dialog``
+     - supported
+   * - event
+     - ``Form.Closed``
+     - ``closed``
+     - supported
+   * - method
+     - ``Form.Close``
+     - ``close``
+     - supported
+   * - method
+     - ``Form.Show``
+     - ``show``
+     - supported

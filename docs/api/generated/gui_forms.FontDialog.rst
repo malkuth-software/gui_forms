@@ -304,3 +304,157 @@ gui_forms::FontDialog
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``FontDialog``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 19 unclassified; 15 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``FontDialog``
+     - ``FontDialog``
+     - supported
+   * - property
+     - ``AllowScriptChange``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowSimulations``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowVectorFonts``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowVerticalFonts``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Color``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FixedPitchOnly``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Font``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FontMustExist``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaxSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MinSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Options``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ScriptsOnly``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowApply``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowEffects``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowHelp``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Apply``
+     - ``apply``
+     - supported
+   * - method
+     - ``OnApply``
+     - none
+     - unclassified (hook)
+   * - field
+     - ``EventApply``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``apply_button``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``cancel_button``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``face_list``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``ok_button``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presented_surface``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selection``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``size_box``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``style_list``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``surface``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``closed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_size_range``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show``
+     - supported

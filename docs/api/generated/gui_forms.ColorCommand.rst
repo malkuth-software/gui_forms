@@ -160,3 +160,49 @@ gui_forms::ColorCommand
    .. cpp:member:: constexpr std::size_t maximum_recent_colors
 
       Default: ``10U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 1 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``command``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``recent_colors``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``state``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``value``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_recent_colors``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``commit``
+     - supported

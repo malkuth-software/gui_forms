@@ -195,3 +195,49 @@ gui_forms::InfoBanner
    .. cpp:member:: constexpr std::size_t info_banner_property_count
 
       InfoBanner's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 5 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``action``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``closable``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``message``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``severity``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``title``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``closed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``info_banner_property_entries``
+     - unclassified (untested)

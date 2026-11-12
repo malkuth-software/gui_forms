@@ -264,3 +264,41 @@ gui_forms::CommandOverflowPanel
    .. cpp:member:: constexpr std::size_t command_overflow_panel_property_count
 
       CommandOverflowPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 4 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``group_gap``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``layout_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overflow_actuator``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_overflow_actuator``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``command_overflow_panel_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``overflow_child_property_entries``
+     - unclassified (untested)

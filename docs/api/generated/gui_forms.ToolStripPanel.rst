@@ -170,3 +170,121 @@ gui_forms::ToolStripPanel
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ToolStripPanel``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 18 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ToolStripPanel``
+     - ``ToolStripPanel``
+     - supported
+   * - property
+     - ``AutoScrollMargin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoScrollMinSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Locked``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Orientation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Renderer``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RenderMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RowMargin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Rows``
+     - ``rows``
+     - supported
+   * - property
+     - ``TabIndex``
+     - ``tab_index``
+     - unclassified (untested)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``RendererChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabIndexChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``BeginInit``
+     - ``begin_init``
+     - unclassified (untested)
+   * - method
+     - ``EndInit``
+     - ``end_init``
+     - unclassified (untested)
+   * - method
+     - ``Join``
+     - ``join``
+     - supported
+   * - method
+     - ``OnRendererChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``PointToRow``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``row_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``strips``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``insert``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``join_row``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove``
+     - supported

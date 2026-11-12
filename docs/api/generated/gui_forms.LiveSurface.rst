@@ -230,3 +230,57 @@ gui_forms::LiveSurface
    .. cpp:function:: LiveSurfaceWakeConnection connect_presented_wake(std::function<void()> wake)
 
       A wake called after each notify_presented, on the presenter's thread; like a presentation wake, it may only signal.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 0 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``presentation_record``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``snapshot``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``acquire_for_presentation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``acquire_latest``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``connect_presentation_wake``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``connect_presented_wake``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``create``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``notify_presented``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reconfigure``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``try_acquire_write``
+     - supported

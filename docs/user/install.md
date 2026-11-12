@@ -149,7 +149,7 @@ That `Audio` carries the `GUI_FORMS_AUDIO_LOOP_TRANSPORT` definition, which
 `gui_forms/audio/loop_transport/`.
 
 ```cmake
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS Application TextMasks Audio AudioLoopTransport)
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application TextMasks Audio AudioLoopTransport)
 target_link_libraries(my_app PRIVATE GUIForms::Application GUIForms::TextMasks GUIForms::AudioLoopTransport)
 ```
 
@@ -168,7 +168,7 @@ FreeType's licence asks a product that ships it to credit it in its
 documentation; `THIRD_PARTY_NOTICES.md` there carries the credit.
 
 ```cmake
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS FreeType HarfBuzz)
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS FreeType HarfBuzz)
 target_link_libraries(my_compositor PRIVATE GUIForms::HarfBuzz GUIForms::FreeType)
 ```
 

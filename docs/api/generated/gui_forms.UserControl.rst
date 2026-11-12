@@ -221,3 +221,65 @@ gui_forms::UserControl
 
       Clears :cpp:func:`is_attached <gui_forms::UserControl::is_attached>`. A subclass that overrides it must call the base
       implementation.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``UserControl``. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 7 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``UserControl``
+     - ``UserControl``
+     - supported
+   * - property
+     - ``AutoSizeMode``
+     - ``auto_size_mode``
+     - unclassified (untested)
+   * - property
+     - ``BorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``AutoValidateChanged``
+     - ``auto_validate_changed``
+     - unclassified (untested)
+   * - event
+     - ``Load``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnLoad``
+     - none
+     - unclassified (hook)
+   * - property
+     - GUI.Forms-only
+     - ``attachment_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_attached``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_loaded``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``loaded``
+     - supported

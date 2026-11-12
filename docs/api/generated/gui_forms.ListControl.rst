@@ -39,3 +39,153 @@ gui_forms::ListControl
 
       :cpp:class:`ComboBox <gui_forms::ComboBox>`
          A field with a drop-down list of choices.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ListControl``. Members declared here and by the counterpart: 0 supported, 0 deferred, 0 excluded, 34 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ListControl``
+     - on ``ListBox``, ``CheckedListBox``, ``ComboBox``
+     - unclassified (carried)
+   * - property
+     - ``AllowSelection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataManager``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DisplayMember``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormatInfo``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormatString``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormattingEnabled``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedIndex``
+     - on ``ListBox``, ``CheckedListBox``, ``ComboBox``
+     - unclassified (carried)
+   * - property
+     - ``SelectedValue``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ValueMember``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DataSourceChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DisplayMemberChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Format``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormatInfoChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormatStringChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormattingEnabledChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectedValueChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ValueMemberChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FilterItemOnProperty``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemText``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnDataSourceChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDisplayMemberChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormat``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormatInfoChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormatStringChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormattingEnabledChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelectedIndexChanged``
+     - on ``ComboBox``
+     - unclassified (carried)
+   * - method
+     - ``OnSelectedValueChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnValueMemberChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``RefreshItem``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RefreshItems``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetItemCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetItemsCore``
+     - none
+     - unclassified (unmatched)

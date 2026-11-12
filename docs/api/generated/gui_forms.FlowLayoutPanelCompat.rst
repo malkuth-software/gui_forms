@@ -286,3 +286,65 @@ gui_forms::FlowLayoutPanelCompat
    .. cpp:member:: constexpr std::size_t flow_layout_panel_compat_property_count
 
       FlowLayoutPanelCompat's property table: ScrollableControl's entries, then its own. Default: ``ScrollableControl::scrollable_control_property_count + 5U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``FlowLayoutPanel``. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 9 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``FlowLayoutPanel``
+     - ``FlowLayoutPanelCompat``
+     - supported
+   * - property
+     - ``FlowDirection``
+     - ``flow_direction``
+     - unclassified (untested)
+   * - property
+     - ``WrapContents``
+     - ``wrap_contents``
+     - unclassified (untested)
+   * - method
+     - ``GetFlowBreak``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetFlowBreak``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``cross_alignment``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``item_spacing``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``main_alignment``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``flex_grow``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``flow_child_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``flow_layout_panel_compat_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_flex_grow``
+     - supported

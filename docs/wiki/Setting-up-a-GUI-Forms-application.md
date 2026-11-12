@@ -41,7 +41,7 @@ consumer project is configured with the same toolchain file.
 cmake_minimum_required(VERSION 3.25)
 project(Notes LANGUAGES CXX)
 
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS Application)
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application)
 
 add_executable(notes main.cpp)
 target_compile_features(notes PRIVATE cxx_std_20)

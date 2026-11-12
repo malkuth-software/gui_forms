@@ -275,3 +275,65 @@ gui_forms::Button
    .. cpp:member:: constexpr std::size_t button_property_count
 
       Button's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 2U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Button``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 6 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Button``
+     - ``Button``
+     - supported
+   * - property
+     - ``AutoSizeMode``
+     - ``auto_size_mode``
+     - unclassified (untested)
+   * - property
+     - ``DialogResult``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - supported
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - supported
+   * - method
+     - ``NotifyDefault``
+     - ``notify_default``
+     - unclassified (untested)
+   * - method
+     - ``PerformClick``
+     - ``perform_click``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flat_border_width``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``visual_style``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``dialog_result_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``button_property_entries``
+     - unclassified (untested)

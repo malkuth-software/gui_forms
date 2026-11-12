@@ -223,3 +223,77 @@ gui_forms::SubSurfaceHost
       *Protected.*
 
       The sub-surface's published caret: its coordinates are the host's.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 14 supported, 0 deferred, 0 excluded, 1 unclassified; 15 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``content_epoch``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dispatcher``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``failure``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``live_surface``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``opaque``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``publishes_semantics``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``returned_keys_discarded``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``started``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``state``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``statistics``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``pairing_missed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``stopped``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``adopt_content``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``request_statistics``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_content``
+     - supported

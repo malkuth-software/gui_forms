@@ -59,3 +59,141 @@ gui_forms::UpDownBase
    .. cpp:function:: Ptr focus_target() const override
 
       Focus on the control goes to its edit field (null without one).
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``UpDownBase``. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 30 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``UpDownBase``
+     - on ``NumericUpDown``, ``DomainUpDown``
+     - unclassified (carried)
+   * - property
+     - ``AutoScrollMargin``
+     - ``auto_scroll_margin``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollMinSize``
+     - ``auto_scroll_min_size``
+     - unclassified (untested)
+   * - property
+     - ``BorderStyle``
+     - ``border_style``
+     - unclassified (untested)
+   * - property
+     - ``ChangingText``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DockPadding``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``InterceptArrowKeys``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PreferredHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ReadOnly``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TextAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UpDownAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UserEdit``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseEnter``
+     - ``mouse_enter``
+     - unclassified (untested)
+   * - event
+     - ``MouseHover``
+     - ``mouse_hover``
+     - unclassified (untested)
+   * - event
+     - ``MouseLeave``
+     - ``mouse_leave``
+     - unclassified (untested)
+   * - event
+     - ``MouseMove``
+     - ``mouse_move``
+     - unclassified (untested)
+   * - method
+     - ``DownButton``
+     - on ``DomainUpDown``
+     - unclassified (carried)
+   * - method
+     - ``OnChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnTextBoxKeyDown``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnTextBoxKeyPress``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnTextBoxLostFocus``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnTextBoxResize``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnTextBoxTextChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``Select``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpButton``
+     - on ``DomainUpDown``
+     - unclassified (carried)
+   * - method
+     - ``UpdateEditText``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ValidateEditText``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported

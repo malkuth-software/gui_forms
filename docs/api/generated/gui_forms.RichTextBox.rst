@@ -547,3 +547,385 @@ gui_forms::RichTextBox
    .. cpp:member:: constexpr std::size_t rich_text_box_property_count
 
       RichTextBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 supported, 0 deferred, 0 excluded, 60 unclassified; 22 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``RichTextBox``
+     - ``RichTextBox``
+     - supported
+   * - property
+     - ``AutoWordSelection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BulletIndent``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CanRedo``
+     - ``can_redo``
+     - supported
+   * - property
+     - ``DetectUrls``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``EnableAutoDragDrop``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LanguageOption``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RedoActionName``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RichTextShortcutsEnabled``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RightMargin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Rtf``
+     - ``rtf``
+     - supported
+   * - property
+     - ``ScrollBars``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedRtf``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionAlignment``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionBullet``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionCharOffset``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionFont``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionHangingIndent``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionIndent``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionProtected``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionRightIndent``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionTabs``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionType``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowSelectionMargin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UndoActionName``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ZoomFactor``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ContentsResized``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DragDrop``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DragEnter``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DragLeave``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DragOver``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``GiveFeedback``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``HScroll``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ImeChange``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LinkClicked``
+     - ``link_clicked``
+     - supported
+   * - event
+     - ``Protected``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``QueryContinueDrag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectionChanged``
+     - ``selection_changed``
+     - supported
+   * - event
+     - ``VScroll``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CanPaste``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateRichEditOleCallback``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``DrawToBitmap``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Find``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``LoadFile``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnContentsResized``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnHScroll``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnImeChange``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnLinkClicked``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnProtected``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelectionChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnVScroll``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``Paste``
+     - ``paste``
+     - unclassified (untested)
+   * - method
+     - ``Redo``
+     - ``redo``
+     - supported
+   * - method
+     - ``SaveFile``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TextBoxBase.CanUndo``
+     - ``can_undo``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``document``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``markdown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scroll_offset``
+     - supported
+   * - property
+     - ``TextBoxBase.SelectedText``
+     - ``selected_text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selection``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selection_format``
+     - supported
+   * - property
+     - ``Control.Text``
+     - ``text``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``content_changed``
+     - supported
+   * - event
+     - ``Control.TextChanged``
+     - ``text_changed``
+     - supported
+   * - method
+     - ``TextBoxBase.Clear``
+     - ``clear``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_undo_history``
+     - unclassified (untested)
+   * - method
+     - ``TextBoxBase.Copy``
+     - ``copy``
+     - supported
+   * - method
+     - ``TextBoxBase.Cut``
+     - ``cut``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``delete_selection``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``insert_link``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_accepts_tab_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_read_only_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``replace_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``rich_text_box_property_entries``
+     - unclassified (untested)
+   * - method
+     - ``TextBoxBase.Select``
+     - ``select``
+     - supported
+   * - method
+     - ``TextBoxBase.SelectAll``
+     - ``select_all``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_heading_level``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_rtf``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``toggle_bold``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``toggle_bulleted_list``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``toggle_code``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``toggle_italic``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``toggle_numbered_list``
+     - supported
+   * - method
+     - ``TextBoxBase.Undo``
+     - ``undo``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``visual_line_count``
+     - supported

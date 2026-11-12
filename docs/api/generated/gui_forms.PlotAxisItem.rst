@@ -123,3 +123,57 @@ gui_forms::PlotAxisItem
    .. cpp:member:: constexpr std::size_t plot_axis_item_property_count
 
       PlotAxisItem's property table: Control's entries, then its own. Default: ``Control::control_property_count + 7U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 8 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``auto_fit``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``direction``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``follow_span``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``label``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``maximum``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``minimum``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``revision``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scale``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``axis_description``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``plot_axis_item_property_entries``
+     - unclassified (untested)

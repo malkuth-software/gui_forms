@@ -278,3 +278,161 @@ gui_forms::ScrollBar
    .. cpp:member:: constexpr std::size_t scroll_bar_property_count
 
       ScrollBar's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ScrollBar``. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 24 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ScrollBar``
+     - ``ScrollBar``
+     - supported
+   * - property
+     - ``ImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LargeChange``
+     - ``large_change``
+     - supported
+   * - property
+     - ``Maximum``
+     - ``maximum``
+     - supported
+   * - property
+     - ``Minimum``
+     - ``minimum``
+     - supported
+   * - property
+     - ``ScaleScrollBarForDpiChange``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SmallChange``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``Value``
+     - ``value``
+     - supported
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``BackColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - unclassified (untested)
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - unclassified (untested)
+   * - event
+     - ``FontChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ImeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - unclassified (untested)
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - unclassified (untested)
+   * - event
+     - ``MouseDown``
+     - ``mouse_down``
+     - unclassified (untested)
+   * - event
+     - ``MouseMove``
+     - ``mouse_move``
+     - unclassified (untested)
+   * - event
+     - ``MouseUp``
+     - ``mouse_up``
+     - unclassified (untested)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Scroll``
+     - ``scroll``
+     - supported
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ValueChanged``
+     - ``value_changed``
+     - supported
+   * - method
+     - ``OnScroll``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnValueChanged``
+     - ``on_value_changed``
+     - unclassified (untested)
+   * - method
+     - ``UpdateScrollInfo``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``decrement_button_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``increment_button_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``thumb_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``track_bounds``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``part_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``scroll_bar_property_entries``
+     - unclassified (untested)

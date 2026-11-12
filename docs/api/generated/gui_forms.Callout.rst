@@ -187,3 +187,73 @@ gui_forms::Callout
    .. cpp:member:: constexpr std::size_t callout_property_count
 
       Callout's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 8 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``action_button``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``action_text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``is_shown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``light_dismiss``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``prefers_above``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``target``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``title``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``action_clicked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``closed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``callout_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show``
+     - supported

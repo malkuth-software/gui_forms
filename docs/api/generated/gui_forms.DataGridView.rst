@@ -1891,3 +1891,1857 @@ gui_forms::DataGridView
    .. cpp:member:: constexpr std::size_t data_grid_view_property_count
 
       DataGridView's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130 supported, 0 deferred, 0 excluded, 330 unclassified; 79 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``DataGridView``
+     - ``DataGridView``
+     - supported
+   * - property
+     - ``AdjustedTopLeftHeaderBorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AdvancedCellBorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AdvancedColumnHeadersBorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AdvancedRowHeadersBorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowUserToAddRows``
+     - ``allow_user_to_add_rows``
+     - unclassified (untested)
+   * - property
+     - ``AllowUserToDeleteRows``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowUserToOrderColumns``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowUserToResizeColumns``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowUserToResizeRows``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AlternatingRowsDefaultCellStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoGenerateColumns``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoSizeColumnsMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoSizeRowsMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BackgroundColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CellBorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ClipboardCopyMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ColumnCount``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ColumnHeadersBorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ColumnHeadersDefaultCellStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ColumnHeadersHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ColumnHeadersHeightSizeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ColumnHeadersVisible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Columns``
+     - ``columns``
+     - supported
+   * - property
+     - ``CurrentCell``
+     - ``current_cell``
+     - supported
+   * - property
+     - ``CurrentCellAddress``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CurrentRow``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataMember``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultCellStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``EditingControl``
+     - ``editing_control``
+     - supported
+   * - property
+     - ``EditingPanel``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``EditMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``EnableHeadersVisualStyles``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FirstDisplayedCell``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FirstDisplayedScrollingColumnHiddenWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FirstDisplayedScrollingColumnIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FirstDisplayedScrollingRowIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GridColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HorizontalScrollBar``
+     - ``horizontal_scroll_bar``
+     - unclassified (untested)
+   * - property
+     - ``HorizontalScrollingOffset``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsCurrentCellDirty``
+     - ``is_current_cell_dirty``
+     - supported
+   * - property
+     - ``IsCurrentCellInEditMode``
+     - ``is_current_cell_in_edit_mode``
+     - supported
+   * - property
+     - ``IsCurrentRowDirty``
+     - ``is_current_row_dirty``
+     - supported
+   * - property
+     - ``MultiSelect``
+     - ``multi_select``
+     - unclassified (untested)
+   * - property
+     - ``NewRowIndex``
+     - ``new_row_index``
+     - supported
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``ReadOnly``
+     - ``read_only``
+     - unclassified (untested)
+   * - property
+     - ``RowCount``
+     - ``row_count``
+     - supported
+   * - property
+     - ``RowHeadersBorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RowHeadersDefaultCellStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RowHeadersVisible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RowHeadersWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RowHeadersWidthSizeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Rows``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RowsDefaultCellStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RowTemplate``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ScrollBars``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedCells``
+     - ``selected_cells``
+     - supported
+   * - property
+     - ``SelectedColumns``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedRows``
+     - ``selected_rows``
+     - supported
+   * - property
+     - ``SelectionMode``
+     - ``selection_mode``
+     - unclassified (untested)
+   * - property
+     - ``ShowCellErrors``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowCellToolTips``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowEditingIcon``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowRowErrors``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SortedColumn``
+     - ``sorted_column``
+     - supported
+   * - property
+     - ``SortOrder``
+     - ``sort_order``
+     - supported
+   * - property
+     - ``StandardTab``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``this[]``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopLeftHeaderCell``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UserSetCursor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VerticalScrollBar``
+     - ``vertical_scroll_bar``
+     - supported
+   * - property
+     - ``VerticalScrollingOffset``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VirtualMode``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AllowUserToAddRowsChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AllowUserToDeleteRowsChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AllowUserToOrderColumnsChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AllowUserToResizeColumnsChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AllowUserToResizeRowsChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AlternatingRowsDefaultCellStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoGenerateColumnsChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeColumnModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeColumnsModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeRowsModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BorderStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CancelRowEdit``
+     - ``cancel_row_edit``
+     - supported
+   * - event
+     - ``CellBeginEdit``
+     - ``cell_begin_edit``
+     - supported
+   * - event
+     - ``CellBorderStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellContentClick``
+     - ``cell_content_click``
+     - supported
+   * - event
+     - ``CellContentDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellContextMenuStripChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellContextMenuStripNeeded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellEndEdit``
+     - ``cell_end_edit``
+     - supported
+   * - event
+     - ``CellEnter``
+     - ``cell_enter``
+     - supported
+   * - event
+     - ``CellErrorTextChanged``
+     - ``cell_error_text_changed``
+     - supported
+   * - event
+     - ``CellErrorTextNeeded``
+     - ``cell_error_text_needed``
+     - supported
+   * - event
+     - ``CellFormatting``
+     - ``cell_formatting``
+     - supported
+   * - event
+     - ``CellLeave``
+     - ``cell_leave``
+     - supported
+   * - event
+     - ``CellMouseClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellMouseDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellMouseDown``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellMouseEnter``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellMouseLeave``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellMouseMove``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellMouseUp``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellPainting``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellParsing``
+     - ``cell_parsing``
+     - supported
+   * - event
+     - ``CellStateChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellStyleContentChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellToolTipTextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellToolTipTextNeeded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellValidated``
+     - ``cell_validated``
+     - supported
+   * - event
+     - ``CellValidating``
+     - ``cell_validating``
+     - supported
+   * - event
+     - ``CellValueChanged``
+     - ``cell_value_changed``
+     - supported
+   * - event
+     - ``CellValueNeeded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CellValuePushed``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnAdded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnContextMenuStripChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnDataPropertyNameChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnDefaultCellStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnDisplayIndexChanged``
+     - ``column_display_index_changed``
+     - supported
+   * - event
+     - ``ColumnDividerDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnDividerWidthChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnHeaderCellChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnHeaderMouseClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnHeaderMouseDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnHeadersBorderStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnHeadersDefaultCellStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnHeadersHeightChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnHeadersHeightSizeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnMinimumWidthChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnNameChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnRemoved``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnSortModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnStateChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnToolTipTextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnWidthChanged``
+     - ``column_width_changed``
+     - supported
+   * - event
+     - ``CurrentCellChanged``
+     - ``current_cell_changed``
+     - supported
+   * - event
+     - ``CurrentCellDirtyStateChanged``
+     - ``current_cell_dirty_state_changed``
+     - supported
+   * - event
+     - ``DataBindingComplete``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DataError``
+     - ``data_error``
+     - supported
+   * - event
+     - ``DataMemberChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DataSourceChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DefaultCellStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DefaultValuesNeeded``
+     - ``default_values_needed``
+     - supported
+   * - event
+     - ``EditingControlShowing``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``EditModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FontChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``GridColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MultiSelectChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``NewRowNeeded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ReadOnlyChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowContextMenuStripChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowContextMenuStripNeeded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowDefaultCellStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowDirtyStateNeeded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowDividerDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowDividerHeightChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowEnter``
+     - ``row_enter``
+     - supported
+   * - event
+     - ``RowErrorTextChanged``
+     - ``row_error_text_changed``
+     - supported
+   * - event
+     - ``RowErrorTextNeeded``
+     - ``row_error_text_needed``
+     - supported
+   * - event
+     - ``RowHeaderCellChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowHeaderMouseClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowHeaderMouseDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowHeadersBorderStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowHeadersDefaultCellStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowHeadersWidthChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowHeadersWidthSizeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowHeightChanged``
+     - ``row_height_changed``
+     - supported
+   * - event
+     - ``RowHeightInfoNeeded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowHeightInfoPushed``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowLeave``
+     - ``row_leave``
+     - supported
+   * - event
+     - ``RowMinimumHeightChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowPostPaint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowPrePaint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowsAdded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowsDefaultCellStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowsRemoved``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowStateChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowUnshared``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RowValidated``
+     - ``row_validated``
+     - supported
+   * - event
+     - ``RowValidating``
+     - ``row_validating``
+     - supported
+   * - event
+     - ``Scroll``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectionChanged``
+     - ``selection_changed``
+     - supported
+   * - event
+     - ``SortCompare``
+     - ``sort_compare``
+     - supported
+   * - event
+     - ``Sorted``
+     - ``sorted``
+     - supported
+   * - event
+     - ``StyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``UserAddedRow``
+     - ``user_added_row``
+     - supported
+   * - event
+     - ``UserDeletedRow``
+     - ``user_deleted_row``
+     - supported
+   * - event
+     - ``UserDeletingRow``
+     - ``user_deleting_row``
+     - supported
+   * - method
+     - ``AccessibilityNotifyCurrentCellChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AdjustColumnHeaderBorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AreAllCellsSelected``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AutoResizeColumn``
+     - ``auto_resize_column``
+     - supported
+   * - method
+     - ``AutoResizeColumnHeadersHeight``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AutoResizeColumns``
+     - ``auto_resize_columns``
+     - supported
+   * - method
+     - ``AutoResizeRow``
+     - ``auto_resize_row``
+     - supported
+   * - method
+     - ``AutoResizeRowHeadersWidth``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AutoResizeRows``
+     - ``auto_resize_rows``
+     - supported
+   * - method
+     - ``BeginEdit``
+     - ``begin_edit``
+     - supported
+   * - method
+     - ``CancelEdit``
+     - ``cancel_edit``
+     - supported
+   * - method
+     - ``ClearSelection``
+     - ``clear_selection``
+     - supported
+   * - method
+     - ``CommitEdit``
+     - ``commit_edit``
+     - supported
+   * - method
+     - ``CreateColumnsInstance``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateRowsInstance``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``DisplayedColumnCount``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``DisplayedRowCount``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EndEdit``
+     - ``end_edit``
+     - supported
+   * - method
+     - ``GetCellCount``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetCellDisplayRectangle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetClipboardContent``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetColumnDisplayRectangle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetRowDisplayRectangle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``HitTest``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``InvalidateCell``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``InvalidateColumn``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``InvalidateRow``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``NotifyCurrentCellDirty``
+     - ``notify_current_cell_dirty``
+     - unclassified (untested)
+   * - method
+     - ``OnAllowUserToAddRowsChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnAllowUserToDeleteRowsChanged``
+     - ``on_allow_user_to_delete_rows_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnAllowUserToOrderColumnsChanged``
+     - ``on_allow_user_to_order_columns_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnAllowUserToResizeColumnsChanged``
+     - ``on_allow_user_to_resize_columns_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnAllowUserToResizeRowsChanged``
+     - ``on_allow_user_to_resize_rows_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnAlternatingRowsDefaultCellStyleChanged``
+     - ``on_alternating_rows_default_cell_style_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnAutoGenerateColumnsChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnAutoSizeColumnModeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnAutoSizeColumnsModeChanged``
+     - ``on_auto_size_columns_mode_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnAutoSizeRowsModeChanged``
+     - ``on_auto_size_rows_mode_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnBackgroundColorChanged``
+     - ``on_background_color_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnBorderStyleChanged``
+     - ``on_border_style_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnCancelRowEdit``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellBeginEdit``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellBorderStyleChanged``
+     - ``on_cell_border_style_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnCellClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellContentClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellContentDoubleClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellContextMenuStripChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellContextMenuStripNeeded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellDoubleClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellEndEdit``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellEnter``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellErrorTextChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellErrorTextNeeded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellFormatting``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellLeave``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellMouseClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellMouseDoubleClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellMouseDown``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellMouseEnter``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellMouseLeave``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellMouseMove``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellMouseUp``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellPainting``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellParsing``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellStateChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellStyleChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellStyleContentChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellToolTipTextChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellToolTipTextNeeded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellValidated``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellValidating``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellValueChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellValueNeeded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCellValuePushed``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnAdded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnContextMenuStripChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnDataPropertyNameChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnDefaultCellStyleChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnDisplayIndexChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnDividerDoubleClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnDividerWidthChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnHeaderCellChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnHeaderMouseClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnHeaderMouseDoubleClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnHeadersBorderStyleChanged``
+     - ``on_column_headers_border_style_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnColumnHeadersDefaultCellStyleChanged``
+     - ``on_column_headers_default_cell_style_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnColumnHeadersHeightChanged``
+     - ``on_column_headers_height_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnColumnHeadersHeightSizeModeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnMinimumWidthChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnNameChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnRemoved``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnSortModeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnStateChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnToolTipTextChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnWidthChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCurrentCellChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCurrentCellDirtyStateChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDataBindingComplete``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDataError``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDataMemberChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDataSourceChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDefaultCellStyleChanged``
+     - ``on_default_cell_style_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnDefaultValuesNeeded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnEditingControlShowing``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnEditModeChanged``
+     - ``on_edit_mode_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnGridColorChanged``
+     - ``on_grid_color_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnMultiSelectChanged``
+     - ``on_multi_select_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnNewRowNeeded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnReadOnlyChanged``
+     - ``on_read_only_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnRowContextMenuStripChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowContextMenuStripNeeded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowDefaultCellStyleChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowDirtyStateNeeded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowDividerDoubleClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowDividerHeightChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowEnter``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowErrorTextChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowErrorTextNeeded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowHeaderCellChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowHeaderMouseClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowHeaderMouseDoubleClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowHeadersBorderStyleChanged``
+     - ``on_row_headers_border_style_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnRowHeadersDefaultCellStyleChanged``
+     - ``on_row_headers_default_cell_style_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnRowHeadersWidthChanged``
+     - ``on_row_headers_width_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnRowHeadersWidthSizeModeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowHeightChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowHeightInfoNeeded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowHeightInfoPushed``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowLeave``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowMinimumHeightChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowPostPaint``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowPrePaint``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowsAdded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowsDefaultCellStyleChanged``
+     - ``on_rows_default_cell_style_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnRowsRemoved``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowStateChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowUnshared``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowValidated``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRowValidating``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnScroll``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelectionChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSortCompare``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSorted``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnUserAddedRow``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnUserDeletedRow``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnUserDeletingRow``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``PaintBackground``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessAKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessControlShiftF10Keys``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessDataGridViewKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessDeleteKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessDownKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessEndKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessEnterKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessEscapeKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessF2Key``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessF3Key``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessHomeKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessInsertKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessLeftKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessNextKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessPriorKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessRightKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessSpaceKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessTabKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessUpKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessZeroKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RefreshEdit``
+     - ``refresh_edit``
+     - supported
+   * - method
+     - ``SelectAll``
+     - ``select_all``
+     - supported
+   * - method
+     - ``SetCurrentCellAddressCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetSelectedCellCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetSelectedColumnCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetSelectedRowCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Sort``
+     - ``sort``
+     - supported
+   * - method
+     - ``UpdateCellErrorText``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateCellValue``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateRowErrorText``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateRowHeightInfo``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``cells_text_provided``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``clipboard_content``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``current_row_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``displayed_row_end``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``first_displayed_row``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``horizontal_scroll_offset``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``inherited_row_header_style``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_cells``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_columns``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_rows``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``row_order_mode``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``row_order_statistics``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``row_source``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``virtual_row_window_source``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``column_header_click``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``draw_item_content``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``row_edit_cancelled``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``row_order_mode_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_column``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cell_error_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cell_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cell_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cell_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_rows``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_drop_down``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``column_at_display_index``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``column_auto_size_mode``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``column_display_index``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``column_index``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``column_sort_mode``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``data_grid_view_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``inherited_cell_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``inherited_column_header_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``insert_column``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``insert_virtual_rows``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``is_cell_selected``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``is_row_selected``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``link_visited``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_virtual_row``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``preferred_cell_height``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``preferred_cell_width``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``preferred_column_header_width``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``preferred_row_header_height``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``prepare_edit``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``refresh_rows``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``remove_column_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove_virtual_rows``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_row_height_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``row_default_cell_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``row_error_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``row_height_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``row_id``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``row_position``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_cell_error_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_cell_selected``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_cell_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_cell_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_cells_text_provider``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_auto_size_mode``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_default_cell_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_display_index``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_fill_weight``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_header_cell_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_header_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_read_only``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_sort_glyph``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_column_sort_mode``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_visible``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_width``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_link_visited``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_row_default_cell_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_row_error_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_row_height_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_row_selected``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_virtual_row_order``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_virtual_rows``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``written``
+     - unclassified (untested)

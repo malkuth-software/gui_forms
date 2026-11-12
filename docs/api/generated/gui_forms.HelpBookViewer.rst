@@ -285,3 +285,185 @@ gui_forms::HelpBookViewer
    .. cpp:member:: constexpr std::size_t maximum_history
 
       The most pages history keeps; the oldest goes first. Default: ``256U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 26 supported, 0 deferred, 0 excluded, 16 unclassified; 42 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``book``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``bookmarks``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``can_go_back``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``can_go_forward``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``chooser_records``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``contents_tree``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``current_page``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``home_page``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``index_field``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``index_row_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``labels``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``navigation_visible``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``navigation_width``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``search_field``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``search_results``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``section``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selected_tab``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``snapshot``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``bookmarks_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``built_in_language_requested``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``external_link``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``navigated``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``popup_requested``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``print_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_bookmark``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``back``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``forward``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``home``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``locate``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``open_chooser_entry``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_index_row``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_search_result``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove_selected_bookmark``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``select_tab``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_home``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_images``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_titles_only``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_contents``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_index``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_search``
+     - supported

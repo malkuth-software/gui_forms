@@ -253,3 +253,189 @@ gui_forms::HelpBookSystem
    .. rubric:: Extension points
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Help``. Members declared here and by the counterpart: 30 supported, 0 deferred, 0 excluded, 13 unclassified; 40 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - method
+     - ``ShowHelp``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowHelpIndex``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowPopup``
+     - ``show_popup``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_viewer``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``bookmarks``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``help_mode_active``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``locale``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``options``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``popup_book``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``popup_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``snapshot``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``bookmarks_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``external_link``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``print_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``attach``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``attach_ribbon_tool_tip``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``cancel_help_mode``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``catalog``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_user_overrides``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_popup``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``compile``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``detach``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``enter_help_mode``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``export_template``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_built_in``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_translation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_user_overrides``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_help_key``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_help_mode_key``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_help_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_ribbon_help``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolve``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolve_field``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``section``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_section``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_viewer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_card``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_contents``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_help_for``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_index``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_search``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``use_built_in_language``
+     - supported

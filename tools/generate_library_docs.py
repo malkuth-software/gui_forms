@@ -10,6 +10,11 @@ left out. Descriptions come only from reviewed sources, in priority order:
 3. the reviewed contracts in docs/reference/contracts/*.json;
 4. the ``//`` comment directly above a declaration in its header.
 
+Each control page ends with its Windows Forms correspondence: every property,
+event and method against the Windows Forms counterpart, with its status, read
+from the member manifest (manifests/members.json, written by
+``tools/control_registry.py members``).
+
 Nothing is inferred from a signature. A docstring may only describe parameters,
 properties, events and methods the header declares; anything else is an error.
 
@@ -52,6 +57,7 @@ GUI_FORMS: Path = Path(__file__).resolve().parents[1]
 MANUAL_PATH: Path = GUI_FORMS / "docs" / "library" / "manual.json"
 DOCSTRINGS: Path = GUI_FORMS / "docs" / "library" / "docstrings"
 REGISTRY_PATH: Path = GUI_FORMS / "manifests" / "controls.json"
+MEMBER_MANIFEST_PATH: Path = GUI_FORMS / "manifests" / "members.json"
 CONTRACTS: Path = GUI_FORMS / "docs" / "reference" / "contracts"
 API: Path = GUI_FORMS / "docs" / "api"
 EXAMPLES: Path = GUI_FORMS / "tests" / "doc_examples_tests.cpp"
@@ -222,6 +228,63 @@ CATEGORY_DESCRIPTIONS: dict[str, str] = {
                   "timers and semantic feedback.",
 }
 
+
+
+def load_member_manifest() -> dict[str, dict]:
+    """The member manifest's entries for GUI.Forms types, by type name."""
+    manifest: dict = json.loads(MEMBER_MANIFEST_PATH.read_text(encoding="utf-8"))
+    return {entry["type"]: entry for entry in manifest.get("controls", []) if entry.get("type")}
+
+
+def manifest_text(text: str) -> str:
+    """Manifest prose safe in a reStructuredText table cell: no inline markup."""
+    return re.sub(r"([*`|\\]|_(?=\W|$))", r"\\\1", " ".join(text.split()))
+
+
+def member_status(row: dict) -> str:
+    status: str = row["status"]
+    if status in ("deferred", "excluded") and row.get("reason"):
+        return f"{status}: {manifest_text(row['reason'])}"
+    if status == "unclassified" and row.get("question"):
+        return f"{status} ({manifest_text(row['question'].split(':', 1)[0])})"
+    return status
+
+
+def correspondence_section(entry: dict) -> list[str]:
+    """A control page's Windows Forms correspondence, from its member manifest entry."""
+    rows: list[dict] = entry.get("members", [])
+    lines: list[str] = [".. rubric:: Windows Forms correspondence", ""]
+    counterpart: str | None = entry.get("winforms")
+    totals: dict[str, int] = {}
+    for row in rows:
+        totals[row["status"]] = totals.get(row["status"], 0) + 1
+    only: int = sum(1 for row in rows if row.get("gui_forms_only"))
+    counted: str = ", ".join(f"{totals.get(status, 0)} {status}"
+                             for status in ("supported", "deferred", "excluded", "unclassified"))
+    if counterpart:
+        lead = f"Counterpart: ``{counterpart}``. "
+    else:
+        lead = "No Windows Forms counterpart. "
+    lines += [lead + f"Members declared here and by the counterpart: {counted}; {only} GUI.Forms-only. "
+              "Generated from ``manifests/members.json``; inherited members are on the base's page.", ""]
+    if not rows:
+        return lines
+    lines += [".. list-table::", f"{rst.INDENT}:class: longtable", f"{rst.INDENT}:header-rows: 1",
+              f"{rst.INDENT}:widths: 12 26 26 36", "",
+              f"{rst.INDENT}* - Kind", f"{rst.INDENT}  - Windows Forms", f"{rst.INDENT}  - GUI.Forms",
+              f"{rst.INDENT}  - Status"]
+    for row in rows:
+        winforms: str = f"``{row['winforms']}``" if row.get("winforms") else "GUI.Forms-only"
+        if row.get("gui_forms"):
+            ours: str = f"``{row['gui_forms']}``"
+        elif row.get("carried_by"):
+            ours = "on " + ", ".join(f"``{name}``" for name in row["carried_by"])
+        else:
+            ours = "none"
+        lines += [f"{rst.INDENT}* - {row['kind']}", f"{rst.INDENT}  - {winforms}", f"{rst.INDENT}  - {ours}",
+                  f"{rst.INDENT}  - {member_status(row)}"]
+    lines.append("")
+    return lines
 
 
 def category_slug(category: str) -> str:
@@ -548,12 +611,17 @@ def render(output: Path, examples_path: Path) -> dict[str, int]:
         entry = registry_by_key.get((record.name, record.header))
         return rst.first_sentence(sources(record).summary(entry, record.comment))
 
+    members = load_member_manifest()
     pages: dict[str, str] = {}
     for record in own_page:
         chain = [(base, rst.shape_of(base)) for base in base_chain(record, by_name)]
         entry = registry_by_key.get((record.name, record.header))
-        pages[page_name(record) + ".rst"] = NOTICE + "\n\n" + rst.type_page(
+        page = NOTICE + "\n\n" + rst.type_page(
             record, sources(record), entry, chain, linker, label_of(record.qualified_name))
+        manifest_entry = members.get(record.name) if by_name.get(record.name) is record else None
+        if manifest_entry is not None:
+            page += "\n" + "\n".join(correspondence_section(manifest_entry))
+        pages[page_name(record) + ".rst"] = page
 
     grouped: dict[str, list[TypeRecord | EnumRecord]] = {}
     for record in [*model.types, *model.enums]:

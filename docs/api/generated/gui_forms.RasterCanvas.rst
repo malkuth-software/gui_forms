@@ -369,3 +369,53 @@ gui_forms::RasterCanvas
       *Protected.*
 
       Whether everything the last paint drew moves with the view's origin, so that a pan can copy it. RasterCanvas::on_paint declares it for its own paint (except an automatic transparency cell size, which follows the visible area); a subclass that paints instead declares it from its own on_paint. Until declared, a pan repaints.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 1 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``last_resource_error``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presented_generation``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``visible_bitmap_bounds``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``bitmap_to_client``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_bitmap``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``client_to_bitmap``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_transparency_colors``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_view``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``synchronize_bitmap``
+     - supported

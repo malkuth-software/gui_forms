@@ -18,8 +18,15 @@ template_harness, checked out beside this repository at the commit
   and their header coverage, `render` writes the control indexes under
   `docs/controls/generated/`, `readme-table` prints or splices
   (`--write README.md`) the README control table, and `emit-cpp` writes or,
-  with `--check`, verifies `demo/gallery_catalog.inc`.
+  with `--check`, verifies `demo/gallery_catalog.inc`. `members` writes the
+  member manifest `manifests/members.json` (`tools/member_manifest.py`): every
+  control's properties, events and methods against Windows Forms, supported,
+  deferred, excluded or unclassified; `--catalogue` reads stage W's Windows
+  Forms catalogue again, `--runtime` dotnet/runtime's reference sources for
+  `Component` and `BackgroundWorker`, and `--check` fails when the manifest and the
+  registry, schema or headers disagree.
   `python3 tools/control_registry.py check`
+  `python3 tools/control_registry.py members --check`
 
 `tools/winforms_divergences.py`
 : Checks `manifests/winforms-divergences.json`, the record of every difference
@@ -137,7 +144,7 @@ template_harness, checked out beside this repository at the commit
   installer on Windows, a `tar.gz` and Debian package on Linux, plus
   `SHA256SUMS.txt` and a `packages-<platform>.json` receipt. `--dry-run`
   prints the plan; `--no-installer` writes archives only.
-  `python3 tools/package_programs.py --build-dir build --version 0.2.0 --out dist`
+  `python3 tools/package_programs.py --build-dir build --version 0.6.0 --out dist`
 
 `tools/smoke_package.py`
 : Extracts each packaged program, launches it with `--smoke-test` and the

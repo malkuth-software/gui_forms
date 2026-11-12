@@ -287,3 +287,45 @@ gui_forms::FlagsValueEditor
    .. cpp:member:: constexpr std::size_t flags_value_editor_property_count
 
       FlagsValueEditor's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 6 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``checked_flags``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``enumeration_name``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``flag_names``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``none_name``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``flags_value_editor_property_entries``
+     - unclassified (untested)

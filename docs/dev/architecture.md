@@ -155,7 +155,7 @@ subclassing. Text uses only the bundled faces; see
 
 ## Compatibility and versioning
 
-The package is version 0.2.0. `find_package(GUIForms 0.2)` accepts any 0.2.x
+The package is version 0.6.0. `find_package(GUIForms 0.6)` accepts any 0.6.x
 installation and rejects other minor versions, and the shared libraries carry
 `SOVERSION 0`. Within that range there is still no binary promise: object
 layouts change between releases, so rebuild your application against each

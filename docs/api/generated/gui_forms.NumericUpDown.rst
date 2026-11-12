@@ -348,3 +348,109 @@ gui_forms::NumericUpDown
    .. cpp:member:: constexpr std::size_t numeric_up_down_property_count
 
       NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 8U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``NumericUpDown``. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 16 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``NumericUpDown``
+     - ``NumericUpDown``
+     - supported
+   * - property
+     - ``Accelerations``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DecimalPlaces``
+     - ``decimal_places``
+     - unclassified (untested)
+   * - property
+     - ``Hexadecimal``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Increment``
+     - ``increment``
+     - unclassified (untested)
+   * - property
+     - ``Maximum``
+     - ``maximum``
+     - unclassified (untested)
+   * - property
+     - ``Minimum``
+     - ``minimum``
+     - unclassified (untested)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``ThousandsSeparator``
+     - ``thousands_separator``
+     - unclassified (untested)
+   * - property
+     - ``Value``
+     - ``value``
+     - supported
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ValueChanged``
+     - ``value_changed``
+     - supported
+   * - method
+     - ``BeginInit``
+     - ``begin_init``
+     - supported
+   * - method
+     - ``EndInit``
+     - ``end_init``
+     - supported
+   * - method
+     - ``OnValueChanged``
+     - ``on_value_changed``
+     - unclassified (untested)
+   * - method
+     - ``ParseEditText``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``scrub``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scrubbing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``text_alignment``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``numeric_up_down_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_range``
+     - supported

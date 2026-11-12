@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
 ```
 
 ```cmake
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS CAbiConformance)
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS CAbiConformance)
 add_executable(c_abi_conformance c_abi_conformance.c)
 set_target_properties(c_abi_conformance PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
 target_link_libraries(c_abi_conformance PRIVATE GUIForms::CAbiConformance)

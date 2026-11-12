@@ -76,7 +76,7 @@ option off before `find_package`:
 
 ```cmake
 set(GUI_FORMS_LOCALIZABLE_LITERALS OFF)
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS Application)
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application)
 ```
 
 ## Reading the table

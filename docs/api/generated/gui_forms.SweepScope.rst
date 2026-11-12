@@ -175,3 +175,37 @@ gui_forms::SweepScope
    .. cpp:member:: constexpr std::size_t sweep_scope_property_count
 
       SweepScope's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 2U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 3 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``caption``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``effect_instance``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``plot_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sweep_period``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``sweep_scope_property_entries``
+     - unclassified (untested)

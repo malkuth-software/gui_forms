@@ -205,3 +205,49 @@ gui_forms::SemanticFeedback
       *Protected.*
 
    .. cpp:type:: Clock = std::function<std::uint64_t()>
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 1 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``dropped_record_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``maximum_records``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``records``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``trace``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``emitted``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cue_for``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``emit``
+     - supported

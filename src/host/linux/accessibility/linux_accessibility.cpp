@@ -206,7 +206,8 @@ const gchar* toolkit_name() {
     return "GUI.Forms";
 }
 const gchar* toolkit_version() {
-    return "0.2";
+    // The package's major.minor (project(GUIForms VERSION) in CMakeLists.txt).
+    return "0.6";
 }
 
 AtkRole native_role(SemanticRole role) {

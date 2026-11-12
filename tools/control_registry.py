@@ -6,8 +6,12 @@ controls table consume. This module has three jobs:
 
 - ``check``: validate every record and prove coverage both ways against the
   public headers (see ``scan_public_control_types`` for the exact rule);
-- ``render``: write ``docs/controls/generated/by-function.md`` and
-  ``docs/controls/generated/alphabetical.md``;
+- ``render``: write ``docs/controls/generated/by-function.md``,
+  ``docs/controls/generated/alphabetical.md`` and
+  ``docs/controls/generated/members.md`` (the member manifest's summary);
+- ``members``: write the member manifest, ``manifests/members.json``
+  (tools/member_manifest.py), or with ``--check`` fail when it and the
+  registry, schema or headers disagree;
 - ``readme-table``: print a compact table for the README, or splice it between
   ``<!-- controls:start -->`` and ``<!-- controls:end -->`` with ``--write``;
 - ``emit-cpp``: write ``demo/gallery_catalog.inc``, the constexpr C++ array the
@@ -40,6 +44,9 @@ HEADER_ROOT: Path = INCLUDE_ROOT / "gui_forms"
 GENERATED_DIR: Path = ROOT / "docs" / "controls" / "generated"
 BY_FUNCTION_NAME: str = "by-function.md"
 ALPHABETICAL_NAME: str = "alphabetical.md"
+MEMBERS_NAME: str = "members.md"
+GUI_FORMS_ONLY_LABEL: str = "GUI.Forms-only"
+MEMBER_MANIFEST_PATH: Path = ROOT / "manifests" / "members.json"
 # The published documentation site; the README links each control to its page there.
 SITE_URL: str = "https://gui-forms.readthedocs.io/"
 README_START: str = "<!-- controls:start -->"
@@ -596,8 +603,83 @@ def render_forms_catalog(registry: Registry) -> str:
     return "\n".join(lines)
 
 
-def render_all(registry: Registry) -> dict[str, str]:
-    return {BY_FUNCTION_NAME: render_by_function(registry), ALPHABETICAL_NAME: render_alphabetical(registry)}
+def _member_counts(rows: Iterable[Mapping]) -> dict[str, int]:
+    totals: dict[str, int] = {"supported": 0, "deferred": 0, "excluded": 0, "unclassified": 0, "gui_forms_only": 0}
+    for row in rows:
+        totals[str(row.get("status"))] = totals.get(str(row.get("status")), 0) + 1
+        if row.get("gui_forms_only"):
+            totals["gui_forms_only"] += 1
+    return totals
+
+
+def _count_cells(totals: Mapping[str, int]) -> list[str]:
+    return [str(totals[name]) for name in ("supported", "deferred", "excluded", "unclassified", "gui_forms_only")]
+
+
+def render_members(manifest: Mapping) -> str:
+    """The member manifest's summary page: totals, one row per type, the open questions.
+
+    The member tables themselves are on each control's API reference page
+    (tools/generate_library_docs.py); this page counts them.
+    """
+    entries: list[Mapping] = list(manifest.get("controls", []))
+    all_rows: list[Mapping] = [row for entry in entries for row in entry.get("members", [])]
+    count_headers: tuple[str, ...] = ("Supported", "Deferred", "Excluded", "Unclassified", "GUI.Forms-only")
+    lines: list[str] = [
+        "# Member manifest",
+        "",
+        "Generated from `manifests/members.json` by `python3 tools/control_registry.py render`. Do not edit.",
+        "",
+        "Every GUI.Forms control and every property, event and method on each, against its Windows Forms "
+        "(.NET 8 or later) counterpart: supported, deferred or excluded, or unclassified until someone decides. "
+        "Each control's API reference page lists its members; this page counts them. `python3 "
+        "tools/control_registry.py members --check` fails when the manifest and the registry disagree.",
+        "",
+        "## Totals",
+        "",
+        *_table(count_headers, [_count_cells(_member_counts(all_rows))]),
+        "",
+        "## GUI.Forms types",
+        "",
+    ]
+    rows: list[Sequence[str]] = []
+    for entry in entries:
+        if entry.get("type") is None:
+            continue
+        counterpart: str = _code(str(entry["winforms"])) if entry.get("winforms") else GUI_FORMS_ONLY_LABEL
+        rows.append((_code(str(entry["type"])), counterpart, *_count_cells(_member_counts(entry.get("members", [])))))
+    lines += [*_table(("Type", "Windows Forms", *count_headers), rows), ""]
+    lines += ["## Windows Forms types without a GUI.Forms type", ""]
+    rows = []
+    for entry in entries:
+        if entry.get("type") is not None:
+            continue
+        explanation: str = str(entry.get("reason") or entry.get("question") or entry.get("counterpart_note") or "")
+        rows.append((_code(str(entry["winforms"])), str(entry.get("status")), _cell(explanation),
+                     *_count_cells(_member_counts(entry.get("members", [])))))
+    lines += [*_table(("Windows Forms", "Type status", "Note", *count_headers), rows), ""]
+    questions: dict[str, int] = {}
+    for row in all_rows:
+        if row.get("status") == "unclassified":
+            tag: str = str(row.get("question", "")).split(":", 1)[0]
+            questions[tag] = questions.get(tag, 0) + 1
+    lines += ["## Unclassified members, by question", "",
+              *_table(("Question", "Members"), [(_code(tag), str(number)) for tag, number in sorted(questions.items())]),
+              ""]
+    return "\n".join(lines)
+
+
+def load_member_manifest(path: Path = MEMBER_MANIFEST_PATH) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RegistryError(f"{path}: {error}") from error
+
+
+def render_all(registry: Registry, member_manifest: Mapping | None = None) -> dict[str, str]:
+    manifest: Mapping = member_manifest if member_manifest is not None else load_member_manifest()
+    return {BY_FUNCTION_NAME: render_by_function(registry), ALPHABETICAL_NAME: render_alphabetical(registry),
+            MEMBERS_NAME: render_members(manifest)}
 
 
 def write_rendered(registry: Registry, directory: Path = GENERATED_DIR) -> list[Path]:
@@ -695,6 +777,19 @@ def _command_emit_forms(args: argparse.Namespace) -> int:
     return _emit("emit-forms", render_forms_catalog(registry), args.out, args.check)
 
 
+def _command_members(args: argparse.Namespace) -> int:
+    # Imported here: the manifest reads every public header, which the other
+    # commands do not need.
+    import member_manifest
+
+    try:
+        return member_manifest.command_generate(args.catalogue, args.check, member_manifest.MANIFEST_PATH,
+                                                args.runtime)
+    except member_manifest.ManifestError as error:
+        print(f"members: {error}", file=sys.stderr)
+        return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--registry", type=Path, default=REGISTRY_PATH, help="path to controls.json")
@@ -722,6 +817,15 @@ def build_parser() -> argparse.ArgumentParser:
     emit_forms.add_argument("--out", type=Path, default=FORMS_CATALOG_PATH, help="output header path")
     emit_forms.add_argument("--check", action="store_true", help="fail when the committed header is stale")
     emit_forms.set_defaults(run=_command_emit_forms)
+    members: argparse.ArgumentParser = subparsers.add_parser(
+        "members", help="write or check manifests/members.json, the member manifest")
+    members.add_argument("--catalogue", type=Path, default=None,
+                         help="stage W's WINFORMS_API_CATALOGUE.tsv; without it the committed Windows Forms rows are kept")
+    members.add_argument("--runtime", type=Path, default=None,
+                         help="dotnet/runtime reference sources, <version>/<library>.cs, for Component and BackgroundWorker")
+    members.add_argument("--check", action="store_true",
+                         help="fail when the manifest and the registry, schema or headers disagree")
+    members.set_defaults(run=_command_members)
     return parser
 
 

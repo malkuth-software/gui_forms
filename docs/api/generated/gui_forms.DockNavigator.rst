@@ -260,3 +260,73 @@ gui_forms::DockNavigator
    .. cpp:function:: void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 4 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``current_index``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``current_list``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``current_panel``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``cancelled``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``chosen``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``cancel``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``choose``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``entries``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``entry_identity``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``select``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_entries``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``step``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``switch_list``
+     - supported

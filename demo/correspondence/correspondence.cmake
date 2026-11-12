@@ -35,7 +35,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     set_target_properties(gui_forms_correspondence PROPERTIES
         MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Correspondence"
         MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.correspondence"
-        MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
         MACOSX_BUNDLE_BUNDLE_VERSION "1"
         OUTPUT_NAME "GUI.Forms Correspondence"
     )

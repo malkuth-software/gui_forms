@@ -82,3 +82,33 @@ gui_forms::PlotAnnotationItem
    .. cpp:member:: constexpr std::size_t plot_annotation_item_property_count
 
       PlotAnnotationItem's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 0 supported, 0 deferred, 0 excluded, 4 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``x``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``y``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``plot_annotation_item_property_entries``
+     - unclassified (untested)

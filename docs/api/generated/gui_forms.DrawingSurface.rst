@@ -208,3 +208,25 @@ gui_forms::DrawingSurface
       *Protected.*
 
    .. cpp:type:: PaintCallback = std::function<void(Painter&, Rect, Rect)>
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 0 unclassified; 2 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``has_paint_callback``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_paint_callback``
+     - supported

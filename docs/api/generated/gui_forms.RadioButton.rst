@@ -265,3 +265,77 @@ gui_forms::RadioButton
    .. cpp:member:: constexpr std::size_t radio_button_property_count
 
       RadioButton's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``RadioButton``. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 11 unclassified; 3 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``RadioButton``
+     - ``RadioButton``
+     - supported
+   * - property
+     - ``Appearance``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoCheck``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CheckAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Checked``
+     - ``checked``
+     - supported
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - event
+     - ``AppearanceChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CheckedChanged``
+     - ``checked_changed``
+     - supported
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - unclassified (untested)
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - unclassified (untested)
+   * - method
+     - ``OnCheckedChanged``
+     - ``on_checked_changed``
+     - unclassified (untested)
+   * - method
+     - ``PerformClick``
+     - ``perform_click``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``group_name``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``indicator_style``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``radio_button_property_entries``
+     - unclassified (untested)

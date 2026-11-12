@@ -162,3 +162,45 @@ gui_forms::FontCommand
    .. cpp:member:: constexpr double maximum_size
 
       The largest size accepted, in points. Default: ``1638.0``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 2 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``command``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``state``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``value``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``commit``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``valid_value``
+     - unclassified (untested)

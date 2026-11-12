@@ -305,3 +305,137 @@ gui_forms::CheckedListBox
    .. cpp:function:: void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``CheckedListBox``. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 18 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``CheckedListBox``
+     - ``CheckedListBox``
+     - supported
+   * - property
+     - ``CheckedIndices``
+     - ``checked_indices``
+     - supported
+   * - property
+     - ``CheckedItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CheckOnClick``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DisplayMember``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``ThreeDCheckBoxes``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseCompatibleTextRendering``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ValueMember``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - supported
+   * - event
+     - ``DataSourceChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DisplayMemberChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DrawItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemCheck``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MeasureItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - unclassified (untested)
+   * - event
+     - ``ValueMemberChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemChecked``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemCheckState``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnItemCheck``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``SetItemChecked``
+     - ``set_item_checked``
+     - supported
+   * - method
+     - ``SetItemCheckState``
+     - ``set_item_check_state``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_check_state_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_checking``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_item``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_check_state``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_checked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``toggle_item``
+     - supported

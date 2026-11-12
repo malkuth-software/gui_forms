@@ -322,3 +322,61 @@ gui_forms::ResponsiveTrackPanel
    .. cpp:member:: constexpr std::size_t responsive_track_panel_property_count
 
       ResponsiveTrackPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 5 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``layout_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``orientation``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``track_gap``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``track_specs``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_track_focus_fallback``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``responsive_track_panel_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_track_focus_fallback``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_track_revealed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_track_spec``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``track_child_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``track_revealed``
+     - supported
