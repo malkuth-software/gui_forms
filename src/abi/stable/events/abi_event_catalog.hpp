@@ -68,6 +68,7 @@
 #include "gui_forms/controls/info_banner.hpp"
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/list_control.hpp"
 #include "gui_forms/controls/list_view.hpp"
 #include "gui_forms/controls/lookup_combo_box.hpp"
 #include "gui_forms/controls/masked_text_box.hpp"
@@ -5304,15 +5305,6 @@ inline SubscriptionToken connect_button_selected_changed(Component& source, cons
     return token;
 }
 
-inline SubscriptionToken connect_combo_box_selected_index_changed(Component& source, const EventSink& sink) {
-    ComboBox* typed = dynamic_cast<ComboBox*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).selected_index_changed(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_domain_up_down_selected_index_changed(Component& source, const EventSink& sink) {
     DomainUpDown* typed = dynamic_cast<DomainUpDown*>(&source);
     if (typed == nullptr) {
@@ -5322,8 +5314,8 @@ inline SubscriptionToken connect_domain_up_down_selected_index_changed(Component
     return token;
 }
 
-inline SubscriptionToken connect_list_box_selected_index_changed(Component& source, const EventSink& sink) {
-    ListBox* typed = dynamic_cast<ListBox*>(&source);
+inline SubscriptionToken connect_list_control_selected_index_changed(Component& source, const EventSink& sink) {
+    ListControl* typed = dynamic_cast<ListControl*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5966,7 +5958,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 332> event_connectors{{
+inline constexpr std::array<EventConnector, 331> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6226,9 +6218,8 @@ inline constexpr std::array<EventConnector, 332> event_connectors{{
     {"selected", "TabControl", &connect_tab_control_selected},
     {"selected_changed", "Card", &connect_card_selected_changed},
     {"selected_changed", "Button", &connect_button_selected_changed},
-    {"selected_index_changed", "ComboBox", &connect_combo_box_selected_index_changed},
     {"selected_index_changed", "DomainUpDown", &connect_domain_up_down_selected_index_changed},
-    {"selected_index_changed", "ListBox", &connect_list_box_selected_index_changed},
+    {"selected_index_changed", "ListControl", &connect_list_control_selected_index_changed},
     {"selected_index_changed", "TabControl", &connect_tab_control_selected_index_changed},
     {"selected_key_changed", "LookupComboBox", &connect_lookup_combo_box_selected_key_changed},
     {"selected_object_changed", "PropertyGrid", &connect_property_grid_selected_object_changed},
