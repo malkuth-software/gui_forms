@@ -615,7 +615,7 @@ gui_forms::ButtonBase
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ButtonBase``. Members declared here and by the counterpart: 17 supported, 0 deferred, 0 excluded, 35 unclassified; 21 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ButtonBase``. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 36 unclassified; 21 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -822,6 +822,14 @@ Counterpart: ``ButtonBase``. Members declared here and by the counterpart: 17 su
      - GUI.Forms-only
      - ``clear_visual_recipes``
      - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
+     - supported
    * - method
      - GUI.Forms-only
      - ``perform_click``

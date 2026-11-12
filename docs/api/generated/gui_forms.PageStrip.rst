@@ -701,7 +701,7 @@ gui_forms::PageStrip
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 30 supported, 0 deferred, 0 excluded, 4 unclassified; 34 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 30 supported, 0 deferred, 0 excluded, 7 unclassified; 37 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -798,6 +798,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 30 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``close_unhandled``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
      - ``ensure_visible``
      - supported
    * - method
@@ -812,6 +816,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 30 s
      - GUI.Forms-only
      - ``page_at``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``page_panel_identity``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``release_page_set``
@@ -840,6 +848,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 30 s
      - GUI.Forms-only
      - ``show_page_list``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_family``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``tab_identity``

@@ -406,8 +406,8 @@ Counterpart: ``ScrollBar``. Members declared here and by the counterpart: 12 sup
      - unclassified (hook)
    * - method
      - ``OnValueChanged``
-     - none
-     - unclassified (hook)
+     - ``on_value_changed``
+     - unclassified (untested)
    * - method
      - ``UpdateScrollInfo``
      - none

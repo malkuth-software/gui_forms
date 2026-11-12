@@ -334,16 +334,16 @@ Counterpart: ``CheckBox``. Members declared here and by the counterpart: 4 suppo
      - unclassified (untested)
    * - method
      - ``OnAppearanceChanged``
-     - none
-     - unclassified (hook)
+     - ``on_appearance_changed``
+     - unclassified (untested)
    * - method
      - ``OnCheckedChanged``
-     - none
-     - unclassified (hook)
+     - ``on_checked_changed``
+     - unclassified (untested)
    * - method
      - ``OnCheckStateChanged``
-     - none
-     - unclassified (hook)
+     - ``on_check_state_changed``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``indicator_style``

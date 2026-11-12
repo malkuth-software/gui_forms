@@ -2196,7 +2196,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 186 supported, 0 deferred, 5 excluded, 345 unclassified; 179 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 206 supported, 0 deferred, 5 excluded, 344 unclassified; 198 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -3069,12 +3069,12 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (unmatched)
    * - method
      - ``OnAutoSizeChanged``
-     - none
-     - unclassified (hook)
+     - ``on_auto_size_changed``
+     - unclassified (untested)
    * - method
      - ``OnBackColorChanged``
-     - none
-     - unclassified (hook)
+     - ``on_back_color_changed``
+     - unclassified (untested)
    * - method
      - ``OnBackgroundImageChanged``
      - none
@@ -3089,8 +3089,8 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (hook)
    * - method
      - ``OnCausesValidationChanged``
-     - none
-     - unclassified (hook)
+     - ``on_causes_validation_changed``
+     - unclassified (untested)
    * - method
      - ``OnChangeUICues``
      - none
@@ -3125,16 +3125,16 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (hook)
    * - method
      - ``OnCursorChanged``
-     - none
-     - unclassified (hook)
+     - ``on_cursor_changed``
+     - unclassified (untested)
    * - method
      - ``OnDataContextChanged``
      - none
      - unclassified (hook)
    * - method
      - ``OnDockChanged``
-     - none
-     - unclassified (hook)
+     - ``on_dock_changed``
+     - unclassified (untested)
    * - method
      - ``OnDoubleClick``
      - none
@@ -3165,20 +3165,20 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (hook)
    * - method
      - ``OnEnabledChanged``
-     - none
-     - unclassified (hook)
+     - ``on_enabled_changed``
+     - unclassified (untested)
    * - method
      - ``OnEnter``
      - none
      - unclassified (hook)
    * - method
      - ``OnFontChanged``
-     - none
-     - unclassified (hook)
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``RichTextBox``, ``Label``, ``ListBox``, ``CheckedListBox``, ``ComboBox``, ``TreeView``, ``ObjectView``, ``ListView``, ``DataGridView``, ``CheckBox``, ``RadioButton``, ``DateTimePicker``, ``MonthCalendar``, ``GroupBox``
+     - unclassified (carried)
    * - method
      - ``OnForeColorChanged``
-     - none
-     - unclassified (hook)
+     - ``on_fore_color_changed``
+     - unclassified (untested)
    * - method
      - ``OnGiveFeedback``
      - none
@@ -3237,8 +3237,8 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (hook)
    * - method
      - ``OnMarginChanged``
-     - none
-     - unclassified (hook)
+     - ``on_margin_changed``
+     - unclassified (untested)
    * - method
      - ``OnMouseCaptureChanged``
      - none
@@ -3289,8 +3289,8 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (hook)
    * - method
      - ``OnPaddingChanged``
-     - none
-     - unclassified (hook)
+     - ``on_padding_changed``
+     - unclassified (untested)
    * - method
      - ``OnPaint``
      - ``on_paint``
@@ -3365,8 +3365,8 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (hook)
    * - method
      - ``OnRightToLeftChanged``
-     - none
-     - unclassified (hook)
+     - ``on_right_to_left_changed``
+     - unclassified (untested)
    * - method
      - ``OnSizeChanged``
      - none
@@ -3381,16 +3381,16 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (hook)
    * - method
      - ``OnTabIndexChanged``
-     - none
-     - unclassified (hook)
+     - ``on_tab_index_changed``
+     - unclassified (untested)
    * - method
      - ``OnTabStopChanged``
-     - none
-     - unclassified (hook)
+     - ``on_tab_stop_changed``
+     - unclassified (untested)
    * - method
      - ``OnTextChanged``
-     - none
-     - unclassified (hook)
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``RichTextBox``, ``Label``, ``ComboBox``, ``CheckBox``, ``RadioButton``, ``DomainUpDown``, ``GroupBox``
+     - unclassified (carried)
    * - method
      - ``OnValidated``
      - none
@@ -3401,8 +3401,8 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (hook)
    * - method
      - ``OnVisibleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_visible_changed``
+     - supported
    * - method
      - ``PerformLayout``
      - ``perform_layout``
@@ -3965,6 +3965,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - supported
    * - method
      - GUI.Forms-only
+     - ``assign_cancel_dialog_result``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
      - ``begin_init``
      - supported
    * - method
@@ -3977,6 +3981,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - supported
    * - method
      - GUI.Forms-only
+     - ``child_leaving``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
      - ``child_property_table``
      - unclassified (untested)
    * - method
@@ -3986,7 +3994,11 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
    * - method
      - GUI.Forms-only
      - ``child_touch_escalation``
-     - unclassified (untested)
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``child_viewport_rectangle``
+     - supported
    * - method
      - GUI.Forms-only
      - ``clear_authored_surface_material``
@@ -4009,6 +4021,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (untested)
    * - method
      - GUI.Forms-only
+     - ``command_dialog_result``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
      - ``control_property_entries``
      - unclassified (untested)
    * - method
@@ -4022,7 +4038,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
    * - method
      - GUI.Forms-only
      - ``fill_line_break_opportunities_utf8``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``fill_part_geometry``
@@ -4046,11 +4062,11 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
    * - method
      - GUI.Forms-only
      - ``fold_content_regions``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``gather_content_regions``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``has_bindable_property``
@@ -4097,6 +4113,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - supported
    * - method
      - GUI.Forms-only
+     - ``measure_intrinsic``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``measure_text_extent_utf8``
      - unclassified (untested)
    * - method
@@ -4105,11 +4125,27 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (untested)
    * - method
      - GUI.Forms-only
+     - ``mnemonic_matches``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``notify_default``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
      - ``on_activate``
      - supported
    * - method
      - GUI.Forms-only
      - ``on_ambient_frame``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_attached_to_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_attachment_committed``
      - unclassified (untested)
    * - method
      - GUI.Forms-only
@@ -4117,8 +4153,16 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - unclassified (untested)
    * - method
      - GUI.Forms-only
-     - ``on_drag``
+     - ``on_detached_from_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_detaching_from_window``
      - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_drag``
+     - supported
    * - method
      - GUI.Forms-only
      - ``on_drag_bubble``
@@ -4142,11 +4186,19 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
    * - method
      - GUI.Forms-only
      - ``on_key_bubble``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``on_key_preview``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_layout_direction_changed``
      - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_paint_overlay``
+     - supported
    * - method
      - GUI.Forms-only
      - ``on_pointer``
@@ -4154,11 +4206,11 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
    * - method
      - GUI.Forms-only
      - ``on_pointer_bubble``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``on_pointer_preview``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``on_semantic_action``
@@ -4178,14 +4230,18 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
    * - method
      - GUI.Forms-only
      - ``on_text_input``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``paint_depends_on_size``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``paints_content``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``perform_dialog_command``
      - unclassified (untested)
    * - method
      - GUI.Forms-only
@@ -4195,6 +4251,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - GUI.Forms-only
      - ``point_to_window``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``process_mnemonic_self``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``property_descriptor``
@@ -4207,6 +4267,18 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - GUI.Forms-only
      - ``property_value_origin``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``publish_part_geometry``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``publish_realized_item_geometry``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``publish_realized_item_system``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``read``
@@ -4314,11 +4386,11 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
    * - method
      - GUI.Forms-only
      - ``size_depends_on_content``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``sizes_children_from_content``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``snap_text_baseline``
@@ -4327,6 +4399,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 186 supp
      - GUI.Forms-only
      - ``subscribe_property_changed``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``supports_dialog_command``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``text_font``

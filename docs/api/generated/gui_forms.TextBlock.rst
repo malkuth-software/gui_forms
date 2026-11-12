@@ -278,7 +278,7 @@ gui_forms::TextBlock
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 6 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 8 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -317,6 +317,14 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 2 su
      - GUI.Forms-only
      - ``text_changed``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_text_changed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``text_block_property_entries``

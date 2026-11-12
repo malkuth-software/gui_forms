@@ -411,8 +411,8 @@ Counterpart: ``TrackBar``. Members declared here and by the counterpart: 12 supp
      - unclassified (hook)
    * - method
      - ``OnValueChanged``
-     - none
-     - unclassified (hook)
+     - ``on_value_changed``
+     - unclassified (untested)
    * - method
      - ``SetRange``
      - ``set_range``

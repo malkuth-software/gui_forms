@@ -288,7 +288,7 @@ gui_forms::DomainUpDown
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 12 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 13 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -354,6 +354,10 @@ Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 5 s
    * - method
      - GUI.Forms-only
      - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

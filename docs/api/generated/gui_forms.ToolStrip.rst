@@ -423,7 +423,7 @@ gui_forms::ToolStrip
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 15 supported, 0 deferred, 0 excluded, 77 unclassified; 17 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 15 supported, 0 deferred, 0 excluded, 78 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -802,3 +802,7 @@ Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 15 sup
      - GUI.Forms-only
      - ``text_box``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``validate_items``
+     - unclassified (untested)

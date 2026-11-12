@@ -321,8 +321,8 @@ Counterpart: ``RadioButton``. Members declared here and by the counterpart: 4 su
      - unclassified (untested)
    * - method
      - ``OnCheckedChanged``
-     - none
-     - unclassified (hook)
+     - ``on_checked_changed``
+     - unclassified (untested)
    * - method
      - ``PerformClick``
      - ``perform_click``

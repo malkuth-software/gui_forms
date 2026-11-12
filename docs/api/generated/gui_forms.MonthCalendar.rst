@@ -430,7 +430,7 @@ gui_forms::MonthCalendar
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 44 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 45 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -681,6 +681,10 @@ Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 18
      - GUI.Forms-only
      - ``bolded``
      - supported
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``scroll_months``

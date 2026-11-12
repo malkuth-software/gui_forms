@@ -442,7 +442,7 @@ gui_forms::ListBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ListBox``. Members declared here and by the counterpart: 11 supported, 0 deferred, 1 excluded, 47 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ListBox``. Members declared here and by the counterpart: 12 supported, 0 deferred, 1 excluded, 51 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -674,8 +674,28 @@ Counterpart: ``ListBox``. Members declared here and by the counterpart: 11 suppo
      - ``list_box_property_entries``
      - unclassified (untested)
    * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_items_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_items_changing``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``paint_row_adornment``
+     - unclassified (untested)
+   * - method
      - GUI.Forms-only
      - ``prepare_edit``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``row_text_left``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

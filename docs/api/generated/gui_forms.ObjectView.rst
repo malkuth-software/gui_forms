@@ -640,7 +640,7 @@ gui_forms::ObjectView
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supported, 0 deferred, 1 excluded, 107 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supported, 0 deferred, 1 excluded, 108 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1151,6 +1151,10 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - GUI.Forms-only
      - ``item_id_at``
      - supported
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``select_all``

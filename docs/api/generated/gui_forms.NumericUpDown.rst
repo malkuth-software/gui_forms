@@ -424,8 +424,8 @@ Counterpart: ``NumericUpDown``. Members declared here and by the counterpart: 7 
      - supported
    * - method
      - ``OnValueChanged``
-     - none
-     - unclassified (hook)
+     - ``on_value_changed``
+     - unclassified (untested)
    * - method
      - ``ParseEditText``
      - none

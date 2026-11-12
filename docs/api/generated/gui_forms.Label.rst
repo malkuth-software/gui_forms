@@ -317,7 +317,7 @@ gui_forms::Label
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Label``. Members declared here and by the counterpart: 5 supported, 0 deferred, 1 excluded, 34 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Label``. Members declared here and by the counterpart: 7 supported, 0 deferred, 1 excluded, 36 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -486,5 +486,21 @@ Counterpart: ``Label``. Members declared here and by the counterpart: 5 supporte
      - supported
    * - method
      - GUI.Forms-only
+     - ``display_text``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``label_property_entries``
      - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_alignment_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
+     - supported

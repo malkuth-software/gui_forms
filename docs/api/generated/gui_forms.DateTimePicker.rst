@@ -415,7 +415,7 @@ gui_forms::DateTimePicker
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 46 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 47 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -584,16 +584,16 @@ Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6
      - unclassified (hook)
    * - method
      - ``OnFormatChanged``
-     - none
-     - unclassified (hook)
+     - ``on_format_changed``
+     - unclassified (untested)
    * - method
      - ``OnRightToLeftLayoutChanged``
      - none
      - unclassified (hook)
    * - method
      - ``OnValueChanged``
-     - none
-     - unclassified (hook)
+     - ``on_value_changed``
+     - unclassified (untested)
    * - field
      - ``DefaultMonthBackColor``
      - none
@@ -630,6 +630,10 @@ Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6
      - GUI.Forms-only
      - ``drop_down_changed``
      - supported
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``set_range``

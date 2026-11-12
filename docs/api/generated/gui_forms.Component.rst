@@ -226,7 +226,7 @@ gui_forms::Component
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Component``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 9 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Component``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 11 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -295,6 +295,14 @@ Counterpart: ``Component``. Members declared here and by the counterpart: 8 supp
      - supported
    * - method
      - GUI.Forms-only
+     - ``append_interactions``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_dispose``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``own_revocable``
      - unclassified (untested)
    * - method
@@ -305,3 +313,7 @@ Counterpart: ``Component``. Members declared here and by the counterpart: 8 supp
      - GUI.Forms-only
      - ``property_table``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``verify_dispose_thread``
+     - unclassified (untested)

@@ -560,7 +560,7 @@ gui_forms::ScrollableControl
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ScrollableControl``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 16 unclassified; 13 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ScrollableControl``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 20 unclassified; 17 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -633,8 +633,8 @@ Counterpart: ``ScrollableControl``. Members declared here and by the counterpart
      - supported
    * - method
      - ``ScrollToControl``
-     - none
-     - unclassified (unmatched)
+     - ``scroll_to_control``
+     - unclassified (untested)
    * - method
      - ``SetAutoScrollMargin``
      - none
@@ -686,6 +686,22 @@ Counterpart: ``ScrollableControl``. Members declared here and by the counterpart
    * - property
      - GUI.Forms-only
      - ``wheel_scrolls``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``adjust_scrollbars``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_auto_scroll_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_scroll_position_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``paints_scrolled_content``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

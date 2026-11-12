@@ -550,7 +550,7 @@ gui_forms::RichTextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 31 supported, 0 deferred, 0 excluded, 57 unclassified; 20 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 supported, 0 deferred, 0 excluded, 60 unclassified; 22 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -861,6 +861,22 @@ Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 31 s
      - GUI.Forms-only
      - ``insert_link``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_accepts_tab_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_read_only_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``replace_selection``

@@ -532,8 +532,13 @@ def header_members(record: TypeRecord) -> tuple[set[str], set[str], set[str], bo
     properties: set[str] = {prop.name for prop in shape.properties}
     events: set[str] = {event.name for event in shape.events}
     methods: set[str] = {method.name for method in shape.methods}
+    # The extension surface: public virtuals, and protected virtuals a
+    # subclass overrides (the on_<property>_changed raisers of P-8 among
+    # them, Windows Forms' protected On* hooks' counterparts).
     for method in shape.extension:
-        if method.access == "public" and not rst.is_override(method):
+        if rst.is_override(method):
+            continue
+        if method.access == "public" or re.search(r"\bvirtual\b", method.signature):
             methods.add(method.name)
     return properties, events, methods, bool(shape.constructors)
 
@@ -688,6 +693,9 @@ class TestIndex:
         mentions: dict[str, set[str]] = {}
         call_pattern: re.Pattern[str] = re.compile(r"\.\s*([A-Za-z_]\w*)\s*\(")
         word_pattern: re.Pattern[str] = re.compile(r"\b[A-Z][A-Za-z0-9_]*\b")
+        # A test subclass overriding a virtual exercises it as a call does.
+        override_pattern: re.Pattern[str] = re.compile(
+            r"\b([a-z_]\w*)\s*\([^()]*\)\s*(?:const\s*)?(?:noexcept\s*)?override\b")
         if not root.is_dir():
             return TestIndex(calls, mentions)
         for path in sorted(root.rglob("*")):
@@ -695,7 +703,7 @@ class TestIndex:
                 continue
             relative: str = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.as_posix()
             text: str = path.read_text(encoding="utf-8", errors="replace")
-            for name in set(call_pattern.findall(text)):
+            for name in set(call_pattern.findall(text)) | set(override_pattern.findall(text)):
                 calls.setdefault(name, set()).add(relative)
             for word in set(word_pattern.findall(text)):
                 mentions.setdefault(word, set()).add(relative)
@@ -979,7 +987,7 @@ def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], p
             "are on the base's entry. A Windows Forms name qualified with a type (TextBoxBase.SelectAll) is "
             "declared by a Windows Forms base and declared by this GUI.Forms type.",
             "status: supported, deferred, excluded or unclassified. basis: test (evidence names the test file "
-            "that calls the member), catalogue (the stage W catalogue's exclusion), type (the type is "
+            "that calls the member or overrides it in a subclass), catalogue (the stage W catalogue's exclusion), type (the type is "
             "excluded), w-brief, owner or coordinator (a written decision; evidence names it), none "
             "(unclassified; question says why). scope is the catalogue's: admitted, excluded or review.",
             "Override rows of the Windows Forms catalogue are not listed: the member belongs to the declaring "

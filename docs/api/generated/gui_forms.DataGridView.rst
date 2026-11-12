@@ -1894,7 +1894,7 @@ gui_forms::DataGridView
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130 supported, 0 deferred, 0 excluded, 329 unclassified; 79 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130 supported, 0 deferred, 0 excluded, 330 unclassified; 79 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -2831,24 +2831,24 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130
      - unclassified (hook)
    * - method
      - ``OnAllowUserToDeleteRowsChanged``
-     - none
-     - unclassified (hook)
+     - ``on_allow_user_to_delete_rows_changed``
+     - unclassified (untested)
    * - method
      - ``OnAllowUserToOrderColumnsChanged``
-     - none
-     - unclassified (hook)
+     - ``on_allow_user_to_order_columns_changed``
+     - unclassified (untested)
    * - method
      - ``OnAllowUserToResizeColumnsChanged``
-     - none
-     - unclassified (hook)
+     - ``on_allow_user_to_resize_columns_changed``
+     - unclassified (untested)
    * - method
      - ``OnAllowUserToResizeRowsChanged``
-     - none
-     - unclassified (hook)
+     - ``on_allow_user_to_resize_rows_changed``
+     - unclassified (untested)
    * - method
      - ``OnAlternatingRowsDefaultCellStyleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_alternating_rows_default_cell_style_changed``
+     - unclassified (untested)
    * - method
      - ``OnAutoGenerateColumnsChanged``
      - none
@@ -2859,20 +2859,20 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130
      - unclassified (hook)
    * - method
      - ``OnAutoSizeColumnsModeChanged``
-     - none
-     - unclassified (hook)
+     - ``on_auto_size_columns_mode_changed``
+     - unclassified (untested)
    * - method
      - ``OnAutoSizeRowsModeChanged``
-     - none
-     - unclassified (hook)
+     - ``on_auto_size_rows_mode_changed``
+     - unclassified (untested)
    * - method
      - ``OnBackgroundColorChanged``
-     - none
-     - unclassified (hook)
+     - ``on_background_color_changed``
+     - unclassified (untested)
    * - method
      - ``OnBorderStyleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_border_style_changed``
+     - unclassified (untested)
    * - method
      - ``OnCancelRowEdit``
      - none
@@ -2883,8 +2883,8 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130
      - unclassified (hook)
    * - method
      - ``OnCellBorderStyleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_cell_border_style_changed``
+     - unclassified (untested)
    * - method
      - ``OnCellClick``
      - none
@@ -3051,16 +3051,16 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130
      - unclassified (hook)
    * - method
      - ``OnColumnHeadersBorderStyleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_column_headers_border_style_changed``
+     - unclassified (untested)
    * - method
      - ``OnColumnHeadersDefaultCellStyleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_column_headers_default_cell_style_changed``
+     - unclassified (untested)
    * - method
      - ``OnColumnHeadersHeightChanged``
-     - none
-     - unclassified (hook)
+     - ``on_column_headers_height_changed``
+     - unclassified (untested)
    * - method
      - ``OnColumnHeadersHeightSizeModeChanged``
      - none
@@ -3119,8 +3119,8 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130
      - unclassified (hook)
    * - method
      - ``OnDefaultCellStyleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_default_cell_style_changed``
+     - unclassified (untested)
    * - method
      - ``OnDefaultValuesNeeded``
      - none
@@ -3131,24 +3131,24 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130
      - unclassified (hook)
    * - method
      - ``OnEditModeChanged``
-     - none
-     - unclassified (hook)
+     - ``on_edit_mode_changed``
+     - unclassified (untested)
    * - method
      - ``OnGridColorChanged``
-     - none
-     - unclassified (hook)
+     - ``on_grid_color_changed``
+     - unclassified (untested)
    * - method
      - ``OnMultiSelectChanged``
-     - none
-     - unclassified (hook)
+     - ``on_multi_select_changed``
+     - unclassified (untested)
    * - method
      - ``OnNewRowNeeded``
      - none
      - unclassified (hook)
    * - method
      - ``OnReadOnlyChanged``
-     - none
-     - unclassified (hook)
+     - ``on_read_only_changed``
+     - unclassified (untested)
    * - method
      - ``OnRowContextMenuStripChanged``
      - none
@@ -3199,16 +3199,16 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130
      - unclassified (hook)
    * - method
      - ``OnRowHeadersBorderStyleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_row_headers_border_style_changed``
+     - unclassified (untested)
    * - method
      - ``OnRowHeadersDefaultCellStyleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_row_headers_default_cell_style_changed``
+     - unclassified (untested)
    * - method
      - ``OnRowHeadersWidthChanged``
-     - none
-     - unclassified (hook)
+     - ``on_row_headers_width_changed``
+     - unclassified (untested)
    * - method
      - ``OnRowHeadersWidthSizeModeChanged``
      - none
@@ -3247,8 +3247,8 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130
      - unclassified (hook)
    * - method
      - ``OnRowsDefaultCellStyleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_rows_default_cell_style_changed``
+     - unclassified (untested)
    * - method
      - ``OnRowsRemoved``
      - none
@@ -3588,6 +3588,10 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 130
    * - method
      - GUI.Forms-only
      - ``move_virtual_row``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

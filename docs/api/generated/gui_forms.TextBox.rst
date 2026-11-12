@@ -850,7 +850,7 @@ gui_forms::TextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TextBox``. Members declared here and by the counterpart: 30 supported, 0 deferred, 0 excluded, 25 unclassified; 30 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TextBox``. Members declared here and by the counterpart: 31 supported, 0 deferred, 0 excluded, 29 unclassified; 33 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1025,6 +1025,26 @@ Counterpart: ``TextBox``. Members declared here and by the counterpart: 30 suppo
      - GUI.Forms-only
      - ``delete_selection``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_accepts_tab_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_multiline_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_read_only_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``redo``

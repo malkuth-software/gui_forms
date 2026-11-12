@@ -311,8 +311,8 @@ Counterpart: ``Button``. Members declared here and by the counterpart: 6 support
      - supported
    * - method
      - ``NotifyDefault``
-     - none
-     - unclassified (unmatched)
+     - ``notify_default``
+     - unclassified (untested)
    * - method
      - ``PerformClick``
      - ``perform_click``

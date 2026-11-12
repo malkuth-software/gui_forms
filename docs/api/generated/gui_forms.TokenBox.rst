@@ -340,7 +340,7 @@ gui_forms::TokenBox
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 1 unclassified; 13 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 2 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -390,6 +390,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 12 s
    * - method
      - GUI.Forms-only
      - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_font_changed``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

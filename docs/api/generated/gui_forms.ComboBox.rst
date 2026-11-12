@@ -563,7 +563,7 @@ gui_forms::ComboBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ComboBox``. Members declared here and by the counterpart: 11 supported, 0 deferred, 1 excluded, 52 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ComboBox``. Members declared here and by the counterpart: 12 supported, 0 deferred, 1 excluded, 54 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -756,8 +756,8 @@ Counterpart: ``ComboBox``. Members declared here and by the counterpart: 11 supp
      - unclassified (hook)
    * - method
      - ``OnDropDownStyleChanged``
-     - none
-     - unclassified (hook)
+     - ``on_drop_down_style_changed``
+     - unclassified (untested)
    * - method
      - ``OnMeasureItem``
      - none
@@ -821,6 +821,18 @@ Counterpart: ``ComboBox``. Members declared here and by the counterpart: 11 supp
    * - method
      - GUI.Forms-only
      - ``combo_box_property_entries``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - supported
+   * - method
+     - ``ListControl.OnSelectedIndexChanged``
+     - ``on_selected_index_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

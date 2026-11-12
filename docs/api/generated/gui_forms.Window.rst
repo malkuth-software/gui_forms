@@ -584,7 +584,7 @@ gui_forms::Window
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Form``. Members declared here and by the counterpart: 215 supported, 10 deferred, 6 excluded, 140 unclassified; 231 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Form``. Members declared here and by the counterpart: 216 supported, 10 deferred, 6 excluded, 139 unclassified; 231 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1678,7 +1678,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 215 support
    * - method
      - GUI.Forms-only
      - ``fill_line_break_opportunities_utf8``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``find``
