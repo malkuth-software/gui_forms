@@ -147,16 +147,15 @@ controls but play the role of the Forms type.
 
 | Function | GUI.Forms types |
 |---|---|
-| Information display | [`ReviewCard`](../api/generated/gui_forms.ReviewCard.rst) |
-| Selection from a list | [`CorrespondenceView`](../api/generated/gui_forms.CorrespondenceView.rst), [`ChoiceGroup`](../api/generated/gui_forms.ChoiceGroup.rst) (provisional), [`BreadcrumbTrail`](../api/generated/gui_forms.BreadcrumbTrail.rst) (provisional) |
-| Value setting | [`RangeControl`](../api/generated/gui_forms.RangeControl.rst), [`ColorValueEditor`](../api/generated/gui_forms.ColorValueEditor.rst), [`FlagsValueEditor`](../api/generated/gui_forms.FlagsValueEditor.rst), [`PropertyList`](../api/generated/gui_forms.PropertyList.rst), [`InstrumentRack`](../api/generated/gui_forms.InstrumentRack.rst) |
+| Selection from a list | [`ChoiceGroup`](../api/generated/gui_forms.ChoiceGroup.rst) (provisional), [`BreadcrumbTrail`](../api/generated/gui_forms.BreadcrumbTrail.rst) (provisional) |
+| Value setting | [`RangeControl`](../api/generated/gui_forms.RangeControl.rst), [`ColorValueEditor`](../api/generated/gui_forms.ColorValueEditor.rst), [`FlagsValueEditor`](../api/generated/gui_forms.FlagsValueEditor.rst), [`PropertyList`](../api/generated/gui_forms.PropertyList.rst) |
 | Grouping | [`Card`](../api/generated/gui_forms.Card.rst), [`MaterialPanel`](../api/generated/gui_forms.MaterialPanel.rst), [`ScaledGroupBox`](../api/generated/gui_forms.ScaledGroupBox.rst), [`ExpandableSections`](../api/generated/gui_forms.ExpandableSections.rst) (provisional) |
 | Layout | [`MasterDetailView`](../api/generated/gui_forms.MasterDetailView.rst), [`ScaledPanel`](../api/generated/gui_forms.ScaledPanel.rst), [`ResponsiveTrackPanel`](../api/generated/gui_forms.ResponsiveTrackPanel.rst) (provisional), [`CommandOverflowPanel`](../api/generated/gui_forms.CommandOverflowPanel.rst) (provisional) |
 | Menus and commands | [`Command`](../api/generated/gui_forms.Command.rst) |
 | Dialogs and overlays | [`AnchoredOverlayLayer`](../api/generated/gui_forms.AnchoredOverlayLayer.rst) |
 | Drawing | [`DrawingSurface`](../api/generated/gui_forms.DrawingSurface.rst), [`RasterCanvas`](../api/generated/gui_forms.RasterCanvas.rst), [`LiveSurface`](../api/generated/gui_forms.LiveSurface.rst) |
 | Components | [`SemanticFeedback`](../api/generated/gui_forms.SemanticFeedback.rst) |
-| Diagnostics (lab) | [`MetricsView`](../api/generated/gui_forms.MetricsView.rst), [`VisualInspectorView`](../api/generated/gui_forms.VisualInspectorView.rst), [`VisualInspectorOverlay`](../api/generated/gui_forms.VisualInspectorOverlay.rst), [`TypographySpecimen`](../api/generated/gui_forms.TypographySpecimen.rst), [`EasingPreview`](../api/generated/gui_forms.EasingPreview.rst) |
+| Diagnostics (lab) | [`MetricsView`](../api/generated/gui_forms.MetricsView.rst) |
 
 ## Not provided
 

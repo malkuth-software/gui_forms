@@ -74,8 +74,8 @@ Before committing, run the spelling check over everything you touched; the
 finding:
 
 ```text
-python3 -B tools/check_house_style.py include src demo tests examples tools file_manager_demoboard fuzz
-python3 -B tools/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard
+python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz
+python3 -B tools/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard
 ```
 
 `stx_skia/` and every third-party source (FreeType, HarfBuzz, libunibreak,

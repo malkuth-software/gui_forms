@@ -1,4 +1,5 @@
 #include "page_tests.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
 
 namespace gallery_pages_tests {
 namespace {

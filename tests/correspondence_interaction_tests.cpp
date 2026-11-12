@@ -6,6 +6,7 @@
 #include "../demo/correspondence/correspondence.hpp"
 #include "../demo/correspondence/correspondence_controls.hpp"
 #include "../demo/correspondence/correspondence_model.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
 
 #include <cstdint>
 #include <cstdlib>

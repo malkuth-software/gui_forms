@@ -6,6 +6,9 @@
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/inspection_controls.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
+#include "gui_forms_lab/review_card.hpp"
 
 #include <chrono>
 #include <cstdlib>

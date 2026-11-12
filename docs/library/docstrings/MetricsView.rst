@@ -26,11 +26,6 @@ accent_width : default ``5.0``
     Width of the accent bar at the left edge, in layout units. It must be
     finite and from 1 to 32, or `std::invalid_argument` is thrown.
 
-See Also
---------
-VisualInspectorView : Shows the layout and paint state of one control.
-EasingPreview : Compares easing curves under the current motion policy.
-
 Notes
 -----
 The view reads the counters when it paints, but it does not repaint by

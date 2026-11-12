@@ -13,7 +13,7 @@ target_include_directories(gui_forms_correspondence_model PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/demo
     ${CMAKE_CURRENT_SOURCE_DIR}/demo/correspondence
 )
-target_link_libraries(gui_forms_correspondence_model PUBLIC gui_forms_controls)
+target_link_libraries(gui_forms_correspondence_model PUBLIC gui_forms_lab)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST)
     set_source_files_properties(

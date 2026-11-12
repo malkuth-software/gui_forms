@@ -122,7 +122,6 @@ reset_button
 See Also
 --------
 PropertyGrid : Edits the registered properties of one or more controls.
-InstrumentRack : A row of compact editing modules for criteria or settings.
 ExpandableSections : Collapsible sections with arbitrary content.
 
 Notes

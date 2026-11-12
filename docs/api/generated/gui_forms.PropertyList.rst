@@ -149,9 +149,6 @@ gui_forms::PropertyList
       :cpp:class:`PropertyGrid <gui_forms::PropertyGrid>`
          Edits the registered properties of one or more controls.
 
-      :cpp:class:`InstrumentRack <gui_forms::InstrumentRack>`
-         A row of compact editing modules for criteria or settings.
-
       :cpp:class:`ExpandableSections <gui_forms::ExpandableSections>`
          Collapsible sections with arbitrary content.
 

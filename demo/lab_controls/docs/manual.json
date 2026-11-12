@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "types": {
+    "EasingPreviewTrack": {
+      "status": "OBSERVED: bundle 006 value-type split; M4 build, focused tests, and Screen Sharing pass",
+      "capture": "captures/easing_preview.png",
+      "capture_note": "M4 Complete Showcase crop showing eight configured curve/label/color track records.",
+      "summary": "EasingPreviewTrack is one caller-authored easing comparison row: exact curve, label, and marker color.",
+      "methods": {
+        "operator==": "Compares curve, label, and color for exact retained configuration equality."
+      }
+    },
+    "EasingPreview": {
+      "status": "OBSERVED: bundle 006 split and marker-size enhancement; M4 build, focused tests, and Screen Sharing pass",
+      "capture": "captures/easing_preview.png",
+      "capture_note": "M4 Complete Showcase crop showing the live eight-track timeline, directed motion, frame scheduling, and motion-policy controls.",
+      "summary": "EasingPreview is a retained animation conformance surface that owns an AnimationTimeline, one revocable frame lease, configurable tracks/style/title/marker size, authored and effective motion policy, deterministic phase, painter recording, and image semantics. Hidden, detached, paused, or reduced states never create a perpetual redraw loop.",
+      "methods": {
+        "EasingPreview": "Constructs the canonical eight-curve infinite timeline and accessible conformance description.",
+        "style": "Returns the retained visual palette.",
+        "set_style": "Commits palette without changing timeline authority.",
+        "tracks": "Returns ordered curve/label/color track configuration.",
+        "set_tracks": "Requires one through 32 named tracks and refreshes paint and semantics.",
+        "effective_motion_policy": "Combines authored policy with Window reduced-motion presentation settings.",
+        "phase": "Returns the last retained normalized timeline phase.",
+        "advance_animation": "Samples the timeline at a frame time into the phase, and stops the frame timer when a finite animation finishes.",
+        "on_paint": "Records frame, title/readout, each track, and curve-sampled markers from effective motion policy.",
+        "hit_test_local": "Always rejects input because surrounding controls own policy interaction.",
+        "semantic_descriptor": "Projects image role, normalized phase/range, motion readout, and busy state only while active."
+      }
+    },
+    "VisualInspectorView": {
+      "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",
+      "summary": "VisualInspectorView is a reusable renderer-neutral presentation of a Window's public visual-inspection snapshot for demoboards and local diagnostics; ordinary rendering never requires it."
+    },
+    "VisualInspectorOverlay": {
+      "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",
+      "summary": "VisualInspectorOverlay is the transparent companion of VisualInspectorView that draws a target's arranged, visual, and effective clipped bounds in three colors without altering hit testing or the inspected tree."
+    },
+    "TypographySpecimen": {
+      "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",
+      "summary": "TypographySpecimen is a renderer-neutral review instrument that draws one committed text run with its logical line box, resolved baseline, and exact provider status."
+    }
+  }
+}

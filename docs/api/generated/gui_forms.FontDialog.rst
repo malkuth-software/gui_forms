@@ -125,9 +125,6 @@ gui_forms::FontDialog
       :cpp:class:`Label <gui_forms::Label>`
          Text whose font a dialog result can set.
 
-      :cpp:class:`TypographySpecimen <gui_forms::TypographySpecimen>`
-         The bundled faces and text roles, side by side.
-
    .. rubric:: Notes
 
    ``bundled_font_faces`` lists the faces the dialog offers. The Noto faces

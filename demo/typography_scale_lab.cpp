@@ -1,6 +1,8 @@
 #include "typography_scale_lab.hpp"
 
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms_demo/typography_specimen.hpp"
+#include "gui_forms_demo/visual_inspector_view.hpp"
 
 #include <algorithm>
 #include <memory>

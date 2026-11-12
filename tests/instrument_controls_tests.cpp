@@ -1,5 +1,6 @@
 #include "gui_forms/instrument_controls.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
 
 #include <algorithm>
 #include <cstdlib>

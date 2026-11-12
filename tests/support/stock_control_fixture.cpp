@@ -1,4 +1,10 @@
 #include "stock_control_fixture.hpp"
+#include "gui_forms_demo/easing_preview.hpp"
+#include "gui_forms_demo/typography_specimen.hpp"
+#include "gui_forms_demo/visual_inspector_view.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
+#include "gui_forms_lab/review_card.hpp"
 
 #include <algorithm>
 #include <array>

@@ -459,19 +459,6 @@ StockSpecimenInstance make_plot_annotation_item(const StockSpecimen&, StableId i
     return instance;
 }
 
-StockSpecimenInstance make_review_card(const StockSpecimen&, StableId id) {
-    const std::shared_ptr<ReviewCard> control = make_control<ReviewCard>(std::move(id));
-    ReviewRecord record{};
-    record.key = "surface-pipeline";
-    record.title = "Retained surface pipeline";
-    record.summary = "Painting records renderer-neutral commands before the host replays them.";
-    record.verdict = "MEASURED PARTIAL";
-    record.disposition = ReviewDisposition::pending;
-    (*control).record = record;
-    StockSpecimenInstance instance = alone(control);
-    return instance;
-}
-
 // A short page: a heading, a paragraph with a bold run and a list.
 StockSpecimenInstance make_help_book(const StockSpecimen&, StableId id) {
     const std::shared_ptr<HelpBook> control = make_control<HelpBook>(id);
@@ -654,28 +641,6 @@ StockSpecimenInstance make_tree_list_view(const StockSpecimen&, StableId id) {
     return instance;
 }
 
-StockSpecimenInstance make_correspondence_view(const StockSpecimen&, StableId id) {
-    const std::shared_ptr<CorrespondenceView> control = make_control<CorrespondenceView>(id);
-    const std::array<std::string_view, 3> titles{"Ferry timetable", "Quay repairs", "Lighthouse open day"};
-    const std::array<std::string_view, 3> senders{"Harbour office", "Works team", "Visitor centre"};
-    const std::array<std::string_view, 3> dates{"14 Mar 2026", "12 Mar 2026", "9 Mar 2026"};
-    const std::array<std::string_view, 3> excerpts{
-        "The spring timetable starts on Monday with an extra early crossing.",
-        "The north quay closes for resurfacing from the twentieth.",
-        "Tours run every half hour; the gallery stays open until dusk."};
-    std::vector<CorrespondenceItem> items(titles.size());
-    for (std::size_t index = 0U; index < titles.size(); ++index) {
-        items[index].stable_id = child_name(id, ".message" + std::to_string(index));
-        items[index].title = std::string(titles[index]);
-        items[index].secondary_text = std::string(senders[index]);
-        items[index].metadata = std::string(dates[index]);
-        items[index].excerpt = std::string(excerpts[index]);
-    }
-    (*control).set_items(std::move(items));
-    StockSpecimenInstance instance = alone(control);
-    return instance;
-}
-
 StockSpecimenInstance make_data_grid_view(const StockSpecimen&, StableId id) {
     const std::shared_ptr<DataGridView> control = make_control<DataGridView>(std::move(id));
     std::vector<DataGridViewColumn> columns(4U);
@@ -851,41 +816,6 @@ StockSpecimenInstance make_property_list(const StockSpecimen&, StableId id) {
     groups.push_back(std::move(appearance));
     groups.push_back(std::move(behaviour));
     (*control).set_groups(std::move(groups));
-    StockSpecimenInstance instance = alone(control);
-    return instance;
-}
-
-InstrumentFieldSpec instrument_field(std::string_view id, std::string_view name, std::string_view value,
-                                     InstrumentFieldEditor editor) {
-    InstrumentFieldSpec field{};
-    field.stable_id = std::string(id);
-    field.name = std::string(name);
-    field.value = std::string(value);
-    field.editor = editor;
-    return field;
-}
-
-StockSpecimenInstance make_instrument_rack(const StockSpecimen&, StableId id) {
-    const std::shared_ptr<InstrumentRack> control = make_control<InstrumentRack>(std::move(id));
-    InstrumentModuleSpec input{};
-    input.stable_id = "input";
-    input.name = "Input";
-    input.status_text = "Live";
-    InstrumentFieldSpec source = instrument_field("input.source", "Source", "Microphone", InstrumentFieldEditor::choice);
-    source.choices.push_back("Microphone");
-    source.choices.push_back("Line in");
-    input.fields.push_back(std::move(source));
-    input.fields.push_back(instrument_field("input.gain", "Gain", "-6 dB", InstrumentFieldEditor::text));
-    InstrumentModuleSpec filter{};
-    filter.stable_id = "filter";
-    filter.name = "Filter";
-    filter.status_text = "Staged";
-    filter.state = InstrumentModuleState::staged;
-    filter.fields.push_back(instrument_field("filter.cutoff", "Cut-off", "4.2 kHz", InstrumentFieldEditor::text));
-    std::vector<InstrumentModuleSpec> modules{};
-    modules.push_back(std::move(input));
-    modules.push_back(std::move(filter));
-    (*control).set_modules(std::move(modules));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }
@@ -1693,37 +1623,6 @@ void present_picture_box(const StockSpecimenInstance& instance, Window& window) 
     if (!loaded) throw std::runtime_error("the picture box specimen's image was not loaded");
     (*picture).image = loaded.image;
     window.perform_layout();
-}
-
-// -- diagnostics ----------------------------------------------------------------------
-
-// The inspector reads a button above it in the same window.
-StockSpecimenInstance make_visual_inspector_view(const StockSpecimen& specimen, StableId id) {
-    const std::shared_ptr<Panel> holder = make_control<Panel>(child_id(id, ".holder"));
-    const StableId target_id = child_id(id, ".target");
-    const std::shared_ptr<Button> target = make_control<Button>(target_id, "Inspected");
-    (*target).set_requested_bounds(Rect{8.0, 6.0, 110.0, 28.0});
-    (*holder).add_child(target);
-    const std::shared_ptr<VisualInspectorView> view =
-        make_control<VisualInspectorView>(id, std::string(target_id.value()));
-    (*view).set_requested_bounds(Rect{0.0, 40.0, specimen.size.width, specimen.size.height - 40.0});
-    (*holder).add_child(view);
-    StockSpecimenInstance instance = held(holder, view, view);
-    return instance;
-}
-
-StockSpecimenInstance make_visual_inspector_overlay(const StockSpecimen&, StableId id) {
-    const std::shared_ptr<Panel> holder = make_control<Panel>(child_id(id, ".holder"));
-    const StableId target_id = child_id(id, ".target");
-    const std::shared_ptr<Button> target = make_control<Button>(target_id, "Inspected");
-    (*target).set_requested_bounds(Rect{40.0, 40.0, 120.0, 32.0});
-    (*holder).add_child(target);
-    const std::shared_ptr<VisualInspectorOverlay> overlay =
-        make_control<VisualInspectorOverlay>(id, std::string(target_id.value()));
-    (*overlay).dock = DockStyle::fill;
-    (*holder).add_child(overlay);
-    StockSpecimenInstance instance = held(holder, overlay, holder);
-    return instance;
 }
 
 // -- the table -----------------------------------------------------------------------

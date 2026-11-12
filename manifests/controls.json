@@ -294,17 +294,6 @@
       "doc": "api/generated/gui_forms.PlotAnnotationItem.rst"
     },
     {
-      "id": "review_card",
-      "type": "ReviewCard",
-      "header": "gui_forms/controls/panel/card/review_card/review_card.hpp",
-      "category": "Information display",
-      "purpose": "Typed review projection over Card that owns title, body, and verdict labels and projects pending/rejected state through ordinary Card laws.",
-      "winforms": "GUI.Forms-only",
-      "status": "stable",
-      "gallery_page": "choices-and-sections",
-      "doc": "api/generated/gui_forms.ReviewCard.rst"
-    },
-    {
       "id": "list_box",
       "type": "ListBox",
       "header": "gui_forms/controls/panel/list_box/list_box.hpp",
@@ -380,17 +369,6 @@
       "status": "provisional",
       "gallery_page": "tree-and-object-views",
       "doc": "api/generated/gui_forms.TreeListView.rst"
-    },
-    {
-      "id": "correspondence_view",
-      "type": "CorrespondenceView",
-      "header": "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp",
-      "category": "Selection from a list",
-      "purpose": "Variable-height virtual list with independent keyboard focus, delayed pointer inspection, and one persistent pinned item.",
-      "winforms": "GUI.Forms-only",
-      "status": "stable",
-      "gallery_page": "tree-and-object-views",
-      "doc": "api/generated/gui_forms.CorrespondenceView.rst"
     },
     {
       "id": "data_grid_view",
@@ -556,17 +534,6 @@
       "status": "stable",
       "gallery_page": "value-editors",
       "doc": "api/generated/gui_forms.PropertyList.rst"
-    },
-    {
-      "id": "instrument_rack",
-      "type": "InstrumentRack",
-      "header": "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp",
-      "category": "Value setting",
-      "purpose": "Bounded retained rack of compact editing modules that reconciles stable module and field identities across model replacement.",
-      "winforms": "GUI.Forms-only",
-      "status": "stable",
-      "gallery_page": "value-editors",
-      "doc": "api/generated/gui_forms.InstrumentRack.rst"
     },
     {
       "id": "date_time_picker",
@@ -1396,17 +1363,6 @@
       "doc": "api/generated/gui_forms.SubSurfaceHost.rst"
     },
     {
-      "id": "easing_preview",
-      "type": "EasingPreview",
-      "header": "gui_forms/controls/easing_preview/easing_preview.hpp",
-      "category": "Diagnostics",
-      "purpose": "Animation and easing conformance surface over an owned AnimationTimeline with configurable tracks and motion policy.",
-      "winforms": "GUI.Forms-only",
-      "status": "lab",
-      "gallery_page": "animation-laboratory",
-      "doc": "api/generated/gui_forms.EasingPreview.rst"
-    },
-    {
       "id": "metrics_view",
       "type": "MetricsView",
       "header": "gui_forms/controls/metrics_view/metrics_view.hpp",
@@ -1416,39 +1372,6 @@
       "status": "lab",
       "gallery_page": "states-and-diagnostics",
       "doc": "api/generated/gui_forms.MetricsView.rst"
-    },
-    {
-      "id": "typography_specimen",
-      "type": "TypographySpecimen",
-      "header": "gui_forms/controls/typography_specimen/typography_specimen.hpp",
-      "category": "Diagnostics",
-      "purpose": "Typography review control that draws one committed text run with its logical line box, resolved baseline, and provider status.",
-      "winforms": "GUI.Forms-only",
-      "status": "lab",
-      "gallery_page": "typography-and-inspection",
-      "doc": "api/generated/gui_forms.TypographySpecimen.rst"
-    },
-    {
-      "id": "visual_inspector_view",
-      "type": "VisualInspectorView",
-      "header": "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp",
-      "category": "Diagnostics",
-      "purpose": "Presentation of the Window visual-inspection snapshot for demoboards and local diagnostics.",
-      "winforms": "GUI.Forms-only",
-      "status": "lab",
-      "gallery_page": "typography-and-inspection",
-      "doc": "api/generated/gui_forms.VisualInspectorView.rst"
-    },
-    {
-      "id": "visual_inspector_overlay",
-      "type": "VisualInspectorOverlay",
-      "header": "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp",
-      "category": "Diagnostics",
-      "purpose": "Transparent companion overlay that draws a target's arranged, visual, and effective clipped bounds without altering hit testing.",
-      "winforms": "GUI.Forms-only",
-      "status": "lab",
-      "gallery_page": "typography-and-inspection",
-      "doc": "api/generated/gui_forms.VisualInspectorOverlay.rst"
     },
     {
       "id": "timer",

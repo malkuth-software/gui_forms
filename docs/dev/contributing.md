@@ -52,7 +52,7 @@ coroutines and ranges pipelines. CI runs it over every first-party directory
 and fails on any finding, so run it before you push:
 
 ```sh
-python3 -B tools/check_house_style.py include src demo tests examples tools file_manager_demoboard stx_vorbis
+python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard stx_vorbis
 ```
 
 It is a review aid, not a certification: ownership, lifetimes and

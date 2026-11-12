@@ -1,6 +1,7 @@
 #include "connected_controls_lab.hpp"
 
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms_demo/visual_inspector_view.hpp"
 
 #include <array>
 #include <cstddef>

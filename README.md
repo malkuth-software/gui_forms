@@ -123,7 +123,6 @@ goes further: a form document, a model and an event handler.
 | [`ProgressBar`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ProgressBar.html) |  | Noninteractive range visualization with continuous, segmented, and marquee modes whose motion follows the Window frame scheduler and reduced-motion policy. |
 | [`ProgressRing`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ProgressRing.html) |  | Circular progress indicator of forty dots: lit in proportion to value over maximum, or a turning run while indeterminate, on the window's frame clock with reduced motion honoured. |
 | [`RadialGauge`](https://gui-forms.readthedocs.io/api/generated/gui_forms.RadialGauge.html) |  | Dial gauge from the instruments package: the value lighting a 270-degree scale arc with marks, alarm segments and a needle, the value as text below the centre. |
-| [`ReviewCard`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ReviewCard.html) |  | Typed review projection over Card that owns title, body, and verdict labels and projects pending/rejected state through ordinary Card laws. |
 | [`SevenSegmentDisplay`](https://gui-forms.readthedocs.io/api/generated/gui_forms.SevenSegmentDisplay.html) |  | Read-only seven-segment readout from the instruments package: digits, hexadecimal and the letters a cell can form, decimal points and colons, right-aligned in a fixed or fitted number of cells, unlit segments drawn faintly. |
 | [`Sparkline`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Sparkline.html) |  | Read-only word-sized trend line from the instruments package: the newest values of a ring drawn through the plot primitives, with an optional shaded band and a dot on the newest value. |
 | [`Spinner`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Spinner.html) |  | Indeterminate busy indicator: a ring of twelve dots, three lit, turning while active on the window's frame clock; still under reduced motion; busy to assistive technology. |
@@ -135,7 +134,6 @@ goes further: a form document, a model and an event handler.
 | [`CheckedListBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.CheckedListBox.html) |  | ListBox with an independently retained three-state check model, cancellable pre-change events, and optional check-on-click. |
 | [`ChoiceGroup`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ChoiceGroup.html) |  | Row of retained item buttons that selects exactly one ChoiceItem and exposes the selection as a bindable Value. |
 | [`ComboBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ComboBox.html) |  | Choice field, noneditable or with an editor (drop_down style), with placeholder projection, keyboard cycling, a transient ListBox overlay, and auto-complete from its items or a custom list. |
-| [`CorrespondenceView`](https://gui-forms.readthedocs.io/api/generated/gui_forms.CorrespondenceView.html) |  | Variable-height virtual list with independent keyboard focus, delayed pointer inspection, and one persistent pinned item. |
 | [`DataGridView`](https://gui-forms.readthedocs.io/api/generated/gui_forms.DataGridView.html) |  | Grid of text, check box, combo box, button, image and link columns over unbound, virtual or BindingSource rows identified by stable row IDs, with cell or row selection kept by ID, in-place editing and only visible rows realized. |
 | [`ListBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ListBox.html) |  | Virtual-row selector with single, multi-simple, and multi-extended selection policies, stable item identities, and scroll-window projection. |
 | [`ListView`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ListView.html) |  | Item list with details, list, small-icon and large-icon views, check boxes, column headers that report clicks and resize, and a virtual mode that realizes only visible items. |
@@ -148,7 +146,6 @@ goes further: a form document, a model and an event handler.
 | [`Dial`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Dial.html) |  | Rotary knob from the instruments package: a RangeControl value set by turning, dragging or the TrackBar keys over a 270-degree scale, a slider to assistive technology. |
 | [`DomainUpDown`](https://gui-forms.readthedocs.io/api/generated/gui_forms.DomainUpDown.html) |  | Text field with up and down arrows stepping through an ordered string list; the selection follows the text, with optional wrapping, sorting and a read-only field. |
 | [`FlagsValueEditor`](https://gui-forms.readthedocs.io/api/generated/gui_forms.FlagsValueEditor.html) |  | Compact editor for independent-bit enumeration values that opens a real CheckedListBox overlay under Window overlay and focus-scope leases. |
-| [`InstrumentRack`](https://gui-forms.readthedocs.io/api/generated/gui_forms.InstrumentRack.html) |  | Bounded retained rack of compact editing modules that reconciles stable module and field identities across model replacement. |
 | [`NumericUpDown`](https://gui-forms.readthedocs.io/api/generated/gui_forms.NumericUpDown.html) |  | Composite numeric editor over an owned TextBox and source-private spin buttons with ordered ranges, bounded step and precision, and decimal or hexadecimal formatting. |
 | [`PropertyGrid`](https://gui-forms.readthedocs.io/api/generated/gui_forms.PropertyGrid.html) |  | Metadata-driven inspector and editor over one or more selected Controls that projects descriptors into a PropertyList. |
 | [`PropertyList`](https://gui-forms.readthedocs.io/api/generated/gui_forms.PropertyList.html) |  | Settings surface over caller-authored stable groups and rows that owns stock or replacement child editors, reset buttons, and one vertical scroll plane. |
@@ -225,11 +222,7 @@ goes further: a form document, a model and an event handler.
 | [`LiveSurface`](https://gui-forms.readthedocs.io/api/generated/gui_forms.LiveSurface.html) |  | Latest-frame surface where a producer publishes complete frame candidates and painters acquire only the newest immutable one. |
 | [`RasterCanvas`](https://gui-forms.readthedocs.io/api/generated/gui_forms.RasterCanvas.html) |  | Viewport over an owned GUI.Drawing bitmap that handles presentation, coordinate transforms, resource synchronization, and local invalidation. |
 | [`SubSurfaceHost`](https://gui-forms.readthedocs.io/api/generated/gui_forms.SubSurfaceHost.html) |  | Region control that runs one threaded sub-surface with its own retained tree, sizes and reconfigures it, composes its LiveSurface frames into the window, and forwards input and keyboard focus to it. |
-| [`EasingPreview`](https://gui-forms.readthedocs.io/api/generated/gui_forms.EasingPreview.html) | Diagnostics | Animation and easing conformance surface over an owned AnimationTimeline with configurable tracks and motion policy. |
-| [`MetricsView`](https://gui-forms.readthedocs.io/api/generated/gui_forms.MetricsView.html) |  | View over the structured Window metrics snapshot. |
-| [`TypographySpecimen`](https://gui-forms.readthedocs.io/api/generated/gui_forms.TypographySpecimen.html) |  | Typography review control that draws one committed text run with its logical line box, resolved baseline, and provider status. |
-| [`VisualInspectorOverlay`](https://gui-forms.readthedocs.io/api/generated/gui_forms.VisualInspectorOverlay.html) |  | Transparent companion overlay that draws a target's arranged, visual, and effective clipped bounds without altering hit testing. |
-| [`VisualInspectorView`](https://gui-forms.readthedocs.io/api/generated/gui_forms.VisualInspectorView.html) |  | Presentation of the Window visual-inspection snapshot for demoboards and local diagnostics. |
+| [`MetricsView`](https://gui-forms.readthedocs.io/api/generated/gui_forms.MetricsView.html) | Diagnostics | View over the structured Window metrics snapshot. |
 | [`BackgroundWorker`](https://gui-forms.readthedocs.io/api/generated/gui_forms.BackgroundWorker.html) | Components | Runs one work function at a time on a gui_forms Worker thread and delivers progress and completion on its window's UI thread through the dispatcher, with cooperative cancellation. |
 | [`Binding`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Binding.html) |  | Connects one Control property to one BindingSource field with validated conversion, update timing, and error routing. |
 | [`BindingContext`](https://gui-forms.readthedocs.io/api/generated/gui_forms.BindingContext.html) |  | Window-scoped weak membership and disposal subscriptions for BindingSources. |
@@ -251,7 +244,7 @@ goes further: a form document, a model and an event handler.
 
 CI must pass on every platform. C++ follows the
 [house style](https://github.com/malkuth-software/notes/blob/main/HOUSE_STYLE.md);
-run `python3 -B tools/check_house_style.py include src demo tests examples tools file_manager_demoboard`
+run `python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard`
 before you push. See the
 [contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.html).
 

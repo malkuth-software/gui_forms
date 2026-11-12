@@ -743,12 +743,23 @@ def delete_members(text, config, body_open, body_close, report):
     return ranges
 
 
+def include_spelling(path):
+    """The quoted include spelling of a header path: the part after its include
+    root (`include/`, `lab/include/` or `demo/lab_controls/include/`)."""
+    marker = "include/"
+    position = path.find(marker)
+    if position < 0:
+        raise ValueError("%s is not under an include root" % path)
+    spelling = path[position + len(marker):]
+    return spelling
+
+
 def generate_header(config, report):
     path = pathlib.Path(config["header"])
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
     cells = bool(config["properties"])
     if cells:
-        capabilities_include = config["capabilities_header"][len("include/"):]
+        capabilities_include = include_spelling(config["capabilities_header"])
         text = add_include(text, capabilities_include)
     bundle = f"{config['family']}Capabilities<{config['declaring']}>"
     head, body_open, body_close = class_body(text, config["declaring"])

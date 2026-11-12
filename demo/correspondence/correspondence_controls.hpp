@@ -15,6 +15,7 @@
 #include "gui_forms/menu_controls.hpp"
 #include "gui_forms/tooltip.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
 
 #include <cstdint>
 #include <memory>

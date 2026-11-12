@@ -10,6 +10,9 @@
 #include "support/professional_theme.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms_demo/easing_preview.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
 
 #include <array>
 #include <cstddef>

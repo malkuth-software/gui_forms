@@ -1,6 +1,7 @@
 #include "pages.hpp"
 
 #include "tree-and-object-views_form.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
 
 #include <algorithm>
 #include <array>

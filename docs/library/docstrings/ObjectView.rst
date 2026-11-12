@@ -10,8 +10,7 @@ to resize. The user selects one or several items with the pointer and
 keyboard, activates an item by double-clicking it or pressing Enter, and
 asks for a context menu the platform's way (the host's context request). Only the items in view
 are painted and published, and no child control is created per item. Use a
-`TreeView` for a hierarchy, a `ListBox` for plain text rows, and a
-`CorrespondenceView` for records that expand to show more detail.
+`TreeView` for a hierarchy and a `ListBox` for plain text rows.
 
 Parameters
 ----------
@@ -189,7 +188,6 @@ on_semantic_child_action
 See Also
 --------
 TreeView : A hierarchy of items, such as the folders above these objects.
-CorrespondenceView : Records that expand to show matched evidence.
 ListBox : A plain list of text rows.
 ImageList : Shared images looked up by key.
 ContextMenu : An overlay menu for the target of `context_requested`.

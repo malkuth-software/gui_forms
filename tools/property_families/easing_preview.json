@@ -2,9 +2,9 @@
   "family": "EasingPreview",
   "step": "M-S6",
   "declaring": "EasingPreview",
-  "header": "include/gui_forms/controls/easing_preview/easing_preview.hpp",
-  "source": "src/controls/easing_preview/easing_preview.cpp",
-  "capabilities_header": "include/gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp",
+  "header": "demo/lab_controls/include/gui_forms_demo/easing_preview.hpp",
+  "source": "demo/lab_controls/src/easing_preview.cpp",
+  "capabilities_header": "demo/lab_controls/include/gui_forms_demo/easing_preview_capabilities.hpp",
   "base": "Control",
   "includes": [
     "gui_forms/basic_controls.hpp"
@@ -107,6 +107,6 @@
   "not_properties": [],
   "test": {
     "type": "EasingPreview",
-    "include": "gui_forms/controls/easing_preview/easing_preview.hpp"
+    "include": "gui_forms_demo/easing_preview.hpp"
   }
 }

@@ -93,7 +93,6 @@ arrange
 
 See Also
 --------
-ReviewCard : A card that presents a review record.
 Panel : A plain container for children placed by bounds, dock or anchor.
 ChoiceGroup : A row of exclusive choices bound to a `Value`.
 

@@ -125,9 +125,6 @@ gui_forms::Card
 
    .. seealso::
 
-      :cpp:class:`ReviewCard <gui_forms::ReviewCard>`
-         A card that presents a review record.
-
       :cpp:class:`Panel <gui_forms::Panel>`
          A plain container for children placed by bounds, dock or anchor.
 

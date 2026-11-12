@@ -3,6 +3,7 @@
 #include "gui_forms/diagnostic_controls.hpp"
 #include "gui_forms/range_controls.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms_demo/easing_preview.hpp"
 
 #include <algorithm>
 #include <chrono>

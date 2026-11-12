@@ -47,7 +47,6 @@
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
 #include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
-#include "gui_forms/controls/easing_preview/easing_preview.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/help/help_book/help_book.hpp"
 #include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
@@ -71,17 +70,14 @@
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
-#include "gui_forms/controls/panel/card/review_card/review_card.hpp"
 #include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
-#include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
 #include "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp"
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
 #include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
-#include "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
 #include "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp"
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
@@ -143,8 +139,6 @@
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
-#include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
-#include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
 #include "gui_forms/controls/wizard/wizard.hpp"
 #include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
@@ -157,7 +151,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 146> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 139> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -184,7 +178,6 @@ inline constexpr std::array<FormCatalogEntry, 146> form_catalog{{
     {"plot_axis_item", "PlotAxisItem", "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp", &add_catalog_type<PlotAxisItem>},
     {"plot_series_item", "PlotSeriesItem", "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp", &add_catalog_type<PlotSeriesItem>},
     {"plot_annotation_item", "PlotAnnotationItem", "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp", &add_catalog_type<PlotAnnotationItem>},
-    {"review_card", "ReviewCard", "gui_forms/controls/panel/card/review_card/review_card.hpp", &add_catalog_type<ReviewCard>},
     {"list_box", "ListBox", "gui_forms/controls/panel/list_box/list_box.hpp", &add_catalog_type<ListBox>},
     {"checked_list_box", "CheckedListBox", "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp", &add_catalog_type<CheckedListBox>},
     {"combo_box", "ComboBox", "gui_forms/controls/panel/combo_box/combo_box.hpp", &add_catalog_type<ComboBox>},
@@ -192,7 +185,6 @@ inline constexpr std::array<FormCatalogEntry, 146> form_catalog{{
     {"object_view", "ObjectView", "gui_forms/controls/panel/object_view/object_view.hpp", &add_catalog_type<ObjectView>},
     {"list_view", "ListView", "gui_forms/controls/panel/list_view/list_view.hpp", &add_catalog_type<ListView>},
     {"tree_list_view", "TreeListView", "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp", &add_catalog_type<TreeListView>},
-    {"correspondence_view", "CorrespondenceView", "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp", &add_catalog_type<CorrespondenceView>},
     {"data_grid_view", "DataGridView", "gui_forms/controls/data_grid_view/data_grid_view.hpp", &add_catalog_type<DataGridView>},
     {"choice_group", "ChoiceGroup", "gui_forms/controls/collections/choice_group.hpp", &add_catalog_type<ChoiceGroup>},
     {"breadcrumb_trail", "BreadcrumbTrail", "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp", &add_catalog_type<BreadcrumbTrail>},
@@ -208,7 +200,6 @@ inline constexpr std::array<FormCatalogEntry, 146> form_catalog{{
     {"flags_value_editor", "FlagsValueEditor", "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp", &add_catalog_type<FlagsValueEditor>},
     {"property_grid", "PropertyGrid", "gui_forms/controls/panel/property_grid/property_grid.hpp", &add_catalog_type<PropertyGrid>},
     {"property_list", "PropertyList", "gui_forms/controls/panel/property_list/property_list.hpp", &add_catalog_type<PropertyList>},
-    {"instrument_rack", "InstrumentRack", "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp", &add_catalog_type<InstrumentRack>},
     {"date_time_picker", "DateTimePicker", "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp", &add_catalog_type<DateTimePicker>},
     {"month_calendar", "MonthCalendar", "gui_forms/controls/panel/month_calendar/month_calendar.hpp", &add_catalog_type<MonthCalendar>},
     {"panel", "Panel", "gui_forms/controls/panel/panel.hpp", &add_catalog_type<Panel>},
@@ -284,11 +275,7 @@ inline constexpr std::array<FormCatalogEntry, 146> form_catalog{{
     {"raster_canvas", "RasterCanvas", "gui_forms/controls/raster_canvas/raster_canvas.hpp", &add_catalog_type<RasterCanvas>},
     {"live_surface", "LiveSurface", "gui_forms/live_surface/surface/live_surface.hpp", &add_catalog_type<LiveSurface>},
     {"sub_surface_host", "SubSurfaceHost", "gui_forms/surface_root/sub_surface/sub_surface_host.hpp", &add_catalog_type<SubSurfaceHost>},
-    {"easing_preview", "EasingPreview", "gui_forms/controls/easing_preview/easing_preview.hpp", &add_catalog_type<EasingPreview>},
     {"metrics_view", "MetricsView", "gui_forms/controls/metrics_view/metrics_view.hpp", &add_catalog_type<MetricsView>},
-    {"typography_specimen", "TypographySpecimen", "gui_forms/controls/typography_specimen/typography_specimen.hpp", &add_catalog_type<TypographySpecimen>},
-    {"visual_inspector_view", "VisualInspectorView", "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp", &add_catalog_type<VisualInspectorView>},
-    {"visual_inspector_overlay", "VisualInspectorOverlay", "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp", &add_catalog_type<VisualInspectorOverlay>},
     {"timer", "Timer", "gui_forms/timer/timer/timer.hpp", &add_catalog_type<Timer>},
     {"background_worker", "BackgroundWorker", "gui_forms/background_worker/background_worker.hpp", &add_catalog_type<BackgroundWorker>},
     {"notify_icon", "NotifyIcon", "gui_forms/components/notify_icon/notify_icon.hpp", &add_catalog_type<NotifyIcon>},

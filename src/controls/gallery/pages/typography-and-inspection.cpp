@@ -2,8 +2,8 @@
 
 #include "typography-and-inspection_form.hpp"
 
-#include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
-#include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
+#include "gui_forms_demo/typography_specimen.hpp"
+#include "gui_forms_demo/visual_inspector_view.hpp"
 
 namespace gui_forms::gallery::pages {
 

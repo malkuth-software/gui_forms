@@ -1,6 +1,7 @@
 #include "pages.hpp"
 
 #include "value-editors_form.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
 
 #include <array>
 #include <vector>

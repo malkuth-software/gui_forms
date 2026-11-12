@@ -4,6 +4,7 @@
 
 #include "gallery.hpp"
 #include "gallery_page_specs.hpp"
+#include "gui_forms_demo/easing_preview.hpp"
 
 #include <algorithm>
 #include <any>

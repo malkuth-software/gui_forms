@@ -67,18 +67,14 @@
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
-#include "gui_forms/controls/panel/card/review_card/review_card.hpp"
-#include "gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp"
 #include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
-#include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
 #include "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp"
 #include "gui_forms/controls/panel/date_time_picker/date_time_value/date_time_value.hpp"
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
 #include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
-#include "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
 #include "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp"
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
@@ -139,7 +135,6 @@
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
-#include "gui_forms/instrument/instrument_types.hpp"
 #include "gui_forms/pages/types/page_set_types.hpp"
 #include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 #include "gui_forms/surface_material/procedural_fill/procedural_fill.hpp"
@@ -268,17 +263,6 @@ struct EnumerationChoices<ContextRequestOrigin> {
     static constexpr std::array<EnumerationChoice, 2> choices{{
         {"pointer", static_cast<std::int64_t>(ContextRequestOrigin::pointer)},
         {"keyboard", static_cast<std::int64_t>(ContextRequestOrigin::keyboard)},
-    }};
-};
-
-template <>
-struct EnumerationChoices<CorrespondenceExpansionReason> {
-    static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 4> choices{{
-        {"programmatic", static_cast<std::int64_t>(CorrespondenceExpansionReason::programmatic)},
-        {"hover_intent", static_cast<std::int64_t>(CorrespondenceExpansionReason::hover_intent)},
-        {"keyboard_focus", static_cast<std::int64_t>(CorrespondenceExpansionReason::keyboard_focus)},
-        {"pin", static_cast<std::int64_t>(CorrespondenceExpansionReason::pin)},
     }};
 };
 
@@ -790,19 +774,6 @@ struct EnumerationChoices<RangeAction> {
 };
 
 template <>
-struct EnumerationChoices<ReviewDisposition> {
-    static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 6> choices{{
-        {"neutral", static_cast<std::int64_t>(ReviewDisposition::neutral)},
-        {"information", static_cast<std::int64_t>(ReviewDisposition::information)},
-        {"accepted", static_cast<std::int64_t>(ReviewDisposition::accepted)},
-        {"pending", static_cast<std::int64_t>(ReviewDisposition::pending)},
-        {"warning", static_cast<std::int64_t>(ReviewDisposition::warning)},
-        {"rejected", static_cast<std::int64_t>(ReviewDisposition::rejected)},
-    }};
-};
-
-template <>
 struct EnumerationChoices<ScrollEventType> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 9> choices{{
@@ -980,9 +951,6 @@ void append_field(EventFields& fields, std::string_view name, const ContextMenuR
 void read_field(EventFields& fields, std::string_view name, ContextMenuRequest& value);
 void append_field(EventFields& fields, std::string_view name, const ControlValidationEvent& value);
 void read_field(EventFields& fields, std::string_view name, ControlValidationEvent& value);
-void append_field(EventFields& fields, std::string_view name, const CorrespondenceExpansionChange& value);
-void append_field(EventFields& fields, std::string_view name, const CorrespondencePinChange& value);
-void append_field(EventFields& fields, std::string_view name, const CorrespondenceSelectionChange& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellAddress& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellCancelEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellCancelEvent& value);
@@ -1041,10 +1009,6 @@ void read_field(EventFields& fields, std::string_view name, HelpRequestEvent& va
 void append_field(EventFields& fields, std::string_view name, const HelpSectionToggle& value);
 void append_field(EventFields& fields, std::string_view name, const ImageId& value);
 void append_field(EventFields& fields, std::string_view name, const ImageListChange& value);
-void append_field(EventFields& fields, std::string_view name, const InstrumentFieldChange& value);
-void append_field(EventFields& fields, std::string_view name, const InstrumentModuleMoveRequest& value);
-void append_field(EventFields& fields, std::string_view name, const InstrumentModuleRequest& value);
-void append_field(EventFields& fields, std::string_view name, const InstrumentModuleToggle& value);
 void append_field(EventFields& fields, std::string_view name, const ItemCheckEvent& value);
 void read_field(EventFields& fields, std::string_view name, ItemCheckEvent& value);
 void append_field(EventFields& fields, std::string_view name, const ItemContentPaint& value);
@@ -1121,7 +1085,6 @@ void append_field(EventFields& fields, std::string_view name, const PropertyValu
 void append_field(EventFields& fields, std::string_view name, const QuickAccessToolbarCustomization& value);
 void append_field(EventFields& fields, std::string_view name, const QuickAccessToolbarPlacementChange& value);
 void append_field(EventFields& fields, std::string_view name, const RangeScrollEvent& value);
-void append_field(EventFields& fields, std::string_view name, const ReviewRecord& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonCommandClick& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonDialogLaunch& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonDropDownInvocation& value);
@@ -1369,29 +1332,6 @@ inline void read_field(EventFields& fields, std::string_view name, ControlValida
     read_field(fields, "destination", value.destination);
     read_field(fields, "bulk", value.bulk);
     read_field(fields, "cancel", value.cancel);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const CorrespondenceExpansionChange& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "stable_id", value.stable_id);
-    append_field(fields, "expanded", value.expanded);
-    append_field(fields, "pinned", value.pinned);
-    append_field(fields, "reason", value.reason);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const CorrespondencePinChange& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "previous_id", value.previous_id);
-    append_field(fields, "current_id", value.current_id);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const CorrespondenceSelectionChange& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "previous_id", value.previous_id);
-    append_field(fields, "current_id", value.current_id);
     fields.leave(prefix);
 }
 
@@ -1917,37 +1857,6 @@ inline void append_field(EventFields& fields, std::string_view name, const Image
     append_field(fields, "index", value.index);
     append_field(fields, "key", value.key);
     append_field(fields, "revision", value.revision);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const InstrumentFieldChange& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "module_id", value.module_id);
-    append_field(fields, "field_id", value.field_id);
-    append_field(fields, "previous_value", value.previous_value);
-    append_field(fields, "current_value", value.current_value);
-    append_field(fields, "committed", value.committed);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const InstrumentModuleMoveRequest& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "module_id", value.module_id);
-    append_field(fields, "previous_index", value.previous_index);
-    append_field(fields, "requested_index", value.requested_index);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const InstrumentModuleRequest& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "module_id", value.module_id);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const InstrumentModuleToggle& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "module_id", value.module_id);
-    append_field(fields, "enabled", value.enabled);
     fields.leave(prefix);
 }
 
@@ -2635,16 +2544,6 @@ inline void append_field(EventFields& fields, std::string_view name, const Range
     append_field(fields, "old_value", value.old_value);
     append_field(fields, "new_value", value.new_value);
     append_field(fields, "action", value.action);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const ReviewRecord& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "key", value.key);
-    append_field(fields, "title", value.title);
-    append_field(fields, "summary", value.summary);
-    append_field(fields, "verdict", value.verdict);
-    append_field(fields, "disposition", value.disposition);
     fields.leave(prefix);
 }
 
@@ -3695,15 +3594,6 @@ inline SubscriptionToken connect_control_context_menu_requested(Component& sourc
     return token;
 }
 
-inline SubscriptionToken connect_correspondence_view_context_requested(Component& source, const EventSink& sink) {
-    CorrespondenceView* typed = dynamic_cast<CorrespondenceView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).context_requested(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_object_view_context_requested(Component& source, const EventSink& sink) {
     ObjectView* typed = dynamic_cast<ObjectView*>(&source);
     if (typed == nullptr) {
@@ -4230,15 +4120,6 @@ inline SubscriptionToken connect_task_dialog_expanded_changed(Component& source,
     return token;
 }
 
-inline SubscriptionToken connect_correspondence_view_expansion_changed(Component& source, const EventSink& sink) {
-    CorrespondenceView* typed = dynamic_cast<CorrespondenceView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).expansion_changed(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_tree_view_expansion_changed(Component& source, const EventSink& sink) {
     TreeView* typed = dynamic_cast<TreeView*>(&source);
     if (typed == nullptr) {
@@ -4272,24 +4153,6 @@ inline SubscriptionToken connect_help_book_system_external_link(Component& sourc
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).external_link(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_instrument_rack_field_changed(Component& source, const EventSink& sink) {
-    InstrumentRack* typed = dynamic_cast<InstrumentRack*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).field_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_instrument_rack_field_committed(Component& source, const EventSink& sink) {
-    InstrumentRack* typed = dynamic_cast<InstrumentRack*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).field_committed(), sink);
     return token;
 }
 
@@ -4442,15 +4305,6 @@ inline SubscriptionToken connect_command_invoked(Component& source, const EventS
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).invoked(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_correspondence_view_item_activated(Component& source, const EventSink& sink) {
-    CorrespondenceView* typed = dynamic_cast<CorrespondenceView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).item_activated(), sink);
     return token;
 }
 
@@ -4758,15 +4612,6 @@ inline SubscriptionToken connect_ribbon_minimized_changed(Component& source, con
     return token;
 }
 
-inline SubscriptionToken connect_instrument_rack_module_toggled(Component& source, const EventSink& sink) {
-    InstrumentRack* typed = dynamic_cast<InstrumentRack*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).module_toggled(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_control_mouse_capture_changed(Component& source, const EventSink& sink) {
     Control* typed = dynamic_cast<Control*>(&source);
     if (typed == nullptr) {
@@ -4854,15 +4699,6 @@ inline SubscriptionToken connect_control_mouse_wheel(Component& source, const Ev
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).mouse_wheel(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_instrument_rack_move_requested(Component& source, const EventSink& sink) {
-    InstrumentRack* typed = dynamic_cast<InstrumentRack*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).move_requested(), sink);
     return token;
 }
 
@@ -5055,15 +4891,6 @@ inline SubscriptionToken connect_binding_parse(Component& source, const EventSin
     return token;
 }
 
-inline SubscriptionToken connect_correspondence_view_pin_changed(Component& source, const EventSink& sink) {
-    CorrespondenceView* typed = dynamic_cast<CorrespondenceView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).pin_changed(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_quick_access_toolbar_placement_changed(Component& source, const EventSink& sink) {
     QuickAccessToolbar* typed = dynamic_cast<QuickAccessToolbar*>(&source);
     if (typed == nullptr) {
@@ -5227,24 +5054,6 @@ inline SubscriptionToken connect_ribbon_recent_item_invoked(Component& source, c
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).recent_item_invoked(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_review_card_record_changed(Component& source, const EventSink& sink) {
-    ReviewCard* typed = dynamic_cast<ReviewCard*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).record_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_instrument_rack_remove_requested(Component& source, const EventSink& sink) {
-    InstrumentRack* typed = dynamic_cast<InstrumentRack*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).remove_requested(), sink);
     return token;
 }
 
@@ -5506,15 +5315,6 @@ inline SubscriptionToken connect_tab_control_selecting(Component& source, const 
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).selecting(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_correspondence_view_selection_changed(Component& source, const EventSink& sink) {
-    CorrespondenceView* typed = dynamic_cast<CorrespondenceView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
     return token;
 }
 
@@ -6090,7 +5890,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 339> event_connectors{{
+inline constexpr std::array<EventConnector, 328> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6168,7 +5968,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"content_changed", "RichTextBox", &connect_rich_text_box_content_changed},
     {"content_requested", "PageView", &connect_page_view_content_requested},
     {"context_menu_requested", "Control", &connect_control_context_menu_requested},
-    {"context_requested", "CorrespondenceView", &connect_correspondence_view_context_requested},
     {"context_requested", "ObjectView", &connect_object_view_context_requested},
     {"current_cell_changed", "DataGridView", &connect_data_grid_view_current_cell_changed},
     {"current_cell_dirty_state_changed", "DataGridView", &connect_data_grid_view_current_cell_dirty_state_changed},
@@ -6227,13 +6026,10 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"error_changed", "ErrorProvider", &connect_error_provider_error_changed},
     {"expanded_changed", "ButtonBase", &connect_button_base_expanded_changed},
     {"expanded_changed", "TaskDialog", &connect_task_dialog_expanded_changed},
-    {"expansion_changed", "CorrespondenceView", &connect_correspondence_view_expansion_changed},
     {"expansion_changed", "TreeView", &connect_tree_view_expansion_changed},
     {"expansion_changed", "TreeListView", &connect_tree_list_view_expansion_changed},
     {"external_link", "HelpBookViewer", &connect_help_book_viewer_external_link},
     {"external_link", "HelpBookSystem", &connect_help_book_system_external_link},
-    {"field_changed", "InstrumentRack", &connect_instrument_rack_field_changed},
-    {"field_committed", "InstrumentRack", &connect_instrument_rack_field_committed},
     {"file_ok", "OpenFileDialog", &connect_open_file_dialog_file_ok},
     {"file_ok", "SaveFileDialog", &connect_save_file_dialog_file_ok},
     {"finished", "Wizard", &connect_wizard_finished},
@@ -6250,7 +6046,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"initialization_completed", "Control", &connect_control_initialization_completed},
     {"invoked", "CommandBar", &connect_command_bar_invoked},
     {"invoked", "Command", &connect_command_invoked},
-    {"item_activated", "CorrespondenceView", &connect_correspondence_view_item_activated},
     {"item_activated", "ListBox", &connect_list_box_item_activated},
     {"item_activated", "ObjectView", &connect_object_view_item_activated},
     {"item_activated", "TreeView", &connect_tree_view_item_activated},
@@ -6283,7 +6078,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"material_changed", "MaterialPanel", &connect_material_panel_material_changed},
     {"menu_item_invoked", "NotifyIcon", &connect_notify_icon_menu_item_invoked},
     {"minimized_changed", "Ribbon", &connect_ribbon_minimized_changed},
-    {"module_toggled", "InstrumentRack", &connect_instrument_rack_module_toggled},
     {"mouse_capture_changed", "Control", &connect_control_mouse_capture_changed},
     {"mouse_click", "Control", &connect_control_mouse_click},
     {"mouse_double_click", "Control", &connect_control_mouse_double_click},
@@ -6294,7 +6088,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"mouse_move", "Control", &connect_control_mouse_move},
     {"mouse_up", "Control", &connect_control_mouse_up},
     {"mouse_wheel", "Control", &connect_control_mouse_wheel},
-    {"move_requested", "InstrumentRack", &connect_instrument_rack_move_requested},
     {"name_changed", "Control", &connect_control_name_changed},
     {"navigated", "HelpBookViewer", &connect_help_book_viewer_navigated},
     {"navigated", "TaskDialog", &connect_task_dialog_navigated},
@@ -6316,7 +6109,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"pairing_missed", "SubSurfaceHost", &connect_sub_surface_host_pairing_missed},
     {"palette_open_changed", "RibbonColorPicker", &connect_ribbon_color_picker_palette_open_changed},
     {"parse", "Binding", &connect_binding_parse},
-    {"pin_changed", "CorrespondenceView", &connect_correspondence_view_pin_changed},
     {"placement_changed", "QuickAccessToolbar", &connect_quick_access_toolbar_placement_changed},
     {"point_picked", "PlotView", &connect_plot_view_point_picked},
     {"pointer_observed", "Control", &connect_control_pointer_observed},
@@ -6335,8 +6127,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"radio_button_changed", "TaskDialog", &connect_task_dialog_radio_button_changed},
     {"range_changed", "RangeControl", &connect_range_control_range_changed},
     {"recent_item_invoked", "Ribbon", &connect_ribbon_recent_item_invoked},
-    {"record_changed", "ReviewCard", &connect_review_card_record_changed},
-    {"remove_requested", "InstrumentRack", &connect_instrument_rack_remove_requested},
     {"reset_requested", "PropertyList", &connect_property_list_reset_requested},
     {"right_to_left_changed", "ErrorProvider", &connect_error_provider_right_to_left_changed},
     {"row_edit_cancelled", "DataGridView", &connect_data_grid_view_row_edit_cancelled},
@@ -6366,7 +6156,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"selected_tab_changed", "Ribbon", &connect_ribbon_selected_tab_changed},
     {"selected_token_changed", "TokenBox", &connect_token_box_selected_token_changed},
     {"selecting", "TabControl", &connect_tab_control_selecting},
-    {"selection_changed", "CorrespondenceView", &connect_correspondence_view_selection_changed},
     {"selection_changed", "ListBox", &connect_list_box_selection_changed},
     {"selection_changed", "ObjectView", &connect_object_view_selection_changed},
     {"selection_changed", "RichTextBox", &connect_rich_text_box_selection_changed},

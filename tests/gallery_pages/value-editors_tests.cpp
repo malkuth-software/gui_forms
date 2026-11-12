@@ -1,4 +1,5 @@
 #include "page_tests.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
 
 namespace gallery_pages_tests {
 

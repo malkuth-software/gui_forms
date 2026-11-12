@@ -1,6 +1,7 @@
 #include "gui_forms/collection_controls.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
 #include "support/named_callbacks.hpp"
 #include "support/professional_theme.hpp"
 

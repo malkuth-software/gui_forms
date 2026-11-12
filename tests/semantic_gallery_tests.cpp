@@ -95,10 +95,9 @@ constexpr std::array<std::string_view, 30> nonvisual_entries{
 // whose subclasses (track bar, scroll bars) publish their own roles. The
 // test fails when this list and the published tree disagree in either
 // direction.
-constexpr std::array<std::string_view, 11> unexposed_entries{
+constexpr std::array<std::string_view, 10> unexposed_entries{
     "scaled_panel", "splitter_panel", "tool_strip_panel", "property_grid",
-    "scrollable_control", "anchored_overlay_layer", "visual_inspector_overlay",
-    "range_control",
+    "scrollable_control", "anchored_overlay_layer", "range_control",
     // A wizard page and the help viewer, containers whose content publishes
     // in their place, and the modal layer, which hosts its dialog.
     "wizard_page", "help_book_viewer", "modal_layer",

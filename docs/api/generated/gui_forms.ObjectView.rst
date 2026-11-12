@@ -23,8 +23,7 @@ gui_forms::ObjectView
    keyboard, activates an item by double-clicking it or pressing Enter, and
    asks for a context menu the platform's way (the host's context request). Only the items in view
    are painted and published, and no child control is created per item. Use a
-   :cpp:class:`TreeView <gui_forms::TreeView>` for a hierarchy, a :cpp:class:`ListBox <gui_forms::ListBox>` for plain text rows, and a
-   :cpp:class:`CorrespondenceView <gui_forms::CorrespondenceView>` for records that expand to show more detail.
+   :cpp:class:`TreeView <gui_forms::TreeView>` for a hierarchy and a :cpp:class:`ListBox <gui_forms::ListBox>` for plain text rows.
 
    *Status:* stable. *Windows Forms counterpart:* ``ListView``.
 
@@ -202,9 +201,6 @@ gui_forms::ObjectView
 
       :cpp:class:`TreeView <gui_forms::TreeView>`
          A hierarchy of items, such as the folders above these objects.
-
-      :cpp:class:`CorrespondenceView <gui_forms::CorrespondenceView>`
-         Records that expand to show matched evidence.
 
       :cpp:class:`ListBox <gui_forms::ListBox>`
          A plain list of text rows.

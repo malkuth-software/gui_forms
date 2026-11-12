@@ -3,6 +3,9 @@
 #include "file_manager_demoboard/fixture_model.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
+#include "gui_forms_lab/review_card.hpp"
 
 #include <algorithm>
 #include <any>

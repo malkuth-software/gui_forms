@@ -5,7 +5,7 @@
 // second, and repaint only when what they show has changed. A settled lab so
 // holds one wake a second, and none while it is hidden or covered.
 
-#include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
+#include "gui_forms_demo/visual_inspector_view.hpp"
 
 #include <chrono>
 

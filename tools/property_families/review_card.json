@@ -2,13 +2,13 @@
   "family": "ReviewCard",
   "step": "B6",
   "declaring": "ReviewCard",
-  "header": "include/gui_forms/controls/panel/card/review_card/review_card.hpp",
-  "source": "src/controls/panel/card/review_card/review_card.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/card/review_card/review_card_capabilities/review_card_capabilities.hpp",
+  "header": "lab/include/gui_forms_lab/review_card.hpp",
+  "source": "lab/src/review_card.cpp",
+  "capabilities_header": "lab/include/gui_forms_lab/review_card_capabilities.hpp",
   "base": "Card",
   "shared": [],
   "includes": [
-    "gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp"
+    "gui_forms_lab/review_card_values.hpp"
   ],
   "properties": [
     {
@@ -34,6 +34,6 @@
   ],
   "test": {
     "type": "ReviewCard",
-    "include": "gui_forms/controls/panel/card/review_card/review_card.hpp"
+    "include": "gui_forms_lab/review_card.hpp"
   }
 }

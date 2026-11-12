@@ -52,14 +52,6 @@ gui_forms::MetricsView
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
-   .. seealso::
-
-      :cpp:class:`VisualInspectorView <gui_forms::VisualInspectorView>`
-         Shows the layout and paint state of one control.
-
-      :cpp:class:`EasingPreview <gui_forms::EasingPreview>`
-         Compares easing curves under the current motion policy.
-
    .. rubric:: Notes
 
    The view reads the counters when it paints, but it does not repaint by

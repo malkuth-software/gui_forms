@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 172> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 164> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -38,9 +38,6 @@ inline constexpr std::array<InteractionFieldsEntry, 172> interaction_fields{{
     {"ContextMenuRequest", "origin: enumeration, location: point, window_position: point, handled: boolean"},
     {"Control::Ptr", "value: object"},
     {"ControlValidationEvent", "control: object, destination: object, bulk: boolean, cancel: boolean"},
-    {"CorrespondenceExpansionChange", "stable_id: text, expanded: boolean, pinned: boolean, reason: enumeration"},
-    {"CorrespondencePinChange", "previous_id: text, current_id: text"},
-    {"CorrespondenceSelectionChange", "previous_id: text, current_id: text"},
     {"DataGridViewCellCancelEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer, cancel: boolean"},
     {"DataGridViewCellErrorTextNeededEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer, error_text: text"},
     {"DataGridViewCellEvent", "row_id.value: text, row.value: unsigned_integer, column: unsigned_integer"},
@@ -78,10 +75,6 @@ inline constexpr std::array<InteractionFieldsEntry, 172> interaction_fields{{
     {"HelpSectionToggle", "section: unsigned_integer, open: boolean"},
     {"ImageId", "value: unsigned_integer"},
     {"ImageListChange", "kind: enumeration, index: unsigned_integer, key: text, revision: unsigned_integer"},
-    {"InstrumentFieldChange", "module_id: text, field_id: text, previous_value: text, current_value: text, committed: boolean"},
-    {"InstrumentModuleMoveRequest", "module_id: text, previous_index: unsigned_integer, requested_index: unsigned_integer"},
-    {"InstrumentModuleRequest", "module_id: text"},
-    {"InstrumentModuleToggle", "module_id: text, enabled: boolean"},
     {"ItemCheckEvent", "index: unsigned_integer, current_state: enumeration, new_state: enumeration, cancel: boolean"},
     {"ItemContentPaint", "index: unsigned_integer, column: unsigned_integer, stable_id: text, content: rectangle, font.role: enumeration, font.size: number, font.weight: unsigned_integer, font.italic: boolean, font.letter_spacing: number, font.family.value: unsigned_integer, text: color, draw_default: boolean"},
     {"KeyEventArgs", "key_code: unsigned_integer, physical_key: unsigned_integer, scan_code: unsigned_integer, modifiers: enumeration, repeat: boolean, released_by_deactivation: boolean, handled: boolean, suppress_key_press: boolean"},
@@ -133,7 +126,6 @@ inline constexpr std::array<InteractionFieldsEntry, 172> interaction_fields{{
     {"QuickAccessToolbarPlacementChange", "toolbar_id: text, placement: enumeration"},
     {"RangeScrollEvent", "old_value: number, new_value: number, action: enumeration"},
     {"Rect", "value: rectangle"},
-    {"ReviewRecord", "key: text, title: text, summary: text, verdict: text, disposition: enumeration"},
     {"RibbonCommandClick", "ribbon_id: text, command_id: text"},
     {"RibbonDialogLaunch", "ribbon_id: text, group_id: text"},
     {"RibbonDropDownInvocation", "ribbon_id: text, command_id: text, choice.menu_id: text, choice.item_id: text, choice.command_id: text, choice.source_id: text"},

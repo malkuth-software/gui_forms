@@ -1,4 +1,5 @@
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "support/named_callbacks.hpp"
 

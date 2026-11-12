@@ -884,9 +884,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/object_view/object_view.cpp
     src/controls/panel/list_view/list_view.cpp
     src/controls/panel/tree_list_view/tree_list_view.cpp
-    src/controls/panel/correspondence_view/correspondence_view.cpp
     src/controls/panel/card/card.cpp
-    src/controls/panel/card/review_card/review_card.cpp
     src/controls/container/master_detail_view/master_detail_view.cpp
     src/controls/collections/expandable_sections.cpp
     src/controls/collections/row_height_index.cpp
@@ -993,10 +991,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/month_calendar/month_calendar.cpp
     src/controls/drawing_surface/drawing_surface.cpp
     src/controls/metrics_view/metrics_view.cpp
-    src/controls/visual_inspector_view/visual_inspector_view.cpp
-    src/controls/typography_specimen/typography_specimen.cpp
     src/controls/specimen/stock_specimens/stock_specimens.cpp
-    src/controls/easing_preview/easing_preview.cpp
     src/controls/panel/text_box/text_box.cpp
     src/controls/panel/text_editing/text_editing_engine.cpp
     src/controls/panel/rich_text_box/rich_text_box.cpp
@@ -1028,8 +1023,6 @@ add_library(gui_forms_controls STATIC
     src/controls/inspection/property_editor_registry/property_editor_registry.cpp
     src/controls/panel/property_list/property_list.cpp
     src/controls/panel/property_grid/property_grid.cpp
-    src/controls/panel/instrument_rack/rack_module_panel/rack_module_panel.cpp
-    src/controls/panel/instrument_rack/instrument_rack.cpp
     src/core/resources/image_list/image_list/image_list.cpp
     src/controls/guidance/error_layer/error_layer.cpp
     src/controls/guidance/error_glyph/error_glyph.cpp
@@ -1082,12 +1075,61 @@ gui_forms_verify_effects(gui_forms_controls
     SOURCES src/controls/range_control/progress_bar/progress_bar_effects.cpp
             src/controls/instruments/sweep_scope/sweep_scope_effects.cpp)
 
+# The lab library (audit F9): controls a product uses that are not part of
+# the installed library. CorrespondenceView, ReviewCard and InstrumentRack
+# (with its private RackModulePanel and the sort kernels, F10) serve the File
+# Manager demoboard; their headers are lab/include/gui_forms_lab/<name>.hpp.
+# Always built with the tree; installed only with GUI_FORMS_INSTALL_LAB, as
+# GUIForms::Lab in its own export set. Its sources reach the controls
+# library's private helpers (src/controls), so it links that library.
+option(GUI_FORMS_INSTALL_LAB "Install the optional gui_forms_lab library (GUIForms::Lab)" OFF)
+add_library(gui_forms_lab STATIC
+    lab/src/correspondence_view.cpp
+    lab/src/review_card.cpp
+    lab/src/rack_module_panel.cpp
+    lab/src/instrument_rack.cpp
+)
+target_include_directories(gui_forms_lab PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lab/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_include_directories(gui_forms_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controls)
+target_link_libraries(gui_forms_lab PUBLIC gui_forms_controls)
+set_target_properties(gui_forms_lab PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME Lab)
+add_library(GUIForms::Lab ALIAS gui_forms_lab)
+if(GUI_FORMS_INSTALL_LAB)
+    install(TARGETS gui_forms_lab EXPORT GUIFormsLabTargets
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(DIRECTORY lab/include/gui_forms_lab DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(EXPORT GUIFormsLabTargets
+            FILE GUIFormsLabTargets.cmake
+            NAMESPACE GUIForms::
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+endif()
+
+# The demonstration controls (audit F9): EasingPreview, TypographySpecimen,
+# VisualInspectorView and VisualInspectorOverlay, which no product uses. They
+# serve the Gallery, the lab programs and their tests; headers are
+# demo/lab_controls/include/gui_forms_demo/<name>.hpp. Never installed.
+add_library(gui_forms_demo_controls STATIC
+    demo/lab_controls/src/easing_preview.cpp
+    demo/lab_controls/src/typography_specimen.cpp
+    demo/lab_controls/src/visual_inspector_view.cpp
+)
+target_include_directories(gui_forms_demo_controls PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/demo/lab_controls/include>
+)
+target_include_directories(gui_forms_demo_controls PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controls)
+target_link_libraries(gui_forms_demo_controls PUBLIC gui_forms_controls)
+set_target_properties(gui_forms_demo_controls PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 if(GUI_FORMS_BUILD_FORM_COMPILER)
     # The form compiler (stage FD5): a form document's C++ header, generated
     # with the loader's parser, model and registry schema.
     add_executable(gui_forms_form_compiler
         tools/form_compiler/form_compiler.cpp
         tools/form_compiler/form_catalog.cpp
+        tools/form_compiler/form_core_catalog.cpp
     )
     target_link_libraries(gui_forms_form_compiler PRIVATE gui_forms_controls)
     set_target_properties(gui_forms_form_compiler PROPERTIES EXPORT_NAME form_compiler)
@@ -1099,6 +1141,15 @@ if(GUI_FORMS_BUILD_FORM_COMPILER)
             FILE GUIFormsFormCompilerTargets.cmake
             NAMESPACE GUIForms::
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+    # The Gallery's form compiler (audit F9): the installed compiler's
+    # program with the lab and demonstration controls as extension types
+    # (form_lab_catalog.cpp), for the pages that name them. Never installed.
+    add_executable(gui_forms_form_compiler_lab
+        tools/form_compiler/form_compiler.cpp
+        tools/form_compiler/form_catalog.cpp
+        tools/form_compiler/form_lab_catalog.cpp
+    )
+    target_link_libraries(gui_forms_form_compiler_lab PRIVATE gui_forms_lab gui_forms_demo_controls)
     # The theme check (owner request 2026-11-09): a program's theme packages
     # compiled at build time (gui_forms_add_theme_check), so a bad sheet
     # fails the build, not Application::create. Built and installed with
@@ -1184,8 +1235,10 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
     )
     target_include_directories(gui_forms_file_manager_demoboard_model PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/file_manager_demoboard/include)
+    # CorrespondenceView, ReviewCard and InstrumentRack are the lab
+    # library's (audit F9).
     target_link_libraries(gui_forms_file_manager_demoboard_model
-        PUBLIC GUIForms::Controls)
+        PUBLIC GUIForms::Controls GUIForms::Lab)
 
     set(GUI_FORMS_DEMOBOARD_FONTS
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf
@@ -1813,6 +1866,9 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # GUIForms::Application and a headless test with GUIForms::Controls, so a
     # process holds one engine (the SDK's linking rule).
     target_link_libraries(gui_forms_gallery_model PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+    # The lab and demonstration controls its pages show (audit F9).
+    target_link_libraries(gui_forms_gallery_model PUBLIC
+        $<BUILD_INTERFACE:gui_forms_lab> $<BUILD_INTERFACE:gui_forms_demo_controls>)
     # The Gallery's window (stage B): demo/gallery.form, compiled into
     # gallery_window.hpp, the GalleryWindow class bound to its GalleryModel
     # (demo/gallery_model.hpp); gallery_context.hpp includes it, so its
@@ -1835,9 +1891,9 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             "gallery_instrument,gui_forms::gallery::Instrument,user_control,gallery_instrument.hpp")
     # The pages converted to form documents (FD6.3), one class each.
     gui_forms_add_form(gui_forms_gallery_model demo/pages/typography-and-inspection.form
-        CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/animation-laboratory.form
-        CLASS AnimationDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS AnimationDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/collections-and-overlays.form
         CLASS CollectionsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/images-and-drawing.form
@@ -1847,9 +1903,9 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/checked-collections.form
         CLASS CheckedCollectionsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/choices-and-sections.form
-        CLASS ChoicesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS ChoicesDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/tree-and-object-views.form
-        CLASS TreeAndObjectViewsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS TreeAndObjectViewsDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/text-and-input.form
         CLASS TextAndInputDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/states-and-diagnostics.form
@@ -1861,7 +1917,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/values-and-spinners.form
         CLASS ValuesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/value-editors.form
-        CLASS ValueEditorsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS ValueEditorsDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/dialogs-and-host-services.form
         CLASS HostServicesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/semantic-feedback.form
@@ -1966,7 +2022,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_visual_inspector_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     add_library(gui_forms_layered_material_lab_model STATIC
         demo/layered_material_lab.cpp
@@ -1975,7 +2031,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_layered_material_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     # Stage T5's compositor lab (phase C8): a declared window with glass,
     # reflections and the backdrop named by --backdrop.
@@ -1995,7 +2051,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_custom_chrome_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     add_library(gui_forms_typography_scale_lab_model STATIC
         demo/typography_scale_lab.cpp
@@ -2004,7 +2060,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_typography_scale_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     add_library(gui_forms_responsive_tracks_lab_model STATIC
         demo/responsive_tracks_lab.cpp
@@ -2013,7 +2069,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_responsive_tracks_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     add_library(gui_forms_connected_controls_lab_model STATIC
         demo/connected_controls_lab.cpp
@@ -2022,7 +2078,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_connected_controls_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     add_library(gui_forms_seam_proximity_lab_model STATIC
         demo/seam_proximity_lab.cpp
@@ -2031,7 +2087,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_seam_proximity_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     if(GUI_FORMS_ENABLE_MACOS_HOST)
         set_source_files_properties(
@@ -3378,7 +3434,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_property_capability_tests COMMAND gui_forms_property_capability_tests)
     # Written by tools/property_codemod.py tests from tools/property_families/.
     add_executable(gui_forms_property_family_generated_tests tests/property_family_generated_tests.cpp)
-    target_link_libraries(gui_forms_property_family_generated_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_property_family_generated_tests PRIVATE gui_forms_lab gui_forms_demo_controls)
     add_test(NAME gui_forms_property_family_generated_tests COMMAND gui_forms_property_family_generated_tests)
 
     add_executable(gui_forms_damage_rectangles_tests tests/damage_rectangles_tests.cpp)
@@ -3546,8 +3602,8 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_form_editor_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_form_editor_tests COMMAND gui_forms_form_editor_tests)
     add_executable(gui_forms_form_generator_tests tests/form_language/form_generator_tests.cpp
-        tools/form_compiler/form_catalog.cpp)
-    target_link_libraries(gui_forms_form_generator_tests PRIVATE gui_forms_controls)
+        tools/form_compiler/form_catalog.cpp tools/form_compiler/form_lab_catalog.cpp)
+    target_link_libraries(gui_forms_form_generator_tests PRIVATE gui_forms_lab gui_forms_demo_controls)
     target_compile_definitions(gui_forms_form_generator_tests PRIVATE
         GUI_FORMS_FORM_GENERATED_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/generated")
     add_test(NAME gui_forms_form_generator_tests COMMAND gui_forms_form_generator_tests)
@@ -3569,7 +3625,8 @@ if(GUI_FORMS_BUILD_TESTS)
             # gui_forms_add_form end to end: a header generated at build time,
             # naming an application type.
             add_executable(gui_forms_form_application_type_tests
-                tests/form_language/form_application_type_tests.cpp tools/form_compiler/form_catalog.cpp)
+                tests/form_language/form_application_type_tests.cpp tools/form_compiler/form_catalog.cpp
+                tools/form_compiler/form_core_catalog.cpp)
             target_link_libraries(gui_forms_form_application_type_tests PRIVATE gui_forms_controls)
             target_include_directories(gui_forms_form_application_type_tests PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language)
@@ -3666,7 +3723,7 @@ if(GUI_FORMS_BUILD_TESTS)
             COMMAND gui_forms_theme_check "${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/gallery")
     endif()
     add_executable(gui_forms_theme_variant_tests tests/theme_variant_tests.cpp)
-    target_link_libraries(gui_forms_theme_variant_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_theme_variant_tests PRIVATE gui_forms_lab gui_forms_demo_controls)
     add_test(NAME gui_forms_theme_variant_tests COMMAND gui_forms_theme_variant_tests)
     add_executable(gui_forms_theme_sheet_package_tests tests/theme_sheet_package_tests.cpp)
     target_link_libraries(gui_forms_theme_sheet_package_tests PRIVATE gui_forms_controls)
@@ -3922,7 +3979,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_instrument_controls_tests
         tests/instrument_controls_tests.cpp)
     target_link_libraries(gui_forms_instrument_controls_tests PRIVATE
-        gui_forms_controls)
+        gui_forms_lab)
     add_test(NAME gui_forms_instrument_controls_tests
              COMMAND gui_forms_instrument_controls_tests)
 
@@ -3940,7 +3997,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_collection_controls_tests
         tests/collection_controls_tests.cpp)
     target_link_libraries(gui_forms_collection_controls_tests PRIVATE
-        gui_forms_controls)
+        gui_forms_lab)
     add_test(NAME gui_forms_collection_controls_tests
              COMMAND gui_forms_collection_controls_tests)
 
@@ -3973,7 +4030,7 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_domain_up_down_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_domain_up_down_tests COMMAND gui_forms_domain_up_down_tests)
     add_executable(gui_forms_editor_composite_capabilities_tests tests/editor_composite_capabilities_tests.cpp)
-    target_link_libraries(gui_forms_editor_composite_capabilities_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_editor_composite_capabilities_tests PRIVATE gui_forms_lab)
     add_test(NAME gui_forms_editor_composite_capabilities_tests COMMAND gui_forms_editor_composite_capabilities_tests)
     add_executable(gui_forms_item_view_capabilities_tests tests/item_view_capabilities_tests.cpp)
     target_link_libraries(gui_forms_item_view_capabilities_tests PRIVATE gui_forms_controls)
@@ -4022,7 +4079,7 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_plot_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_plot_view_tests COMMAND gui_forms_plot_view_tests)
     add_executable(gui_forms_event_payload_lifetime_tests tests/event_payload_lifetime_tests.cpp)
-    target_link_libraries(gui_forms_event_payload_lifetime_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_event_payload_lifetime_tests PRIVATE gui_forms_lab)
     add_test(NAME gui_forms_event_payload_lifetime_tests COMMAND gui_forms_event_payload_lifetime_tests)
     add_executable(gui_forms_page_strip_tests tests/page_strip_tests.cpp)
     target_link_libraries(gui_forms_page_strip_tests PRIVATE gui_forms_controls)
@@ -4214,7 +4271,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_message_box_tests COMMAND gui_forms_message_box_tests)
 
     add_executable(gui_forms_anatomy_tests tests/anatomy_tests.cpp)
-    target_link_libraries(gui_forms_anatomy_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_anatomy_tests PRIVATE gui_forms_lab)
     add_test(NAME gui_forms_anatomy_tests COMMAND gui_forms_anatomy_tests)
 
     add_executable(gui_forms_material_tests tests/material_tests.cpp)
@@ -4229,7 +4286,7 @@ if(GUI_FORMS_BUILD_TESTS)
         tests/composition_controls_tests.cpp
     )
     target_link_libraries(gui_forms_composition_controls_tests
-        PRIVATE gui_forms_controls
+        PRIVATE gui_forms_lab
     )
     add_test(NAME gui_forms_composition_controls_tests
         COMMAND gui_forms_composition_controls_tests)
@@ -4460,7 +4517,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_animation_tests
         tests/animation_tests.cpp
     )
-    target_link_libraries(gui_forms_animation_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_animation_tests PRIVATE gui_forms_demo_controls)
     add_test(NAME gui_forms_animation_tests
              COMMAND gui_forms_animation_tests)
 
@@ -5166,7 +5223,7 @@ if(GUI_FORMS_BUILD_TESTS)
         target_include_directories(gui_forms_macos_accessibility_tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/tests)
         target_link_libraries(gui_forms_macos_accessibility_tests PRIVATE
-            gui_forms_host_macos gui_forms_controls)
+            gui_forms_host_macos gui_forms_lab gui_forms_demo_controls)
         add_test(NAME gui_forms_macos_accessibility_tests
                  COMMAND gui_forms_macos_accessibility_tests)
         set_tests_properties(gui_forms_macos_accessibility_tests PROPERTIES TIMEOUT 60)
@@ -5181,7 +5238,7 @@ if(GUI_FORMS_BUILD_TESTS)
         target_include_directories(gui_forms_macos_accessibility_fixture_app PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/tests)
         target_link_libraries(gui_forms_macos_accessibility_fixture_app PRIVATE
-            gui_forms_host_macos gui_forms_controls)
+            gui_forms_host_macos gui_forms_lab gui_forms_demo_controls)
         set_target_properties(gui_forms_macos_accessibility_fixture_app PROPERTIES
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.ax-fixture")
         find_library(GUI_FORMS_APPLICATION_SERVICES ApplicationServices REQUIRED)

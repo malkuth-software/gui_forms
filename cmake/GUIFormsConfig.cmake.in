@@ -18,6 +18,10 @@ include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsTargets.cmake")
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsApplicationTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsApplicationTargets.cmake")
 endif()
+# The optional lab library (audit F9), installed with GUI_FORMS_INSTALL_LAB.
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsLabTargets.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsLabTargets.cmake")
+endif()
 # The form compiler (stage FD) and gui_forms_add_form(), which runs it.
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsFormCompilerTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsFormCompilerTargets.cmake")

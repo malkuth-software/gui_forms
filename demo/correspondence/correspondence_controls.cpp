@@ -1,6 +1,7 @@
 #include "correspondence_controls.hpp"
 
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
 
 #include <charconv>
 #include <chrono>

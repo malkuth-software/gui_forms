@@ -47,7 +47,6 @@
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
 #include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
-#include "gui_forms/controls/easing_preview/easing_preview.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/help/help_book/help_book.hpp"
 #include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
@@ -71,17 +70,14 @@
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
-#include "gui_forms/controls/panel/card/review_card/review_card.hpp"
 #include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
-#include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
 #include "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp"
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
 #include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
-#include "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
 #include "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp"
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
@@ -143,8 +139,6 @@
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
-#include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
-#include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
 #include "gui_forms/controls/wizard/wizard.hpp"
 #include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
@@ -157,7 +151,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 146> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 139> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -184,7 +178,6 @@ inline constexpr std::array<SchemaCatalogEntry, 146> schema_catalog{{
     {"plot_axis_item", "PlotAxisItem", &describe_type<PlotAxisItem>, &create_type<PlotAxisItem>, &is_exact_type<PlotAxisItem>},
     {"plot_series_item", "PlotSeriesItem", &describe_type<PlotSeriesItem>, &create_type<PlotSeriesItem>, &is_exact_type<PlotSeriesItem>},
     {"plot_annotation_item", "PlotAnnotationItem", &describe_type<PlotAnnotationItem>, &create_type<PlotAnnotationItem>, &is_exact_type<PlotAnnotationItem>},
-    {"review_card", "ReviewCard", &describe_type<ReviewCard>, &create_type<ReviewCard>, &is_exact_type<ReviewCard>},
     {"list_box", "ListBox", &describe_type<ListBox>, &create_type<ListBox>, &is_exact_type<ListBox>},
     {"checked_list_box", "CheckedListBox", &describe_type<CheckedListBox>, &create_type<CheckedListBox>, &is_exact_type<CheckedListBox>},
     {"combo_box", "ComboBox", &describe_type<ComboBox>, &create_type<ComboBox>, &is_exact_type<ComboBox>},
@@ -192,7 +185,6 @@ inline constexpr std::array<SchemaCatalogEntry, 146> schema_catalog{{
     {"object_view", "ObjectView", &describe_type<ObjectView>, &create_type<ObjectView>, &is_exact_type<ObjectView>},
     {"list_view", "ListView", &describe_type<ListView>, &create_type<ListView>, &is_exact_type<ListView>},
     {"tree_list_view", "TreeListView", &describe_type<TreeListView>, &create_type<TreeListView>, &is_exact_type<TreeListView>},
-    {"correspondence_view", "CorrespondenceView", &describe_type<CorrespondenceView>, &create_type<CorrespondenceView>, &is_exact_type<CorrespondenceView>},
     {"data_grid_view", "DataGridView", &describe_type<DataGridView>, &create_type<DataGridView>, &is_exact_type<DataGridView>},
     {"choice_group", "ChoiceGroup", &describe_type<ChoiceGroup>, &create_type<ChoiceGroup>, &is_exact_type<ChoiceGroup>},
     {"breadcrumb_trail", "BreadcrumbTrail", &describe_type<BreadcrumbTrail>, &create_type<BreadcrumbTrail>, &is_exact_type<BreadcrumbTrail>},
@@ -208,7 +200,6 @@ inline constexpr std::array<SchemaCatalogEntry, 146> schema_catalog{{
     {"flags_value_editor", "FlagsValueEditor", &describe_type<FlagsValueEditor>, &create_type<FlagsValueEditor>, &is_exact_type<FlagsValueEditor>},
     {"property_grid", "PropertyGrid", &describe_type<PropertyGrid>, &create_type<PropertyGrid>, &is_exact_type<PropertyGrid>},
     {"property_list", "PropertyList", &describe_type<PropertyList>, &create_type<PropertyList>, &is_exact_type<PropertyList>},
-    {"instrument_rack", "InstrumentRack", &describe_type<InstrumentRack>, &create_type<InstrumentRack>, &is_exact_type<InstrumentRack>},
     {"date_time_picker", "DateTimePicker", &describe_type<DateTimePicker>, &create_type<DateTimePicker>, &is_exact_type<DateTimePicker>},
     {"month_calendar", "MonthCalendar", &describe_type<MonthCalendar>, &create_type<MonthCalendar>, &is_exact_type<MonthCalendar>},
     {"panel", "Panel", &describe_type<Panel>, &create_type<Panel>, &is_exact_type<Panel>},
@@ -284,11 +275,7 @@ inline constexpr std::array<SchemaCatalogEntry, 146> schema_catalog{{
     {"raster_canvas", "RasterCanvas", &describe_type<RasterCanvas>, &create_type<RasterCanvas>, &is_exact_type<RasterCanvas>},
     {"live_surface", "LiveSurface", &describe_type<LiveSurface>, &create_type<LiveSurface>, &is_exact_type<LiveSurface>},
     {"sub_surface_host", "SubSurfaceHost", &describe_type<SubSurfaceHost>, &create_type<SubSurfaceHost>, &is_exact_type<SubSurfaceHost>},
-    {"easing_preview", "EasingPreview", &describe_type<EasingPreview>, &create_type<EasingPreview>, &is_exact_type<EasingPreview>},
     {"metrics_view", "MetricsView", &describe_type<MetricsView>, &create_type<MetricsView>, &is_exact_type<MetricsView>},
-    {"typography_specimen", "TypographySpecimen", &describe_type<TypographySpecimen>, &create_type<TypographySpecimen>, &is_exact_type<TypographySpecimen>},
-    {"visual_inspector_view", "VisualInspectorView", &describe_type<VisualInspectorView>, &create_type<VisualInspectorView>, &is_exact_type<VisualInspectorView>},
-    {"visual_inspector_overlay", "VisualInspectorOverlay", &describe_type<VisualInspectorOverlay>, &create_type<VisualInspectorOverlay>, &is_exact_type<VisualInspectorOverlay>},
     {"timer", "Timer", &describe_type<Timer>, &create_type<Timer>, &is_exact_type<Timer>},
     {"background_worker", "BackgroundWorker", &describe_type<BackgroundWorker>, &create_type<BackgroundWorker>, &is_exact_type<BackgroundWorker>},
     {"notify_icon", "NotifyIcon", &describe_type<NotifyIcon>, &create_type<NotifyIcon>, &is_exact_type<NotifyIcon>},
