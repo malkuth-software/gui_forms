@@ -415,8 +415,22 @@ public:
     // child_at count): index 0 paints first, the last child paints on top.
     // A borrowed view: in the sanitizer tree (GUI_FORMS_CHECKED_BORROWS) it
     // reports a use after the child list changed or this control died.
-    [[nodiscard]] BorrowedSpan<Ptr> children() const& noexcept { return detail::lend_view(children_); }
-    BorrowedSpan<Ptr> children() const&& = delete;
+    // Spell ChildView to keep the check; a walk that calls out to code that
+    // may edit the tree (measure, arrange, events) walks child_count() and
+    // child_at() instead.
+    using ChildView = BorrowedSpan<Ptr>;
+    [[nodiscard]] ChildView children() const& noexcept { return detail::lend_view(children_); }
+    ChildView children() const&& = delete;
+    // The number of children, and the child at `index` in children()'s order
+    // as a shared copy (null past the end). The copy keeps the child alive
+    // across a callback; re-read child_count() after one, since the list may
+    // have changed (children_revision() tells).
+    [[nodiscard]] std::size_t child_count() const noexcept { return children_.size(); }
+    [[nodiscard]] Ptr child_at(std::size_t index) const {
+        if (index >= children_.size()) return Ptr();
+        Ptr child = children_[index];
+        return child;
+    }
     // Advances whenever the child list changes (an add, a removal, a new
     // order, a disposal), so a walk that indexes the live list instead of
     // copying it can tell that a callback changed it meanwhile (audit N84).

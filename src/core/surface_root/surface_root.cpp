@@ -28,6 +28,19 @@ SurfaceRoot::SurfaceRoot(Control::Ptr root, Size client_size, std::shared_ptr<Ap
     if (resources_) theme_ = scheme_theme((*resources_).theme_ptr());
 }
 
+Window* WindowRef::get() const noexcept {
+    const std::shared_ptr<detail::WindowLifetime> locked = lifetime_.lock();
+    if (!locked) return nullptr;
+    Window* const window = (*locked).window;
+    return window;
+}
+
+WindowRef SurfaceRoot::window_ref() const {
+    const std::weak_ptr<detail::WindowLifetime> observed = lifetime_;
+    const WindowRef made(observed);
+    return made;
+}
+
 bool SurfaceRoot::check_access() const noexcept {
     return std::this_thread::get_id() == root_thread_;
 }

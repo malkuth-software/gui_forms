@@ -74,7 +74,7 @@ std::size_t next_child_position(const Control& parent, const Control* visited, s
                                 std::uint64_t& revision) noexcept {
     if (parent.children_revision() == revision) return position + 1U;
     revision = parent.children_revision();
-    const std::span<const Control::Ptr> children = parent.children();
+    const Control::ChildView children = parent.children();
     for (std::size_t index = 0U; index < children.size(); ++index) {
         if (children[index].get() == visited) return index + 1U;
     }
@@ -247,7 +247,7 @@ void note_hidden_subtree(const Control::Ptr& control, const Control::Ptr& focuse
         pending.pop_back();
         if (!current || !(*current).is_alive() || !(*current).effectively_visible()) continue;
         note_hidden_control(current, focused, hidden);
-        const std::span<const Control::Ptr> children = (*current).children();
+        const Control::ChildView children = (*current).children();
         for (std::size_t index = 0; index < children.size(); ++index) {
             pending.push_back(children[index]);
         }

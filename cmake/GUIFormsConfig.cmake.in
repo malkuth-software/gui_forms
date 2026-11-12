@@ -127,6 +127,21 @@ set(GUIForms_FONT_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_DATADIR@/GUIForms/fo
 # Whether the producer installed the Noto fallback faces (install component fallback_fonts,
 # GUI_FORMS_INSTALL_FALLBACK_FONTS). Without them the runtime falls back as for any missing face.
 set(GUIForms_FALLBACK_FONTS @GUI_FORMS_INSTALL_FALLBACK_FONTS@)
+# Whether the producer was built with checked borrowed views (the sanitizer
+# tree, GUI_FORMS_CHECKED_BORROWS). A consumer is built the same way: the
+# borrowed types differ between the modes, so every installed target carries
+# the definition, and a checked consumer linked against an ordinary library
+# fails at link time (gui_forms_checked_borrows_v1, borrowed_view.hpp).
+set(GUIForms_CHECKED_BORROWS @GUI_FORMS_CHECKED_BORROWS@)
+if(GUIForms_CHECKED_BORROWS)
+    foreach(_gui_forms_borrow_target IN ITEMS Core Controls Application)
+        if(TARGET GUIForms::${_gui_forms_borrow_target})
+            set_property(TARGET GUIForms::${_gui_forms_borrow_target} APPEND PROPERTY
+                         INTERFACE_COMPILE_DEFINITIONS GUI_FORMS_CHECKED_BORROWS=1)
+        endif()
+    endforeach()
+    unset(_gui_forms_borrow_target)
+endif()
 
 # Components describe installed targets, not the producer's build options.
 # Set these explicitly so REQUIRED COMPONENTS works and missing hosts fail here.

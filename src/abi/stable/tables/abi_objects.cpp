@@ -78,7 +78,7 @@ void collect_disposal_sources(const Component::Ptr& component, std::vector<const
     while (!pending.empty()) {
         const Control* control = pending.back();
         pending.pop_back();
-        const std::span<const Control::Ptr> children = (*control).children();
+        const Control::ChildView children = (*control).children();
         std::size_t index = 0U;
         for (index = 0U; index < children.size(); ++index) {
             const Control* child = children[index].get();
@@ -388,7 +388,7 @@ gf_status GF_CALL objects_child_at(gf_object parent, std::uint64_t index, gf_obj
         if (entered != GF_STATUS_OK) {
             return entered;
         }
-        const std::span<const Control::Ptr> children = (*control).children();
+        const Control::ChildView children = (*control).children();
         if (index >= children.size()) {
             return fail(GF_STATUS_INVALID_ARGUMENT, child_at_slot, "the index is past the last child");
         }

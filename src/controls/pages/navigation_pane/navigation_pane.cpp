@@ -555,7 +555,7 @@ void NavigationPane::refresh_content() {
         if (content != nullptr) wanted = (*content).control();
     }
     (*host_).set_panel_name(selected_text());
-    const std::span<const Control::Ptr> current = (*host_).children();
+    const Control::ChildView current = (*host_).children();
     const std::vector<Control::Ptr> present(current.begin(), current.end());
     for (const Control::Ptr& child : present) {
         if (child != wanted) static_cast<void>((*host_).remove_child((*child).runtime_id()));
