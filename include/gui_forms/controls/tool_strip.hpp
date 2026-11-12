@@ -195,8 +195,6 @@ public:
     [[nodiscard]] double content_length() const;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
@@ -251,6 +249,20 @@ public:
     [[nodiscard]] std::vector<Item> realized_items() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
+    // ToolStrip's own pointer and key handling, which its raisers run
+    // before raising the event. A derived strip that handles first calls
+    // them from its raisers and raises the event through Control.
+    // strip_pointer takes a press, release, move or wheel (by
+    // arguments.action).
+    void strip_pointer(MouseEventArgs& arguments);
+    void strip_pointer_left();
+    void strip_key_down(KeyEventArgs& arguments);
     // For StatusStrip: a strip whose items never overflow, whose spring
     // labels share the free width, and which may show a sizing grip.
     struct GUI_FORMS_API StatusLayout final {};

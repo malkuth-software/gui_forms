@@ -1,5 +1,6 @@
 #include "gui_forms/collection_controls.hpp"
 #include "gui_forms/window.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -189,7 +190,7 @@ std::vector<ObjectViewItem> make_items(const bool replacement) {
 
 void key(ObjectView& view, const std::uint32_t physical_key) {
     KeyEvent event{KeyAction::down, physical_key};
-    view.on_key(event);
+    gui_forms::detail::ControlInputAccess::on_key(view, event);
 }
 
 struct Fixture final {
@@ -211,7 +212,7 @@ struct Fixture final {
         if (capture) {
             view.set_horizontal_offset(0.0);
             PointerEvent down{PointerAction::down, PointerButton::primary, {154.0, 15.0}};
-            view.on_pointer(down);
+            gui_forms::detail::ControlInputAccess::on_pointer(view, down);
             require(view.has_pointer_capture(), "fixture resize capture");
         }
     }
@@ -310,9 +311,9 @@ struct SelectionCounter final {
 
 void finish_resize(ObjectView& view) {
     PointerEvent move{PointerAction::move, PointerButton::none, {174.0, 15.0}};
-    view.on_pointer(move);
+    gui_forms::detail::ControlInputAccess::on_pointer(view, move);
     PointerEvent up{PointerAction::up, PointerButton::primary, {174.0, 15.0}};
-    view.on_pointer(up);
+    gui_forms::detail::ControlInputAccess::on_pointer(view, up);
 }
 
 void campaign(const Operation operation, const bool capture) {

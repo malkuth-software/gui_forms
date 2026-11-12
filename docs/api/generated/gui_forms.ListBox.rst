@@ -326,14 +326,6 @@ gui_forms::ListBox
       Lays out the list, scrolls the active row into view and repaints the
       rows in view that edits of :cpp:member:`items <gui_forms::ListBox::items>` reached since the last layout.
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-      Handles the pointer input described under Notes. The window calls it.
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Handles the keyboard input described under Notes. The window calls it.
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -358,6 +350,50 @@ gui_forms::ListBox
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+      Handles the pointer input described under Notes, with the other mouse
+      raisers the class overrides, then raises the event. The window calls it.
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Raises the event, then handles a key its subscribers left unhandled as
+      described under Notes. The window calls it.
+
+   .. cpp:function:: void list_pointer(MouseEventArgs& arguments)
+
+      *Protected.*
+
+      ListBox's own pointer and key handling, which its raisers run before raising the event. A derived list that handles first calls them in its own raisers and then raises the event through Control (mouse) or ListControl (keys), not through ListBox's raisers. list_pointer takes a press, release, move or wheel (by arguments.action).
+
+   .. cpp:function:: void list_pointer_left()
+
+      *Protected.*
+
+   .. cpp:function:: void list_key_down(KeyEventArgs& arguments)
+
+      *Protected.*
 
    .. cpp:function:: virtual void on_items_changing(const CollectionEdit& edit)
 

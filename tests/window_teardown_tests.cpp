@@ -29,6 +29,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -60,11 +61,11 @@ struct Recheck final {
 
 // Captures the pointer on a press, takes focus, and posts a recheck to its
 // window whenever it loses capture or focus.
-class Poster final : public Control {
+class Poster final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Poster(StableId stable_id) : Control(std::move(stable_id)) { focusable = true; }
+    explicit Poster(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) { focusable = true; }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (event.action != PointerAction::down) return;
         Window* const host = attached_window();
         if (host == nullptr) return;

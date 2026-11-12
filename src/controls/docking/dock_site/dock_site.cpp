@@ -1608,66 +1608,88 @@ void DockSite::on_pointer_preview(PointerEvent& event) {
     }
 }
 
-void DockSite::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::leave) {
-        if (!seam_captured_) set_hot({});
-        return;
-    }
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+void DockSite::on_mouse_leave() {
+    if (!seam_captured_) set_hot({});
+    Control::on_mouse_leave();
+}
+
+void DockSite::on_mouse_down(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void DockSite::on_mouse_up(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void DockSite::on_mouse_move(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void DockSite::on_mouse_wheel(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+// The site's press, release and move (by arguments.action); a wheel only
+// meets the settling drag.
+void DockSite::handle_mouse(MouseEventArgs& arguments) {
+    const Point local = arguments.location;
     // A floating window moved by its caption (phase D4).
     if (window_move_.active) {
         const Control::Ptr keep = shared_from_this();
-        if (event.action == PointerAction::move) {
-            continue_window_move(event.modifiers);
-            event.handled = true;
+        if (arguments.action == PointerAction::move) {
+            continue_window_move(arguments.modifiers);
+            arguments.handled = true;
             return;
         }
-        if (event.action == PointerAction::up && event.button == PointerButton::primary) {
+        if (arguments.action == PointerAction::up && arguments.button == PointerButton::primary) {
             end_window_move(false);
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
     }
     if ((drag_.phase == DockDragPhase::armed || drag_.phase == DockDragPhase::dragging) && !drag_.guest) {
         const Control::Ptr keep = shared_from_this();
-        if (event.action == PointerAction::move) {
-            update_drag_pointer(local, event.modifiers);
-            event.handled = true;
+        if (arguments.action == PointerAction::move) {
+            update_drag_pointer(local, arguments.modifiers);
+            arguments.handled = true;
             return;
         }
-        if (event.action == PointerAction::up && event.button == PointerButton::primary) {
+        if (arguments.action == PointerAction::up && arguments.button == PointerButton::primary) {
             if (drag_.phase == DockDragPhase::armed) {
                 reset_drag();
             } else {
-                update_drag_pointer(local, event.modifiers);
+                update_drag_pointer(local, arguments.modifiers);
                 // The drop's target may be this site's or another window's;
                 // end_drag decides.
                 end_drag(DockDragEnd::dropped);
             }
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
     }
     if (drag_.phase == DockDragPhase::settling) {
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
+    if (arguments.action == PointerAction::move) {
         if (seam_captured_) {
             continue_seam_drag(local);
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
         set_hot(hit_at(local));
         return;
     }
-    if (event.button != PointerButton::primary || workspace_ == nullptr) return;
-    if (event.action == PointerAction::up) {
+    if (arguments.button != PointerButton::primary || workspace_ == nullptr) return;
+    if (arguments.action == PointerAction::up) {
         if (seam_captured_) {
             seam_captured_ = false;
             invalidate(Dirty::paint);
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
         const Hit released = hit_at(local);
@@ -1675,16 +1697,16 @@ void DockSite::on_pointer(PointerEvent& event) {
         pressed_ = {};
         invalidate(Dirty::paint);
         if (pressed.zone == Zone::none) return;
-        event.handled = true;
+        arguments.handled = true;
         if (pressed != released) return;
         press_caption_button(pressed.index, pressed.zone);
         return;
     }
-    if (event.action != PointerAction::down) return;
+    if (arguments.action != PointerAction::down) return;
     const Hit hit = hit_at(local);
     if (hit.zone == Zone::none) return;
     const Control::Ptr keep = shared_from_this();
-    event.handled = true;
+    arguments.handled = true;
     if (hit.zone == Zone::seam) {
         begin_seam_drag(hit.index, local);
         return;
@@ -1694,13 +1716,13 @@ void DockSite::on_pointer(PointerEvent& event) {
     if (hit.zone == Zone::caption) {
         // A double-click on a floating caption docks the stack back (phase
         // D4).
-        if (event.click_count >= 2U && floating() && hit.index < stacks_.size()) {
+        if (arguments.clicks >= 2U && floating() && hit.index < stacks_.size()) {
             static_cast<void>((*workspace_).dock_back(DockSubject::of_stack(stacks_[hit.index].stack)));
             return;
         }
         static_cast<void>((*workspace_).activate_panel(*panel, DockActivationCause::pointer));
         // The press may become a drag of the whole stack (D7-1).
-        if (is_alive() && hit.index < stacks_.size()) arm_caption_drag(hit.index, local, event.pointer_id);
+        if (is_alive() && hit.index < stacks_.size()) arm_caption_drag(hit.index, local, arguments.pointer_id);
         return;
     }
     if (hit.zone == Zone::menu) {
@@ -1856,10 +1878,26 @@ void DockSite::on_context_menu_requested(ContextMenuRequest& request) {
     if (panel && show_position_menu(*panel, MenuOpenMode::keyboard)) request.handled = true;
 }
 
-void DockSite::on_key(KeyEvent& event) {
-    if (handle_seam_key(event)) return;
-    static_cast<void>(handle_docking_key(event));
-    pass_key_to_main_window(event);
+void DockSite::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    handle_key(arguments, KeyAction::down);
+}
+
+void DockSite::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    handle_key(arguments, KeyAction::up);
+}
+
+// A key no subscriber handled: the seam's keys, the docking keys, then the
+// main window's (a floating site passes keys on).
+void DockSite::handle_key(KeyEventArgs& arguments, KeyAction action) {
+    if (arguments.handled || arguments.released_by_deactivation) return;
+    KeyEvent event = key_event_of(arguments, action);
+    if (!handle_seam_key(event)) {
+        static_cast<void>(handle_docking_key(event));
+        pass_key_to_main_window(event);
+    }
+    arguments.handled = event.handled;
 }
 
 void DockSite::on_key_bubble(KeyEvent& event) {

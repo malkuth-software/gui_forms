@@ -45,12 +45,13 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
-    void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
 
 private:

@@ -483,19 +483,11 @@ gui_forms::ComboBox
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-      Opens the overlay list on a primary press. The window calls it.
-
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
 
       In the drop_down style, sees the editor's keys first and handles F4,
       Alt+Down, Up and Down, and Enter and Escape while the list is open. The
       window calls it.
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Handles the keyboard input described under Notes. The window calls it.
 
    .. cpp:function:: void on_focus_changed(bool focused) override
 
@@ -515,6 +507,24 @@ gui_forms::ComboBox
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Raises the event, then handles a key its subscribers left unhandled as
+      described under Notes. The window calls it.
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+      Opens the overlay list on a primary press, then raises the event. The
+      window calls it.
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 

@@ -71,11 +71,12 @@ toggle_item
     Sets a checked row to unchecked, and an unchecked or indeterminate row
     to checked, as `set_item_check_state` does. This is what a click or
     Space does.
-on_pointer
-    Handles the pointer input described under Notes. The window calls it.
-on_key
-    Toggles the active row on Space and passes every other key to
-    `ListBox`. The window calls it.
+on_mouse_down
+    Handles the pointer input described under Notes, with the other mouse
+    raisers the class overrides, then raises the event. The window calls it.
+on_key_down
+    Raises the event, then toggles the active row on Space and passes every
+    other key to `ListBox`. The window calls it.
 semantic_virtual_children
     Publishes the rows as `ListBox` does, with the role `check_list_item`,
     the value ``checked``, ``unchecked`` or ``indeterminate``, and the

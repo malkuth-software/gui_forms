@@ -104,8 +104,6 @@ public:
     }
 
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
@@ -128,6 +126,13 @@ public:
     [[nodiscard]] Parts parts() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
     void validate_items(const std::vector<ToolStripItemSpec>& items) const override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_dispose() noexcept override;
@@ -167,6 +172,8 @@ private:
     Event<const QuickAccessToolbarPlacementChange&> placement_changed_{};
     // property_codemod begin QuickAccessToolbar (tools/property_families/quick_access_toolbar.json; generated, do not edit)
 private:
+    // The mouse raisers' handling: the customize button's, then ToolStrip's.
+    void toolbar_pointer(MouseEventArgs& arguments);
     friend struct QuickAccessToolbarPlacementPropertyCapability<QuickAccessToolbar>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(placement)& cell, QuickAccessToolbarPlacement& incoming);

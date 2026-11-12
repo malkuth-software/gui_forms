@@ -59,14 +59,19 @@ public:
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action,
                             std::string_view value) override;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
     void on_detached_from_window() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
@@ -111,6 +116,7 @@ public:
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
 private:
+    void press_part(MouseEventArgs& arguments);
     friend struct ScrollBarButtonExtentCapability<ScrollBar>;
     friend struct ScrollBarMinimumThumbExtentCapability<ScrollBar>;
     friend struct ScrollBarInitialRepeatDelayCapability<ScrollBar>;

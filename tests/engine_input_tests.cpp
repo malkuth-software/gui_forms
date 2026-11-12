@@ -15,6 +15,7 @@
 #include "gui_forms/engine.hpp"
 #include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <algorithm>
 #include <array>
@@ -69,11 +70,11 @@ public:
 // only what the theme's expressions read can need a repaint. It may also
 // paint a face of another control, as a docking site's drag layer paints
 // the site's tiles, after translating the painter.
-class Pad final : public Control {
+class Pad final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Pad(StableId stable_id) : Control(std::move(stable_id)) {}
+    explicit Pad(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) {}
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::enter) {
             hot = true;
             invalidate(Dirty::paint);

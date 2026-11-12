@@ -43,8 +43,6 @@ public:
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     void on_activate() override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -67,6 +65,13 @@ public:
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_enter() override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 

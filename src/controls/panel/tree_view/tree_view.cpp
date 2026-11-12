@@ -417,7 +417,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
     painter.restore();
 }
 
-void TreeView::on_pointer(PointerEvent& event) {
+void TreeView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     if (event.action == PointerAction::move) {
         const std::optional<std::size_t> row = visible_row_at(event.position);
@@ -482,7 +482,49 @@ void TreeView::on_pointer(PointerEvent& event) {
     }
 }
 
-void TreeView::on_key(KeyEvent& event) {
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void TreeView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void TreeView::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void TreeView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void TreeView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void TreeView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
+void TreeView::handle_key(KeyEvent& event) {
     if (!focused_ || !enabled.read() || event.action != KeyAction::down || visible_.empty()) return;
     std::optional<std::size_t> active_index_value = item_index(active_id_);
     std::vector<std::size_t>::iterator active_row_iterator = active_index_value
@@ -519,6 +561,17 @@ void TreeView::on_key(KeyEvent& event) {
     } else return;
     select_visible_row(row, false);
     event.handled = true;
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void TreeView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 void TreeView::type_select(std::string_view text) {

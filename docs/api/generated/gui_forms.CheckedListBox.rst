@@ -259,15 +259,6 @@ gui_forms::CheckedListBox
 
    .. rubric:: Extension points
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-      Handles the pointer input described under Notes. The window calls it.
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Toggles the active row on Space and passes every other key to
-      :cpp:class:`ListBox <gui_forms::ListBox>`. The window calls it.
-
    .. cpp:function:: std::vector<SemanticNode> semantic_virtual_children() const override
 
       Publishes the rows as :cpp:class:`ListBox <gui_forms::ListBox>` does, with the role ``check_list_item``,
@@ -283,6 +274,20 @@ gui_forms::CheckedListBox
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+      Handles the pointer input described under Notes, with the other mouse
+      raisers the class overrides, then raises the event. The window calls it.
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Raises the event, then toggles the active row on Space and passes every
+      other key to :cpp:class:`ListBox <gui_forms::ListBox>`. The window calls it.
 
    .. cpp:function:: void on_items_changing(const CollectionEdit& edit) override
 

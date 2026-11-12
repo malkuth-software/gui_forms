@@ -1005,11 +1005,45 @@ bool HelpBook::move_focus(bool forward) {
     return true;
 }
 
-void HelpBook::on_pointer(PointerEvent& event) {
-    ScrollableControl::on_pointer(event);
-    if (event.handled) return;
-    const Point local = event.position;
-    if (event.action == PointerAction::move) {
+// The scroll bars take the pointer first; what they leave is the book's
+// links, section bars and close button. The event is raised after both.
+void HelpBook::on_mouse_down(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void HelpBook::on_mouse_up(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void HelpBook::on_mouse_move(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void HelpBook::on_mouse_wheel(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void HelpBook::on_mouse_leave() {
+    scroll_pointer_left();
+    if (hovered_link_.has_value() || hovered_section_.has_value() || close_hovered_) {
+        hovered_link_.reset();
+        hovered_section_.reset();
+        close_hovered_ = false;
+        cursor = std::optional<CursorKind>();
+        invalidate(Dirty::paint);
+    }
+    Control::on_mouse_leave();
+}
+
+void HelpBook::handle_mouse(MouseEventArgs& arguments) {
+    scroll_pointer(arguments);
+    if (arguments.handled) return;
+    const Point local = arguments.window_position;
+    if (arguments.action == PointerAction::move) {
         const std::optional<std::size_t> link = link_at(local);
         const std::optional<std::size_t> section = link.has_value() ? std::nullopt : section_bar_at(local);
         const bool over_close = close_visible_ && Rect{layout_.close.x + content_offset().x,
@@ -1026,27 +1060,17 @@ void HelpBook::on_pointer(PointerEvent& event) {
         }
         return;
     }
-    if (event.action == PointerAction::leave) {
-        if (hovered_link_.has_value() || hovered_section_.has_value() || close_hovered_) {
-            hovered_link_.reset();
-            hovered_section_.reset();
-            close_hovered_ = false;
-            cursor = std::optional<CursorKind>();
-            invalidate(Dirty::paint);
-        }
-        return;
-    }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down) {
+    if (arguments.button != PointerButton::primary) return;
+    if (arguments.action == PointerAction::down) {
         pressed_link_ = link_at(local);
         pressed_section_ = pressed_link_.has_value() ? std::nullopt : section_bar_at(local);
         if (pressed_link_.has_value() || pressed_section_.has_value() || close_hovered_) {
-            event.handled = true;
+            arguments.handled = true;
             invalidate(Dirty::paint);
         }
         return;
     }
-    if (event.action == PointerAction::up) {
+    if (arguments.action == PointerAction::up) {
         const std::optional<std::size_t> link = link_at(local);
         const std::optional<std::size_t> section = section_bar_at(local);
         const std::optional<std::size_t> pressed_link = pressed_link_;
@@ -1055,49 +1079,49 @@ void HelpBook::on_pointer(PointerEvent& event) {
         pressed_section_.reset();
         invalidate(Dirty::paint);
         if (pressed_link.has_value() && link == pressed_link) {
-            event.handled = true;
+            arguments.handled = true;
             static_cast<void>(activate_link(*pressed_link));
             return;
         }
         if (pressed_section.has_value() && section == pressed_section) {
-            event.handled = true;
+            arguments.handled = true;
             toggle_section(*pressed_section);
             return;
         }
         if (close_hovered_) {
-            event.handled = true;
+            arguments.handled = true;
             close_requested_.emit();
         }
     }
 }
 
-void HelpBook::on_key(KeyEvent& event) {
-    ScrollableControl::on_key(event);
-    if (event.handled || event.action != KeyAction::down) return;
+void HelpBook::on_key_down(KeyEventArgs& arguments) {
+    ScrollableControl::on_key_down(arguments);
+    if (arguments.handled) return;
     const Rect viewport = viewport_rectangle();
-    const bool shift = has_modifier(event.modifiers, Modifier::shift);
+    const bool shift = has_modifier(arguments.modifiers, Modifier::shift);
     const double line = body_size * 1.5;
     const Point scrolled = scroll_position();
-    if (event.physical_key == PhysicalKey::tab && !has_modifier(event.modifiers, Modifier::control)) {
-        if (move_focus(!shift)) event.handled = true;
+    if (arguments.physical_key == PhysicalKey::tab && !has_modifier(arguments.modifiers, Modifier::control)) {
+        if (move_focus(!shift)) arguments.handled = true;
         return;
     }
-    if ((event.physical_key == PhysicalKey::enter || event.physical_key == PhysicalKey::space) &&
+    if ((arguments.physical_key == PhysicalKey::enter || arguments.physical_key == PhysicalKey::space) &&
         focused_stop_.has_value()) {
-        event.handled = true;
+        arguments.handled = true;
         const FocusStop stop = layout_.stops[*focused_stop_];
         activate_stop(stop);
         return;
     }
     double target = scrolled.y;
-    if (event.physical_key == PhysicalKey::down) target += line;
-    else if (event.physical_key == PhysicalKey::up) target -= line;
-    else if (event.physical_key == PhysicalKey::page_down) target += std::max(line, viewport.height - line);
-    else if (event.physical_key == PhysicalKey::page_up) target -= std::max(line, viewport.height - line);
-    else if (event.physical_key == PhysicalKey::home) target = 0.0;
-    else if (event.physical_key == PhysicalKey::end) target = layout_.height;
+    if (arguments.physical_key == PhysicalKey::down) target += line;
+    else if (arguments.physical_key == PhysicalKey::up) target -= line;
+    else if (arguments.physical_key == PhysicalKey::page_down) target += std::max(line, viewport.height - line);
+    else if (arguments.physical_key == PhysicalKey::page_up) target -= std::max(line, viewport.height - line);
+    else if (arguments.physical_key == PhysicalKey::home) target = 0.0;
+    else if (arguments.physical_key == PhysicalKey::end) target = layout_.height;
     else return;
-    event.handled = true;
+    arguments.handled = true;
     const double limit = std::max(0.0, layout_.height - viewport.height);
     static_cast<void>(scroll_to(Point{scrolled.x, std::clamp(target, 0.0, limit)}));
     invalidate(Dirty::paint);

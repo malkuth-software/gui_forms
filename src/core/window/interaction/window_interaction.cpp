@@ -79,7 +79,7 @@ void SurfaceRoot::interaction_hover_due(FrameTime now) {
 void SurfaceRoot::raise_mouse_hover(const Control::Ptr& control) {
     if (!control || !eligible(control) || !(*control).mouse_events_) return;
     metrics_.record_callback_emitted();
-    (*(*control).mouse_events_).hover.emit();
+    (*control).on_mouse_hover();
 }
 
 void SurfaceRoot::dispatch_host_hover(Point position) {

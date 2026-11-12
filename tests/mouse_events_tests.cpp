@@ -1,5 +1,8 @@
-// The WinForms mouse events (owner's mouse-event rule, 2026-11-08): their
-// order, the host's click count deciding Click or DoubleClick under
+// The WinForms mouse events (owner's mouse-event rule, 2026-11-08) in the
+// owner's input order (2026-11-12, ADR-003 amendment: MouseUp before Click,
+// suppress_click on MouseUp cancelling the clicks, a broken sequence
+// dropping them):
+// their order, the host's click count deciding Click or DoubleClick under
 // ControlStyles, Button's lack of DoubleClick, MouseHover from the window's
 // timer or the host's report, MouseCaptureChanged, context-menu requests,
 // and the window's input state and pointer settings.
@@ -70,12 +73,20 @@ struct NoteRequest final {
     }
 };
 
-// Counts its activations.
+// Counts its activations; marks its MouseUp handled or suppress_click when
+// told to.
 class Probe final : public Control {
 public:
     explicit Probe(StableId stable_id) : Control(std::move(stable_id)) {}
     void on_activate() override { ++activations; }
+    void on_mouse_up(MouseEventArgs& arguments) override {
+        if (handle_up) arguments.handled = true;
+        if (suppress_click) arguments.suppress_click = true;
+        Control::on_mouse_up(arguments);
+    }
     int activations{};
+    bool handle_up{};
+    bool suppress_click{};
 };
 
 // One subscriber to every mouse event of `control`, logging into `log`.
@@ -133,22 +144,22 @@ void test_click_order() {
     const Subscriptions subscriptions(*fixture.probe, log, "probe");
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
     fixture.pointer(PointerAction::up, PointerButton::primary, {21.0, 20.0});
-    require(log == Log{"down:1", "click", "mouse_click:1", "up:1", "capture_changed"},
-            "MouseDown, Click, MouseClick, MouseUp, then the capture's end");
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1", "capture_changed"},
+            "MouseDown, MouseUp (the release's target phase), Click, MouseClick, then the capture's end");
     require((*fixture.probe).activations == 1, "the click activates the control once");
 
     log.clear();
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 2U);
     fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 2U);
-    require(log == Log{"down:2", "double_click", "mouse_double_click:2", "up:2", "capture_changed"},
-            "the host's second press: MouseDown, DoubleClick, MouseDoubleClick, MouseUp");
+    require(log == Log{"down:2", "up:2", "double_click", "mouse_double_click:2", "capture_changed"},
+            "the host's second press: MouseDown, MouseUp, DoubleClick, MouseDoubleClick");
     require((*fixture.probe).activations == 1, "a double-click is no activation");
 
     log.clear();
     (*fixture.probe).set_style(ControlStyles::standard_double_click, false);
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 2U);
     fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 2U);
-    require(log == Log{"down:2", "click", "mouse_click:2", "up:2", "capture_changed"} &&
+    require(log == Log{"down:2", "up:2", "click", "mouse_click:2", "capture_changed"} &&
                 (*fixture.probe).activations == 2,
             "without standard_double_click the second press is a click");
 
@@ -178,7 +189,7 @@ void test_release_elsewhere_and_other_buttons() {
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
     fixture.pointer(PointerAction::move, PointerButton::none, {60.0, 30.0});
     fixture.pointer(PointerAction::up, PointerButton::primary, {60.0, 30.0});
-    require(log == Log{"down:1", "click", "mouse_click:1", "up:1", "capture_changed"},
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1", "capture_changed"},
             "a press that wanders within the control still clicks");
 
     log.clear();
@@ -190,13 +201,13 @@ void test_release_elsewhere_and_other_buttons() {
     log.clear();
     fixture.pointer(PointerAction::down, PointerButton::secondary, {20.0, 20.0});
     fixture.pointer(PointerAction::up, PointerButton::secondary, {20.0, 20.0});
-    require(log == Log{"down:1", "click", "mouse_click:1", "up:1"} && (*fixture.probe).activations == 1,
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1"} && (*fixture.probe).activations == 1,
             "as in WinForms the secondary button clicks too, with no capture and no activation");
 
     log.clear();
     fixture.pointer(PointerAction::down, PointerButton::middle, {20.0, 20.0});
     fixture.pointer(PointerAction::up, PointerButton::middle, {20.0, 20.0});
-    require(log == Log{"down:1", "click", "mouse_click:1", "up:1"} && (*fixture.probe).activations == 1,
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1"} && (*fixture.probe).activations == 1,
             "the middle button clicks too, with no activation");
 
     log.clear();
@@ -225,8 +236,8 @@ void test_button_has_no_double_click() {
     up.click_count = 2U;
     window.dispatch_pointer(down);
     window.dispatch_pointer(up);
-    require(log == Log{"down:1", "click", "mouse_click:1", "up:1", "capture_changed", "down:2", "click",
-                        "mouse_click:2", "up:2", "capture_changed"},
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1", "capture_changed", "down:2", "up:2",
+                        "click", "mouse_click:2", "capture_changed"},
             "a button's double-click is two clicks");
 
     log.clear();
@@ -353,7 +364,159 @@ void test_window_destroyed_by_click() {
     PointerEvent release{PointerAction::up, PointerButton::primary, {20.0, 20.0}};
     Window* const window = fixture.window.get();
     static_cast<void>((*window).dispatch_pointer(release));
-    require(!fixture.window && log.empty(), "a window destroyed by its Click raises no MouseUp");
+    require(!fixture.window && log == Log{"up:1"},
+            "MouseUp precedes Click; a window destroyed by its Click raises nothing more");
+}
+
+// Input order rule 1: the second press of a double-click repeats the
+// physical pair, then raises DoubleClick and MouseDoubleClick only; the
+// second press raises no Click, no MouseClick and no activation.
+void test_double_click_sequence() {
+    Fixture fixture;
+    Log log;
+    const Subscriptions subscriptions(*fixture.probe, log, "probe");
+    fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 1U);
+    fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 1U);
+    fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 2U);
+    fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 2U);
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1", "capture_changed", "down:2", "up:2",
+                        "double_click", "mouse_double_click:2", "capture_changed"},
+            "down, up, click, mouse_click, down, up, double_click, mouse_double_click");
+    require((*fixture.probe).activations == 1, "only the first press activates");
+}
+
+// Input order rule 3: suppress_click on MouseUp cancels Click, MouseClick
+// and the activation, and the capture still ends; handled only ends the
+// route and cancels nothing.
+void test_suppress_click_cancels_click() {
+    Fixture fixture;
+    Log log;
+    const Subscriptions subscriptions(*fixture.probe, log, "probe");
+    (*fixture.probe).handle_up = true;
+    fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
+    fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1", "capture_changed"} &&
+                (*fixture.probe).activations == 1,
+            "a handled MouseUp still raises Click, MouseClick and the activation");
+    log.clear();
+    (*fixture.probe).handle_up = false;
+    (*fixture.probe).suppress_click = true;
+    fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
+    fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});
+    require(log == Log{"down:1", "up:1", "capture_changed"} && (*fixture.probe).activations == 1,
+            "suppress_click raises no Click, no MouseClick and no activation");
+    log.clear();
+    fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 2U);
+    fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 2U);
+    require(log == Log{"down:2", "up:2", "capture_changed"}, "nor DoubleClick and MouseDoubleClick");
+}
+
+// Records, from MouseUp, whether the press's state was already released.
+struct NoteReleasedState final {
+    Log* log{};
+    Control* control{};
+    Window* window{};
+    void operator()(const MouseEventArgs&) const {
+        const bool captured = (*control).has_pointer_capture();
+        const bool primary_down = (*window).interaction_snapshot().primary_down;
+        (*log).push_back(captured || primary_down ? "up:held" : "up:released");
+    }
+};
+
+// Input order rule 4: at MouseUp the button is up and the capture released.
+void test_state_released_at_mouse_up() {
+    Fixture fixture;
+    Log log;
+    SubscriptionToken token =
+        (*fixture.probe).mouse_up().subscribe(NoteReleasedState{&log, fixture.probe.get(), fixture.window.get()});
+    fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
+    require((*fixture.probe).has_pointer_capture(), "the press captures the pointer");
+    fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});
+    require(log == Log{"up:released"}, "MouseUp sees the button up and the capture released");
+}
+
+// Removes the probe from its parent from its Click (the control's disposal).
+struct DetachProbe final {
+    Log* log{};
+    Panel* root{};
+    RuntimeId probe{};
+    void operator()() const {
+        (*log).push_back("click");
+        static_cast<void>((*root).remove_child(probe));
+    }
+};
+
+// Deactivates the window from Click, as opening a modal window does.
+struct OpenModalWindow final {
+    Log* log{};
+    Window* window{};
+    void operator()() const {
+        (*log).push_back("click");
+        (*window).set_active(false);
+    }
+};
+
+// Opens a modal focus scope (a modal layer or a menu) from Click.
+struct OpenModalLayer final {
+    Log* log{};
+    Window* window{};
+    Control::Ptr layer{};
+    void operator()() const {
+        (*log).push_back("click");
+        static_cast<void>((*window).begin_focus_scope(layer));
+    }
+};
+
+// Input order rule 5: once a handler disposes the control, opens a modal or
+// the capture is lost, the sequence's remaining derived events are dropped.
+void test_broken_sequence_drops_derived_events() {
+    {
+        Fixture fixture;
+        Log log;
+        SubscriptionToken up = (*fixture.probe).mouse_up().subscribe(NoteArgs{&log, "up"});
+        SubscriptionToken click = (*fixture.probe).click().subscribe(
+            DetachProbe{&log, fixture.root.get(), (*fixture.probe).runtime_id()});
+        SubscriptionToken mouse_click = (*fixture.probe).mouse_click().subscribe(NoteArgs{&log, "mouse_click"});
+        fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
+        fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});
+        require(log == Log{"up:1", "click"} && (*fixture.probe).activations == 0,
+                "a Click that disposes the control drops MouseClick and the activation");
+    }
+    {
+        Fixture fixture;
+        Log log;
+        (*fixture.window).set_active(true);
+        SubscriptionToken click = (*fixture.probe).click().subscribe(OpenModalWindow{&log, fixture.window.get()});
+        SubscriptionToken mouse_click = (*fixture.probe).mouse_click().subscribe(NoteArgs{&log, "mouse_click"});
+        fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
+        fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});
+        require(log == Log{"click"} && (*fixture.probe).activations == 0,
+                "a Click that opens a modal window drops MouseClick and the activation");
+    }
+    {
+        Fixture fixture;
+        Log log;
+        std::shared_ptr<Panel> layer = make_control<Panel>(StableId("mouse.layer"));
+        (*layer).set_requested_bounds({120.0, 10.0, 60.0, 60.0});
+        (*fixture.root).add_child(layer);
+        SubscriptionToken click =
+            (*fixture.probe).click().subscribe(OpenModalLayer{&log, fixture.window.get(), layer});
+        SubscriptionToken mouse_click = (*fixture.probe).mouse_click().subscribe(NoteArgs{&log, "mouse_click"});
+        fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
+        fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});
+        require(log == Log{"click"} && (*fixture.probe).activations == 0,
+                "a Click that opens a modal layer drops MouseClick and the activation");
+    }
+    {
+        Fixture fixture;
+        Log log;
+        const Subscriptions subscriptions(*fixture.probe, log, "probe");
+        fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
+        (*fixture.window).release_pointer();
+        fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});
+        require(log == Log{"down:1", "capture_changed", "up:1"} && (*fixture.probe).activations == 0,
+                "a capture lost before the release ends the sequence: no Click, no activation");
+    }
 }
 
 void test_input_state() {
@@ -434,6 +597,10 @@ int main() {
         test_native_hover();
         test_context_requests();
         test_window_destroyed_by_click();
+        test_double_click_sequence();
+        test_suppress_click_cancels_click();
+        test_state_released_at_mouse_up();
+        test_broken_sequence_drops_derived_events();
         test_input_state();
         test_pointer_settings();
     } catch (const std::exception& error) {

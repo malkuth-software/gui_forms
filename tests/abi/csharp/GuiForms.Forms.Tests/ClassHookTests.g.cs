@@ -545,6 +545,847 @@ internal sealed class Case17 : RangeControl
     }
 }
 
+/// <summary>ButtonBase overriding OnChangeUICues, raised by a direct call.</summary>
+internal sealed class Direct0 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct0(HookLog log)
+        : base("kit.forms.direct-0")
+    {
+        this.log = log;
+    }
+
+    protected override void OnChangeUICues(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnChangeUICues(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnChangeUICues(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnClick, raised by a direct call.</summary>
+internal sealed class Direct1 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct1(HookLog log)
+        : base("kit.forms.direct-1")
+    {
+        this.log = log;
+    }
+
+    protected override void OnClick(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnClick(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnClick(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnDoubleClick, raised by a direct call.</summary>
+internal sealed class Direct2 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct2(HookLog log)
+        : base("kit.forms.direct-2")
+    {
+        this.log = log;
+    }
+
+    protected override void OnDoubleClick(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnDoubleClick(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnDoubleClick(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnDragDrop, raised by a direct call.</summary>
+internal sealed class Direct3 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct3(HookLog log)
+        : base("kit.forms.direct-3")
+    {
+        this.log = log;
+    }
+
+    protected override void OnDragDrop(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnDragDrop(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnDragDrop(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnDragEnter, raised by a direct call.</summary>
+internal sealed class Direct4 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct4(HookLog log)
+        : base("kit.forms.direct-4")
+    {
+        this.log = log;
+    }
+
+    protected override void OnDragEnter(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnDragEnter(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnDragEnter(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnDragLeave, raised by a direct call.</summary>
+internal sealed class Direct5 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct5(HookLog log)
+        : base("kit.forms.direct-5")
+    {
+        this.log = log;
+    }
+
+    protected override void OnDragLeave(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnDragLeave(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnDragLeave(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnDragOver, raised by a direct call.</summary>
+internal sealed class Direct6 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct6(HookLog log)
+        : base("kit.forms.direct-6")
+    {
+        this.log = log;
+    }
+
+    protected override void OnDragOver(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnDragOver(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnDragOver(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnEnter, raised by a direct call.</summary>
+internal sealed class Direct7 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct7(HookLog log)
+        : base("kit.forms.direct-7")
+    {
+        this.log = log;
+    }
+
+    protected override void OnEnter(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnEnter(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnEnter(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnGotFocus, raised by a direct call.</summary>
+internal sealed class Direct8 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct8(HookLog log)
+        : base("kit.forms.direct-8")
+    {
+        this.log = log;
+    }
+
+    protected override void OnGotFocus(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnGotFocus(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnGotFocus(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnHelpRequested, raised by a direct call.</summary>
+internal sealed class Direct9 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct9(HookLog log)
+        : base("kit.forms.direct-9")
+    {
+        this.log = log;
+    }
+
+    protected override void OnHelpRequested(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnHelpRequested(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnHelpRequested(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnKeyDown, raised by a direct call.</summary>
+internal sealed class Direct10 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct10(HookLog log)
+        : base("kit.forms.direct-10")
+    {
+        this.log = log;
+    }
+
+    protected override void OnKeyDown(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnKeyDown(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnKeyDown(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnKeyPress, raised by a direct call.</summary>
+internal sealed class Direct11 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct11(HookLog log)
+        : base("kit.forms.direct-11")
+    {
+        this.log = log;
+    }
+
+    protected override void OnKeyPress(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnKeyPress(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnKeyPress(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnKeyUp, raised by a direct call.</summary>
+internal sealed class Direct12 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct12(HookLog log)
+        : base("kit.forms.direct-12")
+    {
+        this.log = log;
+    }
+
+    protected override void OnKeyUp(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnKeyUp(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnKeyUp(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnLayout, raised by a direct call.</summary>
+internal sealed class Direct13 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct13(HookLog log)
+        : base("kit.forms.direct-13")
+    {
+        this.log = log;
+    }
+
+    protected override void OnLayout(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnLayout(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnLayout(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnLeave, raised by a direct call.</summary>
+internal sealed class Direct14 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct14(HookLog log)
+        : base("kit.forms.direct-14")
+    {
+        this.log = log;
+    }
+
+    protected override void OnLeave(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnLeave(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnLeave(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnLostFocus, raised by a direct call.</summary>
+internal sealed class Direct15 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct15(HookLog log)
+        : base("kit.forms.direct-15")
+    {
+        this.log = log;
+    }
+
+    protected override void OnLostFocus(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnLostFocus(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnLostFocus(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnMouseCaptureChanged, raised by a direct call.</summary>
+internal sealed class Direct16 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct16(HookLog log)
+        : base("kit.forms.direct-16")
+    {
+        this.log = log;
+    }
+
+    protected override void OnMouseCaptureChanged(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnMouseCaptureChanged(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnMouseCaptureChanged(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnMouseClick, raised by a direct call.</summary>
+internal sealed class Direct17 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct17(HookLog log)
+        : base("kit.forms.direct-17")
+    {
+        this.log = log;
+    }
+
+    protected override void OnMouseClick(MouseEventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnMouseClick(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnMouseClick(new MouseEventArgs());
+    }
+}
+
+/// <summary>ButtonBase overriding OnMouseDoubleClick, raised by a direct call.</summary>
+internal sealed class Direct18 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct18(HookLog log)
+        : base("kit.forms.direct-18")
+    {
+        this.log = log;
+    }
+
+    protected override void OnMouseDoubleClick(MouseEventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnMouseDoubleClick(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnMouseDoubleClick(new MouseEventArgs());
+    }
+}
+
+/// <summary>ButtonBase overriding OnMouseDown, raised by a direct call.</summary>
+internal sealed class Direct19 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct19(HookLog log)
+        : base("kit.forms.direct-19")
+    {
+        this.log = log;
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnMouseDown(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnMouseDown(new MouseEventArgs());
+    }
+}
+
+/// <summary>ButtonBase overriding OnMouseEnter, raised by a direct call.</summary>
+internal sealed class Direct20 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct20(HookLog log)
+        : base("kit.forms.direct-20")
+    {
+        this.log = log;
+    }
+
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnMouseEnter(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnMouseEnter(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnMouseHover, raised by a direct call.</summary>
+internal sealed class Direct21 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct21(HookLog log)
+        : base("kit.forms.direct-21")
+    {
+        this.log = log;
+    }
+
+    protected override void OnMouseHover(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnMouseHover(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnMouseHover(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnMouseLeave, raised by a direct call.</summary>
+internal sealed class Direct22 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct22(HookLog log)
+        : base("kit.forms.direct-22")
+    {
+        this.log = log;
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnMouseLeave(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnMouseLeave(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnMouseMove, raised by a direct call.</summary>
+internal sealed class Direct23 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct23(HookLog log)
+        : base("kit.forms.direct-23")
+    {
+        this.log = log;
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnMouseMove(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnMouseMove(new MouseEventArgs());
+    }
+}
+
+/// <summary>ButtonBase overriding OnMouseUp, raised by a direct call.</summary>
+internal sealed class Direct24 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct24(HookLog log)
+        : base("kit.forms.direct-24")
+    {
+        this.log = log;
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnMouseUp(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnMouseUp(new MouseEventArgs());
+    }
+}
+
+/// <summary>ButtonBase overriding OnMouseWheel, raised by a direct call.</summary>
+internal sealed class Direct25 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct25(HookLog log)
+        : base("kit.forms.direct-25")
+    {
+        this.log = log;
+    }
+
+    protected override void OnMouseWheel(MouseEventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnMouseWheel(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnMouseWheel(new MouseEventArgs());
+    }
+}
+
+/// <summary>ButtonBase overriding OnPreviewKeyDown, raised by a direct call.</summary>
+internal sealed class Direct26 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct26(HookLog log)
+        : base("kit.forms.direct-26")
+    {
+        this.log = log;
+    }
+
+    protected override void OnPreviewKeyDown(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnPreviewKeyDown(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnPreviewKeyDown(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnValidated, raised by a direct call.</summary>
+internal sealed class Direct27 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct27(HookLog log)
+        : base("kit.forms.direct-27")
+    {
+        this.log = log;
+    }
+
+    protected override void OnValidated(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnValidated(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnValidated(EventArgs.Empty);
+    }
+}
+
+/// <summary>ButtonBase overriding OnValidating, raised by a direct call.</summary>
+internal sealed class Direct28 : ButtonBase
+{
+    private readonly HookLog log;
+
+    public Direct28(HookLog log)
+        : base("kit.forms.direct-28")
+    {
+        this.log = log;
+    }
+
+    protected override void OnValidating(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnValidating(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnValidating(EventArgs.Empty);
+    }
+}
+
 /// <summary>A subclass that overrides nothing: its table carries no entry.</summary>
 internal sealed class PlainCase : ButtonBase
 {
@@ -577,6 +1418,35 @@ internal static unsafe class ClassHookTests
         run_case15(check);
         run_case16(check);
         run_case17(check);
+        run_direct0(check);
+        run_direct1(check);
+        run_direct2(check);
+        run_direct3(check);
+        run_direct4(check);
+        run_direct5(check);
+        run_direct6(check);
+        run_direct7(check);
+        run_direct8(check);
+        run_direct9(check);
+        run_direct10(check);
+        run_direct11(check);
+        run_direct12(check);
+        run_direct13(check);
+        run_direct14(check);
+        run_direct15(check);
+        run_direct16(check);
+        run_direct17(check);
+        run_direct18(check);
+        run_direct19(check);
+        run_direct20(check);
+        run_direct21(check);
+        run_direct22(check);
+        run_direct23(check);
+        run_direct24(check);
+        run_direct25(check);
+        run_direct26(check);
+        run_direct27(check);
+        run_direct28(check);
         check(!ClassTables.has_entry(typeof(PlainCase), HookKeys.control_on_auto_size_changed), "a class that overrides nothing has no entry");
         check(ClassTables.has_entry(typeof(Case0), HookKeys.control_on_auto_size_changed), "an overridden hook has its entry");
     }
@@ -1355,6 +2225,433 @@ internal static unsafe class ClassHookTests
             value.kind = Constants.GF_VALUE_KIND_NUMBER;
             value.number = 1.0;
             PropertyWrites.set(control, "value"u8, value);
+        }
+    }
+
+    private static void run_direct0(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnChangeUICues";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct0 control = new Direct0(log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct1(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnClick";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct1 control = new Direct1(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "click", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct2(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnDoubleClick";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct2 control = new Direct2(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "double_click", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct3(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnDragDrop";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct3 control = new Direct3(log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct4(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnDragEnter";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct4 control = new Direct4(log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct5(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnDragLeave";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct5 control = new Direct5(log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct6(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnDragOver";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct6 control = new Direct6(log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct7(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnEnter";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct7 control = new Direct7(log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct8(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnGotFocus";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct8 control = new Direct8(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "focus_observed", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct9(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnHelpRequested";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct9 control = new Direct9(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "help_requested", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct10(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnKeyDown";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct10 control = new Direct10(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "key_down", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct11(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnKeyPress";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct11 control = new Direct11(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "key_press", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct12(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnKeyUp";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct12 control = new Direct12(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "key_up", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct13(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnLayout";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct13 control = new Direct13(log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct14(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnLeave";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct14 control = new Direct14(log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct15(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnLostFocus";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct15 control = new Direct15(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "focus_observed", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct16(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnMouseCaptureChanged";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct16 control = new Direct16(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "mouse_capture_changed", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct17(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnMouseClick";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct17 control = new Direct17(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "mouse_click", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct18(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnMouseDoubleClick";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct18 control = new Direct18(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "mouse_double_click", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct19(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnMouseDown";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct19 control = new Direct19(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "mouse_down", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct20(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnMouseEnter";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct20 control = new Direct20(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "mouse_enter", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct21(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnMouseHover";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct21 control = new Direct21(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "mouse_hover", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct22(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnMouseLeave";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct22 control = new Direct22(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "mouse_leave", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct23(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnMouseMove";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct23 control = new Direct23(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "mouse_move", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct24(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnMouseUp";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct24 control = new Direct24(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "mouse_up", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct25(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnMouseWheel";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct25 control = new Direct25(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "mouse_wheel", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct26(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnPreviewKeyDown";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct26 control = new Direct26(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "preview_key_down", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct27(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnValidated";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct27 control = new Direct27(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "validated", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct28(Action<bool, string> check)
+    {
+        string label = "ButtonBase.OnValidating";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct28 control = new Direct28(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "validating", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
         }
     }
 

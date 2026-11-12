@@ -1885,14 +1885,44 @@ void PageStrip::on_middle_button(PointerEvent& event, Hit hit) {
     static_cast<void>(request_close(page, PageCloseCause::middle_button));
 }
 
-void PageStrip::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::leave) {
-        set_hot({});
-        middle_pressed_.reset();
-        thaw_widths();
-        return;
-    }
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
+void PageStrip::on_mouse_leave() {
+    set_hot({});
+    middle_pressed_.reset();
+    thaw_widths();
+    Control::on_mouse_leave();
+}
+
+void PageStrip::on_mouse_down(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void PageStrip::on_mouse_up(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void PageStrip::on_mouse_move(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void PageStrip::on_mouse_wheel(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void PageStrip::handle_mouse(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+}
+
+// The press, release, move and wheel in the routed form the button helpers
+// (on_pointer_release, on_middle_button, on_secondary_button) take; the
+// move that enters the strip sets the hot zone.
+void PageStrip::handle_pointer(PointerEvent& event) {
+    if (event.action == PointerAction::move) {
         const bool dragging = drag_.phase == DragState::Phase::armed || drag_.phase == DragState::Phase::sliding;
         if (dragging) on_drag_move(event.position);
         if (!is_alive()) return;
@@ -1982,13 +2012,16 @@ void PageStrip::on_context_menu_requested(ContextMenuRequest& request) {
     request.handled = true;
 }
 
-void PageStrip::on_key(KeyEvent& event) {
-    if (!focused_ || event.action != KeyAction::down || pages_ == nullptr || (*pages_).count() == 0U) return;
+void PageStrip::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !focused_ || pages_ == nullptr || (*pages_).count() == 0U) return;
+    // The key command table matches the routed form.
+    const KeyEvent pressed = key_event_of(arguments, KeyAction::down);
     const std::size_t count = (*pages_).count();
     // The named commands' keys are the window's (owner decision DK-30): the
     // host's defaults, as the application rebound them.
     const KeyMap& keys = effective_key_map();
-    const bool plain = event.modifiers == Modifier::none;
+    const bool plain = arguments.modifiers == Modifier::none;
     // Along the row: Left and Right on a top or bottom strip, Up and Down on
     // a side strip.
     // A mirrored strip reads from the right, so Left moves on.
@@ -1999,37 +2032,37 @@ void PageStrip::on_key(KeyEvent& event) {
         next_key = PhysicalKey::left;
     }
     const std::size_t current = keyboard_position().value_or(0U);
-    if (plain && event.physical_key == PhysicalKey::escape) {
+    if (plain && arguments.physical_key == PhysicalKey::escape) {
         // Escape ends a live reorder with nothing moved; otherwise it is not
         // the strip's.
         if (!cancel_drag()) return;
-    } else if (keys.matches(KeyCommand::close_document, event)) {
+    } else if (keys.matches(KeyCommand::close_document, pressed)) {
         // Ctrl+F4 (Cmd+W on macOS) closes the selected closable page (owner
         // decision DK-38); Delete closes nothing.
         const std::optional<PageId> selected = (*pages_).selected_page();
         if (selected) static_cast<void>(request_close(*selected, PageCloseCause::keyboard));
-    } else if (keys.matches(KeyCommand::move_tab_later, event)) {
+    } else if (keys.matches(KeyCommand::move_tab_later, pressed)) {
         static_cast<void>(move_selected(1));
-    } else if (keys.matches(KeyCommand::move_tab_earlier, event)) {
+    } else if (keys.matches(KeyCommand::move_tab_earlier, pressed)) {
         static_cast<void>(move_selected(-1));
-    } else if (keys.matches(KeyCommand::next_tab, event)) {
+    } else if (keys.matches(KeyCommand::next_tab, pressed)) {
         static_cast<void>(select_relative(1, PageSelectionCause::keyboard));
-    } else if (keys.matches(KeyCommand::previous_tab, event)) {
+    } else if (keys.matches(KeyCommand::previous_tab, pressed)) {
         static_cast<void>(select_relative(-1, PageSelectionCause::keyboard));
-    } else if (plain && event.physical_key == next_key) {
+    } else if (plain && arguments.physical_key == next_key) {
         move_keyboard((current + 1U) % count);
-    } else if (plain && event.physical_key == previous_key) {
+    } else if (plain && arguments.physical_key == previous_key) {
         move_keyboard((current + count - 1U) % count);
-    } else if (plain && event.physical_key == PhysicalKey::home) {
+    } else if (plain && arguments.physical_key == PhysicalKey::home) {
         move_keyboard(0U);
-    } else if (plain && event.physical_key == PhysicalKey::end) {
+    } else if (plain && arguments.physical_key == PhysicalKey::end) {
         move_keyboard(count - 1U);
-    } else if (plain && (event.physical_key == PhysicalKey::space || event.physical_key == PhysicalKey::enter)) {
+    } else if (plain && (arguments.physical_key == PhysicalKey::space || arguments.physical_key == PhysicalKey::enter)) {
         static_cast<void>(choose(current, PageSelectionCause::keyboard));
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 void PageStrip::on_focus_changed(bool focused) {

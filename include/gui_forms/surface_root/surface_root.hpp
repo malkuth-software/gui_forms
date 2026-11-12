@@ -95,9 +95,12 @@ class SurfaceResourceAccess;
 class SurfaceEngineAccess;
 class SurfaceHandleAccess;
 class SurfaceHelpAccess;
+class SurfaceMouseRuleAccess;
 
-// The WinForms mouse events raise_mouse_events offers the window's rules
-// before raising them (SurfaceRoot::offer_mouse_rules_). The rules library
+// The WinForms mouse events whose raising offers the window's rules first
+// (SurfaceRoot::offer_mouse_rules_): MouseDown and MouseUp from Control's
+// base raisers (SurfaceMouseRuleAccess), the clicks from
+// raise_mouse_events. The rules library
 // maps them to its trigger kinds; events raised elsewhere as well (capture,
 // hover, the context menu) reach the rules through their subscriptions.
 enum class MouseRuleEvent : std::uint8_t {
@@ -1447,6 +1450,7 @@ private:
     friend class detail::SurfaceEngineAccess;
     friend class detail::SurfaceHandleAccess;
     friend class detail::SurfaceHelpAccess;
+    friend class detail::SurfaceMouseRuleAccess;
     // Key and text forwarding to a warm Popup window (Window::
     // forward_input_to_popup_window): while set, dispatch_key and
     // dispatch_text offer each event to the model of slot
@@ -1593,14 +1597,51 @@ private:
     [[nodiscard]] Control::Ptr reuse_pointer_hit(PointerHit& hit, Point position);
     // dispatch_pointer's route of one event to its target: preview, target
     // and bubble. Sets `pressed_for_release` to the control a release ends
-    // the press of (any button), and `target_out` to the event's target.
-    // `hit` is the event's hit test so far (the hover's, for a move).
+    // the press of (any button), `target_out` to the event's target, and
+    // `click_suppressed` to whether a release's MouseUp (the target phase)
+    // set suppress_click, which cancels its clicks (input order rule 3;
+    // handled only ends the route). `hit` is
+    // the event's hit test so far (the hover's, for a move).
     bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
-                       PointerHit& hit);
-    // Raises the WinForms mouse events for one routed pointer event on its
-    // target (Control's mouse_down and the rest), in WinForms' order.
+                       PointerHit& hit, bool& click_suppressed);
+    // The MouseEventArgs of a routed pointer event on `target`.
+    [[nodiscard]] MouseEventArgs mouse_arguments(const Control& target, const PointerEvent& event);
+    // The route's target phase: the raiser of the event's action
+    // (on_mouse_down, on_mouse_up, on_mouse_move or on_mouse_wheel) on
+    // `target`, whose handled comes back into `event`; returns the
+    // arguments' suppress_click. An enter or leave raises nothing here (the
+    // hover tracking raises them).
+    [[nodiscard]] bool raise_pointer_target(Control& target, PointerEvent& event);
+    // Raises the WinForms mouse events that follow one routed pointer
+    // event on its target: a release's clicks (Control::on_click and the
+    // rest) and the deferred capture change. MouseDown, MouseMove,
+    // MouseWheel and MouseUp are the route's target phase (route_pointer).
+    //
+    // The input order (ADR-003 amendment, 2026-11-12): the clicks come
+    // after the MouseUp that completes them, on the control the press
+    // began on only (rule 2); none when MouseUp set suppress_click (rule 3); and
+    // the rest of them are dropped once a handler disposes or disables the
+    // control, opens a modal (the window loses activation or opens a focus
+    // scope), loses the capture or closes the window (rule 5).
+    // `sequence_breaks` is input_sequence_breaks_ when the dispatch began.
     void raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
-                            const Control::Ptr& pressed_for_release, PointerHit& hit);
+                            const Control::Ptr& pressed_for_release, PointerHit& hit,
+                            bool click_suppressed, std::uint64_t sequence_breaks);
+    // Whether the derived events of the pointer sequence dispatch_pointer
+    // began when input_sequence_breaks_ was `sequence_breaks` may go on to
+    // `pressed` (rule 5): the window lives (`presenting` is still the one
+    // `lifetime` names), nothing broke a sequence since, and `pressed` is
+    // still eligible.
+    // raise_mouse_events' part for a release with a target: Click and
+    // MouseClick (then on_activate), or DoubleClick and MouseDoubleClick.
+    void raise_release_clicks(const PointerEvent& event, Control& target, const Control::Ptr& pressed_for_release,
+                              PointerHit& hit, bool click_suppressed, std::uint64_t sequence_breaks);
+    // Ends every pointer sequence in progress (rule 5): counts a break and
+    // forgets the presses whose release would click.
+    void break_pointer_sequences() noexcept;
+    [[nodiscard]] bool click_sequence_intact(const Control::Ptr& pressed, std::uint64_t sequence_breaks,
+                                             const std::shared_ptr<detail::WindowLifetime>& lifetime,
+                                             const Window* presenting) const noexcept;
     // Offers one of those events on `control` to the window's rules before
     // its subscribers (the owner's Q-C5: rules run before the control
     // route). `arguments` is null for Click and DoubleClick. Returns whether
@@ -2402,6 +2443,17 @@ private:
     // MouseUp, as WinForms raises it.
     bool defer_capture_changed_{};
     Control::WeakPtr deferred_capture_changed_{};
+    // Counts the events that end every pointer sequence in progress (input
+    // order rule 5): a capture lost other than by a primary release, the
+    // window's deactivation (a modal window over it) and a focus scope
+    // opened (a modal layer, a menu). A press's pending click is forgotten
+    // with them; raise_mouse_events compares the count with the one its
+    // dispatch began with.
+    std::uint64_t input_sequence_breaks_{};
+    // Whether an input method's composition is open (the last text was
+    // marked text): a handled KeyDown then keeps the commit's text
+    // (rule 3 applies to keys outside a composition).
+    bool composition_open_{};
     Control::WeakPtr drag_target_;
     std::uint64_t drag_session_id_{};
     DragEffect drag_last_accepted_effect_{DragEffect::none};
@@ -2755,7 +2807,7 @@ private:
     // so the core never names RuleSet's members. offer_key_rules_ is the key
     // route's entry into them, set with them: route_key calls it first, and
     // a true result (a consuming rule) ends the key. offer_mouse_rules_ is
-    // raise_mouse_events' entry (offer_mouse_rules), with the same result.
+    // offer_mouse_rules' entry, with the same result.
     // Both null without rules.
     std::shared_ptr<RuleSet> rules_{};
     bool (*offer_key_rules_)(RuleSet& rules, KeyEvent& event){};

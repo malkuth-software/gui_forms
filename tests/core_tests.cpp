@@ -25,6 +25,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/update_scope/update_scope.hpp"
 #include "gui_forms/window/window.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdlib>
 #include <exception>
@@ -68,9 +69,9 @@ public:
     std::vector<Color> fill_colors;
 };
 
-class ProbeControl : public Control {
+class ProbeControl : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit ProbeControl(StableId id) : Control(std::move(id)) {}
+    explicit ProbeControl(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
 
     Size measure(Size available) override {
         ++measure_count;
@@ -94,7 +95,7 @@ public:
         }
     }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         phases.push_back(event.phase);
         if (event.action == PointerAction::up && release_callback) {
             release_callback();
@@ -109,7 +110,7 @@ public:
         focus_state = focused;
     }
 
-    void on_key(KeyEvent& event) override {
+    void routed_key(KeyEvent& event) override {
         if (handle_key) event.handled = true;
     }
 

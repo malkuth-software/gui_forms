@@ -32,21 +32,22 @@ public:
         focusable = true;
     }
 
-    void on_pointer(PointerEvent& event) override {
-        if (event.action != PointerAction::down) return;
-        event.handled = true;
-        if (event.button != PointerButton::primary) {
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        if (arguments.button != PointerButton::primary) {
             (*system_).cancel_help_mode();
-            return;
+        } else {
+            // The layer covers the client from its origin: its points are
+            // the window's.
+            (*system_).on_pick(*window_, arguments.window_position);
         }
-        // The layer covers the client from its origin: its points are the
-        // window's.
-        (*system_).on_pick(*window_, event.position);
+        Control::on_mouse_down(arguments);
     }
 
-    void on_key(KeyEvent& event) override {
-        if (event.action != KeyAction::down || event.physical_key != PhysicalKey::escape) return;
-        event.handled = true;
+    void on_key_down(KeyEventArgs& arguments) override {
+        Control::on_key_down(arguments);
+        if (arguments.handled || arguments.physical_key != PhysicalKey::escape) return;
+        arguments.handled = true;
         (*system_).cancel_help_mode();
     }
 

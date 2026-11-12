@@ -211,11 +211,13 @@ gui_forms::CommandBar
 
    .. cpp:function:: void on_key_bubble(KeyEvent& event) override
 
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 

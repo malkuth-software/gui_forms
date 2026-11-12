@@ -67,9 +67,7 @@ public:
 
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action,
@@ -103,6 +101,11 @@ public:
     [[nodiscard]] States states() const;
 
 protected:
+    void on_key_down(KeyEventArgs& arguments) override;
+
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_detached_from_window() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;

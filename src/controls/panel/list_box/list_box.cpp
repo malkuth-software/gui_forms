@@ -452,10 +452,38 @@ double ListBox::row_text_left() const noexcept {
 void ListBox::paint_row_adornment(Painter&, std::size_t, Rect, bool,
                                   bool) const {}
 
-void ListBox::on_pointer(PointerEvent& event) {
+// The raisers run ListBox's handling, then raise the event through
+// Control: ScrollableControl's bar handling does not see the list's
+// pointer events, as before the raisers.
+void ListBox::on_mouse_down(MouseEventArgs& arguments) {
+    list_pointer(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void ListBox::on_mouse_up(MouseEventArgs& arguments) {
+    list_pointer(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void ListBox::on_mouse_move(MouseEventArgs& arguments) {
+    list_pointer(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void ListBox::on_mouse_wheel(MouseEventArgs& arguments) {
+    list_pointer(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void ListBox::on_mouse_leave() {
+    list_pointer_left();
+    Control::on_mouse_leave();
+}
+
+void ListBox::list_pointer(MouseEventArgs& arguments) {
     if (!eligible_for_input()) return;
-    if (event.action == PointerAction::move) {
-        const std::optional<std::size_t> next = index_at(event.position);
+    if (arguments.action == PointerAction::move) {
+        const std::optional<std::size_t> next = index_at(arguments.window_position);
         if (next != hovered_index_) {
             // Only the row left and the row entered repaint (audit C9).
             const std::optional<std::size_t> previous = hovered_index_;
@@ -465,58 +493,64 @@ void ListBox::on_pointer(PointerEvent& event) {
         }
         return;
     }
-    if (event.action == PointerAction::leave) {
-        const std::optional<std::size_t> previous = hovered_index_;
-        hovered_index_.reset();
-        if (previous) invalidate_row(*previous);
-        return;
-    }
-    if (event.action == PointerAction::wheel) {
-        if (!items.read().empty() && event.wheel_delta.y != 0.0) {
-            const int direction = event.wheel_delta.y > 0.0 ? -1 : 1;
+    if (arguments.action == PointerAction::wheel) {
+        if (!items.read().empty() && arguments.wheel_delta.y != 0.0) {
+            const int direction = arguments.wheel_delta.y > 0.0 ? -1 : 1;
             const std::ptrdiff_t next = std::clamp<std::ptrdiff_t>(
                 static_cast<std::ptrdiff_t>(top_index_) + direction * 3,
                 0, static_cast<std::ptrdiff_t>(items.read().size() - 1U));
             top_index = static_cast<std::size_t>(next);
-            event.handled = true;
+            arguments.handled = true;
         }
         return;
     }
-    if (event.action == PointerAction::down && event.button == PointerButton::primary) {
+    if (arguments.action == PointerAction::down && arguments.button == PointerButton::primary) {
         if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
-        if (const std::optional<std::size_t> index = index_at(event.position)) {
-            select_index(*index, includes(event.modifiers, Modifier::shift),
-                         command_modifier(event.modifiers));
-            event.handled = true;
+        if (const std::optional<std::size_t> index = index_at(arguments.window_position)) {
+            select_index(*index, includes(arguments.modifiers, Modifier::shift),
+                         command_modifier(arguments.modifiers));
+            arguments.handled = true;
         }
-    } else if (event.action == PointerAction::up &&
-               event.button == PointerButton::primary) {
-        if (const std::optional<std::size_t> index = index_at(event.position);
+    } else if (arguments.action == PointerAction::up &&
+               arguments.button == PointerButton::primary) {
+        if (const std::optional<std::size_t> index = index_at(arguments.window_position);
             index && active_index_ == index) {
             item_activated_.emit(*index);
-            event.handled = true;
+            arguments.handled = true;
         }
     }
 }
 
-void ListBox::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.read() || event.action != KeyAction::down || items.read().empty()) return;
-    if (event.physical_key == PhysicalKey::enter && active_index_) {
+void ListBox::list_pointer_left() {
+    if (!eligible_for_input()) return;
+    const std::optional<std::size_t> previous = hovered_index_;
+    hovered_index_.reset();
+    if (previous) invalidate_row(*previous);
+}
+
+void ListBox::on_key_down(KeyEventArgs& arguments) {
+    ListControl::on_key_down(arguments);
+    if (!arguments.handled) list_key_down(arguments);
+}
+
+void ListBox::list_key_down(KeyEventArgs& arguments) {
+    if (!focused_ || !enabled.read() || items.read().empty()) return;
+    if (arguments.physical_key == PhysicalKey::enter && active_index_) {
         item_activated_.emit(*active_index_);
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
     std::optional<std::size_t> next;
     const std::size_t current = active_index_.value_or(0U);
-    if (event.physical_key == PhysicalKey::up) next = current == 0U ? 0U : current - 1U;
-    else if (event.physical_key == PhysicalKey::down) next = std::min(current + 1U, items.read().size() - 1U);
-    else if (event.physical_key == PhysicalKey::home) next = 0U;
-    else if (event.physical_key == PhysicalKey::end) next = items.read().size() - 1U;
-    else if (event.physical_key == PhysicalKey::page_up) next = current > visible_row_count() ? current - visible_row_count() : 0U;
-    else if (event.physical_key == PhysicalKey::page_down) next = std::min(current + visible_row_count(), items.read().size() - 1U);
+    if (arguments.physical_key == PhysicalKey::up) next = current == 0U ? 0U : current - 1U;
+    else if (arguments.physical_key == PhysicalKey::down) next = std::min(current + 1U, items.read().size() - 1U);
+    else if (arguments.physical_key == PhysicalKey::home) next = 0U;
+    else if (arguments.physical_key == PhysicalKey::end) next = items.read().size() - 1U;
+    else if (arguments.physical_key == PhysicalKey::page_up) next = current > visible_row_count() ? current - visible_row_count() : 0U;
+    else if (arguments.physical_key == PhysicalKey::page_down) next = std::min(current + visible_row_count(), items.read().size() - 1U);
     if (next) {
-        select_index(*next, includes(event.modifiers, Modifier::shift), false);
-        event.handled = true;
+        select_index(*next, includes(arguments.modifiers, Modifier::shift), false);
+        arguments.handled = true;
     }
 }
 

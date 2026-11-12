@@ -33,6 +33,7 @@
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
+#include "../support/routed_input_probe.hpp"
 
 #include <algorithm>
 #include <array>
@@ -259,10 +260,10 @@ public:
 
 // engine_pop_tests' tile: a 60 × 24 button face, hot under the pointer,
 // granted 4 units of overflow on each side.
-class Tile final : public Control {
+class Tile final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Tile(StableId stable_id) : Control(std::move(stable_id)) {}
-    void on_pointer(PointerEvent& event) override {
+    explicit Tile(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) {}
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::enter) {
             hot = true;
             invalidate(Dirty::paint);

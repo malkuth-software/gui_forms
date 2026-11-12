@@ -180,22 +180,31 @@ public:
         }
     }
 
-    void on_pointer(PointerEvent& event) override {
-        const Rect absolute = absolute_bounds();
-        const double y = event.position.y - absolute.y - header_height;
-        if (event.action == PointerAction::wheel) {
-            event.handled = true;
-            if (event.wheel_delta.y > 0.0 && first_ > 0U) --first_;
-            const std::size_t visible = visible_rows();
-            if (event.wheel_delta.y < 0.0 && first_ + visible < owner_.filtered_.size()) ++first_;
-            invalidate(Dirty::paint);
-            return;
+    void on_mouse_wheel(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        if (arguments.wheel_delta.y > 0.0 && first_ > 0U) --first_;
+        const std::size_t visible = visible_rows();
+        if (arguments.wheel_delta.y < 0.0 && first_ + visible < owner_.filtered_.size()) ++first_;
+        invalidate(Dirty::paint);
+        Control::on_mouse_wheel(arguments);
+    }
+
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        if (arguments.button == PointerButton::primary) arguments.handled = true;
+        Control::on_mouse_down(arguments);
+    }
+
+    // A primary release on a row below the header activates it.
+    void on_mouse_up(MouseEventArgs& arguments) override {
+        if (arguments.button == PointerButton::primary) {
+            arguments.handled = true;
+            const double y = arguments.location.y - header_height;
+            if (y >= 0.0) {
+                const std::size_t position = first_ + static_cast<std::size_t>(std::floor(y / row_height));
+                if (position < owner_.filtered_.size()) row_activated_.emit(position);
+            }
         }
-        if (event.button != PointerButton::primary) return;
-        if (event.action == PointerAction::down || event.action == PointerAction::up) event.handled = true;
-        if (event.action != PointerAction::up || y < 0.0) return;
-        const std::size_t position = first_ + static_cast<std::size_t>(std::floor(y / row_height));
-        if (position < owner_.filtered_.size()) row_activated_.emit(position);
+        Control::on_mouse_up(arguments);
     }
 
 private:
@@ -351,25 +360,34 @@ void LookupComboBox::on_paint(Painter& painter, Rect) {
     }
 }
 
-void LookupComboBox::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input()) return;
-    if (event.action == PointerAction::move || event.action == PointerAction::leave) {
-        const bool hot = event.action == PointerAction::move;
-        if (hot != hot_) {
-            hot_ = hot;
-            invalidate(Dirty::paint);
+void LookupComboBox::on_mouse_move(MouseEventArgs& arguments) {
+    if (eligible_for_input() && !hot_) {
+        hot_ = true;
+        invalidate(Dirty::paint);
+    }
+    Control::on_mouse_move(arguments);
+}
+
+void LookupComboBox::on_mouse_leave() {
+    if (eligible_for_input() && hot_) {
+        hot_ = false;
+        invalidate(Dirty::paint);
+    }
+    Control::on_mouse_leave();
+}
+
+void LookupComboBox::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        arguments.handled = true;
+        Window* const host = attached_window();
+        if (host != nullptr) static_cast<void>((*host).request_focus(shared_from_this()));
+        if (dropped_down_) {
+            close_drop_down();
+        } else {
+            open_drop_down();
         }
-        return;
     }
-    if (event.button != PointerButton::primary || event.action != PointerAction::down) return;
-    event.handled = true;
-    Window* const host = attached_window();
-    if (host != nullptr) static_cast<void>((*host).request_focus(shared_from_this()));
-    if (dropped_down_) {
-        close_drop_down();
-    } else {
-        open_drop_down();
-    }
+    Control::on_mouse_down(arguments);
 }
 
 void LookupComboBox::move_highlight(std::ptrdiff_t delta, bool to_edge) {
@@ -401,12 +419,13 @@ void LookupComboBox::choose_row(std::size_t row) {
     if (selected_key.read() != rows_[row].key) selected_key = rows_[row].key;
 }
 
-void LookupComboBox::on_key(KeyEvent& event) {
-    if (event.action != KeyAction::down) return;
-    const bool alt = has_modifier(event.modifiers, Modifier::alt);
-    const std::uint32_t key = event.physical_key;
+void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    const bool alt = has_modifier(arguments.modifiers, Modifier::alt);
+    const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::f4 || (alt && (key == PhysicalKey::down || key == PhysicalKey::up))) {
-        event.handled = true;
+        arguments.handled = true;
         if (!dropped_down_) {
             open_drop_down();
             return;
@@ -418,16 +437,16 @@ void LookupComboBox::on_key(KeyEvent& event) {
     if (!dropped_down_) {
         if (key == PhysicalKey::up || key == PhysicalKey::left) {
             step_selection(-1);
-            event.handled = true;
+            arguments.handled = true;
         } else if (key == PhysicalKey::down || key == PhysicalKey::right) {
             step_selection(1);
-            event.handled = true;
+            arguments.handled = true;
         } else if (key == PhysicalKey::home && !rows_.empty()) {
             choose_row(0U);
-            event.handled = true;
+            arguments.handled = true;
         } else if (key == PhysicalKey::end && !rows_.empty()) {
             choose_row(rows_.size() - 1U);
-            event.handled = true;
+            arguments.handled = true;
         }
         return;
     }
@@ -455,7 +474,7 @@ void LookupComboBox::on_key(KeyEvent& event) {
     default: recognized = false; break;
     }
     if (recognized) {
-        event.handled = true;
+        arguments.handled = true;
         invalidate(Dirty::paint | Dirty::semantics);
     }
 }

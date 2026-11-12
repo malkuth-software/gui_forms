@@ -17,6 +17,7 @@
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "headless_host.hpp"
 #include "support/named_callbacks.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -52,10 +53,10 @@ public:
     void draw_image(ImageId, Rect, double) override {}
 };
 
-class DispatchPhaseProbe final : public Control {
+class DispatchPhaseProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
     DispatchPhaseProbe(StableId stable_id, std::vector<std::string>& trace)
-        : Control(std::move(stable_id)), trace_(trace) {}
+        : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), trace_(trace) {}
 
     Size measure(Size available) override {
         if (recording) trace_.push_back("measure");
@@ -71,7 +72,7 @@ public:
         if (recording) trace_.push_back("paint");
     }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (!recording || event.action != PointerAction::down) return;
         trace_.push_back("input");
         static_cast<void>(begin_invoke(detail::BoundMemberFunction<

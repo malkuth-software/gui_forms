@@ -271,25 +271,37 @@ bool DropDownButton::point_in_drop_down(const Point window_point) const noexcept
            local.x <= bounds.width && local.y >= 0.0 && local.y <= bounds.height;
 }
 
-void DropDownButton::on_pointer(PointerEvent& event) {
-    if (event.button == PointerButton::primary &&
-        event.action == PointerAction::down) {
-        pointer_drop_down_ = point_in_drop_down(event.position);
-    } else if (event.action == PointerAction::leave && !pressed_visual()) {
-        pointer_drop_down_ = false;
+void DropDownButton::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) {
+        pointer_drop_down_ = point_in_drop_down(arguments.window_position);
     }
-    ButtonBase::on_pointer(event);
+    Button::on_mouse_down(arguments);
 }
 
-void DropDownButton::on_key(KeyEvent& event) {
-    if (event.action == KeyAction::down && !event.repeat &&
-        event.physical_key == PhysicalKey::down &&
-        has_modifier(event.modifiers, Modifier::alt)) {
-        event.handled = perform_drop_down();
+void DropDownButton::on_mouse_leave() {
+    if (!pressed_visual()) pointer_drop_down_ = false;
+    Button::on_mouse_leave();
+}
+
+// Alt+Down drops the menu; any other key goes to ButtonBase's activation
+// keys, after the subscribers (Control's raise, below ButtonBase's own).
+void DropDownButton::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    if (!arguments.repeat && arguments.physical_key == PhysicalKey::down &&
+        has_modifier(arguments.modifiers, Modifier::alt)) {
+        arguments.handled = perform_drop_down();
         return;
     }
     pointer_drop_down_ = false;
-    ButtonBase::on_key(event);
+    activation_key_down(arguments);
+}
+
+void DropDownButton::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    if (arguments.handled || arguments.released_by_deactivation) return;
+    pointer_drop_down_ = false;
+    activation_key_up(arguments);
 }
 
 SemanticDescriptor DropDownButton::semantic_descriptor() const {

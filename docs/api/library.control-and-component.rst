@@ -248,6 +248,8 @@ Related types
      -  
    * - :cpp:class:`PaddingCapability <gui_forms::PaddingCapability>`
      - The space kept inside the control around its content (Padding).
+   * - :cpp:class:`PaintEventArgs <gui_forms::PaintEventArgs>`
+     - What Control::on_paint_background receives (Windows Forms' PaintEventArgs for OnPaintBackground): the painter the window records the control into and the local area being painted.
    * - :cpp:class:`PartDeclaration <gui_forms::PartDeclaration>`
      - One declared part.
    * - :cpp:class:`PartField <gui_forms::PartField>`
@@ -2618,6 +2620,18 @@ Related types
    .. cpp:function:: static void assign(PaddingCapability& capability, Insets incoming)
 
    .. cpp:member:: PropertyCell<Insets, PaddingCapability<Declaring>> padding
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintEventArgs final
+
+   ``#include <gui_forms/control/control/control.hpp>``
+
+   What Control::on_paint_background receives (Windows Forms' PaintEventArgs for OnPaintBackground): the painter the window records the control into and the local area being painted. Both are borrowed for the call; the painter is valid only until the raiser returns.
+
+   .. cpp:member:: Painter& painter
+
+   .. cpp:member:: Rect local_damage
 
 .. cpp:namespace:: gui_forms
 

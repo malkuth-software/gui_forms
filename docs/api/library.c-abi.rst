@@ -1890,6 +1890,66 @@ Types
 
    .. cpp:member:: gf_hook_entry on_visible_changed
 
+   .. cpp:member:: gf_hook_entry on_change_ui_cues
+
+   .. cpp:member:: gf_hook_entry on_click
+
+   .. cpp:member:: gf_hook_entry on_double_click
+
+   .. cpp:member:: gf_hook_entry on_drag_drop
+
+   .. cpp:member:: gf_hook_entry on_drag_enter
+
+   .. cpp:member:: gf_hook_entry on_drag_leave
+
+   .. cpp:member:: gf_hook_entry on_drag_over
+
+   .. cpp:member:: gf_hook_entry on_enter
+
+   .. cpp:member:: gf_hook_entry on_got_focus
+
+   .. cpp:member:: gf_hook_entry on_help_requested
+
+   .. cpp:member:: gf_hook_entry on_key_down
+
+   .. cpp:member:: gf_hook_entry on_key_press
+
+   .. cpp:member:: gf_hook_entry on_key_up
+
+   .. cpp:member:: gf_hook_entry on_layout
+
+   .. cpp:member:: gf_hook_entry on_leave
+
+   .. cpp:member:: gf_hook_entry on_lost_focus
+
+   .. cpp:member:: gf_hook_entry on_mouse_capture_changed
+
+   .. cpp:member:: gf_hook_entry on_mouse_click
+
+   .. cpp:member:: gf_hook_entry on_mouse_double_click
+
+   .. cpp:member:: gf_hook_entry on_mouse_down
+
+   .. cpp:member:: gf_hook_entry on_mouse_enter
+
+   .. cpp:member:: gf_hook_entry on_mouse_hover
+
+   .. cpp:member:: gf_hook_entry on_mouse_leave
+
+   .. cpp:member:: gf_hook_entry on_mouse_move
+
+   .. cpp:member:: gf_hook_entry on_mouse_up
+
+   .. cpp:member:: gf_hook_entry on_mouse_wheel
+
+   .. cpp:member:: gf_hook_entry on_paint_background
+
+   .. cpp:member:: gf_hook_entry on_preview_key_down
+
+   .. cpp:member:: gf_hook_entry on_validated
+
+   .. cpp:member:: gf_hook_entry on_validating
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_controls_table

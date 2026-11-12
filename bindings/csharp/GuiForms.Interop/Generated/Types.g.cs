@@ -1357,7 +1357,7 @@ public unsafe struct gf_class_header
     public delegate* unmanaged[Cdecl]<void*, void> release;
 }
 
-/// <summary>gf_control_hooks (segment, 112 bytes).</summary>
+/// <summary>gf_control_hooks (segment, 352 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_control_hooks
 {
@@ -1376,6 +1376,36 @@ public unsafe struct gf_control_hooks
     public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_tab_index_changed;
     public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_tab_stop_changed;
     public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_visible_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_change_ui_cues;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_click;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_double_click;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_drag_drop;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_drag_enter;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_drag_leave;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_drag_over;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_enter;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_got_focus;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_help_requested;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_key_down;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_key_press;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_key_up;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_layout;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_leave;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_lost_focus;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mouse_capture_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mouse_click;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mouse_double_click;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mouse_down;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mouse_enter;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mouse_hover;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mouse_leave;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mouse_move;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mouse_up;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_mouse_wheel;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_paint_background;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_preview_key_down;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_validated;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_validating;
 }
 
 /// <summary>gf_masked_text_box_hooks (segment, 16 bytes).</summary>

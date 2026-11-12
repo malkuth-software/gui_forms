@@ -175,15 +175,20 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     bool begin_keyboard_drag() override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value_text) override;
 
 protected:
+    void on_key_down(KeyEventArgs& arguments) override;
+
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
@@ -234,6 +239,8 @@ public:
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
 private:
+    // The mouse raisers' handling, by arguments.action.
+    void handle_mouse(MouseEventArgs& arguments);
     friend struct ValueBarSoftMinimumCapability<ValueBar>;
     friend struct ValueBarSoftMaximumCapability<ValueBar>;
     friend struct ValueBarSnapStepCapability<ValueBar>;

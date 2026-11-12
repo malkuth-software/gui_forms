@@ -200,15 +200,16 @@ void StepIndicator::on_paint(Painter& painter, Rect) {
     }
 }
 
-void StepIndicator::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input()) return;
-    if (event.button != PointerButton::primary || event.action != PointerAction::down) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
-    const std::optional<std::size_t> pressed = step_at(local);
-    if (!pressed || *pressed >= current_step.read()) return;
-    event.handled = true;
-    step_clicked_.emit(*pressed);
+void StepIndicator::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        const std::optional<std::size_t> pressed = step_at(arguments.location);
+        if (pressed && *pressed < current_step.read()) {
+            arguments.handled = true;
+            step_clicked_.emit(*pressed);
+            if (!is_alive()) return;
+        }
+    }
+    Control::on_mouse_down(arguments);
 }
 
 SemanticDescriptor StepIndicator::semantic_descriptor() const {

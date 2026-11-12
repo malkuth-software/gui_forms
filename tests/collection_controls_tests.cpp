@@ -4,6 +4,7 @@
 #include "gui_forms_lab/correspondence_view.hpp"
 #include "support/named_callbacks.hpp"
 #include "support/professional_theme.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1212,7 +1213,7 @@ void test_details_header_entry_reentrancy() {
             } else subscription = view.focus_observed().subscribe(mutator);
             PointerEvent down{PointerAction::down, PointerButton::primary, {154.0, 15.0}};
             // Direct delivery isolates ObjectView's own callback boundaries.
-            view.on_pointer(down);
+            gui_forms::detail::ControlInputAccess::on_pointer(view, down);
             require(invoked && down.handled && !view.has_pointer_capture(),
                 "focus/capture mutation must retire the header-edge press without stale capture");
             if (mutation == DetailsEntryMutation::transfer) {
@@ -1221,7 +1222,7 @@ void test_details_header_entry_reentrancy() {
             if (mutation == DetailsEntryMutation::resize || mutation == DetailsEntryMutation::revoke ||
                 mutation == DetailsEntryMutation::replace_same_shape || mutation == DetailsEntryMutation::transfer) {
                 PointerEvent move{PointerAction::move, PointerButton::none, {204.0, 15.0}};
-                view.on_pointer(move);
+                gui_forms::detail::ControlInputAccess::on_pointer(view, move);
                 const double expected = mutation == DetailsEntryMutation::resize ? 180.0 : 150.0;
                 require(view.details_columns()[0U].width == expected,
                     "retired callback gesture must not resume a resize on pointer move");
@@ -1270,7 +1271,7 @@ void test_details_mode_release_reentrancy() {
         window.flush();
         view.set_top_row(5U);
         PointerEvent down{PointerAction::down, PointerButton::primary, {154.0, 15.0}};
-        view.on_pointer(down);
+        gui_forms::detail::ControlInputAccess::on_pointer(view, down);
         require(view.has_pointer_capture(), "mode fixture must start with resize capture");
         bool invoked = false;
         bool saw_committed_mode = false;
@@ -1343,7 +1344,7 @@ void test_details_sort_retires_capture() {
         Window window(root, {230.0, 190.0});
         window.flush();
         PointerEvent down{PointerAction::down, PointerButton::primary, {154.0, 15.0}};
-        view.on_pointer(down);
+        gui_forms::detail::ControlInputAccess::on_pointer(view, down);
         require(view.has_pointer_capture(), "sort fixture requires active header resize");
         bool released = false;
         std::size_t calls = 0U;
@@ -1352,13 +1353,13 @@ void test_details_sort_retires_capture() {
         SubscriptionToken sort_observer = view.sort_requested().subscribe(
             DetailsRetiredSortObserver{view, released, calls});
         KeyEvent enter{KeyAction::down, PhysicalKey::enter};
-        view.on_key(enter);
+        gui_forms::detail::ControlInputAccess::on_key(view, enter);
         const std::size_t expected_calls = mutation == DetailsSortReleaseMutation::none ? 1U : 0U;
         require(enter.handled && released && !view.has_pointer_capture() && calls == expected_calls,
             "Enter during resize must retire capture and suppress a sort whose release context changed");
         if (mutation == DetailsSortReleaseMutation::none || mutation == DetailsSortReleaseMutation::model) {
             PointerEvent move{PointerAction::move, PointerButton::none, {204.0, 15.0}};
-            view.on_pointer(move);
+            gui_forms::detail::ControlInputAccess::on_pointer(view, move);
             require(view.details_columns()[0U].width == 150.0, "sort retirement must prevent resumed resize");
         }
     }

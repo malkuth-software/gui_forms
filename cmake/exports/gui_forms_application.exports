@@ -420,6 +420,7 @@ __ZGVZN9gui_forms14PageItemWidths*
 __ZGVZN9gui_forms14PagePinRequest*
 __ZGVZN9gui_forms14PageSetOptions*
 __ZGVZN9gui_forms14PageTakeResult*
+__ZGVZN9gui_forms14PaintEventArgs*
 __ZGVZN9gui_forms14PartRasterView*
 __ZGVZN9gui_forms14PlotSeriesItem*
 __ZGVZN9gui_forms14PlotViewRanges*
@@ -1857,6 +1858,7 @@ __ZGVZNK9gui_forms14PageItemWidths*
 __ZGVZNK9gui_forms14PagePinRequest*
 __ZGVZNK9gui_forms14PageSetOptions*
 __ZGVZNK9gui_forms14PageTakeResult*
+__ZGVZNK9gui_forms14PaintEventArgs*
 __ZGVZNK9gui_forms14PartRasterView*
 __ZGVZNK9gui_forms14PlotSeriesItem*
 __ZGVZNK9gui_forms14PlotViewRanges*
@@ -3406,6 +3408,7 @@ __ZN9gui_forms14PageItemWidths*
 __ZN9gui_forms14PagePinRequest*
 __ZN9gui_forms14PageSetOptions*
 __ZN9gui_forms14PageTakeResult*
+__ZN9gui_forms14PaintEventArgs*
 __ZN9gui_forms14PartRasterView*
 __ZN9gui_forms14PlotSeriesItem*
 __ZN9gui_forms14PlotViewRanges*
@@ -5985,6 +5988,7 @@ __ZNK[RO]9gui_forms14PageItemWidths*
 __ZNK[RO]9gui_forms14PagePinRequest*
 __ZNK[RO]9gui_forms14PageSetOptions*
 __ZNK[RO]9gui_forms14PageTakeResult*
+__ZNK[RO]9gui_forms14PaintEventArgs*
 __ZNK[RO]9gui_forms14PartRasterView*
 __ZNK[RO]9gui_forms14PlotSeriesItem*
 __ZNK[RO]9gui_forms14PlotViewRanges*
@@ -7422,6 +7426,7 @@ __ZN[KRO]9gui_forms14PageItemWidths*
 __ZN[KRO]9gui_forms14PagePinRequest*
 __ZN[KRO]9gui_forms14PageSetOptions*
 __ZN[KRO]9gui_forms14PageTakeResult*
+__ZN[KRO]9gui_forms14PaintEventArgs*
 __ZN[KRO]9gui_forms14PartRasterView*
 __ZN[KRO]9gui_forms14PlotSeriesItem*
 __ZN[KRO]9gui_forms14PlotViewRanges*
@@ -8859,6 +8864,7 @@ __ZT[VIST]N9gui_forms14PageItemWidths*E
 __ZT[VIST]N9gui_forms14PagePinRequest*E
 __ZT[VIST]N9gui_forms14PageSetOptions*E
 __ZT[VIST]N9gui_forms14PageTakeResult*E
+__ZT[VIST]N9gui_forms14PaintEventArgs*E
 __ZT[VIST]N9gui_forms14PartRasterView*E
 __ZT[VIST]N9gui_forms14PlotSeriesItem*E
 __ZT[VIST]N9gui_forms14PlotViewRanges*E
@@ -10296,6 +10302,7 @@ __ZT[hvc]*9gui_forms14PageItemWidths*
 __ZT[hvc]*9gui_forms14PagePinRequest*
 __ZT[hvc]*9gui_forms14PageSetOptions*
 __ZT[hvc]*9gui_forms14PageTakeResult*
+__ZT[hvc]*9gui_forms14PaintEventArgs*
 __ZT[hvc]*9gui_forms14PartRasterView*
 __ZT[hvc]*9gui_forms14PlotSeriesItem*
 __ZT[hvc]*9gui_forms14PlotViewRanges*
@@ -11733,6 +11740,7 @@ __ZZN9gui_forms14PageItemWidths*
 __ZZN9gui_forms14PagePinRequest*
 __ZZN9gui_forms14PageSetOptions*
 __ZZN9gui_forms14PageTakeResult*
+__ZZN9gui_forms14PaintEventArgs*
 __ZZN9gui_forms14PartRasterView*
 __ZZN9gui_forms14PlotSeriesItem*
 __ZZN9gui_forms14PlotViewRanges*
@@ -13170,6 +13178,7 @@ __ZZNK9gui_forms14PageItemWidths*
 __ZZNK9gui_forms14PagePinRequest*
 __ZZNK9gui_forms14PageSetOptions*
 __ZZNK9gui_forms14PageTakeResult*
+__ZZNK9gui_forms14PaintEventArgs*
 __ZZNK9gui_forms14PartRasterView*
 __ZZNK9gui_forms14PlotSeriesItem*
 __ZZNK9gui_forms14PlotViewRanges*

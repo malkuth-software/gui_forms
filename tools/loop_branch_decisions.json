@@ -45,7 +45,7 @@
     },
     {
       "path": "src/controls/collections/choice_group.cpp",
-      "function": "gui_forms::on_key",
+      "function": "gui_forms::handle_key",
       "condition": "backward",
       "decision": "keep",
       "reason": "steps through a few items with wrap-around; the direction decides each step"
@@ -59,7 +59,7 @@
     },
     {
       "path": "src/controls/collections/command_bar.cpp",
-      "function": "gui_forms::on_key",
+      "function": "gui_forms::handle_key",
       "condition": "backward",
       "decision": "keep",
       "reason": "steps through a few items with wrap-around; the direction decides each step"

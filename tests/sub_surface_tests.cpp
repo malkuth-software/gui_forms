@@ -45,6 +45,7 @@
 #include "headless_host.hpp"
 #include "support/fill_raster.hpp"
 #include "support/theme_definition_heap.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -671,10 +672,10 @@ struct InputLog final {
 // A focusable control that logs its focus, keys and pointer presses. It
 // handles every key but Tab, which goes on to traversal, and names a text
 // input caret at (5, 3), one unit wide and twelve high.
-class InputRecorder final : public Control {
+class InputRecorder final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
     InputRecorder(StableId stable_id, std::string name, std::shared_ptr<InputLog> log)
-        : Control(std::move(stable_id)), name_(std::move(name)), log_(std::move(log)) {
+        : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), name_(std::move(name)), log_(std::move(log)) {
         focusable = true;
     }
 
@@ -684,12 +685,12 @@ protected:
     void on_focus_changed(bool focused) override {
         record(focused ? ":focus" : ":blur");
     }
-    void on_key(KeyEvent& event) override {
+    void routed_key(KeyEvent& event) override {
         if (event.physical_key == PhysicalKey::tab) return;
         if (event.action == KeyAction::down) record(":key");
         event.handled = true;
     }
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (event.action != PointerAction::down) return;
         record(":down");
         const std::lock_guard<std::mutex> lock((*log_).mutex);
@@ -1972,10 +1973,10 @@ struct EnvironmentLog final {
     std::uint64_t pointer_moves{};
 };
 
-class EnvironmentProbe final : public Control {
+class EnvironmentProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
     EnvironmentProbe(StableId stable_id, std::shared_ptr<EnvironmentLog> log)
-        : Control(std::move(stable_id)), log_(std::move(log)) {}
+        : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), log_(std::move(log)) {}
     void on_paint(Painter& painter, Rect local_damage) override {
         Control::on_paint(painter, local_damage);
         const SurfaceRoot* const root = attached_surface_root();
@@ -1985,8 +1986,7 @@ public:
         (*log_).painted = true;
         (*log_).user_rules = reinterpret_cast<std::uintptr_t>((*root).user_theme_rules());
     }
-    void on_pointer(PointerEvent& event) override {
-        Control::on_pointer(event);
+    void routed_pointer(PointerEvent& event) override {
         if (event.action != PointerAction::move) return;
         const SurfaceRoot* const root = attached_surface_root();
         if (root == nullptr) return;

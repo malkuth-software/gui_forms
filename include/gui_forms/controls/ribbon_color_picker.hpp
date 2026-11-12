@@ -74,8 +74,6 @@ public:
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
@@ -122,6 +120,12 @@ public:
     [[nodiscard]] std::vector<PaletteEntry> realized_entries() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_dispose() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
@@ -206,6 +210,7 @@ private:
     Event<bool> palette_open_changed_{};
     // property_codemod begin RibbonColorPicker (tools/property_families/ribbon_color_picker.json; generated, do not edit)
 private:
+    void set_hot_zone(Zone zone);
     friend struct RibbonColorPickerCommandCapability<RibbonColorPicker>;
     friend struct RibbonColorPickerValueCapability<RibbonColorPicker>;
     friend struct RibbonColorPickerImageCapability<RibbonColorPicker>;

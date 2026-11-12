@@ -37,16 +37,19 @@ public:
     [[nodiscard]] Control* part(std::string_view name, int index) const;
     void arrange(Rect bounds) override;
     void on_key_bubble(KeyEvent& event) override;
-    void on_key(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 
 protected:
+    void on_key_down(KeyEventArgs& arguments) override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_attached_to_window() override;
     void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
 
 private:
+    // The routed form of a key the raisers left unhandled.
+    void handle_key(KeyEvent& event);
     struct Entry;
     struct Revision;
     struct ItemClick;

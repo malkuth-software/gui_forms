@@ -8,13 +8,13 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 1999 | 13 | 367 | 4129 | 2117 |
+| 2021 | 13 | 367 | 4105 | 2115 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 209 | 0 | 12 | 336 | 200 |
+| `Control` | `Control` | 230 | 0 | 12 | 313 | 198 |
 | `Component` | `Component` | 9 | 0 | 0 | 11 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 36 | 21 |
 | `Button` | `Button` | 6 | 0 | 0 | 6 | 5 |
@@ -159,7 +159,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TextBoxBase` | `TextBoxBase` | 11 | 0 | 0 | 40 | 4 |
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
-| `Window` | `Form` | 217 | 10 | 10 | 135 | 232 |
+| `Window` | `Form` | 218 | 10 | 10 | 134 | 232 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -296,11 +296,11 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Question | Members |
 |---|---|
-| `carried` | 103 |
-| `hook` | 334 |
+| `carried` | 116 |
+| `hook` | 304 |
 | `nested` | 641 |
-| `no-entry` | 510 |
+| `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1633 |
-| `untested` | 890 |
+| `untested` | 896 |
 | `w-open` | 5 |

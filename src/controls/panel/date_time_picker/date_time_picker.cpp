@@ -300,20 +300,25 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     }
 }
 
-void DateTimePicker::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input() || event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down) {
-        pressed_part_ = part_at(event.position);
+void DateTimePicker::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        pressed_part_ = part_at(arguments.window_position);
         activation_part_ = HitPart::none;
-        event.handled = pressed_part_ != HitPart::none;
-        if (event.handled) invalidate(Dirty::paint);
-    } else if (event.action == PointerAction::up && pressed_part_ != HitPart::none) {
-        const HitPart released = part_at(event.position);
+        arguments.handled = pressed_part_ != HitPart::none;
+        if (arguments.handled) invalidate(Dirty::paint);
+    }
+    Control::on_mouse_down(arguments);
+}
+
+void DateTimePicker::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary && pressed_part_ != HitPart::none) {
+        const HitPart released = part_at(arguments.window_position);
         if (released == pressed_part_) activation_part_ = pressed_part_;
         pressed_part_ = HitPart::none;
-        event.handled = true;
+        arguments.handled = true;
         invalidate(Dirty::paint);
     }
+    Control::on_mouse_up(arguments);
 }
 
 void DateTimePicker::on_activate() {
@@ -330,24 +335,25 @@ void DateTimePicker::on_activate() {
     }
 }
 
-void DateTimePicker::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.read() || event.action != KeyAction::down) return;
-    if ((event.physical_key == PhysicalKey::f4 ||
-         (event.physical_key == PhysicalKey::down &&
-          includes(event.modifiers, Modifier::alt))) && !show_up_down.read()) {
+void DateTimePicker::on_key_down(KeyEventArgs& arguments) {
+    Panel::on_key_down(arguments);
+    if (arguments.handled || !focused_ || !enabled.read()) return;
+    if ((arguments.physical_key == PhysicalKey::f4 ||
+         (arguments.physical_key == PhysicalKey::down &&
+          includes(arguments.modifiers, Modifier::alt))) && !show_up_down.read()) {
         dropped_down = !dropped_down_;
-        event.handled = true;
-    } else if (event.physical_key == PhysicalKey::up ||
-               event.physical_key == PhysicalKey::right) {
+        arguments.handled = true;
+    } else if (arguments.physical_key == PhysicalKey::up ||
+               arguments.physical_key == PhysicalKey::right) {
         step_days(1);
-        event.handled = true;
-    } else if (event.physical_key == PhysicalKey::down ||
-               event.physical_key == PhysicalKey::left) {
+        arguments.handled = true;
+    } else if (arguments.physical_key == PhysicalKey::down ||
+               arguments.physical_key == PhysicalKey::left) {
         step_days(-1);
-        event.handled = true;
-    } else if (event.physical_key == PhysicalKey::space && show_check_box.read()) {
+        arguments.handled = true;
+    } else if (arguments.physical_key == PhysicalKey::space && show_check_box.read()) {
         checked = !checked.read();
-        event.handled = true;
+        arguments.handled = true;
     }
 }
 

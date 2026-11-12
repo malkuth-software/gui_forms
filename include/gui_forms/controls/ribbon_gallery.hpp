@@ -137,8 +137,6 @@ public:
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     void on_pointer_preview(PointerEvent& event) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
@@ -202,6 +200,13 @@ public:
     [[nodiscard]] std::vector<Category> realized_categories() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_dispose() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
@@ -305,7 +310,7 @@ private:
     // What a primary press was over before the press focused the gallery
     // (on_pointer_preview, ahead of the window's focus move): the press acts
     // on it, and the focus it gives does not scroll away from it. Set from
-    // the preview until the press's own on_pointer, a release or a blur.
+    // the preview until the press's own on_mouse_down, a release or a blur.
     std::optional<HitResult> press_hit_{};
     bool has_focus_{};
     // The item a dwell timer is running for, and its timer.
@@ -336,6 +341,8 @@ private:
     Event<bool> overlay_open_changed_{};
     // property_codemod begin RibbonGallery (tools/property_families/ribbon_gallery.json; generated, do not edit)
 private:
+    // The mouse raisers' handling, by arguments.action.
+    void handle_mouse(MouseEventArgs& arguments);
     friend struct RibbonGalleryCommandCapability<RibbonGallery>;
     friend struct RibbonGalleryItemSizeCapability<RibbonGallery>;
     friend struct RibbonGalleryShowLabelsCapability<RibbonGallery>;

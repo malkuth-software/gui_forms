@@ -97,11 +97,13 @@ gui_forms::StepIndicator
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 

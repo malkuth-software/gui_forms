@@ -649,6 +649,9 @@ void SurfaceRoot::set_active(bool active) {
         if ((*lifetime).window != presenting) return;
     }
     active_ = active;
+    // A modal window over this one (or the platform taking the keyboard)
+    // ends the pointer sequences in progress (input order rule 5).
+    if (!active) break_pointer_sequences();
     // A drag does not survive the window's deactivation (DK's rule).
     if (!active && drag_engine_) (*drag_engine_).cancel(DragEnd::deactivated);
     // The window's backplane material follows activation (E9-B).

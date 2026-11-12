@@ -466,7 +466,7 @@ void PlotView::on_detached_from_window() noexcept {
 
 // -- input ---------------------------------------------------------------------------
 
-void PlotView::on_pointer(PointerEvent& event) {
+void PlotView::handle_pointer(PointerEvent& event) {
     if (live_host_ || !eligible_for_input()) return;
     gather_series();
     const Rect absolute = absolute_bounds();
@@ -486,7 +486,49 @@ void PlotView::on_pointer(PointerEvent& event) {
     raise_outcome(outcome.view, outcome.selection, outcome.pick, outcome.legend_toggle);
 }
 
-void PlotView::on_key(KeyEvent& event) {
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void PlotView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void PlotView::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void PlotView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void PlotView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void PlotView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
+void PlotView::handle_key(KeyEvent& event) {
     if (live_host_ || !eligible_for_input()) return;
     gather_series();
     const detail::PlotEngineOutcome outcome = (*engine_).key(event, gathered_);
@@ -495,6 +537,25 @@ void PlotView::on_key(KeyEvent& event) {
     if (outcome.view) view_moved_ = true;
     if (outcome.repaint) invalidate(Dirty::paint | Dirty::semantics);
     raise_outcome(outcome.view, outcome.selection, outcome.pick, outcome.legend_toggle);
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void PlotView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
+}
+
+void PlotView::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    if (arguments.handled || arguments.released_by_deactivation) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::up);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 void PlotView::on_focus_changed(bool focused) {

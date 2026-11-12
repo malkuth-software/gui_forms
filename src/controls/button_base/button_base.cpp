@@ -950,54 +950,83 @@ Insets ButtonBase::visual_outsets() const noexcept {
     return resolved_visual_outsets(ControlVisualRole::button, context);
 }
 
-void ButtonBase::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::enter || event.action == PointerAction::leave) {
-        const bool next = event.action == PointerAction::enter;
-        if (hovered_ != next) {
-            hovered_ = next;
-            invalidate(Dirty::paint);
-        }
-    } else if (event.button == PointerButton::primary &&
-               event.action == PointerAction::down) {
+void ButtonBase::on_mouse_enter() {
+    if (!hovered_) {
+        hovered_ = true;
+        invalidate(Dirty::paint);
+    }
+    Control::on_mouse_enter();
+}
+
+void ButtonBase::on_mouse_leave() {
+    if (hovered_) {
+        hovered_ = false;
+        invalidate(Dirty::paint);
+    }
+    Control::on_mouse_leave();
+}
+
+void ButtonBase::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) {
         pointer_engaged_ = true;
         pointer_pressed_ = true;
         invalidate(Dirty::paint);
-        event.handled = true;
-    } else if (event.action == PointerAction::move && pointer_engaged_) {
-        const bool inside = absolute_bounds().contains(event.position);
+        arguments.handled = true;
+    }
+    Control::on_mouse_down(arguments);
+}
+
+void ButtonBase::on_mouse_move(MouseEventArgs& arguments) {
+    if (pointer_engaged_) {
+        const bool inside = absolute_bounds().contains(arguments.window_position);
         if (pointer_pressed_ != inside) {
             pointer_pressed_ = inside;
             invalidate(Dirty::paint);
         }
-        event.handled = true;
-    } else if (event.button == PointerButton::primary &&
-               event.action == PointerAction::up && pointer_engaged_) {
+        arguments.handled = true;
+    }
+    Control::on_mouse_move(arguments);
+}
+
+void ButtonBase::on_mouse_up(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary && pointer_engaged_) {
         pointer_engaged_ = false;
         pointer_pressed_ = false;
         invalidate(Dirty::paint);
-        event.handled = true;
+        arguments.handled = true;
     }
+    Control::on_mouse_up(arguments);
 }
 
-void ButtonBase::on_key(KeyEvent& event) {
-    const bool activation_key = event.physical_key == PhysicalKey::space ||
-                                event.physical_key == PhysicalKey::enter;
-    if (!activation_key) {
-        return;
-    }
-    if (event.action == KeyAction::down && !event.repeat && !keyboard_pressed_) {
-        keyboard_key_ = event.physical_key;
-        keyboard_pressed_ = true;
-        invalidate(Dirty::paint);
-        event.handled = true;
-    } else if (event.action == KeyAction::up && keyboard_pressed_ &&
-               keyboard_key_ == event.physical_key) {
-        keyboard_key_ = 0;
-        keyboard_pressed_ = false;
-        invalidate(Dirty::paint);
-        event.handled = true;
-        on_activate();
-    }
+void ButtonBase::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (!arguments.handled) activation_key_down(arguments);
+}
+
+void ButtonBase::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    if (!arguments.handled && !arguments.released_by_deactivation) activation_key_up(arguments);
+}
+
+void ButtonBase::activation_key_down(KeyEventArgs& arguments) {
+    const bool activation_key = arguments.physical_key == PhysicalKey::space ||
+                                arguments.physical_key == PhysicalKey::enter;
+    if (!activation_key || arguments.repeat || keyboard_pressed_) return;
+    keyboard_key_ = arguments.physical_key;
+    keyboard_pressed_ = true;
+    invalidate(Dirty::paint);
+    arguments.handled = true;
+}
+
+// keyboard_key_ holds Space or Enter while pressed, so the release of that
+// key is an activation key's.
+void ButtonBase::activation_key_up(KeyEventArgs& arguments) {
+    if (!keyboard_pressed_ || keyboard_key_ != arguments.physical_key) return;
+    keyboard_key_ = 0;
+    keyboard_pressed_ = false;
+    invalidate(Dirty::paint);
+    arguments.handled = true;
+    on_activate();
 }
 
 bool ButtonBase::mnemonic_matches(char32_t character) const noexcept {

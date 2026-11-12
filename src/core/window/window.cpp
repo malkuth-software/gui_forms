@@ -427,10 +427,20 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
         return;
     }
     (*root).metrics_.record_callback_emitted();
+    // Gaining focus: on_enter, on_focus_changed, on_got_focus (its base
+    // raises focus_observed). Losing it: on_focus_changed, on_lost_focus,
+    // on_leave. A raiser may dispose the control; nothing more runs then.
+    if (focused) (*control).on_enter();
+    if (!(*control).is_alive()) return;
     (*control).on_focus_changed(focused);
     if ((*control).is_alive()) {
-        (*control).focus_observed_.emit(focused);
+        if (focused) {
+            (*control).on_got_focus();
+        } else {
+            (*control).on_lost_focus();
+        }
     }
+    if (!focused && (*control).is_alive()) (*control).on_leave();
     if (!(*control).is_alive()) return;
     if (!focused || (*root).eligible(control)) {
         (*control).invalidate((*control).focus_invalidation());
@@ -938,6 +948,10 @@ void SurfaceRoot::set_focus_cue_visible(bool visible) {
     }
     if (focused && (*focused).is_alive() &&
         (*focused).surface_root() == this) {
+        (*focused).on_change_ui_cues(visible);
+    }
+    if (focused && (*focused).is_alive() &&
+        (*focused).surface_root() == this) {
         (*focused).invalidate(Dirty::paint);
     }
 }
@@ -1377,6 +1391,9 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
     state.options = options;
     focus_scopes_.push_back(state);
     ++semantic_generation_;
+    // A modal layer or menu over the window ends the pointer sequences in
+    // progress (input order rule 5).
+    break_pointer_sequences();
 
     const std::size_t depth = focus_scope_depth();
     metrics_.record_focus_scope_opened(depth);
@@ -1714,11 +1731,14 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
     if (previous && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
     // WinForms' MouseCaptureChanged, on the control losing the capture;
     // after the MouseUp when a primary release ends it.
-    if (previous && previous != control && (*previous).mouse_events_) {
+    if (previous && previous != control) {
         if (defer_capture_changed_) {
             deferred_capture_changed_ = previous;
         } else {
-            (*(*previous).mouse_events_).capture_changed.emit();
+            // A capture lost before the release ends the sequence: the
+            // press's click is forgotten (input order rule 5).
+            break_pointer_sequences();
+            (*previous).on_mouse_capture_changed();
         }
     }
     if (revoked && previous) {
@@ -1776,10 +1796,13 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
                 leave.handled = false;
                 metrics_.record_callback_emitted();
                 set_pointer_over(*previous_hover, false);
-                (*previous_hover).on_pointer(leave);
-                (*previous_hover).publish_change(
-                    (*previous_hover).pointer_observed_, leave);
-                if ((*previous_hover).mouse_events_) (*(*previous_hover).mouse_events_).leave.emit();
+                // MouseLeave carries the control's own handling of the
+                // crossing (its override) and then the subscribers, before
+                // the observers of the raw leave.
+                (*previous_hover).on_mouse_leave();
+                if ((*previous_hover).is_alive()) {
+                    (*previous_hover).publish_change((*previous_hover).pointer_observed_, leave);
+                }
             }
             hovered_ = next_hover;
             interaction.hover_entered(next_hover, event.position, input_time, pointer_settings);
@@ -1791,9 +1814,10 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
                 enter.handled = false;
                 metrics_.record_callback_emitted();
                 set_pointer_over(*next_hover, true);
-                (*next_hover).on_pointer(enter);
-                (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
-                if ((*next_hover).mouse_events_) (*(*next_hover).mouse_events_).enter.emit();
+                (*next_hover).on_mouse_enter();
+                if ((*next_hover).is_alive()) {
+                    (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
+                }
             }
         } else {
             interaction.hover_moved(event.position, input_time, pointer_settings);
@@ -1805,12 +1829,14 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
         (*tool_tips_).pointer_pressed();
     } else if (event.action == PointerAction::leave) {
         // The pointer left the window: nothing is hovered until it returns,
-        // and the control it was over is no longer hot. The leave is routed
-        // below as before.
+        // and the control it was over is no longer hot: its MouseLeave
+        // (its own handling, then the subscribers). The leave is then
+        // routed through the preview and bubble phases as before; its
+        // target phase raises nothing.
         if (Control::Ptr previous_hover = hovered_.lock()) {
             set_pointer_over(*previous_hover, false);
-            if ((*previous_hover).mouse_events_ && eligible(previous_hover)) {
-                (*(*previous_hover).mouse_events_).leave.emit();
+            if (eligible(previous_hover)) {
+                (*previous_hover).on_mouse_leave();
             }
         }
         hovered_.reset();
@@ -1820,8 +1846,14 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
     sync_hover_wake();
     Control::Ptr pressed_for_release;
     Control::Ptr target;
-    const bool handled = route_pointer(event, pressed_for_release, target, hit);
-    raise_mouse_events(event, target, pressed_for_release, hit);
+    // A raiser in the route may close and destroy this window.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
+    const std::uint64_t sequence_breaks = input_sequence_breaks_;
+    bool click_suppressed = false;
+    const bool handled = route_pointer(event, pressed_for_release, target, hit, click_suppressed);
+    if ((*lifetime).window != presenting) return true;
+    raise_mouse_events(event, target, pressed_for_release, hit, click_suppressed, sequence_breaks);
     return handled;
 }
 
@@ -1846,7 +1878,7 @@ Control::Ptr SurfaceRoot::reuse_pointer_hit(PointerHit& hit, Point position) {
 }
 
 bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
-                                PointerHit& hit) {
+                                PointerHit& hit, bool& click_suppressed) {
     Control::Ptr target = captured_.lock();
     if (!target) {
         target = reuse_pointer_hit(hit, event.position);
@@ -1921,7 +1953,12 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
         target_out = target;
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
-        (*target).on_pointer(event);
+        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+        Window* const presenting = (*lifetime).window;
+        const bool suppress_click = raise_pointer_target(*target, event);
+        // A raiser may close this window (a subscriber's dialog OK).
+        if ((*lifetime).window != presenting) return true;
+        click_suppressed = event.action == PointerAction::up && suppress_click;
         // A handler may dispose its own control (audit A6).
         if ((*target).is_alive()) (*target).publish_change((*target).pointer_observed_, event);
     }
@@ -1942,118 +1979,148 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
     return event.handled;
 }
 
-void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
-                                     const Control::Ptr& pressed_for_release, PointerHit& hit) {
-    if (!target) {
-        const Control::Ptr lost_capture = deferred_capture_changed_.lock();
-        deferred_capture_changed_.reset();
-        if (lost_capture && (*lost_capture).mouse_events_) (*(*lost_capture).mouse_events_).capture_changed.emit();
-        return;
-    }
+MouseEventArgs SurfaceRoot::mouse_arguments(const Control& target, const PointerEvent& event) {
     const bool press = event.action == PointerAction::down;
     const bool release = event.action == PointerAction::up;
     // WinForms' MouseEventArgs: the press's click count (the release
     // carries the count of the press it ends), the control-relative
-    // position and the wheel delta.
-    const Rect bounds = (*target).absolute_bounds();
-    MouseEventArgs args{};
-    args.button = event.button;
-    args.clicks = press || release ? (*interaction_).last_click_count() : 0U;
-    args.location = Point{event.position.x - bounds.x, event.position.y - bounds.y};
-    args.window_position = event.position;
-    args.wheel_delta = event.wheel_delta;
-    args.modifiers = event.modifiers;
-    // The window's rules see MouseDown, MouseUp and the clicks before the
-    // control's subscribers (the owner's Q-C5); a rule that consumes one
-    // keeps it from them, and a consumed Click also from on_activate.
-    if (press) {
-        if (offer_mouse_rules(detail::MouseRuleEvent::mouse_down, *target, &args)) return;
-        if ((*target).mouse_events_) (*(*target).mouse_events_).down.emit(args);
-        return;
+    // position and the wheel delta; then the routed event's own fields.
+    const Rect bounds = target.absolute_bounds();
+    MouseEventArgs arguments{};
+    arguments.button = event.button;
+    arguments.clicks = press || release ? interaction_state().last_click_count() : 0U;
+    arguments.location = Point{event.position.x - bounds.x, event.position.y - bounds.y};
+    arguments.window_position = event.position;
+    arguments.wheel_delta = event.wheel_delta;
+    arguments.modifiers = event.modifiers;
+    arguments.action = event.action;
+    arguments.wheel_unit = event.wheel_unit;
+    arguments.pointer_id = event.pointer_id;
+    arguments.phase = event.phase;
+    arguments.handled = event.handled;
+    return arguments;
+}
+
+bool SurfaceRoot::raise_pointer_target(Control& target, PointerEvent& event) {
+    MouseEventArgs arguments = mouse_arguments(target, event);
+    switch (event.action) {
+    case PointerAction::down:
+        target.on_mouse_down(arguments);
+        break;
+    case PointerAction::up:
+        target.on_mouse_up(arguments);
+        break;
+    case PointerAction::move:
+        target.on_mouse_move(arguments);
+        break;
+    case PointerAction::wheel:
+        target.on_mouse_wheel(arguments);
+        break;
+    case PointerAction::enter:
+    case PointerAction::leave:
+    default:
+        // The hover tracking raises MouseEnter and MouseLeave.
+        break;
     }
-    if (event.action == PointerAction::move) {
-        if ((*target).mouse_events_) (*(*target).mouse_events_).move.emit(args);
-        return;
-    }
-    if (event.action == PointerAction::wheel) {
-        if ((*target).mouse_events_) (*(*target).mouse_events_).wheel.emit(args);
-        return;
-    }
-    if (!release) return;
-    // A release over the control the same button pressed is its click, for
-    // any button as in WinForms (unless the control raises clicks for the
-    // primary button only, as ButtonBase does): Click and MouseClick, or
-    // DoubleClick and MouseDoubleClick for a press the host counted as a
-    // double-click's second on a control with standard_click and
-    // standard_double_click; then
-    // MouseUp. A primary Click is followed by on_activate.
-    const Control::Ptr released_over = reuse_pointer_hit(hit, event.position);
-    const bool primary = event.button == PointerButton::primary;
-    const bool clicked = pressed_for_release && pressed_for_release == released_over &&
-                         eligible(pressed_for_release) &&
-                         (primary || !(*pressed_for_release).clicks_primary_button_only());
+    event.handled = arguments.handled;
+    return arguments.suppress_click;
+}
+
+void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
+                                     const Control::Ptr& pressed_for_release, PointerHit& hit,
+                                     bool click_suppressed, std::uint64_t sequence_breaks) {
     // A click handler may close and destroy this window (a dialog's OK):
     // its lifetime record then names no window, and nothing more is raised.
     // The record is held so it outlives the window; it is checked after
     // every handler.
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
-    if (clicked) {
-        Control& control = *pressed_for_release;
-        // As in WinForms, DoubleClick needs both StandardClick and
-        // StandardDoubleClick.
-        const bool double_clicked = args.clicks >= 2U && control.has_style(ControlStyles::standard_click) &&
-                                    control.has_style(ControlStyles::standard_double_click);
-        const bool single_clicked = !double_clicked && control.has_style(ControlStyles::standard_click);
-        if (double_clicked) {
-            const bool double_click_consumed = offer_mouse_rules(detail::MouseRuleEvent::double_click, control, nullptr);
-            if ((*lifetime).window != presenting) return;
-            if (!double_click_consumed && control.mouse_events_) {
-                (*control.mouse_events_).double_click.emit();
-                if ((*lifetime).window != presenting) return;
-            }
-            if (eligible(pressed_for_release)) {
-                const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_double_click, control, &args);
-                if ((*lifetime).window != presenting) return;
-                if (!consumed && control.mouse_events_) {
-                    (*control.mouse_events_).mouse_double_click.emit(args);
-                    if ((*lifetime).window != presenting) return;
-                }
-            }
-        }
-        if (single_clicked) {
-            const bool click_consumed = offer_mouse_rules(detail::MouseRuleEvent::click, control, nullptr);
-            if ((*lifetime).window != presenting) return;
-            if (!click_consumed && control.mouse_events_) {
-                (*control.mouse_events_).click.emit();
-                if ((*lifetime).window != presenting) return;
-            }
-            if (eligible(pressed_for_release)) {
-                const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_click, control, &args);
-                if ((*lifetime).window != presenting) return;
-                if (!consumed && control.mouse_events_) {
-                    (*control.mouse_events_).mouse_click.emit(args);
-                    if ((*lifetime).window != presenting) return;
-                }
-            }
-            if (!click_consumed && primary && eligible(pressed_for_release)) {
-                metrics_.record_callback_emitted();
-                metrics_.record_activation();
-                control.on_activate();
-                if ((*lifetime).window != presenting) return;
-            }
-        }
-    }
-    if ((*lifetime).window != presenting) return;
-    if (eligible(target)) {
-        const bool up_consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_up, *target, &args);
+    if (target && event.action == PointerAction::up) {
+        raise_release_clicks(event, *target, pressed_for_release, hit, click_suppressed, sequence_breaks);
         if ((*lifetime).window != presenting) return;
-        if (!up_consumed && (*target).mouse_events_) (*(*target).mouse_events_).up.emit(args);
     }
-    if ((*lifetime).window != presenting) return;
+    // MouseCaptureChanged on the control a primary release took the
+    // capture from, after the release's events (or the rest of them were
+    // dropped): the capture's end is physical and always reported.
     const Control::Ptr lost_capture = deferred_capture_changed_.lock();
     deferred_capture_changed_.reset();
-    if (lost_capture && (*lost_capture).mouse_events_) (*(*lost_capture).mouse_events_).capture_changed.emit();
+    if (lost_capture) (*lost_capture).on_mouse_capture_changed();
+}
+
+void SurfaceRoot::break_pointer_sequences() noexcept {
+    ++input_sequence_breaks_;
+    pressed_.reset();
+    for (Control::WeakPtr& pressed : pressed_other_) pressed.reset();
+}
+
+bool SurfaceRoot::click_sequence_intact(const Control::Ptr& pressed, std::uint64_t sequence_breaks,
+                                        const std::shared_ptr<detail::WindowLifetime>& lifetime,
+                                        const Window* presenting) const noexcept {
+    const bool intact = (*lifetime).window == presenting && input_sequence_breaks_ == sequence_breaks &&
+                        eligible(pressed);
+    return intact;
+}
+
+void SurfaceRoot::raise_release_clicks(const PointerEvent& event, Control& target,
+                                       const Control::Ptr& pressed_for_release, PointerHit& hit,
+                                       bool click_suppressed, std::uint64_t sequence_breaks) {
+    // A release over the control the same button pressed is its click, for
+    // any button as in WinForms (unless the control raises clicks for the
+    // primary button only, as ButtonBase does): Click and MouseClick, or
+    // DoubleClick and MouseDoubleClick for a press the host counted as a
+    // double-click's second on a control with standard_click and
+    // standard_double_click (that press raises no Click). The window's
+    // rules see each before the control's subscribers (the owner's Q-C5);
+    // a rule that consumes one keeps it from them, and a consumed Click
+    // also from on_activate. A primary Click is followed by on_activate.
+    // All of them follow the MouseUp the route raised (rule 2), none when
+    // that MouseUp set suppress_click (rule 3; handled only ends the route), and the rest are dropped once the
+    // sequence breaks (rule 5: click_sequence_intact after every handler).
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
+    MouseEventArgs args = mouse_arguments(target, event);
+    const Control::Ptr released_over = reuse_pointer_hit(hit, event.position);
+    const bool primary = event.button == PointerButton::primary;
+    const bool clicked = !click_suppressed && pressed_for_release && pressed_for_release == released_over &&
+                         click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting) &&
+                         (primary || !(*pressed_for_release).clicks_primary_button_only());
+    if (!clicked) return;
+    Control& control = *pressed_for_release;
+    // As in WinForms, DoubleClick needs both StandardClick and
+    // StandardDoubleClick.
+    const bool double_clicked = args.clicks >= 2U && control.has_style(ControlStyles::standard_click) &&
+                                control.has_style(ControlStyles::standard_double_click);
+    const bool single_clicked = !double_clicked && control.has_style(ControlStyles::standard_click);
+    if (double_clicked) {
+        const bool double_click_consumed = offer_mouse_rules(detail::MouseRuleEvent::double_click, control, nullptr);
+        if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+        if (!double_click_consumed) {
+            control.on_double_click();
+            if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+        }
+        const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_double_click, control, &args);
+        if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+        if (!consumed) control.on_mouse_double_click(args);
+        return;
+    }
+    if (!single_clicked) return;
+    const bool click_consumed = offer_mouse_rules(detail::MouseRuleEvent::click, control, nullptr);
+    if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+    if (!click_consumed) {
+        control.on_click();
+        if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+    }
+    const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_click, control, &args);
+    if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+    if (!consumed) {
+        control.on_mouse_click(args);
+        if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+    }
+    if (!click_consumed && primary) {
+        metrics_.record_callback_emitted();
+        metrics_.record_activation();
+        control.on_activate();
+    }
 }
 
 bool SurfaceRoot::offer_mouse_rules(detail::MouseRuleEvent event, Control& control, const MouseEventArgs* arguments) {
@@ -2143,14 +2210,15 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     // control's rather than a dialog key.
     bool input_key = false;
     Control::Ptr target = focused_.lock();
-    if (event.action == KeyAction::down && target && eligible(target) && (*target).key_events_) {
+    if (event.action == KeyAction::down && target && eligible(target)) {
         PreviewKeyDownEventArgs preview;
         preview.key_code = key_code_from_physical_key(event.physical_key);
         preview.physical_key = event.physical_key;
         preview.modifiers = event.modifiers;
         preview.repeat = event.repeat;
-        metrics_.record_callback_emitted();
-        (*(*target).key_events_).preview_key_down.emit(preview);
+        // Counted where the event has subscribers, as before the raiser.
+        if ((*target).key_events_) metrics_.record_callback_emitted();
+        (*target).on_preview_key_down(preview);
         if ((*lifetime).window != presenting) return true;
         input_key = preview.is_input_key;
     }
@@ -2179,12 +2247,11 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     if (!eligible(target)) {
         return event.handled;
     }
-    // KeyDown or KeyUp on the focused control, before its own handling.
+    // The target phase: KeyDown or KeyUp on the focused control, whose
+    // override handles the key after its base raised the event.
+    event.phase = EventPhase::target;
     if (raise_control_key(*target, event, closed)) return true;
     if (closed || !eligible(target)) return true;
-    event.phase = EventPhase::target;
-    metrics_.record_callback_emitted();
-    (*target).on_key(event);
     if (!event.handled) {
         event.phase = EventPhase::bubble;
         for (ControlList::const_reverse_iterator iterator = route.rbegin();
@@ -2216,27 +2283,35 @@ bool SurfaceRoot::raise_window_key(const KeyEvent& event, bool& closed) {
         closed = true;
         return true;
     }
-    if (arguments.suppress_key_press) suppress_key_text_ = true;
+    // suppress_key_press cancels the key's KeyPress and text (input order
+    // rule 3; handled only ends the route), except inside a composition,
+    // whose commit is the input method's.
+    if (arguments.suppress_key_press && !composition_open_) suppress_key_text_ = true;
     const bool handled = arguments.handled || arguments.suppress_key_press;
     return handled;
 }
 
 bool SurfaceRoot::raise_control_key(Control& control, const KeyEvent& event, bool& closed) {
-    if (!control.key_events_) return false;
     KeyEventArgs arguments = key_arguments(event);
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
+    // Counted where the events have subscribers, as before the raisers,
+    // and once for the control's own handling (the target phase).
+    if (control.key_events_) metrics_.record_callback_emitted();
     metrics_.record_callback_emitted();
     if (event.action == KeyAction::down) {
-        (*control.key_events_).key_down.emit(arguments);
+        control.on_key_down(arguments);
     } else {
-        (*control.key_events_).key_up.emit(arguments);
+        control.on_key_up(arguments);
     }
     if ((*lifetime).window != presenting) {
         closed = true;
         return true;
     }
-    if (arguments.suppress_key_press) suppress_key_text_ = true;
+    // suppress_key_press cancels the key's KeyPress and text (input order
+    // rule 3; handled only ends the route), except inside a composition,
+    // whose commit is the input method's.
+    if (arguments.suppress_key_press && !composition_open_) suppress_key_text_ = true;
     const bool handled = arguments.handled || arguments.suppress_key_press;
     return handled;
 }
@@ -2264,12 +2339,12 @@ void SurfaceRoot::release_held_keys() {
         key_up_.emit(arguments);
         if ((*lifetime).window != presenting) return;
         const Control::Ptr focused = focused_.lock();
-        if (focused && (*focused).is_alive() && (*focused).key_events_) {
+        if (focused && (*focused).is_alive()) {
             KeyEventArgs control_arguments;
             control_arguments.key_code = change.key_code;
             control_arguments.physical_key = physical_key;
             control_arguments.released_by_deactivation = true;
-            (*(*focused).key_events_).key_up.emit(control_arguments);
+            (*focused).on_key_up(control_arguments);
             if ((*lifetime).window != presenting) return;
         }
     }
@@ -2331,6 +2406,8 @@ bool SurfaceRoot::dispatch_text(TextInputEvent event) {
     if (forward_to_popup(event)) return true;
     // An input method's marked text passes to the control untouched: no
     // KeyPress, no suppression, until the composition commits.
+    // Open while marked text shows; committed or cancelled text closes it.
+    composition_open_ = event.composing && !event.text_utf8.empty();
     if (!event.composing && !event.text_utf8.empty()) {
         if (suppress_key_text_) {
             suppress_key_text_ = false;
@@ -2344,9 +2421,10 @@ bool SurfaceRoot::dispatch_text(TextInputEvent event) {
         key_press_.emit(press);
         if ((*lifetime).window != presenting || press.handled) return true;
         const Control::Ptr pressed_target = focused_.lock();
-        if (pressed_target && eligible(pressed_target) && (*pressed_target).key_events_) {
-            metrics_.record_callback_emitted();
-            (*(*pressed_target).key_events_).key_press.emit(press);
+        if (pressed_target && eligible(pressed_target)) {
+            // Counted where the event has subscribers, as before the raiser.
+            if ((*pressed_target).key_events_) metrics_.record_callback_emitted();
+            (*pressed_target).on_key_press(press);
             if ((*lifetime).window != presenting || press.handled) return true;
         }
     }
@@ -2524,6 +2602,26 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
         (*target).on_drag(event);
+        // The per-action raiser, after the target's on_drag.
+        if (eligible(target)) {
+            switch (event.action) {
+            case DragAction::enter:
+                (*target).on_drag_enter(event);
+                break;
+            case DragAction::over:
+                (*target).on_drag_over(event);
+                break;
+            case DragAction::drop:
+                (*target).on_drag_drop(event);
+                break;
+            case DragAction::leave:
+                (*target).on_drag_leave(event);
+                break;
+            default:
+                // A future action has no raiser yet.
+                break;
+            }
+        }
     }
     if (!event.handled) {
         event.phase = EventPhase::bubble;
@@ -4457,6 +4555,11 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
             return;
         }
+        (*control).on_layout();
+        if (!(*control).is_alive() || (*control).surface_root_ != this) {
+            if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
+            return;
+        }
         // The resize registration (reduced M0.4): asked again whenever the
         // size changes, which costs one pass over the children that arrange
         // has just made, so no write has to keep it current. The first
@@ -5014,8 +5117,12 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             // until the recording below ends; a part record kept longer
             // fails at its next read in the checked build.
             const detail::PaintScope paint_scope;
-            (*control).paint_back_color(recorder, logical_bounds);
-            (*control).paint_authored_surface(recorder, logical_bounds);
+            PaintEventArgs background{recorder, logical_bounds};
+            (*control).on_paint_background(background);
+            if (!(*control).is_alive() || (*control).surface_root_ != this ||
+                (*control).parent_.lock().get() != retained_parent) {
+                return;
+            }
             (*control).paint_owned_decorations(
                 recorder, logical_bounds,
                 OwnerDecorationLayer::before_content);

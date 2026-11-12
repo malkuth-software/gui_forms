@@ -165,8 +165,6 @@ public:
     [[nodiscard]] Event<const std::string&>& link_clicked() noexcept { return link_clicked_; }
 
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_text_input(TextInputEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -236,6 +234,12 @@ public:
     [[nodiscard]] std::vector<Item> realized_items() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_scroll_position_changed() override;
     [[nodiscard]] bool paints_scrolled_content() const noexcept override { return true; }
@@ -483,6 +487,10 @@ protected:
     virtual void on_font_changed();
 
 private:
+    // The routed form of a key the raisers left unhandled.
+    void handle_key(KeyEvent& event);
+    // The target phase in the routed form, from the mouse raisers.
+    void handle_pointer(PointerEvent& event);
     friend struct RichTextBoxTextCapability<RichTextBox>;
     friend struct RichTextBoxReadOnlyCapability<RichTextBox>;
     friend struct RichTextBoxWordWrapCapability<RichTextBox>;

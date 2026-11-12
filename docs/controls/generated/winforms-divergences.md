@@ -56,6 +56,42 @@ records every difference here with its reason and the decision behind it.
 | Reason | A colour set on a control cannot adapt to a theme's light and dark variants, and painting a light-mode colour over the dark fallback breaks the look. Colour belongs in theme rules (T4 theme variants, stage A). |
 | Decision | owner, 2026-11-04 |
 
+### click, mouse_click (broken sequence)
+
+| | |
+|---|---|
+| Windows Forms | Click and MouseClick are raised whatever an earlier handler did, unless the control was destroyed. |
+| GUI.Forms | When a handler disposes the control, opens a modal window or a modal layer or menu, or the capture is lost before the release, the sequence's remaining derived events (Click, MouseClick, the activation) are dropped. |
+| Reason | The owner's input order, rule 5. |
+| Decision | owner, 2026-11-12 |
+
+### key_down (suppress_key_press during a composition)
+
+| | |
+|---|---|
+| Windows Forms | SuppressKeyPress cancels the key's KeyPress; Handled does not. |
+| GUI.Forms | The same (handled does not cancel, suppress_key_press does), except that an input method's commit while a composition is open is kept after a suppressed KeyDown. |
+| Reason | The owner's input order, rule 3: the commit is the input method's text, not the key's. |
+| Decision | owner, 2026-11-12 |
+
+### mouse_up (suppress_click)
+
+| | |
+|---|---|
+| Windows Forms | MouseEventArgs has no field that cancels Click; MouseUp comes after Click and MouseClick. |
+| GUI.Forms | MouseEventArgs.suppress_click, set by a MouseUp raiser or its override (C# OnMouseUp), cancels Click, MouseClick, DoubleClick, MouseDoubleClick and the activation. handled only ends the route and cancels nothing. |
+| Reason | The owner's input order, rule 3, refined 2026-11-12: handled already means consumed for routing inside the stock controls, so an explicit field cancels the derived events. |
+| Decision | owner, 2026-11-12 |
+
+### mouse_up, click, mouse_click (order)
+
+| | |
+|---|---|
+| Windows Forms | A release over the pressed control raises Click and MouseClick, then MouseUp last. |
+| GUI.Forms | Physical events come first: MouseUp, then Click and MouseClick (or DoubleClick and MouseDoubleClick), on the pressed control only. At MouseUp the button is up and the capture released; MouseCaptureChanged comes last. |
+| Reason | The owner's input order (ADR-003 amendment): physical events first in causal order and derived events after the completing physical event, with state already updated, for fewer ordering bugs (rules 1, 2 and 4). |
+| Decision | owner, 2026-11-12 |
+
 ## DataGridView
 
 ### row_validating (focus leaving the grid)

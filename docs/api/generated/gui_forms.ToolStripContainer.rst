@@ -297,17 +297,29 @@ gui_forms::ToolStripContainer
 
    .. cpp:function:: void on_pointer_preview(PointerEvent& event) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
 
       Takes the move_panel command with the focus in a strip, and the drag's keys.
 
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 

@@ -127,35 +127,43 @@ std::vector<std::size_t> CheckedListBox::checked_indices() const {
     return result;
 }
 
-void CheckedListBox::on_pointer(PointerEvent& event) {
+// A primary press runs ListBox's handling, then toggles the pressed item
+// (every press with check_on_click, else a press on a selected item), then
+// raises MouseDown through Control (ListBox's raiser would handle it again).
+void CheckedListBox::on_mouse_down(MouseEventArgs& arguments) {
+    toggle_on_press(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void CheckedListBox::toggle_on_press(MouseEventArgs& arguments) {
     if (!eligible_for_input()) {
-        ListBox::on_pointer(event);
+        list_pointer(arguments);
         return;
     }
-    const std::optional<std::size_t> index = event.action == PointerAction::down &&
-                           event.button == PointerButton::primary
-        ? index_at(event.position) : std::optional<std::size_t>{};
+    const std::optional<std::size_t> index = arguments.button == PointerButton::primary
+        ? index_at(arguments.window_position) : std::optional<std::size_t>{};
     const bool was_selected = index && detail::binary_search_contains(
         selected_indices(), *index);
-    ListBox::on_pointer(event);
+    list_pointer(arguments);
     if (!is_alive() || !index || *index >= items.read().size()) return;
     if (check_on_click.read() || was_selected) {
         toggle_item(*index);
-        event.handled = true;
+        arguments.handled = true;
     }
 }
 
-void CheckedListBox::on_key(KeyEvent& event) {
-    if (event.action == KeyAction::down &&
-        event.physical_key == PhysicalKey::space && focused_for_extension() &&
-        enabled.read()) {
+// Space toggles the active item; other keys are ListBox's.
+void CheckedListBox::on_key_down(KeyEventArgs& arguments) {
+    ListControl::on_key_down(arguments);
+    if (arguments.handled) return;
+    if (arguments.physical_key == PhysicalKey::space && focused_for_extension() && enabled.read()) {
         if (const std::optional<std::size_t> index = active_index_for_extension()) {
             toggle_item(*index);
-            event.handled = true;
+            arguments.handled = true;
         }
         return;
     }
-    ListBox::on_key(event);
+    list_key_down(arguments);
 }
 
 double CheckedListBox::row_text_left() const noexcept {

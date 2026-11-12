@@ -14,6 +14,7 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/timer.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -46,14 +47,14 @@ void print_statistics(const char* mode, const char* platform, const WindowFrameD
 }
 
 // The floating window's body: pressing it starts the framework's drag.
-class DragBody final : public Control {
+class DragBody final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit DragBody(StableId id) : Control(std::move(id)) {}
+    explicit DragBody(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
     ApplicationWindowHandle window{};
     std::string platform{};
     WindowFrameDrag drag{};
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::down && event.button == PointerButton::primary) {
             set_pointer_capture(true);
             static_cast<void>(drag.begin(window, now_nanoseconds()));

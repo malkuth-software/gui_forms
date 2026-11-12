@@ -202,6 +202,24 @@ public unsafe ref struct HookFrame
         }
     }
 
+    /// <summary>Whether an entry running on this thread was lent native (its fields may be written).</summary>
+    internal static bool lends(gf_event* native)
+    {
+        List<Record>? stack = frames;
+        if (stack == null)
+        {
+            return false;
+        }
+        foreach (Record record in stack)
+        {
+            if (record.native == native)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>Runs the base of target's hook key in the innermost frame for them; false when none.</summary>
     internal static bool call_framed(object target, HookKey key)
     {

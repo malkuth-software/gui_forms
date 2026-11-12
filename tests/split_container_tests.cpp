@@ -25,6 +25,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 #include "../src/core/drag_engine/drag_engine.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <array>
 #include <chrono>
@@ -751,7 +752,7 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
     window.set_presentation_settings(calm);
     PointerEvent leave = hover;
     leave.action = PointerAction::leave;
-    static_cast<void>((*(*split).splitter_control()).on_pointer(leave));
+    gui_forms::detail::ControlInputAccess::on_pointer(*(*split).splitter_control(), leave);
     const SplitSeamSnapshot reduced = (*split).splitter_seam_snapshot();
     require(!reduced.transition_active &&
                 near(reduced.actuator_bounds.width, 7.0) &&

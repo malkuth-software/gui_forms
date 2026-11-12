@@ -70,9 +70,7 @@ public:
 
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
@@ -112,6 +110,13 @@ public:
     [[nodiscard]] std::vector<Item> realized_items() const;
 
 protected:
+    void on_key_down(KeyEventArgs& arguments) override;
+
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void publish_realized_item_geometry(std::size_t item,

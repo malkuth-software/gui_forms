@@ -291,10 +291,6 @@ gui_forms::ChoiceGroup
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Handles the arrow keys described under Notes. The window calls it.
-
    .. cpp:function:: void on_key_bubble(KeyEvent& event) override
 
       Handles the arrow keys pressed while an item's button has focus.
@@ -306,6 +302,13 @@ gui_forms::ChoiceGroup
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Raises the event, then handles the arrow keys described under Notes.
+      The window calls it.
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 

@@ -23,6 +23,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/value/value.hpp"
 #include "gui_forms/window/window.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -87,10 +88,10 @@ void throw_now(Journal& journal, const RuleFiring& firing) {
 }
 
 // A control that counts the keys the control route gives it.
-class KeyProbe final : public Control {
+class KeyProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit KeyProbe(StableId id) : Control(std::move(id)) {}
-    void on_key(KeyEvent& event) override {
+    explicit KeyProbe(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
+    void routed_key(KeyEvent& event) override {
         ++keys;
         event.handled = true;
     }
@@ -528,8 +529,9 @@ void control_events_and_control_conditions() {
             "a mouse_click rule is armed");
     click_at(window, {50.0, 65.0});
     require(journal.entries.size() == 3U && journal.triggers[0] == RuleTriggerKind::mouse_down &&
-                journal.triggers[1] == RuleTriggerKind::mouse_click && journal.triggers[2] == RuleTriggerKind::mouse_up,
-            "the mouse rules fire in WinForms' order, with hover and press conditions holding on the press");
+                journal.triggers[1] == RuleTriggerKind::mouse_up && journal.triggers[2] == RuleTriggerKind::mouse_click,
+            "the mouse rules fire in the raisers' order (MouseUp at the release's target phase, then MouseClick), "
+            "with hover and press conditions holding on the press");
     require(journal.last_clicks == 1U, "the mouse payload carries the host's click count");
 
     // double_click on a control with standard_double_click (a panel).
@@ -667,7 +669,7 @@ void mouse_rules_run_before_subscribers() {
     require(journal.entries.size() == 1U && journal.subscriber_calls_at_fire == 0U,
             "the mouse_down rule fires before the control's MouseDown subscribers");
     require(journal.subscriber_calls == 3U && journal.activations == 1U,
-            "a rule that does not consume leaves MouseDown, Click, MouseUp and the activation to the control");
+            "a rule that does not consume leaves MouseDown, MouseUp, Click and the activation to the control");
 
     // A consuming Click rule: no Click subscriber and no activation; MouseUp
     // is its own event and still reaches its subscriber.

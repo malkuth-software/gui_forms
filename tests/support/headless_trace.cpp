@@ -3,6 +3,8 @@
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/events/key_events/key_events.hpp"
+#include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/metrics/types/metrics_types.hpp"
 #include "gui_forms/rules/rule/rule.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -67,10 +69,8 @@ public:
         painter.fill_rect(damage, Color::rgba(1, 2, 3));
     }
     void on_pointer_preview(PointerEvent& event) override { record_pointer(event); }
-    void on_pointer(PointerEvent& event) override { record_pointer(event); }
     void on_pointer_bubble(PointerEvent& event) override { record_pointer(event); }
     void on_key_preview(KeyEvent& event) override { record_key(event); }
-    void on_key(KeyEvent& event) override { record_key(event); }
     void on_key_bubble(KeyEvent& event) override { record_key(event); }
     void on_text_input(TextInputEvent& event) override {
         trace_.record("t=" + std::to_string(clock_.now_nanoseconds()) + " text id=" +
@@ -84,6 +84,34 @@ public:
     void on_activate() override {
         trace_.record("t=" + std::to_string(clock_.now_nanoseconds()) + " activate id=" +
                       std::string(stable_id().value()));
+    }
+
+protected:
+    // The target phase: the mouse and key raisers, recorded in the routed
+    // form's line before each raises its event.
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        record_pointer(pointer_event_of(arguments));
+        Control::on_mouse_down(arguments);
+    }
+    void on_mouse_up(MouseEventArgs& arguments) override {
+        record_pointer(pointer_event_of(arguments));
+        Control::on_mouse_up(arguments);
+    }
+    void on_mouse_move(MouseEventArgs& arguments) override {
+        record_pointer(pointer_event_of(arguments));
+        Control::on_mouse_move(arguments);
+    }
+    void on_mouse_wheel(MouseEventArgs& arguments) override {
+        record_pointer(pointer_event_of(arguments));
+        Control::on_mouse_wheel(arguments);
+    }
+    void on_key_down(KeyEventArgs& arguments) override {
+        record_key(key_event_of(arguments, KeyAction::down));
+        Control::on_key_down(arguments);
+    }
+    void on_key_up(KeyEventArgs& arguments) override {
+        record_key(key_event_of(arguments, KeyAction::up));
+        Control::on_key_up(arguments);
     }
 
 private:

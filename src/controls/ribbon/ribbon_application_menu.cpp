@@ -295,43 +295,59 @@ void RibbonApplicationMenu::activate(const Row& row) {
     ribbon.application_menu_item_invoked_.emit(invocation);
 }
 
-void RibbonApplicationMenu::on_pointer(PointerEvent& event) {
-    if (!ribbon_alive()) return;
-    if (mode_ == Mode::catcher) {
-        if (event.action != PointerAction::down || event.button != PointerButton::primary) return;
-        event.handled = true;
-        const Control::Ptr lifetime = shared_from_this();
-        (*ribbon_).close_menus();
-        return;
+void RibbonApplicationMenu::set_hot_row(std::optional<std::size_t> hot) {
+    if (hot_row_ != hot) {
+        hot_row_ = hot;
+        invalidate(Dirty::paint);
     }
+}
+
+// The menu covers the window from its origin: its points are the window's.
+// The hot row follows the pointer's moves (the move that enters the menu
+// sets it).
+void RibbonApplicationMenu::on_mouse_move(MouseEventArgs& arguments) {
+    if (ribbon_alive() && mode_ != Mode::catcher) set_hot_row(row_at(layout(), arguments.window_position));
+    Control::on_mouse_move(arguments);
+}
+
+void RibbonApplicationMenu::on_mouse_leave() {
+    if (ribbon_alive() && mode_ != Mode::catcher) set_hot_row(std::nullopt);
+    Control::on_mouse_leave();
+}
+
+void RibbonApplicationMenu::on_mouse_down(MouseEventArgs& arguments) {
+    if (ribbon_alive() && arguments.button == PointerButton::primary) press(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void RibbonApplicationMenu::on_mouse_up(MouseEventArgs& arguments) {
+    if (ribbon_alive() && mode_ != Mode::catcher && arguments.button == PointerButton::primary) {
+        arguments.handled = true;
+        const Layout placed = layout();
+        const std::optional<std::size_t> hit = row_at(placed, arguments.window_position);
+        // A click is a release over a row, as in a menu.
+        if (hit) activate(placed.rows[*hit]);
+    }
+    Control::on_mouse_up(arguments);
+}
+
+void RibbonApplicationMenu::press(MouseEventArgs& arguments) {
+    arguments.handled = true;
+    const Point local = arguments.window_position;
     const Layout placed = layout();
-    const Point local{event.position.x, event.position.y};
-    const std::optional<std::size_t> hit = row_at(placed, local);
-    if (event.action == PointerAction::leave || event.action == PointerAction::move ||
-        event.action == PointerAction::enter) {
-        const std::optional<std::size_t> hot = event.action == PointerAction::leave ? std::nullopt : hit;
-        if (hot_row_ != hot) {
-            hot_row_ = hot;
-            invalidate(Dirty::paint);
-        }
-        return;
-    }
-    if (event.button != PointerButton::primary) return;
-    event.handled = true;
-    // A press outside the panel closes the menu, as a click away does.
-    if (event.action == PointerAction::down && !placed.panel.contains(local)) {
+    // A press outside the panel closes the menu, as a click away does; the
+    // catcher closes it on any press.
+    if (mode_ == Mode::catcher || !placed.panel.contains(local)) {
         const Control::Ptr lifetime = shared_from_this();
         (*ribbon_).close_menus();
         return;
     }
-    // A press on a submenu row opens its submenu; a click is a release over
-    // a row, as in a menu.
-    if (event.action == PointerAction::down && hit && !placed.rows[*hit].recent &&
+    // A press on a submenu row opens its submenu.
+    const std::optional<std::size_t> hit = row_at(placed, local);
+    if (hit && !placed.rows[*hit].recent &&
         (*ribbon_).application_menu_[placed.rows[*hit].index].kind == MenuItemKind::submenu) {
         if (row_enabled(placed.rows[*hit])) open_submenu(*hit, false);
-        return;
     }
-    if (event.action == PointerAction::up && hit) activate(placed.rows[*hit]);
 }
 
 // Moves the keyboard to the next enabled row of the same pane (wrapping).
@@ -372,11 +388,12 @@ void RibbonApplicationMenu::on_key_preview(KeyEvent& event) {
 
 // Up and Down move within a pane, Left and Right between the panes, Enter
 // and Space activate; Escape closes (on_key_preview).
-void RibbonApplicationMenu::on_key(KeyEvent& event) {
-    if (event.action != KeyAction::down || !ribbon_alive() || submenu_open()) return;
-    const std::uint32_t key = event.physical_key;
+void RibbonApplicationMenu::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !ribbon_alive() || submenu_open()) return;
+    const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::escape) {
-        event.handled = true;
+        arguments.handled = true;
         const Control::Ptr lifetime = shared_from_this();
         (*ribbon_).close_application_overlay();
         return;
@@ -385,26 +402,26 @@ void RibbonApplicationMenu::on_key(KeyEvent& event) {
         const Layout placed = layout();
         const Row& row = placed.rows[*focus_row_];
         if (!row.recent && (*ribbon_).application_menu_[row.index].kind == MenuItemKind::submenu) {
-            event.handled = true;
+            arguments.handled = true;
             open_submenu(*focus_row_, true);
             return;
         }
     }
-    if (key == PhysicalKey::down || (key == PhysicalKey::tab && !has_modifier(event.modifiers, Modifier::shift))) {
+    if (key == PhysicalKey::down || (key == PhysicalKey::tab && !has_modifier(arguments.modifiers, Modifier::shift))) {
         move(true);
     } else if (key == PhysicalKey::up || key == PhysicalKey::tab) {
         move(false);
     } else if (key == PhysicalKey::left || key == PhysicalKey::right) {
         switch_pane();
     } else if ((key == PhysicalKey::enter || key == PhysicalKey::space) && focus_row_) {
-        event.handled = true;
+        arguments.handled = true;
         const Layout placed = layout();
         activate(placed.rows[*focus_row_]);
         return;
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 // The whole client takes presses (so that a press away closes the menu),

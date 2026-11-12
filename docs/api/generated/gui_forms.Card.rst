@@ -345,10 +345,6 @@ gui_forms::Card
 
    .. cpp:function:: bool hit_test_local(Point local_point) const override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: void on_activate() override
@@ -360,6 +356,30 @@ gui_forms::Card
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_enter() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 

@@ -139,7 +139,8 @@ private:
 
     // The editor's edit filter: every user edit becomes a provider edit.
     void filter_edit(TextEdit& edit);
-    void on_validating(ControlValidationEvent& event);
+    // Subscribed to validating (first, so it runs before other subscribers).
+    void check_mask_on_validating(ControlValidationEvent& event);
     void filter_typing(TextEdit& edit, MaskPosition start, MaskPosition end);
     void filter_deletion(TextEdit& edit, MaskPosition start, MaskPosition end);
     void filter_paste(TextEdit& edit, MaskPosition start, MaskPosition end);

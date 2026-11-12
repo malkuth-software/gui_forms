@@ -492,9 +492,7 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
     void on_pointer_preview(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     // Semantics and accessibility only: on_focus_changed repaints the key
     // stop alone (repaint_stop), not the whole ribbon.
@@ -610,6 +608,13 @@ public:
     [[nodiscard]] std::vector<CommandItem> realized_overlay_commands() const;
 
 protected:
+    void on_key_down(KeyEventArgs& arguments) override;
+
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_attachment_committed() noexcept override;
     void on_attached_to_window() override;

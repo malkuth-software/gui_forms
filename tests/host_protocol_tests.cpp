@@ -28,6 +28,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -54,19 +55,19 @@ void require(bool condition, const char* message) {
     }
 }
 
-class InputProbe final : public Control {
+class InputProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit InputProbe(StableId id) : Control(std::move(id)) {
+    explicit InputProbe(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {
         focusable = true;
         allow_drop = true;
     }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         ++pointer_events;
         event.handled = true;
     }
 
-    void on_key(KeyEvent& event) override {
+    void routed_key(KeyEvent& event) override {
         ++key_events;
         event.handled = true;
     }
@@ -108,9 +109,9 @@ public:
     void draw_image(ImageId, Rect, double) override {}
 };
 
-class HostLeaseInputProbe final : public Control {
+class HostLeaseInputProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit HostLeaseInputProbe(StableId id) : Control(std::move(id)) {
+    explicit HostLeaseInputProbe(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {
         focusable = true;
         allow_drop = true;
     }
@@ -125,7 +126,7 @@ public:
         painter.fill_rect(damage, Color::rgba(12, 24, 36));
     }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         callback_during_paint |= in_application_paint;
         ++pointer_events;
         event.handled = true;

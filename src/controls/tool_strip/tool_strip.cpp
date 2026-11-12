@@ -871,19 +871,40 @@ void ToolStrip::click(std::size_t index) {
     item_clicked_.emit(clicked);
 }
 
-void ToolStrip::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::leave) {
-        set_hot(std::nullopt, ItemZone::none);
-        if (overflow_hot_) {
-            overflow_hot_ = false;
-            invalidate(Dirty::paint);
-        }
-        return;
+void ToolStrip::on_mouse_down(MouseEventArgs& arguments) {
+    strip_pointer(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void ToolStrip::on_mouse_up(MouseEventArgs& arguments) {
+    strip_pointer(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void ToolStrip::on_mouse_move(MouseEventArgs& arguments) {
+    strip_pointer(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void ToolStrip::on_mouse_leave() {
+    strip_pointer_left();
+    Control::on_mouse_leave();
+}
+
+void ToolStrip::strip_pointer_left() {
+    set_hot(std::nullopt, ItemZone::none);
+    if (overflow_hot_) {
+        overflow_hot_ = false;
+        invalidate(Dirty::paint);
     }
+}
+
+// The move that enters the strip sets the hot item.
+void ToolStrip::strip_pointer(MouseEventArgs& arguments) {
     ItemZone zone{ItemZone::none};
-    const std::optional<std::size_t> index = index_at(event.position, zone);
-    const bool on_overflow = overflow_at(event.position);
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
+    const std::optional<std::size_t> index = index_at(arguments.window_position, zone);
+    const bool on_overflow = overflow_at(arguments.window_position);
+    if (arguments.action == PointerAction::move) {
         set_hot(index && item_interactive(*index) ? index : std::nullopt, zone);
         if (overflow_hot_ != on_overflow) {
             overflow_hot_ = on_overflow;
@@ -891,12 +912,12 @@ void ToolStrip::on_pointer(PointerEvent& event) {
         }
         return;
     }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down) {
+    if (arguments.button != PointerButton::primary) return;
+    if (arguments.action == PointerAction::down) {
         if (on_overflow) {
             if (overflow_open_) close_drop_down();
             else static_cast<void>(show_overflow(MenuOpenMode::pointer));
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
         if (!index || !item_interactive(*index)) return;
@@ -911,8 +932,8 @@ void ToolStrip::on_pointer(PointerEvent& event) {
             pressed_index_.reset();
         }
         invalidate(Dirty::paint | Dirty::semantics);
-        event.handled = true;
-    } else if (event.action == PointerAction::up) {
+        arguments.handled = true;
+    } else if (arguments.action == PointerAction::up) {
         const std::optional<std::size_t> pressed = pressed_index_;
         const ItemZone pressed_zone = pressed_zone_;
         pressed_index_.reset();
@@ -920,12 +941,17 @@ void ToolStrip::on_pointer(PointerEvent& event) {
         invalidate(Dirty::paint | Dirty::semantics);
         // A click is a press and release on the same part of the same item.
         if (pressed && pressed == index && pressed_zone == zone) click(*pressed);
-        event.handled = pressed.has_value();
+        arguments.handled = pressed.has_value();
     }
 }
 
-void ToolStrip::on_key(KeyEvent& event) {
-    if (!focused_ || event.action != KeyAction::down) return;
+void ToolStrip::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (!arguments.handled) strip_key_down(arguments);
+}
+
+void ToolStrip::strip_key_down(KeyEventArgs& arguments) {
+    if (!focused_) return;
     std::optional<std::size_t> current = hot_index_;
     if (!current) current = next_interactive(items_.size() == 0U ? 0U : items_.size() - 1U, 1);
     if (!current) return;
@@ -942,25 +968,25 @@ void ToolStrip::on_key(KeyEvent& event) {
         next_key = PhysicalKey::left;
     }
     const std::uint32_t open_key = along_height ? PhysicalKey::right : PhysicalKey::down;
-    if (event.physical_key == previous_key || event.physical_key == next_key) {
+    if (arguments.physical_key == previous_key || arguments.physical_key == next_key) {
         const std::optional<std::size_t> next =
-            next_interactive(*current, event.physical_key == next_key ? 1 : -1);
+            next_interactive(*current, arguments.physical_key == next_key ? 1 : -1);
         if (next) focus_item(next);
-    } else if (event.physical_key == PhysicalKey::enter || event.physical_key == PhysicalKey::space) {
+    } else if (arguments.physical_key == PhysicalKey::enter || arguments.physical_key == PhysicalKey::space) {
         set_hot(current, ItemZone::main);
         if (item.kind == ToolStripItemKind::drop_down_button) {
             static_cast<void>(show_drop_down(item.stable_id));
         } else {
             click(*current);
         }
-    } else if (event.physical_key == open_key && has_menu(item.kind)) {
+    } else if (arguments.physical_key == open_key && has_menu(item.kind)) {
         static_cast<void>(show_drop_down(item.stable_id));
-    } else if (event.physical_key == PhysicalKey::escape) {
+    } else if (arguments.physical_key == PhysicalKey::escape) {
         close_drop_down();
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 void ToolStrip::on_focus_changed(bool focused) {

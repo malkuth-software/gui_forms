@@ -97,7 +97,6 @@ public:
     void scroll_control_into_view(const Control::Ptr& control);
 
     void arrange(Rect final_bounds) override;
-    void on_pointer(PointerEvent& event) override;
     void on_pointer_bubble(PointerEvent& event) override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
     bool on_semantic_child_action(std::string_view stable_id,
@@ -133,6 +132,23 @@ public:
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
 
 protected:
+    // The scroll bars' pointer handling, then the event.
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
+    // The scroll bars' own pointer handling, which the mouse raisers run
+    // before raising the event: a press, release or move on a bar (by
+    // arguments.action), or a wheel turn that scrolls. A derived control
+    // that handles first calls them from its raisers and raises the event
+    // through Control.
+    void scroll_pointer(MouseEventArgs& arguments);
+    // The same handling in the routed form, for a control whose own
+    // handling reads it.
+    void scroll_pointer(PointerEvent& event);
+    void scroll_pointer_left();
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     // Called after the retained position changes, including silent API writes
     // and layout clamping. This does not publish a public Scroll event.

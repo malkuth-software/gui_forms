@@ -194,12 +194,18 @@ public:
     }
 
     // Escape closes the overlay when nothing inside took it.
-    void on_key(KeyEvent& event) override { close_on_escape(event); }
+    void on_key_down(KeyEventArgs& arguments) override {
+        Control::on_key_down(arguments);
+        if (arguments.handled || arguments.physical_key != PhysicalKey::escape || pane_ == nullptr) return;
+        (*pane_).close_overlay();
+        arguments.handled = true;
+    }
     void on_key_bubble(KeyEvent& event) override { close_on_escape(event); }
 
-    void on_pointer(PointerEvent& event) override {
+    void on_mouse_down(MouseEventArgs& arguments) override {
         // A press on the overlay's own surface stays in the overlay.
-        if (event.action == PointerAction::down) event.handled = true;
+        arguments.handled = true;
+        Control::on_mouse_down(arguments);
     }
 
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
@@ -1125,64 +1131,73 @@ void NavigationPane::continue_grip_drag(Point local) {
     notify_state();
 }
 
-void NavigationPane::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::leave) {
-        set_hot({});
+void NavigationPane::on_mouse_leave() {
+    set_hot({});
+    Control::on_mouse_leave();
+}
+
+// The hot target follows the pointer's moves (the move that enters the
+// pane sets it); a captured grip drags.
+void NavigationPane::on_mouse_move(MouseEventArgs& arguments) {
+    if (grip_captured_) {
+        continue_grip_drag(arguments.location);
+        arguments.handled = true;
+    } else {
+        set_hot(target_at(layout(), arguments.location));
+    }
+    Control::on_mouse_move(arguments);
+}
+
+void NavigationPane::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) press(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void NavigationPane::press(MouseEventArgs& arguments) {
+    const Point local = arguments.location;
+    const Target target = target_at(layout(), local);
+    if (target.kind == TargetKind::none) return;
+    if (target.kind == TargetKind::configure) {
+        if (configure_menu_open()) {
+            close_configure_menu();
+        } else {
+            static_cast<void>(show_configure_menu(MenuOpenMode::pointer));
+        }
+        arguments.handled = true;
         return;
     }
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
-    const Layout placed = layout();
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
-        if (grip_captured_) {
-            continue_grip_drag(local);
-            event.handled = true;
-            return;
-        }
-        set_hot(target_at(placed, local));
-        return;
-    }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down) {
-        const Target target = target_at(placed, local);
-        if (target.kind == TargetKind::none) return;
-        if (target.kind == TargetKind::configure) {
-            if (configure_menu_open()) {
-                close_configure_menu();
-            } else {
-                static_cast<void>(show_configure_menu(MenuOpenMode::pointer));
-            }
-            event.handled = true;
-            return;
-        }
-        pressed_ = target;
-        if (target.kind == TargetKind::grip) begin_grip_drag(local);
+    pressed_ = target;
+    if (target.kind == TargetKind::grip) begin_grip_drag(local);
+    invalidate(Dirty::paint | Dirty::semantics);
+    arguments.handled = true;
+}
+
+void NavigationPane::on_mouse_up(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) release(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void NavigationPane::release(MouseEventArgs& arguments) {
+    const Target pressed = pressed_;
+    pressed_ = {};
+    if (grip_captured_) {
+        grip_captured_ = false;
         invalidate(Dirty::paint | Dirty::semantics);
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
-    if (event.action == PointerAction::up) {
-        const Target pressed = pressed_;
-        pressed_ = {};
-        if (grip_captured_) {
-            grip_captured_ = false;
-            invalidate(Dirty::paint | Dirty::semantics);
-            event.handled = true;
-            return;
+    invalidate(Dirty::paint | Dirty::semantics);
+    // A click is a press and a release on the same target.
+    const Target released = target_at(layout(), arguments.location);
+    if (pressed.kind != TargetKind::none && pressed == released) {
+        if (pressed.kind == TargetKind::tab) {
+            const std::optional<PagePosition> position = pages_.find(pressed.page);
+            if (position) select_page((*position).value, PageSelectionCause::pointer);
+        } else {
+            activate(pressed);
         }
-        invalidate(Dirty::paint | Dirty::semantics);
-        // A click is a press and a release on the same target.
-        const Target released = target_at(placed, local);
-        if (pressed.kind != TargetKind::none && pressed == released) {
-            if (pressed.kind == TargetKind::tab) {
-                const std::optional<PagePosition> position = pages_.find(pressed.page);
-                if (position) select_page((*position).value, PageSelectionCause::pointer);
-            } else {
-                activate(pressed);
-            }
-        }
-        event.handled = pressed.kind != TargetKind::none;
     }
+    arguments.handled = pressed.kind != TargetKind::none;
 }
 
 // A press outside the pane while the overlay is open closes it; the press goes
@@ -1308,13 +1323,14 @@ void NavigationPane::move_along_tabs(const Layout& placed, int direction, bool t
     set_stop(target);
 }
 
-void NavigationPane::on_key(KeyEvent& event) {
-    if (!focused_ || event.action != KeyAction::down || !effectively_enabled()) return;
-    const std::uint32_t key = event.physical_key;
+void NavigationPane::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !focused_ || !effectively_enabled()) return;
+    const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::escape) {
         if (!overlay_open_) return;
         close_overlay();
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
     const Layout placed = layout();
@@ -1335,7 +1351,7 @@ void NavigationPane::on_key(KeyEvent& event) {
         set_stop(all[*position]);
     }
     const Target current = all[*position];
-    const bool shift = has_modifier(event.modifiers, Modifier::shift);
+    const bool shift = has_modifier(arguments.modifiers, Modifier::shift);
     if (key == PhysicalKey::tab) {
         // Tab moves through the stops and leaves the pane after the last
         // (or, with Shift, before the first).
@@ -1363,7 +1379,7 @@ void NavigationPane::on_key(KeyEvent& event) {
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 void NavigationPane::on_focus_changed(bool focused) {

@@ -1610,7 +1610,7 @@ std::size_t TreeListView::drop_position(const Layout& placed, std::size_t column
     return result;
 }
 
-void TreeListView::on_pointer(PointerEvent& event) {
+void TreeListView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     const Rect absolute = absolute_bounds();
     const Point drawn{event.position.x - absolute.x, event.position.y - absolute.y};
@@ -1748,6 +1748,48 @@ void TreeListView::on_pointer(PointerEvent& event) {
     }
 }
 
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void TreeListView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void TreeListView::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void TreeListView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void TreeListView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void TreeListView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
 std::optional<std::size_t> TreeListView::enabled_row_from(std::size_t row, std::ptrdiff_t step) const {
     std::ptrdiff_t position = static_cast<std::ptrdiff_t>(row);
     const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(shown_count());
@@ -1817,7 +1859,7 @@ void TreeListView::step_out(std::size_t row) {
     if (parent) choose_row(*parent);
 }
 
-void TreeListView::on_key(KeyEvent& event) {
+void TreeListView::handle_key(KeyEvent& event) {
     if (!focused_ || !effectively_enabled() || event.action != KeyAction::down) return;
     const Control::Ptr lifetime = shared_from_this();
     if (event.physical_key == PhysicalKey::escape && resizing_column_) {
@@ -1887,6 +1929,17 @@ void TreeListView::on_key(KeyEvent& event) {
     event.handled = true;
 }
 
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void TreeListView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
+}
+
 // A repeated first letter steps to the next match; a longer prefix starts
 // its search at the current row. Only rows (shown nodes) are searched.
 void TreeListView::type_select(std::string_view text) {
@@ -1921,7 +1974,7 @@ void TreeListView::on_text_input(TextInputEvent& event) {
         !validate_utf8(event.text_utf8).valid()) {
         return;
     }
-    // Space belongs to on_key; it never starts a search.
+    // Space belongs to handle_key; it never starts a search.
     if (event.text_utf8 == " " && type_prefix_.empty()) return;
     // The asterisk expands everything under the current node, as in Windows
     // Forms' TreeView (the platform reports it as text: there is no keypad

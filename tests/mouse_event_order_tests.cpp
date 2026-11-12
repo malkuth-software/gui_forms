@@ -110,8 +110,8 @@ void test_double_click_on_the_second_release() {
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 2U);
     require(log == Log{"down:2"}, "the second press raises MouseDown only; DoubleClick waits for the release");
     fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 2U);
-    require(log == Log{"down:2", "double_click", "mouse_double_click:2", "up:2", "capture_changed"},
-            "the second release raises DoubleClick and MouseDoubleClick before MouseUp");
+    require(log == Log{"down:2", "up:2", "double_click", "mouse_double_click:2", "capture_changed"},
+            "the second release raises MouseUp (the target phase), then DoubleClick and MouseDoubleClick");
 }
 
 void test_second_press_released_elsewhere() {
@@ -133,7 +133,7 @@ void test_press_counted_beyond_two() {
     const Subscriptions subscriptions(*fixture.left, log);
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 3U);
     fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 3U);
-    require(log == Log{"down:3", "double_click", "mouse_double_click:3", "up:3", "capture_changed"},
+    require(log == Log{"down:3", "up:3", "double_click", "mouse_double_click:3", "capture_changed"},
             "a third press (macOS and Linux count on) is a double-click's press, carrying its count");
 }
 
@@ -169,8 +169,8 @@ void test_button_activation_between_mouse_click_and_up() {
     log.clear();
     static_cast<void>(window.dispatch_pointer(down));
     static_cast<void>(window.dispatch_pointer(up));
-    require(log == Log{"down:1", "click", "mouse_click:1", "clicked", "up:1", "capture_changed"},
-            "a button's activation (clicked) follows Click and MouseClick and precedes MouseUp");
+    require(log == Log{"down:1", "up:1", "click", "mouse_click:1", "clicked", "capture_changed"},
+            "a button's activation (clicked) follows MouseUp (the target phase), Click and MouseClick");
 }
 
 void test_styles_leave_the_other_events() {

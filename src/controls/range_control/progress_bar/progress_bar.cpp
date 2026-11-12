@@ -245,10 +245,34 @@ void ProgressBar::written(const decltype(effect_input)&) {
     invalidate(Dirty::paint);
 }
 
-void ProgressBar::on_pointer(PointerEvent& event) {
-    // The part is the bar's bounds: its origin is the bar's absolute origin.
+// The effect's input: the part is the bar's bounds, whose origin is the
+// bar's absolute origin. The move that enters the bar marks the pointer
+// inside.
+void ProgressBar::note_effect_pointer(const PointerEvent& event) {
     const Rect absolute = absolute_bounds();
     if (effect_instance_.note_pointer(event, Point{absolute.x, absolute.y})) invalidate(animated_extent());
+}
+
+void ProgressBar::on_mouse_down(MouseEventArgs& arguments) {
+    note_effect_pointer(pointer_event_of(arguments));
+    RangeControl::on_mouse_down(arguments);
+}
+
+void ProgressBar::on_mouse_up(MouseEventArgs& arguments) {
+    note_effect_pointer(pointer_event_of(arguments));
+    RangeControl::on_mouse_up(arguments);
+}
+
+void ProgressBar::on_mouse_move(MouseEventArgs& arguments) {
+    note_effect_pointer(pointer_event_of(arguments));
+    RangeControl::on_mouse_move(arguments);
+}
+
+void ProgressBar::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    note_effect_pointer(leave);
+    RangeControl::on_mouse_leave();
 }
 
 void ProgressBar::write_view(const decltype(motion_policy)&, MotionPolicy incoming) {

@@ -174,6 +174,58 @@ static void* class_call_off_thread(void* argument) {
     return NULL;
 }
 
+/* An interaction raiser, which the kit cannot raise by input: its base,
+ * called directly on an object made from table (which has no entries), runs
+ * no entry and the subscribers of its event (interaction, or NULL for a
+ * raiser with no event yet), or refuses with expected. */
+static void class_run_direct(gf_kit* kit, const gf_class_header* table, const char* label, gf_class_id segment,
+                             uint32_t entry, const char* interaction, const char* event_name, gf_status expected) {
+    char name[160];
+    gf_base_raiser raiser = NULL;
+    snprintf(name, sizeof(name), "%s: base_raiser", label);
+    gf_kit_status(kit, (*kit).classes.base_raiser(segment, entry, &raiser), GF_STATUS_OK, name);
+    if (raiser == NULL) {
+        return;
+    }
+    class_trace trace;
+    memset(&trace, 0, sizeof(trace));
+    trace.kit = kit;
+    gf_object object = 0u;
+    snprintf(name, sizeof(name), "%s: create", label);
+    gf_kit_status(kit, (*kit).classes.create(table, gf_kit_text("kit.classes.direct-case"), &trace, &object),
+                  GF_STATUS_OK, name);
+    if (object == 0u) {
+        return;
+    }
+    gf_subscription subscription = 0u;
+    if (interaction != NULL) {
+        const gf_callback callback = gf_kit_callback(&class_subscriber, NULL, &trace);
+        snprintf(name, sizeof(name), "%s: subscribe %s", label, interaction);
+        gf_kit_status(kit, (*kit).events.subscribe(object, gf_kit_text(interaction), &callback, &subscription),
+                      GF_STATUS_OK, name);
+    }
+    gf_event event;
+    memset(&event, 0, sizeof(event));
+    event.struct_size = (uint32_t)sizeof(event);
+    event.sender = object;
+    event.name = gf_kit_text(event_name);
+    snprintf(name, sizeof(name), "%s: a direct base", label);
+    gf_kit_status(kit, raiser(object, &event), expected, name);
+    const char* marks = expected == GF_STATUS_OK && interaction != NULL ? "S" : "";
+    snprintf(name, sizeof(name), "%s: a direct base runs %s and no entry (got %s)", label,
+             marks[0] != '\0' ? "the subscribers" : "no subscriber", trace.marks);
+    gf_kit_check(kit, trace.entries == 0u && strcmp(trace.marks, marks) == 0, name);
+    if (subscription != 0u) {
+        (void)(*kit).events.disconnect(subscription);
+    }
+    snprintf(name, sizeof(name), "%s: release", label);
+    gf_kit_status(kit, (*kit).objects.release(object), GF_STATUS_OK, name);
+    uint64_t invoked = 0u;
+    (void)(*kit).dispatch.run_pending(&invoked);
+    snprintf(name, sizeof(name), "%s: release(instance) once", label);
+    gf_kit_check(kit, trace.releases == 1u, name);
+}
+
 /* Entries with no case yet:
  * - MaskedTextBox::on_mask_changed: no derivable class reaches MaskedTextBox yet
  * - ComboBox::on_drop_down_style_changed: no derivable class reaches ComboBox yet
@@ -613,6 +665,396 @@ static void class_case_17(gf_kit* kit) {
     class_run_case(kit, &table.header, "RangeControl RangeControl::on_value_changed", "value", &first, &second, "value_changed");
 }
 
+/* ButtonBase Control::on_change_ui_cues: a direct base. */
+static void class_direct_0(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_change_ui_cues", GF_CLASS_CONTROL, 13u, NULL, "change_ui_cues",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_click: a direct base. */
+static void class_direct_1(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_click", GF_CLASS_CONTROL, 14u, "click", "click",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_double_click: a direct base. */
+static void class_direct_2(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_double_click", GF_CLASS_CONTROL, 15u, "double_click", "double_click",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_drag_drop: a direct base. */
+static void class_direct_3(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_drag_drop", GF_CLASS_CONTROL, 16u, NULL, "drag_drop",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_drag_enter: a direct base. */
+static void class_direct_4(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_drag_enter", GF_CLASS_CONTROL, 17u, NULL, "drag_enter",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_drag_leave: a direct base. */
+static void class_direct_5(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_drag_leave", GF_CLASS_CONTROL, 18u, NULL, "drag_leave",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_drag_over: a direct base. */
+static void class_direct_6(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_drag_over", GF_CLASS_CONTROL, 19u, NULL, "drag_over",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_enter: a direct base. */
+static void class_direct_7(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_enter", GF_CLASS_CONTROL, 20u, NULL, "enter",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_got_focus: a direct base. */
+static void class_direct_8(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_got_focus", GF_CLASS_CONTROL, 21u, "focus_observed", "got_focus",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_help_requested: a direct base. */
+static void class_direct_9(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_help_requested", GF_CLASS_CONTROL, 22u, "help_requested", "help_requested",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_key_down: a direct base. */
+static void class_direct_10(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_key_down", GF_CLASS_CONTROL, 23u, "key_down", "key_down",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_key_press: a direct base. */
+static void class_direct_11(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_key_press", GF_CLASS_CONTROL, 24u, "key_press", "key_press",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_key_up: a direct base. */
+static void class_direct_12(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_key_up", GF_CLASS_CONTROL, 25u, "key_up", "key_up",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_layout: a direct base. */
+static void class_direct_13(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_layout", GF_CLASS_CONTROL, 26u, NULL, "layout",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_leave: a direct base. */
+static void class_direct_14(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_leave", GF_CLASS_CONTROL, 27u, NULL, "leave",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_lost_focus: a direct base. */
+static void class_direct_15(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_lost_focus", GF_CLASS_CONTROL, 28u, "focus_observed", "lost_focus",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_mouse_capture_changed: a direct base. */
+static void class_direct_16(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_mouse_capture_changed", GF_CLASS_CONTROL, 29u, "mouse_capture_changed", "mouse_capture_changed",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_mouse_click: a direct base. */
+static void class_direct_17(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_mouse_click", GF_CLASS_CONTROL, 30u, "mouse_click", "mouse_click",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_mouse_double_click: a direct base. */
+static void class_direct_18(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_mouse_double_click", GF_CLASS_CONTROL, 31u, "mouse_double_click", "mouse_double_click",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_mouse_down: a direct base. */
+static void class_direct_19(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_mouse_down", GF_CLASS_CONTROL, 32u, "mouse_down", "mouse_down",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_mouse_enter: a direct base. */
+static void class_direct_20(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_mouse_enter", GF_CLASS_CONTROL, 33u, "mouse_enter", "mouse_enter",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_mouse_hover: a direct base. */
+static void class_direct_21(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_mouse_hover", GF_CLASS_CONTROL, 34u, "mouse_hover", "mouse_hover",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_mouse_leave: a direct base. */
+static void class_direct_22(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_mouse_leave", GF_CLASS_CONTROL, 35u, "mouse_leave", "mouse_leave",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_mouse_move: a direct base. */
+static void class_direct_23(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_mouse_move", GF_CLASS_CONTROL, 36u, "mouse_move", "mouse_move",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_mouse_up: a direct base. */
+static void class_direct_24(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_mouse_up", GF_CLASS_CONTROL, 37u, "mouse_up", "mouse_up",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_mouse_wheel: a direct base. */
+static void class_direct_25(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_mouse_wheel", GF_CLASS_CONTROL, 38u, "mouse_wheel", "mouse_wheel",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_paint_background: a direct base. */
+static void class_direct_26(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_paint_background", GF_CLASS_CONTROL, 39u, NULL, "paint_background",
+                     GF_STATUS_INVALID_ARGUMENT);
+}
+
+/* ButtonBase Control::on_preview_key_down: a direct base. */
+static void class_direct_27(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_preview_key_down", GF_CLASS_CONTROL, 40u, "preview_key_down", "preview_key_down",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_validated: a direct base. */
+static void class_direct_28(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_validated", GF_CLASS_CONTROL, 41u, "validated", "validated",
+                     GF_STATUS_OK);
+}
+
+/* ButtonBase Control::on_validating: a direct base. */
+static void class_direct_29(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_validating", GF_CLASS_CONTROL, 42u, "validating", "validating",
+                     GF_STATUS_OK);
+}
+
 /* The refusals, base_raiser, a direct base call and base from another thread. */
 static void class_refusals(gf_kit* kit) {
     gf_control_hooks segment;
@@ -718,5 +1160,35 @@ void gf_kit_classes(gf_kit* kit) {
     class_case_15(kit);
     class_case_16(kit);
     class_case_17(kit);
+    class_direct_0(kit);
+    class_direct_1(kit);
+    class_direct_2(kit);
+    class_direct_3(kit);
+    class_direct_4(kit);
+    class_direct_5(kit);
+    class_direct_6(kit);
+    class_direct_7(kit);
+    class_direct_8(kit);
+    class_direct_9(kit);
+    class_direct_10(kit);
+    class_direct_11(kit);
+    class_direct_12(kit);
+    class_direct_13(kit);
+    class_direct_14(kit);
+    class_direct_15(kit);
+    class_direct_16(kit);
+    class_direct_17(kit);
+    class_direct_18(kit);
+    class_direct_19(kit);
+    class_direct_20(kit);
+    class_direct_21(kit);
+    class_direct_22(kit);
+    class_direct_23(kit);
+    class_direct_24(kit);
+    class_direct_25(kit);
+    class_direct_26(kit);
+    class_direct_27(kit);
+    class_direct_28(kit);
+    class_direct_29(kit);
     class_refusals(kit);
 }

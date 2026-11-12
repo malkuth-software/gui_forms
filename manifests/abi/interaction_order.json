@@ -1,0 +1,58 @@
+{
+  "format": 1,
+  "rules": "ADR-003 amendment 2026-11-12",
+  "sequences": {
+    "click": {
+      "steps": [
+        {"event": "Control.pointer_preview_observed", "kind": "physical"},
+        {"event": "Control.mouse_down", "kind": "physical"},
+        {"event": "Control.mouse_move", "kind": "repeated"},
+        {"event": "Control.mouse_up", "kind": "physical"},
+        {"event": "Control.click", "kind": "derived"},
+        {"event": "Control.mouse_click", "kind": "derived"},
+        {"event": "Control.mouse_capture_changed", "kind": "deferred"}
+      ],
+      "cancelled_by": {"event": "Control.mouse_up", "field": "suppress_click"},
+      "dropped_when": ["control disposed", "modal opened", "capture lost"],
+      "note": "a primary click then runs on_activate; mouse_capture_changed ends a primary press"
+    },
+    "double_click": {
+      "steps": [
+        {"event": "Control.pointer_preview_observed", "kind": "physical"},
+        {"event": "Control.mouse_down", "kind": "physical"},
+        {"event": "Control.mouse_move", "kind": "repeated"},
+        {"event": "Control.mouse_up", "kind": "physical"},
+        {"event": "Control.double_click", "kind": "derived"},
+        {"event": "Control.mouse_double_click", "kind": "derived"},
+        {"event": "Control.mouse_capture_changed", "kind": "deferred"}
+      ],
+      "cancelled_by": {"event": "Control.mouse_up", "field": "suppress_click"},
+      "dropped_when": ["control disposed", "modal opened", "capture lost"],
+      "note": "the second press of a double-click (after a click sequence): no click, mouse_click or on_activate"
+    },
+    "key": {
+      "steps": [
+        {"event": "Control.preview_key_down", "kind": "physical"},
+        {"event": "Window.key_down", "kind": "physical"},
+        {"event": "Control.key_down", "kind": "physical"},
+        {"event": "Window.key_press", "kind": "derived"},
+        {"event": "Control.key_press", "kind": "derived"},
+        {"event": "Window.key_up", "kind": "physical"},
+        {"event": "Control.key_up", "kind": "physical"}
+      ],
+      "cancelled_by": {"event": "Control.key_down", "field": "suppress_key_press"},
+      "dropped_when": ["control disposed", "modal opened", "capture lost"],
+      "note": "suppress_key_press on the window's or the control's key_down cancels key_press and the text, except an IME commit"
+    },
+    "keyboard_activation": {
+      "steps": [
+        {"event": "Control.preview_key_down", "kind": "physical"},
+        {"event": "Control.key_down", "kind": "physical"},
+        {"event": "Control.key_up", "kind": "physical"}
+      ],
+      "cancelled_by": {"event": "Control.key_down", "field": "suppress_key_press"},
+      "dropped_when": ["control disposed", "modal opened", "capture lost"],
+      "note": "Space or Enter on a button: the activation (its Click) follows key_up, with no mouse events"
+    }
+  }
+}

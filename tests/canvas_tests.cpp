@@ -1,5 +1,6 @@
 #include "gui_forms/canvas.hpp"
 #include "gui_forms/window.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <algorithm>
 #include <array>
@@ -59,10 +60,10 @@ public:
 };
 
 // A consumer canvas owns tools and overlays while the base keeps bitmap lifetime.
-class ToolCanvas final : public RasterCanvas {
+class ToolCanvas final : public gui_forms::tests::RoutedInputProbe<RasterCanvas> {
 public:
-    explicit ToolCanvas(StableId id) : RasterCanvas(std::move(id)) {}
-    void on_pointer(PointerEvent& event) override {
+    explicit ToolCanvas(StableId id) : gui_forms::tests::RoutedInputProbe<RasterCanvas>(std::move(id)) {}
+    void routed_pointer(PointerEvent& event) override {
         ++pointer_events;
         if (event.action == PointerAction::down) set_pointer_capture(true);
         if (event.action == PointerAction::up) set_pointer_capture(false);

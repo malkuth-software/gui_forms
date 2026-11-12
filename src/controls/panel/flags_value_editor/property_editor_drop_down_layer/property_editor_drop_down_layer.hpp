@@ -9,8 +9,10 @@ public:
     explicit PropertyEditorDropDownLayer(StableId stable_id);
 
     [[nodiscard]] Event<>& dismissed() noexcept { return dismissed_; }
-    void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
+
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
 
 private:
     Event<> dismissed_;

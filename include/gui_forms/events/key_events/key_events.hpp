@@ -14,7 +14,10 @@
 //   4. the window's command keys (ProcessCmdKey: accelerators);
 //   5. key_down (or key_up) on the window (Windows Forms' KeyPreview);
 //   6. the controls' internal preview route, then key_down (or key_up) on
-//      the focused control, then its own key handling and the bubble route;
+//      the focused control (Control::on_key_down or on_key_up: its base
+//      raises the event, and a control's own key handling runs in its
+//      override after the base, unless a subscriber set handled), then the
+//      bubble route;
 //   7. key_press with the text the key produced (TextInputEvent), on the
 //      window and then the focused control, unless a key_down set
 //      suppress_key_press; text still being composed (an input method's
@@ -53,6 +56,22 @@ struct GUI_FORMS_API KeyEventArgs final {
     bool handled{};
     bool suppress_key_press{};
 };
+
+// The routed key event a KeyEventArgs carries, for code that takes the
+// routed form (an editing engine, a key command table): action is the
+// raiser's (down for on_key_down, up for on_key_up); the phase is target.
+// The caller copies handled back.
+[[nodiscard]] inline KeyEvent key_event_of(const KeyEventArgs& arguments, KeyAction action) noexcept {
+    KeyEvent event{};
+    event.action = action;
+    event.physical_key = arguments.physical_key;
+    event.modifiers = arguments.modifiers;
+    event.phase = EventPhase::target;
+    event.repeat = arguments.repeat;
+    event.handled = arguments.handled;
+    event.scan_code = arguments.scan_code;
+    return event;
+}
 
 // Windows Forms' PreviewKeyDownEventArgs: raised on the focused control
 // before anything else sees a key down. A handler sets is_input_key to

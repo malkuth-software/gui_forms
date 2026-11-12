@@ -19,6 +19,7 @@
 #include "gui_forms/window/window.hpp"
 #include "../src/core/damage/device_damage/device_damage.hpp"
 #include "support/named_callbacks.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <array>
 #include <cstdlib>
@@ -96,9 +97,9 @@ private:
     bool boundary_reached_{};
 };
 
-class ReplayPressureControl final : public Control {
+class ReplayPressureControl final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit ReplayPressureControl(StableId id) : Control(std::move(id)) {}
+    explicit ReplayPressureControl(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
 
     void set_value(std::uint32_t value) {
         if (value_ == value) return;
@@ -116,7 +117,7 @@ public:
             Color::rgba(static_cast<std::uint8_t>(value_ & 0xffU), 70, 100));
     }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         const PaintLeaseState state = (*window()).paint_lease_snapshot().state;
         callback_during_lease |= state == PaintLeaseState::rendering ||
             state == PaintLeaseState::rendering_dirty;
@@ -125,7 +126,7 @@ public:
         invalidate(invalidation::paint_only);
     }
 
-    void on_key(KeyEvent& event) override {
+    void routed_key(KeyEvent& event) override {
         const PaintLeaseState state = (*window()).paint_lease_snapshot().state;
         callback_during_lease |= state == PaintLeaseState::rendering ||
             state == PaintLeaseState::rendering_dirty;
@@ -203,9 +204,9 @@ public:
     std::uint64_t paint_calls{};
 };
 
-class DeferredInputPaintControl final : public Control {
+class DeferredInputPaintControl final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit DeferredInputPaintControl(StableId id) : Control(std::move(id)) {}
+    explicit DeferredInputPaintControl(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
 
     void on_paint(Painter& painter, Rect damage) override {
         ++paint_calls;
@@ -264,7 +265,7 @@ public:
         painter.fill_rect(damage, Color::rgba(40, 70, 100));
     }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         callback_during_paint |= in_application_paint;
         switch (event.action) {
         case PointerAction::enter:
@@ -283,7 +284,7 @@ public:
         event.handled = true;
     }
 
-    void on_key(KeyEvent& event) override {
+    void routed_key(KeyEvent& event) override {
         callback_during_paint |= in_application_paint;
         delivered.emplace_back("key");
         if (throw_on_key) {

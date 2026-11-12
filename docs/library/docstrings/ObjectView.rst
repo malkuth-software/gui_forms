@@ -160,10 +160,12 @@ select_all
 arrange
     Lays out the view, keeping the first item in view when the number of
     icon columns changes.
-on_pointer
-    Handles the pointer input described under Notes. The window calls it.
-on_key
-    Handles the keyboard input described under Notes. The window calls it.
+on_mouse_down
+    Handles the pointer input described under Notes, with the other mouse
+    raisers the class overrides, then raises the event. The window calls it.
+on_key_down
+    Raises the event, then handles a key its subscribers left unhandled as
+    described under Notes. The window calls it.
 on_text_input
     Selects by typed prefix, as described under Notes. The window calls
     it.

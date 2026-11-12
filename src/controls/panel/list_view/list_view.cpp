@@ -2237,7 +2237,7 @@ void ListView::request_column_click(std::size_t column) {
     column_click_.emit(click);
 }
 
-void ListView::on_pointer(PointerEvent& event) {
+void ListView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     const Rect absolute = absolute_bounds();
     const Point drawn{event.position.x - absolute.x, event.position.y - absolute.y};
@@ -2275,7 +2275,7 @@ void ListView::on_pointer(PointerEvent& event) {
         // view as the commit's handlers left it.
         end_label_edit();
         if (!is_alive() || label_edit_index_) return;
-        on_pointer(event);
+        handle_pointer(event);
         return;
     }
     const Layout placed = layout();
@@ -2379,6 +2379,48 @@ void ListView::on_pointer(PointerEvent& event) {
     }
 }
 
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void ListView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void ListView::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void ListView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void ListView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void ListView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
 std::optional<std::size_t> ListView::navigation_target(std::uint32_t key, std::size_t from,
                                                        const Layout& placed) const {
     if (placed.grouped) return grouped_navigation_target(key, from, placed);
@@ -2456,7 +2498,7 @@ void ListView::on_key_preview(KeyEvent& event) {
     }
 }
 
-void ListView::on_key(KeyEvent& event) {
+void ListView::handle_key(KeyEvent& event) {
     if (!focused_ || !effectively_enabled() || event.action != KeyAction::down) return;
     // A key ends a pending slow click.
     cancel_label_click();
@@ -2527,6 +2569,17 @@ void ListView::on_key(KeyEvent& event) {
     event.handled = true;
 }
 
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void ListView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
+}
+
 void ListView::type_select(std::string_view text) {
     const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
     if (now - last_type_time_ > collection_detail::type_timeout) type_prefix_.clear();
@@ -2557,7 +2610,7 @@ void ListView::on_text_input(TextInputEvent& event) {
         !validate_utf8(event.text_utf8).valid()) {
         return;
     }
-    // Space belongs to on_key (check or select); it never starts a search.
+    // Space belongs to handle_key (check or select); it never starts a search.
     if (event.text_utf8 == " " && type_prefix_.empty()) return;
     type_select(event.text_utf8);
     event.handled = true;

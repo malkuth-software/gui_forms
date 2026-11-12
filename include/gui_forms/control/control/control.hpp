@@ -72,6 +72,7 @@ class PropertyLink;
 struct HelpRequestEvent;
 
 namespace detail {
+class ControlInputAccess;
 class DisplayChunk;
 class KeptResolutions;
 // The control's kept cascade results (src/core/theme/theme/kept_resolutions.hpp).
@@ -170,6 +171,15 @@ struct GUI_FORMS_API OwnerDecorationRecipe final {
                left_value.rotation_degrees == right_value.rotation_degrees &&
                left_value.border_edges == right_value.border_edges;
     }
+};
+
+// What Control::on_paint_background receives (Windows Forms'
+// PaintEventArgs for OnPaintBackground): the painter the window records the
+// control into and the local area being painted. Both are borrowed for the
+// call; the painter is valid only until the raiser returns.
+struct GUI_FORMS_API PaintEventArgs final {
+    Painter& painter;
+    Rect local_damage{};
 };
 
 enum class AutoValidate : std::int8_t {
@@ -854,14 +864,14 @@ public:
     // pointer; MouseCaptureChanged is raised on the control losing the
     // capture. The events are kept in a record made by the first accessor
     // called, so a control nobody listens to stores none.
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_down() { return mouse_events().down; }
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_up() { return mouse_events().up; }
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_move() { return mouse_events().move; }
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_wheel() { return mouse_events().wheel; }
-    [[nodiscard]] Event<>& mouse_enter() { return mouse_events().enter; }
-    [[nodiscard]] Event<>& mouse_hover() { return mouse_events().hover; }
-    [[nodiscard]] Event<>& mouse_leave() { return mouse_events().leave; }
-    [[nodiscard]] Event<>& mouse_capture_changed() { return mouse_events().capture_changed; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_down() { return mouse_events().mouse_down; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_up() { return mouse_events().mouse_up; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_move() { return mouse_events().mouse_move; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_wheel() { return mouse_events().mouse_wheel; }
+    [[nodiscard]] Event<>& mouse_enter() { return mouse_events().mouse_enter; }
+    [[nodiscard]] Event<>& mouse_hover() { return mouse_events().mouse_hover; }
+    [[nodiscard]] Event<>& mouse_leave() { return mouse_events().mouse_leave; }
+    [[nodiscard]] Event<>& mouse_capture_changed() { return mouse_events().mouse_capture_changed; }
     [[nodiscard]] Event<>& click() { return mouse_events().click; }
     [[nodiscard]] Event<const MouseEventArgs&>& mouse_click() { return mouse_events().mouse_click; }
     [[nodiscard]] Event<>& double_click() { return mouse_events().double_click; }
@@ -1069,11 +1079,12 @@ public:
     [[nodiscard]] virtual ResizeAxes layout_resize_response() const noexcept;
     [[nodiscard]] virtual bool hit_test_local(Point local_point) const;
 
+    // The pointer and key routes' preview (root to target) and bubble
+    // (target to root) phases. The target phase is the interaction raisers
+    // (on_mouse_down, on_key_down and the rest, below).
     virtual void on_pointer_preview(PointerEvent& event);
-    virtual void on_pointer(PointerEvent& event);
     virtual void on_pointer_bubble(PointerEvent& event);
     virtual void on_key_preview(KeyEvent& event);
-    virtual void on_key(KeyEvent& event);
     virtual void on_key_bubble(KeyEvent& event);
     virtual void on_text_input(TextInputEvent& event);
     // Dialog characters are routed by Window only after the focused key route
@@ -1250,6 +1261,112 @@ protected:
     virtual void on_right_to_left_changed();
     virtual void on_tab_index_changed();
     virtual void on_tab_stop_changed();
+
+    // The interaction raisers (Windows Forms' OnClick, OnMouseDown, OnKeyDown
+    // and the rest; projects:desks/coordinator/ON_HOOKS_PLAN.md, step 4). The
+    // window calls each one on the UI thread at a fixed point of the event's
+    // dispatch, so subscribers see the order the event headers state
+    // (mouse_events.hpp, key_events.hpp). The base raises the event; an
+    // override places its code before or after the base call, and one that
+    // does not call the base keeps the event from its subscribers. A raiser
+    // is called whether or not anything subscribes; MouseHover is the
+    // exception: the window arms its hover timer only for a control whose
+    // MouseHover has a subscriber or a rule, so on_mouse_hover runs only
+    // then.
+    //
+    // The mouse. on_mouse_down, on_mouse_move, on_mouse_wheel and
+    // on_mouse_up are the target phase of the pointer route: they run on
+    // the target after the preview route, and setting handled ends the
+    // route there (no bubble). A control's own pointer handling runs in its
+    // override before the base call, so the subscribers see the state it
+    // left; the window's rules for MouseDown and MouseUp run in the base,
+    // before the subscribers, and a rule that consumes one keeps it from
+    // them only. After the route of a release over the control the same
+    // button pressed: on_click and on_mouse_click (or on_double_click and
+    // on_mouse_double_click), whose rules the window offers first. The
+    // owner's input order (ADR-003 amendment, 2026-11-12) differs from
+    // Windows Forms, which raises MouseUp last: physical events come first
+    // (rule 1), so on_mouse_up comes before on_click; the derived events
+    // follow on the same target only (rule 2); a MouseUp that sets
+    // suppress_click cancels on_click, on_mouse_click and on_activate
+    // (rule 3; handled only ends the route, so a control's own release
+    // handling keeps its clicks); at on_mouse_up the button is up and the
+    // capture released
+    // (rule 4); and when a handler disposes the control, opens a modal
+    // window or layer, or the capture is lost, the sequence's remaining
+    // derived events are dropped (rule 5). The second press of a
+    // double-click raises on_double_click and on_mouse_double_click only.
+    // on_mouse_enter and on_mouse_leave follow the pointer (the window's
+    // hover tracking, not the route); on_mouse_capture_changed runs on the
+    // control losing the capture, after the release's on_click.
+    virtual void on_mouse_down(MouseEventArgs& arguments);
+    virtual void on_mouse_up(MouseEventArgs& arguments);
+    virtual void on_mouse_move(MouseEventArgs& arguments);
+    virtual void on_mouse_wheel(MouseEventArgs& arguments);
+    virtual void on_mouse_enter();
+    virtual void on_mouse_hover();
+    virtual void on_mouse_leave();
+    virtual void on_mouse_capture_changed();
+    virtual void on_click();
+    virtual void on_double_click();
+    virtual void on_mouse_click(MouseEventArgs& arguments);
+    virtual void on_mouse_double_click(MouseEventArgs& arguments);
+    // The keys, on the focused control. on_preview_key_down runs first for
+    // a key down; setting is_input_key keeps the key from dialog
+    // processing. on_key_down and on_key_up are the target phase of the
+    // key route, after the window's own key_down and key_up and the preview
+    // route: the base raises the event and turns suppress_key_press into
+    // handled; a control's own key handling runs in its override after the
+    // base call, and only when handled is still clear, so a subscriber that
+    // sets handled keeps the key from the control as well as from the
+    // bubble route. on_key_press runs for the committed text a key
+    // produced, after the window's key_press; suppress_key_press on a
+    // key_down cancels it and the text and handled does not (input order
+    // rule 3, as in Windows Forms), except for an IME's commit while a
+    // composition is open. A key_up the window raises
+    // because it lost activation (released_by_deactivation) also runs
+    // on_key_up; a control's handling skips it.
+    virtual void on_preview_key_down(PreviewKeyDownEventArgs& arguments);
+    virtual void on_key_down(KeyEventArgs& arguments);
+    virtual void on_key_press(KeyPressEventArgs& arguments);
+    virtual void on_key_up(KeyEventArgs& arguments);
+    // Focus. When the control gains focus: on_enter, on_focus_changed(true),
+    // then on_got_focus, whose base raises focus_observed(true). When it
+    // loses focus: on_focus_changed(false), on_lost_focus (whose base
+    // raises focus_observed(false)), then on_leave. Validation
+    // (on_validating, on_validated) runs before the change, from
+    // perform_validation. on_enter and on_leave run on the focused control
+    // only: a container whose subtree gains or loses focus is not told yet,
+    // and they raise no event yet.
+    virtual void on_enter();
+    virtual void on_got_focus();
+    virtual void on_lost_focus();
+    virtual void on_leave();
+    virtual void on_validating(ControlValidationEvent& event);
+    virtual void on_validated();
+    // HelpProvider's request for this control (F1 or the help button),
+    // before the provider's own help_requested.
+    virtual void on_help_requested(HelpRequestEvent& request);
+    // A drag over a control that allows drops, by its action, after
+    // on_drag has seen it at the target phase. They raise no event yet;
+    // an override may set accepted_effect and handled as on_drag does.
+    virtual void on_drag_enter(DragEvent& event);
+    virtual void on_drag_over(DragEvent& event);
+    virtual void on_drag_drop(DragEvent& event);
+    virtual void on_drag_leave(DragEvent& event);
+    // Runs in the window's layout pass right after arrange placed the
+    // control and its children, under the same rules as arrange. It raises
+    // no event yet.
+    virtual void on_layout();
+    // Paints the control's background, before its owned decorations and
+    // on_paint: the base paints the back colour and the authored surface.
+    // An override that does not call the base leaves the background
+    // unpainted. No event.
+    virtual void on_paint_background(PaintEventArgs& arguments);
+    // The window's focus cue appeared (visible) or went away, on the
+    // focused control after on_focus_cue_changed (Windows Forms'
+    // OnChangeUICues). It raises no event yet.
+    virtual void on_change_ui_cues(bool visible);
 
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     // Stops the application colours an ancestor authored (back_color and
@@ -1478,6 +1595,9 @@ private:
     friend detail::KeptResolutions& detail::kept_resolutions_of(const Control& control);
     friend class Window;
     friend class SurfaceRoot;
+    // Raises the target phase's raisers for an event handed to one control
+    // (src/core/control/control/control_input_access.hpp).
+    friend class detail::ControlInputAccess;
     friend class ContentRegion;
     // A content region's first pending item since its last gather: asks the
     // window to gather this control's regions after its next layout. False,
@@ -1925,14 +2045,14 @@ private:
     // The WinForms mouse events (mouse_down and the rest), made on first
     // access; null while nobody has asked for one.
     struct MouseEvents final {
-        Event<const MouseEventArgs&> down;
-        Event<const MouseEventArgs&> up;
-        Event<const MouseEventArgs&> move;
-        Event<const MouseEventArgs&> wheel;
-        Event<> enter;
-        Event<> hover;
-        Event<> leave;
-        Event<> capture_changed;
+        Event<const MouseEventArgs&> mouse_down;
+        Event<const MouseEventArgs&> mouse_up;
+        Event<const MouseEventArgs&> mouse_move;
+        Event<const MouseEventArgs&> mouse_wheel;
+        Event<> mouse_enter;
+        Event<> mouse_hover;
+        Event<> mouse_leave;
+        Event<> mouse_capture_changed;
         Event<> click;
         Event<const MouseEventArgs&> mouse_click;
         Event<> double_click;

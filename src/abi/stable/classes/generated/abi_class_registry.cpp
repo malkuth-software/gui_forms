@@ -109,6 +109,156 @@ gf_status GF_CALL base_control_on_visible_changed(gf_object self, gf_event* even
     return ran;
 }
 
+gf_status GF_CALL base_control_on_change_ui_cues(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 13U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_click(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 14U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_double_click(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 15U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_drag_drop(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 16U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_drag_enter(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 17U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_drag_leave(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 18U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_drag_over(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 19U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_enter(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 20U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_got_focus(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 21U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_help_requested(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 22U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_key_down(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 23U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_key_press(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 24U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_key_up(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 25U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_layout(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 26U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_leave(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 27U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_lost_focus(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 28U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_mouse_capture_changed(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 29U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_mouse_click(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 30U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_mouse_double_click(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 31U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_mouse_down(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 32U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_mouse_enter(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 33U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_mouse_hover(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 34U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_mouse_leave(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 35U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_mouse_move(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 36U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_mouse_up(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 37U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_mouse_wheel(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 38U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_paint_background(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 39U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_preview_key_down(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 40U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_validated(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 41U});
+    return ran;
+}
+
+gf_status GF_CALL base_control_on_validating(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 42U});
+    return ran;
+}
+
 gf_status GF_CALL base_masked_text_box_on_mask_changed(gf_object self, gf_event* event) noexcept {
     const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_MASKED_TEXT_BOX, 0U});
     return ran;
@@ -375,7 +525,7 @@ constexpr std::array<gf_class_id, 1> list_control_segments{GF_CLASS_CONTROL};
 using UpDownBaseLayers = ControlHooksLayer<BridgeState<UpDownBase>>;
 constexpr std::array<gf_class_id, 1> up_down_base_segments{GF_CLASS_CONTROL};
 
-constexpr std::array<gf_base_raiser, 13> control_base_raisers{
+constexpr std::array<gf_base_raiser, 43> control_base_raisers{
     &base_control_on_auto_size_changed,
     &base_control_on_back_color_changed,
     &base_control_on_causes_validation_changed,
@@ -389,6 +539,36 @@ constexpr std::array<gf_base_raiser, 13> control_base_raisers{
     &base_control_on_tab_index_changed,
     &base_control_on_tab_stop_changed,
     &base_control_on_visible_changed,
+    &base_control_on_change_ui_cues,
+    &base_control_on_click,
+    &base_control_on_double_click,
+    &base_control_on_drag_drop,
+    &base_control_on_drag_enter,
+    &base_control_on_drag_leave,
+    &base_control_on_drag_over,
+    &base_control_on_enter,
+    &base_control_on_got_focus,
+    &base_control_on_help_requested,
+    &base_control_on_key_down,
+    &base_control_on_key_press,
+    &base_control_on_key_up,
+    &base_control_on_layout,
+    &base_control_on_leave,
+    &base_control_on_lost_focus,
+    &base_control_on_mouse_capture_changed,
+    &base_control_on_mouse_click,
+    &base_control_on_mouse_double_click,
+    &base_control_on_mouse_down,
+    &base_control_on_mouse_enter,
+    &base_control_on_mouse_hover,
+    &base_control_on_mouse_leave,
+    &base_control_on_mouse_move,
+    &base_control_on_mouse_up,
+    &base_control_on_mouse_wheel,
+    &base_control_on_paint_background,
+    &base_control_on_preview_key_down,
+    &base_control_on_validated,
+    &base_control_on_validating,
 };
 
 constexpr std::array<gf_base_raiser, 1> masked_text_box_base_raisers{

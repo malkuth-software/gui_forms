@@ -528,9 +528,7 @@ public:
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     void on_pointer_preview(PointerEvent& event) override;
-    void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_context_menu_requested(ContextMenuRequest& request) override;
     void on_key_bubble(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
@@ -657,6 +655,15 @@ public:
     [[nodiscard]] std::string stack_identity(DockNodeId stack) const;
 
 protected:
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
+
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_attachment_committed() noexcept override;
     void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
@@ -1203,6 +1210,10 @@ private:
     Event<const DockFlyoutChange&> flyout_changed_{};
     // property_codemod begin DockSite (tools/property_families/dock_site.json; generated, do not edit)
 private:
+    // The mouse raisers' handling (by arguments.action), and the keys' when
+    // no subscriber handled them.
+    void handle_mouse(MouseEventArgs& arguments);
+    void handle_key(KeyEventArgs& arguments, KeyAction action);
     friend struct DockSiteKeyboardIncrementCapability<DockSite>;
     friend struct DockSiteDragThresholdCapability<DockSite>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).

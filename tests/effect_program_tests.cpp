@@ -49,6 +49,7 @@
 #include "support/theme_definition_heap.hpp"
 
 #include "../src/core/text/localizable/gui_forms_notes.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -736,12 +737,12 @@ void effect_properties_and_input() {
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = Point{50.0, 10.0};
-    (*bar).on_pointer(press);
+    gui_forms::detail::ControlInputAccess::on_pointer(*bar, press);
     RecordingPainter after;
     (*bar).on_paint(after, {0.0, 0.0, 200.0, 20.0});
     require(after.circles == before.circles + 1, "a granted press releases one bubble under the pointer");
     (*bar).effect_input = EffectInputKind::none;
-    (*bar).on_pointer(press);
+    gui_forms::detail::ControlInputAccess::on_pointer(*bar, press);
     RecordingPainter ignored;
     (*bar).on_paint(ignored, {0.0, 0.0, 200.0, 20.0});
     require(ignored.circles == after.circles, "without a grant a press reaches no effect");

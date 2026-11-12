@@ -49,7 +49,6 @@ public:
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts): the chips and
@@ -64,6 +63,8 @@ public:
     [[nodiscard]] Parts parts() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:

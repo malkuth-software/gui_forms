@@ -91,11 +91,21 @@ bool ModalLayer::hit_test_local(Point) const {
     return true;
 }
 
-void ModalLayer::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::down || event.action == PointerAction::up ||
-        event.action == PointerAction::wheel) {
-        event.handled = true;
-    }
+// The layer takes the press, release and wheel, so nothing beneath it sees
+// them.
+void ModalLayer::on_mouse_down(MouseEventArgs& arguments) {
+    arguments.handled = true;
+    Control::on_mouse_down(arguments);
+}
+
+void ModalLayer::on_mouse_up(MouseEventArgs& arguments) {
+    arguments.handled = true;
+    Control::on_mouse_up(arguments);
+}
+
+void ModalLayer::on_mouse_wheel(MouseEventArgs& arguments) {
+    arguments.handled = true;
+    Control::on_mouse_wheel(arguments);
 }
 
 void ModalLayer::on_key_bubble(KeyEvent& event) {

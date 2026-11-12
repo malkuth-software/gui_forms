@@ -25,7 +25,8 @@ public partial class PictureBox : Panel
     }
 
     /// <summary>PictureBox::on_size_mode_changed: after a changed write of size_mode; base raises no event yet. Windows Forms'
-    /// PictureBox.OnSizeModeChanged. Call the base to run the subscribers.</summary>
+    /// PictureBox.OnSizeModeChanged. Call the base to run the subscribers.
+    /// </summary>
     [Hook(Constants.GF_CLASS_PICTURE_BOX, 0u)]
     protected virtual void OnSizeModeChanged(EventArgs e)
     {

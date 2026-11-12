@@ -1045,9 +1045,43 @@ double ScrollableControl::normalize_wheel_delta(double delta, WheelDeltaUnit uni
     return pixels;
 }
 
-void ScrollableControl::on_pointer(PointerEvent& event) {
-    if (handle_scroll_pointer(event)) return;
-    static_cast<void>(handle_wheel(event));
+void ScrollableControl::scroll_pointer(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    scroll_pointer(event);
+    arguments.handled = event.handled;
+}
+
+void ScrollableControl::scroll_pointer(PointerEvent& event) {
+    if (!handle_scroll_pointer(event)) static_cast<void>(handle_wheel(event));
+}
+
+void ScrollableControl::scroll_pointer_left() {
+    set_hot_part(ScrollPart::none);
+}
+
+void ScrollableControl::on_mouse_down(MouseEventArgs& arguments) {
+    scroll_pointer(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void ScrollableControl::on_mouse_up(MouseEventArgs& arguments) {
+    scroll_pointer(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void ScrollableControl::on_mouse_move(MouseEventArgs& arguments) {
+    scroll_pointer(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void ScrollableControl::on_mouse_wheel(MouseEventArgs& arguments) {
+    scroll_pointer(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void ScrollableControl::on_mouse_leave() {
+    scroll_pointer_left();
+    Control::on_mouse_leave();
 }
 
 void ScrollableControl::on_pointer_bubble(PointerEvent& event) {

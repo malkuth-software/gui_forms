@@ -681,33 +681,58 @@ ValueBarContrast ValueBar::fill_text_contrast() const {
 // A press on an arrow (field style) steps; any other primary press arms
 // the scrub, whose release before the threshold opens the editor. Ctrl and
 // the wheel step while hovered; a plain wheel is left to the parent.
-void ValueBar::on_pointer(PointerEvent& event) {
+void ValueBar::on_mouse_down(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    RangeControl::on_mouse_down(arguments);
+}
+
+void ValueBar::on_mouse_up(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    RangeControl::on_mouse_up(arguments);
+}
+
+void ValueBar::on_mouse_move(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    RangeControl::on_mouse_move(arguments);
+}
+
+void ValueBar::on_mouse_wheel(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    RangeControl::on_mouse_wheel(arguments);
+}
+
+// Ctrl+wheel steps; a primary press on a step button steps, elsewhere it
+// arms the scrub gesture, which takes the moves and release that follow
+// (a release without a drag is a click that begins editing). The scrub
+// gesture ignores a leave.
+void ValueBar::handle_mouse(MouseEventArgs& arguments) {
     if (!enabled.read() || editing_ || !scrub_) return;
-    if (event.action == PointerAction::wheel) {
-        if (!has_modifier(event.modifiers, Modifier::control) || event.wheel_delta.y == 0.0) return;
-        const double delta = event.wheel_delta.y > 0.0 ? small_change.read() : -small_change.read();
+    if (arguments.action == PointerAction::wheel) {
+        if (!has_modifier(arguments.modifiers, Modifier::control) || arguments.wheel_delta.y == 0.0) return;
+        const double delta = arguments.wheel_delta.y > 0.0 ? small_change.read() : -small_change.read();
         static_cast<void>(step_by(delta));
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
-    if (event.action == PointerAction::down && event.button == PointerButton::primary) {
-        const Point local = point_from_window(event.position);
+    const PointerEvent event = pointer_event_of(arguments);
+    if (arguments.action == PointerAction::down && arguments.button == PointerButton::primary) {
+        const Point local = point_from_window(arguments.window_position);
         if (decrement_bounds().contains(local)) {
             static_cast<void>(step_by(-small_change.read()));
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
         if (increment_bounds().contains(local)) {
             static_cast<void>(step_by(small_change.read()));
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
-        if ((*scrub_).gesture.press(event, ScrubPointerLock::clamped)) event.handled = true;
+        if ((*scrub_).gesture.press(event, ScrubPointerLock::clamped)) arguments.handled = true;
         return;
     }
     const ScrubPointerResult result = (*scrub_).gesture.pointer(event);
     if (result == ScrubPointerResult::ignored) return;
-    event.handled = true;
+    arguments.handled = true;
     if (result == ScrubPointerResult::clicked) static_cast<void>(begin_edit());
 }
 
@@ -724,19 +749,21 @@ void ValueBar::on_key_preview(KeyEvent& event) {
     }
 }
 
-void ValueBar::on_key(KeyEvent& event) {
-    if (event.action != KeyAction::down || !enabled.read() || editing_ || !scrub_) return;
-    if ((*scrub_).gesture.key(event)) {
-        event.handled = true;
+void ValueBar::on_key_down(KeyEventArgs& arguments) {
+    RangeControl::on_key_down(arguments);
+    if (arguments.handled || !enabled.read() || editing_ || !scrub_) return;
+    // A keyboard scrub takes its keys first.
+    if ((*scrub_).gesture.key(key_event_of(arguments, KeyAction::down))) {
+        arguments.handled = true;
         return;
     }
-    const Modifier modifiers = event.modifiers;
+    const Modifier modifiers = arguments.modifiers;
     const bool control = has_modifier(modifiers, Modifier::control);
     bool recognized = true;
     // Left and Right move the fill's edge that way: under RightToLeft Left
     // steps up.
     const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
-    std::uint32_t key = event.physical_key;
+    std::uint32_t key = arguments.physical_key;
     if (mirrored && key == PhysicalKey::left) key = PhysicalKey::right;
     else if (mirrored && key == PhysicalKey::right) key = PhysicalKey::left;
     switch (key) {
@@ -784,7 +811,7 @@ void ValueBar::on_key(KeyEvent& event) {
         recognized = false;
         break;
     }
-    if (recognized) event.handled = true;
+    if (recognized) arguments.handled = true;
 }
 
 void ValueBar::on_focus_changed(bool focused) {

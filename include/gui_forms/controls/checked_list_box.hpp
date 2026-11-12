@@ -40,8 +40,6 @@ public:
     [[nodiscard]] Event<std::size_t, CheckState>& item_check_state_changed()
         noexcept { return item_check_state_changed_; }
 
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children()
         const override;
     bool on_semantic_child_action(std::string_view stable_id,
@@ -74,6 +72,9 @@ public:
     [[nodiscard]] std::vector<Item> realized_items() const;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_key_down(KeyEventArgs& arguments) override;
+
     void on_items_changing(const CollectionEdit& edit) override;
     void on_items_changed(const CollectionEdit& edit) noexcept override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
@@ -85,6 +86,8 @@ protected:
                                         std::span<PartGeometry> geometry) const override;
 
 private:
+    // on_mouse_down's handling: ListBox's, then the pressed item's toggle.
+    void toggle_on_press(MouseEventArgs& arguments);
     std::vector<CheckState> check_states_;
     Event<ItemCheckEvent&> item_checking_;
     Event<std::size_t, CheckState> item_check_state_changed_;

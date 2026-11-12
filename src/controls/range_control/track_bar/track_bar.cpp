@@ -305,46 +305,55 @@ double TrackBar::value_from_window_point(Point point) const noexcept {
     return minimum.read() + ratio * (maximum.read() - minimum.read());
 }
 
-void TrackBar::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::wheel) {
-        if (event.wheel_delta.y != 0.0) {
-            const bool incrementing = event.wheel_delta.y > 0.0;
-            set_value_from_input(value.read() + (incrementing ? small_change.read() : -small_change.read()),
-                                 incrementing ? RangeAction::small_increment
-                                              : RangeAction::small_decrement);
-            event.handled = true;
-        }
-        return;
+void TrackBar::on_mouse_wheel(MouseEventArgs& arguments) {
+    if (arguments.wheel_delta.y != 0.0) {
+        const bool incrementing = arguments.wheel_delta.y > 0.0;
+        set_value_from_input(value.read() + (incrementing ? small_change.read() : -small_change.read()),
+                             incrementing ? RangeAction::small_increment
+                                          : RangeAction::small_decrement);
+        arguments.handled = true;
     }
-    if (event.button == PointerButton::primary &&
-        event.action == PointerAction::down) {
-        tracking_ = true;
-        set_value_from_input(value_from_window_point(event.position),
-                             RangeAction::thumb_track);
-        event.handled = true;
-    } else if (event.action == PointerAction::move && tracking_) {
-        set_value_from_input(value_from_window_point(event.position),
-                             RangeAction::thumb_track);
-        event.handled = true;
-    } else if (event.button == PointerButton::primary &&
-               event.action == PointerAction::up && tracking_) {
-        tracking_ = false;
-        set_value_from_input(value_from_window_point(event.position),
-                             RangeAction::thumb_position);
-        event.handled = true;
-    }
+    RangeControl::on_mouse_wheel(arguments);
 }
 
-void TrackBar::on_key(KeyEvent& event) {
-    if (event.action != KeyAction::down) {
-        return;
+void TrackBar::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) {
+        tracking_ = true;
+        set_value_from_input(value_from_window_point(arguments.window_position),
+                             RangeAction::thumb_track);
+        arguments.handled = true;
     }
+    RangeControl::on_mouse_down(arguments);
+}
+
+void TrackBar::on_mouse_move(MouseEventArgs& arguments) {
+    if (tracking_) {
+        set_value_from_input(value_from_window_point(arguments.window_position),
+                             RangeAction::thumb_track);
+        arguments.handled = true;
+    }
+    RangeControl::on_mouse_move(arguments);
+}
+
+void TrackBar::on_mouse_up(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary && tracking_) {
+        tracking_ = false;
+        set_value_from_input(value_from_window_point(arguments.window_position),
+                             RangeAction::thumb_position);
+        arguments.handled = true;
+    }
+    RangeControl::on_mouse_up(arguments);
+}
+
+void TrackBar::on_key_down(KeyEventArgs& arguments) {
+    RangeControl::on_key_down(arguments);
+    if (arguments.handled) return;
     double next = value.read();
     RangeAction action = RangeAction::thumb_position;
     bool recognized = true;
     // Left and Right move the thumb that way: on a mirrored bar Left
     // increments.
-    std::uint32_t key = event.physical_key;
+    std::uint32_t key = arguments.physical_key;
     if (mirrored_axis() && key == PhysicalKey::left) key = PhysicalKey::right;
     else if (mirrored_axis() && key == PhysicalKey::right) key = PhysicalKey::left;
     switch (key) {
@@ -380,7 +389,7 @@ void TrackBar::on_key(KeyEvent& event) {
     }
     if (recognized) {
         set_value_from_input(next, action);
-        event.handled = true;
+        arguments.handled = true;
     }
 }
 

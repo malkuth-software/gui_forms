@@ -30,6 +30,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 #include "support/theme_definition_heap.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -110,10 +111,10 @@ public:
 };
 
 // A control showing one keyed face, hot while the pointer is over it.
-class Pad final : public Control {
+class Pad final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Pad(StableId stable_id) : Control(std::move(stable_id)) {}
-    void on_pointer(PointerEvent& event) override {
+    explicit Pad(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) {}
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::enter) {
             hot = true;
             invalidate(Dirty::paint);

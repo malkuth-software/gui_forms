@@ -313,34 +313,66 @@ void QuickAccessToolbar::on_paint(Painter& painter, Rect local_damage) {
     paint_part(painter, *this, customize);
 }
 
-void QuickAccessToolbar::on_pointer(PointerEvent& event) {
-    const bool on_customize = event.action != PointerAction::leave && customize_at(event.position);
+// The customize button's hover and press come first; the rest is
+// ToolStrip's. The event is raised through Control after both.
+void QuickAccessToolbar::toolbar_pointer(MouseEventArgs& arguments) {
+    const bool on_customize = customize_at(arguments.window_position);
     if (customize_hot_ != on_customize) {
         customize_hot_ = on_customize;
         invalidate(Dirty::paint);
     }
-    if (on_customize && event.action == PointerAction::down && event.button == PointerButton::primary) {
+    if (on_customize && arguments.action == PointerAction::down && arguments.button == PointerButton::primary) {
         if (customize_menu_open()) {
             close_customize_menu();
         } else {
             static_cast<void>(show_customize_menu(MenuOpenMode::pointer));
         }
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
-    ToolStrip::on_pointer(event);
+    strip_pointer(arguments);
 }
 
-void QuickAccessToolbar::on_key(KeyEvent& event) {
-    // The arrow away from the strip opens the customize menu: the toolbar's
-    // buttons have no menus of their own.
-    const std::uint32_t open_key = orientation.read() == Orientation::vertical ? PhysicalKey::right : PhysicalKey::down;
-    if (focused_ && event.action == KeyAction::down && event.physical_key == open_key &&
-        event.modifiers == Modifier::none) {
-        event.handled = show_customize_menu(MenuOpenMode::keyboard);
-        if (event.handled) return;
+void QuickAccessToolbar::on_mouse_down(MouseEventArgs& arguments) {
+    toolbar_pointer(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void QuickAccessToolbar::on_mouse_up(MouseEventArgs& arguments) {
+    toolbar_pointer(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void QuickAccessToolbar::on_mouse_move(MouseEventArgs& arguments) {
+    toolbar_pointer(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void QuickAccessToolbar::on_mouse_wheel(MouseEventArgs& arguments) {
+    toolbar_pointer(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void QuickAccessToolbar::on_mouse_leave() {
+    if (customize_hot_) {
+        customize_hot_ = false;
+        invalidate(Dirty::paint);
     }
-    ToolStrip::on_key(event);
+    strip_pointer_left();
+    Control::on_mouse_leave();
+}
+
+// The arrow away from the strip opens the customize menu: the toolbar's
+// buttons have no menus of their own. Other keys are ToolStrip's.
+void QuickAccessToolbar::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    const std::uint32_t open_key = orientation.read() == Orientation::vertical ? PhysicalKey::right : PhysicalKey::down;
+    if (focused_ && arguments.physical_key == open_key && arguments.modifiers == Modifier::none) {
+        arguments.handled = show_customize_menu(MenuOpenMode::keyboard);
+        if (arguments.handled) return;
+    }
+    strip_key_down(arguments);
 }
 
 void QuickAccessToolbar::on_focus_changed(bool focused) {

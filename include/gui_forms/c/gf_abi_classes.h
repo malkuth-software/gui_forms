@@ -42,6 +42,19 @@
  * GF_STATUS_STALE_HANDLE and runs nothing, base from another thread
  * GF_STATUS_WRONG_THREAD. A property raiser's event is named after the
  * property, carries no payload and no fields, and its cancel is ignored.
+ *
+ * An interaction raiser's event (Control's on_click, on_key_down and the
+ * rest) is named after its event (click, key_down). Where the raiser has an
+ * argument with a field form, the event carries it as fields, named as
+ * GF_TABLE_EVENTS names that event's fields, and writable for an argument
+ * the raiser may change (a KeyEventArgs's handled). What the entry writes
+ * before base is what the subscribers see; after base returns the event
+ * carries the argument as the subscribers left it (read its fields again:
+ * the records read before base are no longer valid), and what the entry
+ * writes then is what the control sees. A base function called outside an
+ * entry gives the raiser a default argument, except for a raiser whose
+ * argument only a raise in progress can lend (on_paint_background's
+ * painter): that gives GF_STATUS_INVALID_ARGUMENT and runs nothing.
  */
 
 /* gf_class_id: a class that has a segment or a class table. */
@@ -148,6 +161,66 @@ typedef struct gf_control_hooks {
     gf_hook_entry on_tab_stop_changed;
     /* Control::on_visible_changed: after a changed write of visible; base raises visible_changed. Since 1.3. */
     gf_hook_entry on_visible_changed;
+    /* Control::on_change_ui_cues: where change_ui_cues happens; base raises no event yet. Since 1.3. */
+    gf_hook_entry on_change_ui_cues;
+    /* Control::on_click: where click happens; base raises click. Since 1.3. */
+    gf_hook_entry on_click;
+    /* Control::on_double_click: where double_click happens; base raises double_click. Since 1.3. */
+    gf_hook_entry on_double_click;
+    /* Control::on_drag_drop: where drag_drop happens; base raises no event yet. Since 1.3. */
+    gf_hook_entry on_drag_drop;
+    /* Control::on_drag_enter: where drag_enter happens; base raises no event yet. Since 1.3. */
+    gf_hook_entry on_drag_enter;
+    /* Control::on_drag_leave: where drag_leave happens; base raises no event yet. Since 1.3. */
+    gf_hook_entry on_drag_leave;
+    /* Control::on_drag_over: where drag_over happens; base raises no event yet. Since 1.3. */
+    gf_hook_entry on_drag_over;
+    /* Control::on_enter: where enter happens; base raises no event yet. Since 1.3. */
+    gf_hook_entry on_enter;
+    /* Control::on_got_focus: where got_focus happens; base raises focus_observed. Since 1.3. */
+    gf_hook_entry on_got_focus;
+    /* Control::on_help_requested: where help_requested happens; base raises help_requested; the event's fields are its HelpRequestEvent, writable. Since 1.3. */
+    gf_hook_entry on_help_requested;
+    /* Control::on_key_down: where key_down happens; base raises key_down; the event's fields are its KeyEventArgs, writable. Since 1.3. */
+    gf_hook_entry on_key_down;
+    /* Control::on_key_press: where key_press happens; base raises key_press; the event's fields are its KeyPressEventArgs, writable. Since 1.3. */
+    gf_hook_entry on_key_press;
+    /* Control::on_key_up: where key_up happens; base raises key_up; the event's fields are its KeyEventArgs, writable. Since 1.3. */
+    gf_hook_entry on_key_up;
+    /* Control::on_layout: where layout happens; base raises no event yet. Since 1.3. */
+    gf_hook_entry on_layout;
+    /* Control::on_leave: where leave happens; base raises no event yet. Since 1.3. */
+    gf_hook_entry on_leave;
+    /* Control::on_lost_focus: where lost_focus happens; base raises focus_observed. Since 1.3. */
+    gf_hook_entry on_lost_focus;
+    /* Control::on_mouse_capture_changed: where mouse_capture_changed happens; base raises mouse_capture_changed. Since 1.3. */
+    gf_hook_entry on_mouse_capture_changed;
+    /* Control::on_mouse_click: where mouse_click happens; base raises mouse_click; the event's fields are its MouseEventArgs, writable. Since 1.3. */
+    gf_hook_entry on_mouse_click;
+    /* Control::on_mouse_double_click: where mouse_double_click happens; base raises mouse_double_click; the event's fields are its MouseEventArgs, writable. Since 1.3. */
+    gf_hook_entry on_mouse_double_click;
+    /* Control::on_mouse_down: where mouse_down happens; base raises mouse_down; the event's fields are its MouseEventArgs, writable. Since 1.3. */
+    gf_hook_entry on_mouse_down;
+    /* Control::on_mouse_enter: where mouse_enter happens; base raises mouse_enter. Since 1.3. */
+    gf_hook_entry on_mouse_enter;
+    /* Control::on_mouse_hover: where mouse_hover happens; base raises mouse_hover. Since 1.3. */
+    gf_hook_entry on_mouse_hover;
+    /* Control::on_mouse_leave: where mouse_leave happens; base raises mouse_leave. Since 1.3. */
+    gf_hook_entry on_mouse_leave;
+    /* Control::on_mouse_move: where mouse_move happens; base raises mouse_move; the event's fields are its MouseEventArgs, writable. Since 1.3. */
+    gf_hook_entry on_mouse_move;
+    /* Control::on_mouse_up: where mouse_up happens; base raises mouse_up; the event's fields are its MouseEventArgs, writable. Since 1.3. */
+    gf_hook_entry on_mouse_up;
+    /* Control::on_mouse_wheel: where mouse_wheel happens; base raises mouse_wheel; the event's fields are its MouseEventArgs, writable. Since 1.3. */
+    gf_hook_entry on_mouse_wheel;
+    /* Control::on_paint_background: where paint_background happens; base raises no event yet. Since 1.3. */
+    gf_hook_entry on_paint_background;
+    /* Control::on_preview_key_down: where preview_key_down happens; base raises preview_key_down; the event's fields are its PreviewKeyDownEventArgs, writable. Since 1.3. */
+    gf_hook_entry on_preview_key_down;
+    /* Control::on_validated: where validated happens; base raises validated. Since 1.3. */
+    gf_hook_entry on_validated;
+    /* Control::on_validating: where validating happens; base raises validating; the event's fields are its ControlValidationEvent, writable. Since 1.3. */
+    gf_hook_entry on_validating;
 } gf_control_hooks;
 
 /* MaskedTextBox's raisers (GF_CLASS_MASKED_TEXT_BOX). */

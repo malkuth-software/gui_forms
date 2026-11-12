@@ -25,7 +25,8 @@ public partial class RadioButton : ButtonBase
     }
 
     /// <summary>RadioButton::on_checked_changed: after a changed write of checked; base raises checked_changed. Windows Forms'
-    /// RadioButton.OnCheckedChanged. Call the base to run the subscribers.</summary>
+    /// RadioButton.OnCheckedChanged. Call the base to run the subscribers.
+    /// </summary>
     [Hook(Constants.GF_CLASS_RADIO_BUTTON, 0u)]
     protected virtual void OnCheckedChanged(EventArgs e)
     {

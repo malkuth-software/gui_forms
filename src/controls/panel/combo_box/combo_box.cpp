@@ -906,35 +906,38 @@ void ComboBox::arrange(Rect final_bounds) {
     set_child_layout(editor_, mirrored ? horizontally_mirrored(field, frame) : field);
 }
 
-void ComboBox::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input()) return;
-    if (event.action == PointerAction::down && event.button == PointerButton::primary) {
+void ComboBox::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
         Window* const host = window();
         if (editor_ && host != nullptr) static_cast<void>((*host).request_focus(editor_));
         dropped_down = !dropped_down_;
-        event.handled = true;
-    } else if (event.action == PointerAction::up &&
-               event.button == PointerButton::primary) {
-        event.handled = true;
+        arguments.handled = true;
     }
+    Control::on_mouse_down(arguments);
 }
 
-void ComboBox::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.read() || event.action != KeyAction::down) return;
-    if (event.physical_key == PhysicalKey::escape && dropped_down_) {
+void ComboBox::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) arguments.handled = true;
+    Control::on_mouse_up(arguments);
+}
+
+void ComboBox::on_key_down(KeyEventArgs& arguments) {
+    ListControl::on_key_down(arguments);
+    if (arguments.handled || !focused_ || !enabled.read()) return;
+    if (arguments.physical_key == PhysicalKey::escape && dropped_down_) {
         close_drop_down();
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
-    if (event.physical_key == PhysicalKey::f4 ||
-        (event.physical_key == PhysicalKey::down && includes(event.modifiers, Modifier::alt)) ||
-        event.physical_key == PhysicalKey::space) {
+    if (arguments.physical_key == PhysicalKey::f4 ||
+        (arguments.physical_key == PhysicalKey::down && includes(arguments.modifiers, Modifier::alt)) ||
+        arguments.physical_key == PhysicalKey::space) {
         dropped_down = !dropped_down_;
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
-    if (!dropped_down_ && step_selection(event.physical_key)) {
-        event.handled = true;
+    if (!dropped_down_ && step_selection(arguments.physical_key)) {
+        arguments.handled = true;
     }
 }
 

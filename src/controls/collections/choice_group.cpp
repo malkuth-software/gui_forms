@@ -371,8 +371,8 @@ void ChoiceGroup::on_paint(Painter& painter, Rect local_damage) {
     selection.key = PartKey{"selection", {}, {}};
     paint_part(painter, *this, selection);
 }
-void ChoiceGroup::on_key_bubble(KeyEvent& event) { on_key(event); }
-void ChoiceGroup::on_key(KeyEvent& event) {
+void ChoiceGroup::on_key_bubble(KeyEvent& event) { handle_key(event); }
+void ChoiceGroup::handle_key(KeyEvent& event) {
     if (event.handled || event.action != KeyAction::down || !enabled.read() || !revision_) return;
     const bool backward = event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::up;
     const bool forward = event.physical_key == PhysicalKey::right || event.physical_key == PhysicalKey::down;
@@ -395,6 +395,17 @@ void ChoiceGroup::on_key(KeyEvent& event) {
         }
         return;
     }
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void ChoiceGroup::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 SemanticDescriptor ChoiceGroup::semantic_descriptor() const {
     SemanticDescriptor descriptor = Panel::semantic_descriptor();

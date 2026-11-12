@@ -296,36 +296,50 @@ std::optional<std::size_t> BackstageView::item_at(Point local) const {
     return std::nullopt;
 }
 
-void BackstageView::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
-    const std::optional<std::size_t> hit =
-        event.action == PointerAction::leave ? std::nullopt : item_at(local);
-    if (event.action == PointerAction::leave || event.action == PointerAction::move ||
-        event.action == PointerAction::enter) {
+// The hot item follows the pointer's moves (the move that enters the view
+// sets it) and clears on leaving.
+void BackstageView::on_mouse_move(MouseEventArgs& arguments) {
+    if (eligible_for_input()) {
+        const std::optional<std::size_t> hit = item_at(arguments.location);
         if (hot_ != hit) {
             hot_ = hit;
             invalidate(Dirty::paint);
         }
-        return;
     }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down) {
-        pressed_ = hit && item_enabled(items_[*hit]) ? hit : std::nullopt;
-        event.handled = hit.has_value();
+    Control::on_mouse_move(arguments);
+}
+
+void BackstageView::on_mouse_leave() {
+    if (eligible_for_input() && hot_) {
+        hot_.reset();
         invalidate(Dirty::paint);
-        return;
     }
-    if (event.action != PointerAction::up) return;
-    const std::optional<std::size_t> pressed = pressed_;
-    pressed_.reset();
-    invalidate(Dirty::paint);
-    // A click is a press and release on the same item.
-    if (pressed && hit == pressed) {
-        event.handled = true;
-        activate_item(*pressed);
+    Control::on_mouse_leave();
+}
+
+void BackstageView::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        const std::optional<std::size_t> hit = item_at(arguments.location);
+        pressed_ = hit && item_enabled(items_[*hit]) ? hit : std::nullopt;
+        arguments.handled = hit.has_value();
+        invalidate(Dirty::paint);
     }
+    Control::on_mouse_down(arguments);
+}
+
+void BackstageView::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        const std::optional<std::size_t> hit = item_at(arguments.location);
+        const std::optional<std::size_t> pressed = pressed_;
+        pressed_.reset();
+        invalidate(Dirty::paint);
+        // A click is a press and release on the same item.
+        if (pressed && hit == pressed) {
+            arguments.handled = true;
+            activate_item(*pressed);
+        }
+    }
+    Control::on_mouse_up(arguments);
 }
 
 // Moves the keyboard to the next enabled item after (or before) the focused
@@ -352,9 +366,10 @@ void BackstageView::move_focus(bool forward) {
 // Keys: Up and Down move through the column (skipping disabled items), Home
 // and End to its ends, Enter and Space activate, Escape asks to close. Tab
 // leaves the column for the page's controls.
-void BackstageView::on_key(KeyEvent& event) {
-    if (!focused_ || event.action != KeyAction::down || !effectively_enabled()) return;
-    const std::uint32_t key = event.physical_key;
+void BackstageView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !focused_ || !effectively_enabled()) return;
+    const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::down) {
         move_focus(true);
     } else if (key == PhysicalKey::up) {
@@ -372,7 +387,7 @@ void BackstageView::on_key(KeyEvent& event) {
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 void BackstageView::on_focus_changed(bool focused) {

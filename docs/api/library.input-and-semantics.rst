@@ -75,7 +75,7 @@ Types
    * - :cpp:class:`KeyStateChange <gui_forms::KeyStateChange>`
      - A physical key going down or up, raw: raised once per press and once per release (never for an auto-repeat), before any route can consume the key and whatever control has the focus, so that a game can keep key state without text input or focus in the way.
    * - :cpp:class:`MouseEventArgs <gui_forms::MouseEventArgs>`
-     - One mouse event as WinForms' MouseEventArgs gives it: the button (none for a move or wheel without one), the click count the host reported for the press (1, 2 for the second press of a double-click, and so on; 0 for a move or wheel), the position in the control's own coordinates and in the window's, the wheel delta (logical pixels, positive away from the user and to the right) and the modifiers held.
+     - One mouse event as WinForms' MouseEventArgs gives it, with the routed pointer event's own fields.
    * - :cpp:class:`PhysicalKey <gui_forms::PhysicalKey>`
      - PhysicalKey preserves host-independent scan position, extended-key state, and location for shortcut and compatibility logic.
    * - :cpp:class:`PointerEvent <gui_forms::PointerEvent>`
@@ -842,7 +842,7 @@ Types
 
    ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
 
-   One mouse event as WinForms' MouseEventArgs gives it: the button (none for a move or wheel without one), the click count the host reported for the press (1, 2 for the second press of a double-click, and so on; 0 for a move or wheel), the position in the control's own coordinates and in the window's, the wheel delta (logical pixels, positive away from the user and to the right) and the modifiers held.
+   One mouse event as WinForms' MouseEventArgs gives it, with the routed pointer event's own fields. The WinForms members: the button (Button; none for a move or wheel without one), the click count the host reported for the press (Clicks: 1, 2 for the second press of a double-click, and so on; a release carries its press's count; 0 for a move or wheel), the position in the control's own coordinates (Location) and in the window's, the wheel delta (Delta; logical pixels or lines, positive away from the user and to the right) and the modifiers held. handled is HandledMouseEventArgs.Handled: a raiser that sets it ends the pointer event's route at its target, so no ancestor's bubble handler sees it (the subscribers still run when the raiser calls its base); it suppresses nothing else. suppress_click, set by a MouseUp raiser or its override, cancels the release's Click and MouseClick (DoubleClick and MouseDoubleClick on a double-click's second press) and the activation (the owner's input order, rule 3); elsewhere it is ignored. The rest have no WinForms counterpart: what the pointer did (action; enter and leave reach no MouseEventArgs), the host's pointer identity (pointer_id; one for the mouse), the route phase the raiser runs in (phase; target for the raisers) and what wheel_delta counts (wheel_unit). The hosts report no touch or pen data yet, so the record carries none.
 
    .. cpp:member:: PointerButton button
 
@@ -859,6 +859,24 @@ Types
    .. cpp:member:: Modifier modifiers
 
       Default: ``{Modifier::none}``.
+
+   .. cpp:member:: PointerAction action
+
+      Default: ``{PointerAction::move}``.
+
+   .. cpp:member:: WheelDeltaUnit wheel_unit
+
+      Default: ``{WheelDeltaUnit::lines}``.
+
+   .. cpp:member:: std::uint32_t pointer_id
+
+   .. cpp:member:: EventPhase phase
+
+      Default: ``{EventPhase::target}``.
+
+   .. cpp:member:: bool handled
+
+   .. cpp:member:: bool suppress_click
 
 .. cpp:namespace:: gui_forms
 
@@ -2038,6 +2056,10 @@ Functions, constants and aliases
 
 ``#include <gui_forms/events/key_events/key_events.hpp>``
 
+.. cpp:function:: inline KeyEvent key_event_of(const KeyEventArgs& arguments, KeyAction action) noexcept
+
+   The routed key event a KeyEventArgs carries, for code that takes the routed form (an editing engine, a key command table): action is the raiser's (down for on_key_down, up for on_key_up); the phase is target. The caller copies handled back.
+
 .. cpp:function:: std::uint32_t key_code_from_physical_key(std::uint32_t physical_key) noexcept
 
    The Windows Forms Keys code of a physical key (a USB HID usage): the key's code on a US layout, the same on every host. The modifier keys give the side-less codes Windows Forms reports in KeyDown (ShiftKey 0x10, ControlKey 0x11, Menu 0x12; the Windows keys 0x5B and 0x5C). Zero for a usage with no Keys code.
@@ -2045,6 +2067,14 @@ Functions, constants and aliases
 .. cpp:function:: std::uint32_t single_key_char(const std::string& text) noexcept
 
    The single Unicode scalar value UTF-8 ``text`` holds, or zero when it holds none, more than one, or is not valid UTF-8.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+
+.. cpp:function:: inline PointerEvent pointer_event_of(const MouseEventArgs& arguments) noexcept
+
+   The routed pointer event a MouseEventArgs carries, for code that takes the routed form (a gesture engine, ScrollableControl's bar and wheel handling): the window position, the action, the button and the rest, with click_count from clicks. The caller copies handled back.
 
 .. cpp:namespace:: gui_forms
 

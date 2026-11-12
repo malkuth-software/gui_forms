@@ -200,13 +200,35 @@ gui_forms::SubSurfaceHost
 
       *Protected.*
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
 
       *Protected.*
 
-      Forward to the sub-surface while it runs and mark the event handled.
+      Forward to the sub-surface while it runs and mark the event handled. Forward the mouse to the sub-surface while it runs and mark it handled, then raise the event. The window's enter is not forwarded: the move that caused it starts the sub-surface's own hover.
 
-   .. cpp:function:: void on_key(KeyEvent& event) override
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Forward a key no subscriber handled to the sub-surface.
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
 
       *Protected.*
 

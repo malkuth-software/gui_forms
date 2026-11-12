@@ -1885,29 +1885,40 @@ void Ribbon::release(const Hit& hit, PointerEvent& event) {
     }
 }
 
-void Ribbon::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input()) return;
-    if (event.action == PointerAction::leave) {
-        set_hot(Hit{});
-        return;
+void Ribbon::on_mouse_leave() {
+    if (eligible_for_input()) set_hot(Hit{});
+    Control::on_mouse_leave();
+}
+
+// The hot part follows the pointer's moves (the move that enters the
+// ribbon sets it).
+void Ribbon::on_mouse_move(MouseEventArgs& arguments) {
+    if (eligible_for_input()) set_hot(hit_test(layout(), arguments.location));
+    Control::on_mouse_move(arguments);
+}
+
+void Ribbon::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        const Control::Ptr lifetime = shared_from_this();
+        const Hit hit = hit_test(layout(), arguments.location);
+        if (hit.kind != Hit::Kind::none) {
+            PointerEvent event = pointer_event_of(arguments);
+            press(hit, event);
+            arguments.handled = event.handled;
+        }
     }
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
-    const Layout placed = layout();
-    const Hit hit = hit_test(placed, local);
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
-        set_hot(hit);
-        return;
+    Control::on_mouse_down(arguments);
+}
+
+void Ribbon::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        const Control::Ptr lifetime = shared_from_this();
+        const Hit hit = hit_test(layout(), arguments.location);
+        PointerEvent event = pointer_event_of(arguments);
+        release(hit, event);
+        arguments.handled = event.handled;
     }
-    if (event.button != PointerButton::primary) return;
-    const Control::Ptr lifetime = shared_from_this();
-    if (event.action == PointerAction::down) {
-        if (hit.kind == Hit::Kind::none) return;
-        press(hit, event);
-        return;
-    }
-    if (event.action != PointerAction::up) return;
-    release(hit, event);
+    Control::on_mouse_up(arguments);
 }
 
 // The overlay's layer lets presses on the ribbon (its anchor) through, but its
@@ -2070,8 +2081,9 @@ void Ribbon::activate_stop(const Stop& stop) {
     }
 }
 
-void Ribbon::on_key(KeyEvent& event) {
-    if (!focused_ || event.action != KeyAction::down || !effectively_enabled()) return;
+void Ribbon::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !focused_ || !effectively_enabled()) return;
     const std::vector<Stop> all = stops();
     if (!stop_) stop_ = Stop{StopKind::tab, selected_tab_.value_or(0U), {}};
     const Stop resolved = resolve_stop(all, *stop_);
@@ -2085,8 +2097,8 @@ void Ribbon::on_key(KeyEvent& event) {
     for (const Stop& stop : all) {
         if (stop.kind == StopKind::application || stop.kind == StopKind::tab) ++row_count;
     }
-    const std::uint32_t key = event.physical_key;
-    const bool shift = has_modifier(event.modifiers, Modifier::shift);
+    const std::uint32_t key = arguments.physical_key;
+    const bool shift = has_modifier(arguments.modifiers, Modifier::shift);
     if (key == PhysicalKey::tab) {
         // Tab moves through every stop and leaves the ribbon after the last
         // (or, with Shift, before the first).
@@ -2135,7 +2147,7 @@ void Ribbon::on_key(KeyEvent& event) {
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 // Keys in the group overlay: Tab and Shift+Tab through its stops and then out

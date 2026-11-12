@@ -72,9 +72,7 @@ public:
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
-    void on_key(KeyEvent& event) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -82,7 +80,18 @@ public:
     bool on_semantic_child_action(std::string_view stable_id, SemanticAction action,
                                   std::string_view value) override;
 
+protected:
+    void on_key_down(KeyEventArgs& arguments) override;
+
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
 private:
+    void set_hot_row(std::optional<std::size_t> hot);
+    // The primary press: the catcher's, or the panel's.
+    void press(MouseEventArgs& arguments);
     [[nodiscard]] bool ribbon_alive() const noexcept;
     // Whether the ribbon's menu shows a submenu of this panel's.
     [[nodiscard]] bool submenu_open() const noexcept;

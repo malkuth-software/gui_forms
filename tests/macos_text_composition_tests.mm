@@ -6,6 +6,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/platform/macos_host.hpp"
+#include "support/routed_input_probe.hpp"
 #include <cstdio>
 #include <exception>
 #include <functional>
@@ -43,12 +44,12 @@ constexpr const char* hiragana_ka_utf8 = "\xE3\x81\x8B";
 constexpr unsigned short return_key_code = 36U;
 
 // A focusable control that records the key and text events routed to it.
-class CompositionTarget final : public gui_forms::Control {
+class CompositionTarget final : public gui_forms::tests::RoutedInputProbe<gui_forms::Control> {
 public:
-    CompositionTarget(gui_forms::StableId stable_id, EventLog& log) : Control(std::move(stable_id)), log_(log) {
+    CompositionTarget(gui_forms::StableId stable_id, EventLog& log) : gui_forms::tests::RoutedInputProbe<gui_forms::Control>(std::move(stable_id)), log_(log) {
         focusable = true;
     }
-    void on_key(gui_forms::KeyEvent& event) override {
+    void routed_key(gui_forms::KeyEvent& event) override {
         log_.push_back(event.action == gui_forms::KeyAction::down ? "key:down" : "key:up");
         event.handled = true;
     }
