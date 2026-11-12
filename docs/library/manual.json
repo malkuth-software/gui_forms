@@ -474,19 +474,10 @@
       "methods": {
         "TextBox": "Constructs a focusable text editor with I-beam cursor, text-input intent, and retained caret state.",
         "password_protected": "Reports whether either explicit or system masking policy is active.",
-        "selection": "Returns directional anchor and active UTF-8 byte boundaries.",
-        "select": "Validates and normalizes requested byte boundaries against Unicode scalar edges.",
-        "select_all": "Selects the complete authoritative byte range.",
-        "selected_text": "Returns the authoritative unmasked substring within the normalized selection.",
-        "can_undo": "Reports whether an earlier text-and-selection snapshot is available.",
         "can_redo": "Reports whether a reverted snapshot remains available.",
-        "undo": "Restores the previous snapshot, records the current snapshot for redo, and publishes coherent changes.",
         "redo": "Reapplies the next snapshot, restores undo continuity, and publishes coherent changes.",
         "replace_selection": "Validates UTF-8, enforces the user maximum-length law, and replaces the selected range as one undoable edit.",
         "delete_selection": "Removes the selected range as one undoable user edit when mutation is allowed.",
-        "copy": "Publishes selected unmasked text to the attached Window clipboard unless password policy forbids disclosure.",
-        "cut": "Copies then removes selection through the normal mutation path when editing is allowed.",
-        "paste": "Reads attached Window clipboard text and applies it through validation and maximum-length enforcement.",
         "text_changed": "Returns the event published after authoritative text commits.",
         "selection_changed": "Returns the event published after directional selection commits.",
         "committed": "Returns the event published by Enter or the corresponding semantic action.",
@@ -500,6 +491,21 @@
         "on_semantic_action": "Routes focus, set-value, selection, clipboard, history, commit, and cancel actions through normal editor laws."
       }
     },
+    "TextBoxBase": {
+      "status": "carried from the TextBox review at the cp29 I5 fold, where these members moved to TextBoxBase",
+      "summary": "TextBoxBase is the editing surface TextBox and its siblings share: directional selection over UTF-8 byte boundaries, undo history, and clipboard commands.",
+      "methods": {
+        "selection": "Returns directional anchor and active UTF-8 byte boundaries.",
+        "select": "Validates and normalizes requested byte boundaries against Unicode scalar edges.",
+        "select_all": "Selects the complete authoritative byte range.",
+        "selected_text": "Returns the authoritative unmasked substring within the normalized selection.",
+        "can_undo": "Reports whether an earlier text-and-selection snapshot is available.",
+        "undo": "Restores the previous snapshot, records the current snapshot for redo, and publishes coherent changes.",
+        "copy": "Publishes selected unmasked text to the attached Window clipboard unless password policy forbids disclosure.",
+        "cut": "Copies then removes selection through the normal mutation path when editing is allowed.",
+        "paste": "Reads attached Window clipboard text and applies it through validation and maximum-length enforcement."
+      }
+    },
     "ListBox": {
       "status": "OBSERVED: bundle 004 split; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/list_box_combo_box.png",
@@ -510,7 +516,6 @@
         "set_item_stable_ids": "Installs caller-provided unique nonzero row identities after exact cardinality validation.",
         "item_stable_id": "Returns the durable semantic identity for a valid row.",
         "selected_indices": "Returns selected row indexes in ascending order.",
-        "selected_index": "Returns the active selected row or no value when selection is empty.",
         "select_index": "Applies programmatic selection using the current selection-mode law.",
         "clear_selection": "Clears selected rows and publishes a typed old/new selection transition.",
         "selection_changed": "Returns typed old/new index collections after selection commits.",
@@ -523,6 +528,14 @@
         "semantic_descriptor": "Projects a list role with selection cardinality and active value.",
         "semantic_virtual_children": "Exposes every logical row as a stable selectable virtual option independent of viewport realization.",
         "on_semantic_child_action": "Maps row select/press actions to the same selection and activation state machine."
+      }
+    },
+    "ListControl": {
+      "status": "carried from the ListBox review at the cp29 I5 fold, where these members moved to ListControl",
+      "summary": "ListControl is the base the list controls share for their single selected index and its change event.",
+      "methods": {
+        "selected_index": "Returns the active selected row or no value when selection is empty.",
+        "selected_index_changed": "Returns the event published after selected option commits."
       }
     },
     "CheckedListBox": {
@@ -567,7 +580,6 @@
       "methods": {
         "ComboBox": "Constructs a focusable choice field with handoff-ready transient overlay ownership.",
         "selected_text": "Returns selected option text or an empty view when nothing is selected.",
-        "selected_index_changed": "Returns the event published after selected option commits.",
         "drop_down_changed": "Returns the event published after transient ownership opens or closes.",
         "items_changed": "Returns the event published after option collection mutation.",
         "on_paint": "Records framed field, selected/placeholder text, focus cue, and disclosure arrow.",
