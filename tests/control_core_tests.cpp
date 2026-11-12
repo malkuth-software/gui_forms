@@ -10,6 +10,7 @@
 // (A18); mnemonics decode strictly (A19); and a keyed publication outside
 // initialisation runs at once (S6).
 
+#include "gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/panel.hpp"

@@ -17,6 +17,8 @@
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/controls/help_print.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/tree_view.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/help/help_records/help_records.hpp"

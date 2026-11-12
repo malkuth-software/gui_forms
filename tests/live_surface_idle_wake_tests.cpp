@@ -3,6 +3,7 @@
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/live_surface/write_lease/live_surface_write_lease.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/threading.hpp"
 #include "gui_forms/window/window.hpp"
 #include <atomic>
 #include <iostream>

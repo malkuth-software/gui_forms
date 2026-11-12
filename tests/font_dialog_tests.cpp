@@ -8,6 +8,8 @@
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
