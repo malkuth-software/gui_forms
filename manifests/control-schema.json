@@ -12146,8 +12146,7 @@
         {"name": "key_down", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
-        {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
-        {"name": "selected_index_changed", "payload": "std::optional<std::size_t>", "mutable_payload": false}
+        {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
       ]
     },
     {
