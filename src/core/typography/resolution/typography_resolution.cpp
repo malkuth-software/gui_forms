@@ -103,6 +103,48 @@ TextResolutionStatus TextMetricsProvider::fill_line_break_opportunities_utf8(
     return estimate_line_break_opportunities_utf8(utf8, opportunities);
 }
 
+TextResolutionStatus TextMetricsProvider::fill_cluster_advances_utf8(
+    std::string_view utf8, FontSpec effective_font, std::span<double> advances) {
+    if (advances.size() != utf8.size() || !valid_font_spec(effective_font) || !validate_utf8(utf8).valid()) {
+        return TextResolutionStatus::invalid_request;
+    }
+    // Each scalar value alone: its width, then the letter spacing a cluster
+    // that is not the text's last carries.
+    TextResolutionStatus status = TextResolutionStatus::exact;
+    std::size_t offset = 0U;
+    while (offset < utf8.size()) {
+        const Utf8ScalarDecode decoded = decode_utf8_scalar(utf8, Utf8Offset(offset));
+        const std::string_view scalar = utf8.substr(offset, decoded.length);
+        const TextExtent extent = measure_text_extent_utf8(scalar, effective_font);
+        if (static_cast<std::uint8_t>(extent.status) > static_cast<std::uint8_t>(status)) status = extent.status;
+        const std::size_t next = offset + decoded.length;
+        double advance = extent.logical_size.width;
+        if (next < utf8.size()) advance += effective_font.letter_spacing;
+        advances[offset] = advance;
+        for (std::size_t index = offset + 1U; index < next; ++index) advances[index] = 0.0;
+        offset = next;
+    }
+    return status;
+}
+
+TextResolutionStatus estimate_cluster_advances_utf8(
+    std::string_view utf8, FontSpec effective_font, std::span<double> advances) noexcept {
+    if (advances.size() != utf8.size() || !valid_font_spec(effective_font) || !validate_utf8(utf8).valid()) {
+        return TextResolutionStatus::invalid_request;
+    }
+    // estimate_text_layout_utf8's width: 0.55 of the size per scalar value,
+    // the letter spacing between them.
+    const double width = effective_font.size * 0.55;
+    std::size_t last_start = 0U;
+    for (std::size_t index = 0U; index < utf8.size(); ++index) {
+        const bool starts = (static_cast<unsigned char>(utf8[index]) & 0xc0U) != 0x80U;
+        advances[index] = starts ? width + effective_font.letter_spacing : 0.0;
+        if (starts) last_start = index;
+    }
+    if (!utf8.empty()) advances[last_start] = width;
+    return TextResolutionStatus::estimated;
+}
+
 LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary,
                                 std::optional<double> used_line_height) noexcept {
     FontVerticalMetrics design{primary.ascent, primary.descent, primary.line_gap, 0.0};

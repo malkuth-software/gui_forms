@@ -332,6 +332,7 @@
     _ZGVZN9gui_forms13PagePlacement*;
     _ZGVZN9gui_forms13PageSetChange*;
     _ZGVZN9gui_forms13PageSetLimits*;
+    _ZGVZN9gui_forms13ParagraphLine*;
     _ZGVZN9gui_forms13PartHitRegion*;
     _ZGVZN9gui_forms13PlotPointPick*;
     _ZGVZN9gui_forms13PresentedArea*;
@@ -423,6 +424,8 @@
     _ZGVZN9gui_forms14PageSetOptions*;
     _ZGVZN9gui_forms14PageTakeResult*;
     _ZGVZN9gui_forms14PaintEventArgs*;
+    _ZGVZN9gui_forms14ParagraphPaint*;
+    _ZGVZN9gui_forms14ParagraphStyle*;
     _ZGVZN9gui_forms14PartRasterView*;
     _ZGVZN9gui_forms14PlotSeriesItem*;
     _ZGVZN9gui_forms14PlotViewRanges*;
@@ -610,6 +613,9 @@
     _ZGVZN9gui_forms16PageCloseRequest*;
     _ZGVZN9gui_forms16PaintCornerRadii*;
     _ZGVZN9gui_forms16PaintFramebuffer*;
+    _ZGVZN9gui_forms16ParagraphBuffers*;
+    _ZGVZN9gui_forms16ParagraphMetrics*;
+    _ZGVZN9gui_forms16ParagraphStorage*;
     _ZGVZN9gui_forms16PartRasterResult*;
     _ZGVZN9gui_forms16PartRecordHandle*;
     _ZGVZN9gui_forms16RangeScrollEvent*;
@@ -1027,6 +1033,7 @@
     _ZGVZN9gui_forms21NavigationPaneRestore*;
     _ZGVZN9gui_forms21ObjectSelectionChange*;
     _ZGVZN9gui_forms21OwnerDecorationRecipe*;
+    _ZGVZN9gui_forms21ParagraphLayoutResult*;
     _ZGVZN9gui_forms21PartRecordAcquisition*;
     _ZGVZN9gui_forms21PartTransitionChannel*;
     _ZGVZN9gui_forms21PresentationOverrides*;
@@ -1193,6 +1200,7 @@
     _ZGVZN9gui_forms27HostTrayNotificationRequest*;
     _ZGVZN9gui_forms27InstrumentModuleMoveRequest*;
     _ZGVZN9gui_forms27OffscreenRasterCreateResult*;
+    _ZGVZN9gui_forms27ParagraphStorageRequirement*;
     _ZGVZN9gui_forms27PreparedTextSessionSnapshot*;
     _ZGVZN9gui_forms27SubSurfaceRequestStatistics*;
     _ZGVZN9gui_forms27SubSurfaceSemanticsListener*;
@@ -1770,6 +1778,7 @@
     _ZGVZNK9gui_forms13PagePlacement*;
     _ZGVZNK9gui_forms13PageSetChange*;
     _ZGVZNK9gui_forms13PageSetLimits*;
+    _ZGVZNK9gui_forms13ParagraphLine*;
     _ZGVZNK9gui_forms13PartHitRegion*;
     _ZGVZNK9gui_forms13PlotPointPick*;
     _ZGVZNK9gui_forms13PresentedArea*;
@@ -1861,6 +1870,8 @@
     _ZGVZNK9gui_forms14PageSetOptions*;
     _ZGVZNK9gui_forms14PageTakeResult*;
     _ZGVZNK9gui_forms14PaintEventArgs*;
+    _ZGVZNK9gui_forms14ParagraphPaint*;
+    _ZGVZNK9gui_forms14ParagraphStyle*;
     _ZGVZNK9gui_forms14PartRasterView*;
     _ZGVZNK9gui_forms14PlotSeriesItem*;
     _ZGVZNK9gui_forms14PlotViewRanges*;
@@ -2048,6 +2059,9 @@
     _ZGVZNK9gui_forms16PageCloseRequest*;
     _ZGVZNK9gui_forms16PaintCornerRadii*;
     _ZGVZNK9gui_forms16PaintFramebuffer*;
+    _ZGVZNK9gui_forms16ParagraphBuffers*;
+    _ZGVZNK9gui_forms16ParagraphMetrics*;
+    _ZGVZNK9gui_forms16ParagraphStorage*;
     _ZGVZNK9gui_forms16PartRasterResult*;
     _ZGVZNK9gui_forms16PartRecordHandle*;
     _ZGVZNK9gui_forms16RangeScrollEvent*;
@@ -2465,6 +2479,7 @@
     _ZGVZNK9gui_forms21NavigationPaneRestore*;
     _ZGVZNK9gui_forms21ObjectSelectionChange*;
     _ZGVZNK9gui_forms21OwnerDecorationRecipe*;
+    _ZGVZNK9gui_forms21ParagraphLayoutResult*;
     _ZGVZNK9gui_forms21PartRecordAcquisition*;
     _ZGVZNK9gui_forms21PartTransitionChannel*;
     _ZGVZNK9gui_forms21PresentationOverrides*;
@@ -2631,6 +2646,7 @@
     _ZGVZNK9gui_forms27HostTrayNotificationRequest*;
     _ZGVZNK9gui_forms27InstrumentModuleMoveRequest*;
     _ZGVZNK9gui_forms27OffscreenRasterCreateResult*;
+    _ZGVZNK9gui_forms27ParagraphStorageRequirement*;
     _ZGVZNK9gui_forms27PreparedTextSessionSnapshot*;
     _ZGVZNK9gui_forms27SubSurfaceRequestStatistics*;
     _ZGVZNK9gui_forms27SubSurfaceSemanticsListener*;
@@ -3304,6 +3320,7 @@
     _ZN9gui_forms13PagePlacement*;
     _ZN9gui_forms13PageSetChange*;
     _ZN9gui_forms13PageSetLimits*;
+    _ZN9gui_forms13ParagraphLine*;
     _ZN9gui_forms13PartHitRegion*;
     _ZN9gui_forms13PlotPointPick*;
     _ZN9gui_forms13PresentedArea*;
@@ -3411,6 +3428,8 @@
     _ZN9gui_forms14PageSetOptions*;
     _ZN9gui_forms14PageTakeResult*;
     _ZN9gui_forms14PaintEventArgs*;
+    _ZN9gui_forms14ParagraphPaint*;
+    _ZN9gui_forms14ParagraphStyle*;
     _ZN9gui_forms14PartRasterView*;
     _ZN9gui_forms14PlotSeriesItem*;
     _ZN9gui_forms14PlotViewRanges*;
@@ -3603,6 +3622,8 @@
     _ZN9gui_forms15lend_paint_textE*;
     _ZN9gui_forms15logical_monitorB*;
     _ZN9gui_forms15logical_monitorE*;
+    _ZN9gui_forms15paint_paragraphB*;
+    _ZN9gui_forms15paint_paragraphE*;
     _ZN9gui_forms15plan_help_printB*;
     _ZN9gui_forms15plan_help_printE*;
     _ZN9gui_forms15proportion_rectB*;
@@ -3680,6 +3701,9 @@
     _ZN9gui_forms16PageCloseRequest*;
     _ZN9gui_forms16PaintCornerRadii*;
     _ZN9gui_forms16PaintFramebuffer*;
+    _ZN9gui_forms16ParagraphBuffers*;
+    _ZN9gui_forms16ParagraphMetrics*;
+    _ZN9gui_forms16ParagraphStorage*;
     _ZN9gui_forms16PartRasterResult*;
     _ZN9gui_forms16PartRecordHandle*;
     _ZN9gui_forms16RangeScrollEvent*;
@@ -3886,10 +3910,14 @@
     _ZN9gui_forms17help_callout_nameE*;
     _ZN9gui_forms17item_content_textB*;
     _ZN9gui_forms17item_content_textE*;
+    _ZN9gui_forms17lay_out_paragraphB*;
+    _ZN9gui_forms17lay_out_paragraphE*;
     _ZN9gui_forms17locale_field_nameB*;
     _ZN9gui_forms17locale_field_nameE*;
     _ZN9gui_forms17locale_xml_limitsB*;
     _ZN9gui_forms17locale_xml_limitsE*;
+    _ZN9gui_forms17measure_paragraphB*;
+    _ZN9gui_forms17measure_paragraphE*;
     _ZN9gui_forms17paint_masked_fillB*;
     _ZN9gui_forms17paint_masked_fillE*;
     _ZN9gui_forms17part_corner_radiiB*;
@@ -4065,6 +4093,8 @@
     _ZN9gui_forms18is_registered_nameE*;
     _ZN9gui_forms18paint_text_part_atB*;
     _ZN9gui_forms18paint_text_part_atE*;
+    _ZN9gui_forms18paragraph_line_boxB*;
+    _ZN9gui_forms18paragraph_line_boxE*;
     _ZN9gui_forms18parse_ribbon_stateB*;
     _ZN9gui_forms18parse_ribbon_stateE*;
     _ZN9gui_forms18place_radial_itemsB*;
@@ -4439,6 +4469,7 @@
     _ZN9gui_forms21NavigationPaneRestore*;
     _ZN9gui_forms21ObjectSelectionChange*;
     _ZN9gui_forms21OwnerDecorationRecipe*;
+    _ZN9gui_forms21ParagraphLayoutResult*;
     _ZN9gui_forms21PartRecordAcquisition*;
     _ZN9gui_forms21PartTransitionChannel*;
     _ZN9gui_forms21PresentationOverrides*;
@@ -4741,6 +4772,8 @@
     _ZN9gui_forms23nearest_logical_monitorE*;
     _ZN9gui_forms23overridden_presentationB*;
     _ZN9gui_forms23overridden_presentationE*;
+    _ZN9gui_forms23paragraph_storage_boundB*;
+    _ZN9gui_forms23paragraph_storage_boundE*;
     _ZN9gui_forms23raster_view_defect_nameB*;
     _ZN9gui_forms23raster_view_defect_nameE*;
     _ZN9gui_forms23rasterize_prepared_textB*;
@@ -4971,6 +5004,7 @@
     _ZN9gui_forms27HostTrayNotificationRequest*;
     _ZN9gui_forms27InstrumentModuleMoveRequest*;
     _ZN9gui_forms27OffscreenRasterCreateResult*;
+    _ZN9gui_forms27ParagraphStorageRequirement*;
     _ZN9gui_forms27PreparedTextSessionSnapshot*;
     _ZN9gui_forms27SubSurfaceRequestStatistics*;
     _ZN9gui_forms27SubSurfaceSemanticsListener*;
@@ -5065,6 +5099,8 @@
     _ZN9gui_forms30MasterDetailPresentationChange*;
     _ZN9gui_forms30ProgressBarAnimationAppearance*;
     _ZN9gui_forms30PropertyValueConverterRegistry*;
+    _ZN9gui_forms30estimate_cluster_advances_utf8B*;
+    _ZN9gui_forms30estimate_cluster_advances_utf8E*;
     _ZN9gui_forms30is_virtual_semantic_runtime_idB*;
     _ZN9gui_forms30is_virtual_semantic_runtime_idE*;
     _ZN9gui_forms30material_field_colour_positionB*;
@@ -5900,6 +5936,7 @@
     _ZNK[RO]9gui_forms13PagePlacement*;
     _ZNK[RO]9gui_forms13PageSetChange*;
     _ZNK[RO]9gui_forms13PageSetLimits*;
+    _ZNK[RO]9gui_forms13ParagraphLine*;
     _ZNK[RO]9gui_forms13PartHitRegion*;
     _ZNK[RO]9gui_forms13PlotPointPick*;
     _ZNK[RO]9gui_forms13PresentedArea*;
@@ -5991,6 +6028,8 @@
     _ZNK[RO]9gui_forms14PageSetOptions*;
     _ZNK[RO]9gui_forms14PageTakeResult*;
     _ZNK[RO]9gui_forms14PaintEventArgs*;
+    _ZNK[RO]9gui_forms14ParagraphPaint*;
+    _ZNK[RO]9gui_forms14ParagraphStyle*;
     _ZNK[RO]9gui_forms14PartRasterView*;
     _ZNK[RO]9gui_forms14PlotSeriesItem*;
     _ZNK[RO]9gui_forms14PlotViewRanges*;
@@ -6178,6 +6217,9 @@
     _ZNK[RO]9gui_forms16PageCloseRequest*;
     _ZNK[RO]9gui_forms16PaintCornerRadii*;
     _ZNK[RO]9gui_forms16PaintFramebuffer*;
+    _ZNK[RO]9gui_forms16ParagraphBuffers*;
+    _ZNK[RO]9gui_forms16ParagraphMetrics*;
+    _ZNK[RO]9gui_forms16ParagraphStorage*;
     _ZNK[RO]9gui_forms16PartRasterResult*;
     _ZNK[RO]9gui_forms16PartRecordHandle*;
     _ZNK[RO]9gui_forms16RangeScrollEvent*;
@@ -6595,6 +6637,7 @@
     _ZNK[RO]9gui_forms21NavigationPaneRestore*;
     _ZNK[RO]9gui_forms21ObjectSelectionChange*;
     _ZNK[RO]9gui_forms21OwnerDecorationRecipe*;
+    _ZNK[RO]9gui_forms21ParagraphLayoutResult*;
     _ZNK[RO]9gui_forms21PartRecordAcquisition*;
     _ZNK[RO]9gui_forms21PartTransitionChannel*;
     _ZNK[RO]9gui_forms21PresentationOverrides*;
@@ -6761,6 +6804,7 @@
     _ZNK[RO]9gui_forms27HostTrayNotificationRequest*;
     _ZNK[RO]9gui_forms27InstrumentModuleMoveRequest*;
     _ZNK[RO]9gui_forms27OffscreenRasterCreateResult*;
+    _ZNK[RO]9gui_forms27ParagraphStorageRequirement*;
     _ZNK[RO]9gui_forms27PreparedTextSessionSnapshot*;
     _ZNK[RO]9gui_forms27SubSurfaceRequestStatistics*;
     _ZNK[RO]9gui_forms27SubSurfaceSemanticsListener*;
@@ -7338,6 +7382,7 @@
     _ZN[KRO]9gui_forms13PagePlacement*;
     _ZN[KRO]9gui_forms13PageSetChange*;
     _ZN[KRO]9gui_forms13PageSetLimits*;
+    _ZN[KRO]9gui_forms13ParagraphLine*;
     _ZN[KRO]9gui_forms13PartHitRegion*;
     _ZN[KRO]9gui_forms13PlotPointPick*;
     _ZN[KRO]9gui_forms13PresentedArea*;
@@ -7429,6 +7474,8 @@
     _ZN[KRO]9gui_forms14PageSetOptions*;
     _ZN[KRO]9gui_forms14PageTakeResult*;
     _ZN[KRO]9gui_forms14PaintEventArgs*;
+    _ZN[KRO]9gui_forms14ParagraphPaint*;
+    _ZN[KRO]9gui_forms14ParagraphStyle*;
     _ZN[KRO]9gui_forms14PartRasterView*;
     _ZN[KRO]9gui_forms14PlotSeriesItem*;
     _ZN[KRO]9gui_forms14PlotViewRanges*;
@@ -7616,6 +7663,9 @@
     _ZN[KRO]9gui_forms16PageCloseRequest*;
     _ZN[KRO]9gui_forms16PaintCornerRadii*;
     _ZN[KRO]9gui_forms16PaintFramebuffer*;
+    _ZN[KRO]9gui_forms16ParagraphBuffers*;
+    _ZN[KRO]9gui_forms16ParagraphMetrics*;
+    _ZN[KRO]9gui_forms16ParagraphStorage*;
     _ZN[KRO]9gui_forms16PartRasterResult*;
     _ZN[KRO]9gui_forms16PartRecordHandle*;
     _ZN[KRO]9gui_forms16RangeScrollEvent*;
@@ -8033,6 +8083,7 @@
     _ZN[KRO]9gui_forms21NavigationPaneRestore*;
     _ZN[KRO]9gui_forms21ObjectSelectionChange*;
     _ZN[KRO]9gui_forms21OwnerDecorationRecipe*;
+    _ZN[KRO]9gui_forms21ParagraphLayoutResult*;
     _ZN[KRO]9gui_forms21PartRecordAcquisition*;
     _ZN[KRO]9gui_forms21PartTransitionChannel*;
     _ZN[KRO]9gui_forms21PresentationOverrides*;
@@ -8199,6 +8250,7 @@
     _ZN[KRO]9gui_forms27HostTrayNotificationRequest*;
     _ZN[KRO]9gui_forms27InstrumentModuleMoveRequest*;
     _ZN[KRO]9gui_forms27OffscreenRasterCreateResult*;
+    _ZN[KRO]9gui_forms27ParagraphStorageRequirement*;
     _ZN[KRO]9gui_forms27PreparedTextSessionSnapshot*;
     _ZN[KRO]9gui_forms27SubSurfaceRequestStatistics*;
     _ZN[KRO]9gui_forms27SubSurfaceSemanticsListener*;
@@ -8776,6 +8828,7 @@
     _ZT[VIST]N9gui_forms13PagePlacement*E;
     _ZT[VIST]N9gui_forms13PageSetChange*E;
     _ZT[VIST]N9gui_forms13PageSetLimits*E;
+    _ZT[VIST]N9gui_forms13ParagraphLine*E;
     _ZT[VIST]N9gui_forms13PartHitRegion*E;
     _ZT[VIST]N9gui_forms13PlotPointPick*E;
     _ZT[VIST]N9gui_forms13PresentedArea*E;
@@ -8867,6 +8920,8 @@
     _ZT[VIST]N9gui_forms14PageSetOptions*E;
     _ZT[VIST]N9gui_forms14PageTakeResult*E;
     _ZT[VIST]N9gui_forms14PaintEventArgs*E;
+    _ZT[VIST]N9gui_forms14ParagraphPaint*E;
+    _ZT[VIST]N9gui_forms14ParagraphStyle*E;
     _ZT[VIST]N9gui_forms14PartRasterView*E;
     _ZT[VIST]N9gui_forms14PlotSeriesItem*E;
     _ZT[VIST]N9gui_forms14PlotViewRanges*E;
@@ -9054,6 +9109,9 @@
     _ZT[VIST]N9gui_forms16PageCloseRequest*E;
     _ZT[VIST]N9gui_forms16PaintCornerRadii*E;
     _ZT[VIST]N9gui_forms16PaintFramebuffer*E;
+    _ZT[VIST]N9gui_forms16ParagraphBuffers*E;
+    _ZT[VIST]N9gui_forms16ParagraphMetrics*E;
+    _ZT[VIST]N9gui_forms16ParagraphStorage*E;
     _ZT[VIST]N9gui_forms16PartRasterResult*E;
     _ZT[VIST]N9gui_forms16PartRecordHandle*E;
     _ZT[VIST]N9gui_forms16RangeScrollEvent*E;
@@ -9471,6 +9529,7 @@
     _ZT[VIST]N9gui_forms21NavigationPaneRestore*E;
     _ZT[VIST]N9gui_forms21ObjectSelectionChange*E;
     _ZT[VIST]N9gui_forms21OwnerDecorationRecipe*E;
+    _ZT[VIST]N9gui_forms21ParagraphLayoutResult*E;
     _ZT[VIST]N9gui_forms21PartRecordAcquisition*E;
     _ZT[VIST]N9gui_forms21PartTransitionChannel*E;
     _ZT[VIST]N9gui_forms21PresentationOverrides*E;
@@ -9637,6 +9696,7 @@
     _ZT[VIST]N9gui_forms27HostTrayNotificationRequest*E;
     _ZT[VIST]N9gui_forms27InstrumentModuleMoveRequest*E;
     _ZT[VIST]N9gui_forms27OffscreenRasterCreateResult*E;
+    _ZT[VIST]N9gui_forms27ParagraphStorageRequirement*E;
     _ZT[VIST]N9gui_forms27PreparedTextSessionSnapshot*E;
     _ZT[VIST]N9gui_forms27SubSurfaceRequestStatistics*E;
     _ZT[VIST]N9gui_forms27SubSurfaceSemanticsListener*E;
@@ -10214,6 +10274,7 @@
     _ZT[hvc]*9gui_forms13PagePlacement*;
     _ZT[hvc]*9gui_forms13PageSetChange*;
     _ZT[hvc]*9gui_forms13PageSetLimits*;
+    _ZT[hvc]*9gui_forms13ParagraphLine*;
     _ZT[hvc]*9gui_forms13PartHitRegion*;
     _ZT[hvc]*9gui_forms13PlotPointPick*;
     _ZT[hvc]*9gui_forms13PresentedArea*;
@@ -10305,6 +10366,8 @@
     _ZT[hvc]*9gui_forms14PageSetOptions*;
     _ZT[hvc]*9gui_forms14PageTakeResult*;
     _ZT[hvc]*9gui_forms14PaintEventArgs*;
+    _ZT[hvc]*9gui_forms14ParagraphPaint*;
+    _ZT[hvc]*9gui_forms14ParagraphStyle*;
     _ZT[hvc]*9gui_forms14PartRasterView*;
     _ZT[hvc]*9gui_forms14PlotSeriesItem*;
     _ZT[hvc]*9gui_forms14PlotViewRanges*;
@@ -10492,6 +10555,9 @@
     _ZT[hvc]*9gui_forms16PageCloseRequest*;
     _ZT[hvc]*9gui_forms16PaintCornerRadii*;
     _ZT[hvc]*9gui_forms16PaintFramebuffer*;
+    _ZT[hvc]*9gui_forms16ParagraphBuffers*;
+    _ZT[hvc]*9gui_forms16ParagraphMetrics*;
+    _ZT[hvc]*9gui_forms16ParagraphStorage*;
     _ZT[hvc]*9gui_forms16PartRasterResult*;
     _ZT[hvc]*9gui_forms16PartRecordHandle*;
     _ZT[hvc]*9gui_forms16RangeScrollEvent*;
@@ -10909,6 +10975,7 @@
     _ZT[hvc]*9gui_forms21NavigationPaneRestore*;
     _ZT[hvc]*9gui_forms21ObjectSelectionChange*;
     _ZT[hvc]*9gui_forms21OwnerDecorationRecipe*;
+    _ZT[hvc]*9gui_forms21ParagraphLayoutResult*;
     _ZT[hvc]*9gui_forms21PartRecordAcquisition*;
     _ZT[hvc]*9gui_forms21PartTransitionChannel*;
     _ZT[hvc]*9gui_forms21PresentationOverrides*;
@@ -11075,6 +11142,7 @@
     _ZT[hvc]*9gui_forms27HostTrayNotificationRequest*;
     _ZT[hvc]*9gui_forms27InstrumentModuleMoveRequest*;
     _ZT[hvc]*9gui_forms27OffscreenRasterCreateResult*;
+    _ZT[hvc]*9gui_forms27ParagraphStorageRequirement*;
     _ZT[hvc]*9gui_forms27PreparedTextSessionSnapshot*;
     _ZT[hvc]*9gui_forms27SubSurfaceRequestStatistics*;
     _ZT[hvc]*9gui_forms27SubSurfaceSemanticsListener*;
@@ -11652,6 +11720,7 @@
     _ZZN9gui_forms13PagePlacement*;
     _ZZN9gui_forms13PageSetChange*;
     _ZZN9gui_forms13PageSetLimits*;
+    _ZZN9gui_forms13ParagraphLine*;
     _ZZN9gui_forms13PartHitRegion*;
     _ZZN9gui_forms13PlotPointPick*;
     _ZZN9gui_forms13PresentedArea*;
@@ -11743,6 +11812,8 @@
     _ZZN9gui_forms14PageSetOptions*;
     _ZZN9gui_forms14PageTakeResult*;
     _ZZN9gui_forms14PaintEventArgs*;
+    _ZZN9gui_forms14ParagraphPaint*;
+    _ZZN9gui_forms14ParagraphStyle*;
     _ZZN9gui_forms14PartRasterView*;
     _ZZN9gui_forms14PlotSeriesItem*;
     _ZZN9gui_forms14PlotViewRanges*;
@@ -11930,6 +12001,9 @@
     _ZZN9gui_forms16PageCloseRequest*;
     _ZZN9gui_forms16PaintCornerRadii*;
     _ZZN9gui_forms16PaintFramebuffer*;
+    _ZZN9gui_forms16ParagraphBuffers*;
+    _ZZN9gui_forms16ParagraphMetrics*;
+    _ZZN9gui_forms16ParagraphStorage*;
     _ZZN9gui_forms16PartRasterResult*;
     _ZZN9gui_forms16PartRecordHandle*;
     _ZZN9gui_forms16RangeScrollEvent*;
@@ -12347,6 +12421,7 @@
     _ZZN9gui_forms21NavigationPaneRestore*;
     _ZZN9gui_forms21ObjectSelectionChange*;
     _ZZN9gui_forms21OwnerDecorationRecipe*;
+    _ZZN9gui_forms21ParagraphLayoutResult*;
     _ZZN9gui_forms21PartRecordAcquisition*;
     _ZZN9gui_forms21PartTransitionChannel*;
     _ZZN9gui_forms21PresentationOverrides*;
@@ -12513,6 +12588,7 @@
     _ZZN9gui_forms27HostTrayNotificationRequest*;
     _ZZN9gui_forms27InstrumentModuleMoveRequest*;
     _ZZN9gui_forms27OffscreenRasterCreateResult*;
+    _ZZN9gui_forms27ParagraphStorageRequirement*;
     _ZZN9gui_forms27PreparedTextSessionSnapshot*;
     _ZZN9gui_forms27SubSurfaceRequestStatistics*;
     _ZZN9gui_forms27SubSurfaceSemanticsListener*;
@@ -13090,6 +13166,7 @@
     _ZZNK9gui_forms13PagePlacement*;
     _ZZNK9gui_forms13PageSetChange*;
     _ZZNK9gui_forms13PageSetLimits*;
+    _ZZNK9gui_forms13ParagraphLine*;
     _ZZNK9gui_forms13PartHitRegion*;
     _ZZNK9gui_forms13PlotPointPick*;
     _ZZNK9gui_forms13PresentedArea*;
@@ -13181,6 +13258,8 @@
     _ZZNK9gui_forms14PageSetOptions*;
     _ZZNK9gui_forms14PageTakeResult*;
     _ZZNK9gui_forms14PaintEventArgs*;
+    _ZZNK9gui_forms14ParagraphPaint*;
+    _ZZNK9gui_forms14ParagraphStyle*;
     _ZZNK9gui_forms14PartRasterView*;
     _ZZNK9gui_forms14PlotSeriesItem*;
     _ZZNK9gui_forms14PlotViewRanges*;
@@ -13368,6 +13447,9 @@
     _ZZNK9gui_forms16PageCloseRequest*;
     _ZZNK9gui_forms16PaintCornerRadii*;
     _ZZNK9gui_forms16PaintFramebuffer*;
+    _ZZNK9gui_forms16ParagraphBuffers*;
+    _ZZNK9gui_forms16ParagraphMetrics*;
+    _ZZNK9gui_forms16ParagraphStorage*;
     _ZZNK9gui_forms16PartRasterResult*;
     _ZZNK9gui_forms16PartRecordHandle*;
     _ZZNK9gui_forms16RangeScrollEvent*;
@@ -13785,6 +13867,7 @@
     _ZZNK9gui_forms21NavigationPaneRestore*;
     _ZZNK9gui_forms21ObjectSelectionChange*;
     _ZZNK9gui_forms21OwnerDecorationRecipe*;
+    _ZZNK9gui_forms21ParagraphLayoutResult*;
     _ZZNK9gui_forms21PartRecordAcquisition*;
     _ZZNK9gui_forms21PartTransitionChannel*;
     _ZZNK9gui_forms21PresentationOverrides*;
@@ -13951,6 +14034,7 @@
     _ZZNK9gui_forms27HostTrayNotificationRequest*;
     _ZZNK9gui_forms27InstrumentModuleMoveRequest*;
     _ZZNK9gui_forms27OffscreenRasterCreateResult*;
+    _ZZNK9gui_forms27ParagraphStorageRequirement*;
     _ZZNK9gui_forms27PreparedTextSessionSnapshot*;
     _ZZNK9gui_forms27SubSurfaceRequestStatistics*;
     _ZZNK9gui_forms27SubSurfaceSemanticsListener*;

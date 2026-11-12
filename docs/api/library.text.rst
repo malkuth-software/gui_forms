@@ -111,6 +111,22 @@ Related types
      - How a span is set.
    * - :cpp:class:`OpenTypeTag <gui_forms::OpenTypeTag>`
      - OpenTypeTag stores one big-endian four-byte script or feature tag.
+   * - :cpp:class:`ParagraphBuffers <gui_forms::ParagraphBuffers>`
+     - Owned storage for repeated calls, sized once and reused: reserve for the largest text and line count expected, then pass storage() to every call.
+   * - :cpp:class:`ParagraphLayoutResult <gui_forms::ParagraphLayoutResult>`
+     - The result of lay_out_paragraph and measure_paragraph: laid out with its metrics; storage too small, with what it needs; or a refused request.
+   * - :cpp:class:`ParagraphLine <gui_forms::ParagraphLine>`
+     - One laid-out line, positioned in the paragraph's box (its top left is the origin, y down).
+   * - :cpp:class:`ParagraphMetrics <gui_forms::ParagraphMetrics>`
+     - A laid-out paragraph's size and what it cost.
+   * - :cpp:class:`ParagraphPaint <gui_forms::ParagraphPaint>`
+     - How paint_paragraph places a paragraph: ``origin`` is its box's top left in the painter's coordinates, ``visible`` the part of those coordinates worth drawing (lines whose line box misses it vertically are skipped without being visited), and each baseline is snapped to ``device_scale``'s pixels with snap_text_baseline, as controls snap theirs.
+   * - :cpp:class:`ParagraphStorage <gui_forms::ParagraphStorage>`
+     - The caller's storage for one call, borrowed for the call only; nothing is retained.
+   * - :cpp:class:`ParagraphStorageRequirement <gui_forms::ParagraphStorageRequirement>`
+     - What a call needs.
+   * - :cpp:class:`ParagraphStyle <gui_forms::ParagraphStyle>`
+     - What one call lays out.
    * - :cpp:class:`PreparedFontSource <gui_forms::PreparedFontSource>`
      -  
    * - :cpp:class:`PreparedParagraphProof <gui_forms::PreparedParagraphProof>`
@@ -1128,6 +1144,218 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: ParagraphBuffers final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   Owned storage for repeated calls, sized once and reused: reserve for the largest text and line count expected, then pass storage() to every call. A call never grows it; on storage_too_small, reserve the requirement and call again. Single-threaded, like the calls it serves.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ParagraphBuffers() = default
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reserve(std::size_t per_byte, std::size_t lines)
+
+      Grows the arrays to at least these sizes (never shrinks them). Lines already written are kept; scratch contents are not.
+
+   .. cpp:function:: void reserve(const ParagraphStorageRequirement& required)
+
+   .. cpp:function:: void release() noexcept
+
+      Frees all the storage.
+
+   .. cpp:function:: ParagraphStorage storage() noexcept
+
+      Spans over the whole arrays; valid until the next reserve or release.
+
+   .. cpp:function:: std::span<const ParagraphLine> lines(std::size_t line_count) const noexcept
+
+      The lines a successful lay_out_paragraph with storage() wrote, given its metrics' line_count; valid until the next reserve or release.
+
+   .. cpp:function:: std::string_view collapsed_text(std::size_t laid_out_bytes) const noexcept
+
+      The collapsed text a collapse layout wrote, given its metrics' laid_out_bytes; valid until the next reserve, release or call.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ParagraphLayoutResult final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   The result of lay_out_paragraph and measure_paragraph: laid out with its metrics; storage too small, with what it needs; or a refused request. On storage_too_small the lines array holds the first lines it could hold (partial) when the per-byte arrays were large enough, and nothing was written otherwise. A refused request writes nothing.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool succeeded() const noexcept
+
+   .. cpp:function:: const ParagraphMetrics* metrics() const noexcept
+
+      The metrics of a laid-out paragraph; null otherwise. Valid while the result lives.
+
+   .. cpp:function:: const ParagraphStorageRequirement* required_storage() const noexcept
+
+      What a call whose storage was too small needs; null otherwise.
+
+   .. cpp:function:: std::optional<ParagraphRequestError> error() const noexcept
+
+      The error of a refused request; none otherwise.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static ParagraphLayoutResult laid_out(const ParagraphMetrics& metrics) noexcept
+
+   .. cpp:function:: static ParagraphLayoutResult storage_too_small(const ParagraphStorageRequirement& required) noexcept
+
+   .. cpp:function:: static ParagraphLayoutResult refused(ParagraphRequestError error) noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphLine final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   One laid-out line, positioned in the paragraph's box (its top left is the origin, y down).
+
+   .. cpp:member:: Utf8Range bytes
+
+      The line's text: the bytes and the characters (Unicode scalar values) it shows, its hanging trailing spaces and line end excluded. Offsets index the laid-out text: the caller's text, or the collapsed text under ParagraphWhiteSpace::collapse.
+
+   .. cpp:member:: ScalarRange characters
+
+   .. cpp:member:: Utf8Offset next_line_start
+
+      Where the next line's text begins: after this line's hanging spaces and line end. Equal to the text's size on the last line.
+
+   .. cpp:member:: double width
+
+      The line's width in logical pixels (see ParagraphFit), its left edge from the box's left edge (alignment applied; negative when a line overflows a right, end or centre alignment), and its baseline from the box's top.
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double baseline
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphMetrics final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   A laid-out paragraph's size and what it cost.
+
+   .. cpp:member:: std::size_t line_count
+
+   .. cpp:member:: double height
+
+      line_count line boxes: zero for an empty text, which has no line.
+
+   .. cpp:member:: double widest_line
+
+   .. cpp:member:: TextResolutionStatus status
+
+      The least exact status the provider answered (exact, estimated or a missing face), in TextResolutionStatus's order. Default: ``{TextResolutionStatus::exact}``.
+
+   .. cpp:member:: std::uint64_t shaping_calls
+
+      Provider shaping calls (the cluster advances and each whole-run measurement) and the bytes they shaped: what the layout cost.
+
+   .. cpp:member:: std::uint64_t shaped_bytes
+
+   .. cpp:member:: std::size_t laid_out_bytes
+
+      The size of the laid-out text (the collapsed size under collapse).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphPaint final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   How paint_paragraph places a paragraph: ``origin`` is its box's top left in the painter's coordinates, ``visible`` the part of those coordinates worth drawing (lines whose line box misses it vertically are skipped without being visited), and each baseline is snapped to ``device_scale``'s pixels with snap_text_baseline, as controls snap theirs.
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: Color color
+
+   .. cpp:member:: double device_scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: Rect visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphStorage final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   The caller's storage for one call, borrowed for the call only; nothing is retained. The arrays must not overlap each other or the text. - lines (output): one record per line, in order; only lay_out_paragraph writes it. - collapsed_text (output, collapse only): the collapsed text, which the line ranges index and which paint_paragraph must be given. - opportunities and advances (scratch): one element per laid-out byte; their contents after a call are unspecified. The call uses the leading elements it needs and leaves the rest as they were.
+
+   .. cpp:member:: std::span<ParagraphLine> lines
+
+   .. cpp:member:: std::span<char> collapsed_text
+
+   .. cpp:member:: std::span<LineBreakOpportunity> opportunities
+
+   .. cpp:member:: std::span<double> advances
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphStorageRequirement final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   What a call needs. per_byte is the size of the laid-out text (the collapsed size under collapse): the element count opportunities and advances need, and collapsed_text too under collapse (zero otherwise). lines is exact when the per-byte arrays were large enough to lay the text out, and otherwise per_byte, the most lines a text of that size can have (every line holds at least one byte), so storage of these sizes always succeeds on the next call.
+
+   .. cpp:member:: std::size_t per_byte
+
+   .. cpp:member:: std::size_t collapsed_bytes
+
+   .. cpp:member:: std::size_t lines
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphStyle final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   What one call lays out. ``font`` is the effective font, already scaled (Control::text_font, or the font and text scale a window applies), and ``line_box`` is paragraph_line_box's answer for it: computing it once per font keeps that resolution out of every row.
+
+   .. cpp:member:: FontSpec font
+
+   .. cpp:member:: LineBoxMetrics line_box
+
+   .. cpp:member:: double width
+
+      The line width in logical pixels: finite and not negative.
+
+   .. cpp:member:: ParagraphWhiteSpace white_space
+
+      Default: ``{ParagraphWhiteSpace::preserve_line_ends}``.
+
+   .. cpp:member:: ParagraphOverflowWrap overflow_wrap
+
+      Default: ``{ParagraphOverflowWrap::normal}``.
+
+   .. cpp:member:: ParagraphFit fit
+
+      Default: ``{ParagraphFit::verified}``.
+
+   .. cpp:member:: TextAlignment alignment
+
+      Where each line sits in ``width``, as TextBlock's ``text_align``; start and end follow ``direction``. Default: ``{TextAlignment::start}``.
+
+   .. cpp:member:: TextDirection direction
+
+      Default: ``{TextDirection::left_to_right}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PreparedFontSource final
 
    ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
@@ -2076,6 +2304,10 @@ Related types
 
       Fills ``opportunities``, whose size must equal utf8.size(), with the line-break opportunity after each byte. Line breaking depends on the text only, not on a font. Returns invalid_request, with ``opportunities`` unchanged, for invalid UTF-8 or a size mismatch. The default is estimate_line_break_opportunities_utf8; the bundled text engine answers UAX #14's opportunities and returns exact.
 
+   .. cpp:function:: virtual TextResolutionStatus fill_cluster_advances_utf8(std::string_view utf8, FontSpec effective_font, std::span<double> advances)
+
+      Fills ``advances``, whose size must equal utf8.size(), from one shaping of the whole text in ``effective_font`` (the shaping resolve_text_layout_utf8 measures): each cluster's horizontal advance in logical pixels at the byte that begins it, and zero at every other byte. A cluster's advance includes the font's letter spacing, except for the text's last cluster in visual order. The advances' sum is the text's width; the sum over a range estimates that range shaped alone, without the kerning and contextual shaping across its ends (paragraph layout, include/gui_forms/text/paragraph_layout/). Returns the resolution's status, or invalid_request with ``advances`` unchanged for invalid UTF-8, an invalid font or a size mismatch. The default measures each scalar value alone with measure_text_extent_utf8, so its clusters are scalar values and it omits shaping between them; the bundled engine's painters answer from one shaping, with its clusters.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Position> TextRange final
@@ -2689,6 +2921,50 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ParagraphFit
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   .. cpp:enumerator:: verified
+
+   .. cpp:enumerator:: estimated
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ParagraphOverflowWrap
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: break_word
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ParagraphRequestError
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   .. cpp:enumerator:: invalid_utf8
+
+   .. cpp:enumerator:: invalid_font
+
+   .. cpp:enumerator:: invalid_width
+
+   .. cpp:enumerator:: invalid_line_box
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ParagraphWhiteSpace
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   .. cpp:enumerator:: preserve_line_ends
+
+   .. cpp:enumerator:: collapse
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PreparedRasterProfile
 
    ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
@@ -3132,6 +3408,30 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+.. cpp:function:: LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, std::optional<double> line_height)
+
+   The line box every line of a paragraph in ``font`` shares, as TextBlock's: the provider's resolution of a space in the effective font, then line_box_metrics with ``line_height`` (a used line height in logical pixels, already scaled; none for ``line-height: normal``). A null provider uses estimate_text_layout_utf8. Resolving may allocate in the provider; call it once per font and keep the answer in ParagraphStyle.
+
+.. cpp:function:: ParagraphStorageRequirement paragraph_storage_bound(std::string_view text, ParagraphWhiteSpace white_space) noexcept
+
+   The storage lay_out_paragraph needs for ``text`` before the line count is known: per_byte and collapsed_bytes exact, lines the bound per_byte. It reads the text only (counting the collapsed size under collapse) and allocates nothing.
+
+.. cpp:function:: ParagraphLayoutResult lay_out_paragraph(TextMetricsProvider* provider, std::string_view text, const ParagraphStyle& style, const ParagraphStorage& storage)
+
+   Lays ``text`` out in ``style`` into ``storage``, through ``provider`` (a window's text_metrics_provider() or a Painter; null uses the renderer-free estimates). Inputs are read only; storage is written as ParagraphStorage states. The checks come first and change nothing: a refused request, then per-byte arrays shorter than the text. Allocates nothing of its own. Not thread-safe with other calls into the same provider.
+
+.. cpp:function:: ParagraphLayoutResult measure_paragraph(TextMetricsProvider* provider, std::string_view text, const ParagraphStyle& style, const ParagraphStorage& storage)
+
+   The same layout without line records: the line count, height and widest line, for estimating rows (with ParagraphFit::estimated, one shaping per paragraph). storage.lines is ignored; the per-byte arrays (and collapsed_text under collapse) are required as for lay_out_paragraph.
+
+.. cpp:function:: std::size_t paint_paragraph(Painter& painter, std::string_view text, std::span<const ParagraphLine> lines, const ParagraphStyle& style, const ParagraphPaint& paint)
+
+   Draws laid-out lines with Painter::draw_text_utf8, one call per non-empty visible line at (origin.x + line.x, snapped origin.y + line.baseline), in style.font. ``text`` is the text the lines were laid out from (the collapsed text under collapse) and ``lines`` their records, unchanged since. A line whose range lies outside ``text`` stops the drawing. Returns the lines drawn. A theme part draws a line the same way: its text is text.substr(line.bytes) and paint_text_part_at takes the same origin and line.width.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/text/types/text_types.hpp>``
 
 .. cpp:function:: Utf8ValidationResult validate_utf8(std::string_view text) noexcept
@@ -3185,6 +3485,10 @@ Functions, constants and aliases
 .. cpp:function:: TextResolutionStatus estimate_line_break_opportunities_utf8(std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept
 
    Deterministic renderer-free line breaking: a line may end after a run of spaces or tabs and must end after a line feed, or a carriage return not followed by one. Returns estimated, or invalid_request with ``opportunities`` unchanged as TextMetricsProvider's query does.
+
+.. cpp:function:: TextResolutionStatus estimate_cluster_advances_utf8(std::string_view utf8, FontSpec effective_font, std::span<double> advances) noexcept
+
+   The cluster advances matching estimate_text_layout_utf8: every scalar value a cluster of the estimate's width, the letter spacing after each but the last. Returns estimated, or invalid_request with ``advances`` unchanged as TextMetricsProvider's query does. Allocates nothing.
 
 .. cpp:function:: ResolvedTextLayout estimate_text_layout_utf8(std::string_view utf8, FontSpec effective_font) noexcept
 

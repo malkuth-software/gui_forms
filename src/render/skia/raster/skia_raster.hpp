@@ -178,6 +178,10 @@ public:
         std::string_view text, FontSpec font_spec) override;
     [[nodiscard]] TextResolutionStatus fill_line_break_opportunities_utf8(
         std::string_view text, std::span<LineBreakOpportunity> opportunities) override;
+    // From one shaping by the engine, not kept: a paragraph's shaping would
+    // only crowd the lines' kept shapings out.
+    [[nodiscard]] TextResolutionStatus fill_cluster_advances_utf8(
+        std::string_view text, FontSpec font_spec, std::span<double> advances) override;
     void draw_image(ImageId image, Rect destination, double opacity) override;
     void draw_live_surface(const std::shared_ptr<LiveSurface> surface,
                            const Rect destination, const double opacity) override;

@@ -158,6 +158,13 @@ public:
     // reads no face and allocates nothing.
     [[nodiscard]] static TextResolutionStatus fill_line_break_opportunities_utf8(
         std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept;
+    // TextMetricsProvider::fill_cluster_advances_utf8's contract, from one
+    // shape(): each glyph's advance (letter spacing included, as shape
+    // places it) added at its cluster's first byte. Returns exact, the
+    // resolution's missing-face status, or invalid_request with `advances`
+    // unchanged. Shaping allocates its glyph records, as shape() does.
+    [[nodiscard]] TextResolutionStatus fill_cluster_advances_utf8(
+        std::string_view utf8, FontSpec font, std::span<double> advances);
     [[nodiscard]] std::size_t face_count() const noexcept;
     // Nullopt for an unknown ID. Registered faces are never removed, so the
     // span stays valid while the returned owner is held.

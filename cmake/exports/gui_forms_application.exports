@@ -330,6 +330,7 @@ __ZGVZN9gui_forms13PageDragStart*
 __ZGVZN9gui_forms13PagePlacement*
 __ZGVZN9gui_forms13PageSetChange*
 __ZGVZN9gui_forms13PageSetLimits*
+__ZGVZN9gui_forms13ParagraphLine*
 __ZGVZN9gui_forms13PartHitRegion*
 __ZGVZN9gui_forms13PlotPointPick*
 __ZGVZN9gui_forms13PresentedArea*
@@ -421,6 +422,8 @@ __ZGVZN9gui_forms14PagePinRequest*
 __ZGVZN9gui_forms14PageSetOptions*
 __ZGVZN9gui_forms14PageTakeResult*
 __ZGVZN9gui_forms14PaintEventArgs*
+__ZGVZN9gui_forms14ParagraphPaint*
+__ZGVZN9gui_forms14ParagraphStyle*
 __ZGVZN9gui_forms14PartRasterView*
 __ZGVZN9gui_forms14PlotSeriesItem*
 __ZGVZN9gui_forms14PlotViewRanges*
@@ -608,6 +611,9 @@ __ZGVZN9gui_forms16NativePopupToken*
 __ZGVZN9gui_forms16PageCloseRequest*
 __ZGVZN9gui_forms16PaintCornerRadii*
 __ZGVZN9gui_forms16PaintFramebuffer*
+__ZGVZN9gui_forms16ParagraphBuffers*
+__ZGVZN9gui_forms16ParagraphMetrics*
+__ZGVZN9gui_forms16ParagraphStorage*
 __ZGVZN9gui_forms16PartRasterResult*
 __ZGVZN9gui_forms16PartRecordHandle*
 __ZGVZN9gui_forms16RangeScrollEvent*
@@ -1025,6 +1031,7 @@ __ZGVZN9gui_forms21MaterialImagePosition*
 __ZGVZN9gui_forms21NavigationPaneRestore*
 __ZGVZN9gui_forms21ObjectSelectionChange*
 __ZGVZN9gui_forms21OwnerDecorationRecipe*
+__ZGVZN9gui_forms21ParagraphLayoutResult*
 __ZGVZN9gui_forms21PartRecordAcquisition*
 __ZGVZN9gui_forms21PartTransitionChannel*
 __ZGVZN9gui_forms21PresentationOverrides*
@@ -1191,6 +1198,7 @@ __ZGVZN9gui_forms27DataGridViewRowWindowSource*
 __ZGVZN9gui_forms27HostTrayNotificationRequest*
 __ZGVZN9gui_forms27InstrumentModuleMoveRequest*
 __ZGVZN9gui_forms27OffscreenRasterCreateResult*
+__ZGVZN9gui_forms27ParagraphStorageRequirement*
 __ZGVZN9gui_forms27PreparedTextSessionSnapshot*
 __ZGVZN9gui_forms27SubSurfaceRequestStatistics*
 __ZGVZN9gui_forms27SubSurfaceSemanticsListener*
@@ -1768,6 +1776,7 @@ __ZGVZNK9gui_forms13PageDragStart*
 __ZGVZNK9gui_forms13PagePlacement*
 __ZGVZNK9gui_forms13PageSetChange*
 __ZGVZNK9gui_forms13PageSetLimits*
+__ZGVZNK9gui_forms13ParagraphLine*
 __ZGVZNK9gui_forms13PartHitRegion*
 __ZGVZNK9gui_forms13PlotPointPick*
 __ZGVZNK9gui_forms13PresentedArea*
@@ -1859,6 +1868,8 @@ __ZGVZNK9gui_forms14PagePinRequest*
 __ZGVZNK9gui_forms14PageSetOptions*
 __ZGVZNK9gui_forms14PageTakeResult*
 __ZGVZNK9gui_forms14PaintEventArgs*
+__ZGVZNK9gui_forms14ParagraphPaint*
+__ZGVZNK9gui_forms14ParagraphStyle*
 __ZGVZNK9gui_forms14PartRasterView*
 __ZGVZNK9gui_forms14PlotSeriesItem*
 __ZGVZNK9gui_forms14PlotViewRanges*
@@ -2046,6 +2057,9 @@ __ZGVZNK9gui_forms16NativePopupToken*
 __ZGVZNK9gui_forms16PageCloseRequest*
 __ZGVZNK9gui_forms16PaintCornerRadii*
 __ZGVZNK9gui_forms16PaintFramebuffer*
+__ZGVZNK9gui_forms16ParagraphBuffers*
+__ZGVZNK9gui_forms16ParagraphMetrics*
+__ZGVZNK9gui_forms16ParagraphStorage*
 __ZGVZNK9gui_forms16PartRasterResult*
 __ZGVZNK9gui_forms16PartRecordHandle*
 __ZGVZNK9gui_forms16RangeScrollEvent*
@@ -2463,6 +2477,7 @@ __ZGVZNK9gui_forms21MaterialImagePosition*
 __ZGVZNK9gui_forms21NavigationPaneRestore*
 __ZGVZNK9gui_forms21ObjectSelectionChange*
 __ZGVZNK9gui_forms21OwnerDecorationRecipe*
+__ZGVZNK9gui_forms21ParagraphLayoutResult*
 __ZGVZNK9gui_forms21PartRecordAcquisition*
 __ZGVZNK9gui_forms21PartTransitionChannel*
 __ZGVZNK9gui_forms21PresentationOverrides*
@@ -2629,6 +2644,7 @@ __ZGVZNK9gui_forms27DataGridViewRowWindowSource*
 __ZGVZNK9gui_forms27HostTrayNotificationRequest*
 __ZGVZNK9gui_forms27InstrumentModuleMoveRequest*
 __ZGVZNK9gui_forms27OffscreenRasterCreateResult*
+__ZGVZNK9gui_forms27ParagraphStorageRequirement*
 __ZGVZNK9gui_forms27PreparedTextSessionSnapshot*
 __ZGVZNK9gui_forms27SubSurfaceRequestStatistics*
 __ZGVZNK9gui_forms27SubSurfaceSemanticsListener*
@@ -3302,6 +3318,7 @@ __ZN9gui_forms13PageDragStart*
 __ZN9gui_forms13PagePlacement*
 __ZN9gui_forms13PageSetChange*
 __ZN9gui_forms13PageSetLimits*
+__ZN9gui_forms13ParagraphLine*
 __ZN9gui_forms13PartHitRegion*
 __ZN9gui_forms13PlotPointPick*
 __ZN9gui_forms13PresentedArea*
@@ -3409,6 +3426,8 @@ __ZN9gui_forms14PagePinRequest*
 __ZN9gui_forms14PageSetOptions*
 __ZN9gui_forms14PageTakeResult*
 __ZN9gui_forms14PaintEventArgs*
+__ZN9gui_forms14ParagraphPaint*
+__ZN9gui_forms14ParagraphStyle*
 __ZN9gui_forms14PartRasterView*
 __ZN9gui_forms14PlotSeriesItem*
 __ZN9gui_forms14PlotViewRanges*
@@ -3601,6 +3620,8 @@ __ZN9gui_forms15lend_paint_textB*
 __ZN9gui_forms15lend_paint_textE*
 __ZN9gui_forms15logical_monitorB*
 __ZN9gui_forms15logical_monitorE*
+__ZN9gui_forms15paint_paragraphB*
+__ZN9gui_forms15paint_paragraphE*
 __ZN9gui_forms15plan_help_printB*
 __ZN9gui_forms15plan_help_printE*
 __ZN9gui_forms15proportion_rectB*
@@ -3678,6 +3699,9 @@ __ZN9gui_forms16NativePopupToken*
 __ZN9gui_forms16PageCloseRequest*
 __ZN9gui_forms16PaintCornerRadii*
 __ZN9gui_forms16PaintFramebuffer*
+__ZN9gui_forms16ParagraphBuffers*
+__ZN9gui_forms16ParagraphMetrics*
+__ZN9gui_forms16ParagraphStorage*
 __ZN9gui_forms16PartRasterResult*
 __ZN9gui_forms16PartRecordHandle*
 __ZN9gui_forms16RangeScrollEvent*
@@ -3884,10 +3908,14 @@ __ZN9gui_forms17help_callout_nameB*
 __ZN9gui_forms17help_callout_nameE*
 __ZN9gui_forms17item_content_textB*
 __ZN9gui_forms17item_content_textE*
+__ZN9gui_forms17lay_out_paragraphB*
+__ZN9gui_forms17lay_out_paragraphE*
 __ZN9gui_forms17locale_field_nameB*
 __ZN9gui_forms17locale_field_nameE*
 __ZN9gui_forms17locale_xml_limitsB*
 __ZN9gui_forms17locale_xml_limitsE*
+__ZN9gui_forms17measure_paragraphB*
+__ZN9gui_forms17measure_paragraphE*
 __ZN9gui_forms17paint_masked_fillB*
 __ZN9gui_forms17paint_masked_fillE*
 __ZN9gui_forms17part_corner_radiiB*
@@ -4063,6 +4091,8 @@ __ZN9gui_forms18is_registered_nameB*
 __ZN9gui_forms18is_registered_nameE*
 __ZN9gui_forms18paint_text_part_atB*
 __ZN9gui_forms18paint_text_part_atE*
+__ZN9gui_forms18paragraph_line_boxB*
+__ZN9gui_forms18paragraph_line_boxE*
 __ZN9gui_forms18parse_ribbon_stateB*
 __ZN9gui_forms18parse_ribbon_stateE*
 __ZN9gui_forms18place_radial_itemsB*
@@ -4437,6 +4467,7 @@ __ZN9gui_forms21MaterialImagePosition*
 __ZN9gui_forms21NavigationPaneRestore*
 __ZN9gui_forms21ObjectSelectionChange*
 __ZN9gui_forms21OwnerDecorationRecipe*
+__ZN9gui_forms21ParagraphLayoutResult*
 __ZN9gui_forms21PartRecordAcquisition*
 __ZN9gui_forms21PartTransitionChannel*
 __ZN9gui_forms21PresentationOverrides*
@@ -4739,6 +4770,8 @@ __ZN9gui_forms23nearest_logical_monitorB*
 __ZN9gui_forms23nearest_logical_monitorE*
 __ZN9gui_forms23overridden_presentationB*
 __ZN9gui_forms23overridden_presentationE*
+__ZN9gui_forms23paragraph_storage_boundB*
+__ZN9gui_forms23paragraph_storage_boundE*
 __ZN9gui_forms23raster_view_defect_nameB*
 __ZN9gui_forms23raster_view_defect_nameE*
 __ZN9gui_forms23rasterize_prepared_textB*
@@ -4969,6 +5002,7 @@ __ZN9gui_forms27DataGridViewRowWindowSource*
 __ZN9gui_forms27HostTrayNotificationRequest*
 __ZN9gui_forms27InstrumentModuleMoveRequest*
 __ZN9gui_forms27OffscreenRasterCreateResult*
+__ZN9gui_forms27ParagraphStorageRequirement*
 __ZN9gui_forms27PreparedTextSessionSnapshot*
 __ZN9gui_forms27SubSurfaceRequestStatistics*
 __ZN9gui_forms27SubSurfaceSemanticsListener*
@@ -5063,6 +5097,8 @@ __ZN9gui_forms30DataGridViewRowOrderThresholds*
 __ZN9gui_forms30MasterDetailPresentationChange*
 __ZN9gui_forms30ProgressBarAnimationAppearance*
 __ZN9gui_forms30PropertyValueConverterRegistry*
+__ZN9gui_forms30estimate_cluster_advances_utf8B*
+__ZN9gui_forms30estimate_cluster_advances_utf8E*
 __ZN9gui_forms30is_virtual_semantic_runtime_idB*
 __ZN9gui_forms30is_virtual_semantic_runtime_idE*
 __ZN9gui_forms30material_field_colour_positionB*
@@ -5898,6 +5934,7 @@ __ZNK[RO]9gui_forms13PageDragStart*
 __ZNK[RO]9gui_forms13PagePlacement*
 __ZNK[RO]9gui_forms13PageSetChange*
 __ZNK[RO]9gui_forms13PageSetLimits*
+__ZNK[RO]9gui_forms13ParagraphLine*
 __ZNK[RO]9gui_forms13PartHitRegion*
 __ZNK[RO]9gui_forms13PlotPointPick*
 __ZNK[RO]9gui_forms13PresentedArea*
@@ -5989,6 +6026,8 @@ __ZNK[RO]9gui_forms14PagePinRequest*
 __ZNK[RO]9gui_forms14PageSetOptions*
 __ZNK[RO]9gui_forms14PageTakeResult*
 __ZNK[RO]9gui_forms14PaintEventArgs*
+__ZNK[RO]9gui_forms14ParagraphPaint*
+__ZNK[RO]9gui_forms14ParagraphStyle*
 __ZNK[RO]9gui_forms14PartRasterView*
 __ZNK[RO]9gui_forms14PlotSeriesItem*
 __ZNK[RO]9gui_forms14PlotViewRanges*
@@ -6176,6 +6215,9 @@ __ZNK[RO]9gui_forms16NativePopupToken*
 __ZNK[RO]9gui_forms16PageCloseRequest*
 __ZNK[RO]9gui_forms16PaintCornerRadii*
 __ZNK[RO]9gui_forms16PaintFramebuffer*
+__ZNK[RO]9gui_forms16ParagraphBuffers*
+__ZNK[RO]9gui_forms16ParagraphMetrics*
+__ZNK[RO]9gui_forms16ParagraphStorage*
 __ZNK[RO]9gui_forms16PartRasterResult*
 __ZNK[RO]9gui_forms16PartRecordHandle*
 __ZNK[RO]9gui_forms16RangeScrollEvent*
@@ -6593,6 +6635,7 @@ __ZNK[RO]9gui_forms21MaterialImagePosition*
 __ZNK[RO]9gui_forms21NavigationPaneRestore*
 __ZNK[RO]9gui_forms21ObjectSelectionChange*
 __ZNK[RO]9gui_forms21OwnerDecorationRecipe*
+__ZNK[RO]9gui_forms21ParagraphLayoutResult*
 __ZNK[RO]9gui_forms21PartRecordAcquisition*
 __ZNK[RO]9gui_forms21PartTransitionChannel*
 __ZNK[RO]9gui_forms21PresentationOverrides*
@@ -6759,6 +6802,7 @@ __ZNK[RO]9gui_forms27DataGridViewRowWindowSource*
 __ZNK[RO]9gui_forms27HostTrayNotificationRequest*
 __ZNK[RO]9gui_forms27InstrumentModuleMoveRequest*
 __ZNK[RO]9gui_forms27OffscreenRasterCreateResult*
+__ZNK[RO]9gui_forms27ParagraphStorageRequirement*
 __ZNK[RO]9gui_forms27PreparedTextSessionSnapshot*
 __ZNK[RO]9gui_forms27SubSurfaceRequestStatistics*
 __ZNK[RO]9gui_forms27SubSurfaceSemanticsListener*
@@ -7336,6 +7380,7 @@ __ZN[KRO]9gui_forms13PageDragStart*
 __ZN[KRO]9gui_forms13PagePlacement*
 __ZN[KRO]9gui_forms13PageSetChange*
 __ZN[KRO]9gui_forms13PageSetLimits*
+__ZN[KRO]9gui_forms13ParagraphLine*
 __ZN[KRO]9gui_forms13PartHitRegion*
 __ZN[KRO]9gui_forms13PlotPointPick*
 __ZN[KRO]9gui_forms13PresentedArea*
@@ -7427,6 +7472,8 @@ __ZN[KRO]9gui_forms14PagePinRequest*
 __ZN[KRO]9gui_forms14PageSetOptions*
 __ZN[KRO]9gui_forms14PageTakeResult*
 __ZN[KRO]9gui_forms14PaintEventArgs*
+__ZN[KRO]9gui_forms14ParagraphPaint*
+__ZN[KRO]9gui_forms14ParagraphStyle*
 __ZN[KRO]9gui_forms14PartRasterView*
 __ZN[KRO]9gui_forms14PlotSeriesItem*
 __ZN[KRO]9gui_forms14PlotViewRanges*
@@ -7614,6 +7661,9 @@ __ZN[KRO]9gui_forms16NativePopupToken*
 __ZN[KRO]9gui_forms16PageCloseRequest*
 __ZN[KRO]9gui_forms16PaintCornerRadii*
 __ZN[KRO]9gui_forms16PaintFramebuffer*
+__ZN[KRO]9gui_forms16ParagraphBuffers*
+__ZN[KRO]9gui_forms16ParagraphMetrics*
+__ZN[KRO]9gui_forms16ParagraphStorage*
 __ZN[KRO]9gui_forms16PartRasterResult*
 __ZN[KRO]9gui_forms16PartRecordHandle*
 __ZN[KRO]9gui_forms16RangeScrollEvent*
@@ -8031,6 +8081,7 @@ __ZN[KRO]9gui_forms21MaterialImagePosition*
 __ZN[KRO]9gui_forms21NavigationPaneRestore*
 __ZN[KRO]9gui_forms21ObjectSelectionChange*
 __ZN[KRO]9gui_forms21OwnerDecorationRecipe*
+__ZN[KRO]9gui_forms21ParagraphLayoutResult*
 __ZN[KRO]9gui_forms21PartRecordAcquisition*
 __ZN[KRO]9gui_forms21PartTransitionChannel*
 __ZN[KRO]9gui_forms21PresentationOverrides*
@@ -8197,6 +8248,7 @@ __ZN[KRO]9gui_forms27DataGridViewRowWindowSource*
 __ZN[KRO]9gui_forms27HostTrayNotificationRequest*
 __ZN[KRO]9gui_forms27InstrumentModuleMoveRequest*
 __ZN[KRO]9gui_forms27OffscreenRasterCreateResult*
+__ZN[KRO]9gui_forms27ParagraphStorageRequirement*
 __ZN[KRO]9gui_forms27PreparedTextSessionSnapshot*
 __ZN[KRO]9gui_forms27SubSurfaceRequestStatistics*
 __ZN[KRO]9gui_forms27SubSurfaceSemanticsListener*
@@ -8774,6 +8826,7 @@ __ZT[VIST]N9gui_forms13PageDragStart*E
 __ZT[VIST]N9gui_forms13PagePlacement*E
 __ZT[VIST]N9gui_forms13PageSetChange*E
 __ZT[VIST]N9gui_forms13PageSetLimits*E
+__ZT[VIST]N9gui_forms13ParagraphLine*E
 __ZT[VIST]N9gui_forms13PartHitRegion*E
 __ZT[VIST]N9gui_forms13PlotPointPick*E
 __ZT[VIST]N9gui_forms13PresentedArea*E
@@ -8865,6 +8918,8 @@ __ZT[VIST]N9gui_forms14PagePinRequest*E
 __ZT[VIST]N9gui_forms14PageSetOptions*E
 __ZT[VIST]N9gui_forms14PageTakeResult*E
 __ZT[VIST]N9gui_forms14PaintEventArgs*E
+__ZT[VIST]N9gui_forms14ParagraphPaint*E
+__ZT[VIST]N9gui_forms14ParagraphStyle*E
 __ZT[VIST]N9gui_forms14PartRasterView*E
 __ZT[VIST]N9gui_forms14PlotSeriesItem*E
 __ZT[VIST]N9gui_forms14PlotViewRanges*E
@@ -9052,6 +9107,9 @@ __ZT[VIST]N9gui_forms16NativePopupToken*E
 __ZT[VIST]N9gui_forms16PageCloseRequest*E
 __ZT[VIST]N9gui_forms16PaintCornerRadii*E
 __ZT[VIST]N9gui_forms16PaintFramebuffer*E
+__ZT[VIST]N9gui_forms16ParagraphBuffers*E
+__ZT[VIST]N9gui_forms16ParagraphMetrics*E
+__ZT[VIST]N9gui_forms16ParagraphStorage*E
 __ZT[VIST]N9gui_forms16PartRasterResult*E
 __ZT[VIST]N9gui_forms16PartRecordHandle*E
 __ZT[VIST]N9gui_forms16RangeScrollEvent*E
@@ -9469,6 +9527,7 @@ __ZT[VIST]N9gui_forms21MaterialImagePosition*E
 __ZT[VIST]N9gui_forms21NavigationPaneRestore*E
 __ZT[VIST]N9gui_forms21ObjectSelectionChange*E
 __ZT[VIST]N9gui_forms21OwnerDecorationRecipe*E
+__ZT[VIST]N9gui_forms21ParagraphLayoutResult*E
 __ZT[VIST]N9gui_forms21PartRecordAcquisition*E
 __ZT[VIST]N9gui_forms21PartTransitionChannel*E
 __ZT[VIST]N9gui_forms21PresentationOverrides*E
@@ -9635,6 +9694,7 @@ __ZT[VIST]N9gui_forms27DataGridViewRowWindowSource*E
 __ZT[VIST]N9gui_forms27HostTrayNotificationRequest*E
 __ZT[VIST]N9gui_forms27InstrumentModuleMoveRequest*E
 __ZT[VIST]N9gui_forms27OffscreenRasterCreateResult*E
+__ZT[VIST]N9gui_forms27ParagraphStorageRequirement*E
 __ZT[VIST]N9gui_forms27PreparedTextSessionSnapshot*E
 __ZT[VIST]N9gui_forms27SubSurfaceRequestStatistics*E
 __ZT[VIST]N9gui_forms27SubSurfaceSemanticsListener*E
@@ -10212,6 +10272,7 @@ __ZT[hvc]*9gui_forms13PageDragStart*
 __ZT[hvc]*9gui_forms13PagePlacement*
 __ZT[hvc]*9gui_forms13PageSetChange*
 __ZT[hvc]*9gui_forms13PageSetLimits*
+__ZT[hvc]*9gui_forms13ParagraphLine*
 __ZT[hvc]*9gui_forms13PartHitRegion*
 __ZT[hvc]*9gui_forms13PlotPointPick*
 __ZT[hvc]*9gui_forms13PresentedArea*
@@ -10303,6 +10364,8 @@ __ZT[hvc]*9gui_forms14PagePinRequest*
 __ZT[hvc]*9gui_forms14PageSetOptions*
 __ZT[hvc]*9gui_forms14PageTakeResult*
 __ZT[hvc]*9gui_forms14PaintEventArgs*
+__ZT[hvc]*9gui_forms14ParagraphPaint*
+__ZT[hvc]*9gui_forms14ParagraphStyle*
 __ZT[hvc]*9gui_forms14PartRasterView*
 __ZT[hvc]*9gui_forms14PlotSeriesItem*
 __ZT[hvc]*9gui_forms14PlotViewRanges*
@@ -10490,6 +10553,9 @@ __ZT[hvc]*9gui_forms16NativePopupToken*
 __ZT[hvc]*9gui_forms16PageCloseRequest*
 __ZT[hvc]*9gui_forms16PaintCornerRadii*
 __ZT[hvc]*9gui_forms16PaintFramebuffer*
+__ZT[hvc]*9gui_forms16ParagraphBuffers*
+__ZT[hvc]*9gui_forms16ParagraphMetrics*
+__ZT[hvc]*9gui_forms16ParagraphStorage*
 __ZT[hvc]*9gui_forms16PartRasterResult*
 __ZT[hvc]*9gui_forms16PartRecordHandle*
 __ZT[hvc]*9gui_forms16RangeScrollEvent*
@@ -10907,6 +10973,7 @@ __ZT[hvc]*9gui_forms21MaterialImagePosition*
 __ZT[hvc]*9gui_forms21NavigationPaneRestore*
 __ZT[hvc]*9gui_forms21ObjectSelectionChange*
 __ZT[hvc]*9gui_forms21OwnerDecorationRecipe*
+__ZT[hvc]*9gui_forms21ParagraphLayoutResult*
 __ZT[hvc]*9gui_forms21PartRecordAcquisition*
 __ZT[hvc]*9gui_forms21PartTransitionChannel*
 __ZT[hvc]*9gui_forms21PresentationOverrides*
@@ -11073,6 +11140,7 @@ __ZT[hvc]*9gui_forms27DataGridViewRowWindowSource*
 __ZT[hvc]*9gui_forms27HostTrayNotificationRequest*
 __ZT[hvc]*9gui_forms27InstrumentModuleMoveRequest*
 __ZT[hvc]*9gui_forms27OffscreenRasterCreateResult*
+__ZT[hvc]*9gui_forms27ParagraphStorageRequirement*
 __ZT[hvc]*9gui_forms27PreparedTextSessionSnapshot*
 __ZT[hvc]*9gui_forms27SubSurfaceRequestStatistics*
 __ZT[hvc]*9gui_forms27SubSurfaceSemanticsListener*
@@ -11650,6 +11718,7 @@ __ZZN9gui_forms13PageDragStart*
 __ZZN9gui_forms13PagePlacement*
 __ZZN9gui_forms13PageSetChange*
 __ZZN9gui_forms13PageSetLimits*
+__ZZN9gui_forms13ParagraphLine*
 __ZZN9gui_forms13PartHitRegion*
 __ZZN9gui_forms13PlotPointPick*
 __ZZN9gui_forms13PresentedArea*
@@ -11741,6 +11810,8 @@ __ZZN9gui_forms14PagePinRequest*
 __ZZN9gui_forms14PageSetOptions*
 __ZZN9gui_forms14PageTakeResult*
 __ZZN9gui_forms14PaintEventArgs*
+__ZZN9gui_forms14ParagraphPaint*
+__ZZN9gui_forms14ParagraphStyle*
 __ZZN9gui_forms14PartRasterView*
 __ZZN9gui_forms14PlotSeriesItem*
 __ZZN9gui_forms14PlotViewRanges*
@@ -11928,6 +11999,9 @@ __ZZN9gui_forms16NativePopupToken*
 __ZZN9gui_forms16PageCloseRequest*
 __ZZN9gui_forms16PaintCornerRadii*
 __ZZN9gui_forms16PaintFramebuffer*
+__ZZN9gui_forms16ParagraphBuffers*
+__ZZN9gui_forms16ParagraphMetrics*
+__ZZN9gui_forms16ParagraphStorage*
 __ZZN9gui_forms16PartRasterResult*
 __ZZN9gui_forms16PartRecordHandle*
 __ZZN9gui_forms16RangeScrollEvent*
@@ -12345,6 +12419,7 @@ __ZZN9gui_forms21MaterialImagePosition*
 __ZZN9gui_forms21NavigationPaneRestore*
 __ZZN9gui_forms21ObjectSelectionChange*
 __ZZN9gui_forms21OwnerDecorationRecipe*
+__ZZN9gui_forms21ParagraphLayoutResult*
 __ZZN9gui_forms21PartRecordAcquisition*
 __ZZN9gui_forms21PartTransitionChannel*
 __ZZN9gui_forms21PresentationOverrides*
@@ -12511,6 +12586,7 @@ __ZZN9gui_forms27DataGridViewRowWindowSource*
 __ZZN9gui_forms27HostTrayNotificationRequest*
 __ZZN9gui_forms27InstrumentModuleMoveRequest*
 __ZZN9gui_forms27OffscreenRasterCreateResult*
+__ZZN9gui_forms27ParagraphStorageRequirement*
 __ZZN9gui_forms27PreparedTextSessionSnapshot*
 __ZZN9gui_forms27SubSurfaceRequestStatistics*
 __ZZN9gui_forms27SubSurfaceSemanticsListener*
@@ -13088,6 +13164,7 @@ __ZZNK9gui_forms13PageDragStart*
 __ZZNK9gui_forms13PagePlacement*
 __ZZNK9gui_forms13PageSetChange*
 __ZZNK9gui_forms13PageSetLimits*
+__ZZNK9gui_forms13ParagraphLine*
 __ZZNK9gui_forms13PartHitRegion*
 __ZZNK9gui_forms13PlotPointPick*
 __ZZNK9gui_forms13PresentedArea*
@@ -13179,6 +13256,8 @@ __ZZNK9gui_forms14PagePinRequest*
 __ZZNK9gui_forms14PageSetOptions*
 __ZZNK9gui_forms14PageTakeResult*
 __ZZNK9gui_forms14PaintEventArgs*
+__ZZNK9gui_forms14ParagraphPaint*
+__ZZNK9gui_forms14ParagraphStyle*
 __ZZNK9gui_forms14PartRasterView*
 __ZZNK9gui_forms14PlotSeriesItem*
 __ZZNK9gui_forms14PlotViewRanges*
@@ -13366,6 +13445,9 @@ __ZZNK9gui_forms16NativePopupToken*
 __ZZNK9gui_forms16PageCloseRequest*
 __ZZNK9gui_forms16PaintCornerRadii*
 __ZZNK9gui_forms16PaintFramebuffer*
+__ZZNK9gui_forms16ParagraphBuffers*
+__ZZNK9gui_forms16ParagraphMetrics*
+__ZZNK9gui_forms16ParagraphStorage*
 __ZZNK9gui_forms16PartRasterResult*
 __ZZNK9gui_forms16PartRecordHandle*
 __ZZNK9gui_forms16RangeScrollEvent*
@@ -13783,6 +13865,7 @@ __ZZNK9gui_forms21MaterialImagePosition*
 __ZZNK9gui_forms21NavigationPaneRestore*
 __ZZNK9gui_forms21ObjectSelectionChange*
 __ZZNK9gui_forms21OwnerDecorationRecipe*
+__ZZNK9gui_forms21ParagraphLayoutResult*
 __ZZNK9gui_forms21PartRecordAcquisition*
 __ZZNK9gui_forms21PartTransitionChannel*
 __ZZNK9gui_forms21PresentationOverrides*
@@ -13949,6 +14032,7 @@ __ZZNK9gui_forms27DataGridViewRowWindowSource*
 __ZZNK9gui_forms27HostTrayNotificationRequest*
 __ZZNK9gui_forms27InstrumentModuleMoveRequest*
 __ZZNK9gui_forms27OffscreenRasterCreateResult*
+__ZZNK9gui_forms27ParagraphStorageRequirement*
 __ZZNK9gui_forms27PreparedTextSessionSnapshot*
 __ZZNK9gui_forms27SubSurfaceRequestStatistics*
 __ZZNK9gui_forms27SubSurfaceSemanticsListener*
