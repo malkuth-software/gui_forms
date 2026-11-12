@@ -7,7 +7,10 @@
 // controls that follow the resolved value: the track bar, the horizontal
 // scroll bar, the combo box's drop button, the check box's well, the radio
 // button's well, the switch's track, the group box's caption, the value
-// bar's fill, the split container's panels and the menu strip's items. The
+// bar's fill, the split container's panels, the menu strip's items, the
+// column order of the list view, tree list view and data grid, and the
+// breadcrumb trail's segments (the value bar's reversed scrub is tested in
+// tests/scrub_gesture_tests.cpp, reversed_scrub). The
 // barber pole's direction is tested with the other progress effects
 // (tests/effect_program_tests.cpp, progress_bar_follows_right_to_left).
 
@@ -361,6 +364,90 @@ void test_menu_strip_follows() {
             "right to left, the first menu is at the right and the second follows it leftward");
 }
 
+// The bounds of `control`'s virtual semantic nodes of `role`, in the order
+// it publishes them (columns and segments in reading order).
+std::vector<Rect> node_bounds(const Control& control, SemanticRole role) {
+    const std::vector<SemanticNode> nodes = control.semantic_virtual_children();
+    std::vector<Rect> found{};
+    found.reserve(nodes.size());
+    for (const SemanticNode& node : nodes) {
+        if (node.role == role) found.push_back(node.bounds);
+    }
+    return found;
+}
+
+// Two published columns or segments run left to right, then, once the
+// root resolves right to left, from the right: the first one's right edge
+// beyond the second's.
+void require_reading_order_flips(Hosted& hosted, const Control& control, SemanticRole role, const char* message) {
+    const std::vector<Rect> forward = node_bounds(control, role);
+    require(forward.size() >= 2U && forward[0].x < forward[1].x, message);
+    set_root_direction(hosted, LayoutDirection::right_to_left);
+    const std::vector<Rect> mirrored = node_bounds(control, role);
+    require(mirrored.size() >= 2U && mirrored[0].x > mirrored[1].x && mirrored[0].right() > mirrored[1].right() &&
+                near(mirrored[0].width, forward[0].width),
+            message);
+}
+
+void test_list_view_follows() {
+    std::shared_ptr<ListView> list = make_control<ListView>(StableId("rtl.list"));
+    (*list).view = ListViewView::details;
+    std::vector<ListViewColumn> columns(2U);
+    columns[0].stable_id = "name";
+    columns[0].text = "Name";
+    columns[0].width = 100.0;
+    columns[1].stable_id = "size";
+    columns[1].text = "Size";
+    columns[1].width = 80.0;
+    (*list).set_columns(std::move(columns));
+    Hosted hosted = host(list, {0.0, 0.0, 280.0, 90.0}, "rtl.list.root");
+    require_reading_order_flips(hosted, *list, SemanticRole::column_header,
+                                "right to left, the list view's first column is at the right");
+}
+
+void test_tree_list_view_follows() {
+    std::shared_ptr<TreeListView> tree = make_control<TreeListView>(StableId("rtl.tree_list"));
+    std::vector<TreeListColumn> columns(2U);
+    columns[0].stable_id = "name";
+    columns[0].text = "Name";
+    columns[0].width = 100.0;
+    columns[1].stable_id = "kind";
+    columns[1].text = "Kind";
+    columns[1].width = 80.0;
+    (*tree).set_columns(std::move(columns));
+    Hosted hosted = host(tree, {0.0, 0.0, 280.0, 90.0}, "rtl.tree_list.root");
+    require_reading_order_flips(hosted, *tree, SemanticRole::column_header,
+                                "right to left, the tree list view's first column is at the right");
+}
+
+void test_data_grid_view_follows() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("rtl.grid"));
+    (*grid).set_columns({{.name = "name", .header_text = "Name", .width = 100.0},
+                         {.name = "size", .header_text = "Size", .width = 80.0}});
+    Hosted hosted = host(grid, {0.0, 0.0, 280.0, 90.0}, "rtl.grid.root");
+    const double grid_right = (*grid).absolute_bounds().right();
+    require_reading_order_flips(hosted, *grid, SemanticRole::column_header,
+                                "right to left, the grid's first column is at the right");
+    // The row headers move to the right edge with it, so the first column
+    // ends short of the grid's right edge, by their width.
+    const std::vector<Rect> mirrored = node_bounds(*grid, SemanticRole::column_header);
+    require(mirrored.size() >= 2U && mirrored[0].right() < grid_right,
+            "right to left, the row headers stand between the first column and the grid's right edge");
+}
+
+void test_breadcrumb_follows() {
+    std::shared_ptr<BreadcrumbTrail> trail = make_control<BreadcrumbTrail>(StableId("rtl.crumbs"));
+    std::vector<BreadcrumbSegment> segments(2U);
+    segments[0].stable_id = "rtl.crumbs.root";
+    segments[0].text = "Root";
+    segments[1].stable_id = "rtl.crumbs.leaf";
+    segments[1].text = "Leaf";
+    (*trail).set_segments(std::move(segments));
+    Hosted hosted = host(trail, {0.0, 0.0, 280.0, 28.0}, "rtl.crumbs.root_panel");
+    require_reading_order_flips(hosted, *trail, SemanticRole::button,
+                                "right to left, the trail's root segment is at the right");
+}
+
 } // namespace
 
 int main() {
@@ -378,6 +465,10 @@ int main() {
         test_value_bar_follows();
         test_split_container_follows();
         test_menu_strip_follows();
+        test_list_view_follows();
+        test_tree_list_view_follows();
+        test_data_grid_view_follows();
+        test_breadcrumb_follows();
         std::cout << "right-to-left-tests: pass\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

@@ -84,6 +84,8 @@ bool ValueBarScrub::begin_scrub(ScrubRange& range) {
     const std::optional<double> snap = bar.snap_step.read();
     range.snap_step = snap ? *snap : bar.small_change.read();
     range.keyboard_step = bar.small_change.read();
+    // Right to left the fill grows from the right, so dragging left raises.
+    range.reversed = bar.effective_layout_direction() == LayoutDirection::right_to_left;
     bar.invalidate(Dirty::paint);
     return true;
 }

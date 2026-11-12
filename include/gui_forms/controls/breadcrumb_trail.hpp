@@ -145,6 +145,7 @@ private:
     void normalize_active();
     void paint_raised(Painter& painter);
     [[nodiscard]] double raised_point(Rect bounds) const noexcept;
+    [[nodiscard]] bool raised_face_contains(Rect bounds, Point local) const noexcept;
 
     std::vector<BreadcrumbSegment> segments_{};
     std::vector<VisibleItem> visible_items_{};

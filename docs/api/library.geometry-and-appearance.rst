@@ -4144,6 +4144,10 @@ Types
 
       A pointed face (design language §8.5; owner decision 2026-11-02): the surface's trailing end is a nose this many units long, its tip at the middle of the right edge, as a raised breadcrumb segment's. Only surface roles read it; none is a rectangle. Hit testing uses the same shape (pointed_face_contains).
 
+   .. cpp:member:: bool point_leading
+
+      The nose is at the left edge instead, its tip at the middle of the left edge: a right-to-left breadcrumb segment's (Control:: right_to_left). Read only with ``point``.
+
    .. cpp:member:: std::optional<PartProfile> profile
 
       The part's profile beside its rectangle (PartProfile), or none. Only surface roles read it; a pointed face ignores it.
@@ -8850,6 +8854,10 @@ Functions, constants and aliases
 .. cpp:function:: bool pointed_face_contains(Rect bounds, double point, Point position) noexcept
 
    Whether ``position`` lies in the pointed face of ``bounds`` whose nose is ``point`` units long (PartPaint::point): inside the bounds and left of the nose's edges. A point of zero or less is the whole rectangle.
+
+.. cpp:function:: bool leading_pointed_face_contains(Rect bounds, double point, Point position) noexcept
+
+   The same for a face whose nose is at its left edge (PartPaint:: point_leading): inside the bounds and right of the nose's edges.
 
 .. cpp:function:: Insets overlay_shadow_outsets(const Control& control) noexcept
 

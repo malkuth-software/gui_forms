@@ -20,6 +20,7 @@
 namespace gui_forms {
 
 class HScrollBar;
+struct PartPaint;
 class VScrollBar;
 
 // How a column's text sits in its cells. The tree column's text always
@@ -435,6 +436,9 @@ private:
         Rect vertical_bar{};    // empty when not shown
         Rect horizontal_bar{};
         Rect corner{};          // between two shown bars
+        // Right to left: every rectangle here is in reading order and is
+        // mirrored about `well` where it is drawn, published or placed.
+        bool mirrored{};
         double scale{1.0};
         double row_height{};
         double columns_width{};     // the columns' total scaled width
@@ -546,6 +550,7 @@ private:
     [[nodiscard]] std::size_t realized_cell_column(const Layout& placed, std::size_t position) const noexcept;
 
     void paint_row(Painter& painter, const Layout& placed, std::size_t row);
+    void paint_shown(Painter& painter, const Layout& placed, PartPaint part);
     void paint_column(Painter& painter, const Layout& placed, std::size_t column);
 
     void scroll_rows(std::ptrdiff_t rows);
