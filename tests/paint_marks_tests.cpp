@@ -6,7 +6,7 @@
 // composed from them (paint_recipes.hpp: C2, C3, C4).
 #include "gui_forms/binding/property_type/property_type.hpp"
 #include "gui_forms/display/types/display_types.hpp"
-#include "gui_forms/plots/decimation/decimation_kernels.hpp"
+#include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_marks/paint_marks.hpp"

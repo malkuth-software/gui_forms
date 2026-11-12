@@ -58,7 +58,7 @@
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/host/types/host_types.hpp"
-#include "gui_forms/plots/decimation/decimation_kernels.hpp"
+#include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/rules/rule/rule.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"

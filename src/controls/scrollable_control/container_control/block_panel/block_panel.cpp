@@ -8,6 +8,7 @@
 
 #include "gui_forms/controls/block_panel.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include "../../scrollable_anatomy.hpp"
 #include "../layout_style_property.hpp"

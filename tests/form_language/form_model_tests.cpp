@@ -25,7 +25,7 @@
 #include "gui_forms/controls/user_control.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/layout/grid_span/grid_span.hpp"
-#include "gui_forms/plots/decimation/decimation_kernels.hpp"
+#include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 

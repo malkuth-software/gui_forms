@@ -1,6 +1,7 @@
 #include "data_grid_view_cells_control.hpp"
 
 #include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
 #include <algorithm>
 #include <span>

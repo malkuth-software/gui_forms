@@ -3,6 +3,7 @@
 #include "gui_forms/binding/binding_schema/binding_schema.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
 #include "gui_forms/binding/binding_table/binding_table.hpp"
+#include "gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp"
 #include "gui_forms/binding/types/binding_contract_types.hpp"
 #include "gui_forms/components/error_provider/error_provider.hpp"
 #include "gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp"

@@ -3,6 +3,7 @@
 #include "../guidance_utilities.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>

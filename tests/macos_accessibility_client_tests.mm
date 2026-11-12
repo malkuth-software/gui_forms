@@ -4,7 +4,7 @@
 #include "gui_forms/binding/property_type/property_type.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
-#include "gui_forms/plots/decimation/decimation_kernels.hpp"
+#include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
 #include "gui_forms/rules/rule/rule.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"

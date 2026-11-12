@@ -1,5 +1,6 @@
 #include "gui_forms/controls/text_block.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include "line_wrapping.hpp"
 #include "gui_forms/text.hpp"
