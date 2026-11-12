@@ -282,9 +282,12 @@ pattern is anchored to the part's first device pixel, so it moves with the
 part when it scrolls. It is the same on every host, and any repaint
 rectangle gives the bytes of a full repaint. The cost is a fixed amount per
 device pixel at quantization. A tall face at a high scale can take more
-than the bake budget, because each slice reference then holds a whole
-period of the pattern (8 or 64 pixels); the part then draws its built-in
-look. The Gallery's theme has an opt-in class, `.metallic-fade`, that uses
+than the bake budget with a dither, because each slice reference then holds
+a whole period of the pattern (8 or 64 pixels). The dither gives way first,
+never the material: such a face is drawn with the ordered table in place
+of blue noise, or with no dither, whichever fits, and keeps its material.
+The `engine_dither_degradations` statistic counts each step. The Gallery's
+theme has an opt-in class, `.metallic-fade`, that uses
 it: a thin fade with a one-unit edge catch over a panel's or a group's own
 colour. Any theme can copy that rule.
 

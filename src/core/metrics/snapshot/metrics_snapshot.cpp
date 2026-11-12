@@ -133,6 +133,7 @@ std::string MetricsSnapshot::to_json() const {
            << "\"effect_ambient_frames\":" << effect_ambient_frames << ','
            << "\"effects_unverified\":" << effects_unverified << ','
            << "\"engine_primitive_refusals\":" << engine_primitive_refusals << ','
+           << "\"engine_dither_degradations\":" << engine_dither_degradations << ','
            << "\"engine_material_assemblies\":" << engine_material_assemblies << ','
            << "\"paint_group_refusals\":" << paint_group_refusals << ','
            << "\"layout_arrange_refusals\":" << layout_arrange_refusals << ','

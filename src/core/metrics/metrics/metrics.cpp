@@ -234,6 +234,9 @@ void Metrics::record_effect_ambient_frame() noexcept {
 void Metrics::record_engine_primitive_refusal() noexcept {
     values_.engine_primitive_refusals = values_.engine_primitive_refusals + 1U;
 }
+void Metrics::record_engine_dither_degradations(std::uint64_t steps) noexcept {
+    values_.engine_dither_degradations = values_.engine_dither_degradations + steps;
+}
 void Metrics::record_engine_material_assembly() noexcept {
     values_.engine_material_assemblies = values_.engine_material_assemblies + 1U;
 }

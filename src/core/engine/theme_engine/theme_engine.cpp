@@ -1264,6 +1264,7 @@ struct ThemeEngine::PartPaintRun final {
     std::optional<SurfaceMaterial> authored_ground{};
     std::optional<SurfaceMaterial> unreflected{};
     std::optional<SurfaceMaterial> ground{};
+    std::optional<SurfaceMaterial> undithered{};
     std::optional<SurfaceMaterial> overlay{};
     detail::SurfaceEngineAccess::Backplane backplane{};
     std::optional<std::uint32_t> margin{};
@@ -1627,6 +1628,25 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         }
         request.target.corner_radius = part.corner_radius;
         request.target.images = &(*window).image_resources();
+        // A dither gives way before the material does: where the lent
+        // material's bake would pass the budget only for its dither, the
+        // part is lent it with the strongest dither within the budget, for
+        // this paint only, and each step counted
+        // (EnginePrimitive::affordable_dither). Lowered last, after every
+        // other change to the lent material, which the bake weighs.
+        const MaterialDither lent_dither = (*request.target.material).dither;
+        if (lent_dither != MaterialDither::none) {
+            const MaterialDither affordable =
+                (*request.primitive).affordable_dither(request.parameters, request.target);
+            if (affordable != lent_dither) {
+                run.undithered.emplace(*request.target.material);
+                (*run.undithered).dither = affordable;
+                request.target.material = &*run.undithered;
+                const std::uint64_t steps =
+                    static_cast<std::uint64_t>(lent_dither) - static_cast<std::uint64_t>(affordable);
+                (*window).metrics().record_engine_dither_degradations(steps);
+            }
+        }
         if (resolution.materials_authored) run.resolved_material = request.target.material;
     }
     // The overlay shadow (E9, GIVEN E1-1) borrows the theme's layers for the

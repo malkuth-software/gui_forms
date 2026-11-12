@@ -26,6 +26,14 @@
 //   down and both, at odd lengths.
 // - No swimming: a tall panel scrolled under a viewport shows, at every
 //   offset, the bytes of its content at that offset.
+// - The bake budget: a dither gives way before the material does. A tall
+//   face (500 x 600 units, a horizontal gradient, sliced down) whose blue
+//   noise would pass the budget at scale 3 (its reference 64 pixels a
+//   period, about 30 million units) is drawn by its material with the
+//   ordered table (about 14 million), never the built-in recipe: no
+//   refusal, one degradation step counted per paint, and its bytes those
+//   of the material baked whole with the ordered table. At scale 1 it keeps
+//   blue noise and counts none. bake_material_raster lowers it the same way.
 // - gradient-dither and the metallic-fade recipe compile; the recipe's fade
 //   bands undithered and does not dithered.
 //
@@ -36,6 +44,9 @@
 // in light and dark at scales 1 and 2, as PNG files for review. Neither
 // decides acceptance.
 
+#include "gui_forms/control.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/engine.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
@@ -48,6 +59,7 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window.hpp"
 
 #include "../src/core/engine/primitives/kernel/dither.hpp"
 #include "../src/core/engine/primitives/kernel/pixel_kernel.hpp"
@@ -71,6 +83,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -625,6 +638,156 @@ void no_swimming_under_scroll() {
     }
 }
 
+// -- the bake budget ---------------------------------------------------------------
+
+// The tall face: 1548 x 1848 device pixels at scale 3 with its outsets. Its
+// gradient runs across, so only the down axis slices; the reference is
+// 3 + 0, 8 + 0 or 64 + 8 device pixels long (period plus phase) undithered,
+// ordered or blue noise, 51, 56 or 120 with the outsets, at 155, 160 and
+// 160 units a pixel: 12.2, 13.9 and 29.7 million units against the
+// budget's 20 million. At scale 1 the blue-noise reference is 104 pixels
+// tall and 516 wide, 8.6 million units.
+constexpr Size tall_face{500.0, 600.0};
+
+SurfaceMaterial tall_material(MaterialDither dither) {
+    const SurfaceMaterial material = gradient_material(Point{0.0, 0.0}, Point{1.0, 0.0}, Color::rgba(196, 198, 202),
+                                                       Color::rgba(178, 180, 185), dither);
+    return material;
+}
+
+class ManualTime final : public MotionTimeSource {
+public:
+    [[nodiscard]] FrameTime now() const noexcept override { return time; }
+    FrameTime time{std::chrono::seconds(1000)};
+};
+
+// A painter that keeps the last part raster composited, and draws nothing.
+class RasterWatch final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point, double) override {
+        last = raster;
+    }
+    std::shared_ptr<const PartRaster> last{};
+};
+
+// One button-family face of tall_face at (20, 20), drawn by the material
+// primitive with the button recipe.
+class TallFace final : public Control {
+public:
+    explicit TallFace(StableId stable_id) : Control(std::move(stable_id)) {}
+    void on_paint(Painter& painter, Rect) override { paint_part(painter, *this, face()); }
+    [[nodiscard]] PartPaint face() const {
+        PartPaint part{};
+        part.role = PartRole::face;
+        part.family = ControlVisualRole::button;
+        part.bounds = Rect{20.0, 20.0, tall_face.width, tall_face.height};
+        part.key = PartKey{"face", {}, {}};
+        return part;
+    }
+};
+
+ThemeRule tall_face_rule() {
+    ThemeRule rule{};
+    rule.label = "tall-face";
+    rule.level = CascadeLevel::theme_sheet;
+    rule.selector.stable_id = "tall";
+    rule.selector.part = "face";
+    rule.declarations.push_back(RuleDeclaration::primitive("material"));
+    rule.declarations.push_back(RuleDeclaration::choice_value("recipe", "button"));
+    return rule;
+}
+
+// The professional theme with every button state's material the tall
+// face's, blue noise. The definition is held on the heap (some 105 KB,
+// theme_types.hpp).
+std::shared_ptr<const Theme> tall_face_theme() {
+    const std::unique_ptr<ThemeDefinition> held(new ThemeDefinition(windows_professional_theme_definition()));
+    ThemeDefinition& definition = *held;
+    definition.id = "engine-dither-budget-test";
+    const SurfaceMaterial material = tall_material(MaterialDither::blue_noise);
+    ControlRoleRecipes& button = definition.roles[static_cast<std::size_t>(ControlVisualRole::button)];
+    for (ControlVisualRecipe& recipe : button.ordinary) recipe.material = material;
+    definition.rules.rules.push_back(tall_face_rule());
+    const std::shared_ptr<const Theme> theme = Theme::create(definition);
+    return theme;
+}
+
+void primitive_lowers_the_dither() {
+    const EnginePrimitive* const primitive = builtin_primitive_registry().find("material");
+    require(primitive != nullptr, "the built-in registry has the material primitive");
+    const PrimitiveDescriptor& descriptor = (*primitive).descriptor();
+    PrimitiveParameterBlock parameters = default_parameters(descriptor);
+    require(set_choice_parameter(parameters, descriptor, "recipe", "button") == ParameterAssignment::assigned,
+            "a recipe role is a choice");
+    const SurfaceMaterial blue = tall_material(MaterialDither::blue_noise);
+    const SurfaceMaterial ordered = tall_material(MaterialDither::ordered);
+    PrimitiveTarget target = target_of(tall_face, 3.0);
+    target.material = &blue;
+    require(!(*primitive).accepts(parameters, target), "the tall face's blue noise is past the budget at scale 3");
+    require((*primitive).affordable_dither(parameters, target) == MaterialDither::ordered,
+            "blue noise gives way to the ordered table");
+    target.material = &ordered;
+    require((*primitive).accepts(parameters, target), "the ordered table is within the budget");
+    target = target_of(tall_face, 1.0);
+    target.material = &blue;
+    require((*primitive).affordable_dither(parameters, target) == MaterialDither::blue_noise,
+            "within the budget, blue noise is kept");
+
+    // The material painted outside the engine: lowered, not dropped.
+    const double outset = detail::material_raster_outset(blue);
+    const std::shared_ptr<const PartRaster> baked =
+        detail::bake_material_raster(blue, tall_face, DeviceScale{3.0}, outset);
+    require(baked != nullptr, "the tall face's raster is baked with a lowered dither");
+    const double origin = -outset * 3.0;
+    const std::shared_ptr<PartRaster> whole =
+        region_bake(ordered, tall_face, 3.0, Point{origin, origin}, outset_extent(tall_face, 3.0));
+    require(same_raster(*baked, *whole), "the raster is the material with the ordered table");
+}
+
+void tall_face_stays_themed() {
+    constexpr std::array<double, 2> scales{1.0, 3.0};
+    for (const double scale : scales) {
+        const std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
+        const std::shared_ptr<TallFace> face = make_control<TallFace>(StableId("tall"));
+        (*face).set_requested_bounds(Rect{0.0, 0.0, tall_face.width + 60.0, tall_face.height + 60.0});
+        (*root).add_child(face);
+        // The clock and the painter outlive the window that borrows them.
+        ManualTime time{};
+        RasterWatch painter{};
+        Window window(root, Size{tall_face.width + 100.0, tall_face.height + 100.0});
+        window.motion_clock().set_time_source(&time);
+        window.set_scale(scale);
+        window.set_theme(tall_face_theme());
+        require(window.theme().engine().rules().diagnostics().empty(), "the tall face's theme compiles cleanly");
+        window.perform_layout();
+        window.paint(painter);
+        const MetricsSnapshot metrics = window.metrics_snapshot();
+        require(metrics.engine_primitive_refusals == 0U, "the tall face is drawn by its material, never refused");
+        require(painter.last != nullptr, "the tall face composites a raster");
+        const bool lowered = scale > 2.0;
+        if (lowered) {
+            require(metrics.engine_dither_degradations >= 1U, "the lowered dither is counted");
+        } else {
+            require(metrics.engine_dither_degradations == 0U, "a face within the budget keeps its dither");
+        }
+        const MaterialDither shown = lowered ? MaterialDither::ordered : MaterialDither::blue_noise;
+        const DeviceExtent extent = outset_extent(tall_face, scale);
+        const double origin = -engine_primitives::material_outset * scale;
+        const std::shared_ptr<PartRaster> whole =
+            region_bake(tall_material(shown), tall_face, scale, Point{origin, origin}, extent);
+        require(same_raster(*painter.last, *whole), "the face shows its material with the affordable dither");
+    }
+}
+
 // -- the theme language and the recipe ---------------------------------------------
 
 bool sheet_compiles_cleanly(std::string_view sheet) {
@@ -817,6 +980,8 @@ int main(int argc, char** argv) {
     damage_invariance();
     slices_keep_the_pattern();
     no_swimming_under_scroll();
+    primitive_lowers_the_dither();
+    tall_face_stays_themed();
     theme_language();
     metallic_fade_does_not_band();
     std::cout << "gui_forms_engine_dither_tests passed\n";

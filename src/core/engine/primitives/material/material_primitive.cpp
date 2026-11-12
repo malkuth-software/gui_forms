@@ -1760,10 +1760,10 @@ std::uint64_t reflected_pixels(const MaterialReflection& reflection, double scal
     return lines * along;
 }
 
-} // namespace
-
-BakeEffort material_bake_effort(const SurfaceMaterial& authored, const PrimitiveTarget& target, double outset,
-                                PartShapeKind shape) noexcept {
+// material_bake_effort's sum for `authored` quantized with `dither` in
+// place of its own (material_affordable_dither weighs each lower mode).
+BakeEffort bake_effort_at(const SurfaceMaterial& authored, const PrimitiveTarget& target, double outset,
+                          PartShapeKind shape, MaterialDither dither) noexcept {
     std::optional<SurfaceMaterial> finish_storage{};
     const SurfaceMaterial& material = baked_material(authored, finish_storage);
     const MaterialEffortWeights& weights = material_effort_weights;
@@ -1797,12 +1797,20 @@ BakeEffort material_bake_effort(const SurfaceMaterial& authored, const Primitive
         per_pixel = per_pixel + weights.fill_blend;
     }
     // The dither's threshold per stored pixel (MaterialDither).
-    if (material.dither != MaterialDither::none) per_pixel = per_pixel + weights.dither;
+    if (dither != MaterialDither::none) per_pixel = per_pixel + weights.dither;
     const std::uint64_t pixels = std::uint64_t{extent.width} * extent.height;
     const std::uint64_t corners = corner_pixels(resolve_look(material, target, outset, shape), extent);
     const std::uint64_t reflected =
         material.reflection ? reflected_pixels(*material.reflection, target.scale.value, extent) : std::uint64_t{0};
     const BakeEffort effort{pixels * per_pixel + corners * weights.outer_corner + reflected * weights.reflection};
+    return effort;
+}
+
+} // namespace
+
+BakeEffort material_bake_effort(const SurfaceMaterial& authored, const PrimitiveTarget& target, double outset,
+                                PartShapeKind shape) noexcept {
+    const BakeEffort effort = bake_effort_at(authored, target, outset, shape, authored.dither);
     return effort;
 }
 
@@ -2020,16 +2028,16 @@ AxisPlan plan_axis(const AxisReach& reach, double logical, double scale, std::ui
     return plan;
 }
 
-} // namespace
-
-PrimitiveSlicePlan material_slice_plan(const SurfaceMaterial& authored, const PrimitiveTarget& target,
-                                       DeviceExtent extent, double outset, PartShapeKind shape) noexcept {
+// material_slice_plan for `authored` quantized with `dither` in place of
+// its own: the period the reference keeps is that dither's.
+PrimitiveSlicePlan slice_plan_at(const SurfaceMaterial& authored, const PrimitiveTarget& target, DeviceExtent extent,
+                                 double outset, PartShapeKind shape, MaterialDither dither) noexcept {
     std::optional<SurfaceMaterial> finish_storage{};
     const SurfaceMaterial& material = baked_material(authored, finish_storage);
     const double scale = target.scale.value;
     const AxisReach across_reach = axis_reach(material, target, true, outset, shape);
     const AxisReach down_reach = axis_reach(material, target, false, outset, shape);
-    const std::uint32_t period = dither_period(material.dither);
+    const std::uint32_t period = dither_period(dither);
     const AxisPlan across = plan_axis(across_reach, target.logical_size.width, scale, extent.width, outset, period);
     const AxisPlan down = plan_axis(down_reach, target.logical_size.height, scale, extent.height, outset, period);
     PrimitiveSlicePlan plan{};
@@ -2039,6 +2047,54 @@ PrimitiveSlicePlan material_slice_plan(const SurfaceMaterial& authored, const Pr
     plan.reference_size = Size{across.reference_length, down.reference_length};
     plan.reference_extent = DeviceExtent{across.reference_extent, down.reference_extent};
     return plan;
+}
+
+// The effort of baking a raster of `extent` for `target` with `dither`:
+// the slice reference's where that dither's plan slices an axis, else the
+// whole raster's.
+BakeEffort sliced_bake_effort(const SurfaceMaterial& material, const PrimitiveTarget& target, DeviceExtent extent,
+                              double outset, PartShapeKind shape, MaterialDither dither) noexcept {
+    const PrimitiveSlicePlan plan = slice_plan_at(material, target, extent, outset, shape, dither);
+    const bool sliced =
+        plan.across.outcome == SliceAxisOutcome::sliced || plan.down.outcome == SliceAxisOutcome::sliced;
+    PrimitiveTarget baked = target;
+    if (sliced) baked.logical_size = plan.reference_size;
+    const BakeEffort effort = bake_effort_at(material, baked, outset, shape, dither);
+    return effort;
+}
+
+// The next weaker dither: blue noise gives way to the ordered table, the
+// ordered table to none. None stays none.
+MaterialDither weaker_dither(MaterialDither dither) noexcept {
+    switch (dither) {
+    case MaterialDither::blue_noise:
+        return MaterialDither::ordered;
+    case MaterialDither::ordered:
+    case MaterialDither::none:
+    default:
+        break;
+    }
+    return MaterialDither::none;
+}
+
+} // namespace
+
+PrimitiveSlicePlan material_slice_plan(const SurfaceMaterial& authored, const PrimitiveTarget& target,
+                                       DeviceExtent extent, double outset, PartShapeKind shape) noexcept {
+    const PrimitiveSlicePlan plan = slice_plan_at(authored, target, extent, outset, shape, authored.dither);
+    return plan;
+}
+
+MaterialDither material_affordable_dither(const SurfaceMaterial& material, const PrimitiveTarget& target,
+                                          DeviceExtent extent, double outset, PartShapeKind shape) noexcept {
+    // At most three modes are weighed, strongest first.
+    MaterialDither dither = material.dither;
+    while (dither != MaterialDither::none) {
+        const BakeEffort effort = sliced_bake_effort(material, target, extent, outset, shape, dither);
+        if (effort <= maximum_material_bake_effort) return dither;
+        dither = weaker_dither(dither);
+    }
+    return MaterialDither::none;
 }
 
 // -- MaterialPrimitive -------------------------------------------------------------
@@ -2094,17 +2150,23 @@ bool MaterialPrimitive::accepts(const PrimitiveParameterBlock& parameters,
     if (material.mask && (*material.mask).kind == MaterialFillKind::image) {
         if (target.images == nullptr || !material_image_available(*target.images, *material.mask)) return false;
     }
-    // A part assembled from slices bakes only its reference.
+    // A part assembled from slices bakes only its reference. The engine
+    // lends a material whose dither it has already lowered to the
+    // affordable one (affordable_dither), so a dither alone never refuses.
     const PartShapeKind kind = shape_kind(parameters);
-    const PrimitiveSlicePlan plan =
-        material_slice_plan(material, target, destination_extent(target, material_outset), material_outset, kind);
-    const bool sliced =
-        plan.across.outcome == SliceAxisOutcome::sliced || plan.down.outcome == SliceAxisOutcome::sliced;
-    PrimitiveTarget baked = target;
-    if (sliced) baked.logical_size = plan.reference_size;
-    const BakeEffort effort = material_bake_effort(material, baked, material_outset, kind);
+    const DeviceExtent extent = destination_extent(target, material_outset);
+    const BakeEffort effort = sliced_bake_effort(material, target, extent, material_outset, kind, material.dither);
     const bool within = effort <= maximum_material_bake_effort;
     return within;
+}
+
+MaterialDither MaterialPrimitive::affordable_dither(const PrimitiveParameterBlock& parameters,
+                                                    const PrimitiveTarget& target) const noexcept {
+    if (target.material == nullptr) return MaterialDither::none;
+    const DeviceExtent extent = destination_extent(target, material_outset);
+    const MaterialDither dither =
+        material_affordable_dither(*target.material, target, extent, material_outset, shape_kind(parameters));
+    return dither;
 }
 
 PrimitiveSlicePlan MaterialPrimitive::slice_plan(const PrimitiveParameterBlock& parameters,

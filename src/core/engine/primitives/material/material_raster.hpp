@@ -39,7 +39,10 @@ enum class MaterialPainting : std::uint8_t { layers, kernel };
 // A raster of `material` (MaterialPainting::kernel, as painted) over a box
 // of `logical_size` at `scale`, covering the box grown by `outset` on every
 // side: assembled from a shorter reference where the material's slice plan
-// allows (material_slice_plan), else baked whole. Null when the raster
+// allows (material_slice_plan), else baked whole. A dithered material is
+// baked with the strongest dither within the bake budget
+// (material_affordable_dither), so a dither alone never nulls it. Null
+// when the raster
 // would not fit (maximum_part_raster_side), the scale is outside
 // [minimum_device_scale, maximum_device_scale], or the bake would take more
 // than the bake budget (maximum_material_bake_effort): the caller then

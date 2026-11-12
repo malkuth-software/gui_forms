@@ -108,7 +108,10 @@ struct MaterialEffortWeights final {
     // threshold looked up and added at the one quantization, in place of
     // the rounding half. Slices and repeated spans copy whole periods of
     // the pattern, so a large dithered face still bakes only its
-    // reference (a period longer along each sliced axis).
+    // reference (a period longer along each sliced axis). A dither never
+    // pushes a material past the budget: it gives way first, blue noise to
+    // the ordered table, then to none (material_affordable_dither), and
+    // only a material past the budget undithered is refused.
     std::uint32_t dither{};
 };
 

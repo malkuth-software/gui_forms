@@ -80,6 +80,10 @@ public:
     [[nodiscard]] PartShape shape(const PrimitiveParameterBlock& parameters) const noexcept override;
     [[nodiscard]] bool accepts(const PrimitiveParameterBlock& parameters,
                                const PrimitiveTarget& target) const noexcept override;
+    // material_affordable_dither for the lent material, at the primitive's
+    // outsets and shape.
+    [[nodiscard]] MaterialDither affordable_dither(const PrimitiveParameterBlock& parameters,
+                                                   const PrimitiveTarget& target) const noexcept override;
     // One variant per image fill, of the material's box (material_image.hpp).
     [[nodiscard]] std::size_t image_variants(const PrimitiveParameterBlock& parameters,
                                              const PrimitiveTarget& target,
@@ -117,6 +121,24 @@ private:
 [[nodiscard]] PrimitiveSlicePlan material_slice_plan(const SurfaceMaterial& material, const PrimitiveTarget& target,
                                                      DeviceExtent extent, double outset = material_outset,
                                                      PartShapeKind shape = PartShapeKind::rounded_rectangle) noexcept;
+
+// The strongest dither no stronger than `material`'s own (blue noise, then
+// the ordered table, then none) at which the bake of a raster of `extent`
+// for `target` stays within maximum_material_bake_effort: its reference's
+// effort where the slice plan at that dither's period slices the part,
+// else the whole raster's. A dither lengthens a sliced reference by up to
+// one period along each sliced axis (64 pixels for blue noise) and adds
+// its weight per pixel, so a tall face at a high scale can afford the
+// ordered table or no dither where it cannot afford blue noise. None when
+// even the undithered bake is past the budget, which the caller then
+// refuses for the material's own sake. The threshold cannot instead be
+// applied when the slices are copied: a reference is a cached raster of
+// quantized bytes, whose unquantized values are gone by then, and
+// re-thresholding bytes would add the pattern twice.
+[[nodiscard]] MaterialDither
+material_affordable_dither(const SurfaceMaterial& material, const PrimitiveTarget& target, DeviceExtent extent,
+                           double outset = material_outset,
+                           PartShapeKind shape = PartShapeKind::rounded_rectangle) noexcept;
 
 // The kernel alone: draws `material` for `target` into every pixel of
 // `destination`, without accepts()'s checks or bound. The caller has

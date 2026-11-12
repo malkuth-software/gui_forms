@@ -301,6 +301,10 @@ Related types
 
       A primitive refused to draw a part (EnginePrimitive::accepts), which the built-in recipe drew instead.
 
+   .. cpp:function:: void record_engine_dither_degradations(std::uint64_t steps) noexcept
+
+      A material's dither was lowered by ``steps`` to stay within the bake budget (MetricsSnapshot::engine_dither_degradations).
+
    .. cpp:function:: void record_engine_material_assembly() noexcept
 
    .. cpp:function:: void record_paint_group_refusals(std::uint64_t refusals) noexcept
@@ -627,6 +631,10 @@ Related types
    .. cpp:member:: std::uint64_t engine_primitive_refusals
 
       Parts a primitive refused to draw (E8c, EnginePrimitive::accepts), such as a material whose bake would exceed its bound: drawn by the built-in recipe instead. Counted when a keyed part's refusal begins, and at every paint of a part without a key.
+
+   .. cpp:member:: std::uint64_t engine_dither_degradations
+
+      Steps a dithered material's dither gave way so that its part stays within the bake budget (EnginePrimitive::affordable_dither): one for blue noise to the ordered table or the ordered table to none, two for blue noise to none. Counted at every paint that lends the lowered material, so a face keeps its material and loses only the dither, never falling back to the built-in look for it.
 
    .. cpp:member:: std::uint64_t engine_material_assemblies
 

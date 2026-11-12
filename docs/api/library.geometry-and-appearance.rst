@@ -2776,6 +2776,10 @@ Types
 
       Whether the primitive will draw this target with ``parameters``, such as a material whose bake would exceed its bound. A primitive that refuses is drawn by the built-in recipe instead, and the engine counts the refusal. True unless the primitive says otherwise. Called only with a target in range and parameters that match the declarations.
 
+   .. cpp:function:: virtual MaterialDither affordable_dither(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target) const noexcept
+
+      The strongest dither, no stronger than the lent material's own (blue noise, then the ordered table, then none), at which this primitive's bake of the target stays within its budget: a dither gives way before the material does, so a face never falls back to the built-in recipe for its dither alone. The engine lends the material with that dither in place of its own, for this paint only, and counts the steps (MetricsSnapshot::engine_dither_degradations); the part's raster and any slice reference it is assembled from then bake with the same dither. The lent material's own dither, or none when the target lends no material, unless the primitive says otherwise. Called as accepts() is.
+
    .. cpp:function:: virtual PrimitiveSlicePlan slice_plan(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target, DeviceExtent extent) const noexcept
 
       How a raster of ``extent`` for this target may be assembled from a shorter reference bake (E7r slicing). A plan that slices an axis promises that assembling the reference gives the bytes a whole bake would. Never slices unless the primitive says otherwise. Called as accepts() is, with a target the primitive accepts.

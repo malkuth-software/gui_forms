@@ -276,6 +276,12 @@ bool EnginePrimitive::accepts(const PrimitiveParameterBlock&, const PrimitiveTar
     return true;
 }
 
+MaterialDither EnginePrimitive::affordable_dither(const PrimitiveParameterBlock&,
+                                                  const PrimitiveTarget& target) const noexcept {
+    if (target.material == nullptr) return MaterialDither::none;
+    return (*target.material).dither;
+}
+
 PrimitiveSlicePlan EnginePrimitive::slice_plan(const PrimitiveParameterBlock&, const PrimitiveTarget&,
                                                DeviceExtent) const noexcept {
     const PrimitiveSlicePlan whole{};

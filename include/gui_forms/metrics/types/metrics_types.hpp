@@ -209,6 +209,13 @@ struct GUI_FORMS_API MetricsSnapshot {
     // built-in recipe instead. Counted when a keyed part's refusal begins,
     // and at every paint of a part without a key.
     std::uint64_t engine_primitive_refusals{};
+    // Steps a dithered material's dither gave way so that its part stays
+    // within the bake budget (EnginePrimitive::affordable_dither): one
+    // for blue noise to the ordered table or the ordered table to none,
+    // two for blue noise to none. Counted at every paint that lends the
+    // lowered material, so a face keeps its material and loses only the
+    // dither, never falling back to the built-in look for it.
+    std::uint64_t engine_dither_degradations{};
     // Materials assembled from a recipe's material and the material fields
     // a theme's rules set (T3 EC1): once per distinct assembly for a keyed
     // part (AssembledPartMaterial), and at every paint of a part without a

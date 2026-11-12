@@ -96,6 +96,9 @@ public:
     // A primitive refused to draw a part (EnginePrimitive::accepts), which
     // the built-in recipe drew instead.
     void record_engine_primitive_refusal() noexcept;
+    // A material's dither was lowered by `steps` to stay within the bake
+    // budget (MetricsSnapshot::engine_dither_degradations).
+    void record_engine_dither_degradations(std::uint64_t steps) noexcept;
     void record_engine_material_assembly() noexcept;
     void record_paint_group_refusals(std::uint64_t refusals) noexcept;
     // A control arranged while the layout pass was arranging another

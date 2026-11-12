@@ -21,6 +21,7 @@ namespace gui_forms {
 // Declared in theme_types.hpp and surface_material_types.hpp, which include
 // the engine's headers; a target only borrows them.
 enum class ControlVisualRole : std::uint8_t;
+enum class MaterialDither : std::uint8_t;
 struct SurfaceMaterial;
 class ImageRegistry;
 class PartRaster;
@@ -471,6 +472,20 @@ public:
     // target in range and parameters that match the declarations.
     [[nodiscard]] virtual bool accepts(const PrimitiveParameterBlock& parameters,
                                        const PrimitiveTarget& target) const noexcept;
+
+    // The strongest dither, no stronger than the lent material's own
+    // (blue noise, then the ordered table, then none), at which this
+    // primitive's bake of the target stays within its budget: a dither
+    // gives way before the material does, so a face never falls back to
+    // the built-in recipe for its dither alone. The engine lends the
+    // material with that dither in place of its own, for this paint only,
+    // and counts the steps (MetricsSnapshot::engine_dither_degradations);
+    // the part's raster and any slice reference it is assembled from then
+    // bake with the same dither. The lent material's own dither, or none
+    // when the target lends no material, unless the primitive says
+    // otherwise. Called as accepts() is.
+    [[nodiscard]] virtual MaterialDither affordable_dither(const PrimitiveParameterBlock& parameters,
+                                                           const PrimitiveTarget& target) const noexcept;
 
     // How a raster of `extent` for this target may be assembled from a
     // shorter reference bake (E7r slicing). A plan that slices an axis
