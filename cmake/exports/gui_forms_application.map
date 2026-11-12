@@ -13957,6 +13957,7 @@
     _ZZNK9gui_forms9WindowRef*;
     _ZZNK9gui_forms9WorldRect*;
     _ZZNK9gui_forms9XmlLimits*;
+    gui_forms_checked_borrows_v[1];
   local:
     *;
 };

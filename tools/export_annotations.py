@@ -252,7 +252,7 @@ class Finding:
     """A place that needs the macro: the offset to insert at and a description."""
 
     def __init__(self, offset, kind, name, annotated, components=(), nested=False,
-                 anonymous=False):
+                 anonymous=False, c_linkage=False):
         self.offset = offset
         self.kind = kind          # 'class' or 'function'
         self.name = name
@@ -263,6 +263,7 @@ class Finding:
         self.components = list(components)
         self.nested = nested      # a class nested in a class
         self.anonymous = anonymous  # inside an unnamed namespace: never exported
+        self.c_linkage = c_linkage  # extern "C": exported under its plain name
 
 
 def class_head(statement):
@@ -299,6 +300,11 @@ def function_declaration(statement):
     if index >= len(statement):
         return None
     first = statement[index].text
+    if first in MACROS and index + 1 < len(statement) and statement[index + 1].text == 'extern':
+        # `GUI_FORMS_API extern const int x;`: the macro may also lead.
+        if index + 2 < len(statement) and statement[index + 2].text in ('""', 'template'):
+            return None
+        return index, last_identifier_before(statement, len(statement)), first
     if first == 'extern':
         if index + 1 < len(statement) and statement[index + 1].text == '""':
             return None  # extern "C"
@@ -552,15 +558,22 @@ def scan(source):
                 continue
             if statement and statement[0].text != '<type>':
                 if at_namespace_scope() and not scope.template:
-                    result = function_declaration(statement)
+                    declaration = statement
+                    c_linkage = any(entry.kind == 'linkage' for entry in scopes)
+                    if len(statement) > 2 and statement[0].text == 'extern' \
+                            and statement[1].text == '""':
+                        # `extern "C" GUI_FORMS_API int f();`, one declaration.
+                        declaration = statement[2:]
+                        c_linkage = True
+                    result = function_declaration(declaration)
                     if result is not None:
                         insert_index, name, annotated = result
-                        findings.append(Finding(statement[insert_index].offset
-                                                if insert_index < len(statement)
+                        findings.append(Finding(declaration[insert_index].offset
+                                                if insert_index < len(declaration)
                                                 else token.offset,
                                                 'function', name, annotated,
                                                 qualified(scopes, False) + [name], False,
-                                                scope.anonymous))
+                                                scope.anonymous, c_linkage))
                 elif scope.kind == 'class' and scope.marked and statement[0].text == 'friend' \
                         and not scope.template:
                     rest = statement[1:]
@@ -723,6 +736,14 @@ def patterns_of(finding):
     (a declaration compiled into another library) is no error for ld64 or
     a version script."""
     components = finding.components
+    if finding.c_linkage:
+        # An extern "C" function or variable keeps its plain name. Its last
+        # character as a one-character set makes the glob exact yet still a
+        # glob, so a name defined only in some builds (the checked-borrows
+        # link marker, gui_forms_checked_borrows_v1, exists only with
+        # GUI_FORMS_CHECKED_BORROWS) is no error where it is absent.
+        name = components[-1]
+        return [f'{name[:-1]}[{name[-1]}]']
     prefix = ''.join(mangled_name(component) for component in components)
     if finding.kind == 'function':
         if len(components) == 1:
@@ -791,6 +812,12 @@ namespace theme_language {
 GUI_FORMS_API std::string package_sha256_hex(const Sha256Digest& digest);
 }
 }
+#if GUI_FORMS_CHECKED_BORROWS
+extern "C" {
+GUI_FORMS_API extern const int gui_forms_checked_borrows_v1;
+}
+#endif
+extern "C" GUI_FORMS_API int gui_forms_c_entry(int value);
 '''
 SELFTEST_EXPORTED = (
     '_ZN9gui_forms15registered_nameB5cxx11ENS_8TypeNameE',
@@ -801,12 +828,17 @@ SELFTEST_EXPORTED = (
     '_ZTIN9gui_forms6ButtonE',
     '_ZThn8_N9gui_forms6Button4textB5cxx11Ev',
     '_ZN9gui_formseqERKNS_6ButtonES2_',
+    'gui_forms_checked_borrows_v1',
+    'gui_forms_c_entry',
 )
 SELFTEST_LOCAL = (
     '_ZN9gui_forms16registered_namesB5cxx11Ev',
     '_ZN9gui_forms15registered_name4partEv',
     '_ZNSt6vectorIN9gui_forms6ButtonESaIS1_EE9push_backERKS1_',
     '_ZN9gui_forms7ButtonsC1Ev',
+    'gui_forms_checked_borrows_v2',
+    'gui_forms_checked_borrows_v1_extra',
+    'gui_forms_c_entry_internal',
 )
 
 
