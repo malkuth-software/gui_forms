@@ -76,9 +76,9 @@ public:
 protected:
     void on_auto_size_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 0U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "auto_size",
+                             (*this).enter_class_hook(*this, entry, hook, "auto_size",
                                                 &base_control_on_auto_size_changed);
         if (!entered) {
             Base::on_auto_size_changed();
@@ -87,9 +87,9 @@ protected:
 
     void on_back_color_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 1U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "back_color",
+                             (*this).enter_class_hook(*this, entry, hook, "back_color",
                                                 &base_control_on_back_color_changed);
         if (!entered) {
             Base::on_back_color_changed();
@@ -98,9 +98,9 @@ protected:
 
     void on_causes_validation_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 2U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "causes_validation",
+                             (*this).enter_class_hook(*this, entry, hook, "causes_validation",
                                                 &base_control_on_causes_validation_changed);
         if (!entered) {
             Base::on_causes_validation_changed();
@@ -109,9 +109,9 @@ protected:
 
     void on_cursor_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 3U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "cursor",
+                             (*this).enter_class_hook(*this, entry, hook, "cursor",
                                                 &base_control_on_cursor_changed);
         if (!entered) {
             Base::on_cursor_changed();
@@ -120,9 +120,9 @@ protected:
 
     void on_dock_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 4U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "dock",
+                             (*this).enter_class_hook(*this, entry, hook, "dock",
                                                 &base_control_on_dock_changed);
         if (!entered) {
             Base::on_dock_changed();
@@ -131,9 +131,9 @@ protected:
 
     void on_enabled_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 5U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "enabled",
+                             (*this).enter_class_hook(*this, entry, hook, "enabled",
                                                 &base_control_on_enabled_changed);
         if (!entered) {
             Base::on_enabled_changed();
@@ -142,9 +142,9 @@ protected:
 
     void on_fore_color_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 6U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "fore_color",
+                             (*this).enter_class_hook(*this, entry, hook, "fore_color",
                                                 &base_control_on_fore_color_changed);
         if (!entered) {
             Base::on_fore_color_changed();
@@ -153,9 +153,9 @@ protected:
 
     void on_margin_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 7U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "margin",
+                             (*this).enter_class_hook(*this, entry, hook, "margin",
                                                 &base_control_on_margin_changed);
         if (!entered) {
             Base::on_margin_changed();
@@ -164,9 +164,9 @@ protected:
 
     void on_padding_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 8U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "padding",
+                             (*this).enter_class_hook(*this, entry, hook, "padding",
                                                 &base_control_on_padding_changed);
         if (!entered) {
             Base::on_padding_changed();
@@ -175,9 +175,9 @@ protected:
 
     void on_right_to_left_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 9U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "right_to_left",
+                             (*this).enter_class_hook(*this, entry, hook, "right_to_left",
                                                 &base_control_on_right_to_left_changed);
         if (!entered) {
             Base::on_right_to_left_changed();
@@ -186,9 +186,9 @@ protected:
 
     void on_tab_index_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 10U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "tab_index",
+                             (*this).enter_class_hook(*this, entry, hook, "tab_index",
                                                 &base_control_on_tab_index_changed);
         if (!entered) {
             Base::on_tab_index_changed();
@@ -197,9 +197,9 @@ protected:
 
     void on_tab_stop_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 11U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "tab_stop",
+                             (*this).enter_class_hook(*this, entry, hook, "tab_stop",
                                                 &base_control_on_tab_stop_changed);
         if (!entered) {
             Base::on_tab_stop_changed();
@@ -208,9 +208,9 @@ protected:
 
     void on_visible_changed() override {
         const HookKey hook{GF_CLASS_CONTROL, 12U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "visible",
+                             (*this).enter_class_hook(*this, entry, hook, "visible",
                                                 &base_control_on_visible_changed);
         if (!entered) {
             Base::on_visible_changed();
@@ -282,9 +282,9 @@ public:
 protected:
     void on_mask_changed() override {
         const HookKey hook{GF_CLASS_MASKED_TEXT_BOX, 0U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "mask",
+                             (*this).enter_class_hook(*this, entry, hook, "mask",
                                                 &base_masked_text_box_on_mask_changed);
         if (!entered) {
             Base::on_mask_changed();
@@ -320,9 +320,9 @@ public:
 protected:
     void on_size_mode_changed() override {
         const HookKey hook{GF_CLASS_PICTURE_BOX, 0U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "size_mode",
+                             (*this).enter_class_hook(*this, entry, hook, "size_mode",
                                                 &base_picture_box_on_size_mode_changed);
         if (!entered) {
             Base::on_size_mode_changed();
@@ -358,9 +358,9 @@ public:
 protected:
     void on_drop_down_style_changed() override {
         const HookKey hook{GF_CLASS_COMBO_BOX, 0U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "drop_down_style",
+                             (*this).enter_class_hook(*this, entry, hook, "drop_down_style",
                                                 &base_combo_box_on_drop_down_style_changed);
         if (!entered) {
             Base::on_drop_down_style_changed();
@@ -396,9 +396,9 @@ public:
 protected:
     void on_allow_user_to_delete_rows_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 0U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "allow_user_to_delete_rows",
+                             (*this).enter_class_hook(*this, entry, hook, "allow_user_to_delete_rows",
                                                 &base_data_grid_view_on_allow_user_to_delete_rows_changed);
         if (!entered) {
             Base::on_allow_user_to_delete_rows_changed();
@@ -407,9 +407,9 @@ protected:
 
     void on_allow_user_to_order_columns_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 1U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "allow_user_to_order_columns",
+                             (*this).enter_class_hook(*this, entry, hook, "allow_user_to_order_columns",
                                                 &base_data_grid_view_on_allow_user_to_order_columns_changed);
         if (!entered) {
             Base::on_allow_user_to_order_columns_changed();
@@ -418,9 +418,9 @@ protected:
 
     void on_allow_user_to_resize_columns_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 2U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "allow_user_to_resize_columns",
+                             (*this).enter_class_hook(*this, entry, hook, "allow_user_to_resize_columns",
                                                 &base_data_grid_view_on_allow_user_to_resize_columns_changed);
         if (!entered) {
             Base::on_allow_user_to_resize_columns_changed();
@@ -429,9 +429,9 @@ protected:
 
     void on_allow_user_to_resize_rows_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 3U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "allow_user_to_resize_rows",
+                             (*this).enter_class_hook(*this, entry, hook, "allow_user_to_resize_rows",
                                                 &base_data_grid_view_on_allow_user_to_resize_rows_changed);
         if (!entered) {
             Base::on_allow_user_to_resize_rows_changed();
@@ -440,9 +440,9 @@ protected:
 
     void on_alternating_rows_default_cell_style_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 4U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "alternating_rows_default_cell_style",
+                             (*this).enter_class_hook(*this, entry, hook, "alternating_rows_default_cell_style",
                                                 &base_data_grid_view_on_alternating_rows_default_cell_style_changed);
         if (!entered) {
             Base::on_alternating_rows_default_cell_style_changed();
@@ -451,9 +451,9 @@ protected:
 
     void on_auto_size_columns_mode_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 5U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "auto_size_columns_mode",
+                             (*this).enter_class_hook(*this, entry, hook, "auto_size_columns_mode",
                                                 &base_data_grid_view_on_auto_size_columns_mode_changed);
         if (!entered) {
             Base::on_auto_size_columns_mode_changed();
@@ -462,9 +462,9 @@ protected:
 
     void on_auto_size_rows_mode_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 6U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "auto_size_rows_mode",
+                             (*this).enter_class_hook(*this, entry, hook, "auto_size_rows_mode",
                                                 &base_data_grid_view_on_auto_size_rows_mode_changed);
         if (!entered) {
             Base::on_auto_size_rows_mode_changed();
@@ -473,9 +473,9 @@ protected:
 
     void on_background_color_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 7U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "background_color",
+                             (*this).enter_class_hook(*this, entry, hook, "background_color",
                                                 &base_data_grid_view_on_background_color_changed);
         if (!entered) {
             Base::on_background_color_changed();
@@ -484,9 +484,9 @@ protected:
 
     void on_border_style_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 8U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "border_style",
+                             (*this).enter_class_hook(*this, entry, hook, "border_style",
                                                 &base_data_grid_view_on_border_style_changed);
         if (!entered) {
             Base::on_border_style_changed();
@@ -495,9 +495,9 @@ protected:
 
     void on_cell_border_style_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 9U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "cell_border_style",
+                             (*this).enter_class_hook(*this, entry, hook, "cell_border_style",
                                                 &base_data_grid_view_on_cell_border_style_changed);
         if (!entered) {
             Base::on_cell_border_style_changed();
@@ -506,9 +506,9 @@ protected:
 
     void on_column_headers_border_style_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 10U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "column_headers_border_style",
+                             (*this).enter_class_hook(*this, entry, hook, "column_headers_border_style",
                                                 &base_data_grid_view_on_column_headers_border_style_changed);
         if (!entered) {
             Base::on_column_headers_border_style_changed();
@@ -517,9 +517,9 @@ protected:
 
     void on_column_headers_default_cell_style_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 11U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "column_headers_default_cell_style",
+                             (*this).enter_class_hook(*this, entry, hook, "column_headers_default_cell_style",
                                                 &base_data_grid_view_on_column_headers_default_cell_style_changed);
         if (!entered) {
             Base::on_column_headers_default_cell_style_changed();
@@ -528,9 +528,9 @@ protected:
 
     void on_column_headers_height_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 12U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "column_headers_height",
+                             (*this).enter_class_hook(*this, entry, hook, "column_headers_height",
                                                 &base_data_grid_view_on_column_headers_height_changed);
         if (!entered) {
             Base::on_column_headers_height_changed();
@@ -539,9 +539,9 @@ protected:
 
     void on_default_cell_style_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 13U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "default_cell_style",
+                             (*this).enter_class_hook(*this, entry, hook, "default_cell_style",
                                                 &base_data_grid_view_on_default_cell_style_changed);
         if (!entered) {
             Base::on_default_cell_style_changed();
@@ -550,9 +550,9 @@ protected:
 
     void on_edit_mode_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 14U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "edit_mode",
+                             (*this).enter_class_hook(*this, entry, hook, "edit_mode",
                                                 &base_data_grid_view_on_edit_mode_changed);
         if (!entered) {
             Base::on_edit_mode_changed();
@@ -561,9 +561,9 @@ protected:
 
     void on_grid_color_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 15U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "grid_color",
+                             (*this).enter_class_hook(*this, entry, hook, "grid_color",
                                                 &base_data_grid_view_on_grid_color_changed);
         if (!entered) {
             Base::on_grid_color_changed();
@@ -572,9 +572,9 @@ protected:
 
     void on_multi_select_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 16U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "multi_select",
+                             (*this).enter_class_hook(*this, entry, hook, "multi_select",
                                                 &base_data_grid_view_on_multi_select_changed);
         if (!entered) {
             Base::on_multi_select_changed();
@@ -583,9 +583,9 @@ protected:
 
     void on_read_only_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 17U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "read_only",
+                             (*this).enter_class_hook(*this, entry, hook, "read_only",
                                                 &base_data_grid_view_on_read_only_changed);
         if (!entered) {
             Base::on_read_only_changed();
@@ -594,9 +594,9 @@ protected:
 
     void on_row_headers_border_style_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 18U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "row_headers_border_style",
+                             (*this).enter_class_hook(*this, entry, hook, "row_headers_border_style",
                                                 &base_data_grid_view_on_row_headers_border_style_changed);
         if (!entered) {
             Base::on_row_headers_border_style_changed();
@@ -605,9 +605,9 @@ protected:
 
     void on_row_headers_default_cell_style_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 19U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "row_headers_default_cell_style",
+                             (*this).enter_class_hook(*this, entry, hook, "row_headers_default_cell_style",
                                                 &base_data_grid_view_on_row_headers_default_cell_style_changed);
         if (!entered) {
             Base::on_row_headers_default_cell_style_changed();
@@ -616,9 +616,9 @@ protected:
 
     void on_row_headers_width_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 20U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "row_headers_width",
+                             (*this).enter_class_hook(*this, entry, hook, "row_headers_width",
                                                 &base_data_grid_view_on_row_headers_width_changed);
         if (!entered) {
             Base::on_row_headers_width_changed();
@@ -627,9 +627,9 @@ protected:
 
     void on_rows_default_cell_style_changed() override {
         const HookKey hook{GF_CLASS_DATA_GRID_VIEW, 21U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "rows_default_cell_style",
+                             (*this).enter_class_hook(*this, entry, hook, "rows_default_cell_style",
                                                 &base_data_grid_view_on_rows_default_cell_style_changed);
         if (!entered) {
             Base::on_rows_default_cell_style_changed();
@@ -728,9 +728,9 @@ public:
 protected:
     void on_appearance_changed() override {
         const HookKey hook{GF_CLASS_CHECK_BOX, 0U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "appearance",
+                             (*this).enter_class_hook(*this, entry, hook, "appearance",
                                                 &base_check_box_on_appearance_changed);
         if (!entered) {
             Base::on_appearance_changed();
@@ -739,9 +739,9 @@ protected:
 
     void on_checked_changed() override {
         const HookKey hook{GF_CLASS_CHECK_BOX, 1U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "checked",
+                             (*this).enter_class_hook(*this, entry, hook, "checked",
                                                 &base_check_box_on_checked_changed);
         if (!entered) {
             Base::on_checked_changed();
@@ -750,9 +750,9 @@ protected:
 
     void on_check_state_changed() override {
         const HookKey hook{GF_CLASS_CHECK_BOX, 2U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "check_state",
+                             (*this).enter_class_hook(*this, entry, hook, "check_state",
                                                 &base_check_box_on_check_state_changed);
         if (!entered) {
             Base::on_check_state_changed();
@@ -794,9 +794,9 @@ public:
 protected:
     void on_checked_changed() override {
         const HookKey hook{GF_CLASS_RADIO_BUTTON, 0U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "checked",
+                             (*this).enter_class_hook(*this, entry, hook, "checked",
                                                 &base_radio_button_on_checked_changed);
         if (!entered) {
             Base::on_checked_changed();
@@ -832,9 +832,9 @@ public:
 protected:
     void on_value_changed() override {
         const HookKey hook{GF_CLASS_RANGE_CONTROL, 0U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "value",
+                             (*this).enter_class_hook(*this, entry, hook, "value",
                                                 &base_range_control_on_value_changed);
         if (!entered) {
             Base::on_value_changed();
@@ -870,9 +870,9 @@ public:
 protected:
     void on_value_changed() override {
         const HookKey hook{GF_CLASS_NUMERIC_UP_DOWN, 0U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "value",
+                             (*this).enter_class_hook(*this, entry, hook, "value",
                                                 &base_numeric_up_down_on_value_changed);
         if (!entered) {
             Base::on_value_changed();
@@ -908,9 +908,9 @@ public:
 protected:
     void on_format_changed() override {
         const HookKey hook{GF_CLASS_DATE_TIME_PICKER, 0U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "format",
+                             (*this).enter_class_hook(*this, entry, hook, "format",
                                                 &base_date_time_picker_on_format_changed);
         if (!entered) {
             Base::on_format_changed();
@@ -919,9 +919,9 @@ protected:
 
     void on_value_changed() override {
         const HookKey hook{GF_CLASS_DATE_TIME_PICKER, 1U};
-        const gf_hook_entry entry = (*this).hook_entry(hook);
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
         const bool entered = entry != nullptr &&
-                             (*this).enter_hook(*this, entry, hook, "value",
+                             (*this).enter_class_hook(*this, entry, hook, "value",
                                                 &base_date_time_picker_on_value_changed);
         if (!entered) {
             Base::on_value_changed();

@@ -664,9 +664,9 @@ def render_segments(model: Model) -> str:
             index: int = entry_index(model, raiser)
             lines += [f"    void {raiser.method}() override {{",
                       f"        const HookKey hook{{{constant(model, name)}, {index}U}};",
-                      "        const gf_hook_entry entry = (*this).hook_entry(hook);",
+                      "        const gf_hook_entry entry = (*this).class_hook_entry(hook);",
                       "        const bool entered = entry != nullptr &&",
-                      f'                             (*this).enter_hook(*this, entry, hook, "{raiser.property}",',
+                      f'                             (*this).enter_class_hook(*this, entry, hook, "{raiser.property}",',
                       f"                                                &base_{snake}_{raiser.method});",
                       "        if (!entered) {",
                       f"            Base::{raiser.method}();",

@@ -111,32 +111,32 @@ public:
     // Calls release(instance) once when armed.
     virtual ~ClassBridge();
 
-    // Takes the validated table and the caller's instance. Before arm.
-    void bind(const ClassTableView& view, void* instance) noexcept;
+    // Takes the validated table and the caller's instance. Before arm_class_table.
+    void bind_class_table(const ClassTableView& view, void* instance) noexcept;
     // From here the destructor calls release. Arming last means a bridge
     // whose construction throws calls no release (create refused it).
-    void arm() noexcept { armed_ = true; }
+    void arm_class_table() noexcept { armed_ = true; }
 
     // Runs the raiser below the table for hook: false when no layer of this
     // bridge has hook's segment.
-    [[nodiscard]] virtual bool run_base(HookKey hook) = 0;
+    [[nodiscard]] virtual bool run_class_layer_base(HookKey hook) = 0;
     // The control this bridge is part of.
     [[nodiscard]] virtual Control& bridged_control() noexcept = 0;
 
     // The innermost frame of this thread whose event is event; null when
     // none.
-    [[nodiscard]] static HookFrame* find_frame(const gf_event* event) noexcept;
+    [[nodiscard]] static HookFrame* find_hook_frame(const gf_event* event) noexcept;
 
 protected:
-    // The caller's entry for hook; null before arm.
-    [[nodiscard]] gf_hook_entry hook_entry(HookKey hook) const noexcept;
+    // The caller's entry for hook; null before arm_class_table.
+    [[nodiscard]] gf_hook_entry class_hook_entry(HookKey hook) const noexcept;
     // Calls entry for control with a property event named property and base,
     // inside a frame, keeping control alive through the call. False, and
     // nothing called, when control is no longer alive: the layer then runs
     // the raiser below as if there were no table. A C++ exception base caught
     // is rethrown after entry returns.
-    [[nodiscard]] bool enter_hook(Control& control, gf_hook_entry entry, HookKey hook, std::string_view property,
-                                  gf_base_raiser base);
+    [[nodiscard]] bool enter_class_hook(Control& control, gf_hook_entry entry, HookKey hook,
+                                        std::string_view property, gf_base_raiser base);
 
 private:
     ClassTableView table_{};
@@ -164,7 +164,7 @@ class FinalBridge final : public Layers {
 public:
     using Layers::Layers;
 
-    [[nodiscard]] bool run_base(HookKey hook) override {
+    [[nodiscard]] bool run_class_layer_base(HookKey hook) override {
         const bool ran = Layers::run_layer_base(hook);
         return ran;
     }
@@ -183,8 +183,8 @@ Control::Ptr create_bridge(StableId stable_id, const ClassTableView& view, void*
     using Stock = typename Layers::StockType;
     if constexpr (std::is_constructible_v<Stock, StableId> && !std::is_abstract_v<Stock>) {
         std::shared_ptr<FinalBridge<Layers>> made = make_control<FinalBridge<Layers>>(std::move(stable_id));
-        (*made).bind(view, instance);
-        (*made).arm();
+        (*made).bind_class_table(view, instance);
+        (*made).arm_class_table();
         Control::Ptr control = std::move(made);
         return control;
     } else {

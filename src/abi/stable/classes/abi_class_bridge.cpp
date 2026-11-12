@@ -127,12 +127,12 @@ ClassBridge::~ClassBridge() {
     }
 }
 
-void ClassBridge::bind(const ClassTableView& view, void* instance) noexcept {
+void ClassBridge::bind_class_table(const ClassTableView& view, void* instance) noexcept {
     table_ = view;
     instance_ = instance;
 }
 
-HookFrame* ClassBridge::find_frame(const gf_event* event) noexcept {
+HookFrame* ClassBridge::find_hook_frame(const gf_event* event) noexcept {
     HookFrame* frame = top_frame;
     while (frame != nullptr && (*frame).event != event) {
         frame = (*frame).previous;
@@ -140,7 +140,7 @@ HookFrame* ClassBridge::find_frame(const gf_event* event) noexcept {
     return frame;
 }
 
-gf_hook_entry ClassBridge::hook_entry(HookKey hook) const noexcept {
+gf_hook_entry ClassBridge::class_hook_entry(HookKey hook) const noexcept {
     if (!armed_) {
         return nullptr;
     }
@@ -148,8 +148,8 @@ gf_hook_entry ClassBridge::hook_entry(HookKey hook) const noexcept {
     return found;
 }
 
-bool ClassBridge::enter_hook(Control& control, gf_hook_entry entry, HookKey hook, std::string_view property,
-                             gf_base_raiser base) {
+bool ClassBridge::enter_class_hook(Control& control, gf_hook_entry entry, HookKey hook, std::string_view property,
+                                   gf_base_raiser base) {
     if (!control.is_alive()) {
         return false;
     }
@@ -184,14 +184,14 @@ gf_status run_class_base(gf_object self, gf_event* event, HookKey hook) noexcept
         if (event == nullptr) {
             return fail(GF_STATUS_INVALID_ARGUMENT, base_slot, "a base function needs an event");
         }
-        HookFrame* frame = ClassBridge::find_frame(event);
+        HookFrame* frame = ClassBridge::find_hook_frame(event);
         if (frame != nullptr && (*frame).hook.class_id == hook.class_id && (*frame).hook.entry == hook.entry) {
             ClassBridge& framed = *(*frame).bridge;
             if (!framed.bridged_control().is_alive()) {
                 return fail(GF_STATUS_STALE_HANDLE, base_slot, "the object was disposed");
             }
             try {
-                const bool framed_ran = framed.run_base(hook);
+                const bool framed_ran = framed.run_class_layer_base(hook);
                 static_cast<void>(framed_ran);
             } catch (...) {
                 // Rethrown once the entry returns (enter_hook); the first
@@ -216,7 +216,7 @@ gf_status run_class_base(gf_object self, gf_event* event, HookKey hook) noexcept
         if (!(*bridge).bridged_control().is_alive()) {
             return fail(GF_STATUS_STALE_HANDLE, base_slot, "the object was disposed");
         }
-        const bool ran = (*bridge).run_base(hook);
+        const bool ran = (*bridge).run_class_layer_base(hook);
         if (!ran) {
             return fail(GF_STATUS_WRONG_HANDLE_KIND, base_slot, "the object's class has no such segment");
         }
