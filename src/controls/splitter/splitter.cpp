@@ -281,17 +281,23 @@ void Splitter::on_mouse_down(MouseEventArgs& arguments) {
         const DragStartResult result = drag_.press(press, start);
         if (result == DragStartResult::started) arguments.handled = true;
     }
+    // A moved handler may dispose the splitter.
+    if (!is_alive()) return;
     Control::on_mouse_down(arguments);
 }
 
 void Splitter::on_mouse_move(MouseEventArgs& arguments) {
     set_hot_from_pointer(true);
     drag_pointer(arguments);
+    // A moved handler may dispose the splitter.
+    if (!is_alive()) return;
     Control::on_mouse_move(arguments);
 }
 
 void Splitter::on_mouse_up(MouseEventArgs& arguments) {
     drag_pointer(arguments);
+    // A moved handler may dispose the splitter.
+    if (!is_alive()) return;
     Control::on_mouse_up(arguments);
 }
 

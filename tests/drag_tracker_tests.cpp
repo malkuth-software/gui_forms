@@ -28,6 +28,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -66,9 +67,9 @@ constexpr std::uint32_t no_target = 0xFFFFFFFFU;
 // slots, moved into the window's coordinates. It records every plan,
 // preview, end and announcement, and can misbehave on cue from inside a
 // preview (withdraw, cancel, press).
-class Canvas final : public Control {
+class Canvas final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Canvas(StableId id) : Control(std::move(id)), tracker(*this) {
+    explicit Canvas(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)), tracker(*this) {
         tracker.callbacks.plan = Delegate<DragPlan&>::bind<Canvas, &Canvas::plan_drag>(*this);
         tracker.callbacks.preview = Delegate<const DragTrackerFrame&>::bind<Canvas, &Canvas::preview_drag>(*this);
         tracker.callbacks.finished = Delegate<const DragTrackerFrame&>::bind<Canvas, &Canvas::finish_drag>(*this);
@@ -79,7 +80,7 @@ public:
         steps.reserve(1024U);
     }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::down && event.button == PointerButton::primary) {
             DragStart start{};
             start.threshold = threshold;

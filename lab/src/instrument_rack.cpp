@@ -1017,16 +1017,23 @@ void InstrumentRack::arrange(Rect final_bounds) {
     (*impl_).arrange_children();
 }
 
-void InstrumentRack::on_pointer(PointerEvent& event) {
-    Panel::on_pointer(event);
-    if (event.action != PointerAction::wheel ||
-        std::abs(event.wheel_delta.y) <= 0.001) return;
-    scroll_offset = (*impl_).scroll_offset - event.wheel_delta.y;
-    event.handled = true;
+bool InstrumentRack::scroll_by_wheel(double delta_y) {
+    if (std::abs(delta_y) <= 0.001) return false;
+    scroll_offset = (*impl_).scroll_offset - delta_y;
+    return true;
+}
+
+void InstrumentRack::on_mouse_wheel(MouseEventArgs& arguments) {
+    scroll_pointer(arguments);
+    if (scroll_by_wheel(arguments.wheel_delta.y)) arguments.handled = true;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
 }
 
 void InstrumentRack::on_pointer_bubble(PointerEvent& event) {
-    if (!event.handled) on_pointer(event);
+    if (event.handled) return;
+    scroll_pointer(event);
+    if (event.action == PointerAction::wheel && scroll_by_wheel(event.wheel_delta.y)) event.handled = true;
 }
 
 void InstrumentRack::on_key_preview(KeyEvent& event) {

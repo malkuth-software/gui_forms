@@ -309,8 +309,6 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
@@ -355,8 +353,20 @@ public:
 protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override;
+    // The mouse raisers hand the target phase to handle_pointer and the
+    // key raiser an unhandled key to handle_key; then the base raises.
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
 
 private:
+    // The routed form of one pointer event or key on the view: hot row,
+    // wheel scrolling, the primary press's selection and activation; the
+    // navigation and activation keys.
+    void handle_pointer(PointerEvent& event);
+    void handle_key(KeyEvent& event);
     // Raised targets run under this guard: the view refuses changes to its
     // rows, callbacks and scroll until it ends (VirtualRowsCallbacks).
     class CallbackScope;

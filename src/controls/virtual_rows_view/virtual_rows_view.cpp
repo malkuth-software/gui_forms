@@ -764,7 +764,7 @@ void VirtualRowsView::on_paint(Painter& painter, Rect) {
 
 // -- input ------------------------------------------------------------------------------
 
-void VirtualRowsView::on_pointer(PointerEvent& event) {
+void VirtualRowsView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input() || in_callback_) return;
     const Rect absolute = absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
@@ -804,7 +804,7 @@ void VirtualRowsView::on_pointer(PointerEvent& event) {
     if (event.click_count >= 2U && again && is_alive()) activate(row);
 }
 
-void VirtualRowsView::on_key(KeyEvent& event) {
+void VirtualRowsView::handle_key(KeyEvent& event) {
     if (!focused_ || in_callback_ || !effectively_enabled() || event.action != KeyAction::down) return;
     const std::size_t count = row_count();
     if (count == 0U) return;
@@ -839,6 +839,46 @@ void VirtualRowsView::on_key(KeyEvent& event) {
     }
     select_and_reveal(target);
     event.handled = true;
+}
+
+void VirtualRowsView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void VirtualRowsView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void VirtualRowsView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void VirtualRowsView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
+void VirtualRowsView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 void VirtualRowsView::on_focus_changed(bool focused) {

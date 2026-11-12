@@ -110,8 +110,6 @@ public:
 
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
     void on_context_menu_requested(ContextMenuRequest& request) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -166,8 +164,23 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void publish_realized_item_geometry(std::size_t item,
                                         std::span<PartGeometry> geometry) const override;
+    // The mouse raisers hand the target phase to handle_pointer (the view
+    // has no scroll bars of its own, so ScrollableControl's handling is
+    // skipped) and raise through Control; the key raiser hands an
+    // unhandled key to handle_key.
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
 
 private:
+    // The routed form of one pointer event or key on the view: hover,
+    // wheel scrolling, press and release on an item; the navigation,
+    // activation and pin keys.
+    void handle_pointer(PointerEvent& event);
+    void handle_key(KeyEvent& event);
     void emit_item_activated(const std::string& stable_id);
     struct HoverIntentCallback;
     struct ScrollAnchor final {

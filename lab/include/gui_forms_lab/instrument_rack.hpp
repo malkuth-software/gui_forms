@@ -59,7 +59,8 @@ public:
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
-    void on_pointer(PointerEvent& event) override;
+    // A wheel turn bubbling from a module: the scroll bars' handling, then
+    // the rack's scroll.
     void on_pointer_bubble(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -68,8 +69,14 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_dispose() noexcept override;
+    // The scroll bars' wheel handling, then the rack's scroll, then the
+    // event.
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
 
 private:
+    // Scrolls the rack by a wheel turn of `delta_y`; false for a turn too
+    // small to count.
+    bool scroll_by_wheel(double delta_y);
     struct Impl;
     std::unique_ptr<Impl> impl_;
     Event<const InstrumentFieldChange&> field_changed_;

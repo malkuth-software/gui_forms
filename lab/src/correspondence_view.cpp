@@ -876,10 +876,11 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
     painter.restore();
 }
 
-void CorrespondenceView::on_pointer(PointerEvent& event) {
+void CorrespondenceView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
-    if (event.action == PointerAction::move ||
-        event.action == PointerAction::enter) {
+    // Entering raises no positioned event; the move that follows sets the
+    // hover.
+    if (event.action == PointerAction::move) {
         set_hovered_index(index_at(event.position));
         return;
     }
@@ -933,6 +934,54 @@ void CorrespondenceView::on_pointer(PointerEvent& event) {
     }
 }
 
+void CorrespondenceView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void CorrespondenceView::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void CorrespondenceView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void CorrespondenceView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void CorrespondenceView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
+void CorrespondenceView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
+}
+
 // A context request comes from the host (Windows' WM_CONTEXTMENU, macOS's
 // menuForEvent: and show-menu action, the Linux desktop's convention). A
 // pointer request selects the item under the pointer (a macOS Control-click
@@ -962,7 +1011,7 @@ void CorrespondenceView::on_context_menu_requested(ContextMenuRequest& request) 
     if (is_alive()) context_requested_.emit({target, request.window_position});
 }
 
-void CorrespondenceView::on_key(KeyEvent& event) {
+void CorrespondenceView::handle_key(KeyEvent& event) {
     if (!focused_ || !enabled.read() || event.action != KeyAction::down ||
         items_.empty()) return;
     std::size_t index = item_index(focused_id_)
