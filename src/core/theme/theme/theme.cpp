@@ -1165,6 +1165,9 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         if (textured || !valid_fill_layer(mask)) return false;
     }
     if (material.reflection && !valid_material_reflection(*material.reflection)) return false;
+    if (static_cast<std::uint8_t>(material.dither) > static_cast<std::uint8_t>(MaterialDither::blue_noise)) {
+        return false;
+    }
     return true;
 }
 
@@ -1315,6 +1318,9 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
 
 std::optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept {
     if (!valid_surface_material(material) || material.finish != 0.0) return std::nullopt;
+    // A dithered material's pixels follow the dither's pattern all along
+    // the face, not only near its edges.
+    if (material.dither != MaterialDither::none) return std::nullopt;
     if (material.corner_radii) return std::nullopt;
     if (!material.shadows.empty() || !material.glows.empty() || !material.keylines.empty()) return std::nullopt;
     if (!material.border_edges.empty()) return std::nullopt;
@@ -1485,6 +1491,7 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
         case MaterialField::drop_shadow:
         case MaterialField::filter_blur:
         case MaterialField::finish:
+        case MaterialField::gradient_dither:
         case MaterialField::mask:
         case MaterialField::reflection:
         case MaterialField::seat:

@@ -273,7 +273,8 @@ struct GUI_FORMS_API PrimitiveTarget final {
 // axis (the reference), and any longer part assembled from it by copying:
 // the reference's pixels at the start and the end of the axis (the
 // corners and edge strips) are copied as they are, and one interior pixel
-// is repeated between them (the centre). Every part of one material,
+// is repeated between them (the centre), or one interior run of a pattern's
+// period (SliceAxis::period, a dithered material). Every part of one material,
 // state and scale that differs only in its sliced lengths shares one bake.
 //
 // How one axis of a part is drawn.
@@ -294,11 +295,17 @@ enum class SliceAxisOutcome : std::uint8_t {
 
 // One axis of a slice plan. For a sliced axis, the destination's first
 // `start` and last `end` device pixels are the reference's own; every
-// pixel between them is the reference's pixel `start`.
+// pixel i between them is the reference's pixel start + (i − start) mod
+// `period`. The period is 1, one repeated pixel, unless the raster carries
+// a pattern anchored to the part that repeats every `period` pixels (a
+// dithered material, MaterialDither): then the reference holds a whole
+// period past `start` and differs from the part's length by whole periods,
+// so the copies keep the pattern.
 struct GUI_FORMS_API SliceAxis final {
     SliceAxisOutcome outcome{SliceAxisOutcome::varies};
     std::uint32_t start{};
     std::uint32_t end{};
+    std::uint32_t period{1U};
 };
 
 // How a part's raster may be assembled (EnginePrimitive::slice_plan).

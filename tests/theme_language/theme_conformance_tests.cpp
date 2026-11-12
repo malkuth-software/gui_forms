@@ -346,6 +346,9 @@ std::string material_text(const MaterialDeclaration& declaration) {
                 number_text(reflection.start_opacity) + "," + number_text(reflection.end_opacity);
         if (reflection.source == MaterialReflectionSource::backplane) text += " source=backplane";
     }
+    if (declaration.dither != MaterialDither::none) {
+        text += " dither=" + std::to_string(static_cast<unsigned int>(declaration.dither));
+    }
     if (declaration.number != 0.0) text += " number=" + number_text(declaration.number);
     if (declaration.relative) text += " relative";
     std::vector<double> lengths{};

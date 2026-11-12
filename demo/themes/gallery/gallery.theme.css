@@ -156,3 +156,36 @@
   .navigation-paper::part(face) { background: #2a2a28; }
   .status-strip::part(face) { background: #262624; }
 }
+
+/* The metallic fade: an opt-in class for a panel's or a group's face, a
+   thin, dithered fade that gives a large face a quiet metallic finish
+   (the skeudoindustrial positioning's "thin, dithered fade-in metallic
+   effect"). Over the face's own colour, which another rule gives it: a
+   one-unit edge catch along the top, a fainter shade along the foot, and
+   a low-contrast fade from slightly lighter at the top through clear to
+   slightly darker at the foot. Blue-noise dithering keeps the long fade
+   free of bands. These amounts are visual choices, one property each; the
+   dark scheme's follow. The rule comes last, so that it adds its layers
+   over the face colours above in both schemes. Any theme may copy it, the
+   industrial theme included. */
+:root {
+  --metallic-fade-light: rgb(255 255 255 / 8%);
+  --metallic-fade-shade: rgb(0 0 0 / 5%);
+  --metallic-fade-catch: rgb(255 255 255 / 50%);
+  --metallic-fade-foot: rgb(0 0 0 / 8%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --metallic-fade-light: rgb(255 255 255 / 5%);
+    --metallic-fade-shade: rgb(0 0 0 / 12%);
+    --metallic-fade-catch: rgb(255 255 255 / 18%);
+    --metallic-fade-foot: rgb(0 0 0 / 25%);
+  }
+}
+.metallic-fade::part(face) {
+  background-image:
+    linear-gradient(180deg, var(--metallic-fade-catch) 0px, transparent 1px),
+    linear-gradient(0deg, var(--metallic-fade-foot) 0px, transparent 1px),
+    linear-gradient(180deg, var(--metallic-fade-light), transparent 45%, var(--metallic-fade-shade));
+  gradient-dither: blue-noise;
+}

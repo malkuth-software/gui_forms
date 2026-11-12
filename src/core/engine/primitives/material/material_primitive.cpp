@@ -3,6 +3,7 @@
 #include "material_bake_policy.hpp"
 #include "material_image.hpp"
 #include "../kernel/box_blur.hpp"
+#include "../kernel/dither.hpp"
 #include "../finish/finish_kernel.hpp"
 #include "../kernel/pixel_kernel.hpp"
 #include "../procedural/procedural_pattern.hpp"
@@ -1795,6 +1796,8 @@ BakeEffort material_bake_effort(const SurfaceMaterial& authored, const Primitive
     if (std::any_of(material.fills.begin(), material.fills.end(), &blends_apart)) {
         per_pixel = per_pixel + weights.fill_blend;
     }
+    // The dither's threshold per stored pixel (MaterialDither).
+    if (material.dither != MaterialDither::none) per_pixel = per_pixel + weights.dither;
     const std::uint64_t pixels = std::uint64_t{extent.width} * extent.height;
     const std::uint64_t corners = corner_pixels(resolve_look(material, target, outset, shape), extent);
     const std::uint64_t reflected =
@@ -1970,7 +1973,7 @@ bool whole_number(double value) noexcept {
 constexpr std::uint32_t reference_length_tries = 8U;
 
 AxisPlan plan_axis(const AxisReach& reach, double logical, double scale, std::uint32_t extent,
-                   double logical_outset) noexcept {
+                   double logical_outset, std::uint32_t period) noexcept {
     AxisPlan plan{};
     plan.reference_length = logical;
     plan.reference_extent = extent;
@@ -1983,15 +1986,24 @@ AxisPlan plan_axis(const AxisReach& reach, double logical, double scale, std::ui
         plan.axis.outcome = SliceAxisOutcome::fractional;
         return plan;
     }
+    // A dithered material's pattern repeats every `period` pixels
+    // (dither_period): the reference holds one whole period past `start`
+    // and is shorter than the part by whole periods, so that the copied
+    // run and the far end keep the part's own pattern (SliceAxis::period).
+    // Undithered, the period is 1 and every length is tried in turn.
     const double start = std::ceil(reach.start);
     const double end = std::ceil(reach.end);
-    const double shortest = std::max(start + end + 3.0, std::ceil(reach.minimum_length));
+    const double whole_period = static_cast<double>(period);
+    const double shortest = std::max({start + end + 3.0, start + end + whole_period, std::ceil(reach.minimum_length)});
     if (!(length > shortest)) {
         plan.axis.outcome = SliceAxisOutcome::too_small;
         return plan;
     }
+    // Whole numbers below 2^32 (the extent's range): the remainder is exact.
+    const std::uint64_t surplus = static_cast<std::uint64_t>(length - shortest);
+    const double phase = static_cast<double>(surplus % std::uint64_t{period});
     for (std::uint32_t attempt = 0U; attempt <= reference_length_tries; ++attempt) {
-        const double device = shortest + static_cast<double>(attempt);
+        const double device = shortest + phase + static_cast<double>(attempt) * whole_period;
         if (!(device < length)) break;
         const double reference = device / scale;
         const double reference_extent = std::ceil((reference + logical_outset + logical_outset) * scale);
@@ -1999,6 +2011,7 @@ AxisPlan plan_axis(const AxisReach& reach, double logical, double scale, std::ui
         plan.axis.outcome = SliceAxisOutcome::sliced;
         plan.axis.start = static_cast<std::uint32_t>(outset + start);
         plan.axis.end = static_cast<std::uint32_t>(outset + end);
+        plan.axis.period = period;
         plan.reference_length = reference;
         plan.reference_extent = static_cast<std::uint32_t>(reference_extent);
         return plan;
@@ -2016,8 +2029,9 @@ PrimitiveSlicePlan material_slice_plan(const SurfaceMaterial& authored, const Pr
     const double scale = target.scale.value;
     const AxisReach across_reach = axis_reach(material, target, true, outset, shape);
     const AxisReach down_reach = axis_reach(material, target, false, outset, shape);
-    const AxisPlan across = plan_axis(across_reach, target.logical_size.width, scale, extent.width, outset);
-    const AxisPlan down = plan_axis(down_reach, target.logical_size.height, scale, extent.height, outset);
+    const std::uint32_t period = dither_period(material.dither);
+    const AxisPlan across = plan_axis(across_reach, target.logical_size.width, scale, extent.width, outset, period);
+    const AxisPlan down = plan_axis(down_reach, target.logical_size.height, scale, extent.height, outset, period);
     PrimitiveSlicePlan plan{};
     plan.slices = true;
     plan.across = across.axis;
@@ -2199,60 +2213,99 @@ BakeSpans bake_spans(const SurfaceMaterial& material, const PrimitiveTarget& tar
 }
 
 // The look's pixels into columns [from, to) of one row, which begins at
-// byte `start` of `destination`.
+// byte `start` of `destination`, each quantized by `dither` (rounded when
+// it has no ranks; chosen before the loop).
 void bake_columns(const MaterialLook& look, const MaterialImages& images, const OuterIntegrals& integrals,
-                  const PartRasterView& destination, const std::uint32_t row, const std::size_t start,
-                  const std::uint32_t from, const std::uint32_t to) noexcept {
+                  const PartRasterView& destination, const DitherPlane& dither, const std::uint32_t row,
+                  const std::size_t start, const std::uint32_t from, const std::uint32_t to) noexcept {
+    if (dither.ranks == nullptr) {
+        for (std::uint32_t column = from; column < to; ++column) {
+            const Unit pixel = material_pixel(look, images, integrals, static_cast<std::int64_t>(column),
+                                              static_cast<std::int64_t>(row));
+            store(destination, start + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel, pixel);
+        }
+        return;
+    }
+    // The row of the table this row reads, and the cell of column `from`,
+    // advanced one cell per column.
+    const std::uint32_t table_row = dither_cell(dither, static_cast<std::int64_t>(row), dither.anchor_y);
+    const std::uint16_t* const ranks = dither.ranks + static_cast<std::size_t>(table_row) * dither.side;
+    std::uint32_t cell = dither_cell(dither, static_cast<std::int64_t>(from), dither.anchor_x);
     for (std::uint32_t column = from; column < to; ++column) {
         const Unit pixel = material_pixel(look, images, integrals, static_cast<std::int64_t>(column),
                                           static_cast<std::int64_t>(row));
-        store(destination, start + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel, pixel);
+        const double threshold = dither_threshold(dither, ranks[cell]);
+        store_dithered(destination, start + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel, pixel,
+                       threshold);
+        cell = (cell + 1U) & dither.mask;
     }
 }
 
-// Copies the pixel at column `from` of the row at byte `start` over
-// columns (from, to).
-void repeat_pixel(const PartRasterView& destination, const std::size_t start, const std::uint32_t from,
-                  const std::uint32_t to) noexcept {
+// Copies each pixel of columns [from, to) of the row at byte `start` from
+// the pixel `period` columns before it, which is already final: the run of
+// `period` pixels before `from` repeats over the columns. With period 1,
+// the pixel before `from` is copied over them all.
+void repeat_run(const PartRasterView& destination, const std::size_t start, const std::uint32_t period,
+                const std::uint32_t from, const std::uint32_t to) noexcept {
     std::uint8_t* const row = destination.pixels.data() + start;
-    std::array<std::uint8_t, part_raster_bytes_per_pixel> pixel{};
-    std::memcpy(pixel.data(), row + static_cast<std::size_t>(from) * part_raster_bytes_per_pixel, pixel.size());
-    for (std::uint32_t column = from + 1U; column < to; ++column) {
-        std::memcpy(row + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel, pixel.data(), pixel.size());
+    for (std::uint32_t column = from; column < to; ++column) {
+        // Distinct pixels: the source lies `period` (at least 1) before.
+        std::memcpy(row + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel,
+                    row + static_cast<std::size_t>(column - period) * part_raster_bytes_per_pixel,
+                    part_raster_bytes_per_pixel);
     }
 }
 
 // The look's pixels into every pixel of `destination`, with `images`
-// prepared for it (prepare_images). Where `spans` says pixels repeat, one
-// is baked and copied: across a row, the pixels left of the span and the
-// span's first are baked, then that pixel is copied over the span and the
-// pixels right of it baked; down the rows, the span's first row is baked
-// and copied into the rest.
+// prepared for it (prepare_images), quantized by `dither`. Where `spans`
+// says pixels repeat, a run of the dither's period (one pixel undithered)
+// is baked and copied, so that every copy lies on the same cell of the
+// pattern as its source: across a row, the pixels left of the span and the
+// span's first run are baked, then the run repeats over the span and the
+// pixels right of it are baked; down the rows, the span's first run of
+// rows is baked and each later row copies the row a period above it.
 void bake_look(const MaterialLook& look, const MaterialImages& images, const PartRasterView& destination,
-               const BakeSpans& spans) noexcept {
+               const BakeSpans& spans, const DitherPlane& dither) noexcept {
     const std::uint32_t width = destination.extent.width;
+    const std::uint32_t period = dither.side;
     const bool repeats_columns = spans.end_column > spans.first_column;
     const bool repeats_rows = spans.end_row > spans.first_row;
     const std::size_t row_pixel_bytes = static_cast<std::size_t>(width) * part_raster_bytes_per_pixel;
-    const std::size_t repeated_row = static_cast<std::size_t>(spans.first_row) * destination.row_bytes;
+    const std::size_t period_bytes = static_cast<std::size_t>(period) * destination.row_bytes;
+    // The first column copied: past the span's first run, at most its end.
+    const std::uint64_t run_end = std::uint64_t{spans.first_column} + period;
+    const std::uint32_t copied_from = static_cast<std::uint32_t>(std::min<std::uint64_t>(run_end, spans.end_column));
+    const std::uint64_t first_copied_row = std::uint64_t{spans.first_row} + period;
     OuterIntegrals integrals{};
     fill_columns(look, width, integrals);
     for (std::uint32_t row = 0U; row < destination.extent.height; ++row) {
         const std::size_t start = static_cast<std::size_t>(row) * destination.row_bytes;
-        if (repeats_rows && row > spans.first_row && row < spans.end_row) {
-            // Distinct rows of one raster: the copy's ranges do not overlap.
-            std::memcpy(destination.pixels.data() + start, destination.pixels.data() + repeated_row, row_pixel_bytes);
+        if (repeats_rows && std::uint64_t{row} >= first_copied_row && row < spans.end_row) {
+            // Distinct rows of one raster, a period apart: the copy's
+            // ranges do not overlap.
+            std::memcpy(destination.pixels.data() + start, destination.pixels.data() + (start - period_bytes),
+                        row_pixel_bytes);
             continue;
         }
         fill_row(look, row, integrals);
         if (!repeats_columns) {
-            bake_columns(look, images, integrals, destination, row, start, 0U, width);
+            bake_columns(look, images, integrals, destination, dither, row, start, 0U, width);
             continue;
         }
-        bake_columns(look, images, integrals, destination, row, start, 0U, spans.first_column + 1U);
-        repeat_pixel(destination, start, spans.first_column, spans.end_column);
-        bake_columns(look, images, integrals, destination, row, start, spans.end_column, width);
+        bake_columns(look, images, integrals, destination, dither, row, start, 0U, copied_from);
+        repeat_run(destination, start, period, copied_from, spans.end_column);
+        bake_columns(look, images, integrals, destination, dither, row, start, spans.end_column, width);
     }
+}
+
+// The dither plane of `material` for a bake whose box is `look.box`,
+// anchored at the box's top-left corner rounded to the nearest device
+// pixel (dither.hpp), as the finishes are (finish_surface).
+DitherPlane material_dither(const SurfaceMaterial& material, const MaterialLook& look) noexcept {
+    const std::int64_t anchor_x = static_cast<std::int64_t>(std::floor(look.box.x + 0.5));
+    const std::int64_t anchor_y = static_cast<std::int64_t>(std::floor(look.box.y + 0.5));
+    const DitherPlane plane = dither_plane(material.dither, anchor_x, anchor_y);
+    return plane;
 }
 
 } // namespace
@@ -2265,7 +2318,7 @@ void bake_material(const SurfaceMaterial& authored, const PrimitiveTarget& targe
     MaterialImages images{};
     prepare_images(material, target, look, destination.extent, images);
     const BakeSpans spans = bake_spans(material, target, look, outset, shape, destination.extent);
-    bake_look(look, images, destination, spans);
+    bake_look(look, images, destination, spans, material_dither(material, look));
     apply_part_filters(material, target, destination);
     apply_mask(look, images, destination);
     if (material.reflection) {
@@ -2300,7 +2353,7 @@ void bake_material_region(const SurfaceMaterial& authored, const PrimitiveTarget
     MaterialImages images{};
     prepare_images(material, target, look, destination.extent, images);
     // Every pixel baked: the region bake is the whole bake's reference.
-    bake_look(look, images, destination, BakeSpans{});
+    bake_look(look, images, destination, BakeSpans{}, material_dither(material, look));
     apply_mask(look, images, destination);
 }
 

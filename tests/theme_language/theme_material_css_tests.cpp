@@ -591,6 +591,19 @@ void test_filter_lowering() {
     const MaterialDeclaration* const finish = field_of(only_rule(finished, finish_sheet), MaterialField::finish);
     require(finish != nullptr && (*finish).number == 0.25, "surface-finish reads a percentage");
 
+    // gradient-dither (MaterialDither): each keyword, in any case.
+    const std::array<std::string_view, 3> dither_sheets{"#pad::part(face) { gradient-dither: none }",
+                                                         "#pad::part(face) { gradient-dither: ordered }",
+                                                         "#pad::part(face) { gradient-dither: Blue-Noise }"};
+    const std::array<MaterialDither, 3> dithers{MaterialDither::none, MaterialDither::ordered,
+                                                MaterialDither::blue_noise};
+    for (std::size_t index = 0U; index < dither_sheets.size(); ++index) {
+        const Compilation dithered = compile(dither_sheets[index]);
+        const MaterialDeclaration* const dither =
+            field_of(only_rule(dithered, dither_sheets[index]), MaterialField::gradient_dither);
+        require(dither != nullptr && (*dither).dither == dithers[index], "gradient-dither reads its keyword");
+    }
+
     const std::string_view glow_sheet = "#pad::part(face) { glow: red 2px, 1px 3px blue; glow-placement: over }";
     const Compilation glowing = compile(glow_sheet);
     const ThemeRule& glow_rule = only_rule(glowing, glow_sheet);
@@ -853,6 +866,9 @@ void test_refusals() {
         {"#a { filter: red }", DiagnosticCode::value_wrong_kind},
         {"#a { surface-finish: 2 }", DiagnosticCode::value_out_of_range},
         {"#a { surface-finish: 1px }", DiagnosticCode::value_wrong_kind},
+        {"#a { gradient-dither: dots }", DiagnosticCode::keyword_unknown},
+        {"#a { gradient-dither: 2 }", DiagnosticCode::value_wrong_kind},
+        {"#a { gradient-dither: ordered blue-noise }", DiagnosticCode::value_syntax},
         {"#a { glow: red }", DiagnosticCode::value_syntax},
         {"#a { glow: red 1px, red 1px, red 1px }", DiagnosticCode::too_many_layers},
         {"#a { glow: red 8px }", DiagnosticCode::value_out_of_range},
@@ -1116,6 +1132,12 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     finished.material.fills = {MaterialFillLayer::solid(blue)};
     finished.material.finish = 0.5;
     rows.push_back(finished);
+    GateRow dithered{};
+    dithered.declarations = "background: linear-gradient(blue, white); gradient-dither: blue-noise";
+    dithered.material.fills = {
+        MaterialFillLayer::linear_css_angle(180.0, stops_of({{0.0, blue}, {1.0, Color::rgba(255, 255, 255)}}))};
+    dithered.material.dither = MaterialDither::blue_noise;
+    rows.push_back(dithered);
     GateRow glowing{};
     glowing.declarations = "background: blue; glow: red 2px 1px, white 1px; glow-placement: over, under";
     glowing.material.fills = {MaterialFillLayer::solid(blue)};

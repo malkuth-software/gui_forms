@@ -38,7 +38,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 91> material_properties{{
+constexpr std::array<NamedMaterialProperty, 92> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -93,6 +93,7 @@ constexpr std::array<NamedMaterialProperty, 91> material_properties{{
     {.name = "glow", .property = MaterialProperty::glow},
     {.name = "glow-placement", .property = MaterialProperty::glow_placement},
     {.name = "glyph-color", .property = MaterialProperty::glyph_color},
+    {.name = "gradient-dither", .property = MaterialProperty::gradient_dither},
     {.name = "grid-band", .property = MaterialProperty::grid_band},
     {.name = "grid-spacing", .property = MaterialProperty::grid_spacing},
     {.name = "halo", .property = MaterialProperty::halo},
@@ -520,6 +521,7 @@ private:
     bool lower_filter();
     bool lower_finish();
     bool lower_seat();
+    bool lower_gradient_dither();
     bool lower_glows();
     bool lower_glow_placements();
     bool lower_mask();
@@ -1982,6 +1984,31 @@ bool MaterialReader::lower_seat() {
     return true;
 }
 
+// `gradient-dither`: how the material's finished pixels are quantized to
+// 8 bits (MaterialDither): `none` rounds, `ordered` dithers by the 8 x 8
+// Bayer matrix, `blue-noise` by the 64 x 64 blue-noise table.
+bool MaterialReader::lower_gradient_dither() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one dither");
+    }
+    const ValueComponent& component = value_.components[0];
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::gradient_dither;
+    if (keyword(0U, "none")) {
+        declaration.dither = MaterialDither::none;
+    } else if (keyword(0U, "ordered")) {
+        declaration.dither = MaterialDither::ordered;
+    } else if (keyword(0U, "blue-noise")) {
+        declaration.dither = MaterialDither::blue_noise;
+    } else if (component.kind == ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    } else {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "none, ordered or blue-noise");
+    }
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
 // One glow: a colour and one or two lengths, its blur and its spread.
 bool MaterialReader::read_glow(ComponentRange range, MaterialGlow& glow) {
     glow = MaterialGlow{};
@@ -3324,6 +3351,7 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::reflection: static_cast<void>(lower_reflection()); return;
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
     case MaterialProperty::seat: static_cast<void>(lower_seat()); return;
+    case MaterialProperty::gradient_dither: static_cast<void>(lower_gradient_dither()); return;
     case MaterialProperty::keylines: static_cast<void>(lower_keylines()); return;
     case MaterialProperty::muted_color: static_cast<void>(lower_recipe_colour(RecipeField::muted_text)); return;
     case MaterialProperty::glyph_color: static_cast<void>(lower_recipe_colour(RecipeField::glyph)); return;
@@ -3510,6 +3538,7 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::reflection: fields.push_back(MaterialField::reflection); return;
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
     case MaterialProperty::seat: fields.push_back(MaterialField::seat); return;
+    case MaterialProperty::gradient_dither: fields.push_back(MaterialField::gradient_dither); return;
     case MaterialProperty::keylines: fields.push_back(MaterialField::keylines); return;
     case MaterialProperty::muted_color:
     case MaterialProperty::glyph_color:

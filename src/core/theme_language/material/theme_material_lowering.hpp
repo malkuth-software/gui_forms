@@ -74,6 +74,9 @@ enum class MaterialProperty : std::uint8_t {
     surface_finish,
     // The part's seat in its panel: `seat: none | <height> [<colour>]`.
     seat,
+    // The final quantization's dither (MaterialDither): `none`, `ordered`
+    // or `blue-noise`.
+    gradient_dither,
     // The four inner lines one unit inside the border (T4 floor sheet,
     // owner option 1): `keylines: <top> <right> <bottom> <left>`.
     keylines,

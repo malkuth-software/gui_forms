@@ -456,7 +456,8 @@ constexpr std::array<std::string_view, material_field_count> material_field_name
     "finish",
     "mask",
     "reflection",
-    "seat"};
+    "seat",
+    "gradient_dither"};
 
 // The edge fields: four edges of three fields each, from border_top_style.
 constexpr std::size_t first_edge_field = static_cast<std::size_t>(MaterialField::border_top_style);
@@ -517,6 +518,7 @@ ColourPosition material_field_colour_position(MaterialField field) noexcept {
     case MaterialField::mask:
     case MaterialField::reflection:
     case MaterialField::seat:
+    case MaterialField::gradient_dither:
     case MaterialField::count:
     default: return ColourPosition::none;
     }
@@ -561,6 +563,7 @@ void apply_material_declaration(const MaterialDeclaration& declaration, SurfaceM
     case MaterialField::reflection: material.reflection = declaration.reflection; return;
     // Appended after the other fields (assemble_material).
     case MaterialField::seat: return;
+    case MaterialField::gradient_dither: material.dither = declaration.dither; return;
     case MaterialField::border_top_style:
     case MaterialField::border_top_width:
     case MaterialField::border_top_colour:

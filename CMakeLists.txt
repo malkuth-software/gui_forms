@@ -432,6 +432,7 @@ add_library(gui_forms_core STATIC
     src/core/window/backplane/window_backplane.cpp
     src/core/engine/primitives/kernel/box_blur.cpp
     src/core/engine/primitives/kernel/pixel_kernel.cpp
+    src/core/engine/primitives/kernel/dither.cpp
     src/core/engine/part_shape/part_shape.cpp
     src/core/engine/part_table/engine_part_table.cpp
     src/core/engine/part_table/slice_assembly.cpp
@@ -3547,6 +3548,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_engine_finish_tile_tests tests/engine_finish_tile_tests.cpp)
     target_link_libraries(gui_forms_engine_finish_tile_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_engine_finish_tile_tests COMMAND gui_forms_engine_finish_tile_tests)
+    # Gradient dithering (MaterialDither): the tables, banding metrics,
+    # determinism, damage invariance at scales 1 to 3, no swimming under a
+    # scroll, slices and spans keeping the pattern, gradient-dither and the
+    # metallic-fade recipe; --preview <dir> writes the fade as PNG files.
+    add_executable(gui_forms_engine_dither_tests tests/engine_dither_tests.cpp)
+    target_link_libraries(gui_forms_engine_dither_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_engine_dither_tests COMMAND gui_forms_engine_dither_tests)
     # Lamps and lit keys as baked light planes (phase 3): the bake file,
     # the composite, the envelopes and the cache; --preview <out> <bakes>.
     add_executable(gui_forms_engine_light_planes_tests tests/engine_light_planes_tests.cpp)

@@ -439,6 +439,11 @@ void append_material(std::ostringstream& output,
         append_json_string(output, backplane ? "backplane" : "face");
         output << '}';
     }
+    // The dither (MaterialDither), likewise only when set.
+    if (material.dither != MaterialDither::none) {
+        output << ",\"dither\":";
+        append_json_string(output, material.dither == MaterialDither::ordered ? "ordered" : "blue-noise");
+    }
     output << '}';
 }
 

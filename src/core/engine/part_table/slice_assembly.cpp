@@ -9,12 +9,16 @@ namespace gui_forms::detail {
 namespace {
 
 // Which reference pixel shows at destination `index` along an axis of
-// `length` pixels assembled from a reference of `reference_length`.
+// `length` pixels assembled from a reference of `reference_length`: within
+// the repeated span, the run of `period` pixels from `start` repeats (a
+// period of 0 is read as 1).
 std::uint32_t reference_index(std::uint32_t index, const SliceAxis& axis, std::uint32_t length,
                               std::uint32_t reference_length) noexcept {
     if (axis.outcome != SliceAxisOutcome::sliced || index < axis.start) return index;
     if (index >= length - axis.end) return index - (length - reference_length);
-    return axis.start;
+    const std::uint32_t period = axis.period > 1U ? axis.period : 1U;
+    const std::uint32_t repeated = axis.start + (index - axis.start) % period;
+    return repeated;
 }
 
 } // namespace
@@ -38,9 +42,14 @@ void assemble_slices(const PartRaster& reference, const PrimitiveSlicePlan& plan
             continue;
         }
         std::memcpy(to_row, from_row, start_bytes);
+        // The run from `start`, one pixel or a dither period, repeated.
+        const std::size_t run_bytes = static_cast<std::size_t>(across.period > 1U ? across.period : 1U) * pixel;
         const std::uint8_t* const centre = from_row + start_bytes;
+        std::size_t phase = 0U;
         for (std::size_t offset = start_bytes; offset < row_length - end_bytes; offset += pixel) {
-            std::memcpy(to_row + offset, centre, pixel);
+            std::memcpy(to_row + offset, centre + phase, pixel);
+            phase = phase + pixel;
+            if (phase == run_bytes) phase = 0U;
         }
         const std::size_t from_end = static_cast<std::size_t>(from.width) * pixel - end_bytes;
         std::memcpy(to_row + (row_length - end_bytes), from_row + from_end, end_bytes);

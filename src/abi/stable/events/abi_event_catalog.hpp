@@ -611,6 +611,16 @@ struct EnumerationChoices<MaterialCoordinateSpace> {
 };
 
 template <>
+struct EnumerationChoices<MaterialDither> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 3> choices{{
+        {"none", static_cast<std::int64_t>(MaterialDither::none)},
+        {"ordered", static_cast<std::int64_t>(MaterialDither::ordered)},
+        {"blue_noise", static_cast<std::int64_t>(MaterialDither::blue_noise)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<MaterialEdge> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 4> choices{{
@@ -2887,6 +2897,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Surfa
     append_field(fields, "finish", value.finish);
     append_field(fields, "mask", value.mask);
     append_field(fields, "reflection", value.reflection);
+    append_field(fields, "dither", value.dither);
     fields.leave(prefix);
 }
 

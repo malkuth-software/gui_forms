@@ -3697,7 +3697,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
+   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``). ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
 
    .. cpp:member:: MaterialField field
 
@@ -3746,6 +3746,10 @@ Types
    .. cpp:member:: std::optional<MaterialFillLayer> mask
 
    .. cpp:member:: std::optional<MaterialReflection> reflection
+
+   .. cpp:member:: MaterialDither dither
+
+      Default: ``{MaterialDither::none}``.
 
    .. cpp:member:: ColourOrigin origin
 
@@ -5820,7 +5824,7 @@ Types
 
    ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
 
-   One axis of a slice plan. For a sliced axis, the destination's first ``start`` and last ``end`` device pixels are the reference's own; every pixel between them is the reference's pixel ``start``.
+   One axis of a slice plan. For a sliced axis, the destination's first ``start`` and last ``end`` device pixels are the reference's own; every pixel i between them is the reference's pixel start + (i − start) mod ``period``. The period is 1, one repeated pixel, unless the raster carries a pattern anchored to the part that repeats every ``period`` pixels (a dithered material, MaterialDither): then the reference holds a whole period past ``start`` and differs from the part's length by whole periods, so the copies keep the pattern.
 
    .. cpp:member:: SliceAxisOutcome outcome
 
@@ -5829,6 +5833,10 @@ Types
    .. cpp:member:: std::uint32_t start
 
    .. cpp:member:: std::uint32_t end
+
+   .. cpp:member:: std::uint32_t period
+
+      Default: ``{1U}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -5946,6 +5954,10 @@ Types
    .. cpp:member:: std::optional<MaterialReflection> reflection
 
       A reflection of the finished face (MaterialReflection), drawn after the mask; none by default.
+
+   .. cpp:member:: MaterialDither dither
+
+      The final quantization (MaterialDither); none by default. Default: ``{MaterialDither::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -7633,6 +7645,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: MaterialDither
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: ordered
+
+   .. cpp:enumerator:: blue_noise
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: MaterialEdge
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
@@ -7732,6 +7756,8 @@ Enumerations
    .. cpp:enumerator:: reflection
 
    .. cpp:enumerator:: seat
+
+   .. cpp:enumerator:: gradient_dither
 
    .. cpp:enumerator:: count
 

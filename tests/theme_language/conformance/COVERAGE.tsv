@@ -168,6 +168,7 @@ property.font-weight	fonts
 property.glow	finish-light-images-masks
 property.glow-placement	finish-light-images-masks
 property.glyph-color	recipe-colours
+property.gradient-dither	gradient-dither
 property.isolation	shadows-opacity-filters
 property.keyline-rings	parts-rings-patterns
 property.keylines	recipe-colours

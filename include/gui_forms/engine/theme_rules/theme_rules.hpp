@@ -823,6 +823,7 @@ enum class MaterialField : std::uint8_t {
     // The part's seat in its panel (skeudoindustrial surfaces): derived
     // shadows, appended to the shadows when the material is assembled.
     seat,
+    gradient_dither,
     count,
 };
 
@@ -868,6 +869,7 @@ inline constexpr std::size_t material_field_count = static_cast<std::size_t>(Mat
 //   (negative: sunk into it), or, with `relative`, a fraction of the box's
 //   shorter side, and `colour`, its shadow's; 0 for none. Resolved when
 //   the material is assembled (seat_shadows).
+// - gradient_dither: `dither` (MaterialDither, `gradient-dither`).
 // `initial`, set, is CSS's `initial`: the field keeps the floor's value,
 // and the declaration still wins over those beneath it; its value members
 // are not read.
@@ -894,6 +896,7 @@ struct GUI_FORMS_API MaterialDeclaration final {
     std::optional<MaterialDropShadow> drop_shadow{};
     std::optional<MaterialFillLayer> mask{};
     std::optional<MaterialReflection> reflection{};
+    MaterialDither dither{MaterialDither::none};
     // Where the declaration's colours came from (EC4).
     ColourOrigin origin{};
     // Its lengths in em (T3 P8c, owner decision D4): empty, or one
@@ -917,7 +920,8 @@ struct GUI_FORMS_API MaterialDeclaration final {
                left.colour == right.colour && left.keylines == right.keylines &&
                left.number == right.number && left.relative == right.relative &&
                left.colour_filter == right.colour_filter && left.drop_shadow == right.drop_shadow &&
-               left.mask == right.mask && left.reflection == right.reflection && left.origin == right.origin &&
+               left.mask == right.mask && left.reflection == right.reflection && left.dither == right.dither &&
+               left.origin == right.origin &&
                left.em_lengths == right.em_lengths &&
                left.current_colours == right.current_colours;
     }

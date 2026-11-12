@@ -199,6 +199,24 @@ struct GUI_FORMS_API MaterialBorderEdges final {
                left_value.left == right_value.left;
     }
 };
+// How the engine's material kernel quantizes the finished pixels to 8 bits
+// (gradient dithering, CSS-like `gradient-dither`): `none` rounds each
+// channel, as before; `ordered` adds an 8 x 8 Bayer threshold and
+// `blue_noise` a 64 x 64 blue-noise threshold per device pixel, so that a
+// smooth, low-contrast gradient over a large face shows no bands. The
+// pattern is anchored to the box's first device pixel, moves with the
+// surface and is identical on every host (dither.hpp in the engine's
+// kernels). It applies wherever the kernel quantizes the material: every
+// fill (linear, radial and conic gradients, a finish or pattern composited
+// over them), shadows and edges. The part filters, the mask and a
+// reflection read the dithered bytes and round their own results; a
+// minimal painter's layers (paint_surface_material without the kernel)
+// round.
+enum class MaterialDither : std::uint8_t {
+    none,
+    ordered,
+    blue_noise,
+};
 struct GUI_FORMS_API SurfaceMaterial final {
     static constexpr std::size_t maximum_fill_layers = 8U;
     static constexpr std::size_t maximum_shadows = 4U;
@@ -253,6 +271,8 @@ struct GUI_FORMS_API SurfaceMaterial final {
     // A reflection of the finished face (MaterialReflection), drawn after
     // the mask; none by default.
     std::optional<MaterialReflection> reflection;
+    // The final quantization (MaterialDither); none by default.
+    MaterialDither dither{MaterialDither::none};
     [[nodiscard]] static SurfaceMaterial from_parts(
         const MaterialFillLayer* fills, std::size_t fill_count,
         const MaterialShadow* shadows, std::size_t shadow_count,
@@ -279,7 +299,8 @@ struct GUI_FORMS_API SurfaceMaterial final {
         left.colour_filter == right.colour_filter &&
         left.drop_shadow == right.drop_shadow &&
         left.filter_blur == right.filter_blur && left.finish == right.finish &&
-        left.mask == right.mask && left.reflection == right.reflection)) {
+        left.mask == right.mask && left.reflection == right.reflection &&
+        left.dither == right.dither)) {
         return left.fills == right.fills && left.shadows == right.shadows &&
                left.glows == right.glows &&
                left.border == right.border &&
@@ -291,7 +312,8 @@ struct GUI_FORMS_API SurfaceMaterial final {
                left.drop_shadow == right.drop_shadow &&
                left.filter_blur == right.filter_blur &&
                left.finish == right.finish && left.mask == right.mask &&
-               left.reflection == right.reflection;
+               left.reflection == right.reflection &&
+               left.dither == right.dither;
     }
 };
 

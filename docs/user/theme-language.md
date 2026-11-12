@@ -260,7 +260,7 @@ only material fields selects the `material` primitive.
 
 | Area | Properties |
 |---|---|
-| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
+| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `seat`, `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
@@ -271,6 +271,22 @@ only material fields selects the `material` primitive.
 | progress stripes | the marching stripes over a progress bar's fill, on `progress-bar::part(fill)` only: `stripe-pitch` (`auto`, the fill's thickness, or 4px to 64px), `stripe-ratio` (0.1 to 0.9: the pale band's share of the pitch; default 0.4), `stripe-angle` (15deg to 75deg; default 45deg), `stripe-lean` (`backward`, the default, leans each band back from the leading edge; `forward`), `stripe-direction` (`forward`, the default, travels toward the leading edge, the way the fill grows; `backward`), `stripe-speed` (0 to 3 pitches a second on the motion clock; default 0.8), `stripe-color` (the pale band), `stripe-ground` (an opaque colour painted under the bands; none by default, so the fill shows between them), `stripe-gloss` (`auto`: a gloss over a painted ground; `none`), `stripe-reduced-motion` (`still`, the default, holds the bands; `none` hides them); the bands are clipped to the fill inside its rim and follow its direction |
 | node canvas | on a named part of `node-canvas` (part fields; refused on a control): `fill-color` and `stroke-color` (an area's fill and its line), `stroke-width` (0 to 32px), `stroke-dash` (`none`, or a dash and a gap, each up to 64px; a dash of 0 is refused, a gap of 0 is solid), `halo` (`none`, or a width of 0 to 16px and a colour in either order: a wider stroke drawn under a link), `corner-radius` (0 to 64px), `grid-spacing` (the minor grid's spacing in world units at zoom 1, 2px to 512px; default 16px), `grid-band` (the smallest minor spacing on screen, 2px to 128px; the band runs to 4 times it, default 6px, so minor lines show fully at zoom 1), `background-texture` (`none`, or one to three comma-separated layers, bottom first, each `procedural(<kind>, <seed>, <tile>, <strength>) multiply <percentage>` or `finish(...) multiply <percentage>`: a baked surface, never an image, under the grid, anchored to the canvas's world coordinates; a procedural kind is `felt`, `wood-grain`, `paper-fibre`, `pinstripe`, `brushed-metal` or `checker`, its seed a whole number from 0 to 4294967295, its tile 2px to 96px, its strength 0 to 1, and the canvas chooses its colours; a finish is written as in a fill (`finish(orange-peel, #ffffff, #c8c8c8, 5)`), any finish but a glint, in the colours written, evaluated at the canvas's world coordinates so it is continuous everywhere and pans and zooms with the canvas; the contrast is 0% to 3%; anything outside refuses the theme), `flow` (`none`, `dots`, `dashes`: marks moving along a link at rest), `flow-speed` (0 to 512 world units a second; default 48), `flow-spacing` (4px to 128px; default 16px); the parts are listed under "The node canvas" below |
 | fonts | `font-family` (`control`, `content`, `monospace`, or a bundled family: `Portsmouth Rapids`, `Carlito`, `Cousine`, `Selawik`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
+
+`gradient-dither: none | ordered | blue-noise` sets how the engine's
+material kernel quantizes a part's finished pixels to 8 bits. `none`
+rounds, as before. `ordered` adds an 8 x 8 Bayer threshold and `blue-noise`
+a 64 x 64 blue-noise threshold to each device pixel, so a smooth,
+low-contrast gradient over a large face shows no bands. It covers the whole
+material: gradients, a finish or pattern under them, shadows and edges. The
+pattern is anchored to the part's first device pixel, so it moves with the
+part when it scrolls. It is the same on every host, and any repaint
+rectangle gives the bytes of a full repaint. The cost is a fixed amount per
+device pixel at quantization. A tall face at a high scale can take more
+than the bake budget, because each slice reference then holds a whole
+period of the pattern (8 or 64 pixels); the part then draws its built-in
+look. The Gallery's theme has an opt-in class, `.metallic-fade`, that uses
+it: a thin fade with a one-unit edge catch over a panel's or a group's own
+colour. Any theme can copy that rule.
 
 `pattern(<name>, <ground>, <figure> [, <tile>])` is a built-in procedural
 pattern in two colours: `checker` (a checkerboard; its default 2px tile is a
