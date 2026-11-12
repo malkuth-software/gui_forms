@@ -2,9 +2,13 @@
 
 #include "abi_registry.hpp"
 
+#include "gui_forms/component/failures/component_failures.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/detail/storage_growth.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+#include "gui_forms/text/types/text_types.hpp"
 
+#include <algorithm>
 #include <cstring>
 #include <limits>
 #include <new>
@@ -24,49 +28,6 @@ static_assert(sizeof(gf_callback) == callback_size_1_0);
 std::uint32_t next_generation(std::uint32_t generation) noexcept {
     const std::uint32_t next = generation == std::numeric_limits<std::uint32_t>::max() ? 1U : generation + 1U;
     return next;
-}
-
-// The length of the well-formed UTF-8 sequence starting at text[index], or
-// zero when the bytes there are not one.
-std::size_t utf8_sequence_length(std::string_view text, std::size_t index) noexcept {
-    const unsigned char lead = static_cast<unsigned char>(text[index]);
-    std::size_t length = 0U;
-    std::uint32_t minimum = 0U;
-    std::uint32_t code_point = 0U;
-    if (lead < 0x80U) {
-        return 1U;
-    }
-    if (lead >= 0xC2U && lead <= 0xDFU) {
-        length = 2U;
-        minimum = 0x80U;
-        code_point = lead & 0x1FU;
-    } else if (lead >= 0xE0U && lead <= 0xEFU) {
-        length = 3U;
-        minimum = 0x800U;
-        code_point = lead & 0x0FU;
-    } else if (lead >= 0xF0U && lead <= 0xF4U) {
-        length = 4U;
-        minimum = 0x10000U;
-        code_point = lead & 0x07U;
-    } else {
-        return 0U;
-    }
-    if (text.size() - index < length) {
-        return 0U;
-    }
-    std::size_t offset = 1U;
-    for (offset = 1U; offset < length; ++offset) {
-        const unsigned char continuation = static_cast<unsigned char>(text[index + offset]);
-        if ((continuation & 0xC0U) != 0x80U) {
-            return 0U;
-        }
-        code_point = (code_point << 6U) | (continuation & 0x3FU);
-    }
-    const bool surrogate = code_point >= 0xD800U && code_point <= 0xDFFFU;
-    if (code_point < minimum || code_point > 0x10FFFFU || surrogate) {
-        return 0U;
-    }
-    return length;
 }
 
 } // namespace
@@ -270,6 +231,54 @@ gf_status HandleRegistry::enter_ui(SlotIdentity slot, bool bind) {
     return GF_STATUS_OK;
 }
 
+gf_status HandleRegistry::enter_component(gf_object object, SlotIdentity slot, Component::Ptr& component) {
+    {
+        const std::scoped_lock lock(mutex_);
+        const ThreadDomain domain = calling_domain_locked();
+        const bool sub_surface = domain.value != ui_domain.value;
+        if (sub_surface && !admitted_on_sub_surface(slot.table_id)) {
+            return fail(GF_STATUS_WRONG_THREAD, slot, "this function runs on the GUI.Forms UI thread only, "
+                                                      "not on a sub-surface's thread");
+        }
+        if (!sub_surface && ui_thread_ != std::thread::id{} && !on_ui_thread_locked()) {
+            return fail(GF_STATUS_WRONG_THREAD, slot, "this function runs on the GUI.Forms UI thread only");
+        }
+        // Nothing deferred: enter_ui would complete nothing and keep the
+        // binding (an object identity holds it), so the find runs here.
+        if (deferred_locked(domain).empty()) {
+            const gf_status found = find_component_locked(object, slot, component);
+            return found;
+        }
+    }
+    const gf_status entered = enter_ui(slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const gf_status found = find_component(object, slot, component);
+    return found;
+}
+
+gf_status HandleRegistry::enter_object(gf_object object, SlotIdentity slot, Control::Ptr& control) {
+    Component::Ptr component;
+    const gf_status entered = enter_component(object, slot, component);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Control::Ptr typed = std::dynamic_pointer_cast<Control>(component);
+    if (!typed) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, slot, "the object is a component, not a control");
+    }
+    control = std::move(typed);
+    return GF_STATUS_OK;
+}
+
+bool HandleRegistry::calling_ui_thread() noexcept {
+    const std::scoped_lock lock(mutex_);
+    const bool sub_surface = calling_domain_locked().value != ui_domain.value;
+    const bool admitted = !sub_surface && (ui_thread_ == std::thread::id{} || on_ui_thread_locked());
+    return admitted;
+}
+
 void HandleRegistry::complete_deferred() {
     std::vector<Component::Ptr> ended;
     {
@@ -452,10 +461,15 @@ HandleRegistry::ObjectSlot* HandleRegistry::object_slot_locked(gf_object object)
 }
 
 gf_status HandleRegistry::find_component(gf_object object, SlotIdentity slot, Component::Ptr& component) {
+    const std::scoped_lock lock(mutex_);
+    const gf_status found = find_component_locked(object, slot, component);
+    return found;
+}
+
+gf_status HandleRegistry::find_component_locked(gf_object object, SlotIdentity slot, Component::Ptr& component) {
     if (object == 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the object is zero");
     }
-    const std::scoped_lock lock(mutex_);
     const ObjectSlot* found = object_slot_locked(object);
     if (found == nullptr) {
         return fail(GF_STATUS_STALE_HANDLE, slot, "the object has ended (its last reference was released)");
@@ -496,16 +510,17 @@ gf_object HandleRegistry::add_reference(const Component::Ptr& component) {
         return reused;
     }
     // Reserve every allocation before changing anything, so std::bad_alloc
-    // leaves the registry as it was.
+    // leaves the registry as it was. Growth is geometric (N4), and the free
+    // list keeps room for every slot so freeing one never allocates.
     std::uint32_t index = 0U;
     if (free_objects_.empty()) {
-        objects_.reserve(objects_.size() + 1U);
-        free_objects_.reserve(objects_.size() + 1U);
+        detail::reserve_one_more(objects_);
+        detail::reserve_at_least(free_objects_, objects_.capacity());
         index = static_cast<std::uint32_t>(objects_.size() + 1U);
     } else {
         index = free_objects_.back();
     }
-    object_index_.reserve(object_index_.size() + 1U);
+    detail::reserve_one_more(object_index_);
     object_index_.emplace(component.get(), index);
     if (free_objects_.empty()) {
         objects_.emplace_back();
@@ -581,7 +596,7 @@ gf_status HandleRegistry::release(gf_object object, SlotIdentity slot) {
         if (!on_owner_thread && (*found).references == 1U) {
             // The control is destroyed on its own thread. Reserve before the
             // identity ends, so a failed allocation changes nothing.
-            deferred.reserve(deferred.size() + 1U);
+            detail::reserve_one_more(deferred);
         }
         drop_reference_locked(object, *found, ended);
         if (ended && !on_owner_thread) {
@@ -644,22 +659,56 @@ HandleRegistry::SubscriptionSlot* HandleRegistry::subscription_slot_locked(gf_su
 
 gf_subscription HandleRegistry::reserve_subscription(const Component::Ptr& source) {
     const std::scoped_lock lock(mutex_);
+    // Every allocation first (geometric growth, N4), so std::bad_alloc
+    // leaves the registry as it was.
+    if (free_subscriptions_.empty()) {
+        detail::reserve_one_more(subscriptions_);
+        detail::reserve_at_least(free_subscriptions_, subscriptions_.capacity());
+    }
+    detail::reserve_one_more(subscriptions_by_source_);
+    std::vector<std::uint32_t>& by_source = subscriptions_by_source_[source.get()];
+    detail::reserve_one_more(by_source);
     std::uint32_t index = 0U;
     if (free_subscriptions_.empty()) {
-        subscriptions_.reserve(subscriptions_.size() + 1U);
-        free_subscriptions_.reserve(subscriptions_.size() + 1U);
         subscriptions_.emplace_back();
         index = static_cast<std::uint32_t>(subscriptions_.size());
     } else {
         index = free_subscriptions_.back();
         free_subscriptions_.pop_back();
     }
+    by_source.push_back(index);
     SubscriptionSlot& slot = subscriptions_[index - 1U];
     slot.occupied = true;
     slot.source = source;
+    slot.source_key = source.get();
     ++live_subscriptions_;
     const gf_subscription reserved = encode_identity(Identity{index, slot.generation});
     return reserved;
+}
+
+void HandleRegistry::free_subscription_locked(std::uint32_t index, SubscriptionToken& ended) noexcept {
+    SubscriptionSlot& slot = subscriptions_[index - 1U];
+    ended = std::move(slot.token);
+    const std::unordered_map<const Component*, std::vector<std::uint32_t>>::iterator by_source =
+        subscriptions_by_source_.find(slot.source_key);
+    if (by_source != subscriptions_by_source_.end()) {
+        std::vector<std::uint32_t>& indices = (*by_source).second;
+        const std::vector<std::uint32_t>::iterator listed = std::find(indices.begin(), indices.end(), index);
+        if (listed != indices.end()) {
+            *listed = indices.back();
+            indices.pop_back();
+        }
+        if (indices.empty()) {
+            subscriptions_by_source_.erase(by_source);
+        }
+    }
+    slot.source.reset();
+    slot.source_key = nullptr;
+    slot.occupied = false;
+    slot.generation = next_generation(slot.generation);
+    // free_subscriptions_ has room for every slot (reserve_subscription).
+    free_subscriptions_.push_back(index);
+    --live_subscriptions_;
 }
 
 void HandleRegistry::complete_subscription(gf_subscription subscription, SubscriptionToken token) noexcept {
@@ -685,12 +734,7 @@ void HandleRegistry::end_subscription(gf_subscription subscription) noexcept {
         if (slot == nullptr) {
             return;
         }
-        ended = std::move((*slot).token);
-        (*slot).source.reset();
-        (*slot).occupied = false;
-        (*slot).generation = next_generation((*slot).generation);
-        free_subscriptions_.push_back(decode_identity(subscription).slot);
-        --live_subscriptions_;
+        free_subscription_locked(decode_identity(subscription).slot, ended);
     }
     // Disconnecting a token whose slot is already ending is a no-op; it runs
     // without the lock because a live one would end the binding.
@@ -724,12 +768,7 @@ gf_status HandleRegistry::disconnect(gf_subscription subscription, SlotIdentity 
                             "the subscription's source belongs to another thread (a sub-surface's, or the UI thread)");
             }
         }
-        ended = std::move((*found).token);
-        (*found).source.reset();
-        (*found).occupied = false;
-        (*found).generation = next_generation((*found).generation);
-        free_subscriptions_.push_back(decode_identity(subscription).slot);
-        --live_subscriptions_;
+        free_subscription_locked(decode_identity(subscription).slot, ended);
     }
     // Ends the binding (and releases the callback) unless its invoke is
     // running, in which case the release follows that invoke.
@@ -738,27 +777,48 @@ gf_status HandleRegistry::disconnect(gf_subscription subscription, SlotIdentity 
     return GF_STATUS_OK;
 }
 
-void HandleRegistry::end_disposed_subscriptions() {
+void HandleRegistry::end_disposed_subscriptions(std::span<const Component* const> sources) {
     std::vector<SubscriptionToken> ended;
+    // Held past the lock: a source whose last reference is here must not end
+    // under it.
+    std::vector<Component::Ptr> held;
     {
         const std::scoped_lock lock(mutex_);
-        ended.reserve(live_subscriptions_);
-        std::size_t index = 0U;
-        for (index = 0U; index < subscriptions_.size(); ++index) {
-            SubscriptionSlot& slot = subscriptions_[index];
-            if (!slot.occupied) {
-                continue;
+        std::size_t listed = 0U;
+        std::size_t source_index = 0U;
+        for (source_index = 0U; source_index < sources.size(); ++source_index) {
+            const std::unordered_map<const Component*, std::vector<std::uint32_t>>::const_iterator by_source =
+                subscriptions_by_source_.find(sources[source_index]);
+            if (by_source != subscriptions_by_source_.end()) {
+                listed += (*by_source).second.size();
             }
-            const Component::Ptr source = slot.source.lock();
-            if (source && (*source).is_alive()) {
-                continue;
+        }
+        ended.reserve(listed);
+        held.reserve(listed);
+        for (source_index = 0U; source_index < sources.size(); ++source_index) {
+            // Freeing a slot edits this list (and erases it when it empties),
+            // so the slot at the back is taken until none ended is left.
+            std::size_t kept = 0U;
+            for (;;) {
+                const std::unordered_map<const Component*, std::vector<std::uint32_t>>::iterator by_source =
+                    subscriptions_by_source_.find(sources[source_index]);
+                if (by_source == subscriptions_by_source_.end() || (*by_source).second.size() <= kept) {
+                    break;
+                }
+                const std::vector<std::uint32_t>& indices = (*by_source).second;
+                const std::uint32_t index = indices[indices.size() - 1U - kept];
+                Component::Ptr source = subscriptions_[index - 1U].source.lock();
+                if (source && (*source).is_alive()) {
+                    kept = kept + 1U;
+                    continue;
+                }
+                SubscriptionToken token;
+                free_subscription_locked(index, token);
+                ended.push_back(std::move(token));
+                if (source) {
+                    held.push_back(std::move(source));
+                }
             }
-            ended.push_back(std::move(slot.token));
-            slot.source.reset();
-            slot.occupied = false;
-            slot.generation = next_generation(slot.generation);
-            free_subscriptions_.push_back(static_cast<std::uint32_t>(index + 1U));
-            --live_subscriptions_;
         }
     }
     std::size_t index = 0U;
@@ -938,10 +998,19 @@ gf_status fail_with_current_exception(SlotIdentity slot) noexcept {
         throw;
     } catch (const std::bad_alloc&) {
         return fail(GF_STATUS_OUT_OF_MEMORY, slot, "out of memory");
+    } catch (const WrongThreadError& error) {
+        // The core's own failure types name the status the header documents
+        // (N6), whichever table reached them.
+        return fail(GF_STATUS_WRONG_THREAD, slot, error.what());
+    } catch (const DisposedError& error) {
+        return fail(GF_STATUS_DISPOSED, slot, error.what());
     } catch (const std::invalid_argument& error) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, error.what());
     } catch (const std::out_of_range& error) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, error.what());
+    } catch (const std::length_error& error) {
+        // The core reports its size and count limits as length_error.
+        return fail(GF_STATUS_LIMIT_EXCEEDED, slot, error.what());
     } catch (const std::logic_error& error) {
         return fail(GF_STATUS_INVALID_STATE, slot, error.what());
     } catch (const std::exception& error) {
@@ -960,13 +1029,10 @@ gf_status read_text(gf_utf8_view view, SlotIdentity slot, std::string_view& text
     }
     const std::string_view candidate = view.size == 0U
         ? std::string_view{} : std::string_view(view.data, static_cast<std::size_t>(view.size));
-    std::size_t index = 0U;
-    while (index < candidate.size()) {
-        const std::size_t length = utf8_sequence_length(candidate, index);
-        if (length == 0U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "text is not well-formed UTF-8");
-        }
-        index += length;
+    // The text module's strict validator, the library's one (N7).
+    const Utf8ValidationResult validation = validate_utf8(candidate);
+    if (!validation.valid()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "text is not well-formed UTF-8");
     }
     text = candidate;
     return GF_STATUS_OK;

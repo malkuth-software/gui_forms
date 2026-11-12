@@ -79,7 +79,7 @@ LinearGauge::Placement LinearGauge::placement(Size size) const {
     Size text{};
     if (show_value.read()) {
         const std::string shown = value_text();
-        text = resolve_text_layout_utf8(shown, value_font(caption_size())).logical_size;
+        text = measure_text_extent_utf8(shown, value_font(caption_size())).logical_size;
         text = Size{std::ceil(text.width), std::ceil(text.height)};
     }
     const double band = tick_ratios().empty() ? 0.0 : tick_gap + tick_depth;

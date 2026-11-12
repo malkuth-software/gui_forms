@@ -33,9 +33,9 @@
 
 /* Specimen faces: the tinted panels that stand for a layout's tracks on
    the Gallery's layout pages. */
-.specimen-navigation::part(face) { background: #e1ebf3; }
-.specimen-inspector::part(face) { background: #f5f3eb; }
-.specimen-activity::part(face) { background: #eef4ec; }
+.specimen-navigation::part(face) { background: #ededeb; }
+.specimen-inspector::part(face) { background: #f6f6f4; }
+.specimen-activity::part(face) { background: #f4f4f2; }
 
 /* Type roles (the .form font refusal, E813): each object names its type
    role in `classes`; a typography specimen's font is content and stays in
@@ -54,30 +54,39 @@
 .note-strong { font-family: content; font-size: 10px; font-weight: 700; }
 .fine { font-family: content; font-size: 9px; font-weight: 400; }
 .tag { font-family: content; font-size: 9px; font-weight: 700; }
-.group-caption { font-family: control; font-size: 12px; font-weight: 700; letter-spacing: 0.24px; }
+/* Control chrome (group captions, the navigation rows) names a size and
+   weight only, so that the window's theme chooses the face: a button's
+   control role under GUI.Forms' own theme, the theme's named family under
+   a familiar theme such as windows-professional. */
+.group-caption { font-size: 12px; font-weight: 700; letter-spacing: 0.24px; }
 .control-title { font-family: control; font-size: 19px; font-weight: 700; }
-.control-body { font-family: control; font-size: 12px; font-weight: 400; }
+.control-body { font-size: 12px; font-weight: 400; }
+/* Card titles and the navigation headings are labels, whose own face is
+   the content role: they name the control role in every theme (the
+   shell's titles use control type). */
 .card-title { font-family: control; font-size: 10px; font-weight: 600; }
+.navigation-heading { font-family: control; font-size: 10px; font-weight: 700; letter-spacing: 0.24px; }
+.menu-bar-type { font-size: 11.5px; font-weight: 400; letter-spacing: 0.12px; }
 
 /* Canvas grounds of the Gallery pages, moved from page code. The controls are
    made in C++ or declared in forms; both carry these classes. */
-.canvas-cool::part(face) { background: #eef3f7; }
-.canvas-mist::part(face) { background: #f7f9fb; }
-.container-face::part(face) { background: #e8eff5; }
-.lifecycle-face::part(face) { background: #eef4ec; }
-.picture-light::part(face) { background: #f4f7f9; }
-.picture-dark::part(face) { background: #e2eaf0; }
-.picture-ground::part(face) { background: #e6ecf1; }
-.border-tint::part(face) { background: #e6eef5; }
-.rule-line::part(face) { background: #a6b3bf; }
+.canvas-cool::part(face) { background: #f5f5f3; }
+.canvas-mist::part(face) { background: #fbfbf9; }
+.container-face::part(face) { background: #f1f1ef; }
+.lifecycle-face::part(face) { background: #f4f4f2; }
+.picture-light::part(face) { background: #f9f9f7; }
+.picture-dark::part(face) { background: #ededeb; }
+.picture-ground::part(face) { background: #efefed; }
+.border-tint::part(face) { background: #f0f0ee; }
+.rule-line::part(face) { background: #bdbdbb; }
 
 /* The shell's grounds: the canvas behind the pages, the navigation
    column's paper and the status strip. Classes rather than code colours,
    so that a familiar theme, which has no rule for them, shows its own
    window face behind every page. */
-.shell-canvas::part(face) { background: #eff3f7; }
-.navigation-paper::part(face) { background: #dce5ed; }
-.status-strip::part(face) { background: #e1e8ee; }
+.shell-canvas::part(face) { background: #f5f5f3; }
+.navigation-paper::part(face) { background: #e8e8e6; }
+.status-strip::part(face) { background: #ebebe9; }
 
 /* The dark variant: the same roles and grounds, each a dark paper with a
    light ink, in the order of the light rules above. The grounds keep
@@ -92,20 +101,20 @@
     ink-on-soft-paper: #d6dee6 on #1f252b;
     command-link-ink-on-paper: #74b4ee on #1f252b;
   }
-  .paper::part(face) { background: #1f252b; }
-  .specimen-navigation::part(face) { background: #1d2b38; }
-  .specimen-inspector::part(face) { background: #2e2b21; }
-  .specimen-activity::part(face) { background: #212d22; }
-  .canvas-cool::part(face) { background: #1a1f24; }
-  .canvas-mist::part(face) { background: #1c2126; }
-  .container-face::part(face) { background: #232a31; }
-  .lifecycle-face::part(face) { background: #212d22; }
-  .picture-light::part(face) { background: #262d34; }
-  .picture-dark::part(face) { background: #1b2025; }
-  .picture-ground::part(face) { background: #22292f; }
-  .border-tint::part(face) { background: #242c34; }
-  .rule-line::part(face) { background: #4b5763; }
-  .shell-canvas::part(face) { background: #1a1f24; }
-  .navigation-paper::part(face) { background: #232a31; }
-  .status-strip::part(face) { background: #20262c; }
+  .paper::part(face) { background: #252523; }
+  .specimen-navigation::part(face) { background: #292927; }
+  .specimen-inspector::part(face) { background: #2c2c2a; }
+  .specimen-activity::part(face) { background: #292927; }
+  .canvas-cool::part(face) { background: #1f1f1d; }
+  .canvas-mist::part(face) { background: #21211f; }
+  .container-face::part(face) { background: #2a2a28; }
+  .lifecycle-face::part(face) { background: #292927; }
+  .picture-light::part(face) { background: #2d2d2b; }
+  .picture-dark::part(face) { background: #20201e; }
+  .picture-ground::part(face) { background: #292927; }
+  .border-tint::part(face) { background: #2c2c2a; }
+  .rule-line::part(face) { background: #565654; }
+  .shell-canvas::part(face) { background: #1f1f1d; }
+  .navigation-paper::part(face) { background: #2a2a28; }
+  .status-strip::part(face) { background: #262624; }
 }

@@ -2,6 +2,7 @@
 
 #include "../input_control_utilities.hpp"
 #include "../panel_anatomy.hpp"
+#include "../text_editing/caret_blink.hpp"
 #include "../text_editing/text_editing_engine.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
@@ -15,6 +16,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -22,9 +24,6 @@ namespace gui_forms {
 using namespace input_control_detail;
 
 namespace {
-
-// The caret shows and hides for this long each.
-constexpr FrameInterval caret_blink_interval = std::chrono::milliseconds(530);
 
 // Throws for a source the box does not take.
 void require_source(std::string_view source) {
@@ -573,12 +572,21 @@ void RichTextBox::schedule_caret_blink() {
     if (focused_ && attached() && window() != nullptr) {
         // ADR-016: a UI timer the box stops on blur and detachment and
         // replaces when the caret moves, so the caret stays visible for one
-        // whole blink interval after each movement.
+        // whole blink interval after each movement. It rests while the
+        // window is occluded (CaretBlinkSchedule).
+        // The platform's phase (audit N75); a caret that never blinks
+        // stays shown with no timer.
+        const std::optional<FrameInterval> phase = detail::caret_blink_phase(*window());
+        if (!phase) {
+            caret_frame_.disconnect();
+            caret_visible_ = true;
+            return;
+        }
         const FrameTime now = FrameClock::now();
         const std::shared_ptr<RichTextBox> self =
             std::static_pointer_cast<RichTextBox>(shared_from_this());
-        caret_frame_ = (*window()).schedule_ui_timer(
-            *this, caret_blink_interval, now + caret_blink_interval, CaretTick{self});
+        const detail::CaretBlinkSchedule schedule{window()};
+        caret_frame_ = schedule(*this, *phase, now + *phase, CaretTick{self});
     }
 }
 
@@ -607,6 +615,12 @@ void RichTextBox::toggle_caret() {
         caret_frame_.disconnect();
         caret_waiting_for_paint_ = true;
         return;
+    }
+    // Blinking turned off since the timer started: the caret stays shown.
+    const bool never = window() != nullptr && !detail::caret_blink_phase(*window());
+    if (never) {
+        caret_frame_.disconnect();
+        if (caret_visible_) return;
     }
     caret_painted_ = false;
     caret_visible_ = !caret_visible_;

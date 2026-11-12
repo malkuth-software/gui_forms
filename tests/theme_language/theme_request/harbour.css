@@ -1,0 +1,2 @@
+@theme { version: "1.0.0"; author: "GUI.Forms tests"; }
+button::part(face) { background-color: #aa3311 }

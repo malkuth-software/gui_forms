@@ -62,7 +62,7 @@ struct Seen final {
 // it moves. Its listener records every step, and may run one extra action.
 class Mover final : public Control {
 public:
-    enum class Action : std::uint8_t { none, finish_other_value, throw_once, retarget_self, start_other };
+    enum class Action : std::uint8_t { none, finish_other_value, retarget_self, start_other };
 
     explicit Mover(StableId stable_id)
         : Control(std::move(stable_id)), first(*this, MotionCurve::timed(milliseconds(180), MotionEasing::smoothstep)),
@@ -90,7 +90,6 @@ public:
             MotionValue& sibling = step.value == &first ? second : first;
             sibling.finish();
         }
-        if (now == Action::throw_once) throw std::runtime_error("listener fault");
         if (now == Action::retarget_self) static_cast<void>((*step.value).animate_to(-1.0));
         if (now == Action::start_other && other != nullptr) static_cast<void>((*other).first.animate_to(1.0));
     }
@@ -478,14 +477,8 @@ void owners_and_stale_records() {
     mover.action = Mover::Action::retarget_self;
     static_cast<void>(frame(*fixture, milliseconds(16)));
     require(mover.first.target() == -1.0 && mover.first.enlisted(), "a listener may retarget its own value");
-
-    // A throwing listener is a frame callback fault; its value ends.
-    const std::uint64_t faults = window.metrics_snapshot().frame_callback_faults;
-    mover.action = Mover::Action::throw_once;
-    static_cast<void>(frame(*fixture, milliseconds(16)));
-    require(window.metrics_snapshot().frame_callback_faults == faults + 1U && mover.first.settled() &&
-                mover.first.current() == -1.0,
-            "a listener's exception is counted and its value jumps to its end");
+    // A throwing listener ends the process at the fail-fast boundary
+    // (fail_fast_tests, motion_listener).
 }
 
 void window_closing() {

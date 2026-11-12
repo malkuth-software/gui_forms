@@ -22,8 +22,10 @@ class ThemeLibrary;
 class Window;
 class SurfaceRoot;
 class SubSurface;
+struct DeferredThemeRequest;
 struct ThemeCompileOptions;
 struct ThemePackage;
+struct ThemeRequestReport;
 struct UserThemeFiles;
 struct UserThemeHeader;
 
@@ -155,6 +157,25 @@ public:
     [[nodiscard]] ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages,
                                                             const ThemeLibrary& library,
                                                             const ThemeCompileOptions& options);
+    // The theme the process was started with (user_themes.hpp: --theme and
+    // GUI_FORMS_THEME_SHEET), held until the first window: settled
+    // (apply_theme_request) when the first window is made with these
+    // resources, after the program has chosen its policy and its own user
+    // theme, so the request wins over that choice for the run. Replaces a
+    // request held already; null holds none. std::logic_error once a window
+    // shares these resources.
+    void hold_theme_request(std::unique_ptr<DeferredThemeRequest> request);
+    // Settles the held request now, if any (the first window does it): the
+    // report replaces any earlier one and the request is released.
+    // Nothing once a window shares these resources. UI thread.
+    void settle_theme_request();
+    // Whether a request is held and not yet settled.
+    [[nodiscard]] bool theme_request_held() const noexcept { return held_theme_request_ != nullptr; }
+    // What the settled request did, or null before one was settled.
+    [[nodiscard]] const ThemeRequestReport* theme_request_report() const noexcept {
+        return theme_request_report_.get();
+    }
+
     // The selected user theme, or null.
     [[nodiscard]] const Theme* user_theme() const noexcept { return user_theme_.get(); }
     // The selected user theme shared, for resources of another thread (a
@@ -220,6 +241,10 @@ private:
     std::shared_ptr<const Theme> program_theme_;
     std::shared_ptr<const Theme> user_theme_{};
     UserThemePolicy user_theme_policy_{UserThemePolicy::layered};
+    // The process's theme request until the first window settles it, and
+    // what it did then.
+    std::unique_ptr<DeferredThemeRequest> held_theme_request_{};
+    std::unique_ptr<ThemeRequestReport> theme_request_report_{};
     bool automatic_colour_scheme_{};
     SystemColourHints system_colour_hints_{};
     // The (theme, scheme) pairs W403 was written for. Bounded by the themes

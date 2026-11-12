@@ -132,7 +132,12 @@ def build(target: str, prefix: Path, jobs: int, work: Path, features: str = "def
     toolkit_configure.prepare_host(ROOT, not vendored_sources_present(ROOT))
     toolkit_configure.run(*configure_command(target, ROOT, toolkit, prefix, features, stx_prefix, stx_package_dir))
     toolkit_configure.run("cmake", "--build", toolkit, "--parallel", jobs)
-    toolkit_configure.run("cmake", "--install", toolkit)
+    # Windows: the installed DLLs and programs drop their COFF symbol tables
+    # (tools/ci_build.py, build_toolkit).
+    install_command: list[str] = ["cmake", "--install", str(toolkit)]
+    if target.startswith("windows"):
+        install_command.append("--strip")
+    toolkit_configure.run(*install_command)
     print(f"GUI.Forms SDK for {target} installed in {prefix}", flush=True)
 
 

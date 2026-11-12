@@ -174,6 +174,9 @@ private:
     bool step_history(std::deque<HistoryEdit>& from, std::deque<HistoryEdit>& to, bool forward);
     // Replaces the whole text with a filter's rewrite, as one history step.
     bool apply_rewrite(std::string_view rewritten, Utf8Offset caret);
+    // Whether the edit keeps the lines it touches within the multiline
+    // line bound (text_editing_engine.cpp).
+    [[nodiscard]] bool edited_lines_fit(Utf8Offset start, Utf8Offset end, std::string_view replacement) const;
 
     // Replaces the whole text, recording the change from the old one.
     void replace_whole_text(std::string_view text);
@@ -211,6 +214,14 @@ private:
     bool read_only_{};
     bool multiline_{};
     bool composing_{};
+    // The composition's marked text (audit N106): the range the last
+    // composing input inserted, which the next update of the same
+    // composition replaces when the host names no range. Valid while
+    // composing_ and the text is still at marked_revision_; any other edit
+    // leaves it stale and the update replaces the selection instead.
+    Utf8Offset marked_start_{};
+    Utf8Offset marked_end_{};
+    std::uint64_t marked_revision_{};
 
     static constexpr std::size_t maximum_history_entries_ = 128U;
     static constexpr std::size_t maximum_history_bytes_ = 8U * 1024U * 1024U;

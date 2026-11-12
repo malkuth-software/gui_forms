@@ -8,8 +8,7 @@
    its children into the shell's page body (a 1000 x 660 design surface),
    where each is placed by its bounds in design coordinates. Behaviour stays
    in the page (src/controls/gallery/pages/collections-and-overlays.cpp): the
-   lists' initial selections, the status line's reports and the page
-   style. */
+   lists' initial selections and the status line's reports. */
 scaled-panel gallery.collections.document {
   design-size: 1000 660;
 

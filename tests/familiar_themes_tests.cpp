@@ -131,7 +131,12 @@ void each_theme_builds() {
     }
     require(!familiar_theme_dark_floor_sheet(FamiliarTheme::macos_style).empty(), "macos-style has a dark sheet");
     require(!familiar_theme_named("gui-forms"), "the default theme is not a familiar one");
-    require(!familiar_theme_named("windows-professional"), "windows-professional keeps its own entry");
+    // The stock Windows-familiar theme is a familiar one, light and dark
+    // (owner, 2026-11-10).
+    require(familiar_theme_named("windows-professional") == FamiliarTheme::windows_professional,
+            "windows-professional is the stock Windows-familiar theme");
+    require(!familiar_theme_dark_floor_sheet(FamiliarTheme::windows_professional).empty(),
+            "windows-professional has a dark sheet");
     require(familiar_theme_id(FamiliarTheme::count).empty(), "count names no theme");
 }
 
@@ -188,6 +193,14 @@ void each_theme_is_its_own() {
     const std::shared_ptr<const Theme> classic_theme = familiar_theme(FamiliarTheme::classic);
     require((*classic_theme).resolve(ControlVisualRole::button, dark) == classic,
             "a light-only theme's dark button is its light one");
+    // windows-professional: a bevelled button (Windows 2000, softened), a
+    // solid focus rectangle (Windows 10), and its own dark records.
+    const std::shared_ptr<const Theme> professional = familiar_theme(FamiliarTheme::windows_professional);
+    const ControlVisualRecipe& professional_light = (*professional).resolve(ControlVisualRole::button, resting);
+    require(professional_light.material.keylines.size() == 4U, "windows-professional's button keeps a soft bevel");
+    require(!professional_light.dotted_focus, "windows-professional's focus rectangle is solid");
+    require(!((*professional).resolve(ControlVisualRole::button, dark) == professional_light),
+            "windows-professional's dark button is its dark sheet's");
 }
 
 } // namespace

@@ -40,13 +40,10 @@ private:
         Control& root = *document_.gallery_overlays_document;
         static_cast<void>(root.remove_child((*document_.gallery_overlays_content).runtime_id()));
         mount_form_children(root, *body);
-        (*document_.gallery_overlays_options).set_style(page_style());
-        (*document_.gallery_overlays_stage).set_style(page_style());
     }
 
     void build_options() {
         ChoiceGroup& alignment = *document_.gallery_overlays_alignment;
-        alignment.set_style(page_style());
         alignment.set_items({{.id = 0, .label = "Near"}, {.id = 1, .label = "Center"},
                              {.id = 2, .label = "Far"}});
         // The four check boxes bind their Values in the document (FD-6).
@@ -59,7 +56,6 @@ private:
                                                              document_.gallery_overlays_anchor_2};
         for (std::size_t index = 0; index < anchors.size(); ++index) {
             const std::shared_ptr<Button>& anchor = anchors[index];
-            (*anchor).set_style(page_style());
             (*anchor).expanded_state = false;
             on((*anchor).clicked(), *this, &AnchoredOverlaysPage::on_anchor_clicked,
                static_cast<int>(index));
@@ -70,8 +66,6 @@ private:
     void build_overlay() {
         content_ = document_.gallery_overlays_content;
         static_cast<void>((*content_).add_class("paper"));
-        (*content_).set_style(page_style());
-        (*document_.gallery_overlays_close).set_style(page_style());
         field_ = document_.gallery_overlays_field;
         on((*document_.gallery_overlays_close).clicked(), *this, &AnchoredOverlaysPage::on_close_clicked);
 

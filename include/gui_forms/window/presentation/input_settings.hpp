@@ -72,4 +72,29 @@ struct PointerSettings final {
 // maximum_hover_milliseconds) and every origin is in its enum.
 [[nodiscard]] bool valid_pointer_settings(const PointerSettings& settings) noexcept;
 
+// The caret's blink phase GUI.Forms states where the host has none (the
+// Windows default, GetCaretBlinkTime), and the longest phase admitted.
+// Perceptual durations, in milliseconds.
+inline constexpr std::uint32_t default_caret_blink_milliseconds = 530U;
+inline constexpr std::uint32_t maximum_caret_blink_milliseconds = 10000U;
+
+// How a text caret blinks (audit N75): blink_milliseconds is one phase,
+// the time the caret stays shown or hidden before it toggles; 0 means the
+// caret never blinks and stays shown (the user turned blinking off).
+// Sources: Windows GetCaretBlinkTime (INFINITE is 0), X11 XSettings
+// Net/CursorBlink and Net/CursorBlinkTime (a whole cycle, halved), macOS
+// the NSTextInsertionPointBlinkPeriodOn default where set.
+struct CaretSettings final {
+    std::uint32_t blink_milliseconds{default_caret_blink_milliseconds};
+    SettingOrigin origin{SettingOrigin::default_value};
+
+    friend constexpr bool operator==(const CaretSettings& left, const CaretSettings& right) noexcept {
+        return left.blink_milliseconds == right.blink_milliseconds && left.origin == right.origin;
+    }
+};
+
+// Whether the phase is at most maximum_caret_blink_milliseconds (0, never
+// blinking, included) and the origin is in its enum.
+[[nodiscard]] bool valid_caret_settings(const CaretSettings& settings) noexcept;
+
 } // namespace gui_forms

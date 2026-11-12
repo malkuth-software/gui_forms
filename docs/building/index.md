@@ -38,6 +38,9 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_AUDIO_VORBIS_BACKEND` | `stx` | Ogg decoder: `stx` or `stb` |
 | `GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD` | OFF | Build the fixture-backed explorer consumer |
 | `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
+| `GUI_FORMS_HARDENING` | ON | Stack protector, `_FORTIFY_SOURCE=2` (outside Debug and sanitized builds), CET or branch protection, Control Flow Guard on Windows, and full RELRO on Linux, for every first-party library and program |
+| `GUI_FORMS_WARNINGS` | ON | Compile first-party code with `-Wall -Wextra`; `tools/warning_baseline.py` holds the count of warning sites per directory and fails a build that raises one |
+| `GUI_FORMS_TEST_RUNTIME` | ON | Link the test programs that use only the toolkit's own libraries to one shared test runtime, so a library change relinks one library instead of every program (CMake 3.27 or later) |
 
 The remaining `GUI_FORMS_BUILD_TEXT_*` and `GUI_FORMS_BUILD_PREPARED_TEXT` /
 `GUI_FORMS_BUILD_TEXT_MASKS` options build development-only text services and
@@ -74,6 +77,12 @@ Skia archive) and, when a native host is enabled, that platform's host tests.
 The text-identity test compares rendered text against checked-in hashes; it is
 the regression check for the covered corpus and rendering profile, not an
 exhaustive proof for all text.
+
+Each fuzz target in `fuzz/` also runs in the suite as a `*_fuzz_tests`
+program: its seed corpus (from `fuzz/corpus/`, stx's RTF corpus or a
+reference file) and a fixed number of deterministic mutations of it
+(`fuzz/fuzz_standalone.hpp`). `GUI_FORMS_BUILD_FUZZERS` builds the same
+targets for libFuzzer (`cmake/FuzzTargets.cmake`).
 
 Native host tests that open real windows run in CI on each platform. On a
 development machine without a display, configure with the host option off

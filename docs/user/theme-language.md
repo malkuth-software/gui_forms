@@ -244,7 +244,7 @@ only material fields selects the `material` primitive.
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
 | text | `color`, `muted-color`, `glyph-color` and `fill-text-color` (the recipe's secondary text and glyph colours, and its text's colour where it lies over a fill such as a value bar's, on a control or a named part, such as `group-box::part(caption)`; not on a role), `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
 | dials and overlays | `stroke-width` (0 to 32px: an `arc` part's thickness and a `needle` part's width at its hub), `needle-shape` (`line`, `tapered`, `dot`), `scrim-color` (the colour, with its alpha as the opacity, a `scrim` part dims what lies behind with); each on a control or a named part, such as `radial-gauge::part(value-arc)`; not on a role |
-| fonts | `font-family` (`control`, `content`, `monospace`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
+| fonts | `font-family` (`control`, `content`, `monospace`, or a bundled family: `Portsmouth Rapids`, `Carlito`, `Cousine`, `Selawik`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
 
 `pattern(<name>, <ground>, <figure> [, <tile>])` is a built-in procedural
 pattern in two colours: `checker` (a checkerboard; its default 2px tile is a
@@ -274,9 +274,16 @@ For example, `reflection: below 1px 6px 40% 0` or `reflection: below 6px 30% bac
 built-in recipe's value.
 
 The font properties style a control's own text, the font it holds; its
-fixed secondary text keeps its fonts. `font-family` names one of the
-bundled faces by its role, never a host font, so a family name, a generic
-family or a list is an error. They belong to rules that match a control:
+fixed secondary text keeps its fonts. `font-family` names a bundled face,
+never a host font: one of the three roles, or the name of a family bundled
+with every program, quoted or not and in any case (`font-family: Selawik`,
+`font-family: "Portsmouth Rapids"`). The names of the roles' faces stand for
+their roles (`Portsmouth Rapids` is `control`, `Carlito` is `content`,
+`Cousine` is `monospace`). Selawik, the Segoe UI-like face, draws its
+Regular, Semibold and Bold faces first, by weight (it has no italic), and
+the content faces for any character it lacks. Any other name, a generic
+family such as `sans-serif`, and a list are errors (E406 for a name no
+bundled family has). They belong to rules that match a control:
 a rule naming a part, or a state such as `:hover`, may not declare them,
 since a font is a layout input and states change without a layout. They
 may differ by colour scheme under `@media (prefers-color-scheme: dark)`.
@@ -487,6 +494,48 @@ user theme; the way back that needs no reading) and
 the first window. `export_user_themes` writes the program's own packages
 as user themes, each a verbatim copy that changes nothing until edited,
 with the overridable icons and a `README.txt`, and never overwrites a file.
+
+### A theme from the command line, in every program
+
+Every GUI.Forms program, C++ or through the C ABI, takes a theme from the
+command line it was started with, with no code of its own:
+
+```text
+program --theme built-in          no user theme (the way back)
+program --theme harbour           the user theme `harbour`
+program --theme my-colours.css    that sheet, read as a user theme
+```
+
+A value ending in `.css` (in any case) or holding a path separator is a
+sheet's path; `built-in` is no user theme; any other value is a user
+theme's name, found in the `themes/` folder beside the program or the
+per-user one (the program's name is its executable's file name without
+the extension). A sheet needs no `@theme` header: being named makes it a
+theme. The environment variable `GUI_FORMS_THEME_SHEET` takes the same
+values, for a program started without `--theme`.
+
+The command line wins over the environment, and both win over the
+program's own choice (its saved setting, selected with `set_user_theme`)
+for that run. The program's `UserThemePolicy` holds over all of them:
+under `layered` (the default) the sheet is layered under the program's
+own theme, under `replaces_program_sheet` it takes the program sheet's
+place, compiled onto the program's base, and under `refused` the request
+is ignored with a warning. The request is read when the application is
+made and settled when its first window is made, after the program has
+chosen its policy (C ABI: `themes.set_user_theme_policy`).
+
+A request that cannot be met is never applied: a sheet that does not
+compile, a file that does not read, a name no theme has, or a misformed
+command line (`--theme` without a value, or given twice). Its findings go
+to stderr as `path:line:column: error code ...`, and the program runs on
+its own theme. `ApplicationResources::theme_request_report` (C ABI:
+`themes.theme_request`) says what the request did.
+
+The options stay in the process's arguments: the platform hands a program
+its argument vector before any library code runs, and GUI.Forms does not
+rewrite it. A program that parses its own arguments passes them over with
+`program_arguments`. The Gallery's own option for its base is
+`--theme-base gui-forms|windows-professional`.
 
 ## Not yet built
 

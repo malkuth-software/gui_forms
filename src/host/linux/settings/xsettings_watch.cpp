@@ -75,6 +75,7 @@ void XSettingsWatch::read_settings() {
   double_click_origin_ = SettingOrigin::default_value;
   double_click_distance_ = default_double_click_distance;
   pointer_settings_ = PointerSettings{};
+  caret_settings_ = CaretSettings{};
   if (owner_ == None)
     return;
   Atom type = None;
@@ -94,12 +95,16 @@ void XSettingsWatch::read_settings() {
   XSettingsInteger interval{};
   XSettingsInteger distance{};
   XSettingsInteger drag{};
+  XSettingsInteger blink{};
+  XSettingsInteger blink_cycle{};
   if (usable) {
     const std::span<const std::uint8_t> bytes(reinterpret_cast<const std::uint8_t *>(data),
                                               static_cast<std::size_t>(items));
     interval = find_xsettings_integer(bytes, "Net/DoubleClickTime");
     distance = find_xsettings_integer(bytes, "Net/DoubleClickDistance");
     drag = find_xsettings_integer(bytes, "Net/DndDragThreshold");
+    blink = find_xsettings_integer(bytes, "Net/CursorBlink");
+    blink_cycle = find_xsettings_integer(bytes, "Net/CursorBlinkTime");
   }
   if (data != nullptr)
     XFree(data);
@@ -122,6 +127,7 @@ void XSettingsWatch::read_settings() {
     pointer_settings_.drag_height = pointer_settings_.drag_width;
     pointer_settings_.drag_origin = SettingOrigin::host;
   }
+  caret_settings_ = xsettings_caret(blink, blink_cycle);
 }
 
 } // namespace gui_forms::host::linux_detail

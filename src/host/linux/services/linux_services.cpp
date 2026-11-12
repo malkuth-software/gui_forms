@@ -32,7 +32,7 @@ ForeignWindowScope::~ForeignWindowScope() {
   XSetErrorHandler(previous_);
   active_ = parent_;
 }
-int ForeignWindowScope::handle(Display *display, XErrorEvent *error) {
+int ForeignWindowScope::handle(Display *display, XErrorEvent *error) noexcept {
   ForeignWindowScope *scope = active_;
   if (scope != nullptr && (*scope).display_ == display &&
       (*error).error_code == BadWindow &&
@@ -141,11 +141,9 @@ HostServiceStatus Services::set_custom_cursor_impl(const CursorImagesPtr& images
 #endif
 }
 HostMonitorResult Services::query_monitors_impl() {
-  const int screen = DefaultScreen(window_.runtime.display);
-  const Rect frame{
-      0, 0, static_cast<double>(DisplayWidth(window_.runtime.display, screen)),
-      static_cast<double>(DisplayHeight(window_.runtime.display, screen))};
-  return {{}, {{"x11-screen", frame, frame, 1.0, true}}};
+  HostMonitorResult result;
+  query_x11_monitors(window_.runtime, result);
+  return result;
 }
 HostServiceStatus Services::apply_window_backdrop_impl(WindowBackdrop backdrop) {
   // The grant change repaints the whole window, so the next present

@@ -65,12 +65,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        const std::array<std::shared_ptr<ScaledGroupBox>, 4> groups{
-            document_.gallery_value_editors_editors, document_.gallery_value_editors_binding,
-            document_.gallery_value_editors_record, document_.gallery_value_editors_rack_group};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
         color_ = document_.gallery_value_editors_color;
         preview_ = document_.gallery_value_editors_preview;
         flags_ = document_.gallery_value_editors_flags;
@@ -258,10 +252,18 @@ private:
         }
         if (!source_) {
             source_ = std::make_shared<BindingSource>(*window);
-            (*source_).set_records({BindingRecord{
-                "lamp.profile",
-                {{"name", BindingValue{name_}}, {"channel", BindingValue{channel_}},
-                 {"tint", BindingValue{tint_}}, {"enabled", BindingValue{enabled_.get()}}}}});
+            // The source's built-in table: four untyped columns, one row.
+            BindingTable& lamp = *(*source_).table();
+            const std::size_t name_column = lamp.add_column(BindingColumn{"name"});
+            const std::size_t channel_column = lamp.add_column(BindingColumn{"channel"});
+            const std::size_t tint_column = lamp.add_column(BindingColumn{"tint"});
+            const std::size_t enabled_column = lamp.add_column(BindingColumn{"enabled"});
+            std::vector<BindingValue> values(lamp.table_schema().size());
+            values[name_column] = BindingValue{name_};
+            values[channel_column] = BindingValue{channel_};
+            values[tint_column] = BindingValue{tint_};
+            values[enabled_column] = BindingValue{enabled_.get()};
+            static_cast<void>(lamp.append(BindingRow{"lamp.profile", std::move(values)}));
         }
         (*binding_context_).add(source_);
         project_binding();

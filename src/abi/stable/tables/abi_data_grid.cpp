@@ -249,14 +249,6 @@ const BindingValue& cell_reference(const DataGridView& grid, std::span<const Dat
     return scratch;
 }
 
-// Writes complete's 1.0 fields after struct_size into a caller's gf_value,
-// leaving its struct_size and any later fields.
-void write_value_fields(const gf_value& complete, gf_value& destination) noexcept {
-    const std::size_t skipped = sizeof(std::uint32_t);
-    unsigned char* target = reinterpret_cast<unsigned char*>(&destination);
-    const unsigned char* source = reinterpret_cast<const unsigned char*>(&complete);
-    std::memcpy(target + skipped, source + skipped, value_size_1_0 - skipped);
-}
 
 // -- columns -----------------------------------------------------------------------
 

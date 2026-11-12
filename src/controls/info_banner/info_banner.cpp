@@ -169,9 +169,9 @@ InfoBanner::Placement InfoBanner::placement(Size size) const {
     const std::string& heading = title.read();
     const std::string& body = message.read();
     Size heading_size{};
-    if (!heading.empty()) heading_size = resolve_text_layout_utf8(heading, title_font()).logical_size;
+    if (!heading.empty()) heading_size = measure_text_extent_utf8(heading, title_font()).logical_size;
     Size body_size{};
-    if (!body.empty()) body_size = resolve_text_layout_utf8(body, message_font()).logical_size;
+    if (!body.empty()) body_size = measure_text_extent_utf8(body, message_font()).logical_size;
     const double heading_height = std::ceil(heading_size.height);
     const double body_height = std::ceil(body_size.height);
     const double between = heading.empty() || body.empty() ? 0.0 : line_gap;

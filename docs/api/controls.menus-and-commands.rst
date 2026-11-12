@@ -101,7 +101,7 @@ Related types
    * - :cpp:class:`ContextMenuCapabilities <gui_forms::ContextMenuCapabilities>`
      - Every ContextMenu capability, in the order the declaring class takes them.
    * - :cpp:class:`ContextMenuPreferredWidthCapability <gui_forms::ContextMenuPreferredWidthCapability>`
-     - The menu's width in logical units at text scale 1, 120 to 1024 (default 268).
+     - The menu's width in logical units at text scale 1, 120 to 1024 (default 120): the narrowest a panel is; a panel is as wide as its widest row needs.
    * - :cpp:class:`FontChoice <gui_forms::FontChoice>`
      - A font as a font control shows and chooses it: a family name and a size in points.
    * - :cpp:class:`GalleryPreview <gui_forms::GalleryPreview>`
@@ -484,11 +484,11 @@ Related types
 
    ``#include <gui_forms/controls/binding_navigator/binding_navigator.hpp>``
 
-   Raised by a BindingNavigator's add command. A handler supplies the record to add; without one nothing is added. The navigator adds it to the end of the binding source and moves to it.
+   Raised by a BindingNavigator's add command. A handler supplies the row to add, its values in the source's column order; without one nothing is added. The navigator adds it to the end of the binding source and moves to it.
 
    .. cpp:member:: std::string navigator_id
 
-   .. cpp:member:: std::optional<BindingRecord> record
+   .. cpp:member:: std::optional<BindingRow> row
 
 .. cpp:namespace:: gui_forms
 
@@ -535,7 +535,7 @@ Related types
 
    .. cpp:member:: double preferred_width
 
-      The menu's width in logical units at text scale 1, 120 to 1024 (default 268). A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
+      The menu's width in logical units at text scale 1, 120 to 1024 (default 120): the narrowest a panel is; a panel is as wide as its widest row needs. A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
 
 .. cpp:namespace:: gui_forms
 
@@ -543,7 +543,7 @@ Related types
 
    ``#include <gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>``
 
-   The menu's width in logical units at text scale 1, 120 to 1024 (default 268). A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
+   The menu's width in logical units at text scale 1, 120 to 1024 (default 120): the narrowest a panel is; a panel is as wide as its widest row needs. A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
 
 
    .. rubric:: Methods
@@ -552,7 +552,7 @@ Related types
 
    .. cpp:member:: PropertyCell<double, ContextMenuPreferredWidthCapability<Declaring>> preferred_width
 
-      Default: ``{268.0}``.
+      Default: ``{120.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -617,9 +617,17 @@ Related types
 
    .. cpp:member:: std::shared_ptr<Command> command
 
+      The shared Command a command, check or radio item runs and follows (text, enabled, checked, shortcut). Optional (GAPS E9): an item without one shows its own text, ``enabled`` and ``checked``, and choosing it raises item_invoked with an empty command_id; the application updates ``checked`` itself (set_items).
+
    .. cpp:member:: std::string text
 
    .. cpp:member:: std::vector<MenuItemSpec> children
+
+   .. cpp:member:: bool enabled
+
+      Used only by an item without a Command: whether it can be chosen, and whether a check or radio item shows its mark. Default: ``{true}``.
+
+   .. cpp:member:: bool checked
 
    .. cpp:member:: bool italic
 
@@ -690,6 +698,10 @@ Related types
    .. cpp:member:: PartGeometry divider
 
    .. cpp:member:: PartGeometry focus
+
+   .. cpp:member:: PartGeometry gutter
+
+      The icon gutter down the left of each menu the strip opens (a drop-down's band behind the icons and check marks). The strip itself has none, so its geometry here is empty; the drop-down panels paint it as ``menu-strip::part(gutter)``.
 
 .. cpp:namespace:: gui_forms
 

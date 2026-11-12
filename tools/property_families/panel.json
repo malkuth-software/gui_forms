@@ -55,7 +55,7 @@
       "on_changed": false,
       "localizable": null,
       "table": null,
-      "effects": "Dirty::style | Dirty::paint | Dirty::semantics",
+      "effects": "Dirty::paint | Dirty::semantics",
       "hooks": "generated",
       "prepare": [
         "if (incoming != ControlVisualRole::window && incoming != ControlVisualRole::panel && incoming != ControlVisualRole::card && incoming != ControlVisualRole::editor && incoming != ControlVisualRole::notice) throw std::invalid_argument(\"panel visual role must be window, panel, card, editor, or notice\");"

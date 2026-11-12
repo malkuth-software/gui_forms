@@ -167,6 +167,10 @@ gf_status create_application(const gf_application_config* config, gf_theme_repor
         }
         resources.set_theme(compiled.theme());
     }
+    // The process's theme request (--theme, GUI_FORMS_THEME_SHEET) against
+    // the library's packages and the configured base, in place of the one
+    // Application::create held without them; the first window settles it.
+    state.hold_theme_request(*(*made).resources(), read.base);
     state.adopt_application(std::move(made));
     state.replace_diagnostics(findings);
     write_theme_report(GF_THEME_OUTCOME_APPLIED, state.diagnostics().size(), report);

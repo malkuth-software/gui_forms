@@ -5,6 +5,7 @@
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 
 #include <optional>
+#include <span>
 
 #include <cstdint>
 
@@ -14,6 +15,7 @@ class Control;
 class Painter;
 class SurfaceRoot;
 class Window;
+struct PaintGroup;
 struct PartPaint;
 
 // What `window` (a window or a sub-surface) is to a rule's media condition (EC3): its presentation
@@ -118,6 +120,12 @@ public:
     // the built-in recipe draws it. A part with a blend (blend_property) is
     // drawn inside a paint group of that composite.
     void paint(Painter& painter, const Control& control, const PartPaint& part) const;
+    // As paint, with what it draws repeated under each of `clips` (each in
+    // a save, clip_rect and restore; none for an empty span), the part
+    // planned, noted and baked once (N91): a pointed part's body and the
+    // strips of its nose.
+    void paint_clipped(Painter& painter, const Control& control, const PartPaint& part,
+                       std::span<const Rect> clips) const;
 
     // The hit region of one part of `control` (E8, T1's hand-off): the
     // part's bounds and the shape its primitive draws there, as plan()
@@ -136,9 +144,33 @@ public:
     [[nodiscard]] Rect text_slot(const Control& control, const PartPaint& part) const noexcept;
 
 private:
-    // paint(), once the part's plan is decided and its blend group begun.
+    // plan() without the control's kept plans; sets `reads_ancestor_states`
+    // where the cascade read an ancestor's live states (an inherited font's
+    // em).
+    [[nodiscard]] PartPlan plan_from_rules(const Control& control, const PartPaint& part,
+                                           bool& reads_ancestor_states) const noexcept;
+    // paint_clipped(), once the part's plan is decided (N39): the stages
+    // below, then the draw under each clip, inside `group` (the part's
+    // blend) when there is one.
+    struct PartPaintRun;
     void paint_planned(Painter& painter, const Control& control, const PartPaint& part,
-                       const PartPlan& decided) const;
+                       const PartPlan& decided, std::span<const Rect> clips, const PaintGroup* group) const;
+    // The part's record, where it lands and its transitions' sources.
+    void note_part_paint(Painter& painter, const Control& control, const PartPaint& part, PartPaintRun& run) const;
+    // A part no primitive draws: its transitions; the built-in recipe draws it.
+    void paint_without_primitive(const PartPaint& part, PartPaintRun& run) const;
+    // The raster request and the size the part is shown at; false when the
+    // part draws nothing.
+    [[nodiscard]] bool prepare_part_request(const Control& control, const PartPaint& part, PartPaintRun& run) const;
+    // The material lent for this paint; false when the part draws nothing.
+    [[nodiscard]] bool lend_part_material(const Control& control, const PartPaint& part, PartPaintRun& run) const;
+    // The backplane borrowed for glass and backplane reflections.
+    void borrow_part_backplane(const PartPaint& part, PartPaintRun& run) const;
+    // The raster baked or taken from the record, or the built-in fallback.
+    void bake_part(const PartPaint& part, PartPaintRun& run) const;
+    // Draws what the stages decided; reads the run only.
+    void draw_part_paint(Painter& painter, const Control& control, const PartPaint& part,
+                         const PartPaintRun& run) const;
     // E7: an ambient part's time_in_state for this paint, starting its
     // effect on the window's clock, or stopping it and returning the pose
     // when the effect is refused for its area (`area_ok` false) or ambient

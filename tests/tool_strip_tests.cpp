@@ -301,12 +301,91 @@ void hosted_controls() {
 }
 } // namespace
 
+// Audit N98: the layout is cached, keyed by what it reads; each input that
+// moves items still moves them. An item's text, its command's text and
+// visibility, and the grip are written after a layout has been read.
+void cached_layout_follows_inputs() {
+    const std::shared_ptr<Command> save = std::make_shared<Command>("save", "Save");
+    const std::shared_ptr<Command> choice = std::make_shared<Command>("choice", "Choice");
+    std::shared_ptr<ToolStrip> strip = make_control<ToolStrip>(StableId("cached"));
+    (*strip).set_items(sample_items(save, choice));
+    Window window(strip, {640.0, 25.0});
+    window.perform_layout();
+    const std::vector<ToolStrip::Item> first = (*strip).realized_items();
+    const double new_width = (*find_item(first, "new")).parts.item_face.bounds.width;
+    const double save_x = (*find_item(first, "save")).parts.item_face.bounds.x;
+
+    (*strip).set_item_text("new", "A much longer label");
+    window.perform_layout();
+    const std::vector<ToolStrip::Item> longer = (*strip).realized_items();
+    require((*find_item(longer, "new")).parts.item_face.bounds.width > new_width &&
+                (*find_item(longer, "save")).parts.item_face.bounds.x > save_x,
+            "a longer item text widens the item and moves the next one");
+
+    const double bold_x = (*find_item(longer, "bold")).parts.item_face.bounds.x;
+    (*save).set_text("Save everything now");
+    window.perform_layout();
+    const std::vector<ToolStrip::Item> command_text = (*strip).realized_items();
+    require((*find_item(command_text, "bold")).parts.item_face.bounds.x > bold_x,
+            "a longer command text moves the items after it");
+
+    (*save).set_visible(false);
+    window.perform_layout();
+    const std::vector<ToolStrip::Item> hidden = (*strip).realized_items();
+    require(find_item(hidden, "save") == nullptr || !(*find_item(hidden, "save")).parts.item_face.present,
+            "a hidden command's item leaves the layout");
+
+    const double grip_off = (*find_item(hidden, "new")).parts.item_face.bounds.x;
+    (*strip).grip_visible = !(*strip).grip_visible.read();
+    window.perform_layout();
+    const std::vector<ToolStrip::Item> gripped = (*strip).realized_items();
+    require((*find_item(gripped, "new")).parts.item_face.bounds.x != grip_off,
+            "toggling the grip moves the first item");
+}
+
+// Audit S5, N98: the strip keeps its layout and measured widths, and drops
+// them when an item's text or its command's text changes.
+// The laid-out face width of one item (0 when it is not laid out).
+double face_width(const ToolStrip& strip, std::string_view item_id) {
+    const std::vector<ToolStrip::Item> items = strip.realized_items();
+    const ToolStrip::Item* item = find_item(items, item_id);
+    if (item == nullptr) return 0.0;
+    const double width = (*item).parts.item_face.bounds.width;
+    return width;
+}
+
+void kept_layout_follows_changes() {
+    const std::shared_ptr<Command> save = std::make_shared<Command>("save", "Save");
+    const std::shared_ptr<Command> choice = std::make_shared<Command>("choice", "Choice");
+    std::shared_ptr<ToolStrip> strip = make_control<ToolStrip>(StableId("kept"));
+    (*strip).set_items(sample_items(save, choice));
+    Window window(strip, {640.0, 25.0});
+    window.perform_layout();
+    const double new_width = face_width(*strip, "new");
+    const double save_width = face_width(*strip, "save");
+    (*strip).set_item_text("new", "A much longer New");
+    window.perform_layout();
+    require(face_width(*strip, "new") > new_width,
+            "an item's new text is measured again");
+    (*save).set_text("Save everything now");
+    window.perform_layout();
+    require(face_width(*strip, "save") > save_width,
+            "a command's new text is measured again");
+    const double widened = face_width(*strip, "save");
+    window.resize({300.0, 25.0});
+    window.perform_layout();
+    require(face_width(*strip, "save") == widened,
+            "a resize lays out again with the kept widths");
+}
+
 int main() {
     layout_and_parts();
     clicks_and_commands();
     overflow_and_keyboard();
     status_strip();
     hosted_controls();
+    cached_layout_follows_inputs();
+    kept_layout_follows_changes();
     std::cout << "ToolStrip and StatusStrip: parts, clicks, commands, split and drop-down, overflow, keys, semantics and status layout passed\n";
     return 0;
 }

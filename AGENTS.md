@@ -132,31 +132,18 @@ sibling threads is published at
 https://claude.ai/artifact/D9d2SUvkiKQETiVnmwnEt4 (read it with the Artifact
 tool); the planning files are authoritative where they differ.
 
-## Scope of the first proving slice
+## Consumers inside this repository
 
-Build a native macOS control-gallery demonstration and automated tests proving:
-
-- retained controls and explicit ownership;
-- stateful imperative mutation;
-- typed layout/paint/hit-test dirtiness;
-- nested update scopes and bounded flushes;
-- damage-limited CPU painting;
-- Forms-like focus, pointer, keyboard, and activation behavior;
-- a Web.Forms-produced compiled/static form description with stable IDs, with
-  the checked-in Gallery DML retained only as provisional evidence;
-- instrumentation visible in logs and an optional on-screen diagnostics panel;
-- CPU-only Skia hidden behind GUI.Forms drawing vocabulary;
-- and a native AppKit host which can be launched, inspected, and closed.
-
-This is a control gallery, not File Manager and not a file browser.
+The control gallery (`demo/`) began as the first proving slice; it is now one
+consumer among others and is held to the same public seams.
 
 The separately specified `file_manager_demoboard/` is an admitted first-party
-consumer exception to the gallery's visual subject: it reproduces the File
-Manager interface using deterministic in-memory fixtures and only public
-GUI.Forms seams. It is still not the shipping frontend, may not read the real
-filesystem or parent sources at runtime, and may not implement missing reusable
-GUI.Forms capabilities inside the consumer project. Its local `AGENTS.md` is
-mandatory for work in that directory.
+consumer: it reproduces the File Manager interface using deterministic
+in-memory fixtures and only public GUI.Forms seams. It is still not the
+shipping frontend, may not read the real filesystem or parent sources at
+runtime, and may not implement missing reusable GUI.Forms capabilities inside
+the consumer project. Its local `AGENTS.md` is mandatory for work in that
+directory.
 
 ## Hard boundaries
 
@@ -189,10 +176,8 @@ mandatory for work in that directory.
   not required to instantiate a control. Supported stock controls still supply
   default semantic adapters; File Manager requires native accessibility
   publication and does not treat it as a user-disabled product mode.
-- Portsmouth Rapids 1.0 faces are supplied for the current Gallery.
-  That bounded historical proving slice retains Lucida Grande for editable,
-  collection, metric, and field content until its fixture is deliberately
-  migrated. **GIVEN forward direction:** M4/M9 use HarfBuzz, FreeType, bundled
+- Portsmouth Rapids 1.0 faces are supplied for the Gallery.
+  **GIVEN forward direction:** M4/M9 use HarfBuzz, FreeType, bundled
   Portsmouth control faces, a selected bundled Tahoma/Calibri-like body face,
   and bounded bundled fallback packs. Portsmouth is the repository owner's own
   typeface, bundled under MIT (`assets/fonts/LICENSE-PortsmouthRapids.txt`);
@@ -224,22 +209,6 @@ Cross-project consumption is negotiated through
 `docs-notes/ORCHESTRATOR_INTERFACE_NEGOTIATION.md` on the notes `gui_forms`
 branch. GUI.Forms records its reply and evidence there; Orchestrator reconciles the canonical program contract. Do not
 freeze an ABI merely because the current frontend experiment calls it.
-
-## Agent ownership during the initial parallel build
-
-- Core agent: `include/gui_forms/`, `src/core/`, core instrumentation, and core
-  tests.
-- Control-gallery agent: `src/controls/`, `demo/`, demo resources, and gallery
-  interaction tests.
-- Skia/host agent: `src/render/skia/`, `src/host/macos/`, the stx pin
-  (`stx.lock`, `cmake/Stx.cmake`), and dependency/build integration specific
-  to those paths.
-- Root agent: guardrails, cross-cutting build integration, final review,
-  execution, visual inspection, and closure.
-
-Do not edit another agent's owned files without first messaging that agent and
-root. Communicate interface needs early. Preserve negative results and report
-exact commands and environment.
 
 ## Build contract
 

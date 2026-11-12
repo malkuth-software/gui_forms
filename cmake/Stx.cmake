@@ -47,6 +47,8 @@
 # A failed package build stops the configure and leaves no stamp.
 include(FetchContent)
 get_filename_component(_gui_stx_root "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+# The stamp's file digests ignore line endings (cmake/StxDigest.cmake).
+include("${CMAKE_CURRENT_LIST_DIR}/StxDigest.cmake")
 set(GUI_FORMS_STX_PREFIX "" CACHE PATH "A built stx package (cmake/stx_package) to link as is (empty: build or reuse GUI_FORMS_STX_PACKAGE_DIR)")
 set(GUI_FORMS_STX_PACKAGE_DIR "${CMAKE_BINARY_DIR}/stx-package" CACHE PATH "Where the stx package is built and reused")
 file(TO_CMAKE_PATH "${GUI_FORMS_STX_PREFIX}" _gui_stx_given_prefix)
@@ -151,7 +153,7 @@ else()
         if(DEFINED ${_gui_stx_setting} AND NOT "${${_gui_stx_setting}}" STREQUAL "")
             list(APPEND _gui_stx_arguments "-D${_gui_stx_setting}=${${_gui_stx_setting}}")
             if(_gui_stx_setting STREQUAL "CMAKE_TOOLCHAIN_FILE")
-                file(SHA256 "${CMAKE_TOOLCHAIN_FILE}" _gui_stx_toolchain_digest)
+                gui_forms_text_digest("${CMAKE_TOOLCHAIN_FILE}" _gui_stx_toolchain_digest)
                 list(APPEND _gui_stx_stamped_arguments "toolchain=${_gui_stx_toolchain_digest}")
             else()
                 list(APPEND _gui_stx_stamped_arguments "-D${_gui_stx_setting}=${${_gui_stx_setting}}")
@@ -166,14 +168,38 @@ else()
             list(APPEND _gui_stx_launchers "-D${_gui_stx_setting}=${${_gui_stx_setting}}")
         endif()
     endforeach()
-    file(SHA256 "${CMAKE_CURRENT_LIST_FILE}" _gui_stx_this_digest)
-    file(SHA256 "${_gui_stx_recipe}/CMakeLists.txt" _gui_stx_recipe_digest)
-    file(SHA256 "${_gui_stx_root}/cmake/freetype/gui_forms_ftoption.h" _gui_stx_options_digest)
+    gui_forms_text_digest("${CMAKE_CURRENT_LIST_FILE}" _gui_stx_this_digest)
+    gui_forms_text_digest("${_gui_stx_recipe}/CMakeLists.txt" _gui_stx_recipe_digest)
+    gui_forms_text_digest("${_gui_stx_root}/cmake/freetype/gui_forms_ftoption.h" _gui_stx_options_digest)
     string(SHA256 _gui_stx_inputs "${_gui_stx_this_digest};${_gui_stx_recipe_digest};${_gui_stx_options_digest};${CMAKE_GENERATOR};${_gui_stx_stamped_arguments}")
     set(_gui_stx_stamp "commit = ${_gui_stx_commit}\n${_gui_stx_choices}inputs = ${_gui_stx_inputs}\n")
     set(_gui_stx_recorded "")
     if(EXISTS "${_gui_stx_package}/${_gui_stx_stamp_name}")
         file(READ "${_gui_stx_package}/${_gui_stx_stamp_name}" _gui_stx_recorded)
+    endif()
+    # A package dir another live build tree built (its GUI_FORMS_STX_PACKAGE_DIR
+    # pointed here too) is never rebuilt with this tree's choices: two trees
+    # with different options would take turns replacing each other's package
+    # (2026-11-10: a sanitized tree, Skia and audio off, rebuilt the
+    # integrator's package in place, and every tree linking it lost
+    # libstx_skia.a). Give this tree its own GUI_FORMS_STX_PACKAGE_DIR, or link
+    # the other one read-only with GUI_FORMS_STX_PREFIX.
+    set(_gui_stx_owner_name "gui-forms-stx-package.owner")
+    set(_gui_stx_owner "")
+    if(EXISTS "${_gui_stx_package}/${_gui_stx_owner_name}")
+        file(READ "${_gui_stx_package}/${_gui_stx_owner_name}" _gui_stx_owner)
+        string(STRIP "${_gui_stx_owner}" _gui_stx_owner)
+    endif()
+    if(NOT _gui_stx_recorded STREQUAL _gui_stx_stamp AND NOT _gui_stx_recorded STREQUAL "" AND
+       NOT _gui_stx_owner STREQUAL "" AND NOT _gui_stx_owner STREQUAL "${CMAKE_BINARY_DIR}" AND
+       EXISTS "${_gui_stx_owner}/CMakeCache.txt")
+        message(FATAL_ERROR "the stx package at ${_gui_stx_package} belongs to the build tree ${_gui_stx_owner}, "
+                            "which built it as
+${_gui_stx_recorded}but this configuration needs
+${_gui_stx_stamp}"
+                            "Rebuilding it here would replace that tree's package. Give this build its own "
+                            "GUI_FORMS_STX_PACKAGE_DIR, or link that package as is with GUI_FORMS_STX_PREFIX "
+                            "(only when the choices match).")
     endif()
     if(_gui_stx_overridden OR NOT _gui_stx_recorded STREQUAL _gui_stx_stamp)
         _gui_stx_fetch_source()
@@ -208,6 +234,8 @@ else()
             endif()
         endforeach()
         file(WRITE "${_gui_stx_package}/${_gui_stx_stamp_name}" "${_gui_stx_stamp}")
+        file(WRITE "${_gui_stx_package}/${_gui_stx_owner_name}" "${CMAKE_BINARY_DIR}
+")
         # tools/ci_build.py reports whether this configure built the package.
         file(WRITE "${CMAKE_BINARY_DIR}/stx-package-built.txt" "${_gui_stx_package}\n")
     else()

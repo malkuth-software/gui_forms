@@ -9,7 +9,7 @@
    in design coordinates. The page keeps in code the spinners' ranges,
    increments, formats and values, the DomainUpDown's wrapping and
    selection, the inspector's selected object and Commands, every event
-   handler, the status line's reports and the page style; the shell binds
+   handler and the status line's reports; the shell binds
    the BindingSource controls, which the page hands over through
    PageContext. */
 scaled-panel gallery.values.document {

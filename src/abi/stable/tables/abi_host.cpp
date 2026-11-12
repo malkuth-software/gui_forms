@@ -43,8 +43,10 @@ static_assert(sizeof(gf_host_capabilities) == 32U);
 static_assert(sizeof(gf_file_filter) == 32U);
 static_assert(sizeof(gf_dialog_result) == 32U);
 // The 1.0 size of gf_dialog_request: a caller passes at least this much.
+// The 1.2 size adds owner; a 1.0-sized record names no owner.
 constexpr std::uint32_t dialog_request_size_1_0 = 136U;
-static_assert(sizeof(gf_dialog_request) == dialog_request_size_1_0);
+constexpr std::uint32_t dialog_request_size_1_2 = 144U;
+static_assert(sizeof(gf_dialog_request) == dialog_request_size_1_2);
 
 // One capability in both spellings. The ABI's bits are its own constants;
 // this table, not an equality of values, connects them to the host's.
@@ -158,6 +160,33 @@ gf_status running_services(SlotIdentity slot, HostServices*& services) {
     HostServices* found = window != nullptr ? (*window).host_services() : nullptr;
     if (found == nullptr) {
         return fail(GF_STATUS_INVALID_STATE, slot, "no window is running");
+    }
+    services = found;
+    return GF_STATUS_OK;
+}
+
+// The services of the window a dialog request names as its owner (N32):
+// the run's window for zero or the run's root, an owned window for its
+// root. Once the UI thread is entered.
+gf_status owner_services(gf_object owner, SlotIdentity slot, HostServices*& services) {
+    if (owner == 0U) {
+        const gf_status running = running_services(slot, services);
+        return running;
+    }
+    const gf_status entered = registry().enter_ui(slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    gf_object run_root = 0U;
+    ApplicationWindowHandle running;
+    const gf_status run = registry().current_run(slot, run_root, running);
+    if (run != GF_STATUS_OK) {
+        return run;
+    }
+    Window* window = engine().window_over(owner, run_root);
+    HostServices* found = window != nullptr ? (*window).host_services() : nullptr;
+    if (found == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, slot, "the owner is not the root of an open window");
     }
     services = found;
     return GF_STATUS_OK;
@@ -521,8 +550,9 @@ gf_status GF_CALL host_show_dialog(const gf_dialog_request* request, gf_dialog_r
         if (read != GF_STATUS_OK) {
             return read;
         }
+        const gf_object owner = (*request).struct_size >= dialog_request_size_1_2 ? (*request).owner : 0U;
         HostServices* services = nullptr;
-        const gf_status found = running_services(show_dialog_slot, services);
+        const gf_status found = owner_services(owner, show_dialog_slot, services);
         if (found != GF_STATUS_OK) {
             return found;
         }

@@ -46,6 +46,9 @@ bool layout_invalidation_traced() noexcept {
 
 constexpr std::uint32_t maximum_layout_passes = 4;
 constexpr std::uint32_t maximum_semantic_snapshot_passes = 4;
+// A hit test repeats while a hit-test callback changes the tree under it
+// (audit B11: its own bound, no longer the semantic snapshot's).
+constexpr std::uint32_t maximum_hit_test_passes = 4;
 
 [[nodiscard]] std::optional<char32_t> physical_mnemonic(
     std::uint32_t physical_key) noexcept {
@@ -60,6 +63,35 @@ constexpr std::uint32_t maximum_semantic_snapshot_passes = 4;
     return std::nullopt;
 }
 
+// The position after `visited` (found at `position`) in `parent`'s child
+// list, for a walk that indexes the live list instead of copying it (audit
+// N84). When the list changed since `revision` (a callback added, removed
+// or reordered children), the walk goes on after `visited` where it now
+// stands, or at `position` when it left the list; `revision` takes the
+// list's new revision.
+std::size_t next_child_position(const Control& parent, const Control* visited, std::size_t position,
+                                std::uint64_t& revision) noexcept {
+    if (parent.children_revision() == revision) return position + 1U;
+    revision = parent.children_revision();
+    const std::span<const Control::Ptr> children = parent.children();
+    for (std::size_t index = 0U; index < children.size(); ++index) {
+        if (children[index].get() == visited) return index + 1U;
+    }
+    return position;
+}
+
+// `control`'s arranged bounds placed at its parent's window origin.
+Rect placed_bounds(const Control& control, Point parent_origin) noexcept {
+    // The committed bounds: a descent reads them as they are, never laying
+    // out (arranged_bounds() would).
+    const Rect arranged = control.committed_arranged_bounds();
+    const Rect placed{parent_origin.x + arranged.x, parent_origin.y + arranged.y, arranged.width,
+                      arranged.height};
+    return placed;
+}
+
+// Whether `candidate` is `root` or inside it. Walks up from the candidate
+// (audit N78): the cost is the candidate's depth, not the root's subtree.
 bool contains_control(const Control::Ptr& root, const Control::Ptr& candidate) {
     if (!root || !candidate) {
         return false;
@@ -67,12 +99,8 @@ bool contains_control(const Control::Ptr& root, const Control::Ptr& candidate) {
     if (root == candidate) {
         return true;
     }
-    for (const std::shared_ptr<gui_forms::Control>& child : (*root).children()) {
-        if (contains_control(child, candidate)) {
-            return true;
-        }
-    }
-    return false;
+    const bool inside = (*root).contains(*candidate);
+    return inside;
 }
 
 bool single_allowed_effect(DragEffect effect, DragEffect allowed) noexcept {
@@ -84,6 +112,16 @@ bool single_allowed_effect(DragEffect effect, DragEffect allowed) noexcept {
 
 double bounded_visual_outset(double value) noexcept {
     return std::isfinite(value) ? std::clamp(value, 0.0, 16384.0) : 0.0;
+}
+
+// `bounds` (window coordinates) grown by the bounded `outsets`.
+Rect visual_bounds_at(Rect bounds, Insets outsets) noexcept {
+    const Insets bounded{bounded_visual_outset(outsets.left), bounded_visual_outset(outsets.top),
+                         bounded_visual_outset(outsets.right), bounded_visual_outset(outsets.bottom)};
+    const Rect result{bounds.x - bounded.left, bounds.y - bounded.top,
+                      bounds.width + bounded.left + bounded.right,
+                      bounds.height + bounded.top + bounded.bottom};
+    return result;
 }
 
 // Along one axis at `scale`: whether every device pixel that painting
@@ -209,12 +247,14 @@ void append_semantic_nodes(const Control::Ptr& control,
     std::vector<SemanticNode> descendants;
     HiddenFocus inner;
     if (!descriptor.exposed || descriptor.include_descendants) {
-        const std::vector<Control::Ptr> children((*control).children().begin(),
-                                                 (*control).children().end());
-        for (const Control::Ptr& child : children) {
-            if (!current_semantic_identity(child, control.get(), owner)) continue;
-            append_semantic_nodes(child, control.get(), owner, focused,
-                                  descendants, count, inner);
+        std::uint64_t revision = (*control).children_revision();
+        for (std::size_t position = 0U; position < (*control).children().size();) {
+            const Control::Ptr child = (*control).children()[position];
+            if (current_semantic_identity(child, control.get(), owner)) {
+                append_semantic_nodes(child, control.get(), owner, focused,
+                                      descendants, count, inner);
+            }
+            position = next_child_position(*control, child.get(), position, revision);
         }
         if (!current_semantic_identity(control, expected_parent, owner)) return;
         std::vector<SemanticNode> virtual_children =
@@ -652,15 +692,19 @@ void SurfaceRoot::close_overlays_for_subtree(const Control::Ptr& control, Passiv
 
 
 Control::Ptr SurfaceRoot::find(std::string_view stable_id) const {
-    const StableIdMap::const_iterator found =
-        stable_ids_.find(std::string(stable_id));
+    const StableIdMap::const_iterator found = stable_ids_.find(stable_id);
     return found == stable_ids_.end() ? Control::Ptr{} : (*found).second.lock();
 }
 
 Control::Ptr SurfaceRoot::hit_test(Point position) {
     require_root_thread("hit test");
-    for (std::uint32_t pass = 0U;
-         pass < maximum_semantic_snapshot_passes; ++pass) {
+    // The target of the last pass: when no pass converges (callbacks kept
+    // changing the tree), it is the hit against the tree as the last pass
+    // left it, and the exhausted bound is counted
+    // (callback_arbitration_retries with its limit flag) rather than
+    // answering "nothing here" (audit B11).
+    Control::Ptr last_target;
+    for (std::uint32_t pass = 0U; pass < maximum_hit_test_passes; ++pass) {
         ensure_layout(true);
         // The outer band hits nothing, overlays included (owner,
         // 2026-11-08): a point in it reaches no control.
@@ -675,16 +719,17 @@ Control::Ptr SurfaceRoot::hit_test(Point position) {
              ++overlay) {
             if (const Control::Ptr& overlay_root = *overlay;
                 overlay_root && (*overlay_root).is_alive() && (*overlay_root).surface_root_ == this) {
-                target = hit_test_recursive(overlay_root, position);
+                target = hit_test_recursive(overlay_root, parent_origin_of(*overlay_root), position);
                 if (target) break;
             }
         }
-        if (!target) target = hit_test_recursive(root_, position);
+        if (!target) target = hit_test_recursive(root_, parent_origin_of(*root_), position);
         if (generation == semantic_generation_) return target;
-        metrics_.record_callback_arbitration_retry(
-            pass + 1U == maximum_semantic_snapshot_passes);
+        metrics_.record_callback_arbitration_retry(pass + 1U == maximum_hit_test_passes);
+        last_target = std::move(target);
     }
-    return {};
+    if (last_target && (!(*last_target).is_alive() || (*last_target).surface_root_ != this)) return {};
+    return last_target;
 }
 
 // --- Help asked of the window ----------------------------------------------
@@ -1680,8 +1725,10 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
         event.button == PointerButton::primary) {
         set_focus_cue_visible(false);
     }
+    PointerHit hit{};
     if (event.action == PointerAction::move) {
-        Control::Ptr next_hover = hit_test(event.position);
+        hit = take_pointer_hit(event.position);
+        Control::Ptr next_hover = hit.target;
         Control::Ptr previous_hover = hovered_.lock();
         if (previous_hover != next_hover) {
             if (previous_hover && eligible(previous_hover)) {
@@ -1736,15 +1783,36 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
     sync_hover_wake();
     Control::Ptr pressed_for_release;
     Control::Ptr target;
-    const bool handled = route_pointer(event, pressed_for_release, target);
-    raise_mouse_events(event, target, pressed_for_release);
+    const bool handled = route_pointer(event, pressed_for_release, target, hit);
+    raise_mouse_events(event, target, pressed_for_release, hit);
     return handled;
 }
 
-bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out) {
+SurfaceRoot::PointerHit SurfaceRoot::take_pointer_hit(Point position) {
+    PointerHit hit{};
+    hit.target = hit_test(position);
+    hit.position = position;
+    hit.semantic_generation = semantic_generation_;
+    hit.layout_pass = layout_pass_sequence_;
+    hit.mutation = mutation_sequence_;
+    hit.taken = true;
+    return hit;
+}
+
+Control::Ptr SurfaceRoot::reuse_pointer_hit(PointerHit& hit, Point position) {
+    const bool current = hit.taken && hit.position.x == position.x && hit.position.y == position.y &&
+                         hit.semantic_generation == semantic_generation_ &&
+                         hit.layout_pass == layout_pass_sequence_ && hit.mutation == mutation_sequence_ &&
+                         !layout_dirty_ && (!hit.target || (*hit.target).surface_root_ == this);
+    if (!current) hit = take_pointer_hit(position);
+    return hit.target;
+}
+
+bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
+                                PointerHit& hit) {
     Control::Ptr target = captured_.lock();
     if (!target) {
-        target = hit_test(event.position);
+        target = reuse_pointer_hit(hit, event.position);
     }
     if (!target) {
         return false;
@@ -1780,8 +1848,10 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
         }
         metrics_.record_callback_emitted();
         (*control).on_pointer_preview(event);
-        (*control).publish_change(
-            (*control).pointer_preview_observed_, event);
+        // A handler may dispose its own control (audit A6).
+        if ((*control).is_alive()) {
+            (*control).publish_change((*control).pointer_preview_observed_, event);
+        }
         if (event.handled) {
             return true;
         }
@@ -1815,7 +1885,8 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
         (*target).on_pointer(event);
-        (*target).publish_change((*target).pointer_observed_, event);
+        // A handler may dispose its own control (audit A6).
+        if ((*target).is_alive()) (*target).publish_change((*target).pointer_observed_, event);
     }
     if (!event.handled) {
         event.phase = EventPhase::bubble;
@@ -1835,7 +1906,7 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
 }
 
 void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
-                                     const Control::Ptr& pressed_for_release) {
+                                     const Control::Ptr& pressed_for_release, PointerHit& hit) {
     if (!target) {
         const Control::Ptr lost_capture = deferred_capture_changed_.lock();
         deferred_capture_changed_.reset();
@@ -1879,7 +1950,7 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
     // double-click's second on a control with standard_click and
     // standard_double_click; then
     // MouseUp. A primary Click is followed by on_activate.
-    const Control::Ptr released_over = hit_test(event.position);
+    const Control::Ptr released_over = reuse_pointer_hit(hit, event.position);
     const bool primary = event.button == PointerButton::primary;
     const bool clicked = pressed_for_release && pressed_for_release == released_over &&
                          eligible(pressed_for_release) &&
@@ -1999,10 +2070,16 @@ bool SurfaceRoot::dispatch_key(KeyEvent event) {
     // A running drag takes the keys it uses (Escape; the keyboard mode's
     // arrows, Tab and Enter) before the rules and the focused control.
     if (drag_engine_ && (*drag_engine_).key(event)) return true;
+    const bool escape = key_down && event.physical_key == PhysicalKey::escape;
     const bool handled = route_key(std::move(event));
-    // A key may have moved the keyboard within the focused control, or
-    // shown the focus cue: the presenter looks at what focus is on again.
-    if (key_down && tool_tips_) (*tool_tips_).key_handled();
+    // Escape dismisses a bubble. Any other key may have moved the keyboard
+    // within the focused control, or shown the focus cue: the presenter
+    // looks at what focus is on again.
+    if (escape && tool_tips_) {
+        (*tool_tips_).escape_pressed();
+    } else if (key_down && tool_tips_) {
+        (*tool_tips_).key_handled();
+    }
     return handled;
 }
 
@@ -2544,16 +2621,17 @@ void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
     // caller's rollback of `attached`.
     attached.push_back(control);
     (*control).surface_slot_ = control_table_.assign(*control);
-    // A settle takes at most one index per slot; reserving here keeps the
-    // settle itself from growing the storage.
-    settle_indices_.reserve(control_table_.slot_count());
+    if ((*control).display_chunk_) ++display_cache_entries_;
     (*control).window_ = presenting_window_;
     (*control).surface_root_ = this;
+    // A request deferred while detached commits in this root's passes.
+    if ((*control).layout_deferred_) list_layout_deferred(*control);
     {
         std::scoped_lock lock((*control).dispatcher_mutex_);
         (*control).dispatcher_state_ = dispatcher_state_;
     }
     (*control).parent_ = parent;
+    (*control).parent_link_ = parent.lock().get();
     (*control).lifecycle_notification_ = true;
     for (const Control::Ptr& child : (*control).children_) {
         attach_subtree_state(child, control, attached);
@@ -2575,6 +2653,8 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     (*control).on_detaching_from_window(*this);
     (*control).window_ = nullptr;
     (*control).surface_root_ = nullptr;
+    (*control).layout_deferred_listed_in_ = nullptr;
+    if ((*control).display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
     control_table_.release((*control).surface_slot_);
     (*control).surface_slot_ = {};
     {
@@ -2591,6 +2671,8 @@ void SurfaceRoot::forget_destroyed_subtree(Control& control) noexcept {
     if (released > 0U) metrics_.record_engine_parts_released(released, engine_parts_.record_count());
     motion_clock_.release_owner(control);
     erase_containing_block_entries(control.runtime_id());
+    if (control.display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
+    control.layout_deferred_listed_in_ = nullptr;
     control_table_.release(control.surface_slot_);
     control.surface_slot_ = {};
     control.window_ = nullptr;
@@ -2629,6 +2711,13 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
     in_lifecycle_notification_ = true;
     try {
         attach_subtree_state(control, parent, controls);
+        // A settle takes at most one index per slot; reserving once per
+        // attachment (doubling) keeps the settle from growing the storage
+        // without reallocating it for every attached control (audit N82).
+        const std::size_t slots = control_table_.slot_count();
+        if (settle_indices_.capacity() < slots) {
+            settle_indices_.reserve(std::max(slots, settle_indices_.capacity() * 2U));
+        }
         // The theme in effect may have changed with the window or the parent
         // (P12b).
         for (const Control::Ptr& current : controls) (*current).refresh_inline_style();
@@ -2651,6 +2740,7 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
              current != controls.rend(); ++current) {
             (*(*current)).window_ = nullptr;
             (*(*current)).surface_root_ = nullptr;
+            if ((*(*current)).display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
             control_table_.release((*(*current)).surface_slot_);
             (*(*current)).surface_slot_ = {};
             {
@@ -2678,7 +2768,13 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
     }
     in_lifecycle_notification_ = false;
     metrics_.set_population(stable_ids_.size(), stable_ids_.size());
-    static_cast<void>(recompute_subtree_dirty(root_));
+    // The attached subtree's flags are its own; above it, only its ancestor
+    // chain gains them (audit N77).
+    static_cast<void>(recompute_subtree_dirty(control));
+    if (const Control::Ptr attached_parent = (*control).parent_.lock()) {
+        refresh_ancestor_summaries(*attached_parent);
+    }
+    update_display_cache_metrics();
     mark_subtree_dirty(*control, invalidation::visual_tree);
 }
 
@@ -2708,7 +2804,6 @@ void SurfaceRoot::detach_subtree(const Control::Ptr& control) {
     in_lifecycle_notification_ = false;
     touch_paint();
     ++semantic_generation_;
-    if (semantic_generation_ == 0U) ++semantic_generation_;
     metrics_.record_dirty_mark(old_bounds.area());
     metrics_.set_population(stable_ids_.size(), stable_ids_.size());
     update_display_cache_metrics();
@@ -2734,12 +2829,15 @@ void SurfaceRoot::dispose_subtree(const Control::Ptr& control) noexcept {
         (*(*current)).lifecycle_notification_ = false;
     }
     in_lifecycle_notification_ = false;
+    Control::Ptr refreshed_parent;
     if (std::shared_ptr<gui_forms::Control> visual_parent = (*control).parent_.lock()) {
+        refreshed_parent = visual_parent;
         const Control::ChildList::iterator found =
             std::find((*visual_parent).children_.begin(),
                       (*visual_parent).children_.end(), control);
         if (found != (*visual_parent).children_.end()) {
             (*visual_parent).children_.erase(found);
+            ++(*visual_parent).children_revision_;
         }
         // Explicit child disposal is also a structural mutation of its live
         // parent. Retire the parent's retained layout/paint chunk now; merely
@@ -2750,15 +2848,20 @@ void SurfaceRoot::dispose_subtree(const Control::Ptr& control) noexcept {
         }
     }
     (*control).parent_.reset();
+    (*control).parent_link_ = nullptr;
+    Control::advance_inherited_generation();
     touch_paint();
     layout_dirty_ = true;
     hit_test_dirty_ = true;
     ++semantic_generation_;
-    if (semantic_generation_ == 0U) ++semantic_generation_;
     metrics_.record_dirty_mark(old_bounds.area());
     metrics_.record_disposal(disposal_count);
     metrics_.set_population(stable_ids_.size(), stable_ids_.size());
-    static_cast<void>(recompute_subtree_dirty(root_));
+    // Only the parent's ancestor chain loses the disposed subtree's flags
+    // (audit N77).
+    if (refreshed_parent && (*refreshed_parent).surface_root_ == this) {
+        refresh_ancestor_summaries(*refreshed_parent);
+    }
     update_display_cache_metrics();
 }
 
@@ -2948,6 +3051,31 @@ void SurfaceRoot::collect_subtree_registration(
         }
 }
 
+// Audit A9: whether `control`'s subtree can be registered here, checked
+// before a reparent takes the child from its previous parent. An identity
+// already registered to the same control (a move within this window) is not
+// a clash. Throws std::logic_error as collect_subtree_registration does.
+void SurfaceRoot::validate_subtree_registration(const Control& control) const {
+    std::unordered_set<std::string_view> local_ids;
+    std::vector<const Control*> pending{&control};
+    while (!pending.empty()) {
+        const Control* const current = pending.back();
+        pending.pop_back();
+        if (!(*current).is_alive()) {
+            throw std::logic_error("GUI.Forms cannot attach a disposed control");
+        }
+        const std::string_view id = (*current).stable_id_.value();
+        const StableIdMap::const_iterator registered = stable_ids_.find(id);
+        const bool clash = registered != stable_ids_.end() && (*registered).second.lock().get() != current;
+        if (!local_ids.insert(id).second || clash) {
+            throw std::logic_error("GUI.Forms duplicate stable ID: " + std::string(id));
+        }
+        for (const Control::Ptr& child : (*current).children_) {
+            if (child) pending.push_back(child.get());
+        }
+    }
+}
+
 void SurfaceRoot::register_subtree(const Control::Ptr& control) {
     ControlList controls;
     std::unordered_set<std::string> local_ids;
@@ -2958,7 +3086,8 @@ void SurfaceRoot::register_subtree(const Control::Ptr& control) {
 }
 
 void SurfaceRoot::unregister_subtree(const Control::Ptr& control) {
-    stable_ids_.erase(std::string((*control).stable_id_.value()));
+    const StableIdMap::const_iterator registered = stable_ids_.find((*control).stable_id_.value());
+    if (registered != stable_ids_.end()) stable_ids_.erase(registered);
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
         unregister_subtree(child);
     }
@@ -2971,6 +3100,8 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
     }
     control.add_dirty(requested_dirty);
     control.subtree_dirty_ |= requested_dirty;
+    // A paint-only mark moves no hit (a hover's hot look, for one).
+    if (without_dirty(requested_dirty, Dirty::paint) != Dirty::none) ++mutation_sequence_;
     const bool layout_requested = has_dirty(requested_dirty, Dirty::layout);
     const bool paint_requested = has_dirty(requested_dirty, Dirty::paint);
     const detail::PendingTouch owed{requested_dirty, layout_requested, paint_requested};
@@ -3002,9 +3133,10 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
     if (has_dirty(requested_dirty, Dirty::hit_test)) {
         hit_test_dirty_ = true;
     }
-    if (has_dirty(requested_dirty, Dirty::semantics)) {
+    // Accessibility is the semantic tree's platform publication (owner
+    // ruling D4): either kind retires the published snapshot.
+    if (has_dirty(requested_dirty, Dirty::semantics | Dirty::accessibility)) {
         ++semantic_generation_;
-        if (semantic_generation_ == 0U) ++semantic_generation_;
     }
     if (paint_requested) {
         touch_paint();
@@ -3076,7 +3208,6 @@ void SurfaceRoot::mark_child_layout_slot(Control& control) {
     layout_dirty_ = true;
     hit_test_dirty_ = true;
     ++semantic_generation_;
-    if (semantic_generation_ == 0U) ++semantic_generation_;
     if (in_layout_ || in_paint_) settle_dirty();
 }
 
@@ -3262,23 +3393,14 @@ SemanticTextResult SurfaceRoot::set_semantic_text_selection(RuntimeId control_id
     return result;
 }
 
+// The control table indexes its live slots by runtime identity (audit
+// N79), so a semantic action's lookup costs one hash probe, not a walk of
+// the root and every overlay.
 Control::Ptr SurfaceRoot::find_runtime_control(RuntimeId control) const {
-    ControlList pending{root_};
-    pending.reserve(1U + overlays_.size());
-    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
-        pending.push_back((*overlay).overlay());
-    }
-    while (!pending.empty()) {
-        const Control::Ptr current = pending.back();
-        pending.pop_back();
-        if (!current || !(*current).is_alive() || (*current).surface_root_ != this) continue;
-        if ((*current).runtime_id() == control) return current;
-        const std::span<const Control::Ptr> children = (*current).children();
-        for (std::size_t index = 0; index < children.size(); ++index) {
-            pending.push_back(children[index]);
-        }
-    }
-    return {};
+    Control* const found = control_table_.control_with_runtime_id(control.value);
+    if (found == nullptr || !(*found).is_alive() || (*found).surface_root_ != this) return {};
+    Control::Ptr result = (*found).shared_from_this();
+    return result;
 }
 
 bool SurfaceRoot::semantic_scope_reaches(const Control::Ptr& control) const {
@@ -3305,16 +3427,15 @@ void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
     if (has_dirty(requested_dirty, Dirty::layout) &&
         control.layout_suspend_depth_ != 0U) {
         control.layout_deferred_ = true;
+        list_layout_deferred(control);
         ++control.layout_requested_revision_;
-        if (control.layout_requested_revision_ == 0U) {
-            ++control.layout_requested_revision_;
-        }
     }
     if (has_dirty(requested_dirty, Dirty::paint)) {
-        Rect bounds = paint_damage_bounds_of(control);
-        if (bounds.empty() && control.paints_content() && arranged_in_window(control)) {
-            bounds = control.requested_bounds_;
-        }
+        // Audit B5: no fallback to requested_bounds_ (parent-relative, not a
+        // window rectangle). Empty bounds are a control that paints nothing
+        // or is not arranged; the arrange that places it damages where it
+        // lands.
+        const Rect bounds = paint_damage_bounds_of(control);
         // Structural invalidation recomposes every plane so vacated pixels
         // cannot survive beneath a transparent or detached control.
         const DamageCauseScope cause(*this, InvalidationCause::control, &control);
@@ -3340,9 +3461,8 @@ void SurfaceRoot::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
     // Subtree mutation has the same semantic-generation contract as a
     // single-control mutation. Cached native accessibility trees must retire
     // hidden descendants even when their arranged geometry is unchanged.
-    if (has_dirty(requested_dirty, Dirty::semantics)) {
+    if (has_dirty(requested_dirty, Dirty::semantics | Dirty::accessibility)) {
         ++semantic_generation_;
-        if (semantic_generation_ == 0U) ++semantic_generation_;
     }
     metrics_.record_mutation();
     if (has_dirty(requested_dirty, Dirty::layout)) {
@@ -3366,14 +3486,12 @@ void SurfaceRoot::settle_subtree(Control& control, Dirty kinds) {
     // The order is mark_subtree_dirty's when it did this at the write.
     double requested_damage_area = 0.0;
     apply_subtree_dirty(control, kinds, requested_damage_area);
-    for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+    for (Control* ancestor = control.parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
         (*ancestor).subtree_dirty_ |= kinds;
         if (has_dirty(kinds, Dirty::layout) && (*ancestor).layout_suspend_depth_ != 0U) {
             (*ancestor).layout_deferred_ = true;
+            list_layout_deferred(*ancestor);
             ++(*ancestor).layout_requested_revision_;
-            if ((*ancestor).layout_requested_revision_ == 0U) {
-                ++(*ancestor).layout_requested_revision_;
-            }
         }
     }
     if (has_dirty(kinds, Dirty::layout)) {
@@ -3383,7 +3501,7 @@ void SurfaceRoot::settle_subtree(Control& control, Dirty kinds) {
 }
 
 bool SurfaceRoot::covered_by_pending_subtree(const Control& control, Dirty kinds) const {
-    for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+    for (const Control* ancestor = control.parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
         const detail::PendingTouch pending = control_table_.pending_touch((*ancestor).surface_slot_);
         if (without_dirty(kinds, pending.subtree) == Dirty::none) return true;
     }
@@ -3396,7 +3514,11 @@ void SurfaceRoot::change_paint_plane(Control& control, PaintPlane plane) {
     const DamageCauseScope cause(*this, InvalidationCause::control, &control);
     add_damage_all_planes(bounds);
     control.paint_plane_ = plane;
+    // A plane change moves overlay ownership (the live lane's cover).
+    ++mutation_sequence_;
+    const bool had_chunk = control.display_chunk_ != nullptr;
     control.display_chunk_.reset();
+    note_display_chunk_change(control, had_chunk);
     mark_dirty(control, invalidation::paint_only);
     update_display_cache_metrics();
 }
@@ -3416,6 +3538,12 @@ void SurfaceRoot::add_damage(Rect damage, PaintPlane plane) {
     metrics_.record_damage_region(
         region.rectangle_count(), region.compaction_count() - compactions,
         region.collapse_count() - collapses);
+    // damage_bounded: the plane was collapsed to its bounds because it
+    // outgrew its rectangle capacity.
+    if (region.collapse_count() != collapses) {
+        metrics_.record_expectation_miss(HousekeepingExpectation::damage_bounded, DamageRegion::maximum_rectangles,
+                                         DamageRegion::maximum_rectangles + 1U);
+    }
     // Glass over the damaged backplane shows it changed (E9-B).
     if (plane == PaintPlane::backplane) damage_backplane_readers(&damage);
 }
@@ -3673,9 +3801,55 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
     // viewport ends the search beneath: what that control paints over its
     // fill inside the viewport is its children's.
     scroll_overlay_crossings_.clear();
-    const Control* node = &scroller;
-    bool covered = opaque_fill_covers(scroller, clip);
-    for (Control::Ptr parent = scroller.parent(); parent; parent = (*parent).parent()) {
+    const bool covered = opaque_fill_covers(scroller, clip);
+    return accept_scroll_copy(scroller, clip, offset, covered, true);
+}
+
+bool SurfaceRoot::request_content_scroll(Control& owner, Rect local_area, Point offset) {
+    require_root_thread("scroll copy mutation");
+    // The bound request_scroll_copy keeps on one host frame's copies.
+    constexpr std::size_t copy_limit = 16U;
+    if (!scroll_copies_supported_ || in_paint_ || owner.surface_root_ != this || !owner.is_alive() ||
+        !owner.visible.read() || scroll_translating_ != nullptr || scroll_copies_.size() >= copy_limit) {
+        return false;
+    }
+    if (!local_area.finite() || !whole_device_pixels(offset.x, scale_) ||
+        !whole_device_pixels(offset.y, scale_) || offset == Point{}) {
+        return false;
+    }
+    // Damage marked before the move lies where the pixels were: place it
+    // now, so that the copy moves it with them.
+    settle_dirty();
+    // The visible part of the area: within the control, each ancestor's
+    // child viewport and the client area.
+    const Rect bounds = absolute_bounds_of(owner);
+    const Rect area = Rect::intersection(local_area, owner.client_rectangle());
+    Rect clip = Rect::intersection({bounds.x + area.x, bounds.y + area.y, area.width, area.height},
+                                   {0.0, 0.0, client_size_.width, client_size_.height});
+    for (Control::Ptr ancestor = owner.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this || !(*ancestor).visible.read()) {
+            return false;
+        }
+        clip = Rect::intersection(clip, absolute_child_viewport_of(*ancestor));
+    }
+    if (clip.empty() || !device_aligned_rect(clip, scale_) || std::abs(offset.x) >= clip.width ||
+        std::abs(offset.y) >= clip.height) {
+        return false;
+    }
+    // The owner's last paint must leave the area opaque, so that nothing
+    // beneath it shows through the moved pixels.
+    if (!opaque_fill_covers(owner, clip)) return false;
+    // Its children are drawn over its paint and stay where they are: they
+    // are repainted like overlays, where they are and where the copy moved
+    // their pixels.
+    scroll_overlay_crossings_.clear();
+    for (const Control::Ptr& child : owner.children_) collect_overlay_paint(child, clip, scroll_overlay_crossings_);
+    return accept_scroll_copy(owner, clip, offset, true, false);
+}
+
+bool SurfaceRoot::accept_scroll_copy(Control& source, Rect clip, Point offset, bool covered, bool translating) {
+    const Control* node = &source;
+    for (Control::Ptr parent = source.parent(); parent; parent = (*parent).parent()) {
         bool after = false;
         for (const Control::Ptr& sibling : (*parent).children_) {
             if (sibling.get() == node) {
@@ -3700,7 +3874,7 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
     // Other paint planes are composed before or after this one.
     // Overlays drawn into the viewport are repainted over it, where they
     // are and where the copy moves their pixels.
-    if (other_plane_crosses(root_, scroller, clip, covered, scroll_overlay_crossings_)) return false;
+    if (other_plane_crosses(root_, source, clip, covered, scroll_overlay_crossings_)) return false;
     for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
         if (overlay) collect_overlay_paint((*overlay).overlay(), clip, scroll_overlay_crossings_);
     }
@@ -3711,11 +3885,13 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
         plane = damage_after_scroll_copy(plane, clip, offset);
     }
     scroll_copies_.push_back(ScrollCopy{clip, offset});
-    const DamageCauseScope cause(*this, InvalidationCause::scroll_copy, &scroller);
+    const DamageCauseScope cause(*this, InvalidationCause::scroll_copy, &source);
     sync_invalidation_overlay();
     if (invalidation_overlay_ != nullptr) note_damage_cause(clip, true);
-    scroll_translating_ = &scroller;
-    scroll_translation_ = offset;
+    if (translating) {
+        scroll_translating_ = &source;
+        scroll_translation_ = offset;
+    }
     const double band_x = offset.x < 0.0 ? clip.x + clip.width + offset.x : clip.x;
     const double band_y = offset.y < 0.0 ? clip.y + clip.height + offset.y : clip.y;
     if (offset.x != 0.0) add_damage_all_planes(Rect{band_x, clip.y, std::abs(offset.x), clip.height});
@@ -3771,7 +3947,6 @@ void SurfaceRoot::acknowledge_paint_wake_if_damage_drained() noexcept {
 
 void SurfaceRoot::touch_paint() noexcept {
     ++content_revision_;
-    if (content_revision_ == 0U) ++content_revision_;
     if (in_paint_) dirty_after_render_ = true;
     request_paint_wake();
 }
@@ -3795,9 +3970,26 @@ PaintLeaseState SurfaceRoot::paint_lease_state() const noexcept {
 
 void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
     const DamageCauseScope cause(*this, InvalidationCause::control, control.get());
-    add_damage_all_planes(paint_damage_bounds_of(*control));
-    for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
-        add_subtree_damage(child);
+    const Rect covered = paint_damage_bounds_of(*control);
+    add_damage_all_planes(covered);
+    const Rect placed = absolute_bounds_of(*control);
+    add_descendant_damage(*control, Point{placed.x, placed.y}, covered);
+}
+
+// Each descendant's paint bounds, placed from its parent's origin; a
+// rectangle inside `covered` (the subtree root's damage, already added)
+// adds nothing to the damage's union, so only those leaving it are added.
+void SurfaceRoot::add_descendant_damage(const Control& parent, Point parent_origin, Rect covered) {
+    for (const std::shared_ptr<gui_forms::Control>& child : parent.children_) {
+        if (!child) continue;
+        const Control& current = *child;
+        const Rect placed{parent_origin.x + current.arranged_bounds_.x,
+                          parent_origin.y + current.arranged_bounds_.y,
+                          current.arranged_bounds_.width, current.arranged_bounds_.height};
+        const Rect damage = Rect::united(visual_bounds_at(placed, current.effective_visual_outsets()),
+                                         visual_bounds_at(placed, current.last_painted_visual_outsets_));
+        if (!covered.contains(damage)) add_damage_all_planes(damage);
+        add_descendant_damage(current, Point{placed.x, placed.y}, covered);
     }
 }
 
@@ -3832,15 +4024,14 @@ void SurfaceRoot::settle_touch(Control& control, detail::PendingTouch owed) {
         mark_layout_ancestors(control);
     }
     if (owed.requested != Dirty::none) {
-        for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        for (Control* ancestor = control.parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
             (*ancestor).subtree_dirty_ |= owed.requested;
         }
     }
     if (owed.damages_bounds) {
-        Rect bounds = paint_damage_bounds_of(control);
-        if (bounds.empty() && control.paints_content() && arranged_in_window(control)) {
-            bounds = control.requested_bounds_;
-        }
+        // Audit B5: as in mark_subtree's paint, no requested_bounds_
+        // fallback.
+        const Rect bounds = paint_damage_bounds_of(control);
         const DamageCauseScope cause(*this, InvalidationCause::control, &control);
         add_damage(bounds, control.paint_plane_);
         metrics_.record_requested_damage(bounds.area());
@@ -3987,16 +4178,9 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
             }
             metrics_.record_arrange(arrange_visited, arranged);
 
-            static_cast<void>(recompute_subtree_dirty(root_));
-            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
-                if (const Control::Ptr overlay_root = (*overlay).overlay()) {
-                    static_cast<void>(recompute_subtree_dirty(overlay_root));
-                }
-            }
-            commit_layout_requests_recursive(root_);
-            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
-                commit_layout_requests_recursive((*overlay).overlay());
-            }
+            // The arrange descent summarised the flags it changed; the
+            // listed layout requests commit (audit N85).
+            commit_layout_requests();
             ++pass;
         } while (has_any_runnable_layout_dirty() &&
                  pass < maximum_layout_passes);
@@ -4040,13 +4224,13 @@ std::vector<Control::Ptr> SurfaceRoot::route_to(const Control::Ptr& target) cons
     return route;
 }
 
-Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control,
+Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control, Point parent_origin,
                                         Point window_position) const {
     if (!eligible(control) || (*control).surface_root_ != this) {
         return {};
     }
     Control* const retained_parent = (*control).parent_.lock().get();
-    const Rect bounds = absolute_bounds_of(*control);
+    const Rect bounds = placed_bounds(*control, parent_origin);
     if (!bounds.contains(window_position)) {
         return {};
     }
@@ -4060,15 +4244,19 @@ Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control,
                               local_child_viewport.width,
                               local_child_viewport.height};
     if (child_viewport.contains(window_position)) {
-        const ControlList children = (*control).children_;
-        for (ControlList::const_reverse_iterator child = children.rbegin();
-             child != children.rend(); ++child) {
-            if (!*child || !(*(*child)).is_alive() ||
-                (*(*child)).parent_.lock().get() != control.get() ||
-                (*(*child)).surface_root_ != this) {
+        // Front to back over the live list (audit N84): a hit test runs no
+        // callback that changes the tree, so it is not copied; the bound is
+        // read again each step all the same.
+        const Point origin{bounds.x, bounds.y};
+        for (std::size_t position = (*control).children_.size(); position > 0U; --position) {
+            if (position > (*control).children_.size()) continue;
+            const Control::Ptr child = (*control).children_[position - 1U];
+            if (!child || !(*child).is_alive() ||
+                (*child).parent_.lock().get() != control.get() ||
+                (*child).surface_root_ != this) {
                 continue;
             }
-            if (Control::Ptr target = hit_test_recursive(*child, window_position)) {
+            if (Control::Ptr target = hit_test_recursive(child, origin, window_position)) {
                 if (!(*target).is_alive() || (*target).surface_root_ != this) continue;
                 return target;
             }
@@ -4102,14 +4290,15 @@ void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
                                                : available.width,
         (*control).requested_bounds_.height > 0.0 ? (*control).requested_bounds_.height
                                                 : available.height};
-    const std::vector<Control::Ptr> retained = (*control).children_;
-    for (const std::shared_ptr<gui_forms::Control>& child : retained) {
-        if (!child || !(*child).is_alive() ||
-            (*child).parent_.lock().get() != control.get() ||
-            (*child).surface_root_ != this) {
-            continue;
+    std::uint64_t revision = (*control).children_revision_;
+    const std::uint64_t walk_start = revision;
+    for (std::size_t position = 0U; position < (*control).children_.size();) {
+        const Control::Ptr child = (*control).children_[position];
+        if (child && (*child).is_alive() && (*child).parent_.lock().get() == control.get() &&
+            (*child).surface_root_ == this && (*child).added_at_revision_ <= walk_start) {
+            measure_dirty_recursive(child, child_available, visited_nodes, callbacks);
         }
-        measure_dirty_recursive(child, child_available, visited_nodes, callbacks);
+        position = next_child_position(*control, child.get(), position, revision);
     }
     if (!(*control).is_alive() || (*control).surface_root_ != this) return;
     if (has_dirty((*control).dirty_, Dirty::measure)) {
@@ -4229,19 +4418,30 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
                                     new_bounds);
         }
     }
-    const std::vector<Control::Ptr> retained = (*control).children_;
-    for (const std::shared_ptr<gui_forms::Control>& child : retained) {
-        if (!child || !(*child).is_alive() ||
-            (*child).parent_.lock().get() != control.get() ||
-            (*child).surface_root_ != this) {
-            continue;
+    std::uint64_t revision = (*control).children_revision_;
+    const std::uint64_t walk_start = revision;
+    for (std::size_t position = 0U; position < (*control).children_.size();) {
+        const Control::Ptr child = (*control).children_[position];
+        if (child && (*child).is_alive() && (*child).parent_.lock().get() == control.get() &&
+            (*child).surface_root_ == this && (*child).added_at_revision_ <= walk_start) {
+            arrange_dirty_recursive(
+                child, (*child).layout_slot_.value_or((*child).requested_bounds_),
+                visited_nodes, callbacks);
         }
-        arrange_dirty_recursive(
-            child, (*child).layout_slot_.value_or((*child).requested_bounds_),
-            visited_nodes, callbacks);
+        position = next_child_position(*control, child.get(), position, revision);
     }
     // A recorded scroll copy's children are arranged.
     if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
+    // The subtree flags summarised on the way back up (audit N85): a
+    // control the descent did not reach kept its flags, so a pass needs no
+    // walk of the whole tree afterwards. Measure reaches only controls the
+    // arrange descent reaches too (a measure mark carries arrange).
+    if (!(*control).is_alive() || (*control).surface_root_ != this) return;
+    Dirty summary = (*control).dirty_;
+    for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
+        if (child) summary |= (*child).subtree_dirty_;
+    }
+    (*control).subtree_dirty_ = summary;
 }
 
 bool SurfaceRoot::has_runnable_layout_dirty(
@@ -4406,13 +4606,13 @@ void SurfaceRoot::mark_containing_block_dependents(Control& watched) {
         (*dependent).dirty_ |= effects;
         (*dependent).subtree_dirty_ |= effects;
         note_suspended_layout_request(*dependent);
-        for (Control::Ptr ancestor = (*dependent).parent(); ancestor && ancestor.get() != &watched;
-             ancestor = (*ancestor).parent()) {
+        for (Control* ancestor = (*dependent).parent_link_; ancestor != nullptr && ancestor != &watched;
+             ancestor = (*ancestor).parent_link_) {
             (*ancestor).subtree_dirty_ |= effects;
         }
     }
     watched.subtree_dirty_ |= effects;
-    for (Control::Ptr ancestor = watched.parent(); ancestor; ancestor = (*ancestor).parent()) {
+    for (Control* ancestor = watched.parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
         (*ancestor).subtree_dirty_ |= effects;
     }
     layout_dirty_ = true;
@@ -4437,10 +4637,8 @@ void SurfaceRoot::note_suspended_layout_request(Control& control) noexcept {
     for (Control* current = &control; current != nullptr;) {
         if ((*current).layout_suspend_depth_ != 0U) {
             (*current).layout_deferred_ = true;
+            list_layout_deferred(*current);
             ++(*current).layout_requested_revision_;
-            if ((*current).layout_requested_revision_ == 0U) {
-                ++(*current).layout_requested_revision_;
-            }
         }
         const Control::Ptr parent = (*current).parent_.lock();
         current = parent.get();
@@ -4458,6 +4656,73 @@ void SurfaceRoot::commit_layout_requests_recursive(
         (*control).layout_committed_revision_ =
             (*control).layout_requested_revision_;
         (*control).layout_deferred_ = false;
+    }
+}
+
+void SurfaceRoot::list_layout_deferred(Control& control) noexcept {
+    if (control.layout_deferred_listed_in_ == this || control.surface_root_ != this) return;
+    try {
+        layout_deferred_controls_.push_back(control.weak_from_this());
+    } catch (const std::bad_alloc&) {
+        layout_deferred_list_failed_ = true;
+        return;
+    }
+    control.layout_deferred_listed_in_ = this;
+}
+
+void SurfaceRoot::commit_layout_requests() noexcept {
+    if (layout_deferred_list_failed_) {
+        layout_deferred_list_failed_ = false;
+        commit_layout_requests_recursive(root_);
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            commit_layout_requests_recursive((*overlay).overlay());
+        }
+    }
+    std::size_t kept = 0U;
+    for (std::size_t index = 0U; index < layout_deferred_controls_.size(); ++index) {
+        const Control::Ptr control = layout_deferred_controls_[index].lock();
+        if (!control || (*control).layout_deferred_listed_in_ != this) continue;
+        if (!(*control).layout_deferred_ || (*control).surface_root_ != this) {
+            (*control).layout_deferred_listed_in_ = nullptr;
+            continue;
+        }
+        bool suspended = false;
+        for (const Control* current = control.get(); current != nullptr && !suspended;) {
+            suspended = (*current).layout_suspend_depth_ != 0U;
+            const Control::Ptr parent = (*current).parent_.lock();
+            current = parent.get();
+        }
+        if (suspended || has_dirty((*control).subtree_dirty_, Dirty::layout)) {
+            if (kept != index) layout_deferred_controls_[kept] = layout_deferred_controls_[index];
+            ++kept;
+            continue;
+        }
+        (*control).layout_committed_revision_ = (*control).layout_requested_revision_;
+        (*control).layout_deferred_ = false;
+        (*control).layout_deferred_listed_in_ = nullptr;
+    }
+    layout_deferred_controls_.resize(kept);
+}
+
+Point SurfaceRoot::parent_origin_of(const Control& control) const {
+    const Control* const parent = control.parent_link_;
+    if (parent == nullptr) return Point{0.0, 0.0};
+    const Rect placed = absolute_bounds_of(*parent);
+    return Point{placed.x, placed.y};
+}
+
+void SurfaceRoot::refresh_ancestor_summaries(Control& first) noexcept {
+    Control* current = &first;
+    while (current != nullptr) {
+        Dirty summary = (*current).dirty_;
+        for (const std::shared_ptr<gui_forms::Control>& child : (*current).children_) {
+            if (child) summary |= (*child).subtree_dirty_;
+        }
+        if (summary == (*current).subtree_dirty_) return;
+        (*current).subtree_dirty_ = summary;
+        // The observing link (audit A7): the parent is kept alive by its
+        // own parent's child list (or by the surface root).
+        current = (*current).parent_link_;
     }
 }
 
@@ -4486,15 +4751,20 @@ void SurfaceRoot::clear_paint_dirty_subtree(const Control::Ptr& control) noexcep
     }
 }
 
-bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Rect damage, const PaintPlane plane,
-                              std::vector<Control::Ptr>& path) const {
+bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Point parent_origin, const Rect damage,
+                              const PaintPlane plane, std::vector<Control::Ptr>& path) const {
     if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).visible.read() ||
         (*control).layout_collapsed_) {
         return false;
     }
+    const Rect bounds = placed_bounds(*control, parent_origin);
+    const Rect local_viewport = (*control).child_viewport_rectangle();
+    const Rect child_viewport{bounds.x + local_viewport.x, bounds.y + local_viewport.y, local_viewport.width,
+                              local_viewport.height};
     // A child paints all of `damage` only inside the child viewport. Later
     // children paint later, and a control's subtree after the control.
-    if (absolute_child_viewport_of(*control).contains(damage)) {
+    if (child_viewport.contains(damage)) {
+        const Point origin{bounds.x, bounds.y};
         const std::vector<Control::Ptr>& children = (*control).children_;
         for (std::size_t index = children.size(); index > 0U; --index) {
             const Control::Ptr& child = children[index - 1U];
@@ -4503,14 +4773,13 @@ bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Rect damag
                 continue;
             }
             const std::size_t depth = path.size();
-            if (find_paint_cover(child, damage, plane, path)) {
+            if (find_paint_cover(child, origin, damage, plane, path)) {
                 path.insert(path.begin() + static_cast<std::ptrdiff_t>(depth), control);
                 return true;
             }
         }
     }
     // Only a current chunk: one paint_recursive replays without rebuilding.
-    const Rect bounds = absolute_bounds_of(*control);
     const Rect logical_bounds{0.0, 0.0, bounds.width, bounds.height};
     const std::shared_ptr<const detail::DisplayChunk>& chunk = (*control).display_chunk_;
     if ((*control).paint_plane_ != plane || has_dirty((*control).dirty_, Dirty::paint) || !chunk ||
@@ -4552,21 +4821,25 @@ void SurfaceRoot::paint_from_cover(const std::span<const Control::Ptr> path,
         siblings.push_back(ancestor.children_);
         retained_parents.push_back(ancestor.parent_.lock().get());
     }
-    paint_recursive(path.back(), painter, level_damage.back(), plane, visited_nodes, painted_controls,
-                    consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
+    paint_recursive(path.back(), parent_origin_of(*path.back()), painter, level_damage.back(), plane,
+                    visited_nodes, painted_controls, consumed_invalidations, chunks_rebuilt, chunks_reused,
+                    commands_replayed);
     // Then what follows on each level up, as each ancestor's loop goes on.
     for (std::size_t level = path.size() - 1U; level > 0U; --level) {
         const Control::Ptr& ancestor = path[level - 1U];
         const std::vector<Control::Ptr>& children = siblings[level - 1U];
         std::vector<Control::Ptr>::const_iterator child = std::find(children.begin(), children.end(), path[level]);
         if (child != children.end()) ++child;
+        const Rect ancestor_bounds = absolute_bounds_of(*ancestor);
+        const Point ancestor_origin{ancestor_bounds.x, ancestor_bounds.y};
         for (; child != children.end(); ++child) {
             if (!*child || !(**child).is_alive() || (**child).parent_.lock().get() != ancestor.get() ||
                 (**child).surface_root_ != this) {
                 continue;
             }
-            paint_recursive(*child, painter, level_damage[level], plane, visited_nodes, painted_controls,
-                            consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
+            paint_recursive(*child, ancestor_origin, painter, level_damage[level], plane, visited_nodes,
+                            painted_controls, consumed_invalidations, chunks_rebuilt, chunks_reused,
+                            commands_replayed);
         }
         if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this ||
             (*ancestor).parent_.lock().get() != retained_parents[level - 1U]) {
@@ -4592,6 +4865,7 @@ void SurfaceRoot::summarize_subtree_paint(Control& control) const noexcept {
 }
 
 void SurfaceRoot::paint_recursive(const Control::Ptr& control,
+                             const Point parent_origin,
                              Painter& painter,
                              Rect window_damage,
                              PaintPlane plane,
@@ -4608,13 +4882,13 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         return;
     }
     Control* const retained_parent = (*control).parent_.lock().get();
-    const Rect bounds = absolute_bounds_of(*control);
+    const Rect bounds = placed_bounds(*control, parent_origin);
     const Insets current_outsets = (*control).effective_visual_outsets();
     if (!(*control).is_alive() || (*control).surface_root_ != this ||
         (*control).parent_.lock().get() != retained_parent) {
         return;
     }
-    const Rect visual_bounds = visual_bounds_of(*control, current_outsets);
+    const Rect visual_bounds = visual_bounds_at(bounds, current_outsets);
     const Rect paint_intersection = Rect::intersection(visual_bounds, window_damage);
     const Rect local_child_viewport = (*control).child_viewport_rectangle();
     if (!(*control).is_alive() || (*control).surface_root_ != this ||
@@ -4638,6 +4912,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                              (*(*control).display_chunk_).plane() != plane ||
                              (*(*control).display_chunk_).logical_bounds() != logical_bounds;
         if (rebuild) {
+            if (paint_checkpointing_) paint_checkpoints_.push_back({control, (*control).display_chunk_});
             (*control).clear_dirty(Dirty::paint);
             detail::RecordingPainter recorder(text_metrics_provider_, DeviceScale{scale()});
             recorder.inherit_caches((*control).display_chunk_);
@@ -4665,8 +4940,10 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             (*control).paint_owned_decorations(
                 recorder, logical_bounds,
                 OwnerDecorationLayer::after_content);
+            const bool had_chunk = (*control).display_chunk_ != nullptr;
             (*control).display_chunk_ = recorder.finish(++display_generation_, plane,
                                                       logical_bounds);
+            note_display_chunk_change(*control, had_chunk);
             if (recorder.group_refusals() > 0U) metrics_.record_paint_group_refusals(recorder.group_refusals());
             ++chunks_rebuilt;
             consumed_invalidations += invalidated ? 1U : 0U;
@@ -4689,16 +4966,18 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
     }
 
     if (!child_intersection.empty()) {
-        const std::vector<Control::Ptr> children = (*control).children_;
-        for (const std::shared_ptr<gui_forms::Control>& child : children) {
-            if (!child || !(*child).is_alive() ||
-                (*child).parent_.lock().get() != control.get() ||
-                (*child).surface_root_ != this) {
-                continue;
+        const Point origin{bounds.x, bounds.y};
+        std::uint64_t revision = (*control).children_revision_;
+        const std::uint64_t walk_start = revision;
+        for (std::size_t position = 0U; position < (*control).children_.size();) {
+            const Control::Ptr child = (*control).children_[position];
+            if (child && (*child).is_alive() && (*child).parent_.lock().get() == control.get() &&
+                (*child).surface_root_ == this && (*child).added_at_revision_ <= walk_start) {
+                paint_recursive(child, origin, painter, child_intersection, plane, visited_nodes,
+                                painted_controls, consumed_invalidations, chunks_rebuilt,
+                                chunks_reused, commands_replayed);
             }
-            paint_recursive(child, painter, child_intersection, plane, visited_nodes,
-                            painted_controls, consumed_invalidations, chunks_rebuilt,
-                            chunks_reused, commands_replayed);
+            position = next_child_position(*control, child.get(), position, revision);
         }
     }
 
@@ -4719,13 +4998,26 @@ std::uint64_t SurfaceRoot::display_cache_entries(const Control::Ptr& control) co
 }
 
 void SurfaceRoot::update_display_cache_metrics() noexcept {
-    std::uint64_t entries = root_ ? display_cache_entries(root_) : 0U;
+    metrics_.set_display_cache(display_cache_entries_, display_generation_);
+}
+
+void SurfaceRoot::recount_display_cache() noexcept {
+    std::uint64_t entries = (root_ && (*root_).surface_root_ == this) ? display_cache_entries(root_) : 0U;
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
-        if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+        const Control::Ptr overlay_root = (*overlay).overlay();
+        if (overlay_root && (*overlay_root).surface_root_ == this) {
             entries += display_cache_entries(overlay_root);
         }
     }
-    metrics_.set_display_cache(entries, display_generation_);
+    display_cache_entries_ = entries;
+    update_display_cache_metrics();
+}
+
+void SurfaceRoot::note_display_chunk_change(const Control& control, bool had_chunk) noexcept {
+    if (control.surface_root_ != this) return;
+    const bool has_chunk = control.display_chunk_ != nullptr;
+    if (has_chunk && !had_chunk) ++display_cache_entries_;
+    if (!has_chunk && had_chunk && display_cache_entries_ > 0U) --display_cache_entries_;
 }
 
 void SurfaceRoot::compact_frame_requests() noexcept {
@@ -4752,8 +5044,7 @@ void SurfaceRoot::compact_frame_requests() noexcept {
 
 Rect SurfaceRoot::absolute_bounds_of(const Control& control) const {
     Rect result = control.arranged_bounds_;
-    for (Control::Ptr ancestor = control.parent(); ancestor;
-         ancestor = (*ancestor).parent()) {
+    for (const Control* ancestor = control.parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
         result.x += (*ancestor).arranged_bounds_.x;
         result.y += (*ancestor).arranged_bounds_.y;
     }
@@ -4762,32 +5053,34 @@ Rect SurfaceRoot::absolute_bounds_of(const Control& control) const {
 
 bool SurfaceRoot::arranged_in_window(const Control& control) const {
     if (control.arranged_bounds_.empty()) return false;
-    for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+    for (const Control* ancestor = control.parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
         if ((*ancestor).arranged_bounds_.empty()) return false;
     }
     return true;
 }
 
 Rect SurfaceRoot::visual_bounds_of(const Control& control, Insets outsets) const {
-    outsets = {bounded_visual_outset(outsets.left),
-               bounded_visual_outset(outsets.top),
-               bounded_visual_outset(outsets.right),
-               bounded_visual_outset(outsets.bottom)};
     const Rect bounds = absolute_bounds_of(control);
-    return {bounds.x - outsets.left, bounds.y - outsets.top,
-            bounds.width + outsets.left + outsets.right,
-            bounds.height + outsets.top + outsets.bottom};
+    const Rect result = visual_bounds_at(bounds, outsets);
+    return result;
 }
 
 Rect SurfaceRoot::paint_damage_bounds_of(const Control& control) const {
     if (!control.paints_content()) return Rect{};
     // A control not arranged yet (it or an ancestor has empty bounds) has
     // painted nothing: its outsets (a shadow) round an empty rectangle at
-    // its parent's origin would damage pixels it never touches.
-    if (!arranged_in_window(control)) return Rect{};
-    return Rect::united(
-        visual_bounds_of(control, control.effective_visual_outsets()),
-        visual_bounds_of(control, control.last_painted_visual_outsets_));
+    // its parent's origin would damage pixels it never touches. One walk
+    // up both checks that and places the control (audit B9: it was three).
+    if (control.arranged_bounds_.empty()) return Rect{};
+    Rect placed = control.arranged_bounds_;
+    for (const Control* ancestor = control.parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
+        if ((*ancestor).arranged_bounds_.empty()) return Rect{};
+        placed.x += (*ancestor).arranged_bounds_.x;
+        placed.y += (*ancestor).arranged_bounds_.y;
+    }
+    const Rect result = Rect::united(visual_bounds_at(placed, control.effective_visual_outsets()),
+                                     visual_bounds_at(placed, control.last_painted_visual_outsets_));
+    return result;
 }
 
 bool SurfaceRoot::eligible(const Control::Ptr& control) const noexcept {

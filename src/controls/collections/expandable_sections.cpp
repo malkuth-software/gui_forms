@@ -179,8 +179,8 @@ void ExpandableSections::set_items(std::vector<SectionItem> items) {
         const std::size_t child_count = (*next).entries.size() * 2U;
         for (std::size_t index = 0U; index < (*next).entries.size(); ++index) {
             const Entry& item = *(*next).entries[index];
-            static_cast<void>(set_child_index((*item.heading).runtime_id(), child_count - index * 2U - 1U));
-            static_cast<void>(set_child_index((*item.content).runtime_id(), child_count - index * 2U - 2U));
+            static_cast<void>(set_child_index_from_top((*item.heading).runtime_id(), child_count - index * 2U - 1U));
+            static_cast<void>(set_child_index_from_top((*item.content).runtime_id(), child_count - index * 2U - 2U));
         }
         invalidate(Dirty::layout | Dirty::paint | Dirty::semantics);
         replacing_ = false;

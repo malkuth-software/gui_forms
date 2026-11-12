@@ -158,22 +158,31 @@ void read_losses(const rtf2md::LossReport& report, MarkdownLossReport& losses) n
     for (const LossEntry& entry : loss_table) losses.add(entry.kind, report.entry(entry.source_kind).count);
 }
 
-[[nodiscard]] RtfConversionError error_of(rtf2md::Status status) {
+// The conversion's error for a library status (audit N114: never throws).
+// ok and output_too_small are not failures a caller can meet (ok is
+// success, and the writers are retried at the size they ask for); should
+// the library report one anyway, or a status outside the enumeration, the
+// conversion fails as malformed rather than raising.
+[[nodiscard]] RtfConversionError error_of(rtf2md::Status status) noexcept {
     switch (status) {
     case rtf2md::Status::malformed: return RtfConversionError::malformed;
     case rtf2md::Status::limit_exceeded: return RtfConversionError::limit_exceeded;
     case rtf2md::Status::unsupported_encoding: return RtfConversionError::unsupported_encoding;
     case rtf2md::Status::effort_exceeded: return RtfConversionError::effort_exceeded;
+    case rtf2md::Status::invalid_document:
+        // The readers should give only documents in normal form, but a link
+        // destination holding a control character (rtf_import_fuzz: a
+        // HYPERLINK field with a 0x1A byte) reaches a writer, which refuses
+        // the document. The input is malformed to the caller, not a defect
+        // to throw on; the readers' side is an stx_rtf2md defect.
+        return RtfConversionError::malformed;
     case rtf2md::Status::ok:
     case rtf2md::Status::output_too_small:
-    case rtf2md::Status::invalid_document:
-        // Not a failure a caller can meet: ok is success, the writers are
-        // retried at the size they ask for, and the readers only produce
-        // documents in normal form.
-        throw std::logic_error("stx_rtf2md reported a status the conversion does not expect");
+        // Not a failure a caller can meet: ok is success, and the writers
+        // are retried at the size they ask for.
+        return RtfConversionError::malformed;
     }
-    // A status outside the enumeration is a defect in the library.
-    throw std::logic_error("stx_rtf2md reported an unknown status");
+    return RtfConversionError::malformed;
 }
 
 [[nodiscard]] RtfBodyRule body_rule_of(rtf2md::BodyRule rule) noexcept {
@@ -212,20 +221,25 @@ bool looks_like_rtf(std::span<const std::byte> bytes) noexcept {
     return true;
 }
 
+// The whole conversion, reader included, runs inside the try (audit
+// N114): an allocation failure while reading pasted RTF fails the
+// conversion as the same failure in the writer does, with no exception.
 RtfConversionResult import_rtf(std::span<const std::byte> rtf, std::string& markdown) {
     markdown.clear();
-    const rtf2md::Limits limits{};
-    rtf2md::RtfReader reader(limits);
-    rtf2md::Document document;
-    rtf2md::LossReport loss;
-    const rtf2md::Result read = reader.read(rtf, document, loss);
-    if (read.status != rtf2md::Status::ok) return RtfConversionResult::failed(error_of(read.status), read.stop.value);
-    MarkdownLossReport losses;
-    read_losses(loss, losses);
-    const rtf2md::BodySize chosen = reader.last_body();
-    const RtfBodySize body{chosen.half_points, body_rule_of(chosen.rule)};
-    rtf2md::MarkdownWriter writer(limits);
     try {
+        const rtf2md::Limits limits{};
+        rtf2md::RtfReader reader(limits);
+        rtf2md::Document document;
+        rtf2md::LossReport loss;
+        const rtf2md::Result read = reader.read(rtf, document, loss);
+        if (read.status != rtf2md::Status::ok) {
+            return RtfConversionResult::failed(error_of(read.status), read.stop.value);
+        }
+        MarkdownLossReport losses;
+        read_losses(loss, losses);
+        const rtf2md::BodySize chosen = reader.last_body();
+        const RtfBodySize body{chosen.half_points, body_rule_of(chosen.rule)};
+        rtf2md::MarkdownWriter writer(limits);
         // The writer states the exact size it needs when the first guess is
         // short.
         markdown.resize(document.text.size() * 2U + 64U);
@@ -239,6 +253,7 @@ RtfConversionResult import_rtf(std::span<const std::byte> rtf, std::string& mark
             return RtfConversionResult::failed(error_of(written.status), 0U);
         }
         markdown.resize(written.produced);
+        return RtfConversionResult::imported(losses, body);
     } catch (const std::bad_alloc&) {
         markdown.clear();
         return RtfConversionResult::failed(RtfConversionError::limit_exceeded, 0U);
@@ -246,22 +261,24 @@ RtfConversionResult import_rtf(std::span<const std::byte> rtf, std::string& mark
         markdown.clear();
         return RtfConversionResult::failed(RtfConversionError::limit_exceeded, 0U);
     }
-    return RtfConversionResult::imported(losses, body);
 }
 
+// As import_rtf: the reader runs inside the try too (N114).
 RtfConversionResult export_rtf(std::string_view markdown, std::vector<std::byte>& rtf) {
     rtf.clear();
-    const rtf2md::Limits limits{};
-    rtf2md::MarkdownReader reader(limits);
-    rtf2md::Document document;
-    rtf2md::LossReport loss;
-    const std::span<const char> input(markdown.data(), markdown.size());
-    const rtf2md::Result read = reader.read(input, document, loss);
-    if (read.status != rtf2md::Status::ok) return RtfConversionResult::failed(error_of(read.status), read.stop.value);
-    MarkdownLossReport losses;
-    read_losses(loss, losses);
-    rtf2md::RtfWriter writer(limits);
     try {
+        const rtf2md::Limits limits{};
+        rtf2md::MarkdownReader reader(limits);
+        rtf2md::Document document;
+        rtf2md::LossReport loss;
+        const std::span<const char> input(markdown.data(), markdown.size());
+        const rtf2md::Result read = reader.read(input, document, loss);
+        if (read.status != rtf2md::Status::ok) {
+            return RtfConversionResult::failed(error_of(read.status), read.stop.value);
+        }
+        MarkdownLossReport losses;
+        read_losses(loss, losses);
+        rtf2md::RtfWriter writer(limits);
         rtf.resize(document.text.size() * 2U + 1024U);
         rtf2md::Result written = writer.write(document, std::span<std::byte>(rtf.data(), rtf.size()));
         if (written.status == rtf2md::Status::output_too_small) {
@@ -273,6 +290,7 @@ RtfConversionResult export_rtf(std::string_view markdown, std::vector<std::byte>
             return RtfConversionResult::failed(error_of(written.status), 0U);
         }
         rtf.resize(written.produced);
+        return RtfConversionResult::exported(losses);
     } catch (const std::bad_alloc&) {
         rtf.clear();
         return RtfConversionResult::failed(RtfConversionError::limit_exceeded, 0U);
@@ -280,7 +298,6 @@ RtfConversionResult export_rtf(std::string_view markdown, std::vector<std::byte>
         rtf.clear();
         return RtfConversionResult::failed(RtfConversionError::limit_exceeded, 0U);
     }
-    return RtfConversionResult::exported(losses);
 }
 
 } // namespace gui_forms

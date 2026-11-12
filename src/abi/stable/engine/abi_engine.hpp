@@ -41,6 +41,14 @@ struct KeptOwner final {
     Component::Ptr owner;
 };
 
+// An owned window open now (windows.show_modal or show_owned), from its
+// ready to its closed, and the root it was opened over. Observed only: the
+// application's window table owns the window.
+struct OpenOwnedWindow final {
+    gf_object root = 0U;
+    Window* window = nullptr;
+};
+
 // One published name and, while present, its value.
 struct PublishedInput final {
     std::string name;
@@ -58,7 +66,15 @@ public:
     // call on the UI thread.
     [[nodiscard]] ApplicationResources& resources();
     [[nodiscard]] const std::shared_ptr<ApplicationResources>& shared_resources();
-    [[nodiscard]] ThemeLibrary& library() noexcept { return library_; }
+    [[nodiscard]] ThemeLibrary& library() noexcept { return *library_; }
+    // The library shared, for a theme request held until the first window
+    // (user_themes.hpp: --theme, GUI_FORMS_THEME_SHEET).
+    [[nodiscard]] std::shared_ptr<const ThemeLibrary> shared_library() const noexcept { return library_; }
+    // Holds the process's theme request on `resources`, compiled against
+    // the library's packages, control types and published names, onto
+    // `base`: for resources the library makes, and for an application's
+    // once its theme is set. UI thread.
+    void hold_theme_request(ApplicationResources& resources, ThemeBase base);
     // The application made through GF_TABLE_APPLICATION, or null. While it
     // lives the library's resources are its resources.
     [[nodiscard]] Application* application() const noexcept { return application_.get(); }
@@ -95,6 +111,17 @@ public:
     void detach_window() noexcept { running_ = nullptr; }
     [[nodiscard]] Window* running_window() const noexcept { return running_; }
 
+    // The owned windows open now, in opening order. attach_owned_window
+    // throws std::bad_alloc, recording nothing; detach_owned_window forgets
+    // the window opened over root, if any.
+    void attach_owned_window(gf_object root, Window& window);
+    void detach_owned_window(gf_object root) noexcept;
+    [[nodiscard]] std::span<const OpenOwnedWindow> owned_windows() const noexcept { return owned_; }
+    // The window open over root: the running window for zero or the run's
+    // root (run_root), an owned window for its root; null for any other
+    // object or when that window is not open (N32).
+    [[nodiscard]] Window* window_over(gf_object root, gf_object run_root) const noexcept;
+
     // The paths the last dialog chose.
     [[nodiscard]] std::vector<std::string>& dialog_paths() noexcept { return dialog_paths_; }
 
@@ -112,7 +139,9 @@ private:
     // Declared after the resources: destroyed first (never, in practice; see
     // above), so the application never outlives what it shares.
     std::unique_ptr<Application> application_{};
-    ThemeLibrary library_{};
+    // Shared with a theme request held by the resources until their first
+    // window.
+    std::shared_ptr<ThemeLibrary> library_{std::make_shared<ThemeLibrary>()};
     // Copies of the schema's anatomies, which name static storage.
     std::vector<ControlAnatomy> controls_{};
     bool controls_built_ = false;
@@ -122,6 +151,7 @@ private:
     std::vector<PublishedInput> published_{};
     std::vector<std::string> published_names_{};
     Window* running_ = nullptr;
+    std::vector<OpenOwnedWindow> owned_{};
     std::vector<std::string> dialog_paths_{};
     std::uint64_t next_dialog_request_ = 1;
     std::vector<KeptOwner> kept_owners_{};

@@ -5,6 +5,8 @@
 
 #include "../tables/abi_records.hpp"
 
+#include "gui_forms/detail/storage_growth.hpp"
+
 #include <cmath>
 #include <string>
 #include <variant>
@@ -81,11 +83,30 @@ gf_status check_written(const gf_value& value, SlotIdentity slot) {
 // EventFields.
 
 EventFields::~EventFields() {
+    release();
+}
+
+bool EventFields::claim() noexcept {
+    if (claimed_) {
+        return false;
+    }
+    claimed_ = true;
+    return true;
+}
+
+void EventFields::release() noexcept {
     end_publication();
     for (const gf_object object : lent_) {
         const gf_status released = registry().release(object, lend_slot);
         static_cast<void>(released);
     }
+    lent_.clear();
+    fields_.clear();
+    records_.clear();
+    texts_used_ = 0U;
+    prefix_.clear();
+    writable_ = false;
+    claimed_ = false;
 }
 
 void EventFields::set_writable(bool writable) noexcept {
@@ -105,40 +126,66 @@ void EventFields::leave(EventFieldPrefix prefix) noexcept {
     prefix_.resize(prefix.length);
 }
 
-std::string EventFields::full_name(std::string_view name) const {
+void EventFields::compose_name(std::string_view name, std::string& out) const {
     if (!name.empty()) {
-        std::string full = prefix_;
-        full += name;
-        return full;
+        out.assign(prefix_);
+        out.append(name);
+        return;
     }
     if (prefix_.empty()) {
-        const std::string value(single_name);
-        return value;
+        out.assign(single_name);
+        return;
     }
     // A nameless value inside a struct: the struct's own name.
-    const std::string enclosing = prefix_.substr(0U, prefix_.size() - 1U);
-    return enclosing;
+    out.assign(prefix_, 0U, prefix_.size() - 1U);
+}
+
+bool EventFields::name_matches(const std::string& stored, std::string_view name) const noexcept {
+    const std::string_view held(stored);
+    if (!name.empty()) {
+        const bool matches = held.size() == prefix_.size() + name.size() && held.starts_with(prefix_) &&
+                             held.substr(prefix_.size()) == name;
+        return matches;
+    }
+    if (prefix_.empty()) {
+        const bool matches = held == single_name;
+        return matches;
+    }
+    const std::string_view enclosing = std::string_view(prefix_).substr(0U, prefix_.size() - 1U);
+    const bool matches = held == enclosing;
+    return matches;
 }
 
 gf_value& EventFields::append(std::string_view name, gf_value_kind kind, gf_event_field_flags flags,
                               EventFieldAccepts accepts) {
-    std::string full = full_name(name);
-    names_.push_back(std::move(full));
-    gf_value blank{};
-    blank.struct_size = value_size_1_0;
-    blank.kind = kind;
-    values_.push_back(blank);
+    // The pool's entry for the next field, grown only past the largest
+    // event this EventFields has built.
+    const std::size_t index = fields_.size();
+    if (index == names_.size()) {
+        names_.emplace_back();
+        values_.emplace_back();
+    }
+    compose_name(name, names_[index]);
+    gf_value& value = values_[index];
+    value = gf_value{};
+    value.struct_size = value_size_1_0;
+    value.kind = kind;
     Field field{};
     field.kind = kind;
     field.flags = writable_ ? flags : (flags & ~static_cast<gf_event_field_flags>(GF_EVENT_FIELD_WRITABLE));
     field.accepts = accepts;
     fields_.push_back(field);
-    return values_.back();
+    return value;
 }
 
 std::string_view EventFields::keep_text(std::string_view text) {
-    texts_.emplace_back(text);
-    const std::string_view kept = texts_.back();
+    if (texts_used_ == texts_.size()) {
+        texts_.emplace_back();
+    }
+    std::string& kept_storage = texts_[texts_used_];
+    kept_storage.assign(text);
+    texts_used_ = texts_used_ + 1U;
+    const std::string_view kept = kept_storage;
     return kept;
 }
 
@@ -153,7 +200,7 @@ gf_object EventFields::lend(const Component* object) {
     if (object == nullptr) {
         return 0U;
     }
-    lent_.reserve(lent_.size() + 1U);
+    detail::reserve_one_more(lent_);
     const Control* control = dynamic_cast<const Control*>(object);
     gf_object lent = 0U;
     if (control != nullptr) {
@@ -175,8 +222,7 @@ std::size_t EventFields::count() const noexcept {
 }
 
 void EventFields::mark_optional(std::size_t mark, std::string_view name, bool absent) {
-    const std::string expected = full_name(name);
-    const bool scalar = fields_.size() == mark + 1U && names_[mark] == expected;
+    const bool scalar = fields_.size() == mark + 1U && name_matches(names_[mark], name);
     if (scalar) {
         fields_[mark].flags |= GF_EVENT_FIELD_OPTIONAL;
     }
@@ -196,10 +242,9 @@ void EventFields::mark_optional(std::size_t mark, std::string_view name, bool ab
         return;
     }
     // An absent struct: one NULL field in place of its members.
+    // The members' pool entries stay as spares.
     while (fields_.size() > mark) {
         fields_.pop_back();
-        names_.pop_back();
-        values_.pop_back();
     }
     gf_value& null_value = append(name, GF_VALUE_KIND_NULL, GF_EVENT_FIELD_OPTIONAL, nullptr);
     static_cast<void>(null_value);
@@ -209,7 +254,7 @@ void EventFields::publish(gf_event& event, bool single_argument) {
     records_.clear();
     records_.reserve(fields_.size());
     std::vector<EventFields*>& frames = active_frames();
-    frames.reserve(frames.size() + 1U);
+    detail::reserve_one_more(frames);
     std::size_t index = 0U;
     for (index = 0U; index < fields_.size(); ++index) {
         gf_event_field record{};
@@ -246,10 +291,9 @@ void EventFields::end_publication() noexcept {
 }
 
 bool EventFields::written(std::string_view name, gf_value& value) const {
-    const std::string full = full_name(name);
     std::size_t index = 0U;
     for (index = 0U; index < fields_.size(); ++index) {
-        if (fields_[index].written && names_[index] == full) {
+        if (fields_[index].written && name_matches(names_[index], name)) {
             value = values_[index];
             return true;
         }

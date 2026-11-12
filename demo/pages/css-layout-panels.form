@@ -9,7 +9,7 @@
 
    gallery.css-layout.document is a declared boundary only: the page moves
    its children into the shell's page body (a 1000 x 660 design surface).
-   The page keeps the page style in code. The Gallery theme styles the
+   The Gallery theme styles the
    classes. */
 scaled-panel gallery.css-layout.document {
   design-size: 1000 660;

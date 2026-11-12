@@ -1,6 +1,7 @@
 #include "gui_forms/host.hpp"
 
 #include "gui_forms/window.hpp"
+#include "../../failure/fail_fast.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -174,7 +175,7 @@ bool valid_input_settings(const HostInputSettingsEvent& input) noexcept {
                           input.double_click_milliseconds <= maximum_double_click_milliseconds;
     const bool origin = input.double_click_origin == SettingOrigin::default_value ||
                         input.double_click_origin == SettingOrigin::host;
-    return interval && origin && valid_pointer_settings(input.pointer);
+    return interval && origin && valid_pointer_settings(input.pointer) && valid_caret_settings(input.caret);
 }
 
 HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool shutdown,
@@ -359,6 +360,7 @@ void HostSession::DispatchVisitor::operator()(
         settings.double_click_milliseconds = payload.double_click_milliseconds;
         settings.double_click_origin = payload.double_click_origin;
         settings.pointer = payload.pointer;
+        settings.caret = payload.caret;
         (*(*session).window_).set_host_presentation(settings);
     } else if constexpr (std::is_same_v<Payload, HostContextRequestEvent>) {
         (*result).handled = (*(*session).window_).dispatch_context_request(payload.origin, payload.position);
@@ -472,43 +474,29 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         observed_.emit(event, result);
         return result;
     }
-    try {
-        std::visit(DispatchVisitor{this, &result, &event}, event.payload);
-        // The native window exists from the attach on (a host binds the
-        // session before it creates the window, when a chrome request finds
-        // nothing to change): every chrome property the program wrote
-        // before then reaches it now, start position included, before the
-        // window is first shown. A later write of the same value sends
-        // nothing, so this is the only time they are sent.
-        if (services_ != nullptr && std::holds_alternative<HostAttachEvent>(event.payload)) {
-            (*window_).apply_window_chrome(WindowChromeFields{WindowChromeFields::all_bits});
-        }
-        observed_.emit(event, result);
-    } catch (...) {
-        // Event callbacks are ordinary C++ and deliberately propagate through
-        // Event::emit. The portable host seam is the foreign-ABI boundary: no
-        // application exception may unwind into AppKit, Win32, X11, or
-        // Wayland. Retain the consumed sequence, report the fault, and revoke
-        // transient input ownership that a partially delivered event may have
-        // acquired.
-        result.handled = false;
-        result.input_deferred = false;
-        result.input_capacity_rejected = false;
-        result.close_allowed = false;
-        result.drag_effect = DragEffect::none;
-        result.error = HostDispatchError::callback_fault;
-        ++snapshot_.callback_faults;
-        if (window_ != nullptr) {
-            try {
-                (*window_).release_pointer();
-                (*window_).cancel_drag();
-            } catch (...) {
-                // Cleanup is best effort at an exception boundary. The
-                // original callback fault remains the observable result.
-            }
-        }
-    }
+    // Event callbacks are ordinary C++ and propagate through Event::emit. The
+    // portable host seam is where they meet the host's native callback, so
+    // the delivery goes through the fail-fast boundary: an application
+    // exception ends the process with a report and never unwinds into
+    // AppKit, Win32, X11 or Wayland frames.
+    gui_forms::detail::call_failing_fast("host_session.dispatch", &HostSession::deliver, *this, event, result);
     return result;
+}
+
+// Delivers an accepted event to the window, then to the session's
+// observers. Runs inside the fail-fast boundary (dispatch).
+void HostSession::deliver(HostEvent& event, HostDispatchResult& result) {
+    std::visit(DispatchVisitor{this, &result, &event}, event.payload);
+    // The native window exists from the attach on (a host binds the
+    // session before it creates the window, when a chrome request finds
+    // nothing to change): every chrome property the program wrote
+    // before then reaches it now, start position included, before the
+    // window is first shown. A later write of the same value sends
+    // nothing, so this is the only time they are sent.
+    if (services_ != nullptr && std::holds_alternative<HostAttachEvent>(event.payload)) {
+        (*window_).apply_window_chrome(WindowChromeFields{WindowChromeFields::all_bits});
+    }
+    observed_.emit(event, result);
 }
 
 void HostSession::shutdown() noexcept {

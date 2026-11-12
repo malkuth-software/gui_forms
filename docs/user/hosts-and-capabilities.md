@@ -25,7 +25,7 @@ whole record for logs.
 | `occlusion` | window hidden/exposed notifications that gate painting | yes | no | yes |
 | `scheduled_wake` | timed wake for frames and timers | yes | yes | yes |
 | `pointer_input`, `keyboard_input` | translated pointer and key events | yes | yes | yes |
-| `text_composition` | input-method composition bridged to the window | yes | no | no |
+| `text_composition` | input-method composition bridged to the window | yes | yes | no |
 | `pointer_capture` | synchronous capture routed to one control | yes | yes | yes |
 | `cursor` | portable cursor kinds applied natively | yes | yes | yes |
 | `clipboard`, `clipboard_images` | bounded UTF-8 text and premultiplied BGRA8 images | yes | yes | yes |
@@ -152,6 +152,18 @@ backdrops").
 The headless reference host simulates these capabilities
 (`HeadlessApplication::simulate_compositor_state`).
 
+## Idle windows schedule no frames
+
+A window whose live surfaces publish nothing schedules no frames (audit E4).
+Each native host keeps its live clock running only while frames arrive:
+when a drain finds no new publication it stops the clock and arms the
+window's idle handshake (`Window::set_live_surface_idle_waiting`), and the
+producer's next publication wakes the host from its own thread (macOS: the
+display link; Windows: a posted message that re-arms the waitable timer;
+X11: the run's wake pipe, which ends the 16 ms poll's rest). Retained
+damage also ends a rest, for one drain. The Windows host counts the rests
+in its diagnostics (`live_presentations.idle_entries`).
+
 ## Input settings
 
 Every host reports the platform's double-click interval after a window
@@ -186,6 +198,22 @@ its origin. `native_hover` says the host reports hover itself
 | Linux X11 | `Net/DndDragThreshold` (a rectangle twice the threshold) | the window's timer, 400 ms default |
 | Headless | the defaults | the window's timer |
 
+The record also carries `caret` (`CaretSettings`, protocol version 13): how
+long a text caret stays shown or hidden before it toggles, 530 ms by default
+(`default_caret_blink_milliseconds`, Windows' own default), at most 10000 ms;
+0 means the user turned blinking off, and the caret then stays shown with no
+timer. `TextBox` and `RichTextBox` read it whenever they start a blink (on
+focus and after each caret movement); a caret already blinking keeps its
+phase until then, except that a change to "never" stops it at the next
+toggle with the caret shown.
+
+| Host | Source | Refreshed |
+|---|---|---|
+| Windows | `GetCaretBlinkTime` (`INFINITE` is 0; a failed read keeps the default) | on `WM_SETTINGCHANGE`, with the other input settings |
+| macOS | the `NSTextInsertionPointBlinkPeriodOn` user default where set; a period above 10000 ms (the usual way to stop blinking) reports 0; otherwise the default | on each activation |
+| Linux X11 | `Net/CursorBlink` (0 is off) and `Net/CursorBlinkTime` (a whole cycle, halved into the phase) | with the other XSETTINGS values |
+| Headless | the default | never |
+
 ## Mouse events and context requests
 
 The core counts no clicks: every pointer press carries the host's click
@@ -209,6 +237,19 @@ events' order and use are in [Mouse events and context requests](mouse-events.md
 | macOS | `menuForEvent:` (right press, Control-click) | the accessibility show-menu action only (VoiceOver VO+Shift+M) |
 | Linux X11 | the right button's press, emulated by the host | the Menu key or Shift+F10, emulated by the host when no control handled the key |
 | Headless | `SurfaceRoot::dispatch_context_request` | the same |
+
+What the native hosts do not yet deliver, so a WinForms port should not
+expect it (audit N62): the extra mouse buttons (X1 and X2, Windows
+`WM_XBUTTON*`, macOS buttons 3 and up, X11 buttons 8 and 9) are dropped,
+since `PointerButton` names only the primary, secondary and middle buttons
+and adding back and forward is an ABI change left for the seal; touch and
+pen input arrive only as the platform's mouse emulation (no `WM_POINTER*`,
+`WM_TOUCH`, macOS touch events or XInput2 touch); horizontal wheel scrolling
+is delivered by every native host (Windows `WM_MOUSEHWHEEL`, macOS
+`scrollingDeltaX`, X11 buttons 6 and 7). Monitor changes reach the window as
+`HostDisplayEvent`: Windows on `WM_DISPLAYCHANGE`, macOS on
+`NSApplicationDidChangeScreenParametersNotification`, X11 on RandR's screen
+change notification where the build has libXrandr.
 
 ## Keyboard-command defaults
 
@@ -279,10 +320,21 @@ Windows (Win32)
   through providers for `UiaRootObjectId` (AutomationId is the stable ID;
   Invoke, Toggle, Value, RangeValue, ExpandCollapse, SelectionItem and
   Selection patterns, and TextPattern and TextPattern2 for a text box's
-  text, units, selection, caret and bounds). The adapter does not advertise
-  `text_composition`: the system input method draws its own composition and
-  candidate windows, which the host places at the focused control's caret,
-  and committed text arrives as `WM_CHAR`; no preedit reaches the window. OLE drag/drop and native menu publication are not implemented.
+  text, units, selection, caret and bounds). Scheduled wakes nearer than
+  50 ms (theme animations, a fast caret) ride a high-resolution waitable
+  timer instead of `WM_TIMER`, whose floor and granularity made such frames
+  uneven; farther ones keep `SetTimer` (audit N63). The live clock is phased
+  to the primary display's vertical blank, or, for a window on another
+  display with a different refresh rate, runs at that display's period
+  (audit N64). The open, save and folder dialogs are the shell's common item
+  dialog (`IFileOpenDialog`, `IFileSaveDialog`): no fixed path buffer and no
+  `MAX_PATH` limit, and a chosen path that cannot be converted to UTF-8 is a
+  failure (audit N65). Input methods compose inline
+  (`text_composition`, IMM32): `WM_IME_COMPOSITION`'s composition string
+  reaches the focused control as composing text, which the control shows
+  and each update replaces, and its result string as committed input; the
+  system's own composition window is turned off and its candidate window is
+  placed below the caret. TSF is not used. OLE drag/drop and native menu publication are not implemented.
 
 Linux (X11)
 : `src/host/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib
@@ -297,6 +349,25 @@ Linux (X11)
   whole; editable text ranges are not implemented.
   The CPU raster is presented through X11 images. There is no Wayland adapter;
   Wayland sessions run the X11 host through XWayland.
+  The host renders at scale 1: it reads no `Xft.dpi` or per-monitor scale,
+  so on a high-density X11 display the interface draws at its 96 DPI size
+  (audit N66, open). Monitors come from RandR 1.5 (`XRRGetMonitors`) where
+  the build found libXrandr and the server offers it, one record per
+  monitor named by its output (`DP-1`), each with scale 1 and its work area
+  clipped to `_NET_WORKAREA`; otherwise the default screen is one monitor.
+  One loop turn takes at most 32 X events or 4 ms before the windows update,
+  as the Windows host's turn does, and drops a pointer motion that a later
+  queued motion for the same window replaces (audit N68).
+  Presentation writes the frame into a MIT-SHM segment the server reads
+  (`XShmPutImage`) where the build found libXext and the display is local;
+  otherwise, and on a remote display, it sends the pixels with `XPutImage`.
+  The common 32-bit BGRX visual takes the raster's rows as they are, with no
+  per-pixel conversion (audit G4/N67).
+  Honest X11 limits (audit N69): the wheel is core buttons 4 to 7 at a fixed
+  40 units a notch, with no XInput2, so touchpads do not scroll smoothly and
+  touch arrives only as the server's pointer emulation; the live clock is a
+  16 ms poll, not phased to the display, and rests while no live surface
+  publishes.
 
 Headless
 : `src/host/headless/`, built everywhere and linked by the tests. It emits
@@ -334,11 +405,11 @@ The host presents pixels; it does not paint them. Painting goes through the
 `Painter` implemented by a private renderer:
 
 - A CPU-only Skia build (no GPU backend, no font backend, PNG as the only
-  codec) on macOS and Linux, confined to `src/render/skia/`. PNG decoding
+  codec) on every host, confined to `src/render/skia/`. PNG decoding
   and encoding on every host use the shared owned codec in
   `src/core/image/` (on stx_zlib), not Skia's or the platform's.
-- A DIB compositor on Windows that implements the same blending arithmetic
-  byte for byte.
+- On Windows, the host presents the renderer's frames from DIB sections
+  (`src/host/windows/raster/`); it draws nothing itself.
 
 `MetricsSnapshot::renderer_name` names the active one and `cpu_only` is
 always true. No Skia type crosses into a public header, a control or a test

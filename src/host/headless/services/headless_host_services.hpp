@@ -45,6 +45,9 @@ public:
     // The next non-opaque application fails with backend_failure and leaves
     // the native backdrop unchanged, as a native call that failed would.
     void fail_next_backdrop() noexcept { fail_next_backdrop_ = true; }
+    // Every non-opaque application fails from now on, as on Wine, whose
+    // DWM refuses blur behind.
+    void refuse_backdrops() noexcept { refuse_backdrops_ = true; }
     // The simulated platform's corners: apply_window_corners records the
     // preference (native_corner_preference, `system` until then) and
     // answers with the report set for it here (unknown corners until one
@@ -114,6 +117,7 @@ private:
     WindowBackdrop native_backdrop_{WindowBackdrop::opaque};
     std::string backdrop_trace_;
     bool fail_next_backdrop_{};
+    bool refuse_backdrops_{};
     WindowCornerPreference native_corner_preference_{WindowCornerPreference::system};
     WindowChromeFields supported_chrome_{WindowChromeFields::all_bits};
     WindowChrome native_chrome_{};

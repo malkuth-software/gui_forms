@@ -71,6 +71,8 @@ Related types
      - ScrollProperties is the owner-bound, per-axis state model for enabled/visible state, authored or automatic range increments, clamped position, orientation, and inspectable snapshot projection.
    * - :cpp:class:`ScrollSnapshot <gui_forms::ScrollSnapshot>`
      - ScrollSnapshot combines horizontal/vertical axis snapshots with auto-scroll policy, margin, minimum size, offset, and logical position.
+   * - :cpp:class:`WheelScrollsCapability <gui_forms::WheelScrollsCapability>`
+     - Whether a wheel turn over the control, or bubbling unhandled from a descendant, scrolls the control natively; false leaves the wheel to the consumer (a compatibility layer's OnMouseWheel).
 
 .. cpp:namespace:: gui_forms
 
@@ -190,7 +192,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ScrollableControlCapabilities : public AutoScrollCapability<Declaring>, public AutoScrollMarginCapability<Declaring>, public AutoScrollMinSizeCapability<Declaring>, public AutoScrollPositionCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ScrollableControlCapabilities : public AutoScrollCapability<Declaring>, public AutoScrollMarginCapability<Declaring>, public AutoScrollMinSizeCapability<Declaring>, public AutoScrollPositionCapability<Declaring>, public WheelScrollsCapability<Declaring>
 
    ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
 
@@ -214,6 +216,10 @@ Related types
    .. cpp:member:: Point auto_scroll_position
 
       The scrolled content's offset, negated as Windows Forms reports it (AutoScrollPosition); a write scrolls to the given position, clamped at zero.
+
+   .. cpp:member:: bool wheel_scrolls
+
+      Whether a wheel turn over the control, or bubbling unhandled from a descendant, scrolls the control natively; false leaves the wheel to the consumer (a compatibility layer's OnMouseWheel).
 
 .. cpp:namespace:: gui_forms
 
@@ -258,6 +264,12 @@ Related types
    .. cpp:member:: PartGeometry decrement_arrow
 
    .. cpp:member:: PartGeometry increment_arrow
+
+   .. cpp:member:: PartGeometry decrement_glyph
+
+      The arrow marks, each centred in its button (empty when the button is too small to hold one).
+
+   .. cpp:member:: PartGeometry increment_glyph
 
    .. cpp:member:: PartGeometry track
 
@@ -498,6 +510,23 @@ Related types
    .. cpp:member:: ScrollAxisSnapshot horizontal
 
    .. cpp:member:: ScrollAxisSnapshot vertical
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WheelScrollsCapability
+
+   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+
+   Whether a wheel turn over the control, or bubbling unhandled from a descendant, scrolls the control natively; false leaves the wheel to the consumer (a compatibility layer's OnMouseWheel).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WheelScrollsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, WheelScrollsCapability<Declaring>> wheel_scrolls
+
+      Default: ``{true}``.
 
 Enumerations
 ------------

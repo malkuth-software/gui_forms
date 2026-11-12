@@ -4,6 +4,7 @@
 #include "core_text_font_bytes.hpp"
 #endif
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -12,6 +13,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -642,6 +644,203 @@ void installed_families_are_located_through_core_text() {
 
 } // namespace
 
+
+// -- canvas state, owned targets and the image row copy --------------------------------
+
+// What the state steps draw with.
+struct StateStepTools final {
+    SolidBrush red{Color::from_name("red")};
+    SolidBrush translucent{Color::from_argb(128U, 20U, 90U, 200U)};
+    Pen blue{Color::from_name("blue"), 2.0};
+    Pen thin{Color::from_argb(200U, 10U, 160U, 40U), 1.0};
+    GraphicsPath path{FillMode::winding};
+    Bitmap image{12U, 8U};
+    Bitmap opaque_image{12U, 8U};
+    ImageAttributes attributes;
+    MarkerStyle marker;
+    GridPatternStyle grid;
+};
+
+void prepare_state_step_tools(StateStepTools& tools) {
+    tools.path.add_rectangle({30, 30, 14, 10});
+    tools.path.add_ellipse({34, 33, 9, 9});
+    for (std::uint32_t y = 0U; y < 8U; ++y) {
+        for (std::uint32_t x = 0U; x < 12U; ++x) {
+            const std::uint8_t alpha = static_cast<std::uint8_t>(80U + (x * 13U + y * 7U) % 176U);
+            tools.image.set_pixel(x, y, Color::from_argb(alpha, static_cast<std::uint8_t>(x * 20U),
+                                                         static_cast<std::uint8_t>(y * 30U), 90U));
+            tools.opaque_image.set_pixel(x, y, Color::from_argb(255U, static_cast<std::uint8_t>(x * 21U),
+                                                                static_cast<std::uint8_t>(y * 31U), 140U));
+        }
+    }
+    tools.marker.shape = MarkerShape::square;
+    tools.marker.size = 5.0;
+    tools.marker.fill = Color::from_name("red");
+    tools.marker.edge = Color::from_name("blue");
+    tools.marker.edge_width = 1.0;
+    tools.grid.origin = PointF{2, 2};
+    tools.grid.spacing = 6.0;
+    tools.grid.major_every = 2U;
+    tools.grid.minor = Color::from_name("lime");
+    tools.grid.major = Color::from_argb(160U, 255U, 0U, 0U);
+    tools.grid.line_width = 1.0;
+}
+
+// The steps of state_is_set_only_where_it_changes: one command kind each,
+// under a state that repeats from one step to the next (no clip or one of
+// two clips, a translation of 0 or 3), so that consecutive commands share
+// their clip, their transform, both or neither. Each step sets its whole
+// state, so that it draws alike in a list of its own.
+constexpr std::size_t state_steps = 17U;
+
+void record_state_step(GraphicsRecorder& recorder, std::size_t step, const StateStepTools& tools) {
+    recorder.set_transform(Matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0));
+    recorder.reset_clip();
+    const bool first_clip = (step / 2U) % 2U == 0U;
+    if (step % 3U != 0U) recorder.set_clip(first_clip ? RectF{4, 2, 50, 40} : RectF{10, 6, 44, 50});
+    recorder.translate(first_clip ? 0.0 : 3.0, 0.0);
+    const PointF triangle[] = {{6, 30}, {26, 34}, {14, 50}};
+    const PointF polyline[] = {{2, 44}, {20, 40}, {40, 56}, {60, 44}};
+    const RectF rects[] = {{40, 4, 6, 5}, {48, 10, 5, 7}, {52, 2, 8, 3}};
+    const PointF segments[] = {{2, 2}, {60, 60}, {60, 2}, {2, 60}};
+    const PointF centres[] = {{12, 12}, {30, 20}, {50, 50}};
+    switch (step) {
+    case 0U: recorder.clear(Color::from_argb(255U, 236U, 238U, 242U)); break;
+    case 1U: recorder.fill_rectangle(tools.red, {6, 4, 20, 12}); break;
+    case 2U: recorder.draw_rectangle(tools.blue, {8, 8, 30, 20}); break;
+    case 3U: recorder.draw_line(tools.thin, {0, 0}, {60, 50}); break;
+    case 4U: recorder.draw_ellipse(tools.blue, {20, 10, 30, 18}); break;
+    case 5U: recorder.fill_ellipse(tools.translucent, {4, 20, 26, 22}); break;
+    case 6U: recorder.fill_polygon(tools.red, triangle, FillMode::winding); break;
+    case 7U: recorder.draw_path(tools.thin, tools.path); break;
+    case 8U: recorder.fill_path(tools.translucent, tools.path); break;
+    case 9U: recorder.draw_image(tools.image, {30, 2, 24, 16}, {0, 0, 12, 8}, tools.attributes); break;
+    case 10U: recorder.draw_image(tools.opaque_image, {5, 40, 12, 8}, {0, 0, 12, 8}, tools.attributes); break;
+    case 11U: recorder.draw_lines(tools.blue, polyline); break;
+    case 12U: recorder.fill_rectangles(tools.translucent, rects); break;
+    case 13U: recorder.draw_line_segments(tools.thin, segments); break;
+    case 14U: recorder.draw_markers(centres, tools.marker); break;
+    case 15U: recorder.fill_grid_pattern({20, 20, 30, 30}, tools.grid); break;
+    default: recorder.fill_proportion(tools.red, {4, 50, 40, 10}, CornerRadii{5, 5, 5, 5}, 0.6,
+                                      FillDirection::left_to_right); break;
+    }
+}
+
+bool same_pixels(const Bitmap& first, const Bitmap& second) {
+    const ImageSnapshot left = first.snapshot();
+    const ImageSnapshot right = second.snapshot();
+    const std::span<const std::byte> left_pixels = left.pixels();
+    const std::span<const std::byte> right_pixels = right.pixels();
+    const bool same = left_pixels.size() == right_pixels.size() &&
+                      std::equal(left_pixels.begin(), left_pixels.end(), right_pixels.begin());
+    return same;
+}
+
+// The executor sets the canvas state only where a command's differs from
+// the command before's. Every command kind, drawn after the step before it
+// in one list, gives the bytes of the two drawn each in a list of its own
+// (each list starts from a fresh canvas state); so does the whole list.
+// The same list on a borrowed target gives the same bytes as on an owned
+// one: both are drawn in place.
+void state_is_set_only_where_it_changes() {
+    SkiaExecutor executor;
+    StateStepTools tools;
+    prepare_state_step_tools(tools);
+    for (std::size_t step = 1U; step < state_steps; ++step) {
+        GraphicsRecorder pair;
+        record_state_step(pair, step - 1U, tools);
+        record_state_step(pair, step, tools);
+        Bitmap together(64U, 64U);
+        CHECK(executor.execute(pair, together));
+        Bitmap apart(64U, 64U);
+        GraphicsRecorder before;
+        record_state_step(before, step - 1U, tools);
+        GraphicsRecorder alone;
+        record_state_step(alone, step, tools);
+        CHECK(executor.execute(before, apart));
+        CHECK(executor.execute(alone, apart));
+        if (!same_pixels(together, apart)) {
+            std::cerr << "state step " << step << " differs when its state is kept\n";
+            CHECK(false);
+        }
+    }
+    GraphicsRecorder whole;
+    for (std::size_t step = 0U; step < state_steps; ++step) record_state_step(whole, step, tools);
+    Bitmap together(64U, 64U);
+    CHECK(executor.execute(whole, together));
+    Bitmap apart(64U, 64U);
+    for (std::size_t step = 0U; step < state_steps; ++step) {
+        GraphicsRecorder alone;
+        record_state_step(alone, step, tools);
+        CHECK(executor.execute(alone, apart));
+    }
+    CHECK(same_pixels(together, apart));
+    std::vector<std::uint32_t> memory(64U * 64U, 0U);
+    const std::unique_ptr<Bitmap> borrowed =
+        Bitmap::borrow(64U, 64U, 64U * 4U, reinterpret_cast<std::byte*>(memory.data()));
+    CHECK(executor.execute(whole, *borrowed));
+    CHECK(same_pixels(together, *borrowed));
+}
+
+// An opaque image drawn at its own size under an integer translation and a
+// whole-pixel clip is its source rows, placed and clipped (the executor
+// copies them instead of drawing): every target pixel is checked, partly
+// off the target too. A failed list leaves an owned target untouched even
+// after commands that would have drawn.
+void opaque_image_draws_as_row_copy() {
+    SkiaExecutor executor;
+    Bitmap source(40U, 20U);
+    for (std::uint32_t y = 0U; y < 20U; ++y) {
+        for (std::uint32_t x = 0U; x < 40U; ++x) {
+            source.set_pixel(x, y, Color::from_argb(255U, static_cast<std::uint8_t>(x * 6U),
+                                                    static_cast<std::uint8_t>(y * 12U),
+                                                    static_cast<std::uint8_t>((x * y) % 256U)));
+        }
+    }
+    const ImageAttributes attributes;
+    constexpr std::array<std::array<double, 2>, 2> moves{{{5.0, 7.0}, {-9.0, 31.0}}};
+    for (const std::array<double, 2>& move : moves) {
+        Bitmap target(64U, 48U);
+        GraphicsRecorder recorder;
+        recorder.set_clip({8, 9, 30, 40});
+        recorder.translate(move[0], move[1]);
+        recorder.draw_image(source, {2, 3, 40, 20}, {0, 0, 40, 20}, attributes);
+        CHECK(executor.execute(recorder, target));
+        const std::int64_t left = 2 + static_cast<std::int64_t>(move[0]);
+        const std::int64_t top = 3 + static_cast<std::int64_t>(move[1]);
+        for (std::uint32_t y = 0U; y < 48U; ++y) {
+            for (std::uint32_t x = 0U; x < 64U; ++x) {
+                const std::int64_t column = static_cast<std::int64_t>(x) - left;
+                const std::int64_t row = static_cast<std::int64_t>(y) - top;
+                const bool clipped_in = x >= 8U && x < 38U && y >= 9U && y < 49U;
+                const bool covered = column >= 0 && row >= 0 && column < 40 && row < 20;
+                const Color drawn = target.get_pixel(x, y);
+                if (!(clipped_in && covered)) {
+                    CHECK(drawn.alpha() == 0U);
+                    continue;
+                }
+                const Color expected =
+                    source.get_pixel(static_cast<std::uint32_t>(column), static_cast<std::uint32_t>(row));
+                CHECK(drawn.argb() == expected.argb());
+            }
+        }
+    }
+    Bitmap target(16U, 16U);
+    const std::uint64_t before_checksum = checksum(target.snapshot());
+    const std::uint64_t before_generation = target.generation();
+    GraphicsRecorder failing;
+    failing.clear(Color::from_name("red"));
+    failing.draw_image(source, {0, 0, 16, 16}, {0, 0, 16, 16}, attributes);
+    LinearGradientBrush overflowing({0, 0, 1e39, 8}, Color::from_name("red"), Color::from_name("blue"), 0.0,
+                                    WrapMode::clamp);
+    failing.fill_rectangle(overflowing, {0, 0, 8, 8});
+    const RasterResult refused = executor.execute(failing, target);
+    CHECK(refused.error == RasterError::invalid_argument);
+    CHECK(refused.commands_executed == 2U);
+    CHECK(target.generation() == before_generation);
+    CHECK(checksum(target.snapshot()) == before_checksum);
+}
+
 int main() {
     command_execution_and_png_round_trip();
     image_attributes_clip_and_snapshot_execution();
@@ -650,6 +849,8 @@ int main() {
     gradients_and_hatches_are_native_raster_commands();
     refused_gradient_fails_without_drawing();
     refused_dash_fails_without_drawing();
+    state_is_set_only_where_it_changes();
+    opaque_image_draws_as_row_copy();
     batched_marks_brushes_grid_and_proportion_rasterize();
     text_over_fill_splits_at_the_fill_edge();
     connected_line_figures_fill_as_one_contour();

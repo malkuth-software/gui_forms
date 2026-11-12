@@ -499,6 +499,13 @@ ResolvedTextLayout RecordingPainter::resolve_text_layout_utf8(
         : estimate_text_layout_utf8(text, font);
 }
 
+TextExtent RecordingPainter::measure_text_extent_utf8(
+    std::string_view text, FontSpec font) {
+    if (text_metrics_ == nullptr) return text_extent_of(estimate_text_layout_utf8(text, font));
+    const TextExtent extent = (*text_metrics_).measure_text_extent_utf8(text, font);
+    return extent;
+}
+
 TextResolutionStatus RecordingPainter::fill_line_break_opportunities_utf8(
     std::string_view text, std::span<LineBreakOpportunity> opportunities) {
     if (text_metrics_ == nullptr) return estimate_line_break_opportunities_utf8(text, opportunities);

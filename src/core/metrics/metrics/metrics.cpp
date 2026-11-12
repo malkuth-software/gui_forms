@@ -3,6 +3,7 @@
 #include "gui_forms/metrics/font_sources/bundled_font_sources.hpp"
 
 #include <algorithm>
+#include <cstdio>
 
 namespace gui_forms {
 
@@ -238,8 +239,68 @@ void Metrics::record_engine_material_assembly() noexcept {
 void Metrics::record_paint_group_refusals(std::uint64_t refusals) noexcept {
     values_.paint_group_refusals = values_.paint_group_refusals + refusals;
 }
-void Metrics::record_frame_callback_fault() noexcept {
-    ++values_.frame_callback_faults;
+namespace {
+
+const char* expectation_name(HousekeepingExpectation expectation) noexcept {
+    switch (expectation) {
+    case HousekeepingExpectation::wake_on_time: return "wake_on_time";
+    case HousekeepingExpectation::paint_within_budget: return "paint_within_budget";
+    case HousekeepingExpectation::live_drain_kept_up: return "live_drain_kept_up";
+    case HousekeepingExpectation::damage_bounded: return "damage_bounded";
+    }
+    return "unknown";
+}
+
+const char* expectation_unit(HousekeepingExpectation expectation) noexcept {
+    switch (expectation) {
+    case HousekeepingExpectation::wake_on_time: return "ns";
+    case HousekeepingExpectation::paint_within_budget: return "ns";
+    case HousekeepingExpectation::live_drain_kept_up: return "frames";
+    case HousekeepingExpectation::damage_bounded: return "rectangles";
+    }
+    return "";
+}
+
+// The 1st, 2nd, 4th, 8th... miss prints: a power of two.
+bool reported_miss(std::uint64_t misses) noexcept {
+    return misses != 0U && (misses & (misses - 1U)) == 0U;
+}
+
+} // namespace
+
+void Metrics::record_expectation_miss(HousekeepingExpectation expectation, std::uint64_t expected,
+                                      std::uint64_t observed) noexcept {
+    std::uint64_t* misses = &values_.wake_expectation_misses;
+    switch (expectation) {
+    case HousekeepingExpectation::wake_on_time: misses = &values_.wake_expectation_misses; break;
+    case HousekeepingExpectation::paint_within_budget: misses = &values_.paint_budget_misses; break;
+    case HousekeepingExpectation::live_drain_kept_up: misses = &values_.live_drain_misses; break;
+    case HousekeepingExpectation::damage_bounded: misses = &values_.damage_bound_misses; break;
+    default:
+        // An expectation outside the enumeration counts as a wake miss,
+        // the initial target, so the miss is still recorded.
+        break;
+    }
+    *misses = *misses + 1U;
+    if (!reported_miss(*misses)) return;
+    values_.expectation_telemetry_records = values_.expectation_telemetry_records + 1U;
+    const char* const unit = expectation_unit(expectation);
+    std::fprintf(stderr,
+                 "gui-forms-telemetry=expectation|name:%s|expected:%llu%s|observed:%llu%s|misses:%llu"
+                 "|paint_passes:%llu|frames_presented:%llu|scheduler_wakes:%llu|flushes:%llu\n",
+                 expectation_name(expectation), static_cast<unsigned long long>(expected), unit,
+                 static_cast<unsigned long long>(observed), unit, static_cast<unsigned long long>(*misses),
+                 static_cast<unsigned long long>(values_.paint_passes),
+                 static_cast<unsigned long long>(values_.frames_presented),
+                 static_cast<unsigned long long>(values_.scheduler_wakes),
+                 static_cast<unsigned long long>(values_.flush_count));
+    std::fflush(stderr);
+}
+const ExpectationThresholds& Metrics::expectation_thresholds() const noexcept {
+    return thresholds_;
+}
+void Metrics::set_expectation_thresholds(const ExpectationThresholds& thresholds) noexcept {
+    thresholds_ = thresholds;
 }
 void Metrics::record_reentrant_frame_poll() noexcept {
     ++values_.reentrant_frame_polls_deferred;

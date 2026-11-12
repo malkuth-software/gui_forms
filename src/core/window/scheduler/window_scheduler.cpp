@@ -1,12 +1,23 @@
 #include "gui_forms/window.hpp"
 
 #include "../../scheduler/request/scheduled_frame_request.hpp"
+#include "../../failure/fail_fast.hpp"
 
+#include <chrono>
+#include <functional>
 #include <stdexcept>
 #include <unordered_set>
 #include <utility>
 
 namespace gui_forms {
+namespace {
+
+// The named target the fail-fast boundary calls for one UI timer tick.
+void run_ui_timer(std::function<void(FrameTime)>& callback, FrameTime now) {
+    callback(now);
+}
+
+} // namespace
 
 bool SurfaceRoot::needs_frame() const noexcept {
     return paint_pending();
@@ -19,7 +30,8 @@ std::optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
             continue;
         }
         if ((*request).kind == detail::FrameRequestKind::ui_timer) {
-            if (!result || (*request).deadline < *result) {
+            const bool resting = occluded_ && (*request).rests_while_occluded;
+            if (!resting && (!result || (*request).deadline < *result)) {
                 result = (*request).deadline;
             }
             continue;
@@ -110,6 +122,16 @@ FrameRequestToken SurfaceRoot::schedule_ui_timer(
     return FrameRequestToken(request);
 }
 
+FrameRequestToken SurfaceRoot::schedule_resting_ui_timer(
+    Component& owner, FrameInterval interval, FrameTime first_deadline,
+    std::function<void(FrameTime)> callback) {
+    FrameRequestToken token = schedule_ui_timer(owner, interval, first_deadline, std::move(callback));
+    // schedule_ui_timer appends its request last; it returned, so the
+    // request is there.
+    (*frame_requests_.back()).rests_while_occluded = true;
+    return token;
+}
+
 FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
     require_root_thread("frame schedule polling");
     if (in_frame_poll_) {
@@ -122,22 +144,36 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
         return deferred;
     }
     in_frame_poll_ = true;
+    // Ends the poll on every path: the scratch is emptied (keeping its
+    // capacity) and the copied requests are released.
     struct Reset final {
         bool& value;
-        ~Reset() { value = false; }
-    } reset{in_frame_poll_};
+        FrameRequestList& requests;
+        std::unordered_set<std::uint64_t>& invalidated;
+        ~Reset() {
+            value = false;
+            requests.clear();
+            invalidated.clear();
+        }
+    } reset{in_frame_poll_, frame_poll_requests_, frame_poll_invalidated_};
     compact_frame_requests();
 
     FramePollResult result;
+    // The latest a due timer or motion frame was polled after its deadline.
+    FrameInterval worst_lateness = FrameInterval::zero();
     result.suppressed_by_occlusion = occluded_;
     if (occluded_) metrics_.record_occluded_frame_poll();
-    std::unordered_set<std::uint64_t> invalidated_controls;
-    const std::vector<std::shared_ptr<detail::ScheduledFrameRequest>> requests = frame_requests_;
-    for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : requests) {
+    frame_poll_invalidated_.clear();
+    frame_poll_requests_.assign(frame_requests_.begin(), frame_requests_.end());
+    for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_poll_requests_) {
         if (!(*request).connected() || (*request).deadline > now) {
             continue;
         }
         if ((*request).kind == detail::FrameRequestKind::ui_timer) {
+            if (occluded_ && (*request).rests_while_occluded) {
+                result.suppressed_by_occlusion = true;
+                continue;
+            }
             ++result.ui_timer_ticks;
             const FrameInterval lateness = now - (*request).deadline;
             const FrameInterval::rep skipped =
@@ -145,16 +181,17 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
             result.coalesced_requests += static_cast<std::uint64_t>(skipped);
             (*request).deadline += (*request).interval * (skipped + 1);
             metrics_.record_callback_emitted();
-            const std::function<void(FrameTime)> callback = (*request).callback;
-            if (callback) {
-                try {
-                    callback(now);
-                } catch (...) {
-                    (*request).disconnect();
-                    ++result.callback_faults;
-                    metrics_.record_frame_callback_fault();
-                }
-            }
+            // The callback is moved out while it runs (audit C10: no copy
+            // per tick), since a timer that stops itself disconnects its
+            // request, which empties the request's callback; it is moved
+            // back only while the request stays connected and empty.
+            std::function<void(FrameTime)> callback = std::move((*request).callback);
+            (*request).callback = {};
+            if (lateness > worst_lateness) worst_lateness = lateness;
+            // The timer's callback is application code: an exception from
+            // it ends the process at the fail-fast boundary.
+            if (callback) gui_forms::detail::call_failing_fast("scheduler.ui_timer", &run_ui_timer, callback, now);
+            if ((*request).connected() && !(*request).callback) (*request).callback = std::move(callback);
             continue;
         }
         if (occluded_) {
@@ -172,6 +209,7 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
             const FrameInterval::rep skipped = lateness / (*request).interval;
             result.coalesced_requests += static_cast<std::uint64_t>(skipped);
             (*request).deadline += (*request).interval * (skipped + 1);
+            if (lateness > worst_lateness) worst_lateness = lateness;
             metrics_.record_callback_emitted();
             motion_clock_.advance(now);
             continue;
@@ -202,7 +240,7 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
         ++result.deadlines_fired;
         (*request).disconnect();
         const bool already_requested = has_dirty((*target).dirty_, Dirty::paint) ||
-            !invalidated_controls.insert((*target).runtime_id().value).second;
+            !frame_poll_invalidated_.insert((*target).runtime_id().value).second;
         if (already_requested) {
             ++result.coalesced_requests;
         } else {
@@ -211,6 +249,14 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
     }
 
     compact_frame_requests();
+    // wake_on_time: the latest due timer or motion frame was polled within
+    // the tolerance of its deadline (one check per poll).
+    const std::uint64_t late_nanoseconds = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(worst_lateness).count());
+    const std::uint64_t tolerance = metrics_.expectation_thresholds().late_wake_nanoseconds;
+    if (late_nanoseconds > tolerance) {
+        metrics_.record_expectation_miss(HousekeepingExpectation::wake_on_time, tolerance, late_nanoseconds);
+    }
     metrics_.record_frame_poll(result.deadlines_fired, result.motion_clock_ticks, result.ui_timer_ticks,
                                result.coalesced_requests);
     result.damage_pending = needs_frame();
@@ -241,6 +287,14 @@ void SurfaceRoot::set_occluded(bool occluded, FrameTime transition_time) {
     // value jumps to its end now, and none is scheduled while it stays so.
     if (occluded) motion_clock_.finish_all(MotionStepCause::occluded);
     if (!occluded) {
+        // A resting UI timer (the caret blink) restarts its cadence: a
+        // deadline that passed while hidden moves to one interval from now,
+        // so it is neither polled late nor run as a burst.
+        const FrameTime shown = FrameClock::now();
+        for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
+            const bool resting = (*request).connected() && (*request).rests_while_occluded;
+            if (resting && (*request).deadline < shown) (*request).deadline = shown + (*request).interval;
+        }
         // Ambient effects stopped while hidden resume with their parts'
         // next paint (E7).
         resume_engine_ambient();

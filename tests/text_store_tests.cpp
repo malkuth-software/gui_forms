@@ -334,6 +334,63 @@ void test_deterministic_edit_corpus() {
           "rebuild each");
 }
 
+// N50: an edit re-analyses only the lines it touches and splices the
+// offsets. After every edit the store must hold exactly the metadata a store
+// built from its text holds, across line breaks of every kind (a CRLF split
+// and joined, NEL, LS), regional-indicator pairs, ZWJ sequences and
+// combining marks on either side of an edit.
+void test_local_reanalysis_matches_full_analysis() {
+  const std::vector<std::string> corpus = {
+      "a", "b", "\r", "\n", "\r\n", "\xc2\x85", "\xe2\x80\xa8",
+      "\xcc\x81", "\xe2\x80\x8d", "\xf0\x9f\x87\xa6", "\xf0\x9f\x87\xa9",
+      "\xf0\x9f\x91\xa9", "\xe0\xa4\x95", "\xe0\xa5\x8d", " ",
+  };
+  TextStore store;
+  std::uint32_t state = 0x50a1e5c1U;
+  for (std::size_t iteration = 0; iteration < 3'000; ++iteration) {
+    const std::size_t scalars = store.scalar_count().value();
+    std::size_t start = next_random(state) % (scalars + 1U);
+    std::size_t end = next_random(state) % (scalars + 1U);
+    if (end < start) {
+      std::swap(start, end);
+    }
+    if (end - start > 6U) {
+      end = start + next_random(state) % 7U;
+    }
+    std::size_t insertion_count = next_random(state) % 5U;
+    if (store.utf8().size() > 256U) {
+      insertion_count = 0U;
+    }
+    std::string replacement;
+    for (std::size_t item = 0; item < insertion_count; ++item) {
+      replacement += corpus[next_random(state) % corpus.size()];
+    }
+    const Utf8Range range{store.utf8_offset(ScalarIndex(start)),
+                          store.utf8_offset(ScalarIndex(end))};
+    static_cast<void>(store.replace(range, replacement));
+
+    const TextStore fresh(store.utf8());
+    require(store.scalar_count() == fresh.scalar_count() &&
+                store.utf16_size() == fresh.utf16_size() &&
+                store.line_count() == fresh.line_count() &&
+                store.grapheme_count() == fresh.grapheme_count(),
+            "a locally re-analysed store must count what a fresh one counts");
+    for (std::size_t line = 0; line < fresh.line_count(); ++line) {
+      const Utf8Range kept = store.line_content_range(LineIndex(line));
+      const Utf8Range built = fresh.line_content_range(LineIndex(line));
+      require(store.line_start(LineIndex(line)) == fresh.line_start(LineIndex(line)) &&
+                  kept.start == built.start && kept.end == built.end,
+              "a locally re-analysed store must hold a fresh store's lines");
+    }
+    for (std::size_t grapheme = 0; grapheme < fresh.grapheme_count().value(); ++grapheme) {
+      const Utf8Range kept = store.grapheme_range(GraphemeIndex(grapheme));
+      const Utf8Range built = fresh.grapheme_range(GraphemeIndex(grapheme));
+      require(kept.start == built.start && kept.end == built.end,
+              "a locally re-analysed store must hold a fresh store's graphemes");
+    }
+  }
+}
+
 } // namespace
 
 int main() {
@@ -345,6 +402,7 @@ int main() {
     test_unicode_line_index();
     test_style_span_normalization_and_edit_transform();
     test_deterministic_edit_corpus();
+    test_local_reanalysis_matches_full_analysis();
     std::cout << "text_store_tests: PASS\n";
     return EXIT_SUCCESS;
   } catch (const std::exception &error) {

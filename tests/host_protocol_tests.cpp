@@ -35,9 +35,6 @@ public:
 
     void on_pointer(PointerEvent& event) override {
         ++pointer_events;
-        if (throw_on_pointer) {
-            throw std::runtime_error("intentional host callback fault");
-        }
         event.handled = true;
     }
 
@@ -68,7 +65,6 @@ public:
     std::vector<DragAction> drag_actions;
     std::vector<DragDataItem> last_drag_items;
     DragEffect drag_effect{DragEffect::copy};
-    bool throw_on_pointer{};
 };
 
 class HostLeasePainter final : public Painter {
@@ -549,39 +545,6 @@ void test_capabilities_and_normalized_dispatch() {
     require(fixture.host.dispatch(std::move(text), 4).handled &&
                 (*fixture.probe).last_text == "é",
             "committed UTF-8 host text must retain bytes and handling result");
-}
-
-void test_application_callback_fault_is_contained_at_host_boundary() {
-    const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
-    Fixture& fixture = *held_fixture;
-    require(fixture.host.dispatch(
-                HostAttachEvent{{320.0, 180.0}, 1.0}, 1).accepted(),
-            "callback-fault fixture must attach before input");
-    (*fixture.probe).throw_on_pointer = true;
-    PointerEvent pointer;
-    pointer.action = PointerAction::down;
-    pointer.button = PointerButton::primary;
-    pointer.position = {10.0, 10.0};
-    pointer.pointer_id = 7U;
-    const HostDispatchResult fault = fixture.host.dispatch(pointer, 2);
-    const HostSessionSnapshot after_fault = fixture.host.session().snapshot();
-    require(fault.error == HostDispatchError::callback_fault &&
-                after_fault.callback_faults == 1U &&
-                after_fault.last_sequence == 2U &&
-                !fixture.window.captured_control(),
-            "throwing input callbacks must become an observable host fault and release capture");
-
-    (*fixture.probe).throw_on_pointer = false;
-    pointer.action = PointerAction::move;
-    const HostDispatchResult recovered = fixture.host.dispatch(pointer, 3);
-    require(recovered.accepted() && recovered.handled &&
-                fixture.host.session().snapshot().callback_faults == 1U,
-            "a contained callback fault must not poison later host dispatch");
-    require(std::string(host_dispatch_error_name(
-                HostDispatchError::callback_fault)) == "callback_fault" &&
-                after_fault.to_json().find("\"callback_faults\":1") !=
-                    std::string::npos,
-            "callback fault telemetry must be stable and machine readable");
 }
 
 void test_semantic_sound_cues_are_bounded_and_deterministic() {
@@ -1083,11 +1046,12 @@ struct PresentationChangeCounter final {
 };
 
 void test_input_settings_report_and_validation() {
-    require(host_protocol_revisions.size() == 5U && host_protocol_revisions[1].version == 9U &&
+    require(host_protocol_revisions.size() == 6U && host_protocol_revisions[1].version == 9U &&
                 host_protocol_revisions[2].version == 10U && host_protocol_revisions[3].version == 11U &&
-                host_protocol_revisions[4].version == 12U && HostCapabilities::current_protocol_version == 12U,
-            "the compositor report is version 9, the input settings 10, the mouse conventions 11 and the "
-            "window state 12");
+                host_protocol_revisions[4].version == 12U && host_protocol_revisions[5].version == 13U &&
+                HostCapabilities::current_protocol_version == 13U,
+            "the compositor report is version 9, the input settings 10, the mouse conventions 11, the "
+            "window state 12 and the caret blink 13");
     const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
     Fixture& fixture = *held_fixture;
     const PresentationSettings initial = fixture.window.presentation_settings();
@@ -1190,6 +1154,38 @@ void test_input_settings_report_and_validation() {
     require(host_event_name(HostEventPayload{HostContextRequestEvent{}}) == std::string("context_request") &&
                 host_event_name(HostEventPayload{HostHoverEvent{}}) == std::string("hover"),
             "the events are named context_request and hover");
+
+    // The caret blink travels with the report (audit N75): 0 is accepted
+    // as never blinking, above the maximum is refused.
+    require(fixture.window.presentation_settings().caret.blink_milliseconds == default_caret_blink_milliseconds &&
+                fixture.window.presentation_settings().caret.origin == SettingOrigin::default_value,
+            "a report without caret settings leaves the default");
+    HostInputSettingsEvent never_blinks = with_pointer;
+    never_blinks.caret = CaretSettings{0U, SettingOrigin::host};
+    HostEvent never_report{15, 15, never_blinks};
+    require(fixture.host.session().dispatch(std::move(never_report)).accepted() &&
+                fixture.window.presentation_settings().caret == never_blinks.caret,
+            "a caret that never blinks reaches the window");
+    HostInputSettingsEvent too_slow = with_pointer;
+    too_slow.caret = CaretSettings{maximum_caret_blink_milliseconds + 1U, SettingOrigin::host};
+    HostEvent slow_report{16, 16, too_slow};
+    require(fixture.host.session().dispatch(std::move(slow_report)).error == HostDispatchError::invalid_payload &&
+                fixture.window.presentation_settings().caret.blink_milliseconds == 0U,
+            "a phase above the maximum is refused, changing nothing");
+    HostInputSettingsEvent bad_caret_origin = with_pointer;
+    bad_caret_origin.caret = CaretSettings{600U, static_cast<SettingOrigin>(9U)};
+    HostEvent bad_caret{17, 17, bad_caret_origin};
+    require(fixture.host.session().dispatch(std::move(bad_caret)).error == HostDispatchError::invalid_payload,
+            "a caret origin outside the enumeration is refused");
+    PresentationSettings slow_settings = fixture.window.presentation_settings();
+    slow_settings.caret.blink_milliseconds = maximum_caret_blink_milliseconds + 1U;
+    bool slow_threw = false;
+    try {
+        fixture.window.set_presentation_settings(slow_settings);
+    } catch (const std::invalid_argument&) {
+        slow_threw = true;
+    }
+    require(slow_threw, "an application's over-long caret phase throws");
 }
 
 void test_lifecycle_transition_guards() {
@@ -1416,7 +1412,6 @@ void test_drag_over_reuses_effect_and_compacts_while_painting() {
 int main() {
     try {
         test_capabilities_and_normalized_dispatch();
-        test_application_callback_fault_is_contained_at_host_boundary();
         test_semantic_sound_cues_are_bounded_and_deterministic();
         test_typed_dialog_requests_and_results();
         test_typed_drag_destination_routing_and_bounds();

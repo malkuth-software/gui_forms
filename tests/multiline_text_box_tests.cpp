@@ -629,6 +629,41 @@ Rect blink_damage(Fixture& fixture) {
     return bounds;
 }
 
+// The caret follows the window's CaretSettings (audit N75): a set phase
+// times the blink, 0 keeps the caret shown with no timer, and a change to 0
+// while blinking stops at the next toggle with the caret shown.
+void caret_blink_follows_settings() {
+    Fixture fixture{};
+    CaretPainter painter{};
+    paint_retained(fixture, painter);
+    PresentationSettings fast = fixture.window.presentation_settings();
+    fast.caret = CaretSettings{200U, SettingOrigin::host};
+    fixture.window.set_presentation_settings(fast);
+    require(fixture.window.request_focus({}) && fixture.window.request_focus(fixture.field), "refocus succeeds");
+    const FrameTime before = FrameClock::now();
+    const std::optional<FrameTime> deadline = fixture.window.next_wake();
+    require(deadline.has_value() && *deadline <= before + std::chrono::milliseconds(200),
+            "a 200 ms phase times the next blink");
+
+    PresentationSettings never = fixture.window.presentation_settings();
+    never.caret = CaretSettings{0U, SettingOrigin::host};
+    fixture.window.set_presentation_settings(never);
+    static_cast<void>(fixture.window.poll_frame_schedule(*deadline));
+    static_cast<void>(fixture.window.take_damage());
+    require(!fixture.window.next_wake().has_value(), "turning blinking off stops the running timer");
+    painter.lines = 0U;
+    fixture.editor.invalidate(Dirty::paint);
+    paint_retained(fixture, painter);
+    require(painter.lines == 1U, "the caret stays shown when blinking stops");
+
+    require(fixture.window.request_focus({}) && fixture.window.request_focus(fixture.field), "refocus succeeds");
+    require(!fixture.window.next_wake().has_value(), "a caret that never blinks holds no wake");
+    painter.lines = 0U;
+    paint_retained(fixture, painter);
+    require(painter.lines == 1U && !fixture.window.next_wake().has_value(),
+            "it is drawn shown, and painting starts no timer");
+}
+
 void localized_caret_blinks() {
     const std::array<bool, 2> modes{false, true};
     for (const bool multiline : modes) {
@@ -663,15 +698,21 @@ void localized_caret_blinks() {
         require(metrics.display_chunks_rebuilt == 2U && metrics.measure_passes == 0U &&
                     metrics.arrange_passes == 0U && metrics.painted_damage_area < 400.0,
                 "blink keeps chunk rebuilding but bounds raster damage without layout");
-        // The blink timer runs on while the window is covered, but the caret
-        // is paint-gated: one blink damages it, and the next finds it
-        // unpainted and stops until a paint.
+        // The blink timer rests while the window is occluded: the window
+        // holds no caret wake from the transition on (it used to run until
+        // its paint gate stopped it, up to two phases later, which the macOS
+        // idle-visibility probe counted as a hidden wake), and a poll long
+        // after the deadline runs no tick. Shown again, it blinks on, its
+        // next tick no earlier than the transition.
         fixture.window.set_occluded(true, FrameClock::now());
-        for (std::size_t tick = 0U; tick < 2U && fixture.window.next_wake().has_value(); ++tick) {
-            static_cast<void>(fixture.window.poll_frame_schedule(*fixture.window.next_wake()));
-        }
-        require(!fixture.window.next_wake().has_value(),
-                "an occluded caret stops after one unpainted blink");
+        require(!fixture.window.next_wake().has_value(), "an occluded caret holds no wake");
+        const FramePollResult hidden_poll =
+            fixture.window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(5));
+        require(hidden_poll.ui_timer_ticks == 0U, "an occluded caret does not tick");
+        const FrameTime shown = FrameClock::now();
+        fixture.window.set_occluded(false, shown);
+        const std::optional<FrameTime> resumed = fixture.window.next_wake();
+        require(resumed.has_value() && *resumed >= shown, "a shown caret blinks again");
     }
 
     Fixture fixture{};
@@ -880,8 +921,48 @@ void deep_history_for_a_large_text() {
     require(f.editor.text.read() == large, "undo restores the large text exactly");
 }
 
+// One typed character re-lays out only its own logical line (audit P3).
+// A 64-line document of 400-byte lines is laid out, then one character is
+// inserted in line 32: the shaping bytes of that relayout are measured
+// against the whole document's, and the rows equal a fresh layout's.
+void edit_relays_out_one_line() {
+    Fixture f{};
+    f.editor.word_wrap = false;
+    std::string source{};
+    const std::size_t line_count = 64U;
+    for (std::size_t line = 0; line < line_count; ++line) {
+        source.append(400U, static_cast<char>('a' + line % 26U));
+        source += '\n';
+    }
+    f.editor.text = source;
+    f.metrics.calls = 0U;
+    f.metrics.bytes = 0U;
+    const std::size_t rows = f.editor.visual_line_count();
+    const std::size_t whole_bytes = f.metrics.bytes;
+    const std::size_t edited_at = 32U * 401U + 200U;
+    f.caret(edited_at);
+    f.metrics.calls = 0U;
+    f.metrics.bytes = 0U;
+    const bool typed = f.editor.replace_selection("Z");
+    const std::size_t edited_rows = f.editor.visual_line_count();
+    const std::size_t edit_bytes = f.metrics.bytes;
+    std::cout << "multiline relayout (audit P3): whole document " << whole_bytes << " shaped bytes, one typed character "
+              << edit_bytes << " shaped bytes in " << f.metrics.calls << " calls\n";
+    require(typed && rows == line_count + 1U && edited_rows == rows, "edit relayout: the rows");
+    require(edit_bytes * 16U < whole_bytes, "edit relayout: only the edited line is shaped again");
+    // Vertical moves read the rows above (kept) and below (kept, shifted by
+    // the inserted byte) at the caret's x, 201 advances in.
+    f.caret(edited_at + 1U);
+    f.key(PhysicalKey::down);
+    require(f.caret() == 33U * 401U + 1U + 201U, "edit relayout: a shifted row below");
+    f.caret(edited_at + 1U);
+    f.key(PhysicalKey::up);
+    require(f.caret() == 31U * 401U + 201U, "edit relayout: a kept row above");
+}
+
 int main() {
     try {
+        edit_relays_out_one_line();
         exact_editing();
         document_scrollbars();
         document_scrollbar_input();
@@ -893,6 +974,7 @@ int main() {
         dpi_transition_remeasures_same_provider();
         clear_history_establishes_save_boundary();
         localized_caret_blinks();
+        caret_blink_follows_settings();
         caret_geometry_fallbacks();
         paging_reveal_glides();
         selected_text_drawn_once();

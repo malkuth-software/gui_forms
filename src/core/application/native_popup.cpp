@@ -97,8 +97,18 @@ bool native_popup_translucent(const std::weak_ptr<ApplicationWindowState>& owner
     const WindowBackdropConditions conditions{true, settings.high_contrast, settings.reduced_transparency};
     const WindowBackdropRequest request = WindowBackdropRequest::preferring(WindowBackdrop::transparent);
     const WindowBackdropGrant grant = resolve_window_backdrop(request, model.compositor_state(), conditions);
-    const bool translucent = grant.granted != WindowBackdrop::opaque;
+    const bool predicted = grant.granted != WindowBackdrop::opaque;
+    // What the run's popup windows were really granted overrules the
+    // prediction once known.
+    const bool translucent = predicted && (*run).popup_alpha.value_or(true);
     return translucent;
+}
+
+void note_popup_backdrop(const std::weak_ptr<ApplicationWindowState>& owner, const SurfaceRoot& popup) noexcept {
+    const std::shared_ptr<ApplicationWindowState> state = owner.lock();
+    const std::shared_ptr<ApplicationRunState> run = owner_run(state);
+    if (!run || popup.compositor_state().generation.value == 0U) return;
+    (*run).popup_alpha = popup.backdrop_grant().granted != WindowBackdrop::opaque;
 }
 
 std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState>& owner, const Rect bounds,

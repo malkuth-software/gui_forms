@@ -162,6 +162,9 @@ void test_rule_faces() {
     (*root).add_child(group);
 
     Window window(root, Size{300.0, 160.0});
+    // The floor: the same base with no rules of the package's own.
+    window.set_theme(theme_from_sheet(""));
+    window.perform_layout();
     const Color floor_text = (*plain).foreground();
     const Color floor_face = (*paper).background();
     // The text colour is a role, so forced high contrast can replace it by
@@ -304,6 +307,106 @@ void test_unknown_part_in_a_list() {
     require(painter.filled(ground_amber), "the list's other selector still styles the panel's face");
 }
 
+// Makes each docked panel's content: an empty panel.
+class EmptyPanels final {
+public:
+    void create(DockPanelCreation& creation) {
+        creation.content = make_control<Panel>(StableId("content." + creation.panel.value));
+    }
+};
+
+constexpr Color caption_blue = Color::rgba(0x30, 0x60, 0xa0);
+
+// A dock site's caption parts carry their anatomy names, so a theme's
+// `dock-site::part(...)` rules reach them, as they reach any other
+// control's named parts.
+void test_dock_site_parts() {
+    EmptyPanels panels{};
+    DockWorkspace workspace("faces.workspace");
+    const std::array<DockSide, 2> sides{{DockSide::left, DockSide::right}};
+    const std::array<std::string_view, 2> names{{"left", "right"}};
+    for (std::size_t index = 0U; index < sides.size(); ++index) {
+        DockPanelRegistration registration{};
+        registration.descriptor.id = DockPanelId(std::string(names[index]));
+        registration.descriptor.kind = DockPanelKind::tool;
+        registration.descriptor.minimum_size = {80.0, 60.0};
+        registration.descriptor.default_placement.side = sides[index];
+        registration.descriptor.default_placement.ratio = 0.3;
+        registration.title = std::string(names[index]);
+        registration.factory = Delegate<DockPanelCreation&>::bind<EmptyPanels, &EmptyPanels::create>(panels);
+        require(workspace.register_panel(registration), "a tool panel registers");
+        require(workspace.show_panel(DockPanelId(std::string(names[index]))).applied, "the tool panel shows");
+    }
+    const std::shared_ptr<DockSite> site = make_control<DockSite>(StableId("faces.site"), workspace);
+    Window window(site, Size{600.0, 400.0});
+    window.set_theme(theme_from_sheet("dock-site::part(caption) { background: #3060a0; }\n"));
+    window.perform_layout();
+    require((*site).realized_stacks().size() == 2U, "the two tool stacks are realized");
+    ColourPainter painter{};
+    window.paint(painter);
+    require(painter.filled(caption_blue), "dock-site::part(caption) paints the tool stacks' captions");
+}
+
+constexpr Color bar_amber = Color::rgba(0xd0, 0x90, 0x10);
+
+// Whether a scrolled panel's own vertical bar paints `bar_amber` under
+// `sheet`, with or without a back colour the program set on the panel (an
+// authored colour, as SDR#'s panels set).
+bool embedded_bar_amber(std::string_view sheet, bool authored_back) {
+    const std::shared_ptr<Panel> panel = make_control<Panel>(StableId("probe.scrolled"));
+    const std::shared_ptr<Button> child = make_control<Button>(StableId("probe.scrolled.child"), "Content");
+    (*child).set_requested_bounds({10.0, 10.0, 60.0, 300.0});
+    (*panel).add_child(child);
+    (*panel).auto_scroll = true;
+    if (authored_back) {
+        (*panel).back_color = Color::rgba(0x19, 0x19, 0x19);
+        (*panel).fore_color = Color::rgba(0xff, 0xff, 0xff);
+    }
+    Window window(panel, Size{120.0, 100.0});
+    window.set_theme(theme_from_sheet(sheet));
+    window.perform_layout();
+    ColourPainter painter{};
+    window.paint(painter);
+    const bool filled = painter.filled(bar_amber);
+    return filled;
+}
+
+// Whether a stand-alone vertical scroll bar paints `bar_amber` under `sheet`.
+bool standalone_bar_amber(std::string_view sheet) {
+    const std::shared_ptr<VScrollBar> bar = make_control<VScrollBar>(StableId("probe.bar"));
+    Window window(bar, Size{17.0, 120.0});
+    window.set_theme(theme_from_sheet(sheet));
+    window.perform_layout();
+    ColourPainter painter{};
+    window.paint(painter);
+    const bool filled = painter.filled(bar_amber);
+    return filled;
+}
+
+// A scrollable control's built-in bars are styled as the stock bars
+// (PartPaint::control_type), so a sheet's v-scroll-bar rule reaches them;
+// the arrow marks are the bars' increment-glyph and decrement-glyph parts.
+void test_embedded_scroll_bar_rules() {
+    constexpr std::string_view thumb_rule = "v-scroll-bar::part(thumb) { background: #d09010 !important; }\n";
+    require(embedded_bar_amber(thumb_rule, false), "v-scroll-bar::part(thumb) paints a panel's own thumb");
+    require(embedded_bar_amber(thumb_rule, true), "an important thumb rule stands over the panel's own back colour");
+    constexpr std::string_view glyph_rule =
+        ":root { chrome-highlight: #d09010; }\n"
+        "v-scroll-bar::part(increment-glyph), v-scroll-bar::part(decrement-glyph) { glyph-color: role(chrome-highlight); }\n";
+    require(!embedded_bar_amber("", false), "no amber without the rule");
+    require(embedded_bar_amber(glyph_rule, false), "the glyph parts colour a panel's own arrow marks");
+    constexpr std::string_view important_glyph_rule =
+        ":root { chrome-highlight: #d09010; }\n"
+        "v-scroll-bar::part(increment-glyph) { glyph-color: role(chrome-highlight) !important; }\n";
+    require(embedded_bar_amber(important_glyph_rule, true),
+            "an important glyph rule colours the marks of a panel with its own colours");
+    require(standalone_bar_amber(glyph_rule), "the glyph parts colour a stand-alone bar's arrow marks");
+    constexpr std::string_view actuator_rule =
+        ":root { chrome-highlight: #d09010; }\n"
+        "v-scroll-bar::part(increment-arrow) { glyph-color: role(chrome-highlight); }\n";
+    require(!standalone_bar_amber(actuator_rule), "an arrow button's rule leaves its mark to the glyph part");
+}
+
 } // namespace
 
 int main() {
@@ -312,6 +415,8 @@ int main() {
     test_text_box_parts();
     test_container_grounds();
     test_unknown_part_in_a_list();
+    test_dock_site_parts();
+    test_embedded_scroll_bar_rules();
     if (failures != 0) {
         std::cerr << failures << " theme rule face check(s) failed\n";
         return 1;

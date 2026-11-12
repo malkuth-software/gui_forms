@@ -352,7 +352,7 @@ double DataGridView::preferred_cell_width(DataGridViewRowPosition row, std::size
     const double scale = effective_text_scale();
     const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
     // Text is measured in the scaled font; widths are logical units.
-    const double text_width = text.empty() ? 0.0 : resolve_text_layout_utf8(text, face).logical_size.width / scale;
+    const double text_width = text.empty() ? 0.0 : measure_text_extent_utf8(text, face).logical_size.width / scale;
     const Insets padding = content_padding(style, 1.0);
     const DataGridViewColumnKind kind = columns_[column].kind;
     double content = 0.0;
@@ -390,7 +390,7 @@ double DataGridView::preferred_column_header_width(std::size_t column) const {
     const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
     const double text_width = definition.header_text.empty()
         ? 0.0
-        : resolve_text_layout_utf8(definition.header_text, face).logical_size.width / scale;
+        : measure_text_extent_utf8(definition.header_text, face).logical_size.width / scale;
     const Insets padding = content_padding(style, 1.0);
     // A sortable column keeps the glyph's lane, as Windows Forms does.
     const bool sortable = column_sort_mode(column) != DataGridViewColumnSortMode::not_sortable ||
@@ -1991,12 +1991,13 @@ std::vector<DataGridView::Row> DataGridView::realized_rows() const {
     const std::size_t count = realized_row_count(layout);
     std::vector<Row> records;
     records.reserve(count);
+    // One layout serves every row (audit N93): the parts are made from it
+    // directly, as the published geometry would make them per item.
     for (std::size_t item = 0; item < count; ++item) {
-        const PartGeometryBuffer published = published_realized_item_geometry(item);
         Row record;
         record.position = DataGridViewRowPosition{first_row_ + item};
         record.stable_id = row_id_text(record.position);
-        read_item_parts(anatomy().item_systems[row_system.value], row_part_fields, published.parts(), record.parts);
+        record.parts = row_parts(record.position, layout);
         read_states(row_state_fields, row_states(record.position), record.states);
         records.push_back(record);
     }
@@ -2010,13 +2011,13 @@ std::vector<DataGridView::Cell> DataGridView::realized_cells() const {
     const std::size_t first_display = first_visible_display(layout);
     std::vector<Cell> records;
     records.reserve(rows * columns);
+    // One layout serves every cell (audit N93).
     for (std::size_t position = 0; position < rows * columns; ++position) {
-        const PartGeometryBuffer published = published_realized_item_geometry(rows + position);
         Cell record;
         record.address = {DataGridViewRowPosition{first_row_ + position / columns},
                           shown_order_[first_display + position % columns]};
         record.stable_id = cell_stable_id(record.address.row, record.address.column);
-        read_item_parts(anatomy().item_systems[cell_system.value], cell_part_fields, published.parts(), record.parts);
+        record.parts = cell_parts(record.address.row, record.address.column, layout);
         const AnatomyStateSet states = cell_states(record.address.row, record.address.column);
         read_states(cell_state_fields, states, record.states);
         record.states.visited = states.contains(visited_state);

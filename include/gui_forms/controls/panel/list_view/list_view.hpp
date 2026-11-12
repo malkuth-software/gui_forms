@@ -177,6 +177,16 @@ struct ListViewLabelEdit final {
 // labels are edited in place (label_edit), and an application may draw
 // items' content itself (draw_mode), and items are shown in groups (groups,
 // show_groups). Tooltips and hot-tracking activation are not supported yet.
+// How a splice moves an index (ListView::splice_virtual_items): before
+// `first` it stays, inside [first, removed_end) it is dropped, after it
+// shifts by inserted - removed.
+struct ListViewSpliceRemap final {
+    std::size_t first{};
+    std::size_t removed_end{};
+    std::size_t inserted{};
+    [[nodiscard]] std::optional<std::size_t> apply(std::optional<std::size_t> index) const noexcept;
+};
+
 class ListView final : public Control, public ListViewCapabilities<ListView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
@@ -239,6 +249,14 @@ public:
     // keeps the selection, focus and anchor below the new count, and
     // repaints. Throws std::logic_error outside virtual mode.
     void refresh_virtual_items();
+    // Tells the view that the source replaced `removed` items at `first`
+    // with `inserted` new ones (audit N94): the bulk insertion or removal
+    // of a virtual list without a refresh. The selection, focus, anchor and
+    // top item stay on their items; those inside the removed range are
+    // dropped. Throws std::logic_error outside virtual mode or when the
+    // source's count is not the old count - removed + inserted, and
+    // std::out_of_range for a range past the old items.
+    void splice_virtual_items(std::size_t first, std::size_t removed, std::size_t inserted);
 
     // Throws std::out_of_range for an index past the end.
     [[nodiscard]] bool item_checked(std::size_t index) const;
@@ -526,8 +544,15 @@ private:
     };
     using ItemIndices = std::unordered_map<std::string, std::size_t>;
 
-    [[nodiscard]] Layout layout() const;
+    // The layout at the current key, kept (S5): made again only when the
+    // key (Control::LayoutKey, and the model revision where one is read)
+    // has moved. The reference is valid until the next layout().
+    [[nodiscard]] const Layout& layout() const;
     [[nodiscard]] Layout layout_for(Rect client) const;
+    mutable Layout kept_layout_{};
+    mutable LayoutKey kept_layout_key_{};
+    mutable std::uint64_t kept_layout_model_{};
+    mutable bool kept_layout_valid_{};
     [[nodiscard]] double text_line_height() const;
     [[nodiscard]] Size icon_size(bool large) const noexcept;
     [[nodiscard]] std::size_t maximum_top_line(const Layout& placed) const noexcept;

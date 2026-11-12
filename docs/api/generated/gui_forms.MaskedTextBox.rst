@@ -48,8 +48,15 @@ gui_forms::MaskedTextBox
          (``.``, ``,``, ``:``, ``/`` and the generic currency sign U+00A4).
          Assigning a culture replaces them as assigning :cpp:member:`mask <gui_forms::MaskedTextBox::mask>` replaces the mask.
 
+      **text** : ``std::string``
+         The text in :cpp:member:`text_mask_format <gui_forms::MaskedTextBox::text_mask_format>`, a property. Writing it clears the box and
+         places the text from the first position, passing over literals it
+         repeats; text the mask refuses leaves the box unchanged and raises
+         :cpp:func:`mask_input_rejected <gui_forms::MaskedTextBox::mask_input_rejected>`. :cpp:func:`place_text <gui_forms::MaskedTextBox::place_text>` does the same and also returns the
+         :cpp:class:`MaskEditResult <gui_forms::MaskEditResult>`. :cpp:func:`clear <gui_forms::MaskedTextBox::clear>` unassigns every position.
+
       **text_mask_format** : ``MaskTextFormat``, default ``MaskTextFormat::include_literals``
-         Which characters :cpp:func:`text <gui_forms::MaskedTextBox::text>` keeps: prompts, literals, both or neither. Without
+         Which characters :cpp:member:`text <gui_forms::MaskedTextBox::text>` keeps: prompts, literals, both or neither. Without
          prompts an unassigned position is a space and the text ends at the last
          assigned position. An unknown value throws ``std::invalid_argument``.
 
@@ -90,13 +97,6 @@ gui_forms::MaskedTextBox
          for reading. Edits go through the box, so that the field and the events
          follow.
 
-      **text** : ``std::string``
-         The text in :cpp:member:`text_mask_format <gui_forms::MaskedTextBox::text_mask_format>`. :cpp:func:`set_text <gui_forms::MaskedTextBox::set_text>` clears the box and places its
-         argument from the first position, passing over literals it repeats; text
-         the mask refuses leaves the box unchanged, raises :cpp:func:`mask_input_rejected <gui_forms::MaskedTextBox::mask_input_rejected>`,
-         and is reported in the returned :cpp:class:`MaskEditResult <gui_forms::MaskEditResult>`. :cpp:func:`clear <gui_forms::MaskedTextBox::clear>` unassigns every
-         position.
-
       **mask_completed** : ``bool``, read-only
          Whether every required position is assigned.
 
@@ -118,7 +118,7 @@ gui_forms::MaskedTextBox
          text.
 
       **text_changed** : ``Event<const std::string&>``
-         Raised after :cpp:func:`text <gui_forms::MaskedTextBox::text>` changes, with the new text.
+         Raised after :cpp:member:`text <gui_forms::MaskedTextBox::text>` changes, with the new text.
 
       **mask_changed** : ``Event<const std::string&>``
          Raised after an assignment changes :cpp:member:`mask <gui_forms::MaskedTextBox::mask>`, with the new mask.
@@ -133,7 +133,7 @@ gui_forms::MaskedTextBox
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:member:`wheel_scrolls <gui_forms::ScrollableControl::wheel_scrolls>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -145,6 +145,8 @@ gui_forms::MaskedTextBox
 
       * - :cpp:func:`initialize_control_tree <gui_forms::MaskedTextBox::initialize_control_tree>`
         - Creates the editor.
+      * - :cpp:func:`place_text <gui_forms::MaskedTextBox::place_text>`
+        - Clears the box and places ``incoming`` from the first position, literals in it matching the mask's literals, and reports how.
       * - :cpp:func:`clear <gui_forms::MaskedTextBox::clear>`
         -  
       * - :cpp:func:`validate_text <gui_forms::MaskedTextBox::validate_text>`
@@ -187,7 +189,7 @@ gui_forms::MaskedTextBox
    The control publishes the accessibility role ``text_box`` with the field as
    shown (prompts and literals in place) as its value, the read-only state, and
    the editor's selection while the editor shows that value.
-   :cpp:enumerator:`SemanticAction::set_value <gui_forms::SemanticAction::set_value>` goes through the mask as :cpp:func:`set_text <gui_forms::MaskedTextBox::set_text>` does and
+   :cpp:enumerator:`SemanticAction::set_value <gui_forms::SemanticAction::set_value>` goes through the mask as :cpp:func:`place_text <gui_forms::MaskedTextBox::place_text>` does and
    fails for text the mask refuses.
 
    .. rubric:: Examples
@@ -198,9 +200,9 @@ gui_forms::MaskedTextBox
 
       std::shared_ptr<gf::MaskedTextBox> phone =
           gf::make_control<gf::MaskedTextBox>(gf::StableId("contact.phone"), "(000) 000-0000");
-      (*phone).set_text("5551234567");   // the field shows "(555) 123-4567"
+      (*phone).text = "5551234567";   // the field shows "(555) 123-4567"
       const bool complete = (*phone).mask_completed();   // true
-      const gf::MaskEditResult refused = (*phone).set_text("55x");
+      const gf::MaskEditResult refused = (*phone).place_text("55x");
       // refused.hint == gf::MaskResultHint::digit_expected; the text is unchanged
 
 
@@ -225,9 +227,17 @@ gui_forms::MaskedTextBox
       (``.``, ``,``, ``:``, ``/`` and the generic currency sign U+00A4).
       Assigning a culture replaces them as assigning :cpp:member:`mask <gui_forms::MaskedTextBox::mask>` replaces the mask.
 
+   .. cpp:member:: std::string text
+
+      The text in :cpp:member:`text_mask_format <gui_forms::MaskedTextBox::text_mask_format>`, a property. Writing it clears the box and
+      places the text from the first position, passing over literals it
+      repeats; text the mask refuses leaves the box unchanged and raises
+      :cpp:func:`mask_input_rejected <gui_forms::MaskedTextBox::mask_input_rejected>`. :cpp:func:`place_text <gui_forms::MaskedTextBox::place_text>` does the same and also returns the
+      :cpp:class:`MaskEditResult <gui_forms::MaskEditResult>`. :cpp:func:`clear <gui_forms::MaskedTextBox::clear>` unassigns every position.
+
    .. cpp:member:: MaskTextFormat text_mask_format
 
-      Which characters :cpp:func:`text <gui_forms::MaskedTextBox::text>` keeps: prompts, literals, both or neither. Without
+      Which characters :cpp:member:`text <gui_forms::MaskedTextBox::text>` keeps: prompts, literals, both or neither. Without
       prompts an unassigned position is a space and the text ends at the last
       assigned position. An unknown value throws ``std::invalid_argument``.
 
@@ -278,18 +288,6 @@ gui_forms::MaskedTextBox
       for reading. Edits go through the box, so that the field and the events
       follow.
 
-   .. cpp:function:: std::string text() const
-
-      The text in :cpp:member:`text_mask_format <gui_forms::MaskedTextBox::text_mask_format>`. :cpp:func:`set_text <gui_forms::MaskedTextBox::set_text>` clears the box and places its
-      argument from the first position, passing over literals it repeats; text
-      the mask refuses leaves the box unchanged, raises :cpp:func:`mask_input_rejected <gui_forms::MaskedTextBox::mask_input_rejected>`,
-      and is reported in the returned :cpp:class:`MaskEditResult <gui_forms::MaskEditResult>`. :cpp:func:`clear <gui_forms::MaskedTextBox::clear>` unassigns every
-      position.
-
-   .. cpp:function:: MaskEditResult set_text(std::string_view text)
-
-      Sets :cpp:func:`text <gui_forms::MaskedTextBox::text>`; see the property's description above.
-
    .. cpp:function:: bool mask_completed() const noexcept
 
       Whether every required position is assigned.
@@ -317,7 +315,7 @@ gui_forms::MaskedTextBox
 
    .. cpp:function:: Event<const std::string&>& text_changed() noexcept
 
-      Raised after :cpp:func:`text <gui_forms::MaskedTextBox::text>` changes, with the new text.
+      Raised after :cpp:member:`text <gui_forms::MaskedTextBox::text>` changes, with the new text.
 
    .. cpp:function:: Event<const std::string&>& mask_changed() noexcept
 
@@ -337,6 +335,10 @@ gui_forms::MaskedTextBox
    .. cpp:function:: void initialize_control_tree()
 
       Creates the editor. ``make_control`` calls it; do not call it yourself.
+
+   .. cpp:function:: MaskEditResult place_text(std::string_view incoming)
+
+      Clears the box and places ``incoming`` from the first position, literals in it matching the mask's literals, and reports how. Refused text leaves the box unchanged and raises mask_input_rejected. Writing the :cpp:member:`text <gui_forms::MaskedTextBox::text>` property does the same and drops the result.
 
    .. cpp:function:: void clear()
 

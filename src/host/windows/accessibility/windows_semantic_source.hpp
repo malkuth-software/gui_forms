@@ -128,14 +128,13 @@ using SemanticTreeRef = std::shared_ptr<const SemanticNode>;
 
 // What the source's current tree was built from. The tree is reused while
 // every field reads the same: the window's semantic generation (structure,
-// state and text), its content revision (every change that repaints,
-// including moves the semantic generation does not count), its display
-// generation (a node may describe what was painted), the focused, pressed
-// and captured controls, activation, the client area and the title.
+// state and text), its layout pass sequence (every change of arranged
+// bounds, which the semantic generation does not count; a repaint that
+// moves nothing no longer rebuilds the tree, audit N95), the focused,
+// pressed and captured controls, activation, the client area and the title.
 struct SemanticTreeKey final {
     std::uint64_t semantic_generation{};
-    std::uint64_t content_revision{};
-    std::uint64_t display_generation{};
+    std::uint64_t layout_pass{};
     std::uint64_t focused{};
     std::uint64_t pressed{};
     std::uint64_t captured{};
@@ -167,6 +166,9 @@ struct SemanticSource final {
     std::uint64_t generation{};
     // The runtime ID of the focused node last announced, or zero.
     std::uint64_t focus{};
+    // The runtime IDs of the tree last announced to MSAA, sorted: a
+    // reorder event is raised only when this set changes (audit N97).
+    std::vector<std::uint64_t> announced_ids{};
     // True once a client has asked for an MSAA object; MSAA events are
     // raised only after that.
     bool observed{};
@@ -185,6 +187,19 @@ struct SemanticSource final {
     // current one instead (diagnostics; never reset).
     std::uint64_t trees_built{};
     std::uint64_t trees_reused{};
+    // The newest text layout the TextPattern read (N109), the tree it was
+    // read under and the runtime ID of its control. It is reused while
+    // snapshot hands out that same tree for the same control: the tree's key
+    // holds the semantic generation, content revision and display
+    // generation, so the value and the layout pass are unchanged. A range
+    // holds the layout it reads by its own reference, so a newer one
+    // replacing it here frees nothing in use. Released with the trees;
+    // counted as the trees are.
+    SemanticTreeRef text_layout_tree{};
+    std::uint64_t text_layout_control{};
+    std::shared_ptr<const SemanticTextLayout> text_layout{};
+    std::uint64_t text_layouts_built{};
+    std::uint64_t text_layouts_reused{};
 
     // Sets `client` to the window's client node: the snapshot's roots under
     // one node named by the window title and covering the client area. The
@@ -192,7 +207,7 @@ struct SemanticSource final {
     // one is built and becomes current. Returns false, with `client` null,
     // when the window has gone or the build failed; the current tree is
     // then kept.
-    [[nodiscard]] bool snapshot(SemanticTreeRef& client) noexcept;
+    [[nodiscard]] bool snapshot(SemanticTreeRef& client);
     // Releases the current and announced trees (the window is going).
     void release_trees() noexcept;
     // Performs `action` on the located node through the window, named by
@@ -201,7 +216,7 @@ struct SemanticSource final {
     // replaced control is refused. A virtual node with no scope is named by
     // its stable ID alone. Returns true when the control took it.
     [[nodiscard]] bool perform(const SemanticLocation& location, SemanticAction action,
-                               std::string_view value) noexcept;
+                               std::string_view value);
 };
 
 } // namespace gui_forms::host

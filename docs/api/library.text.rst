@@ -141,6 +141,8 @@ Related types
      - A display position mapped to the source.
    * - :cpp:class:`TextEditResult <gui_forms::TextEditResult>`
      - TextEditResult records exact removed/inserted UTF-8 ranges, scalar counts, resulting revision, and whether content changed.
+   * - :cpp:class:`TextExtent <gui_forms::TextExtent>`
+     - A text's extent without its runs or names (D2): the part of a ResolvedTextLayout that measuring reads.
    * - :cpp:class:`TextMaskBudgetSnapshot <gui_forms::TextMaskBudgetSnapshot>`
      -  
    * - :cpp:class:`TextMaskByteUsage <gui_forms::TextMaskByteUsage>`
@@ -187,6 +189,8 @@ Related types
      - TextStyleSpan maps one UTF-8 half-open range to a compact style identity.
    * - :cpp:class:`TextUnitIndex <gui_forms::TextUnitIndex>`
      - TextUnitIndex prevents accidental mixing of byte, UTF-16, scalar, grapheme, and line coordinate systems.
+   * - :cpp:class:`Utf8ScalarDecode <gui_forms::Utf8ScalarDecode>`
+     - One scalar decoded strictly (the rules of validate_utf8: no overlong forms, surrogates or values past U+10FFFF).
    * - :cpp:class:`Utf8ValidationResult <gui_forms::Utf8ValidationResult>`
      - Utf8ValidationResult preserves the first closed validation failure and exact byte/scalar/UTF-16 counts.
 
@@ -1405,6 +1409,26 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: TextExtent final
+
+   ``#include <gui_forms/typography/types/typography_types.hpp>``
+
+   A text's extent without its runs or names (D2): the part of a ResolvedTextLayout that measuring reads. A provider answers it with the same values its resolve_text_layout_utf8 reports, without copying the layout's strings and run vector.
+
+   .. cpp:member:: Size logical_size
+
+   .. cpp:member:: double ascent
+
+   .. cpp:member:: double descent
+
+   .. cpp:member:: double line_gap
+
+   .. cpp:member:: TextResolutionStatus status
+
+      Default: ``{TextResolutionStatus::estimated}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TextMaskBudgetSnapshot
 
    ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
@@ -1791,6 +1815,10 @@ Related types
 
    .. cpp:function:: virtual ResolvedTextLayout resolve_text_layout_utf8(std::string_view utf8, FontSpec effective_font) = 0
 
+   .. cpp:function:: virtual TextExtent measure_text_extent_utf8(std::string_view utf8, FontSpec effective_font)
+
+      The extent resolve_text_layout_utf8 reports (TextExtent). The default resolves the layout and reads it; a provider that keeps its layouts reads the kept one.
+
    .. cpp:function:: virtual TextResolutionStatus fill_line_break_opportunities_utf8(std::string_view utf8, std::span<LineBreakOpportunity> opportunities)
 
       Fills ``opportunities``, whose size must equal utf8.size(), with the line-break opportunity after each byte. Line breaking depends on the text only, not on a font. Returns invalid_request, with ``opportunities`` unchanged, for invalid UTF-8 or a size mismatch. The default is estimate_line_break_opportunities_utf8; the bundled text engine answers UAX #14's opportunities and returns exact.
@@ -2061,6 +2089,20 @@ Related types
    .. cpp:function:: constexpr std::size_t value() const noexcept
 
       Returns the stored unit count.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Utf8ScalarDecode final
+
+   ``#include <gui_forms/text/types/text_types.hpp>``
+
+   One scalar decoded strictly (the rules of validate_utf8: no overlong forms, surrogates or values past U+10FFFF). At a malformed or truncated sequence ``valid`` is false, ``length`` is 1 (the caller steps one byte) and ``scalar`` is U+FFFD. ``offset`` must be inside ``text``.
+
+   .. cpp:member:: char32_t scalar
+
+   .. cpp:member:: std::size_t length
+
+   .. cpp:member:: bool valid
 
 .. cpp:namespace:: gui_forms
 
@@ -2677,6 +2719,8 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view to_string(Utf8ValidationError error) noexcept
 
+.. cpp:function:: Utf8ScalarDecode decode_utf8_scalar(std::string_view text, Utf8Offset offset) noexcept
+
 .. cpp:function:: std::string_view grapheme_unicode_version() noexcept
 
 .. cpp:type:: Utf8Offset = TextUnitIndex<Utf8OffsetTag>
@@ -2716,6 +2760,8 @@ Functions, constants and aliases
 ``#include <gui_forms/typography/types/typography_types.hpp>``
 
 .. cpp:function:: const char* text_resolution_status_name(TextResolutionStatus status) noexcept
+
+.. cpp:function:: TextExtent text_extent_of(const ResolvedTextLayout& layout) noexcept
 
 .. cpp:function:: TextResolutionStatus estimate_line_break_opportunities_utf8(std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept
 

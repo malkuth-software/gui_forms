@@ -35,6 +35,10 @@ public:
         PartGeometry region;
         PartGeometry decrement_arrow;
         PartGeometry increment_arrow;
+        // The arrow marks, each centred in its button (empty when the
+        // button is too small to hold one).
+        PartGeometry decrement_glyph;
+        PartGeometry increment_glyph;
         PartGeometry track;
         PartGeometry thumb;
         PartGeometry focus;

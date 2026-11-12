@@ -14,24 +14,46 @@ Types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`BindingColumn <gui_forms::BindingColumn>`
+     - BindingColumn declares one provider column: canonical name, value kind (null for untyped) and read-only flag.
    * - :cpp:class:`BindingCompleteEvent <gui_forms::BindingCompleteEvent>`
      - BindingCompleteEvent reports binding identity, transfer direction, closed outcome, diagnostic text, and cancellable acceptance.
    * - :cpp:class:`BindingContextChange <gui_forms::BindingContextChange>`
      - BindingContextChange identifies one BindingSource entering or leaving a Window currency context.
    * - :cpp:class:`BindingConvertEvent <gui_forms::BindingConvertEvent>`
      - BindingConvertEvent lets formatting/parsing observers replace a proposed value for a declared destination kind and explicitly mark it handled.
+   * - :cpp:class:`BindingFilter <gui_forms::BindingFilter>`
+     - BindingFilter is a conjunction of BindingPredicate values that every shown row satisfies.
    * - :cpp:class:`BindingListChange <gui_forms::BindingListChange>`
      - BindingListChange identifies one reset, row mutation, or currency transition with stable identity, field, index, and metadata flag.
    * - :cpp:class:`BindingManagerBase <gui_forms::BindingManagerBase>`
      - BindingManagerBase is the renderer-neutral currency/edit/transfer contract shared by list, grid, property, and settings surfaces.
+   * - :cpp:class:`BindingNotification <gui_forms::BindingNotification>`
+     - BindingNotification is one provider change report: reset, inserted, removed, moved or changed rows.
    * - :cpp:class:`BindingOptions <gui_forms::BindingOptions>`
      - BindingOptions defines source/control update timing, optional invariant formatting, and asymmetric null projections.
-   * - :cpp:class:`BindingRecord <gui_forms::BindingRecord>`
-     - BindingRecord is one stable editable row with canonical field values and field/record error projections.
+   * - :cpp:class:`BindingPredicate <gui_forms::BindingPredicate>`
+     - BindingPredicate is the one structured filter predicate: a column, a comparison operator and an operand.
+   * - :cpp:class:`BindingProvider <gui_forms::BindingProvider>`
+     - BindingProvider is the data-provider interface a BindingSource reads in place: schema, row count, copied cell values, stable IDs, validated writes and change notifications.
+   * - :cpp:class:`BindingProviderCapabilities <gui_forms::BindingProviderCapabilities>`
+     - BindingProviderCapabilities states whether a provider sorts, filters, inserts and removes rows itself.
+   * - :cpp:class:`BindingProviderLink <gui_forms::BindingProviderLink>`
+     - BindingProviderLink is a provider's revocable, thread-safe handle for reporting changes to its source; reports from another thread are posted to the UI thread.
+   * - :cpp:class:`BindingRow <gui_forms::BindingRow>`
+     - BindingRow is one row handed to a provider: stable ID, values by column position, and edit policy.
+   * - :cpp:class:`BindingSchema <gui_forms::BindingSchema>`
+     - BindingSchema is a provider's validated column list, declared once per source, with canonical name lookup and kind admission.
    * - :cpp:class:`BindingSnapshot <gui_forms::BindingSnapshot>`
      - BindingSnapshot reports endpoints, directional operations, successes, failures, reentrancy suppression, and active state.
+   * - :cpp:class:`BindingSortKey <gui_forms::BindingSortKey>`
+     - BindingSortKey names one sort column and its direction; equal keys keep the provider order.
    * - :cpp:class:`BindingSourceSnapshot <gui_forms::BindingSourceSnapshot>`
      - BindingSourceSnapshot reports currency, revision, reset/field/position/suspension counters, edit state, and event publication policy.
+   * - :cpp:class:`BindingTable <gui_forms::BindingTable>`
+     - BindingTable is the built-in column-store provider: row-major cells, stable IDs, edit flags and sparse error texts, reporting its own mutations through the link.
+   * - :cpp:class:`BindingWriteResult <gui_forms::BindingWriteResult>`
+     - BindingWriteResult reports a provider's acceptance or refusal of a write, with its reason.
    * - :cpp:class:`ChildPropertyEntry <gui_forms::ChildPropertyEntry>`
      - One property a container provides to its direct children (an attached property, study sections 10 and 15.4): a child writes it in its own ``.form`` block, and the container stores the value per child.
    * - :cpp:class:`ChildPropertyView <gui_forms::ChildPropertyView>`
@@ -89,6 +111,22 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: BindingColumn final
+
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+
+   BindingColumn declares one provider column: canonical name, value kind (null for untyped) and read-only flag.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: BindingValueKind kind
+
+      Default: ``{BindingValueKind::null}``.
+
+   .. cpp:member:: bool read_only
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: BindingCompleteEvent final
 
    ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
@@ -139,6 +177,21 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: BindingFilter final
+
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+
+   BindingFilter is a conjunction of BindingPredicate values that every shown row satisfies.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:member:: std::vector<BindingPredicate> all_of
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: BindingListChange final
 
    ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
@@ -158,6 +211,10 @@ Types
    .. cpp:member:: std::string field
 
    .. cpp:member:: bool metadata_changed
+
+   .. cpp:member:: std::ptrdiff_t to_index
+
+      item_moved: where the row now stands; -1 otherwise. Default: ``{-1}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -181,9 +238,9 @@ Types
 
       Returns source row cardinality.
 
-   .. cpp:function:: virtual const BindingRecord* current() const noexcept = 0
+   .. cpp:function:: virtual std::string current_stable_id() const = 0
 
-      Returns the current row or null.
+      Returns the current row's stable ID or an empty string.
 
    .. cpp:function:: virtual std::ptrdiff_t position() const noexcept = 0
 
@@ -243,6 +300,24 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: BindingNotification final
+
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+
+   BindingNotification is one provider change report: reset, inserted, removed, moved or changed rows.
+
+   .. cpp:member:: BindingNotificationKind kind
+
+      Default: ``{BindingNotificationKind::reset}``.
+
+   .. cpp:member:: std::size_t row
+
+   .. cpp:member:: std::size_t count
+
+   .. cpp:member:: std::size_t target
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: BindingOptions final
 
    ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
@@ -263,38 +338,194 @@ Types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: BindingRecord final
+.. cpp:struct:: BindingPredicate final
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
 
-   BindingRecord is one stable editable row with canonical field values and field/record error projections.
+   BindingPredicate is the one structured filter predicate: a column, a comparison operator and an operand.
+
+   .. cpp:member:: std::string column
+
+   .. cpp:member:: BindingPredicateOperator op
+
+      Default: ``{BindingPredicateOperator::equal}``.
+
+   .. cpp:member:: BindingValue operand
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: BindingProvider
+
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+
+   BindingProvider is the data-provider interface a BindingSource reads in place: schema, row count, copied cell values, stable IDs, validated writes and change notifications.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual BindingSchema schema() const = 0
+
+      The columns, read when the source takes the provider and again on every reset.
+
+   .. cpp:function:: virtual BindingProviderCapabilities capabilities() const
+
+   .. cpp:function:: virtual std::size_t row_count() = 0
+
+   .. cpp:function:: virtual bool read_cell(std::size_t row, std::size_t column, BindingValue& value) = 0
+
+      Fills value with the cell; false when there is no answer.
+
+   .. cpp:function:: virtual bool read_stable_id(std::size_t row, std::string& stable_id) = 0
+
+      Fills stable_id with the row's ID; false when there is none.
+
+   .. cpp:function:: virtual BindingWriteResult write_cell(std::size_t row, std::size_t column, const BindingValue& value) = 0
+
+      Writes the cell straight to the provider's data. The source has checked the kind and the read-only flags; the provider may still refuse. An accepted write needs no notification (the source applies it itself); one more is harmless.
+
+   .. cpp:function:: virtual bool cell_read_only(std::size_t row, std::size_t column)
+
+      Optional: a cell made read-only for one row.
+
+   .. cpp:function:: virtual bool read_error(std::size_t row, std::size_t column, std::string& text)
+
+      Optional: an error text for the cell, or for the row when column is binding_whole_row (IDataErrorInfo). False for none.
+
+   .. cpp:function:: virtual BindingWriteResult insert_row(std::size_t row, const BindingRow& values)
+
+      Optional (capabilities().inserts, .removes): the source's add, insert and remove calls. Like write_cell they need no notification.
+
+   .. cpp:function:: virtual BindingWriteResult remove_rows(std::size_t row, std::size_t count)
+
+   .. cpp:function:: virtual bool apply_sort(std::span<const BindingSortKey> keys)
+
+      Optional (capabilities().sorts, .filters): reorders or subsets the provider's rows and reports a reset. False declines, and the source builds its own index. An empty list or filter restores the natural order or every row.
+
+   .. cpp:function:: virtual bool apply_filter(const BindingFilter& filter)
+
+   .. cpp:function:: virtual void attach(const BindingProviderLink& link)
+
+      The source took the provider; link reports changes from now on.
+
+   .. cpp:function:: virtual void detach() noexcept
+
+      The source let the provider go; the link is already revoked.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BindingProviderCapabilities final
+
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+
+   BindingProviderCapabilities states whether a provider sorts, filters, inserts and removes rows itself.
+
+   .. cpp:member:: bool sorts
+
+   .. cpp:member:: bool filters
+
+   .. cpp:member:: bool inserts
+
+   .. cpp:member:: bool removes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: BindingProviderLink final
+
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+
+   BindingProviderLink is a provider's revocable, thread-safe handle for reporting changes to its source; reports from another thread are posted to the UI thread.
 
 
    .. rubric:: Construction
 
-   .. cpp:function:: BindingRecord() = default
+   .. cpp:function:: BindingProviderLink() = default
 
-      Default construction is empty; authored construction moves identity, fields, edit policy, and errors.
+      An empty link, revoked from the start.
 
-   .. cpp:function:: BindingRecord(std::string identity, FieldMap values, bool can_edit = true, ErrorMap error_values = {})
 
-      Default construction is empty; authored construction moves identity, fields, edit policy, and errors.
+   .. rubric:: Properties
 
-   .. cpp:type:: FieldMap = std::map<std::string, BindingValue>
+   .. cpp:function:: bool revoked() const noexcept
 
-   .. cpp:type:: ErrorMap = std::map<std::string, std::string>
+      Whether the source has let the provider go (or the link is empty).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reset() const
+
+   .. cpp:function:: void inserted(std::size_t row, std::size_t count) const
+
+   .. cpp:function:: void removed(std::size_t row, std::size_t count) const
+
+   .. cpp:function:: void moved(std::size_t row, std::size_t count, std::size_t target) const
+
+   .. cpp:function:: void changed(std::size_t row, std::size_t column = binding_whole_row) const
+
+   .. cpp:function:: void notify(const BindingNotification& notification) const
+
+   .. cpp:member:: constexpr std::size_t binding_maximum_posted_notifications
+
+      Default: ``4096U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BindingRow final
+
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+
+   BindingRow is one row handed to a provider: stable ID, values by column position, and edit policy.
 
    .. cpp:member:: std::string stable_id
 
-   .. cpp:member:: FieldMap fields
+   .. cpp:member:: std::vector<BindingValue> values
 
    .. cpp:member:: bool editable
 
       Default: ``{true}``.
 
-   .. cpp:member:: ErrorMap errors
+.. cpp:namespace:: gui_forms
 
-      Keys share the canonical field vocabulary; empty means record-wide.
+.. cpp:class:: BindingSchema final
+
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+
+   BindingSchema is a provider's validated column list, declared once per source, with canonical name lookup and kind admission.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: BindingSchema() = default
+
+   .. cpp:function:: explicit BindingSchema(std::vector<BindingColumn> columns)
+
+      Throws std::invalid_argument for an empty name, a name repeated under canonical_binding_name, or more than binding_maximum_columns columns: these are programming errors (N70).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+   .. cpp:function:: std::span<const BindingColumn> columns() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: const BindingColumn& column(std::size_t index) const
+
+      The column at index (below size()).
+
+   .. cpp:function:: std::optional<std::size_t> find(std::string_view name) const
+
+      The index of the column named name in any spelling that folds to it, or empty. A name that is blank finds nothing.
+
+   .. cpp:function:: std::size_t append(BindingColumn column)
+
+      Appends a column under the constructor's checks; returns its index.
+
+   .. cpp:function:: bool admits(std::size_t column, const BindingValue& value) const noexcept
+
+      Whether value may be stored in column: the null value always, else a value of the column's kind, or of any kind for an untyped column.
 
 .. cpp:namespace:: gui_forms
 
@@ -322,6 +553,20 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: BindingSortKey final
+
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+
+   BindingSortKey names one sort column and its direction; equal keys keep the provider order.
+
+   .. cpp:member:: std::string column
+
+   .. cpp:member:: BindingSortDirection direction
+
+      Default: ``{BindingSortDirection::ascending}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: BindingSourceSnapshot final
 
    ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
@@ -338,6 +583,10 @@ Types
 
    .. cpp:member:: std::uint64_t revision
 
+   .. cpp:member:: std::uint64_t generation
+
+      The provider-change generation (BindingSource::generation).
+
    .. cpp:member:: std::uint64_t resets
 
    .. cpp:member:: std::uint64_t field_changes
@@ -353,6 +602,125 @@ Types
    .. cpp:member:: bool raise_list_changed_events
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: BindingTable final : public BindingProvider
+
+   ``#include <gui_forms/binding/binding_table/binding_table.hpp>``
+
+   BindingTable is the built-in column-store provider: row-major cells, stable IDs, edit flags and sparse error texts, reporting its own mutations through the link.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit BindingTable(BindingSchema schema = {})
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const BindingSchema& table_schema() const noexcept
+
+   .. cpp:function:: std::size_t count() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::size_t add_column(BindingColumn column)
+
+      Appends a column (untyped columns take any kind); every row gets null in it. Reports a reset, so the source re-reads the schema.
+
+   .. cpp:function:: std::size_t find_or_add_column(std::string_view name)
+
+      The column named name, appended untyped when the table has none.
+
+   .. cpp:function:: std::size_t append(BindingRow row)
+
+   .. cpp:function:: std::size_t insert(std::size_t row, BindingRow values)
+
+   .. cpp:function:: std::size_t remove(std::size_t row, std::size_t count)
+
+      Removes rows [row, row + count) clamped to the end; returns how many.
+
+   .. cpp:function:: void move(std::size_t row, std::size_t count, std::size_t target)
+
+      Moves rows [row, row + count) so the first stands at target afterwards (target <= count() - count); reports moved. Throws std::out_of_range, changing nothing, for a block or target past the rows.
+
+   .. cpp:function:: void clear()
+
+   .. cpp:function:: void assign(std::vector<BindingRow> rows)
+
+      Replaces every row, checked whole first.
+
+   .. cpp:function:: const BindingValue& value(std::size_t row, std::size_t column) const
+
+   .. cpp:function:: const std::string& stable_id(std::size_t row) const
+
+   .. cpp:function:: bool editable(std::size_t row) const
+
+   .. cpp:function:: std::optional<std::size_t> find(std::string_view stable_id) const
+
+      The row's index, found by a linear search.
+
+   .. cpp:function:: std::string error(std::size_t row, std::size_t column) const
+
+   .. cpp:function:: bool set_value(std::size_t row, std::size_t column, BindingValue value)
+
+      Writes a cell; false when it already held value.
+
+   .. cpp:function:: void set_editable(std::size_t row, bool editable)
+
+   .. cpp:function:: void set_error(std::size_t row, std::size_t column, std::string text)
+
+      An error text for a cell, or for the row with binding_whole_row; an empty text clears it. Kept by stable ID, so it follows the row.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: BindingSchema schema() const override
+
+      BindingProvider.
+
+   .. cpp:function:: BindingProviderCapabilities capabilities() const override
+
+   .. cpp:function:: std::size_t row_count() override
+
+   .. cpp:function:: bool read_cell(std::size_t row, std::size_t column, BindingValue& value) override
+
+   .. cpp:function:: bool read_stable_id(std::size_t row, std::string& stable_id) override
+
+   .. cpp:function:: BindingWriteResult write_cell(std::size_t row, std::size_t column, const BindingValue& value) override
+
+   .. cpp:function:: bool cell_read_only(std::size_t row, std::size_t column) override
+
+   .. cpp:function:: bool read_error(std::size_t row, std::size_t column, std::string& text) override
+
+   .. cpp:function:: BindingWriteResult insert_row(std::size_t row, const BindingRow& values) override
+
+   .. cpp:function:: BindingWriteResult remove_rows(std::size_t row, std::size_t count) override
+
+   .. cpp:function:: void attach(const BindingProviderLink& link) override
+
+   .. cpp:function:: void detach() noexcept override
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BindingWriteResult final
+
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+
+   BindingWriteResult reports a provider's acceptance or refusal of a write, with its reason.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool accepted() const noexcept
+
+   .. cpp:member:: BindingWriteStatus status
+
+      Default: ``{BindingWriteStatus::refused}``.
+
+   .. cpp:member:: std::string reason
 
 .. cpp:namespace:: gui_forms
 
@@ -656,10 +1024,6 @@ Types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const BindingRecord> list() const noexcept
-
-      Returns the complete source row view.
-
    .. cpp:function:: BindingSource& source() const noexcept
 
       Returns the bound source reference.
@@ -685,9 +1049,9 @@ Types
 
       Delegates row count or returns zero after detachment.
 
-   .. cpp:function:: const BindingRecord* current() const noexcept override
+   .. cpp:function:: std::string current_stable_id() const override
 
-      Delegates current row or returns null after detachment.
+      Delegates the current stable ID or returns an empty string after detachment.
 
    .. cpp:function:: std::ptrdiff_t position() const noexcept override
 
@@ -1267,6 +1631,60 @@ Enumerations
 
    .. cpp:enumerator:: position_changed
 
+   .. cpp:enumerator:: item_moved
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BindingNotificationKind
+
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+
+   .. cpp:enumerator:: reset
+
+   .. cpp:enumerator:: inserted
+
+   .. cpp:enumerator:: removed
+
+   .. cpp:enumerator:: moved
+
+   .. cpp:enumerator:: changed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BindingPredicateOperator
+
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+
+   .. cpp:enumerator:: equal
+
+   .. cpp:enumerator:: not_equal
+
+   .. cpp:enumerator:: less
+
+   .. cpp:enumerator:: less_or_equal
+
+   .. cpp:enumerator:: greater
+
+   .. cpp:enumerator:: greater_or_equal
+
+   .. cpp:enumerator:: contains
+
+   .. cpp:enumerator:: starts_with
+
+   .. cpp:enumerator:: is_null
+
+   .. cpp:enumerator:: is_not_null
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BindingSortDirection
+
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+
+   .. cpp:enumerator:: ascending
+
+   .. cpp:enumerator:: descending
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: BindingValueKind
@@ -1304,6 +1722,24 @@ Enumerations
    .. cpp:enumerator:: object
 
    .. cpp:enumerator:: collection
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BindingWriteStatus
+
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: refused
+
+   .. cpp:enumerator:: read_only
+
+   .. cpp:enumerator:: kind_mismatch
+
+   .. cpp:enumerator:: out_of_range
+
+   .. cpp:enumerator:: unavailable
 
 .. cpp:namespace:: gui_forms
 
@@ -1409,6 +1845,38 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+
+.. cpp:function:: int compare_binding_keys(const BindingValue& left, const BindingValue& right) noexcept
+
+   The order of two values as sort keys: negative, zero or positive. Null comes first; numbers (signed, unsigned and floating) compare by value across their kinds; text compares by code point ignoring case (the owner's ruling, 2026-11-10); false before true; values of different families order by kind; other kinds (geometry, colours, fonts, images, objects, collections) are equal to every value of their kind.
+
+.. cpp:function:: bool binding_predicate_holds(const BindingPredicate& predicate, const BindingValue& value) noexcept
+
+   Whether value satisfies predicate.
+
+.. cpp:var:: constexpr std::size_t binding_whole_row
+
+   The column index that names a whole row: a row's own error text rather than one cell's, or a change to every cell of the row. Value: ``static_cast<std::size_t>(-1)``.
+
+.. cpp:var:: constexpr std::size_t binding_maximum_columns
+
+   The bounds every provider answer is held to. A larger answer is a data error: the cell shows an error and the source keeps nothing of it. Value: ``1024U``.
+
+.. cpp:var:: constexpr std::size_t binding_maximum_text_bytes
+
+   Value: ``std::size_t{1} << 20U``.
+
+.. cpp:var:: constexpr std::size_t binding_maximum_error_bytes
+
+   Value: ``4096U``.
+
+.. cpp:var:: constexpr std::size_t binding_maximum_rows
+
+   A provider's row count past this is refused as a data error (the source shows no rows until the next reset). The view index numbers rows in 32 bits, which this keeps clear of. Value: ``std::size_t{1} << 31U``.
 
 .. cpp:namespace:: gui_forms
 

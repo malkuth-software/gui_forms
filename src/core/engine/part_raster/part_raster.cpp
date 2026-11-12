@@ -24,8 +24,19 @@ std::shared_ptr<PartRaster> PartRaster::create(const DeviceExtent extent, const 
 }
 
 PartRasterView PartRaster::view() noexcept {
+    opaque_ = false;
     const PartRasterView borrowed{std::span<std::uint8_t>(pixels_.data(), pixels_.size()), extent_, row_bytes_};
     return borrowed;
+}
+
+void PartRaster::record_opacity() noexcept {
+    // The AND of every alpha byte (the fourth of each BGRA pixel); an empty
+    // raster has no pixel that is not opaque, but nothing to copy either.
+    std::uint8_t every = 255U;
+    for (std::size_t offset = 3U; offset < pixels_.size(); offset += part_raster_bytes_per_pixel) {
+        every = static_cast<std::uint8_t>(every & pixels_[offset]);
+    }
+    opaque_ = !pixels_.empty() && every == 255U;
 }
 
 } // namespace gui_forms

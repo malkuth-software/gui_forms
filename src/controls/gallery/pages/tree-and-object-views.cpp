@@ -180,13 +180,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        const std::array<std::shared_ptr<ScaledGroupBox>, 6> groups{
-            document_.gallery_tree_location, document_.gallery_tree_folders_group,
-            document_.gallery_tree_objects_group, document_.gallery_tree_ledger_group,
-            document_.gallery_tree_grid_group, document_.gallery_tree_tree_list_group};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
         trail_ = document_.gallery_tree_trail;
         tree_ = document_.gallery_tree_folders;
         objects_ = document_.gallery_tree_objects;
@@ -204,13 +197,11 @@ private:
         on((*trail_).edit_cancelled(), *this, &TreeAndObjectViewsPage::on_edit_cancelled);
         // The view-mode row is a ChoiceGroup bound to a page-owned Value.
         ChoiceGroup& view_mode = *document_.gallery_tree_view_mode;
-        view_mode.set_style(page_style());
         view_mode.set_items({{.id = 0, .label = "Icons"}, {.id = 1, .label = "Details"}});
         view_mode.bind(view_mode_);
     }
 
     void build_tree() {
-        (*tree_).set_style(page_style());
         std::vector<TreeViewItem> items;
         for (std::size_t index = 0; index < project.size(); ++index) {
             const ProjectNode& node = project[index];
@@ -230,7 +221,6 @@ private:
     }
 
     void build_objects() {
-        (*objects_).set_style(page_style());
         (*objects_).icon_cell_size = {94.0, 84.0};
         (*objects_).view_mode = ObjectViewMode::details;
         on((*objects_).selection_changed(), *this, &TreeAndObjectViewsPage::on_object_selected);
@@ -239,7 +229,6 @@ private:
     }
 
     void build_ledger() {
-        (*ledger_).set_style(page_style());
         (*ledger_).compact_height = 44.0;
         (*ledger_).expanded_height = 124.0;
         on((*ledger_).selection_changed(), *this, &TreeAndObjectViewsPage::on_file_selected);

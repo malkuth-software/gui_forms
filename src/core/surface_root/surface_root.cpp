@@ -1,4 +1,5 @@
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/component/failures/component_failures.hpp"
 #include "../drag_engine/drag_engine.hpp"
 #include "gui_forms/window.hpp"
 #include "requests/alert_route.hpp"
@@ -39,7 +40,7 @@ void SurfaceRoot::require_root_thread(std::string_view operation) {
         return;
     }
     metrics_.record_wrong_thread_rejection();
-    throw std::logic_error("GUI.Forms rejected wrong-thread " + std::string(operation));
+    throw WrongThreadError("GUI.Forms rejected wrong-thread " + std::string(operation));
 }
 
 DragEngine& SurfaceRoot::drag_engine() {

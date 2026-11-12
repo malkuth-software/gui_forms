@@ -66,6 +66,38 @@ void alpha_channel_modes() {
     require((opaque >> 24U) == 255U, "opaque destinations stay opaque");
 }
 
+// D6: an inner rounded clip in the corner of an outer one keeps the outer
+// arc. The inner clip alone covers the outer corner pixel fully; nested, it
+// takes the outer clip's coverage there, and without an outer clip the
+// result is the inner clip's alone.
+void nested_rounded_clips_keep_both_arcs() {
+    const TextCompositeClip outer_only{.rect = {0.0, 0.0, 40.0, 40.0}, .rounded = true,
+                                       .rounded_rect = {0.0, 0.0, 40.0, 40.0}, .radius = 16.0};
+    const TextCompositeClip inner_only{.rect = {0.0, 0.0, 20.0, 20.0}, .rounded = true,
+                                       .rounded_rect = {0.0, 0.0, 20.0, 20.0}, .radius = 2.0};
+    TextCompositeClip nested = inner_only;
+    nested.outer_rounded = true;
+    nested.outer_rounded_rect = outer_only.rounded_rect;
+    nested.outer_radius = outer_only.radius;
+    require(detail::text_clip_coverage(inner_only, 2, 2) == 256U, "the inner clip alone covers the outer corner");
+    require(detail::text_clip_coverage(nested, 2, 2) == detail::text_clip_coverage(outer_only, 2, 2) &&
+            detail::text_clip_coverage(outer_only, 2, 2) < 256U,
+            "the nested clip keeps the outer arc");
+    require(detail::text_clip_coverage(nested, 10, 10) == 256U, "the shared interior is fully covered");
+    for (std::int64_t y = 0; y < 20; ++y) {
+        for (std::int64_t x = 0; x < 20; ++x) {
+            require(detail::text_clip_coverage(nested, x, y) <= detail::text_clip_coverage(inner_only, x, y) &&
+                    detail::text_clip_coverage(nested, x, y) <= detail::text_clip_coverage(outer_only, x, y),
+                    "nested coverage never exceeds either clip");
+        }
+    }
+    TextCompositeClip ignored = outer_only;
+    ignored.rounded = false;
+    ignored.outer_rounded = true;
+    ignored.outer_rounded_rect = {0.0, 0.0, 4.0, 4.0};
+    require(detail::text_clip_coverage(ignored, 2, 2) == 256U, "an outer clip without an inner one is not read");
+}
+
 void fractional_rect_edges_are_area_coverage() {
     // A clip starting a quarter into pixel 0 covers three quarters of it.
     const TextCompositeClip quarter{.rect = {0.25, 0.0, 10.0, 10.0}};
@@ -168,12 +200,72 @@ void source_mode_replaces() {
     }
 }
 
+// The blends' division by 255 is replaced by a shift identity: it gives
+// (value + 127) / 255 for every value the blends produce, and beyond.
+void quotient_identity_is_exact() {
+    for (unsigned value = 0U; value <= 65535U; ++value) {
+        if (detail::rounded_quotient_by_255(value) != (value + 127U) / 255U) {
+            require(false, "the quotient identity differs from the division");
+        }
+    }
+}
+
+// The interior (clip coverage a whole unit) takes the block kernels, and a
+// rounded clip of radius 0 has the same interior as a rectangular one: the
+// two give the same bytes. part_composite_tests checks the interior against
+// the per-pixel formula.
+void interior_table_matches_coverage() {
+    constexpr std::uint32_t width = 11U;
+    constexpr std::uint32_t height = 7U;
+    std::vector<std::uint8_t> coverage(static_cast<std::size_t>(width) * height);
+    for (std::size_t index = 0U; index < coverage.size(); ++index) {
+        coverage[index] = static_cast<std::uint8_t>((index * 53U + 7U) % 256U);
+    }
+    constexpr std::array<Rect, 3> clips{{{1.25, 0.5, 9.5, 6.25}, {0.0, 0.0, 13.0, 9.0}, {3.0, 2.0, 4.0, 3.0}}};
+    const std::array<Color, 3> colours{Color::rgba(200, 40, 90, 255), Color::rgba(10, 220, 130, 128),
+                                       Color::rgba(0, 0, 0, 0)};
+    constexpr std::array<detail::TextCompositeMode, 2> modes{detail::TextCompositeMode::source_over,
+                                                             detail::TextCompositeMode::source};
+    constexpr std::array<bool, 2> opacities{false, true};
+    for (const Rect clip_rect : clips) {
+        for (const Color colour : colours) {
+            for (const detail::TextCompositeMode mode : modes) {
+                for (const bool opaque : opacities) {
+                    std::vector<std::uint32_t> table((width + 2U) * (height + 2U), 0x80406020U);
+                    std::vector<std::uint32_t> covered = table;
+                    const TextCoverage source{.pixels = coverage, .width = width, .height = height, .left = 1,
+                                              .top = 1};
+                    TextCompositeClip rectangular{.rect = clip_rect};
+                    TextCompositeClip rounded = rectangular;
+                    rounded.rounded = true;
+                    rounded.rounded_rect = {0.0, 0.0, static_cast<double>(width + 2U), static_cast<double>(height + 2U)};
+                    rounded.radius = 0.0;
+                    const TextCompositeStatus first = detail::composite_text_coverage(
+                        source, {.pixels = table, .width = width + 2U, .height = height + 2U, .stride = width + 2U,
+                                 .opaque = opaque},
+                        rectangular, colour, mode);
+                    const TextCompositeStatus second = detail::composite_text_coverage(
+                        source, {.pixels = covered, .width = width + 2U, .height = height + 2U, .stride = width + 2U,
+                                 .opaque = opaque},
+                        rounded, colour, mode);
+                    require(first == TextCompositeStatus::success && second == TextCompositeStatus::success,
+                            "both clips composite");
+                    require(table == covered, "the rectangular and radius-0 rounded clips agree");
+                }
+            }
+        }
+    }
+}
+
 int main() {
+    quotient_identity_is_exact();
+    interior_table_matches_coverage();
     unclipped_alpha_matches_previous_rule();
     pixels_are_bgra();
     alpha_channel_modes();
     fractional_rect_edges_are_area_coverage();
     rounded_corners_are_antialiased();
+    nested_rounded_clips_keep_both_arcs();
     invalid_geometry_writes_nothing();
     clipped_composite_blends_partially();
     source_mode_replaces();

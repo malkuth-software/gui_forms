@@ -199,10 +199,78 @@ void EnginePartTable::unlink(const std::uint32_t slot) noexcept {
     unlinked.newer = no_slot;
 }
 
+void EnginePartTable::link_control(const std::uint32_t slot, const std::string_view control_id) noexcept {
+    const std::unordered_map<std::string, std::uint32_t, ControlIdHash, ControlIdEqual>::iterator first =
+        control_first_.find(control_id);
+    // acquire() made the entry, with no_slot, before committing.
+    std::uint32_t previous = no_slot;
+    std::uint32_t next = (*first).second;
+    while (next != no_slot && next < slot) {
+        previous = next;
+        next = slots_[next].control_next;
+    }
+    slots_[slot].control_previous = previous;
+    slots_[slot].control_next = next;
+    if (next != no_slot) slots_[next].control_previous = slot;
+    if (previous != no_slot) {
+        slots_[previous].control_next = slot;
+    } else {
+        (*first).second = slot;
+    }
+}
+
+void EnginePartTable::unlink_control(const std::uint32_t slot) noexcept {
+    RecordSlot& unlinked = slots_[slot];
+    if (unlinked.control_next != no_slot) slots_[unlinked.control_next].control_previous = unlinked.control_previous;
+    if (unlinked.control_previous != no_slot) {
+        slots_[unlinked.control_previous].control_next = unlinked.control_next;
+    } else {
+        const std::unordered_map<std::string, std::uint32_t, ControlIdHash, ControlIdEqual>::iterator first =
+            control_first_.find(std::string_view((*unlinked.record).control));
+        if (first != control_first_.end()) {
+            if (unlinked.control_next == no_slot) {
+                control_first_.erase(first);
+            } else {
+                (*first).second = unlinked.control_next;
+            }
+        }
+    }
+    unlinked.control_previous = no_slot;
+    unlinked.control_next = no_slot;
+}
+
+void EnginePartTable::list_raster_newest(CachedPartRaster& cached) noexcept {
+    if (cached.listed) unlist_raster(cached);
+    cached.older_raster = newest_raster_;
+    cached.newer_raster = nullptr;
+    if (newest_raster_ != nullptr) (*newest_raster_).newer_raster = &cached;
+    newest_raster_ = &cached;
+    if (oldest_raster_ == nullptr) oldest_raster_ = &cached;
+    cached.listed = true;
+}
+
+void EnginePartTable::unlist_raster(CachedPartRaster& cached) noexcept {
+    if (!cached.listed) return;
+    if (cached.older_raster != nullptr) {
+        (*cached.older_raster).newer_raster = cached.newer_raster;
+    } else {
+        oldest_raster_ = cached.newer_raster;
+    }
+    if (cached.newer_raster != nullptr) {
+        (*cached.newer_raster).older_raster = cached.older_raster;
+    } else {
+        newest_raster_ = cached.older_raster;
+    }
+    cached.older_raster = nullptr;
+    cached.newer_raster = nullptr;
+    cached.listed = false;
+}
+
 void EnginePartTable::release_slot(const std::uint32_t slot) noexcept {
     RecordSlot& released = slots_[slot];
     drop_raster(*released.record);
     count_readers((*released.record).inputs_read, 0U);
+    unlink_control(slot);
     if (released.item) {
         unlink(slot);
         released.item = false;
@@ -280,7 +348,16 @@ PartRecordAcquisition EnginePartTable::acquire(std::string_view control_id, cons
         free_slots_.reserve(slots_.size() + 1U);
     }
     const std::uint32_t slot = reuse ? free_slots_.back() : static_cast<std::uint32_t>(slots_.size());
-    index_.emplace(owned_lookup, slot);
+    // The control's entry (N36) first: a control's first record makes it
+    // with no record; release_control and link_control find it.
+    const bool new_control = control_first_.find(control_id) == control_first_.end();
+    if (new_control) control_first_.emplace(std::string(control_id), no_slot);
+    try {
+        index_.emplace(owned_lookup, slot);
+    } catch (...) {
+        if (new_control) control_first_.erase(control_first_.find(control_id));
+        throw;
+    }
 
     // Commit: nothing below allocates.
     if (reuse) {
@@ -291,6 +368,7 @@ PartRecordAcquisition EnginePartTable::acquire(std::string_view control_id, cons
     RecordSlot& target = slots_[slot];
     target.record = std::move(made);
     target.lookup = std::move(owned_lookup);
+    link_control(slot, control_id);
     live_ = live_ + 1U;
     const bool item = !key.item.empty() || key.item_index.has_value();
     std::size_t evicted = 0U;
@@ -331,42 +409,50 @@ const EnginePartRecord* EnginePartTable::record(PartRecordHandle handle) const n
 }
 
 std::size_t EnginePartTable::release_control(std::string_view control_id) noexcept {
+    // N36: the control's own records, in ascending slot order as a scan of
+    // every slot would release them; the last release erases the entry.
+    const std::unordered_map<std::string, std::uint32_t, ControlIdHash, ControlIdEqual>::const_iterator first =
+        control_first_.find(control_id);
+    if (first == control_first_.end()) return 0U;
     std::size_t released = 0U;
-    for (std::size_t index = 0U; index < slots_.size(); ++index) {
-        const RecordSlot& slot = slots_[index];
-        if (!slot.record || (*slot.record).control != control_id) continue;
-        release_slot(static_cast<std::uint32_t>(index));
+    std::uint32_t slot = (*first).second;
+    while (slot != no_slot) {
+        const std::uint32_t next = slots_[slot].control_next;
+        release_slot(slot);
         released = released + 1U;
+        slot = next;
     }
     return released;
 }
 
 void EnginePartTable::drop_raster(EnginePartRecord& record) noexcept {
-    if (!record.cached || !(*record.cached).raster) return;
-    CachedPartRaster& cached = *record.cached;
+    if (!record.cached) return;
+    drop_cached_raster(*record.cached);
+}
+
+void EnginePartTable::drop_cached_raster(CachedPartRaster& cached) noexcept {
+    if (!cached.raster) return;
     // A shared raster counts against the shared bakes' budget, not this one.
     if (!cached.shared) {
         statistics_.bytes = statistics_.bytes - (*cached.raster).pixels().size();
         statistics_.rasters = statistics_.rasters - 1U;
     }
+    unlist_raster(cached);
     cached.raster.reset();
     cached.primitive = nullptr;
     cached.shared = false;
 }
 
 void EnginePartTable::make_room(const std::size_t incoming, const EnginePartRecord* const keep) noexcept {
+    // N37: the least recently painted held raster, other than `keep`'s, is
+    // the oldest on the recency list; of rasters painted in the same frame,
+    // the one painted first goes first, so eviction order is fixed.
+    const CachedPartRaster* const kept = keep != nullptr ? (*keep).cached.get() : nullptr;
     while (statistics_.bytes + incoming > raster_cache_budget_bytes) {
-        // The least recently painted record holding a raster, other than
-        // `keep`; ties go to the lower slot, so eviction order is fixed.
-        EnginePartRecord* oldest = nullptr;
-        for (RecordSlot& slot : slots_) {
-            if (!slot.record || &*slot.record == keep) continue;
-            if (!(*slot.record).cached || !(*(*slot.record).cached).raster) continue;
-            if ((*(*slot.record).cached).shared) continue;
-            if (oldest == nullptr || (*slot.record).last_painted < (*oldest).last_painted) oldest = &*slot.record;
-        }
+        CachedPartRaster* oldest = oldest_raster_;
+        if (oldest != nullptr && oldest == kept) oldest = (*oldest).newer_raster;
         if (oldest == nullptr) return;
-        drop_raster(*oldest);
+        drop_cached_raster(*oldest);
         statistics_.evictions = statistics_.evictions + 1U;
     }
 }
@@ -703,6 +789,7 @@ std::shared_ptr<PartRaster> EnginePartTable::shared_bake(const PartRasterRequest
     }
     const RasterOutcome outcome = primitive.rasterize(request.parameters, target, preparation, (*baked).view());
     if (outcome != RasterOutcome::painted && outcome != RasterOutcome::empty) return nullptr;
+    (*baked).record_opacity();
     statistics_.bakes = statistics_.bakes + 1U;
     count_image_mask_fallback(request, lent);
     if (use == SharedUse::idle_keyframe) {
@@ -858,6 +945,7 @@ PartRasterResult EnginePartTable::raster_without_record(const PartRasterRequest&
     if (outcome != RasterOutcome::painted && outcome != RasterOutcome::empty) {
         return PartRasterResult{nullptr, PartRasterStatus::refused};
     }
+    (*storage).record_opacity();
     if (awaited) unrecorded_awaited_ = true;
     statistics_.uncached = statistics_.uncached + 1U;
     return PartRasterResult{storage, PartRasterStatus::uncached};
@@ -870,6 +958,7 @@ PartRasterResult EnginePartTable::raster_for(const PartRecordHandle handle, cons
     if (request.primitive == nullptr) return PartRasterResult{nullptr, PartRasterStatus::refused};
     EnginePartRecord& part = *found;
     part.last_painted = paint_sequence;
+    if (part.cached && (*part.cached).listed) list_raster_newest(*part.cached);
     if (raster_current(part, request)) {
         statistics_.hits = statistics_.hits + 1U;
         return PartRasterResult{(*part.cached).raster, PartRasterStatus::cached};
@@ -935,6 +1024,7 @@ PartRasterResult EnginePartTable::raster_for(const PartRecordHandle handle, cons
     if (outcome != RasterOutcome::painted && outcome != RasterOutcome::empty) {
         return PartRasterResult{nullptr, PartRasterStatus::refused};
     }
+    (*storage).record_opacity();
 
     // Commit. The part's former raster no longer shows it either way.
     if (status == PartRasterStatus::uncached) {
@@ -950,6 +1040,7 @@ PartRasterResult EnginePartTable::raster_for(const PartRecordHandle handle, cons
         statistics_.bytes = statistics_.bytes + bytes;
         statistics_.rasters = statistics_.rasters + 1U;
         statistics_.storage_allocations = statistics_.storage_allocations + 1U;
+        list_raster_newest(cached);
     } else {
         statistics_.storage_reuses = statistics_.storage_reuses + 1U;
     }

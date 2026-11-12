@@ -141,8 +141,9 @@ Every condition has a `not_` form, such as `not_focused(c)` or
   for a control that can be dragged, so an application can bind its own
   move key.
 
-`dragging`, `drop_candidate` and `begin_keyboard_drag` are C++ only for
-now; the C ABI does not offer them yet (their numbers are reserved).
+The C ABI offers `dragging`, `drop_candidate` and `begin_keyboard_drag`
+since ABI 1.2 (`GF_RULE_CONDITION_DRAGGING`, `GF_RULE_CONDITION_DROP_CANDIDATE`
+and `GF_RULE_ACTION_BEGIN_KEYBOARD_DRAG`).
 
 A control the drag engine drives (Splitter, SplitContainer) raises typed
 drag interactions: `drag_started` when the drag is planned,

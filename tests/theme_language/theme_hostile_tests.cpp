@@ -142,6 +142,16 @@ void test_sheet_size() {
     require_limit(sheet_of_size(limit), sheet_of_size(limit + 1U), DiagnosticCode::sheet_too_large, "1 MiB per sheet");
 }
 
+// A NUL inside a comment leaves every token valid and the parse complete;
+// the tokenizer's error still refuses the theme (found by
+// theme_compile_fuzz, which saw such a sheet compile).
+void test_lexical_error_in_comment() {
+    constexpr char sheet[] = "button { opacity: 1 } /* \0 */";
+    const Outcome outcome = compile(std::string_view(sheet, sizeof(sheet) - 1U));
+    require(!outcome.compiled && outcome.error && *outcome.error == DiagnosticCode::nul_byte,
+            "a NUL in a comment refuses the theme with E102");
+}
+
 void test_rule_count() {
     const std::size_t limit = theme_language::maximum_rules;
     require_limit(repeated("button { opacity: 1 }\n", limit), repeated("button { opacity: 1 }\n", limit + 1U),
@@ -358,6 +368,7 @@ void test_diagnostic_records() {
 
 int main() {
     test_sheet_size();
+    test_lexical_error_in_comment();
     test_rule_count();
     test_declaration_count();
     test_nesting_depth();

@@ -53,6 +53,10 @@ void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
 }
 
+void require(bool condition, const std::string& message) {
+    if (!condition) throw std::runtime_error(message);
+}
+
 bool near(double left, double right) noexcept {
     const bool close = std::abs(left - right) < 0.001;
     return close;
@@ -301,10 +305,51 @@ void panels_fit_their_rows() {
     require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the File menu opens");
     const std::shared_ptr<Control> panel = panel_of(*desk.model, 0U);
     const double width = (*panel).requested_bounds().width;
-    require(width > 268.0, "a long label widens the panel past its preferred width");
+    require(width > 268.0, "a long label widens the panel");
     const ResolvedTextLayout label = (*desk.model).resolve_text_layout_utf8(
         "Open a picture from a folder far away on the network", FontSpec{FontRole::control, 11.0, 400, false, 0.12});
     require(width >= 30.0 + label.logical_size.width + 25.0, "the label fits between the gutter and the chevron");
+    (*desk.strip).close();
+}
+
+// Plan Paint's Paste menu (two short rows) and its three-row Fill/Tile/Center
+// submenu were 268 units wide whatever their rows (the old default
+// minimum, 532 px at 2x). A panel is as wide as its widest row, at least
+// the 120-unit minimum.
+void a_short_menu_is_as_wide_as_its_rows() {
+    Desk desk(true);
+    Commands commands;
+    std::vector<MenuItemSpec> paste;
+    paste.emplace_back("paste.here", MenuItemKind::command, commands.open, "Paste");
+    // Commands without shortcuts: a shortcut column would widen the panel
+    // (Save's is long).
+    paste.emplace_back("paste.new", MenuItemKind::command, commands.tile, "Paste as new");
+    std::vector<MenuItemSpec> placing;
+    placing.emplace_back("place.fill", MenuItemKind::command, commands.fill, "Fill");
+    placing.emplace_back("place.tile", MenuItemKind::command, commands.tile, "Tile");
+    placing.emplace_back("place.center", MenuItemKind::command, commands.quit, "Center");
+    std::vector<MenuItemSpec> short_items;
+    short_items.emplace_back("short.paste", MenuItemKind::submenu, std::shared_ptr<Command>{}, "Paste",
+                             std::move(paste));
+    short_items.emplace_back("short.place", MenuItemKind::submenu, std::shared_ptr<Command>{}, "Place",
+                             std::move(placing));
+    std::vector<MenuStripItemSpec> items;
+    MenuStripItemSpec entry{};
+    entry.stable_id = "edit";
+    entry.text = "&Edit";
+    entry.items = std::move(short_items);
+    items.push_back(std::move(entry));
+    (*desk.strip).set_items(std::move(items));
+    require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the Edit menu opens");
+    const double top_width = (*panel_of(*desk.model, 0U)).requested_bounds().width;
+    require(top_width >= 120.0 && top_width < 200.0, "a two-row menu is as wide as its rows, at least the minimum");
+    // A keyboard open focuses the first row, Paste.
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches Place");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), "Right opens the Place submenu");
+    require((*(*desk.model).popup_window_model(1U)).find("strip.menu.overlay.row.place.center") != nullptr,
+            "the submenu is Place's");
+    const double child_width = (*panel_of(*desk.model, 1U)).requested_bounds().width;
+    require(child_width >= 120.0 && child_width < 200.0, "a three-row submenu is as wide as its rows");
     (*desk.strip).close();
 }
 
@@ -396,6 +441,187 @@ void the_two_pane_menu_lifts_and_opens_submenus() {
     recorded.disconnect();
 }
 
+// One way of dismissing the application menu, by turn: Escape (for the
+// two-pane menu twice: the submenu, then the menu), the File tab, a click away, the program, the
+// owner window moving, and choosing the submenu's command.
+enum class Dismissal : std::uint8_t { escape, file_tab, click_away, program, owner_moved, choose };
+constexpr std::size_t dismissal_count = 6U;
+
+// Opens the application menu `cycles` times, opens its Background submenu
+// each time, and dismisses the menu a different way each time; after each
+// close nothing is left behind (no menu, no submenu, no Popup shown, no
+// focus scope) and the window count stays that of the first cycle (warm
+// windows are reused, never stacked).
+void cycle_application_menu(Desk& desk, const std::size_t cycles, const char* const kind) {
+    const Rect ribbon = (*desk.ribbon).absolute_bounds();
+    const Rect file_tab = (*desk.ribbon).parts().application_button.bounds;
+    const Point file_centre{ribbon.x + file_tab.x + file_tab.width / 2.0, ribbon.y + file_tab.y + file_tab.height / 2.0};
+    const Point away{700.0, 560.0};
+    std::size_t windows_after_first = 0U;
+    for (std::size_t cycle = 0U; cycle < cycles; ++cycle) {
+        const std::string label = std::string(kind) + " cycle " + std::to_string(cycle) + ": ";
+        const Dismissal dismissal = static_cast<Dismissal>(cycle % dismissal_count);
+        if (cycle % 2U == 0U) {
+            static_cast<void>((*desk.model).dispatch_pointer({PointerAction::down, PointerButton::primary, file_centre}));
+            static_cast<void>((*desk.model).dispatch_pointer({PointerAction::up, PointerButton::primary, file_centre}));
+        } else {
+            require((*desk.ribbon).show_application_menu(MenuOpenMode::keyboard), label + "the menu opens");
+        }
+        (*desk.model).perform_layout();
+        require((*desk.ribbon).menu_open() && desk.popups().size() == 1U, label + "the menu shows in one Popup");
+        // Background is the first row: a menu opened by pointer focuses no
+        // row, so Down reaches it first.
+        if (cycle % 2U == 0U) static_cast<void>((*desk.model).dispatch_key(key_down(PhysicalKey::down)));
+        static_cast<void>((*desk.model).dispatch_key(key_down(PhysicalKey::right)));
+        (*desk.model).perform_layout();
+        require(desk.popups().size() == 2U, label + "the submenu shows in a second Popup");
+        if (dismissal == Dismissal::escape) {
+            // The one-pane menu closes whole on Escape; the two-pane menu's
+            // submenu closes first, leaving the panel.
+            static_cast<void>((*desk.model).dispatch_key(key_down(PhysicalKey::escape)));
+            if ((*desk.ribbon).menu_open()) {
+                require(desk.popups().size() == 1U, label + "Escape closes the submenu first");
+                static_cast<void>((*desk.model).dispatch_key(key_down(PhysicalKey::escape)));
+            }
+        } else if (dismissal == Dismissal::owner_moved) {
+            (*desk.model).report_frame_moved();
+        } else if (dismissal == Dismissal::choose) {
+            static_cast<void>((*desk.model).dispatch_key(key_down(PhysicalKey::enter)));
+        } else if (dismissal == Dismissal::file_tab) {
+            static_cast<void>((*desk.model).dispatch_pointer({PointerAction::down, PointerButton::primary, file_centre}));
+            static_cast<void>((*desk.model).dispatch_pointer({PointerAction::up, PointerButton::primary, file_centre}));
+        } else if (dismissal == Dismissal::click_away) {
+            static_cast<void>((*desk.model).dispatch_pointer({PointerAction::down, PointerButton::primary, away}));
+            static_cast<void>((*desk.model).dispatch_pointer({PointerAction::up, PointerButton::primary, away}));
+        } else {
+            (*desk.ribbon).close_menus();
+        }
+        (*desk.model).perform_layout();
+        require(!(*desk.ribbon).menu_open(), label + "the menu closes");
+        require(desk.popups().empty(), label + "no Popup is left showing");
+        require((*desk.model).active_focus_scope_root() == nullptr, label + "no focus scope is left open");
+        if (cycle == 0U) windows_after_first = desk.windowing().window_count();
+        require(desk.windowing().window_count() == windows_after_first, label + "no window is left behind");
+    }
+    require((*desk.ribbon).show_application_menu(MenuOpenMode::keyboard) && desk.popups().size() == 1U,
+            std::string(kind) + ": the menu still opens after the cycles");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)) && !(*desk.ribbon).menu_open(),
+            std::string(kind) + ": and still answers its keys");
+}
+
+// Background (Tile, Fill), Open, Exit: the submenu first.
+std::vector<MenuItemSpec> submenu_first(const Commands& commands) {
+    std::vector<MenuItemSpec> background;
+    background.emplace_back("file.background.tile", MenuItemKind::command, commands.tile);
+    background.emplace_back("file.background.fill", MenuItemKind::command, commands.fill);
+    std::vector<MenuItemSpec> file;
+    file.emplace_back("file.background", MenuItemKind::submenu, std::shared_ptr<Command>{}, "Background",
+                      std::move(background));
+    file.emplace_back("file.open", MenuItemKind::command, commands.open);
+    file.emplace_back("file.quit", MenuItemKind::command, commands.quit);
+    return file;
+}
+
+// Owner, 2026-11-10: the main menu opened three times and the program
+// stopped responding. Both application menus, the one-pane menu and the
+// two-pane menu beside recent items, open and close twelve times, by
+// pointer and keyboard, dismissed by Escape, the File tab, a click away and
+// the program.
+void the_application_menu_opens_and_closes_repeatedly() {
+    {
+        Desk desk(true);
+        Commands commands;
+        (*desk.ribbon).set_application_menu(submenu_first(commands));
+        (*desk.model).perform_layout();
+        cycle_application_menu(desk, 12U, "one-pane");
+    }
+    {
+        Desk desk(true);
+        Commands commands;
+        (*desk.ribbon).set_application_menu(submenu_first(commands));
+        (*desk.ribbon).set_recent_items({{"recent.report", "Report.png", "C:\\Pictures"}});
+        (*desk.model).perform_layout();
+        cycle_application_menu(desk, 12U, "two-pane");
+    }
+}
+
+// Moves the pointer to the middle of `row` in the menu's Popup window of
+// `depth`.
+void hover_row(Window& owner, const std::size_t depth, const char* const row) {
+    Window* const popup = owner.popup_window_model(depth);
+    require(popup != nullptr, "the depth's Popup window shows");
+    const std::shared_ptr<Control> target = (*popup).find(std::string("strip.menu.overlay.row.") + row);
+    require(target != nullptr, "the row is in its Popup window");
+    const Rect bounds = (*target).absolute_bounds();
+    const Point middle{bounds.x + bounds.width / 2.0, bounds.y + bounds.height / 2.0};
+    static_cast<void>((*popup).dispatch_pointer({PointerAction::move, PointerButton::none, middle}));
+    (*popup).perform_layout();
+}
+
+// Owner, 2026-11-10 (Plan Paint, gdb2 to gdb4): hovering a submenu row,
+// moving to a command row below it and back crashed in open_submenu on
+// freed rows. Twelve times over: the submenu opens on its row, closes on
+// the next, opens again on its row, each time in its own warm Popup window,
+// and nothing of an earlier submenu is reached again (run under the
+// sanitizer, a stale row is a reported error).
+void hovering_a_submenu_row_away_and_back_reopens_it() {
+    Desk desk(true);
+    Commands commands;
+    (*desk.strip).set_items(strip_items(commands));
+    require((*desk.strip).open(0U, MenuOpenMode::pointer), "the File menu opens");
+    std::size_t windows_after_first = 0U;
+    for (std::size_t cycle = 0U; cycle < 12U; ++cycle) {
+        const std::string label = "hover cycle " + std::to_string(cycle) + ": ";
+        hover_row(*desk.model, 0U, "file.background");
+        require(desk.popups().size() == 2U, label + "the submenu opens on its row");
+        require((*desk.model).popup_window_model(1U) != nullptr &&
+                    (*(*desk.model).popup_window_model(1U)).find("strip.menu.overlay.row.file.background.tile") != nullptr,
+                label + "the submenu shows its rows");
+        // Save, above: the panel may still be revealing, its last row clipped.
+        hover_row(*desk.model, 0U, "file.save");
+        require(desk.popups().size() == 1U && (*desk.strip).is_open(), label + "the next row closes the submenu");
+        if (cycle == 0U) windows_after_first = desk.windowing().window_count();
+        require(desk.windowing().window_count() == windows_after_first, label + "no window is left behind");
+    }
+    hover_row(*desk.model, 0U, "file.background");
+    hover_row(*desk.model, 1U, "file.background.fill");
+    require(desk.popups().size() == 2U, "the submenu's own rows take the hover");
+    (*desk.model).report_frame_moved();
+    require(!(*desk.strip).is_open() && desk.popups().empty(), "the owner moving closes the menu and its submenu");
+}
+
+// Contention fuzzer seed 1 (tools/contention_fuzz.py, replay: the File menu
+// with its Background submenu open, then a button that shows a context menu
+// activated through automation, past the menu's outside-press layer). The
+// open chain's focus scope held the new menu outside it, begin_focus_scope
+// threw out of the window procedure and the program died. A window shows
+// one menu chain: the new menu closes the open one, both ways round.
+void a_menu_opening_closes_the_open_chain() {
+    Desk desk(true);
+    Commands commands;
+    (*desk.strip).set_items(strip_items(commands));
+    std::shared_ptr<ContextMenu> context = std::make_shared<ContextMenu>("context");
+    std::vector<MenuItemSpec> items;
+    items.emplace_back("context.open", MenuItemKind::command, commands.open);
+    items.emplace_back("context.save", MenuItemKind::command, commands.save);
+    (*context).set_items(std::move(items));
+    for (std::size_t cycle = 0U; cycle < 4U; ++cycle) {
+        const std::string label = "cycle " + std::to_string(cycle) + ": ";
+        require((*desk.strip).open(0U, MenuOpenMode::keyboard), label + "the File menu opens");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), label + "Down reaches the panel");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), label + "Down skips the rule");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), label + "Right opens the submenu");
+        require(desk.popups().size() == 2U, label + "the submenu shows");
+        (*context).show(desk.ribbon, Point{200.0, 200.0}, MenuOpenMode::keyboard);
+        require((*context).is_open() && !(*desk.strip).is_open(), label + "the context menu replaces the File menu");
+        require(desk.popups().size() == 1U, label + "only the context menu's Popup window shows");
+        require((*desk.strip).open(0U, MenuOpenMode::keyboard), label + "the File menu opens over the context menu");
+        require(!(*context).is_open() && (*desk.strip).is_open(), label + "the File menu replaces the context menu");
+        require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)), label + "Escape closes the File menu");
+        require(desk.popups().empty() && !(*desk.strip).is_open(), label + "no Popup window is left");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -405,8 +631,12 @@ int main() {
         the_popup_backplane_is_clear_round_the_panel();
         rows_take_the_designed_hover();
         panels_fit_their_rows();
+        a_short_menu_is_as_wide_as_its_rows();
         the_keyboard_drives_submenu_popups();
         the_two_pane_menu_lifts_and_opens_submenus();
+        the_application_menu_opens_and_closes_repeatedly();
+        hovering_a_submenu_row_away_and_back_reopens_it();
+        a_menu_opening_closes_the_open_chain();
     } catch (const std::exception& error) {
         std::cerr << "menu popup tests failed: " << error.what() << '\n';
         return 1;

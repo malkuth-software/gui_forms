@@ -188,9 +188,7 @@ SemanticDescriptor Button::semantic_descriptor() const {
 
 Insets Button::visual_outsets() const noexcept {
     const ControlVisualRole role = button_visual_role(visual_style.read());
-    const ControlVisualContext context = visual_context(
-        hovered_visual(), pressed_visual(), selected.read(), focus_cue_visible(),
-        default_button.read());
+    const ControlVisualContext context = visual_context({.hovered = hovered_visual(), .pressed = pressed_visual(), .selected = selected.read(), .focused = focus_cue_visible(), .defaulted = default_button.read()});
     return resolved_visual_outsets(role, context);
 }
 
@@ -350,7 +348,7 @@ void Button::prepare_write(const decltype(selected)&, bool&) {
 }
 
 void Button::written(const decltype(selected)&) {
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::paint | Dirty::semantics);
     publish_change(selected_changed_, selected.read());
 }
 

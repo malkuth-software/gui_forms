@@ -39,6 +39,13 @@ struct TextCompositeClip final {
     bool rounded{};
     Rect rounded_rect{};
     double radius{};
+    // The rounded clip enclosing the one above, when clips nest (D6): its
+    // corners are applied too, so text in the corner of an inner rounded
+    // clip stays inside the outer one. A third enclosing rounded clip is
+    // kept as its bounds (rect).
+    bool outer_rounded{};
+    Rect outer_rounded_rect{};
+    double outer_radius{};
 };
 
 // Grayscale coverage, 0..255, row-major with stride == width, placed with its
@@ -110,6 +117,11 @@ struct PartRasterSource final {
     // How the weighted source joins the target (PartCompositeBlend). Copy
     // writes every target pixel within the source's extent and the clip.
     PartCompositeBlend blend{PartCompositeBlend::source_over};
+    // Every source pixel's alpha is 255, as its maker recorded at bake time
+    // (PartRaster::opaque). Source-over at full opacity then copies the
+    // unscaled interior's rows. A source not wholly opaque must leave it
+    // false: its rows would be copied, not blended.
+    bool opaque{};
 };
 
 // A part opacity in [0, 1] as the byte the blend reads: floor(o * 255 + 0.5),
@@ -132,6 +144,16 @@ struct PartRasterSource final {
 // overlap.
 [[nodiscard]] TextCompositeStatus composite_part_raster(PartRasterSource source, TextCompositeTarget target,
                                                         TextCompositeClip clip, std::uint8_t opacity) noexcept;
+
+// (value + 127) / 255 without a division, for value in 0..65535: the
+// blends' rounding of a product of two bytes (and of a sum of two such
+// products that stays within 65535). Exact over that whole range, which a
+// test checks value by value.
+[[nodiscard]] constexpr unsigned rounded_quotient_by_255(const unsigned value) noexcept {
+    const unsigned biased = value + 128U;
+    const unsigned quotient = (biased + (biased >> 8U)) >> 8U;
+    return quotient;
+}
 
 // The blend a paint group's composite composites through, for the hosts'
 // painters. A value outside the enumeration is source-over.

@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -47,7 +48,8 @@ struct BoundSurfaceWake final {
 // control, so they never outlive it.
 class CustomControlState final {
 public:
-    CustomControlState(const gf_custom_control_callbacks& callbacks, std::size_t property_count);
+    CustomControlState(const gf_custom_control_callbacks& callbacks, const gf_custom_layout_callbacks& layout,
+                       std::size_t property_count);
     ~CustomControlState();
     CustomControlState(const CustomControlState&) = delete;
     CustomControlState& operator=(const CustomControlState&) = delete;
@@ -70,6 +72,12 @@ public:
     // client area; with a bound surface, draws that instead. Nothing after
     // disposal.
     void paint(Control& control, Painter& painter, Rect local_damage);
+    // The caller's measure, hit_test and semantics answers (K11): empty, or
+    // descriptor unchanged, when the callback is absent, fails or answers
+    // out of range, so the base's answer stands. None after disposal.
+    [[nodiscard]] std::optional<Size> measure(const Control& control, Size available) const;
+    [[nodiscard]] std::optional<bool> hit_test(const Control& control, Point local_point) const;
+    void describe(const Control& control, SemanticDescriptor& descriptor) const;
     // The changed event of property index, null when it does not notify.
     [[nodiscard]] Event<>* changed_event(std::size_t index) noexcept;
     // Shows surface, which another producer fills (a Windows paint
@@ -93,6 +101,9 @@ public:
 
 private:
     gf_custom_control_callbacks callbacks_{};
+    // The layout callbacks (since 1.2), called with callbacks_.context;
+    // each null keeps the base's answer.
+    gf_custom_layout_callbacks layout_{};
     std::vector<CustomPropertyDefinition> definitions_;
     // One per property, null for a property without change notifications;
     // the vector never grows after registrations, and each event lives
@@ -119,7 +130,8 @@ template <typename Base>
 class CustomControl final : public Base {
 public:
     CustomControl(StableId stable_id, const gf_custom_control_callbacks& callbacks,
-                  const std::vector<CustomPropertyDefinition>& definitions, bool focusable);
+                  const gf_custom_layout_callbacks& layout, const std::vector<CustomPropertyDefinition>& definitions,
+                  bool focusable);
 
     // Raises property index's changed event (publish_change, so an
     // initialization scope defers it). False when the property does not
@@ -129,6 +141,11 @@ public:
     // See CustomControlState::bind_surface and unbind_surface.
     void bind_surface(std::shared_ptr<LiveSurface> surface);
     void unbind_surface(const std::shared_ptr<LiveSurface>& surface);
+
+    // The caller's answers where it gives them, else Base's (K11).
+    [[nodiscard]] Size measure(Size available) override;
+    [[nodiscard]] bool hit_test_local(Point local_point) const override;
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
 
 protected:
     void on_paint(Painter& painter, Rect local_damage) override;

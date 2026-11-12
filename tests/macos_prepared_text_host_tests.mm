@@ -1,6 +1,7 @@
 #import <AppKit/AppKit.h>
 
 #include "prepared_text_test_support.hpp"
+#include "../src/core/text/prepared/prepared_storage.hpp"
 #include "gui_forms/platform/macos_host.hpp"
 #include "gui_forms/gui_forms.hpp"
 
@@ -26,21 +27,24 @@ public:
     Color background{255, 255, 255, 255};
     std::uint64_t paints{0};
     std::uint64_t prepared_paints{0};
-    bool fail{false};
 protected:
     void on_paint(Painter& painter, const gui_forms::Rect bounds) override {
         ++paints;
         painter.fill_rect(bounds, background);
-        if (fail) throw std::runtime_error("injected prepared host callback failure");
         if (!layout.empty()) {
             const PreparedTextPaintResult result = painter.draw_prepared_text(layout, layout.authority(), {12, 40}, {0, 0, 0, 255});
-            require(result.status == PreparedTextStatus::success, "prepared command recording failed");
+            // A stale layout (a replacement submitted, a resize) is refused with
+            // core's typed refusal, which the host contains, as the Linux and
+            // Windows fixtures do.
+            if (result.status != PreparedTextStatus::success) {
+                throw gui_forms::detail::PreparedTextPaintFailure(result.status);
+            }
             ++prepared_paints;
         }
     }
 };
 
-enum class Stage { host_ready, first_ready, first_presented, failure_observed, replacement_ready, replacement_presented };
+enum class Stage { host_ready, first_ready, first_presented, replacement_ready, replacement_presented };
 struct Capture final {
     NSInteger width{0};
     NSInteger height{0};
@@ -57,7 +61,6 @@ struct State final {
     Stage stage{Stage::host_ready};
     std::chrono::steady_clock::time_point deadline{};
     std::uint64_t previous_presented{0};
-    std::uint64_t previous_faults{0};
     double scale{1.0};
     Capture first{};
     bool finished{false};
@@ -86,15 +89,6 @@ void close_fixture(State& state) {
     // the callable until this invocation has returned.
     const std::function<void()> request_close = state.close;
     if (request_close) request_close();
-}
-std::uint64_t fault_count(NSView* const view) {
-    const std::string snapshot = [view hostJSON];
-    const std::string marker = "\"native_callback_faults\":";
-    const std::size_t position = snapshot.find(marker);
-    require(position != std::string::npos, "native fault diagnostic missing");
-    const std::string digits = snapshot.substr(position + marker.size());
-    const std::uint64_t count = static_cast<std::uint64_t>(std::stoull(digits));
-    return count;
 }
 void set_stage(State& state, const Stage stage) {
     state.stage = stage;
@@ -224,20 +218,9 @@ void advance(State& state) {
         state.first = capture_occluded(state, view);
         require_ink(state.first);
         state.previous_presented = lease.presented_revision;
-        state.previous_faults = fault_count(view);
-        (*state.root).fail = true;
-        (*state.root).background = {255, 0, 0, 255};
-        (*state.root).invalidate(Dirty::paint);
-        [view collectDamage];
-        set_stage(state, Stage::failure_observed);
-        return;
-    }
-    if (state.stage == Stage::failure_observed) {
-        if (fault_count(view) <= state.previous_faults) return;
-        require(lease.presented_revision == state.previous_presented, "failed candidate changed presented revision");
-        const Capture preserved = capture_occluded(state, view);
-        require(same_capture(state.first, preserved), "callback failure lost previous prepared native pixels");
-        (*state.root).fail = false;
+        // A throwing paint is no longer contained (owner, 2026-11-11: it
+        // ends the process at the fail-fast boundary), so the fixture goes
+        // straight to the replacement.
         (*state.root).background = {230, 255, 230, 255};
         [window setContentSize:NSMakeSize(360, 180)];
         submit(state, window, "Replacement prepared glyphs");

@@ -2,6 +2,7 @@
 
 #include "../collection_control_utilities.hpp"
 #include "../details_columns.hpp"
+#include "../../collections/row_height_index.hpp"
 
 #include "gui_forms/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp"
@@ -133,6 +134,16 @@ std::string cell_identity(std::string_view node_id, std::string_view column_id) 
     return identity;
 }
 
+// Where a splice moves a row: before `first` it stays, inside the removed
+// rows it is gone, after them it shifts by inserted - removed.
+std::optional<std::size_t> spliced_row(std::optional<std::size_t> row, const TreeListRowSplice& splice) noexcept {
+    if (!row || *row < splice.first) return row;
+    const std::size_t removed_end = splice.first + splice.removed;
+    if (*row < removed_end) return std::nullopt;
+    const std::size_t moved = *row - splice.removed + splice.inserted;
+    return moved;
+}
+
 } // namespace
 
 TreeListView::TreeListView(StableId stable_id) : Control(std::move(stable_id)) {
@@ -142,6 +153,268 @@ TreeListView::TreeListView(StableId stable_id) : Control(std::move(stable_id)) {
 }
 
 TreeListView::~TreeListView() {}
+
+// -- rows in both modes ----------------------------------------------------------
+
+std::size_t TreeListView::row_count() const noexcept {
+    return shown_count();
+}
+
+std::size_t TreeListView::shown_count() const noexcept {
+    if (row_source_) return (*row_heights_).count();
+    return visible_.size();
+}
+
+const TreeListNode& TreeListView::row_node(std::size_t row, TreeListNode& scratch) const {
+    if (!row_source_) return nodes_[visible_[row]];
+    (*row_source_).retrieve_row(row, scratch);
+    if (!valid_stable_id(scratch.stable_id)) scratch.stable_id = "#" + std::to_string(row);
+    if (!valid_node_text(scratch)) {
+        scratch.text.clear();
+        scratch.cells.clear();
+        scratch.image_key.clear();
+    }
+    return scratch;
+}
+
+bool TreeListView::row_can_expand(std::size_t row, const TreeListNode& node) const noexcept {
+    if (row_source_) return node.expandable;
+    return can_expand(visible_[row]);
+}
+
+std::optional<std::size_t> TreeListView::selected_row() const noexcept {
+    if (row_source_) return selected_row_;
+    if (!selected_node_ || row_of_node_[*selected_node_] == no_index) return std::nullopt;
+    return row_of_node_[*selected_node_];
+}
+
+std::optional<std::size_t> TreeListView::current_row() const noexcept {
+    if (row_source_) return current_row_;
+    if (!current_node_ || row_of_node_[*current_node_] == no_index) return std::nullopt;
+    return row_of_node_[*current_node_];
+}
+
+// Moves the selection and the current position to a row.
+void TreeListView::place_selection(std::size_t row) {
+    place_current(row);
+    if (row_source_) {
+        selected_row_ = row;
+    } else {
+        selected_node_ = visible_[row];
+    }
+}
+
+void TreeListView::place_current(std::size_t row) {
+    if (!row_source_) {
+        current_node_ = visible_[row];
+        return;
+    }
+    TreeListNode scratch;
+    current_row_id_ = row_node(row, scratch).stable_id;
+    current_row_ = row;
+}
+
+void TreeListView::toggle_row(std::size_t row, bool expanded) {
+    if (row_source_) {
+        set_virtual_row_expanded(row, expanded);
+        return;
+    }
+    set_expanded(nodes_[visible_[row]].stable_id, expanded);
+}
+
+// The row of a row's parent. In virtual mode the rows above are read until
+// one is shallower: the distance to the parent, not the row count.
+std::optional<std::size_t> TreeListView::parent_row(std::size_t row) const {
+    if (!row_source_) {
+        const std::size_t parent = parent_[visible_[row]];
+        if (parent == no_index) return std::nullopt;
+        return row_of_node_[parent];
+    }
+    TreeListNode scratch;
+    const std::size_t depth = row_node(row, scratch).depth;
+    if (depth == 0U) return std::nullopt;
+    for (std::size_t above = row; above > 0U; --above) {
+        if (row_node(above - 1U, scratch).depth < depth) return above - 1U;
+    }
+    return std::nullopt;
+}
+
+// -- virtual rows ------------------------------------------------------------------
+
+void TreeListView::set_row_source(std::shared_ptr<TreeListRowSource> source) {
+    require_mutable();
+    std::size_t count = 0U;
+    if (source) {
+        count = (*source).row_count();
+        if (count > maximum_nodes) throw std::invalid_argument("TreeListView source has more rows than maximum_nodes");
+    }
+    const std::optional<std::string> previous = selected_copy();
+    // The layout gives the index its estimate; minimum_row_height stands in
+    // until the first layout.
+    std::unique_ptr<RowHeightIndex> heights{};
+    if (source) {
+        heights = std::make_unique<RowHeightIndex>(minimum_row_height);
+        (*heights).assign(count, minimum_row_height);
+    }
+    row_source_.reset();
+    row_heights_.reset();
+    nodes_.clear();
+    node_indices_.clear();
+    selected_node_.reset();
+    current_node_.reset();
+    rebuild_structure();
+    row_source_ = std::move(source);
+    row_heights_ = std::move(heights);
+    selected_row_.reset();
+    current_row_.reset();
+    current_row_id_.clear();
+    top_row_ = 0U;
+    hot_row_.reset();
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    if (previous) publish_selection(previous);
+}
+
+void TreeListView::validate_splice(const TreeListRowSplice& splice) const {
+    const std::size_t count = (*row_heights_).count();
+    if (splice.first > count || splice.removed > count - splice.first) {
+        throw std::out_of_range("TreeListView splice lies outside the rows");
+    }
+    const std::size_t next = count - splice.removed + splice.inserted;
+    if (next > maximum_nodes) throw std::invalid_argument("TreeListView source has more rows than maximum_nodes");
+    if ((*row_source_).row_count() != next) {
+        throw std::logic_error("TreeListView source row count does not match the splice");
+    }
+}
+
+// The rows change in the height index (O(log n) node visits per path); the
+// selection, current row and top row follow their rows. `lift_to` receives a
+// selection or current row the splice removed (a collapse moves them to the
+// collapsed row, as TreeView does); without it they are dropped.
+void TreeListView::apply_splice(const TreeListRowSplice& splice, std::optional<std::size_t> lift_to) {
+    RowHeightIndex& heights = *row_heights_;
+    heights.erase(splice.first, splice.removed);
+    heights.insert(splice.first, splice.inserted);
+    const std::optional<std::size_t> selected = spliced_row(selected_row_, splice);
+    const std::optional<std::size_t> current = spliced_row(current_row_, splice);
+    selected_row_ = selected_row_ && !selected ? lift_to : selected;
+    const bool current_lost = current_row_ && !current;
+    current_row_ = current_lost ? lift_to : current;
+    if (current_lost && current_row_) place_current(*current_row_);
+    if (!current_row_) current_row_id_.clear();
+    const std::size_t removed_end = splice.first + splice.removed;
+    if (top_row_ >= removed_end) {
+        top_row_ = top_row_ - splice.removed + splice.inserted;
+    } else if (top_row_ > splice.first) {
+        top_row_ = splice.first;
+    }
+    hot_row_.reset();
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void TreeListView::splice_rows(std::size_t first, std::size_t removed, std::size_t inserted) {
+    require_mutable();
+    if (!row_source_) throw std::logic_error("TreeListView is not in virtual mode");
+    const TreeListRowSplice splice{first, removed, inserted};
+    validate_splice(splice);
+    const std::optional<std::string> previous = selected_copy();
+    apply_splice(splice, std::nullopt);
+    if (previous != selected_copy()) publish_selection(previous);
+}
+
+void TreeListView::refresh_rows() {
+    require_mutable();
+    if (!row_source_) throw std::logic_error("TreeListView is not in virtual mode");
+    const std::size_t count = (*row_source_).row_count();
+    if (count > maximum_nodes) throw std::invalid_argument("TreeListView source has more rows than maximum_nodes");
+    const std::optional<std::string> previous = selected_copy();
+    RowHeightIndex& heights = *row_heights_;
+    heights.assign(count, heights.estimated_height());
+    if (selected_row_ && *selected_row_ >= count) selected_row_.reset();
+    if (current_row_ && *current_row_ >= count) current_row_.reset();
+    current_row_id_.clear();
+    if (current_row_) place_current(*current_row_);
+    top_row_ = count == 0U ? 0U : std::min(top_row_, count - 1U);
+    hot_row_.reset();
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    if (previous != selected_copy()) publish_selection(previous);
+}
+
+// A user or program expansion in virtual mode: the source changes its model
+// and reports the rows; nothing in the view changes when it throws or
+// reports a splice that does not match.
+void TreeListView::set_virtual_row_expanded(std::size_t row, bool expanded) {
+    TreeListNode scratch;
+    const TreeListNode& node = row_node(row, scratch);
+    if (!node.expandable || node.expanded == expanded) return;
+    const std::string node_id = node.stable_id;
+    const std::optional<std::string> previous = selected_copy();
+    const TreeListRowSplice splice = (*row_source_).set_row_expanded(row, expanded);
+    validate_splice(splice);
+    if (splice.first <= row && splice.removed + splice.inserted > 0U) {
+        throw std::logic_error("TreeListView expansion splice must lie after the expanded row");
+    }
+    apply_splice(splice, expanded ? std::nullopt : std::optional<std::size_t>(row));
+    const TreeListExpansionChange change{node_id, expanded};
+    publish_change(expansion_changed_, change);
+    if (is_alive() && previous != selected_copy()) publish_selection(previous);
+}
+
+double TreeListView::row_top(const Layout& placed, std::size_t row) const noexcept {
+    if (row_source_) return (*row_heights_).offset_of(row) * placed.scale;
+    return static_cast<double>(row) * placed.row_height;
+}
+
+double TreeListView::row_extent(const Layout& placed, std::size_t row) const noexcept {
+    if (row_source_) return (*row_heights_).height_of(row) * placed.scale;
+    return placed.row_height;
+}
+
+// Asks the source for the heights of the rows from `top` that fill the
+// viewport and have not been measured (D10 b: estimated heights refined
+// lazily, no measuring pass over every row).
+void TreeListView::measure_rows(std::size_t top, double viewport_height, double scale, double estimate) const {
+    RowHeightIndex& heights = *row_heights_;
+    const std::size_t count = heights.count();
+    const double needed = viewport_height / scale;
+    double filled = 0.0;
+    for (std::size_t row = top; row < count && filled < needed; ++row) {
+        measure_row(row, estimate);
+        filled += heights.height_of(row);
+    }
+}
+
+// The same for the rows that end at `row` and fill the viewport upwards
+// (scrolling a row into view at the bottom).
+void TreeListView::measure_rows_above(std::size_t row, double viewport_height, double scale) const {
+    RowHeightIndex& heights = *row_heights_;
+    const double estimate = heights.estimated_height();
+    const double needed = viewport_height / scale;
+    double filled = 0.0;
+    for (std::size_t next = row + 1U; next > 0U && filled < needed; --next) {
+        measure_row(next - 1U, estimate);
+        filled += heights.height_of(next - 1U);
+    }
+}
+
+void TreeListView::measure_row(std::size_t row, double estimate) const {
+    RowHeightIndex& heights = *row_heights_;
+    if (heights.measured(row)) return;
+    double height = (*row_source_).row_height(row, estimate);
+    if (!std::isfinite(height) || height <= 0.0) height = estimate;
+    static_cast<void>(heights.set_height(row, height));
+}
+
+// The first row whose top is at or past `offset` (logical units): the end of
+// the rows that meet [.., offset).
+std::size_t TreeListView::row_after_offset(double offset) const noexcept {
+    const RowHeightIndex& heights = *row_heights_;
+    const std::size_t count = heights.count();
+    if (count == 0U) return 0U;
+    std::size_t row = heights.row_at(offset);
+    if (heights.offset_of(row) < offset) ++row;
+    const std::size_t result = std::min(row, count);
+    return result;
+}
 
 void TreeListView::initialize_control_tree() {
     const std::string prefix(stable_id().value());
@@ -235,6 +508,7 @@ void TreeListView::rebuild_order() {
 // The rows: the shown preorder without the nodes under a collapsed node.
 void TreeListView::rebuild_rows() {
     visible_.clear();
+    advance_layout_revision();
     row_of_node_.assign(nodes_.size(), no_index);
     std::optional<std::size_t> hidden_below{};
     for (const std::size_t index : order_) {
@@ -246,6 +520,7 @@ void TreeListView::rebuild_rows() {
         if (has_children(index) && !nodes_[index].expanded) hidden_below = depth;
     }
     top_row_ = visible_.empty() ? 0U : std::min(top_row_, visible_.size() - 1U);
+    advance_layout_revision();
     hot_row_.reset();
 }
 
@@ -281,6 +556,12 @@ bool TreeListView::lift_hidden_selection() {
 }
 
 std::optional<std::string> TreeListView::selected_copy() const {
+    if (row_source_) {
+        if (!selected_row_) return std::nullopt;
+        TreeListNode scratch;
+        std::string identity = row_node(*selected_row_, scratch).stable_id;
+        return identity;
+    }
     if (!selected_node_) return std::nullopt;
     return nodes_[*selected_node_].stable_id;
 }
@@ -341,6 +622,7 @@ void TreeListView::set_columns(std::vector<TreeListColumn> columns) {
     dragging_column_ = false;
     hot_column_.reset();
     columns_ = std::move(columns);
+    advance_layout_revision();
     column_order_.resize(columns_.size());
     std::iota(column_order_.begin(), column_order_.end(), std::size_t{0U});
     column_position_ = column_order_;
@@ -351,7 +633,7 @@ void TreeListView::set_columns(std::vector<TreeListColumn> columns) {
     }
     // A kept sort column may now name different text; a lost one returns
     // to the model order.
-    if (sort_lost || sort_column_) rebuild_order();
+    if (!row_source_ && (sort_lost || sort_column_)) rebuild_order();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -363,6 +645,7 @@ void TreeListView::set_column_width(std::size_t column, double width) {
     }
     if (columns_[column].width == width) return;
     columns_[column].width = width;
+    advance_layout_revision();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     const TreeListColumnWidthChange change{column, width};
     publish_change(column_width_changed_, change);
@@ -397,6 +680,7 @@ void TreeListView::apply_column_move(std::size_t column, std::size_t display_pos
 
 void TreeListView::set_nodes(std::vector<TreeListNode> nodes) {
     require_mutable();
+    if (row_source_) throw std::logic_error("TreeListView in virtual mode takes its rows from the source");
     if (nodes.size() > maximum_nodes) throw std::invalid_argument("TreeListView has more nodes than maximum_nodes");
     NodeIndices next_indices{};
     next_indices.reserve(nodes.size());
@@ -446,6 +730,7 @@ std::optional<std::size_t> TreeListView::index_of(std::string_view node_id) cons
 
 void TreeListView::set_cell_text(std::string_view node_id, std::size_t column, std::string text) {
     require_mutable();
+    if (row_source_) throw std::logic_error("TreeListView in virtual mode takes its rows from the source");
     const std::size_t index = require_index(node_id, "TreeListView cell edit names an unknown node");
     if (column >= columns_.size()) throw std::out_of_range("TreeListView cell edit column is past the end");
     if (!validate_utf8(text).valid()) throw std::invalid_argument("TreeListView cell text must be valid UTF-8");
@@ -464,6 +749,14 @@ void TreeListView::set_cell_text(std::string_view node_id, std::size_t column, s
 // -- expansion -------------------------------------------------------------------
 
 bool TreeListView::is_expanded(std::string_view node_id) const {
+    if (row_source_) {
+        const std::optional<std::size_t> row = row_of(node_id);
+        if (!row) throw std::out_of_range("TreeListView expansion names an unknown node");
+        TreeListNode scratch;
+        const TreeListNode& node = row_node(*row, scratch);
+        const bool shown_expanded = node.expandable && node.expanded;
+        return shown_expanded;
+    }
     const std::size_t index = require_index(node_id, "TreeListView expansion names an unknown node");
     const bool result = can_expand(index) && nodes_[index].expanded;
     return result;
@@ -471,6 +764,12 @@ bool TreeListView::is_expanded(std::string_view node_id) const {
 
 void TreeListView::set_expanded(std::string_view node_id, bool expanded) {
     require_mutable();
+    if (row_source_) {
+        const std::optional<std::size_t> row = row_of(node_id);
+        if (!row) throw std::out_of_range("TreeListView expansion names an unknown node");
+        set_virtual_row_expanded(*row, expanded);
+        return;
+    }
     const std::size_t index = require_index(node_id, "TreeListView expansion names an unknown node");
     if (!can_expand(index) || nodes_[index].expanded == expanded) return;
     const std::optional<std::string> previous = selected_copy();
@@ -485,6 +784,12 @@ void TreeListView::set_expanded(std::string_view node_id, bool expanded) {
 
 void TreeListView::expand_subtree(std::string_view node_id) {
     require_mutable();
+    // A virtual view does not know the rows under a collapsed node: it
+    // expands the node itself.
+    if (row_source_) {
+        set_expanded(node_id, true);
+        return;
+    }
     const std::size_t index = require_index(node_id, "TreeListView expansion names an unknown node");
     // In model order a node's subtree is the run of deeper nodes after it.
     const std::size_t depth = nodes_[index].depth;
@@ -505,14 +810,31 @@ void TreeListView::expand_subtree(std::string_view node_id) {
 // -- rows, scrolling and selection ---------------------------------------------
 
 std::optional<std::size_t> TreeListView::row_of(std::string_view node_id) const {
+    if (row_source_) {
+        // The rows in view first (no source lookup for what is shown), then
+        // the source's own lookup.
+        const Layout placed = layout();
+        const std::size_t end = end_realized(placed);
+        TreeListNode scratch;
+        for (std::size_t row = placed.top_row; row < end; ++row) {
+            if (row_node(row, scratch).stable_id == node_id) return row;
+        }
+        const std::optional<std::size_t> found = (*row_source_).find_row(node_id);
+        if (!found || *found >= shown_count()) return std::nullopt;
+        if (row_node(*found, scratch).stable_id != node_id) return std::nullopt;
+        return found;
+    }
     const std::optional<std::size_t> index = index_of(node_id);
     if (!index || row_of_node_[*index] == no_index) return std::nullopt;
     return row_of_node_[*index];
 }
 
 std::string_view TreeListView::row_node_id(std::size_t row) const {
-    if (row >= visible_.size()) throw std::out_of_range("TreeListView row is past the end");
-    return nodes_[visible_[row]].stable_id;
+    if (row >= shown_count()) throw std::out_of_range("TreeListView row is past the end");
+    if (!row_source_) return nodes_[visible_[row]].stable_id;
+    TreeListNode scratch;
+    row_id_scratch_ = row_node(row, scratch).stable_id;
+    return row_id_scratch_;
 }
 
 std::size_t TreeListView::top_row() const {
@@ -525,6 +847,7 @@ void TreeListView::set_top_row(std::size_t row) {
     const std::size_t clamped = std::min(row, maximum_top_row(placed));
     if (clamped == top_row_ && clamped == placed.top_row) return;
     top_row_ = clamped;
+    advance_layout_revision();
     hot_row_.reset();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     sync_scroll_bars(layout());
@@ -541,6 +864,22 @@ void TreeListView::scroll_rows(std::ptrdiff_t rows) {
 void TreeListView::ensure_row_visible(std::size_t row) {
     const Layout placed = layout();
     std::size_t top = placed.top_row;
+    if (row_source_) {
+        // Rows differ in height: the lowest top that shows the whole row.
+        const RowHeightIndex& heights = *row_heights_;
+        if (row < top || placed.viewport.height <= 0.0) {
+            top = row;
+        } else {
+            // Measure the rows that would share the view first, so the
+            // layout that follows keeps the row in view.
+            measure_rows_above(row, placed.viewport.height, placed.scale);
+            const double view = placed.viewport.height / placed.scale;
+            const double bottom = heights.offset_of(row) + heights.height_of(row);
+            if (bottom - heights.offset_of(top) > view) top = std::min(row_after_offset(bottom - view), row);
+        }
+        if (top != placed.top_row) set_top_row(top);
+        return;
+    }
     if (row < top) {
         top = row;
     } else if (row >= top + placed.page_rows) {
@@ -551,6 +890,12 @@ void TreeListView::ensure_row_visible(std::size_t row) {
 
 void TreeListView::ensure_visible(std::string_view node_id) {
     require_mutable();
+    if (row_source_) {
+        const std::optional<std::size_t> row = row_of(node_id);
+        if (!row) throw std::out_of_range("TreeListView ensure_visible names an unknown node");
+        ensure_row_visible(*row);
+        return;
+    }
     const std::size_t index = require_index(node_id, "TreeListView ensure_visible names an unknown node");
     std::vector<TreeListExpansionChange> changes;
     expand_ancestors(index, changes);
@@ -562,33 +907,39 @@ void TreeListView::set_horizontal_offset(double offset) {
     require_mutable();
     if (!std::isfinite(offset) || offset < 0.0) throw std::invalid_argument("TreeListView horizontal offset is invalid");
     horizontal_offset_ = offset;
+    advance_layout_revision();
     const Layout placed = layout();
     horizontal_offset_ = placed.horizontal_offset;
+    advance_layout_revision();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     sync_scroll_bars(placed);
 }
 
 std::optional<std::string_view> TreeListView::current_id() const noexcept {
+    if (row_source_) {
+        if (!current_row_) return std::nullopt;
+        return std::string_view(current_row_id_);
+    }
     if (!current_node_) return std::nullopt;
     return std::string_view(nodes_[*current_node_].stable_id);
 }
 
 void TreeListView::choose_row(std::size_t row) {
-    if (row >= visible_.size()) return;
-    const std::size_t index = visible_[row];
-    if (!nodes_[index].enabled) return;
+    if (row >= shown_count()) return;
+    TreeListNode scratch;
+    if (!row_node(row, scratch).enabled) return;
     const std::optional<std::string> previous = selected_copy();
-    const bool changed = selected_node_ != index;
-    selected_node_ = index;
-    current_node_ = index;
+    const bool changed = selected_row() != row;
+    place_selection(row);
     ensure_row_visible(row);
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_selection(previous);
 }
 
 void TreeListView::activate_row(std::size_t row) {
-    if (row >= visible_.size()) return;
-    const TreeListNode& node = nodes_[visible_[row]];
+    if (row >= shown_count()) return;
+    TreeListNode scratch;
+    const TreeListNode& node = row_node(row, scratch);
     if (!node.enabled) return;
     const TreeListActivation activation{node.stable_id};
     item_activated_.emit(activation);
@@ -610,9 +961,17 @@ void TreeListView::set_sort(std::optional<std::size_t> column, TreeListSortOrder
     if (sort_column_ == column && sort_order_ == order) return;
     sort_column_ = column;
     sort_order_ = order;
+    const TreeListSortChange change{column, order};
+    if (row_source_) {
+        // The source sorts in its sort_changed handler; the view then reads
+        // the rows again.
+        invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+        publish_change(sort_changed_, change);
+        if (is_alive() && row_source_) refresh_rows();
+        return;
+    }
     rebuild_order();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    const TreeListSortChange change{column, order};
     publish_change(sort_changed_, change);
 }
 
@@ -652,8 +1011,25 @@ Size TreeListView::icon_size() const noexcept {
     return result;
 }
 
-TreeListView::Layout TreeListView::layout() const {
-    return layout_for(client_rectangle());
+const TreeListView::Layout& TreeListView::layout() const {
+    const LayoutKey key = layout_key();
+    // Virtual mode: the height index's revision stands for the row heights
+    // the layout read. Measuring (here or in ensure_row_visible) writes the
+    // index without moving the control's key, so the revision is part of
+    // the model.
+    const std::uint64_t model = row_source_ ? (*row_heights_).revision() : 0U;
+    if (kept_layout_valid_ && kept_layout_key_ == key && kept_layout_model_ == model) return kept_layout_;
+    // The control's key is taken before the layout is made: a layout that
+    // writes what it reads is made again at the next call. The heights'
+    // revision is read after it, because the pass measures the rows it
+    // shows before placing them: a pass that measured new rows keeps a
+    // layout made from those heights, and a pass that measured nothing
+    // leaves the revision where the next call will find it.
+    kept_layout_ = layout_for(key.client);
+    kept_layout_key_ = key;
+    kept_layout_model_ = row_source_ ? (*row_heights_).revision() : 0U;
+    kept_layout_valid_ = true;
+    return kept_layout_;
 }
 
 TreeListView::Layout TreeListView::layout_for(Rect client) const {
@@ -672,7 +1048,13 @@ TreeListView::Layout TreeListView::layout_for(Rect client) const {
     for (const TreeListColumn& column : columns_) columns_width += column.width * scale;
     placed.columns_width = columns_width;
     // Without columns there is no tree column to show the nodes in.
-    placed.shown_rows = columns_.empty() ? 0U : visible_.size();
+    placed.shown_rows = columns_.empty() ? 0U : shown_count();
+    // Virtual mode: the height index estimates unmeasured rows at this row
+    // height; a new estimate (font, scale, images) drops the kept heights.
+    const double estimate = row / scale;
+    if (row_source_ && (*row_heights_).estimated_height() != estimate) {
+        (*row_heights_).assign((*row_heights_).count(), estimate);
+    }
     const double header_height = columns_.empty() ? 0.0 : row + 2.0 * scale;
     // Showing one bar can shrink the area enough to need the other. A bar
     // only shrinks the area, and a smaller area never needs fewer bars, so
@@ -687,7 +1069,10 @@ TreeListView::Layout TreeListView::layout_for(Rect client) const {
         area = {content.x, content.y + header_height, std::max(0.0, content.width - bar_width),
                 std::max(0.0, content.height - header_height - bar_height)};
         placed.page_rows = fitting_rows(area.height, row);
-        const bool next_vertical = placed.shown_rows > placed.page_rows;
+        bool next_vertical = placed.shown_rows > placed.page_rows;
+        if (row_source_ && placed.shown_rows > 0U) {
+            next_vertical = (*row_heights_).total_height() * scale > area.height + 0.5;
+        }
         const bool next_horizontal = !columns_.empty() && columns_width > area.width + 0.5;
         if (next_vertical == vertical && next_horizontal == horizontal) break;
         vertical = next_vertical;
@@ -711,12 +1096,31 @@ TreeListView::Layout TreeListView::layout_for(Rect client) const {
     }
     placed.visible_rows = touched_rows(area.height, row);
     placed.top_row = std::min(top_row_, maximum_top_row(placed));
+    if (row_source_ && placed.shown_rows > 0U) {
+        // Measure what is shown, then clamp again with the heights found.
+        // A clamp that moves the top shows rows the first pass did not
+        // reach, so they are measured too; the pass then ends, so the kept
+        // layout (keyed on the heights after this pass) shows measured rows.
+        measure_rows(placed.top_row, area.height, scale, estimate);
+        const std::size_t measured_top = placed.top_row;
+        placed.top_row = std::min(top_row_, maximum_top_row(placed));
+        if (placed.top_row != measured_top) measure_rows(placed.top_row, area.height, scale, estimate);
+        placed.visible_rows = end_realized(placed) - placed.top_row;
+    }
     const double maximum_offset = std::max(0.0, (columns_width - area.width) / scale);
     placed.horizontal_offset = std::clamp(horizontal_offset_, 0.0, maximum_offset);
     return placed;
 }
 
 std::size_t TreeListView::maximum_top_row(const Layout& placed) const noexcept {
+    if (row_source_) {
+        if (placed.shown_rows == 0U) return 0U;
+        const double view = placed.viewport.height / placed.scale;
+        const double total = (*row_heights_).total_height();
+        if (total <= view) return 0U;
+        const std::size_t lowest = std::min(row_after_offset(total - view), placed.shown_rows - 1U);
+        return lowest;
+    }
     if (placed.shown_rows <= placed.page_rows) return 0U;
     const std::size_t result = placed.shown_rows - placed.page_rows;
     return result;
@@ -724,14 +1128,20 @@ std::size_t TreeListView::maximum_top_row(const Layout& placed) const noexcept {
 
 // The realized rows are [placed.top_row, end_realized(placed)).
 std::size_t TreeListView::end_realized(const Layout& placed) const noexcept {
+    if (row_source_) {
+        if (placed.shown_rows == 0U) return 0U;
+        const double bottom = (*row_heights_).offset_of(placed.top_row) + placed.viewport.height / placed.scale;
+        const std::size_t end = std::min(placed.shown_rows, row_after_offset(bottom));
+        return end;
+    }
     const std::size_t result = std::min(placed.shown_rows, placed.top_row + placed.visible_rows);
     return result;
 }
 
 Rect TreeListView::row_bounds(const Layout& placed, std::size_t row) const noexcept {
-    const double relative = static_cast<double>(row) - static_cast<double>(placed.top_row);
-    const Rect bounds{placed.viewport.x - placed.horizontal_offset * placed.scale,
-                      placed.viewport.y + relative * placed.row_height, placed.columns_width, placed.row_height};
+    const double relative = row_top(placed, row) - row_top(placed, placed.top_row);
+    const Rect bounds{placed.viewport.x - placed.horizontal_offset * placed.scale, placed.viewport.y + relative,
+                      placed.columns_width, row_extent(placed, row)};
     return bounds;
 }
 
@@ -781,8 +1191,8 @@ std::size_t TreeListView::visible_column(const Layout& placed, std::size_t posit
 // text.
 TreeListView::RowParts TreeListView::row_parts(const Layout& placed, std::size_t row, Rect clip) const {
     const double scale = placed.scale;
-    const std::size_t index = visible_[row];
-    const TreeListNode& node = nodes_[index];
+    TreeListNode scratch;
+    const TreeListNode& node = row_node(row, scratch);
     const Rect bounds = row_bounds(placed, row);
     const Rect tree_header = column_cell(placed, 0U);
     const Rect tree_cell{tree_header.x, bounds.y, tree_header.width, bounds.height};
@@ -792,7 +1202,7 @@ TreeListView::RowParts TreeListView::row_parts(const Layout& placed, std::size_t
     double x = tree_cell.x + cell_padding * scale + static_cast<double>(node.depth) * step;
     const double side = std::min(step, bounds.height);
     Rect expander{};
-    if (can_expand(index)) expander = {x, std::floor(middle - side * 0.5), side, side};
+    if (row_can_expand(row, node)) expander = {x, std::floor(middle - side * 0.5), side, side};
     x += side + expander_gap * scale;
     Rect icon{};
     if (image_list.read()) {
@@ -852,25 +1262,28 @@ constexpr CustomStateIndex sorted_descending_state{1U};
 } // namespace
 
 AnatomyStateSet TreeListView::row_states(std::size_t row) const {
-    const std::size_t index = visible_[row];
+    TreeListNode scratch;
+    const TreeListNode& node = row_node(row, scratch);
+    const bool current = current_row() == row;
     AnatomyStateSet states;
-    if (selected_node_ == index) states.insert(AnatomyState::selected);
+    if (selected_row() == row) states.insert(AnatomyState::selected);
     if (hot_row_ == row) states.insert(AnatomyState::hot);
-    if (current_node_ == index) states.insert(AnatomyState::current);
-    if (can_expand(index)) states.insert(nodes_[index].expanded ? AnatomyState::open : AnatomyState::closed);
-    if (!nodes_[index].enabled || !effectively_enabled()) states.insert(AnatomyState::disabled);
+    if (current) states.insert(AnatomyState::current);
+    if (row_can_expand(row, node)) states.insert(node.expanded ? AnatomyState::open : AnatomyState::closed);
+    if (!node.enabled || !effectively_enabled()) states.insert(AnatomyState::disabled);
     const Window* const host = attached_window();
-    if (focused_ && current_node_ == index && host != nullptr && (*host).focus_cue_visible()) {
+    if (focused_ && current && host != nullptr && (*host).focus_cue_visible()) {
         states.insert(AnatomyState::focus_visible);
     }
     return states;
 }
 
 AnatomyStateSet TreeListView::cell_states(std::size_t row) const {
-    const std::size_t index = visible_[row];
+    TreeListNode scratch;
+    const TreeListNode& node = row_node(row, scratch);
     AnatomyStateSet states;
-    if (selected_node_ == index) states.insert(AnatomyState::selected);
-    if (!nodes_[index].enabled || !effectively_enabled()) states.insert(AnatomyState::disabled);
+    if (selected_row() == row) states.insert(AnatomyState::selected);
+    if (!node.enabled || !effectively_enabled()) states.insert(AnatomyState::disabled);
     return states;
 }
 
@@ -906,7 +1319,9 @@ void TreeListView::arrange(Rect final_bounds) {
     }
     // Keep the stored scroll within the new bounds.
     top_row_ = placed.top_row;
+    advance_layout_revision();
     horizontal_offset_ = placed.horizontal_offset;
+    advance_layout_revision();
     sync_scroll_bars(placed);
 }
 
@@ -944,6 +1359,7 @@ void TreeListView::on_vertical_scroll(double value) {
 void TreeListView::on_horizontal_scroll(double value) {
     if (synchronizing_scroll_ || !is_alive() || horizontal_offset_ == value) return;
     horizontal_offset_ = std::max(0.0, value);
+    advance_layout_revision();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -985,7 +1401,8 @@ void TreeListView::paint_column(Painter& painter, const Layout& placed, std::siz
 }
 
 void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t row) {
-    const TreeListNode& node = nodes_[visible_[row]];
+    TreeListNode scratch;
+    const TreeListNode& node = row_node(row, scratch);
     const Rect bounds = row_bounds(placed, row);
     const RowParts parts = row_parts(placed, row, bounds);
     const AnatomyStateSet states = row_states(row);
@@ -1120,7 +1537,13 @@ TreeListView::Hit TreeListView::hit_test(const Layout& placed, Point local) cons
     }
     if (placed.viewport.empty() || !placed.viewport.contains(local)) return hit;
     const double down = local.y - placed.viewport.y;
-    const std::size_t row = placed.top_row + static_cast<std::size_t>(down / placed.row_height);
+    std::size_t row = placed.top_row + static_cast<std::size_t>(down / placed.row_height);
+    if (row_source_) {
+        const RowHeightIndex& heights = *row_heights_;
+        const double target = heights.offset_of(placed.top_row) + down / placed.scale;
+        if (placed.shown_rows == 0U || target >= heights.total_height()) return hit;
+        row = heights.row_at(target);
+    }
     if (row >= placed.shown_rows) return hit;
     // The whole width of the viewport selects the row.
     hit.index = row;
@@ -1135,7 +1558,9 @@ std::optional<std::string> TreeListView::node_id_at(Point window_point) const {
     const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
     const Hit hit = hit_test(layout(), local);
     if (hit.zone != HitZone::row && hit.zone != HitZone::expander) return std::nullopt;
-    return nodes_[visible_[hit.index]].stable_id;
+    TreeListNode scratch;
+    std::string identity = row_node(hit.index, scratch).stable_id;
+    return identity;
 }
 
 void TreeListView::finish_column_resize() {
@@ -1186,6 +1611,7 @@ void TreeListView::on_pointer(PointerEvent& event) {
                     std::clamp(resize_start_width_ + delta, minimum_column_width, maximum_column_width);
                 if (columns_[*resizing_column_].width != width) {
                     columns_[*resizing_column_].width = width;
+                    advance_layout_revision();
                     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
                 }
             }
@@ -1286,8 +1712,9 @@ void TreeListView::on_pointer(PointerEvent& event) {
         invalidate(Dirty::paint | Dirty::semantics);
     } else if (hit.zone == HitZone::expander) {
         // The expander toggles without selecting, as TreeView's does.
-        const TreeListNode& node = nodes_[visible_[hit.index]];
-        set_expanded(node.stable_id, !node.expanded);
+        TreeListNode scratch;
+        const bool expanded = row_node(hit.index, scratch).expanded;
+        toggle_row(hit.index, !expanded);
     } else if (hit.zone == HitZone::row) {
         if (event.click_count >= 2U) {
             choose_row(hit.index);
@@ -1300,9 +1727,10 @@ void TreeListView::on_pointer(PointerEvent& event) {
 
 std::optional<std::size_t> TreeListView::enabled_row_from(std::size_t row, std::ptrdiff_t step) const {
     std::ptrdiff_t position = static_cast<std::ptrdiff_t>(row);
-    const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(visible_.size());
+    const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(shown_count());
+    TreeListNode scratch;
     while (position >= 0 && position < count) {
-        if (nodes_[visible_[static_cast<std::size_t>(position)]].enabled) {
+        if (row_node(static_cast<std::size_t>(position), scratch).enabled) {
             return static_cast<std::size_t>(position);
         }
         position += step;
@@ -1342,23 +1770,28 @@ std::optional<std::size_t> TreeListView::navigation_target(std::uint32_t key, st
 // Right: expand a collapsed node, or move to the first child of an
 // expanded one.
 void TreeListView::step_into(std::size_t row) {
-    const std::size_t index = visible_[row];
-    if (can_expand(index) && !nodes_[index].expanded) {
-        set_expanded(nodes_[index].stable_id, true);
+    TreeListNode scratch;
+    const TreeListNode& node = row_node(row, scratch);
+    if (row_can_expand(row, node) && !node.expanded) {
+        toggle_row(row, true);
         return;
     }
-    const bool child_follows = row + 1U < visible_.size() && parent_[visible_[row + 1U]] == index;
+    const std::size_t depth = node.depth;
+    TreeListNode next_scratch;
+    const bool child_follows = row + 1U < shown_count() && row_node(row + 1U, next_scratch).depth == depth + 1U;
     if (child_follows) choose_row(row + 1U);
 }
 
 // Left: collapse an expanded node, or move to the parent.
 void TreeListView::step_out(std::size_t row) {
-    const std::size_t index = visible_[row];
-    if (can_expand(index) && nodes_[index].expanded) {
-        set_expanded(nodes_[index].stable_id, false);
+    TreeListNode scratch;
+    const TreeListNode& node = row_node(row, scratch);
+    if (row_can_expand(row, node) && node.expanded) {
+        toggle_row(row, false);
         return;
     }
-    if (parent_[index] != no_index) choose_row(row_of_node_[parent_[index]]);
+    const std::optional<std::size_t> parent = parent_row(row);
+    if (parent) choose_row(*parent);
 }
 
 void TreeListView::on_key(KeyEvent& event) {
@@ -1366,6 +1799,7 @@ void TreeListView::on_key(KeyEvent& event) {
     const Control::Ptr lifetime = shared_from_this();
     if (event.physical_key == PhysicalKey::escape && resizing_column_) {
         columns_[*resizing_column_].width = resize_start_width_;
+        advance_layout_revision();
         finish_column_resize();
         invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
         event.handled = true;
@@ -1380,9 +1814,9 @@ void TreeListView::on_key(KeyEvent& event) {
     if (placed.shown_rows == 0U) return;
     const bool control = has_modifier(event.modifiers, Modifier::control) ||
                          has_modifier(event.modifiers, Modifier::meta);
-    const std::size_t current_row = current_node_ ? row_of_node_[*current_node_] : no_index;
-    const bool has_current = current_row != no_index;
-    const std::size_t from = has_current ? current_row : placed.top_row;
+    const std::optional<std::size_t> current = current_row();
+    const bool has_current = current.has_value();
+    const std::size_t from = has_current ? *current : placed.top_row;
     const std::uint32_t key = event.physical_key;
     if (key == PhysicalKey::enter) {
         if (has_current) activate_row(from);
@@ -1410,8 +1844,7 @@ void TreeListView::on_key(KeyEvent& event) {
         return;
     }
     if (key == PhysicalKey::keypad_plus || key == PhysicalKey::keypad_minus) {
-        const std::size_t index = visible_[from];
-        set_expanded(nodes_[index].stable_id, key == PhysicalKey::keypad_plus);
+        toggle_row(from, key == PhysicalKey::keypad_plus);
         event.handled = true;
         return;
     }
@@ -1431,12 +1864,18 @@ void TreeListView::type_select(std::string_view text) {
     if (now - last_type_time_ > collection_detail::type_timeout) type_prefix_.clear();
     last_type_time_ = now;
     type_prefix_ += collection_detail::fold_ascii(text);
-    const std::size_t count = visible_.size();
+    const std::size_t count = shown_count();
     if (count == 0U || columns_.empty()) return;
     const bool single = type_prefix_.size() == 1U;
-    const std::size_t current = current_node_ ? row_of_node_[*current_node_] : no_index;
-    const std::size_t focus = current != no_index ? current : count - 1U;
+    const std::optional<std::size_t> current = current_row();
+    const std::size_t focus = current ? *current : count - 1U;
     const std::size_t start = single ? (focus + 1U) % count : focus % count;
+    if (row_source_) {
+        // Reading every row to search would defeat the source; it searches.
+        const std::optional<std::size_t> found = (*row_source_).find_prefix(type_prefix_, start);
+        if (found && *found < count) choose_row(*found);
+        return;
+    }
     for (std::size_t offset = 0; offset < count; ++offset) {
         const std::size_t row = (start + offset) % count;
         const TreeListNode& node = nodes_[visible_[row]];
@@ -1458,7 +1897,12 @@ void TreeListView::on_text_input(TextInputEvent& event) {
     // Forms' TreeView (the platform reports it as text: there is no keypad
     // asterisk in PhysicalKey).
     if (event.text_utf8 == "*" && type_prefix_.empty()) {
-        if (current_node_) expand_subtree(nodes_[*current_node_].stable_id);
+        const std::optional<std::size_t> current = current_row();
+        if (current && row_source_) {
+            toggle_row(*current, true);
+        } else if (current_node_) {
+            expand_subtree(nodes_[*current_node_].stable_id);
+        }
         event.handled = true;
         return;
     }
@@ -1472,8 +1916,9 @@ void TreeListView::on_focus_changed(bool focused) {
         if (resizing_column_) finish_column_resize();
         if (pressed_column_) end_header_press();
     }
-    if (focused_ && !current_node_ && !visible_.empty()) {
-        current_node_ = selected_node_ ? *selected_node_ : visible_[top_row()];
+    if (focused_ && !current_row() && shown_count() > 0U) {
+        const std::optional<std::size_t> selected = selected_row();
+        place_current(selected ? *selected : top_row());
     }
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -1491,7 +1936,11 @@ SemanticDescriptor TreeListView::semantic_descriptor() const {
     descriptor.description = accessible_description.read();
     descriptor.row_count = placed.shown_rows;
     descriptor.column_count = column_order_.size();
-    if (selected_node_) descriptor.value = nodes_[*selected_node_].text;
+    const std::optional<std::size_t> selected = selected_row();
+    if (selected) {
+        TreeListNode scratch;
+        descriptor.value = row_node(*selected, scratch).text;
+    }
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;
@@ -1522,9 +1971,12 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
         children.push_back(std::move(node));
     }
     const std::size_t end = end_realized(placed);
+    const std::optional<std::size_t> selected = selected_row();
+    const std::optional<std::size_t> current = current_row();
+    TreeListNode scratch;
     for (std::size_t row = placed.top_row; row < end; ++row) {
-        const std::size_t index = visible_[row];
-        const TreeListNode& item = nodes_[index];
+        const TreeListNode& item = row_node(row, scratch);
+        const bool expandable = row_can_expand(row, item);
         const Rect bounds = Rect::intersection(row_bounds(placed, row), placed.viewport);
         SemanticNode node{};
         node.stable_id = item.stable_id;
@@ -1534,17 +1986,22 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
         node.level = item.depth + 1U;
         node.row_index = row + 1U;
         append_row_cells(placed, row, node);
-        const std::size_t slot = parent_[index] == no_index ? 0U : parent_[index] + 1U;
-        node.position_in_set = sibling_position_[index] + 1U;
-        node.set_size = child_begin_[slot + 1U] - child_begin_[slot];
+        // A virtual view does not know a node's siblings: its position in
+        // the set is left unknown (0).
+        if (!row_source_) {
+            const std::size_t index = visible_[row];
+            const std::size_t slot = parent_[index] == no_index ? 0U : parent_[index] + 1U;
+            node.position_in_set = sibling_position_[index] + 1U;
+            node.set_size = child_begin_[slot + 1U] - child_begin_[slot];
+        }
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | SemanticState::focusable;
         if (enabled && item.enabled) node.states |= SemanticState::enabled;
-        if (selected_node_ == index) node.states |= SemanticState::selected;
-        if (focused_ && current_node_ == index) node.states |= SemanticState::focused;
-        if (can_expand(index) && item.expanded) node.states |= SemanticState::expanded;
+        if (selected == row) node.states |= SemanticState::selected;
+        if (focused_ && current == row) node.states |= SemanticState::focused;
+        if (expandable && item.expanded) node.states |= SemanticState::expanded;
         node.actions = {SemanticAction::focus, SemanticAction::select, SemanticAction::press};
-        if (can_expand(index)) {
+        if (expandable) {
             node.actions.push_back(item.expanded ? SemanticAction::collapse : SemanticAction::expand);
         }
         children.push_back(std::move(node));
@@ -1555,8 +2012,9 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
 // A shown row's cells, one per column in display order, for the columns
 // whose extent meets the viewport (the realized columns). A cell has no
 // actions of its own; its row takes them.
-void TreeListView::append_row_cells(const Layout& placed, std::size_t row, SemanticNode& row_node) const {
-    const TreeListNode& item = nodes_[visible_[row]];
+void TreeListView::append_row_cells(const Layout& placed, std::size_t row, SemanticNode& row_semantics) const {
+    TreeListNode scratch;
+    const TreeListNode& item = row_node(row, scratch);
     const Rect absolute = absolute_bounds();
     const Rect line = row_bounds(placed, row);
     const bool enabled = effectively_enabled() && item.enabled;
@@ -1576,7 +2034,7 @@ void TreeListView::append_row_cells(const Layout& placed, std::size_t row, Seman
         cell.column_index = column_position_[column] + 1U;
         cell.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         cell.states = SemanticState::visible | enabled_state;
-        row_node.children.push_back(std::move(cell));
+        row_semantics.children.push_back(std::move(cell));
     }
 }
 
@@ -1591,11 +2049,11 @@ bool TreeListView::on_semantic_child_action(std::string_view id, SemanticAction 
     }
     const std::optional<std::size_t> row = row_of(id);
     if (!row) return false;
-    const std::size_t index = visible_[*row];
     const Control::Ptr lifetime = shared_from_this();
     if (action == SemanticAction::expand || action == SemanticAction::collapse) {
-        if (!can_expand(index)) return false;
-        set_expanded(id, action == SemanticAction::expand);
+        TreeListNode scratch;
+        if (!row_can_expand(*row, row_node(*row, scratch))) return false;
+        toggle_row(*row, action == SemanticAction::expand);
         return true;
     }
     if (action != SemanticAction::focus && action != SemanticAction::select && action != SemanticAction::press) {
@@ -1604,7 +2062,7 @@ bool TreeListView::on_semantic_child_action(std::string_view id, SemanticAction 
     if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
     if (!is_alive()) return true;
     if (action == SemanticAction::focus) {
-        current_node_ = index;
+        place_current(*row);
         ensure_row_visible(*row);
         invalidate(Dirty::paint | Dirty::semantics);
     } else if (action == SemanticAction::select) {
@@ -1823,7 +2281,8 @@ std::string TreeListView::realized_item_stable_id(std::size_t item) const {
         std::string identity = column_identity(stable_id().value(), columns_[slot.column].stable_id);
         return identity;
     }
-    const std::string& node_id = nodes_[visible_[slot.row]].stable_id;
+    TreeListNode scratch;
+    const std::string& node_id = row_node(slot.row, scratch).stable_id;
     if (slot.system == row_system) return node_id;
     std::string identity = cell_identity(node_id, columns_[slot.column].stable_id);
     return identity;
@@ -1868,8 +2327,10 @@ std::vector<TreeListView::Row> TreeListView::realized_rows() const {
         const PartGeometryBuffer published = published_realized_item_geometry(item);
         Row record;
         record.row = placed.top_row + item;
-        record.index = visible_[record.row];
-        record.stable_id = nodes_[record.index].stable_id;
+        // In virtual mode there is no model index: index is the row.
+        record.index = row_source_ ? record.row : visible_[record.row];
+        TreeListNode scratch;
+        record.stable_id = row_node(record.row, scratch).stable_id;
         read_item_parts(anatomy().item_systems[row_system.value], tree_list_view_row_part_fields,
                         published.parts(), record.parts);
         read_states(tree_list_view_row_state_fields, row_states(record.row), record.states);
@@ -1968,9 +2429,20 @@ void TreeListView::write_view(const decltype(selected_id)&, std::optional<std::s
     require_mutable();
     const std::optional<std::string> previous = selected_copy();
     if (!incoming) {
-        if (!selected_node_) return;
+        if (!selected_node_ && !selected_row_) return;
         selected_node_.reset();
+        selected_row_.reset();
         publish_selection(previous);
+        return;
+    }
+    if (row_source_) {
+        const std::optional<std::size_t> row = row_of(*incoming);
+        if (!row) throw std::out_of_range("TreeListView selection names an unknown node");
+        const bool changed = selected_row_ != row;
+        place_selection(*row);
+        ensure_row_visible(*row);
+        invalidate(Dirty::paint | Dirty::semantics);
+        if (changed) publish_selection(previous);
         return;
     }
     const std::size_t index = require_index(*incoming, "TreeListView selection names an unknown node");

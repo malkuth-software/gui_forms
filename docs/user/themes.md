@@ -22,10 +22,21 @@ There are three ways to give a program its look, and they combine:
 window shows it until the program chooses another, and packages compile onto
 it unless the base (`ApplicationConfig::theme.base`,
 `ThemeCompileOptions::base`, or `GF_THEME_BASE_WINDOWS_PROFESSIONAL` in the
-C ABI) names `windows-professional`, a Windows-familiar theme, light only.
-Both are written in the theme language: their control families come from a
-floor sheet of `:family()` blocks, read once into the theme's recipes when
-it is first built.
+C ABI) names `windows-professional`, the stock Windows-familiar theme, light
+and dark. Both are written in the theme language: their control families
+come from a floor sheet of `:family()` blocks, read once into the theme's
+recipes when it is first built, and the parts the engine paints (strips,
+tabs, the ribbon, scroll bars, headers, docking captions) from a parts sheet
+that is the first sheet of every package compiled onto them.
+
+`windows-professional` blends Windows 2000 (raised push buttons and sunken
+fields, softened), Office 2003 (blue-silver tool strips and menu bars,
+orange-gold command highlights, gradient title strips on headers and
+docking captions) and Office 2007 (light blue ribbon tabs and command plane,
+a restrained split gloss, rounded highlights), touched toward Windows 10:
+crisp one-unit borders, low saturation, flat large surfaces and a solid
+focus rectangle, with depth kept in gentle gradients and shadows. Its text
+is Selawik, the bundled Segoe UI-like face, at 12 px (`font-family: Selawik`).
 
 The **familiar themes** recreate looks that Windows and macOS users
 recognise. They are written in the theme language, and none of them uses a
@@ -38,6 +49,7 @@ vendor's bitmaps:
 | `xp-style` | Luna-like plates with navy frames | XP.css | light |
 | `windows7-style` | Aero-like; opaque until window glass arrives | 7.css | light |
 | `macos-style` | translucent plates with round corners; AppKit's accent default button, checked wells and drop button | Puppertino, AppKit | light and dark |
+| `windows-professional` | the stock Windows-familiar theme (above) | Windows 2000, Office 2003 and 2007, Windows 10 | light and dark |
 
 The reference systems' faces are not bundled: each of these four themes
 draws its controls in the bundled body face at the reference size (11 px for

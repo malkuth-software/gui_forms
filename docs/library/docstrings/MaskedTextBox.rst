@@ -35,11 +35,11 @@ provider
     for reading. Edits go through the box, so that the field and the events
     follow.
 text
-    The text in `text_mask_format`. `set_text` clears the box and places its
-    argument from the first position, passing over literals it repeats; text
-    the mask refuses leaves the box unchanged, raises `mask_input_rejected`,
-    and is reported in the returned `MaskEditResult`. `clear` unassigns every
-    position.
+    The text in `text_mask_format`, a property. Writing it clears the box and
+    places the text from the first position, passing over literals it
+    repeats; text the mask refuses leaves the box unchanged and raises
+    `mask_input_rejected`. `place_text` does the same and also returns the
+    `MaskEditResult`. `clear` unassigns every position.
 text_mask_format : default ``MaskTextFormat::include_literals``
     Which characters `text` keeps: prompts, literals, both or neither. Without
     prompts an unassigned position is a space and the text ends at the last
@@ -134,7 +134,7 @@ and there is no password character yet.
 The control publishes the accessibility role `text_box` with the field as
 shown (prompts and literals in place) as its value, the read-only state, and
 the editor's selection while the editor shows that value.
-`SemanticAction::set_value` goes through the mask as `set_text` does and
+`SemanticAction::set_value` goes through the mask as `place_text` does and
 fails for text the mask refuses.
 
 Examples
@@ -145,7 +145,7 @@ A telephone field that reports refused characters:
 
    std::shared_ptr<gf::MaskedTextBox> phone =
        gf::make_control<gf::MaskedTextBox>(gf::StableId("contact.phone"), "(000) 000-0000");
-   (*phone).set_text("5551234567");   // the field shows "(555) 123-4567"
+   (*phone).text = "5551234567";   // the field shows "(555) 123-4567"
    const bool complete = (*phone).mask_completed();   // true
-   const gf::MaskEditResult refused = (*phone).set_text("55x");
+   const gf::MaskEditResult refused = (*phone).place_text("55x");
    // refused.hint == gf::MaskResultHint::digit_expected; the text is unchanged

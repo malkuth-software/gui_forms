@@ -256,17 +256,32 @@ void test_line_endings() {
                "line endings: the document's own");
 }
 
+// Comments beside a value survive a property edit (audit P15): a
+// declaration's value content is trimmed of trivia at both ends, so only the
+// value's own tokens are spliced.
+void test_comments() {
+    const FormSchema schema = sample_schema();
+    ThemeDiagnosticList diagnostics{};
+    const std::string commented = replaced(base, "text: \"Cancel\";", "text: /* before */ \"Cancel\" /* after */;");
+    FormDocument document = open(schema, commented);
+    require(set_form_property(document, "app.cancel", "text", "\"Close\"", schema, diagnostics) ==
+                FormEditOutcome::edited,
+            "comments: a commented value replaced");
+    check_text(document, replaced(commented, "\"Cancel\"", "\"Close\""), "comments: both comments kept");
+}
+
 } // namespace
 
 int main() {
     test_properties();
     test_objects();
     test_line_endings();
+    test_comments();
     if (failures != 0) {
         std::cerr << failures << " form editor checks failed\n";
         return 1;
     }
-    std::cout << "form editor: properties set, added and reset, objects added, removed and moved, refusals and line "
-                 "endings passed\n";
+    std::cout << "form editor: properties set, added and reset, objects added, removed and moved, refusals, line "
+                 "endings and comments passed\n";
     return 0;
 }

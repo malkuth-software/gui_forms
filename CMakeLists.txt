@@ -160,6 +160,16 @@ include(cmake/LocalizablePlugin.cmake)
 if(WIN32 AND NOT MSVC)
     add_link_options(-static)
 endif()
+# Linker pruning for the Release DLLs (MinGW). Every function and datum gets
+# its own section and each DLL drops the sections nothing reaches from its
+# exports. Sections the localizable-literal plugin and the effect pass write
+# (.gfloc) are not COMDAT and are always kept; the code that remains is
+# unchanged. Identical-code folding is left off: it would merge functions
+# whose addresses the code may compare, and it saved nothing measurable here.
+if(MINGW)
+    add_compile_options($<$<CONFIG:Release>:-ffunction-sections> $<$<CONFIG:Release>:-fdata-sections>)
+    add_link_options($<$<AND:$<CONFIG:Release>,$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>>:LINKER:--gc-sections>)
+endif()
 include(CMakePackageConfigHelpers)
 # Everything from malkuth-software/stx at stx.lock's commit, as one built
 # package this build links and never compiles (cmake/Stx.cmake,
@@ -173,6 +183,7 @@ include(CMakePackageConfigHelpers)
 # carries none) compiled with GUI.Forms' options. Imported targets' headers are
 # system headers here.
 include(cmake/Stx.cmake)
+include(cmake/FuzzTargets.cmake)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST AND NOT APPLE)
     message(FATAL_ERROR "GUI_FORMS_ENABLE_MACOS_HOST requires Apple AppKit")
@@ -246,6 +257,11 @@ add_library(gui_forms_core STATIC
     src/core/binding/value/property_collection_value/property_collection_value.cpp
     src/core/binding/value/property_object_value/property_object_value.cpp
     src/core/binding/currency_manager/currency_manager.cpp
+    src/core/binding/binding_schema/binding_schema.cpp
+    src/core/binding/binding_provider/binding_provider.cpp
+    src/core/binding/binding_table/binding_table.cpp
+    src/core/binding/binding_view/binding_order_tree.cpp
+    src/core/binding/binding_view/binding_view.cpp
     src/core/binding/binding_source/binding_source.cpp
     src/core/binding/binding/binding.cpp
     src/core/binding/control_bindings_collection/control_bindings_collection.cpp
@@ -301,6 +317,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/theme_rules/built_in_rules.cpp
     src/core/engine/motion_value/motion_value.cpp
     src/core/engine/motion_clock/motion_clock.cpp
+    src/core/failure/fail_fast.cpp
     src/core/drag_engine/drag_engine.cpp
     src/core/drag_engine/scrub_gesture.cpp
     src/core/engine/effect_canvas/effect_canvas.cpp
@@ -506,6 +523,30 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         PROPERTIES COMPILE_OPTIONS "-Werror=switch")
 endif()
 set_target_properties(gui_forms_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Sources several targets share, each compiled once (audit I1): an object
+# library per source set, whose objects ($<TARGET_OBJECTS:...>) its users
+# link. A shared source must read no build switch of its users, so the
+# object compiled once is the object each would compile.
+# The Windows build switches every Win32 source compiles with.
+set(GUI_FORMS_WINDOWS_DEFINITIONS WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+# The sealed font pages of the platform (bundled fonts, item 4): the hosts,
+# the bundled font tests and the Skia diagnostics.
+if(WIN32)
+    add_library(gui_forms_sealed_pages_objects OBJECT src/host/windows/fonts/sealed_pages_windows.cpp)
+    target_compile_definitions(gui_forms_sealed_pages_objects PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})
+else()
+    add_library(gui_forms_sealed_pages_objects OBJECT src/host/posix/fonts/sealed_pages_posix.cpp)
+endif()
+target_link_libraries(gui_forms_sealed_pages_objects PRIVATE gui_forms_core)
+set_target_properties(gui_forms_sealed_pages_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(WIN32 AND GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
+    # The transactional DIB frame store: the Win32 host and three tests.
+    add_library(gui_forms_dib_frame_store_objects OBJECT src/host/windows/raster/dib_frame_store.cpp)
+    target_include_directories(gui_forms_dib_frame_store_objects PRIVATE include src/host/windows/raster)
+    target_compile_definitions(gui_forms_dib_frame_store_objects PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})
+    target_compile_features(gui_forms_dib_frame_store_objects PRIVATE cxx_std_20)
+endif()
 
 if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
     # FreeType, HarfBuzz, SheenBidi and libunibreak 8.0 (UAX #14 line breaking,
@@ -790,6 +831,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/card/review_card/review_card.cpp
     src/controls/container/master_detail_view/master_detail_view.cpp
     src/controls/collections/expandable_sections.cpp
+    src/controls/collections/row_height_index.cpp
     src/controls/collections/choice_group.cpp
     src/controls/collections/command_bar.cpp
     src/controls/commands/command/command.cpp
@@ -826,6 +868,7 @@ add_library(gui_forms_controls STATIC
     src/controls/data_grid_view/data_grid_view.cpp
     src/controls/data_grid_view/data_grid_view_parts.cpp
     src/controls/data_grid_view/data_grid_view_rows.cpp
+    src/controls/data_grid_view/data_grid_view_bound_index.cpp
     src/controls/data_grid_view/data_grid_view_row_heights.cpp
     src/controls/data_grid_view/data_grid_view_row_order.cpp
     src/controls/data_grid_view/data_grid_view_cells.cpp
@@ -1020,35 +1063,6 @@ include(cmake/GUIFormsThemes.cmake)
 install(FILES cmake/GUIFormsThemes.cmake cmake/GUIFormsThemeEmbed.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 
-add_library(gui_forms_c_api SHARED
-    src/abi/c_api.cpp
-    src/abi/control_adapters/input_transparent_control/input_transparent_control.cpp
-    src/abi/control_adapters/form_control/form_control.cpp
-    src/abi/control_adapters/field_control/field_control.cpp
-    src/abi/control_adapters/raster_control/raster_control.cpp
-    src/abi/control_adapters/abi_property_object_control/abi_property_object_control.cpp
-    src/abi/error/abi_error.cpp
-    src/abi/paint_endpoint/windows_compatibility_paint_endpoint.cpp
-)
-target_link_libraries(gui_forms_c_api PRIVATE
-    gui_forms_controls
-    gui_forms_host_headless
-)
-target_include_directories(gui_forms_c_api PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-target_compile_definitions(gui_forms_c_api PRIVATE GF_C_API_BUILD)
-set_target_properties(gui_forms_c_api PROPERTIES
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN YES
-    OUTPUT_NAME gui_forms_abi0
-    VERSION 0.4.0
-    SOVERSION 0
-)
-if(WIN32)
-    set_target_properties(gui_forms_c_api PROPERTIES PREFIX "")
-endif()
-
 add_library(GUIForms::Core ALIAS gui_forms_core)
 add_library(GUIForms::Controls ALIAS gui_forms_controls)
 add_library(GUIForms::Drawing ALIAS gui_drawing_core)
@@ -1131,7 +1145,10 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansDevanagari-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansBengali-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf)
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Semibold.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf)
     set(GUI_FORMS_DEMOBOARD_FONT_NOTICES
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/ATTRIBUTION.md
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/LICENSE-PortsmouthRapids.txt
@@ -1139,7 +1156,8 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Carlito.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Cousine.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoSansCJKjp.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt)
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Selawik.txt)
 
     if(GUI_FORMS_ENABLE_MACOS_HOST)
         set_source_files_properties(
@@ -1194,17 +1212,6 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
                 -DDEMOBOARD_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/file_manager_demoboard
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_demoboard_boundaries.cmake)
     endif()
-endif()
-if(APPLE)
-    target_link_options(gui_forms_c_api PRIVATE
-        "LINKER:-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/cmake/c_api_exports_macos.txt"
-    )
-elseif(UNIX)
-    target_link_options(gui_forms_c_api PRIVATE
-        "LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/cmake/c_api_exports_linux.map"
-    )
-    set_property(TARGET gui_forms_c_api APPEND PROPERTY LINK_DEPENDS
-        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/c_api_exports_linux.map)
 endif()
 
 if(GUI_FORMS_ENABLE_SKIA)
@@ -1283,10 +1290,29 @@ if(GUI_FORMS_ENABLE_SKIA)
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/executor
     )
-    target_link_libraries(gui_drawing_raster_c_api PRIVATE
-        gui_drawing_skia
-        gui_drawing_c_api
-    )
+    # One copy of the renderer. Where the application DLL is built (MinGW,
+    # below), it carries the drawing executor (gui_drawing_skia), the text
+    # engine and the Skia derivative, and this module calls into it instead
+    # of linking a second copy of all three. The two modules pass heap
+    # blocks only through the one UCRT heap (see add_link_options(-static)).
+    # The application's import library comes first on the link line, so no
+    # static archive member is drawn in for a symbol it exports. Elsewhere
+    # the module links the executor statically.
+    if(MINGW AND GUI_FORMS_ENABLE_WINDOWS_HOST)
+        target_link_libraries(gui_drawing_raster_c_api PRIVATE
+            gui_forms_application
+            gui_drawing_c_api
+        )
+        target_include_directories(gui_drawing_raster_c_api PRIVATE
+            $<TARGET_PROPERTY:gui_drawing_core,INTERFACE_INCLUDE_DIRECTORIES>
+        )
+        target_compile_features(gui_drawing_raster_c_api PRIVATE cxx_std_20)
+    else()
+        target_link_libraries(gui_drawing_raster_c_api PRIVATE
+            gui_drawing_skia
+            gui_drawing_c_api
+        )
+    endif()
     set_target_properties(gui_drawing_raster_c_api PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN YES
@@ -1327,7 +1353,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         src/host/macos/services/appkit_clipboard_image.mm
         src/host/macos/services/appkit_status_items.mm
         src/host/macos/compositor/macos_compositor.mm
-        src/host/posix/fonts/sealed_pages_posix.cpp
+        $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
     )
     target_include_directories(gui_forms_host_macos PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/host/macos
@@ -1339,8 +1365,6 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
                 ${GUI_FORMS_COREGRAPHICS}
                 ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS}
     )
-    target_link_libraries(gui_forms_c_api PRIVATE gui_forms_host_macos)
-    target_compile_definitions(gui_forms_c_api PRIVATE GF_C_API_HAS_MACOS_HOST=1)
 
     # First-party native applications consume one installed dynamic boundary.
     # The renderer, text stack, controls, and AppKit adapter remain private
@@ -1407,7 +1431,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     endif()
     find_package(X11 REQUIRED)
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GUI_FORMS_ATK REQUIRED IMPORTED_TARGET atk atk-bridge-2.0)
+    pkg_check_modules(GUI_FORMS_ATK REQUIRED IMPORTED_TARGET atk atk-bridge-2.0 gio-2.0)
     if(TARGET X11::Xcursor)
         set(GUI_FORMS_XCURSOR_AVAILABLE ON)
     endif()
@@ -1418,8 +1442,9 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     endif()
     add_library(gui_forms_host_linux STATIC
         src/host/linux/application/linux_host.cpp
-        src/host/posix/fonts/sealed_pages_posix.cpp
+        $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
         src/host/linux/application/x11_windowing.cpp
+        src/host/linux/application/x11_shm_present.cpp
         src/host/linux/settings/xsettings_parse.cpp
         src/host/linux/application/linux_input_rules.cpp
         src/host/linux/settings/xsettings_watch.cpp
@@ -1438,6 +1463,18 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xcursor)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAS_XCURSOR=1)
     endif()
+    # Audit N66: RandR 1.5 lists the monitors where libXrandr is present;
+    # without it the host reports the default screen as one monitor.
+    if(TARGET X11::Xrandr)
+        target_link_libraries(gui_forms_host_linux PUBLIC X11::Xrandr)
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XRANDR=1)
+    endif()
+    # Audit G4/N67: MIT-SHM presentation where libXext is present; without
+    # it every present uses XPutImage.
+    if(TARGET X11::Xext)
+        target_link_libraries(gui_forms_host_linux PUBLIC X11::Xext)
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1)
+    endif()
     add_library(gui_forms_application SHARED src/runtime/application_bundle.cpp src/runtime/application/application.cpp)
     add_library(GUIForms::Application ALIAS gui_forms_application)
     set_target_properties(gui_forms_application PROPERTIES EXPORT_NAME Application OUTPUT_NAME gui_forms_application VERSION 0.1.0 SOVERSION 0)
@@ -1452,6 +1489,12 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     if(GUI_FORMS_XCURSOR_AVAILABLE)
         target_link_libraries(gui_forms_application PRIVATE X11::Xcursor)
     endif()
+    if(TARGET X11::Xrandr)
+        target_link_libraries(gui_forms_application PRIVATE X11::Xrandr)
+    endif()
+    if(TARGET X11::Xext)
+        target_link_libraries(gui_forms_application PRIVATE X11::Xext)
+    endif()
     if(TARGET gui_forms_text_engine)
         target_link_libraries(gui_forms_application PRIVATE gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
     endif()
@@ -1463,9 +1506,10 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
 endif()
 
 if(GUI_FORMS_ENABLE_WINDOWS_HOST)
-    add_library(gui_forms_host_windows STATIC
-        src/host/windows/application/windows_host.cpp
-        src/host/windows/fonts/sealed_pages_windows.cpp
+    # Everything of the host but windows_host.cpp, which alone reads the
+    # host's build switches (the DIB store, prepared text, the tests' hooks):
+    # compiled once for the host and the DIB lifecycle test.
+    add_library(gui_forms_windows_host_objects OBJECT
         src/host/windows/accessibility/windows_accessibility.cpp
         src/host/windows/accessibility/windows_semantic_source.cpp
         src/host/windows/accessibility/windows_automation.cpp
@@ -1475,15 +1519,24 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
         src/host/windows/compositor/windows_compositor.cpp
     )
+    target_include_directories(gui_forms_windows_host_objects PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows)
+    target_compile_definitions(gui_forms_windows_host_objects PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})
+    target_link_libraries(gui_forms_windows_host_objects PRIVATE gui_forms_core gui_forms_skia gui_forms_text_engine)
+    set_target_properties(gui_forms_windows_host_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    add_library(gui_forms_host_windows STATIC
+        src/host/windows/application/windows_host.cpp
+        $<TARGET_OBJECTS:gui_forms_windows_host_objects>
+        $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+    )
     target_include_directories(gui_forms_host_windows PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows
     )
     target_compile_definitions(gui_forms_host_windows PRIVATE
-        WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+        ${GUI_FORMS_WINDOWS_DEFINITIONS}
     )
     if(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
         target_sources(gui_forms_host_windows PRIVATE
-            src/host/windows/raster/dib_frame_store.cpp)
+            $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
         target_compile_definitions(gui_forms_host_windows PRIVATE
             GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1)
         # With prepared text the window's Skia raster runs its own prepared
@@ -1504,8 +1557,6 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         PUBLIC gui_forms_core gui_forms_skia
         PRIVATE gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32
     )
-    target_link_libraries(gui_forms_c_api PRIVATE gui_forms_host_windows)
-    target_compile_definitions(gui_forms_c_api PRIVATE GF_C_API_HAS_WINDOWS_HOST=1)
     if(MINGW)
         add_library(gui_forms_application SHARED
             src/runtime/application_bundle.cpp
@@ -1520,9 +1571,12 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         target_compile_features(gui_forms_application PUBLIC cxx_std_20)
         target_compile_definitions(gui_forms_application PRIVATE
             GUI_FORMS_APPLICATION_WINDOWS=1 GUI_FORMS_APPLICATION_SKIA=1)
+        # gui_drawing_skia: the drawing executor gui_drawing_raster0 calls
+        # into, so the renderer exists once (gui_drawing_raster_c_api above).
         target_link_libraries(gui_forms_application PRIVATE
             "-Wl,--whole-archive" gui_forms_core gui_drawing_core
-            gui_forms_controls gui_forms_host_windows gui_forms_skia "-Wl,--no-whole-archive"
+            gui_forms_controls gui_forms_host_windows gui_forms_skia
+            $<TARGET_NAME_IF_EXISTS:gui_drawing_skia> "-Wl,--no-whole-archive"
             gui_forms_text_engine stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
             user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32)
         target_link_options(gui_forms_application PRIVATE "-Wl,--export-all-symbols")
@@ -1540,12 +1594,12 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     )
     target_compile_features(gui_forms_win32_compat PRIVATE cxx_std_20)
     # Declarations only: the shim checks its run-time entry-point types
-    # against c_api.h and resolves the ABI by name; it does not link it.
+    # against gf_abi.h and resolves the ABI by name; it does not link it.
     target_include_directories(gui_forms_win32_compat PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
     target_compile_definitions(gui_forms_win32_compat PRIVATE
-        WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+        ${GUI_FORMS_WINDOWS_DEFINITIONS}
     )
     target_link_libraries(gui_forms_win32_compat PRIVATE user32 gdi32)
     set_target_properties(gui_forms_win32_compat PROPERTIES
@@ -1555,13 +1609,13 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         tools/windows_automation_probe.cpp
     )
     target_compile_definitions(gui_forms_windows_probe PRIVATE
-        WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+        ${GUI_FORMS_WINDOWS_DEFINITIONS}
     )
     add_executable(gui_drawing_windows_probe
         tests/drawing_windows_probe.c
     )
     target_compile_definitions(gui_drawing_windows_probe PRIVATE
-        WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+        ${GUI_FORMS_WINDOWS_DEFINITIONS}
     )
     target_link_libraries(gui_drawing_windows_probe PRIVATE
         gui_drawing_c_api gdi32 user32
@@ -1573,7 +1627,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         )
         target_compile_definitions(
             gui_forms_windows_live_surface_endpoint_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+            ${GUI_FORMS_WINDOWS_DEFINITIONS}
         )
         target_link_libraries(gui_forms_windows_live_surface_endpoint_tests PRIVATE
             gui_forms_host_windows
@@ -1585,10 +1639,10 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         )
         target_compile_definitions(
             gui_forms_windows_gdi_compat_shim_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+            ${GUI_FORMS_WINDOWS_DEFINITIONS}
         )
         target_link_libraries(gui_forms_windows_gdi_compat_shim_tests PRIVATE
-            gui_forms_c_api gdi32 user32
+            gui_forms_abi gdi32 user32
         )
         add_dependencies(gui_forms_windows_gdi_compat_shim_tests
                          gui_forms_win32_compat)
@@ -1616,6 +1670,9 @@ if(GUI_FORMS_BUILD_GALLERY OR (GUI_FORMS_BUILD_TESTS AND GUI_FORMS_ENABLE_MACOS_
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansDevanagari-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansBengali-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Semibold.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf
     )
     set(GUI_FORMS_GALLERY_FONT_NOTICES
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/ATTRIBUTION.md
@@ -1625,6 +1682,7 @@ if(GUI_FORMS_BUILD_GALLERY OR (GUI_FORMS_BUILD_TESTS AND GUI_FORMS_ENABLE_MACOS_
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Cousine.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoSansCJKjp.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Selawik.txt
     )
 
 endif()
@@ -2393,6 +2451,12 @@ target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
 add_executable(gui_forms_plot_performance_probe EXCLUDE_FROM_ALL benchmarks/plot_performance_probe.cpp)
 target_link_libraries(gui_forms_plot_performance_probe PRIVATE gui_forms_plot_primitives)
 
+# Audit addendum batch d: the per-operation cost of a window of several
+# thousand controls (attach, pointer, focus, layout, paint, inherited reads,
+# bulk clear). Built only when asked for; run in Release.
+add_executable(gui_forms_tree_cost_benchmark EXCLUDE_FROM_ALL benchmarks/tree_cost_benchmark.cpp)
+target_link_libraries(gui_forms_tree_cost_benchmark PRIVATE gui_forms_core)
+
 # APP_WINDOW_RULES_DESIGN K.2: the creation-cost gate (a bare window, a popup
 # and a generated form window; time and allocations against the committed
 # baseline benchmarks/creation/creation_baseline.txt). Built only when asked
@@ -2529,7 +2593,7 @@ if(GUI_FORMS_BUILD_TESTS)
             src/host/windows/services/windows_notify_icons.cpp)
         target_include_directories(gui_forms_windows_notify_icon_tests PRIVATE src/host/windows)
         target_compile_definitions(gui_forms_windows_notify_icon_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_notify_icon_tests PRIVATE gui_forms_core user32 gdi32 shell32)
         add_test(NAME gui_forms_windows_notify_icon_tests COMMAND gui_forms_windows_notify_icon_tests)
                 add_executable(gui_forms_windows_cursor_tests tests/windows_cursor_tests.cpp)
@@ -2542,17 +2606,17 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_windows_dib_band_present_tests tests/windows_dib_band_present_tests.cpp)
         target_include_directories(gui_forms_windows_dib_band_present_tests PRIVATE src/host/windows/raster)
         target_compile_definitions(gui_forms_windows_dib_band_present_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_dib_band_present_tests PRIVATE gdi32 user32)
         add_test(NAME gui_forms_windows_dib_band_present COMMAND gui_forms_windows_dib_band_present_tests)
         if(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
             add_executable(gui_forms_windows_dib_frame_store_tests
                 tests/windows_dib_frame_store_tests.cpp
-                src/host/windows/raster/dib_frame_store.cpp)
+                $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
             target_include_directories(gui_forms_windows_dib_frame_store_tests PRIVATE
                 include src/host/windows/raster)
             target_compile_definitions(gui_forms_windows_dib_frame_store_tests PRIVATE
-                WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+                ${GUI_FORMS_WINDOWS_DEFINITIONS}
                 GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1)
             target_link_libraries(gui_forms_windows_dib_frame_store_tests PRIVATE gdi32 user32)
             add_test(NAME gui_forms_windows_dib_frame_store_tests
@@ -2560,20 +2624,13 @@ if(GUI_FORMS_BUILD_TESTS)
             add_executable(gui_forms_windows_dib_lifecycle_tests
                 tests/windows_dib_lifecycle_tests.cpp
                 src/host/windows/application/windows_host.cpp
-                src/host/windows/fonts/sealed_pages_windows.cpp
-                src/host/windows/accessibility/windows_accessibility.cpp
-                src/host/windows/accessibility/windows_semantic_source.cpp
-                src/host/windows/accessibility/windows_automation.cpp
-                src/host/windows/accessibility/windows_text_automation.cpp
-                src/host/windows/services/windows_clipboard_image.cpp
-                src/host/windows/services/windows_notify_icons.cpp
-                src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
-                src/host/windows/raster/dib_frame_store.cpp
-                src/host/windows/compositor/windows_compositor.cpp)
+                $<TARGET_OBJECTS:gui_forms_windows_host_objects>
+                $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+                $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
             target_include_directories(gui_forms_windows_dib_lifecycle_tests PRIVATE
                 include src/host/windows)
             target_compile_definitions(gui_forms_windows_dib_lifecycle_tests PRIVATE
-                WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+                ${GUI_FORMS_WINDOWS_DEFINITIONS}
                 GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1 GUI_FORMS_DIB_LIFECYCLE_TEST=1)
             target_link_libraries(gui_forms_windows_dib_lifecycle_tests PRIVATE
                 gui_forms_core gui_forms_skia gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid
@@ -2593,12 +2650,12 @@ if(GUI_FORMS_BUILD_TESTS)
                     src/host/windows/services/windows_clipboard_image.cpp
                     src/host/windows/services/windows_notify_icons.cpp
                     src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
-                    src/host/windows/raster/dib_frame_store.cpp
-                    src/host/windows/compositor/windows_compositor.cpp)
+                    src/host/windows/compositor/windows_compositor.cpp
+                    $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
                 target_include_directories(gui_forms_windows_prepared_text_tests PRIVATE
                     include src/host/windows)
                 target_compile_definitions(gui_forms_windows_prepared_text_tests PRIVATE
-                    WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+                    ${GUI_FORMS_WINDOWS_DEFINITIONS}
                     GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1
                     GUI_FORMS_WINDOWS_PREPARED_TEXT=1 GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST=1)
                 target_link_libraries(gui_forms_windows_prepared_text_tests PRIVATE
@@ -2655,7 +2712,7 @@ if(GUI_FORMS_BUILD_TESTS)
             # points changes the composed colour.
             add_executable(gui_forms_windows_compositor_tests tests/windows_compositor_tests.cpp)
             target_compile_definitions(gui_forms_windows_compositor_tests PRIVATE
-                WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+                ${GUI_FORMS_WINDOWS_DEFINITIONS})
             target_link_libraries(gui_forms_windows_compositor_tests PRIVATE gui_forms_application dwmapi
                 runtimeobject)
             add_test(NAME gui_forms_windows_compositor_tests COMMAND gui_forms_windows_compositor_tests)
@@ -2829,6 +2886,15 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_test_assert_check_unit
             COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
                 -p test_check_test_asserts.py)
+        # Every native entry (window procedure, COM method, ATK callback,
+        # AppKit selector) runs through the fail-fast boundary, or is listed
+        # in tools/native_boundary_baseline.txt, which may only shrink.
+        add_test(NAME gui_forms_native_boundary_check
+            COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_native_boundaries.py
+                --root ${CMAKE_CURRENT_SOURCE_DIR})
+        add_test(NAME gui_forms_native_boundary_check_self_test
+            COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_native_boundaries.py
+                --self-test)
     endif()
     add_executable(gui_drawing_core_tests tests/drawing_core_tests.cpp)
     target_link_libraries(gui_drawing_core_tests PRIVATE gui_drawing_core)
@@ -2844,41 +2910,49 @@ if(GUI_FORMS_BUILD_TESTS)
     if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         add_executable(gui_forms_windows_control_snapshot_tests tests/windows_control_snapshot_tests.cpp)
         target_compile_definitions(gui_forms_windows_control_snapshot_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_control_snapshot_tests PRIVATE
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_control_snapshot_tests COMMAND gui_forms_windows_control_snapshot_tests)
         add_executable(gui_forms_windows_canvas_raster_tests tests/windows_canvas_raster_tests.cpp)
         target_compile_definitions(gui_forms_windows_canvas_raster_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_canvas_raster_tests PRIVATE
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_canvas_raster_tests COMMAND gui_forms_windows_canvas_raster_tests)
         add_executable(gui_forms_windows_damage_rectangles_tests tests/windows_damage_rectangles_tests.cpp)
         target_compile_definitions(gui_forms_windows_damage_rectangles_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_damage_rectangles_tests PRIVATE
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_damage_rectangles_tests
                  COMMAND gui_forms_windows_damage_rectangles_tests)
         add_executable(gui_forms_windows_scroll_copy_tests tests/windows_scroll_copy_tests.cpp)
         target_compile_definitions(gui_forms_windows_scroll_copy_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+            ${GUI_FORMS_WINDOWS_DEFINITIONS}
             GUI_FORMS_WINDOWS_SCROLL_COPY_TEST=1)
         target_link_libraries(gui_forms_windows_scroll_copy_tests PRIVATE
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_scroll_copy_tests
                  COMMAND gui_forms_windows_scroll_copy_tests)
+        add_executable(gui_forms_windows_live_idle_tests tests/windows_live_idle_tests.cpp)
+        target_compile_definitions(gui_forms_windows_live_idle_tests PRIVATE
+            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+            GUI_FORMS_WINDOWS_LIVE_IDLE_TEST=1)
+        target_link_libraries(gui_forms_windows_live_idle_tests PRIVATE
+            gui_forms_controls gui_forms_host_windows)
+        add_test(NAME gui_forms_windows_live_idle_tests
+                 COMMAND gui_forms_windows_live_idle_tests)
         add_executable(gui_forms_windows_text_tests tests/windows_text_tests.cpp)
         target_compile_definitions(gui_forms_windows_text_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_text_tests PRIVATE
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_text_tests COMMAND gui_forms_windows_text_tests
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         add_executable(gui_forms_windows_backplane_replay_tests tests/windows_backplane_replay_tests.cpp)
         target_compile_definitions(gui_forms_windows_backplane_replay_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_backplane_replay_tests PRIVATE
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_backplane_replay_tests COMMAND gui_forms_windows_backplane_replay_tests
@@ -2890,13 +2964,13 @@ if(GUI_FORMS_BUILD_TESTS)
         # composed screen too.
         add_executable(gui_forms_windows_compositor_probe tests/windows_compositor_probe.cpp)
         target_compile_definitions(gui_forms_windows_compositor_probe PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_compositor_probe PRIVATE dwmapi runtimeobject)
         add_test(NAME gui_forms_windows_compositor_probe COMMAND gui_forms_windows_compositor_probe)
         set_tests_properties(gui_forms_windows_compositor_probe PROPERTIES RUN_SERIAL TRUE)
         add_executable(gui_forms_windows_content_pixels_tests tests/windows_content_pixels_tests.cpp)
         target_compile_definitions(gui_forms_windows_content_pixels_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_content_pixels_tests PRIVATE
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_content_pixels_tests COMMAND gui_forms_windows_content_pixels_tests
@@ -2919,6 +2993,11 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_drawing_trace_equivalence_tests
              COMMAND gui_drawing_trace_equivalence_tests)
 
+    # The stx package stamp's digests ignore line endings
+    # (cmake/StxDigest.cmake, tests/cmake/stx_digest_test.cmake).
+    add_test(NAME gui_forms_stx_digest
+             COMMAND ${CMAKE_COMMAND} -DWORK_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/stx_digest_test
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/stx_digest_test.cmake)
     # Public headers name no renderer or platform type; comments may
     # (cmake/check_public_header_tokens.cmake). The fixtures prove a comment
     # passes and a token in code fails.
@@ -2961,10 +3040,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_host_image_tests COMMAND gui_forms_host_image_tests)
 
     # The deflate contract harness's standalone inputs, in the normal suite.
-    add_executable(gui_forms_deflate_fuzz_tests fuzz/deflate_fuzz.cpp)
-    target_link_libraries(gui_forms_deflate_fuzz_tests PRIVATE stx_zlib::stx_zlib)
-    target_compile_definitions(gui_forms_deflate_fuzz_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
-    add_test(NAME gui_forms_deflate_fuzz_tests COMMAND gui_forms_deflate_fuzz_tests)
+    gui_forms_add_fuzz_test(deflate SOURCE fuzz/deflate_fuzz.cpp LIBRARIES stx_zlib::stx_zlib)
 
     add_executable(gui_forms_inflate_protocol_tests fuzz/inflate_protocol_fuzz.cpp)
     target_link_libraries(gui_forms_inflate_protocol_tests PRIVATE gui_forms_core)
@@ -2979,6 +3055,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_resource_pixels_tests tests/image/resource_pixels_tests.cpp)
     target_link_libraries(gui_forms_resource_pixels_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_resource_pixels_tests COMMAND gui_forms_resource_pixels_tests)
+    # A timing probe for audit P12, built on demand and never a test.
+    add_executable(gui_forms_png_decode_probe EXCLUDE_FROM_ALL tests/image/png_decode_probe.cpp)
+    target_link_libraries(gui_forms_png_decode_probe PRIVATE gui_forms_core)
 
     # Deterministic malformed-input sweeps (owner revision of decision 6A).
     add_executable(gui_forms_malformed_sweep_tests tests/compression/malformed_sweep_tests.cpp)
@@ -3175,13 +3254,8 @@ if(GUI_FORMS_BUILD_TESTS)
 
     # The bundled font set over the platform's sealed pages (item 4, step 3); the fault mode
     # must end in the platform's protection fault (cmake/expect_fault.cmake).
-    if(WIN32)
-        set(gui_forms_sealed_pages_source src/host/windows/fonts/sealed_pages_windows.cpp)
-    else()
-        set(gui_forms_sealed_pages_source src/host/posix/fonts/sealed_pages_posix.cpp)
-    endif()
     add_executable(gui_forms_bundled_font_set_tests
-        tests/bundled_font_set_tests.cpp ${gui_forms_sealed_pages_source})
+        tests/bundled_font_set_tests.cpp $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
     target_link_libraries(gui_forms_bundled_font_set_tests PRIVATE gui_forms_core)
     target_compile_definitions(gui_forms_bundled_font_set_tests PRIVATE
         GUI_FORMS_TEST_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
@@ -3208,6 +3282,15 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_control_table_tests tests/control_table_tests.cpp)
     target_link_libraries(gui_forms_control_table_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_control_table_tests COMMAND gui_forms_control_table_tests)
+    add_executable(gui_forms_tree_cost_tests tests/tree_cost_tests.cpp)
+    target_link_libraries(gui_forms_tree_cost_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_tree_cost_tests COMMAND gui_forms_tree_cost_tests)
+    add_executable(gui_forms_control_core_tests tests/control_core_tests.cpp)
+    target_link_libraries(gui_forms_control_core_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_control_core_tests COMMAND gui_forms_control_core_tests)
+    add_executable(gui_forms_window_correctness_tests tests/window_correctness_tests.cpp)
+    target_link_libraries(gui_forms_window_correctness_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_window_correctness_tests COMMAND gui_forms_window_correctness_tests)
     add_executable(gui_forms_property_capability_tests tests/property_capability_tests.cpp)
     target_link_libraries(gui_forms_property_capability_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_property_capability_tests COMMAND gui_forms_property_capability_tests)
@@ -3319,10 +3402,13 @@ if(GUI_FORMS_BUILD_TESTS)
     # The corpus is stx's (stx_rtf2md/tests/corpus), installed with the stx package.
     add_test(NAME gui_forms_markdown_tests
         COMMAND gui_forms_markdown_tests ${GUI_FORMS_STX_BUILD_PREFIX_DIR}/share/stx_text/rtf2md_corpus)
-    add_executable(gui_forms_markdown_fuzz_tests fuzz/markdown_fuzz.cpp)
-    target_link_libraries(gui_forms_markdown_fuzz_tests PRIVATE gui_forms_core)
-    target_compile_definitions(gui_forms_markdown_fuzz_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
-    add_test(NAME gui_forms_markdown_fuzz_tests COMMAND gui_forms_markdown_fuzz_tests)
+    gui_forms_add_fuzz_test(markdown SOURCE fuzz/markdown_fuzz.cpp LIBRARIES gui_forms_core)
+    gui_forms_add_fuzz_test(rtf_import SOURCE fuzz/rtf_import_fuzz.cpp
+        LIBRARIES gui_forms_core stx_rtf2md::stx_rtf2md
+        ARGUMENTS ${GUI_FORMS_STX_BUILD_PREFIX_DIR}/share/stx_text/rtf2md_corpus)
+    add_executable(gui_forms_rtf_conversion_failure_tests tests/rtf_conversion_failure_tests.cpp)
+    target_link_libraries(gui_forms_rtf_conversion_failure_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_rtf_conversion_failure_tests COMMAND gui_forms_rtf_conversion_failure_tests)
 
     add_executable(gui_forms_bounded_grapheme_tests tests/bounded_grapheme_tests.cpp)
     target_include_directories(gui_forms_bounded_grapheme_tests PRIVATE src/core/text/unicode)
@@ -3336,10 +3422,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_help_system_core_tests tests/help_system_core_tests.cpp)
     target_link_libraries(gui_forms_help_system_core_tests PRIVATE gui_forms_controls gui_forms_core)
     add_test(NAME gui_forms_help_system_core_tests COMMAND gui_forms_help_system_core_tests)
-    add_executable(gui_forms_helpbook_section_fuzz_tests fuzz/helpbook_section_fuzz.cpp)
-    target_link_libraries(gui_forms_helpbook_section_fuzz_tests PRIVATE gui_forms_core)
-    target_compile_definitions(gui_forms_helpbook_section_fuzz_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
-    add_test(NAME gui_forms_helpbook_section_fuzz_tests COMMAND gui_forms_helpbook_section_fuzz_tests)
+    gui_forms_add_fuzz_test(helpbook_section SOURCE fuzz/helpbook_section_fuzz.cpp LIBRARIES gui_forms_core)
 
     add_executable(gui_forms_xml_tests tests/xml_tests.cpp)
     target_link_libraries(gui_forms_xml_tests PRIVATE gui_forms_core)
@@ -3347,10 +3430,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_json_reader_tests tests/json_reader_tests.cpp)
     target_link_libraries(gui_forms_json_reader_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_json_reader_tests COMMAND gui_forms_json_reader_tests)
-    add_executable(gui_forms_json_reader_fuzz_tests fuzz/json_reader_fuzz.cpp)
-    target_link_libraries(gui_forms_json_reader_fuzz_tests PRIVATE gui_forms_core)
-    target_compile_definitions(gui_forms_json_reader_fuzz_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
-    add_test(NAME gui_forms_json_reader_fuzz_tests COMMAND gui_forms_json_reader_fuzz_tests)
+    gui_forms_add_fuzz_test(json_reader SOURCE fuzz/json_reader_fuzz.cpp LIBRARIES gui_forms_core)
 
     # The theme language (stage T3): numbers, tokens, diagnostics, the syntax
     # tree, selectors, values, the compiler, and the deterministic mutation
@@ -3503,6 +3583,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_variant_tests tests/theme_variant_tests.cpp)
     target_link_libraries(gui_forms_theme_variant_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_variant_tests COMMAND gui_forms_theme_variant_tests)
+    add_executable(gui_forms_theme_sheet_package_tests tests/theme_sheet_package_tests.cpp)
+    target_link_libraries(gui_forms_theme_sheet_package_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_sheet_package_tests COMMAND gui_forms_theme_sheet_package_tests)
     add_executable(gui_forms_theme_font_tests tests/theme_font_tests.cpp)
     target_link_libraries(gui_forms_theme_font_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_font_tests COMMAND gui_forms_theme_font_tests)
@@ -3532,10 +3615,82 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_theme_user_folder_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_user_folder_tests COMMAND gui_forms_theme_user_folder_tests)
 
-    add_executable(gui_forms_theme_sheet_fuzz_tests fuzz/theme_sheet_fuzz.cpp)
-    target_link_libraries(gui_forms_theme_sheet_fuzz_tests PRIVATE gui_forms_core)
-    target_compile_definitions(gui_forms_theme_sheet_fuzz_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
-    add_test(NAME gui_forms_theme_sheet_fuzz_tests COMMAND gui_forms_theme_sheet_fuzz_tests)
+    # The theme sheet's tokenizer and parser, then the compiler, over the
+    # theme sheet corpus; the compiler's run must reach the palette bound
+    # (N113) with the corpus's palette-enumeration-bound.css.
+    gui_forms_add_fuzz_test(theme_sheet SOURCE fuzz/theme_sheet_fuzz.cpp LIBRARIES gui_forms_core
+        ARGUMENTS ${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus/theme_sheet)
+    gui_forms_add_fuzz_test(theme_compile SOURCE fuzz/theme_compile_fuzz.cpp LIBRARIES gui_forms_controls
+        ARGUMENTS ${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus/theme_sheet)
+    # The theme manifest, form documents, saved dock layouts and the
+    # clipboard image decoders (audit N115, I3).
+    gui_forms_add_fuzz_test(theme_manifest SOURCE fuzz/theme_manifest_fuzz.cpp LIBRARIES gui_forms_core)
+    gui_forms_add_fuzz_test(form_document SOURCE fuzz/form_document_fuzz.cpp LIBRARIES gui_forms_controls)
+    gui_forms_add_fuzz_test(dock_layout SOURCE fuzz/dock_layout_fuzz.cpp LIBRARIES gui_forms_core)
+    gui_forms_add_fuzz_test(clipboard_image SOURCE fuzz/clipboard_image_fuzz.cpp LIBRARIES gui_forms_core)
+    # The theme a process is started with (--theme, GUI_FORMS_THEME_SHEET;
+    # gui_forms/application/user_themes): in process, then programs with no
+    # theme code of their own launched with each request (the C ABI's in
+    # cmake/CAbi.cmake). A program's expectation and policy come from its
+    # environment, so its command line holds only what a user would type.
+    add_executable(gui_forms_theme_request_tests tests/theme_language/theme_request_tests.cpp)
+    target_link_libraries(gui_forms_theme_request_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_request_tests COMMAND gui_forms_theme_request_tests)
+    set(GUI_FORMS_THEME_REQUEST_FIXTURES "${CMAKE_CURRENT_SOURCE_DIR}/tests/theme_language/theme_request")
+    # gui_forms_theme_request_case(<test> PROGRAM <target> EXPECT <outcome>
+    #     [POLICY refused|replaces] [SHEET_ENV <path>] [APPLICATION] [ARGS <arguments>...])
+    function(gui_forms_theme_request_case test)
+        cmake_parse_arguments(PARSE_ARGV 1 CASE "APPLICATION" "PROGRAM;EXPECT;POLICY;SHEET_ENV" "ARGS")
+        add_test(NAME ${test} COMMAND ${CASE_PROGRAM} ${CASE_ARGS})
+        set(_modification "GF_EXPECT_THEME_REQUEST=set:${CASE_EXPECT}")
+        if(CASE_POLICY)
+            list(APPEND _modification "GF_TEST_POLICY=set:${CASE_POLICY}")
+        else()
+            list(APPEND _modification "GF_TEST_POLICY=unset:")
+        endif()
+        if(CASE_SHEET_ENV)
+            list(APPEND _modification "GUI_FORMS_THEME_SHEET=set:${CASE_SHEET_ENV}")
+        else()
+            list(APPEND _modification "GUI_FORMS_THEME_SHEET=unset:")
+        endif()
+        if(CASE_APPLICATION)
+            list(APPEND _modification "GF_TEST_APPLICATION=set:1")
+        else()
+            list(APPEND _modification "GF_TEST_APPLICATION=unset:")
+        endif()
+        set_tests_properties(${test} PROPERTIES ENVIRONMENT_MODIFICATION "${_modification}")
+    endfunction()
+    # The cases every launched program runs, its tests named <prefix>_<case>.
+    function(gui_forms_theme_request_cases prefix program)
+        set(_fixtures "${GUI_FORMS_THEME_REQUEST_FIXTURES}")
+        gui_forms_theme_request_case(${prefix}_none PROGRAM ${program} EXPECT none)
+        gui_forms_theme_request_case(${prefix}_sheet PROGRAM ${program} EXPECT applied
+            ARGS --theme "${_fixtures}/good.css")
+        gui_forms_theme_request_case(${prefix}_built_in PROGRAM ${program} EXPECT built_in ARGS --theme built-in)
+        gui_forms_theme_request_case(${prefix}_name PROGRAM ${program} EXPECT applied ARGS --theme harbour)
+        gui_forms_theme_request_case(${prefix}_unknown_name PROGRAM ${program} EXPECT unknown_name
+            ARGS --theme dusk)
+        gui_forms_theme_request_case(${prefix}_bad_sheet PROGRAM ${program} EXPECT refused
+            ARGS --theme "${_fixtures}/bad.css")
+        gui_forms_theme_request_case(${prefix}_missing_sheet PROGRAM ${program} EXPECT unreadable
+            ARGS --theme "${_fixtures}/absent.css")
+        gui_forms_theme_request_case(${prefix}_policy_refused PROGRAM ${program} EXPECT ignored_by_policy
+            POLICY refused ARGS --theme "${_fixtures}/good.css")
+        gui_forms_theme_request_case(${prefix}_policy_replaces PROGRAM ${program} EXPECT applied
+            POLICY replaces ARGS --theme "${_fixtures}/good.css")
+        gui_forms_theme_request_case(${prefix}_environment PROGRAM ${program} EXPECT applied
+            SHEET_ENV "${_fixtures}/good.css")
+        gui_forms_theme_request_case(${prefix}_command_line_wins PROGRAM ${program} EXPECT refused
+            SHEET_ENV "${_fixtures}/good.css" ARGS --theme "${_fixtures}/bad.css")
+        gui_forms_theme_request_case(${prefix}_malformed PROGRAM ${program} EXPECT malformed ARGS --theme)
+    endfunction()
+    add_executable(gui_forms_theme_request_app tests/theme_language/theme_request_app.cpp)
+    target_link_libraries(gui_forms_theme_request_app PRIVATE gui_forms_controls)
+    # The user theme `harbour`, in the `themes` folder beside the program.
+    add_custom_command(TARGET gui_forms_theme_request_app POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${GUI_FORMS_THEME_REQUEST_FIXTURES}/harbour.css"
+            "$<TARGET_FILE_DIR:gui_forms_theme_request_app>/themes/harbour.css")
+    gui_forms_theme_request_cases(gui_forms_theme_request_app gui_forms_theme_request_app)
 
     add_executable(gui_forms_dock_layout_tests tests/dock_layout_tests.cpp)
     target_link_libraries(gui_forms_dock_layout_tests PRIVATE gui_forms_core)
@@ -3612,6 +3767,8 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_NOTO_HEBREW_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Regular.ttf"
             GUI_FORMS_TEST_NOTO_CJK_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansCJKjp-Regular.otf"
             GUI_FORMS_TEST_NOTO_EMOJI="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoEmoji-Regular.ttf"
+            GUI_FORMS_TEST_SELAWIK_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf"
+            GUI_FORMS_TEST_SELAWIK_BOLD="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf"
         )
         target_link_libraries(gui_forms_harfbuzz_font_engine_tests PRIVATE
             gui_forms_text_engine)
@@ -3750,6 +3907,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_combo_box_filter_tests tests/combo_box_filter_tests.cpp)
     target_link_libraries(gui_forms_combo_box_filter_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_combo_box_filter_tests COMMAND gui_forms_combo_box_filter_tests)
+    add_executable(gui_forms_combo_box_paint_tests tests/combo_box_paint_tests.cpp)
+    target_link_libraries(gui_forms_combo_box_paint_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_combo_box_paint_tests COMMAND gui_forms_combo_box_paint_tests)
     add_executable(gui_forms_token_box_tests tests/token_box_tests.cpp)
     target_link_libraries(gui_forms_token_box_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_token_box_tests COMMAND gui_forms_token_box_tests)
@@ -3806,6 +3966,7 @@ if(GUI_FORMS_BUILD_TESTS)
     # tested on every platform.
     add_executable(gui_forms_xsettings_parse_tests
         tests/xsettings_parse_tests.cpp src/host/linux/settings/xsettings_parse.cpp)
+    target_include_directories(gui_forms_xsettings_parse_tests PRIVATE include)
     add_test(NAME gui_forms_xsettings_parse_tests COMMAND gui_forms_xsettings_parse_tests)
     # The X11 host's computed click counts and context keys take plain
     # values and no Xlib, so they are tested on every platform.
@@ -3828,9 +3989,21 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_tree_list_view_tests tests/tree_list_view_tests.cpp)
     target_link_libraries(gui_forms_tree_list_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_tree_list_view_tests COMMAND gui_forms_tree_list_view_tests)
+    add_executable(gui_forms_number_text_tests tests/number_text_tests.cpp)
+    target_link_libraries(gui_forms_number_text_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_number_text_tests COMMAND gui_forms_number_text_tests)
+
+    add_executable(gui_forms_row_height_index_tests tests/row_height_index_tests.cpp)
+    target_link_libraries(gui_forms_row_height_index_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_row_height_index_tests COMMAND gui_forms_row_height_index_tests)
+
     add_executable(gui_forms_list_view_tests tests/list_view_tests.cpp)
     target_link_libraries(gui_forms_list_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_list_view_tests COMMAND gui_forms_list_view_tests)
+
+    add_executable(gui_forms_kept_layout_tests tests/kept_layout_tests.cpp)
+    target_link_libraries(gui_forms_kept_layout_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_kept_layout_tests COMMAND gui_forms_kept_layout_tests)
 
     add_executable(gui_forms_data_grid_view_tests tests/data_grid_view_tests.cpp)
     target_link_libraries(gui_forms_data_grid_view_tests PRIVATE gui_forms_controls)
@@ -4303,6 +4476,34 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_frame_scheduler_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_frame_scheduler_tests COMMAND gui_forms_frame_scheduler_tests)
 
+    # Housekeeping expectations: a missed wake and a slow paint tick each give
+    # one telemetry record; a normal run gives none (owner, 2026-11-11).
+    add_executable(gui_forms_housekeeping_expectation_tests tests/housekeeping_expectation_tests.cpp)
+    target_link_libraries(gui_forms_housekeeping_expectation_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_housekeeping_expectation_tests COMMAND gui_forms_housekeeping_expectation_tests)
+
+    # The fail-fast boundary: each mode must end the process with its report
+    # (site and exception text) and never print "survived".
+    add_executable(gui_forms_fail_fast_tests tests/fail_fast_tests.cpp)
+    target_link_libraries(gui_forms_fail_fast_tests PRIVATE gui_forms_host_headless)
+    foreach(_gui_fail_fast_case IN ITEMS
+            "direct|test.direct|injected direct failure"
+            "ui_timer|scheduler.ui_timer|injected timer failure"
+            "motion_listener|motion_clock.listener|injected listener failure"
+            "host_dispatch|host_session.dispatch|injected event failure")
+        string(REPLACE "|" ";" _gui_fail_fast_fields "${_gui_fail_fast_case}")
+        list(GET _gui_fail_fast_fields 0 _gui_fail_fast_mode)
+        list(GET _gui_fail_fast_fields 1 _gui_fail_fast_site)
+        list(GET _gui_fail_fast_fields 2 _gui_fail_fast_text)
+        # fail_fast() aborts: SIGABRT on Linux and macOS, which CTest counts as a failure
+        # whatever the output says, so the mode runs through cmake/expect_fail_fast.cmake.
+        add_test(NAME gui_forms_fail_fast_${_gui_fail_fast_mode}
+                 COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_fail_fast_tests>
+                         -DMODE=${_gui_fail_fast_mode}
+                         "-DEXPECTED=GUI.Forms: fatal exception at ${_gui_fail_fast_site}: ${_gui_fail_fast_text}"
+                         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
+    endforeach()
+
     add_executable(gui_forms_program_options_tests tests/program_options_tests.cpp)
     target_link_libraries(gui_forms_program_options_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_program_options_tests COMMAND gui_forms_program_options_tests)
@@ -4334,6 +4535,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_binding_tests tests/binding_tests.cpp)
     target_link_libraries(gui_forms_binding_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_binding_tests COMMAND gui_forms_binding_tests)
+    add_executable(gui_forms_binding_provider_tests tests/binding_provider_tests.cpp)
+    target_link_libraries(gui_forms_binding_provider_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_binding_provider_tests COMMAND gui_forms_binding_provider_tests)
     add_executable(gui_forms_number_format_tests tests/number_format_tests.cpp)
     target_link_libraries(gui_forms_number_format_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_number_format_tests COMMAND gui_forms_number_format_tests)
@@ -4417,53 +4621,7 @@ if(GUI_FORMS_BUILD_TESTS)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_host_boundaries.cmake
     )
 
-    add_executable(gui_forms_c_api_c11_tests tests/c_api_c11_tests.c)
-    target_link_libraries(gui_forms_c_api_c11_tests PRIVATE gui_forms_c_api)
-    # This C fixture calls pthread_create/join directly. CLANG64's libc++ uses
-    # native Windows threads and does not supply an implicit pthread dependency.
-    if(MINGW)
-        target_link_libraries(gui_forms_c_api_c11_tests PRIVATE winpthread)
-    else()
-        find_package(Threads REQUIRED)
-        target_link_libraries(gui_forms_c_api_c11_tests PRIVATE Threads::Threads)
-    endif()
-    add_test(NAME gui_forms_c_api_c11_tests COMMAND gui_forms_c_api_c11_tests)
-
-    add_executable(gui_forms_c_api_cpp_tests tests/c_api_cpp_tests.cpp)
-    target_link_libraries(gui_forms_c_api_cpp_tests PRIVATE gui_forms_c_api)
-    add_test(NAME gui_forms_c_api_cpp_tests COMMAND gui_forms_c_api_cpp_tests)
-
-    # White-box teardown lifetimes: the test compiles the C ABI translation
-    # unit itself (headless host only) with a friend fixture enabled.
-    add_executable(gui_forms_abi_registry_lifetime_tests
-        tests/abi_registry_lifetime_tests.cpp
-        src/abi/control_adapters/input_transparent_control/input_transparent_control.cpp
-        src/abi/control_adapters/form_control/form_control.cpp
-        src/abi/control_adapters/field_control/field_control.cpp
-        src/abi/control_adapters/raster_control/raster_control.cpp
-        src/abi/control_adapters/abi_property_object_control/abi_property_object_control.cpp
-        src/abi/error/abi_error.cpp
-        src/abi/paint_endpoint/windows_compatibility_paint_endpoint.cpp)
-    target_include_directories(gui_forms_abi_registry_lifetime_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_compile_definitions(gui_forms_abi_registry_lifetime_tests PRIVATE GF_C_API_BUILD GUI_FORMS_ABI_REGISTRY_TEST)
-    target_link_libraries(gui_forms_abi_registry_lifetime_tests PRIVATE gui_forms_controls gui_forms_host_headless)
-    add_test(NAME gui_forms_abi_registry_lifetime_tests COMMAND gui_forms_abi_registry_lifetime_tests)
-
-    if(APPLE)
-        add_test(
-            NAME gui_forms_c_api_export_policy
-            COMMAND ${CMAKE_COMMAND}
-                -DC_API_LIBRARY=$<TARGET_FILE:gui_forms_c_api>
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_c_api_exports.cmake
-        )
-    elseif(UNIX)
-        add_test(
-            NAME gui_forms_c_api_export_policy
-            COMMAND ${CMAKE_COMMAND}
-                -DC_API_LIBRARY=$<TARGET_FILE:gui_forms_c_api>
-                -DEXPECTED_SYMBOL=gf_get_api_v0
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_linux_c_api_exports.cmake
-        )
+    if(UNIX AND NOT APPLE)
         add_test(
             NAME gui_drawing_c_api_export_policy
             COMMAND ${CMAKE_COMMAND}
@@ -4810,6 +4968,13 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_macos_exposure_tests PRIVATE gui_forms_host_macos)
         add_test(NAME gui_forms_macos_exposure_tests COMMAND gui_forms_macos_exposure_tests)
 
+        # Audit P13: a PDF recording of the view outlives the raster's frame.
+        add_executable(gui_forms_macos_recorded_draw_tests tests/macos_recorded_draw_tests.mm)
+        target_compile_options(gui_forms_macos_recorded_draw_tests PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_macos_recorded_draw_tests PRIVATE gui_forms_host_macos)
+        add_test(NAME gui_forms_macos_recorded_draw_tests COMMAND gui_forms_macos_recorded_draw_tests)
+        set_tests_properties(gui_forms_macos_recorded_draw_tests PROPERTIES TIMEOUT 60)
+
         # Stage DP gate on macOS (notes:results/2026-10-25-dp-gate-macos).
         add_executable(gui_forms_macos_damage_rectangles_tests tests/macos_damage_rectangles_tests.mm)
         target_compile_options(gui_forms_macos_damage_rectangles_tests PRIVATE -fobjc-arc)
@@ -4990,7 +5155,7 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_part_composite_identity_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_part_composite_identity_tests COMMAND gui_forms_part_composite_identity_tests)
         add_executable(gui_forms_ribbon_scale_raster_tests tests/ribbon_scale_raster_tests.cpp
-            ${gui_forms_sealed_pages_source})
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
         target_compile_definitions(gui_forms_ribbon_scale_raster_tests PRIVATE
             GUI_FORMS_TEST_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         target_include_directories(gui_forms_ribbon_scale_raster_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -5017,13 +5182,8 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_CONTROL_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Regular.ttf"
             GUI_FORMS_TEST_FALLBACK_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoEmoji-Regular.ttf")
         add_test(NAME gui_forms_retained_draw_cache_raster_tests COMMAND gui_forms_retained_draw_cache_raster_tests)
-        if(WIN32)
-            add_executable(gui_forms_skia_smoke src/render/skia/skia_raster_smoke.cpp
-                src/host/windows/fonts/sealed_pages_windows.cpp)
-        else()
-            add_executable(gui_forms_skia_smoke src/render/skia/skia_raster_smoke.cpp
-                src/host/posix/fonts/sealed_pages_posix.cpp)
-        endif()
+        add_executable(gui_forms_skia_smoke src/render/skia/skia_raster_smoke.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
         target_compile_definitions(gui_forms_skia_smoke PRIVATE
             GUI_FORMS_TEST_CONTROL_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf"
             GUI_FORMS_TEST_CJK_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansCJKjp-Regular.otf"
@@ -5032,13 +5192,8 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_skia_smoke PRIVATE gui_forms_skia)
         add_test(NAME gui_forms_skia_smoke COMMAND gui_forms_skia_smoke)
         # Process memory of the bundled fonts per configuration (item 4, step 6); a report, not a test.
-        if(WIN32)
-            add_executable(gui_forms_bundled_font_memory_report src/render/skia/bundled_font_memory_report.cpp
-                src/host/windows/fonts/sealed_pages_windows.cpp)
-        else()
-            add_executable(gui_forms_bundled_font_memory_report src/render/skia/bundled_font_memory_report.cpp
-                src/host/posix/fonts/sealed_pages_posix.cpp)
-        endif()
+        add_executable(gui_forms_bundled_font_memory_report src/render/skia/bundled_font_memory_report.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
         target_link_libraries(gui_forms_bundled_font_memory_report PRIVATE gui_forms_skia)
 
         # The specimen sheet (stage T4, phase 2): every stock control of the
@@ -5047,13 +5202,8 @@ if(GUI_FORMS_BUILD_TESTS)
         # captures the first page twice and requires identical pixels; a full
         # run is `gui_forms_specimen_sheet --out <directory> --repeat`.
         if(TARGET gui_forms_gallery_model)
-            if(WIN32)
-                add_executable(gui_forms_specimen_sheet tests/specimen/specimen_sheet.cpp
-                    src/host/windows/fonts/sealed_pages_windows.cpp)
-            else()
-                add_executable(gui_forms_specimen_sheet tests/specimen/specimen_sheet.cpp
-                    src/host/posix/fonts/sealed_pages_posix.cpp)
-            endif()
+            add_executable(gui_forms_specimen_sheet tests/specimen/specimen_sheet.cpp
+                $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
             target_include_directories(gui_forms_specimen_sheet PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
             target_compile_definitions(gui_forms_specimen_sheet PRIVATE
                 GUI_FORMS_SPECIMEN_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
@@ -5064,6 +5214,14 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_canvas_raster_tests tests/canvas_raster_tests.cpp)
         target_link_libraries(gui_forms_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_canvas_raster_tests COMMAND gui_forms_canvas_raster_tests)
+        # draw_image below 1x resamples through stx_conv (audit P11).
+        add_executable(gui_forms_skia_image_downscale_tests tests/skia_image_downscale_tests.cpp)
+        target_link_libraries(gui_forms_skia_image_downscale_tests PRIVATE gui_forms_core gui_forms_skia)
+        add_test(NAME gui_forms_skia_image_downscale_tests COMMAND gui_forms_skia_image_downscale_tests)
+
+        add_executable(gui_forms_content_scroll_raster_tests tests/content_scroll_raster_tests.cpp)
+        target_link_libraries(gui_forms_content_scroll_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_content_scroll_raster_tests COMMAND gui_forms_content_scroll_raster_tests)
 
         add_executable(gui_forms_skia_edge_snapping_tests tests/skia_edge_snapping_tests.cpp)
         target_link_libraries(gui_forms_skia_edge_snapping_tests PRIVATE gui_forms_skia)
@@ -5146,206 +5304,86 @@ if(GUI_FORMS_BUILD_FUZZERS)
     )
     unset(CMAKE_REQUIRED_FLAGS)
     # The inflate and PNG decode harnesses are stx's (stx_zlib/fuzz, stx_png/fuzz).
-    add_executable(gui_forms_inflate_fuzz
-        ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/fuzz/inflate_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
-    target_include_directories(gui_forms_inflate_fuzz PRIVATE ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
-    target_compile_options(gui_forms_inflate_fuzz PRIVATE
-        -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
-    target_link_options(gui_forms_inflate_fuzz PRIVATE -fsanitize=address,undefined)
-    if(GUI_FORMS_HAS_LIBFUZZER_RUNTIME)
-        target_compile_options(gui_forms_inflate_fuzz PRIVATE -fsanitize=fuzzer)
-        target_link_options(gui_forms_inflate_fuzz PRIVATE -fsanitize=fuzzer)
-    else()
-        target_compile_definitions(gui_forms_inflate_fuzz PRIVATE STX_ZLIB_FUZZ_STANDALONE=1)
-    endif()
-
-    add_executable(gui_forms_inflate_protocol_fuzz
-        fuzz/inflate_protocol_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
-    target_include_directories(gui_forms_inflate_protocol_fuzz PRIVATE include ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
-    target_compile_options(gui_forms_inflate_protocol_fuzz PRIVATE
-        -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
-    target_link_options(gui_forms_inflate_protocol_fuzz PRIVATE -fsanitize=address,undefined)
-    if(GUI_FORMS_HAS_LIBFUZZER_RUNTIME)
-        target_compile_options(gui_forms_inflate_protocol_fuzz PRIVATE -fsanitize=fuzzer)
-        target_link_options(gui_forms_inflate_protocol_fuzz PRIVATE -fsanitize=fuzzer)
-    else()
-        target_compile_definitions(gui_forms_inflate_protocol_fuzz PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
-    endif()
-
-    add_executable(gui_forms_deflate_fuzz
-        fuzz/deflate_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/deflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
-    target_include_directories(gui_forms_deflate_fuzz PRIVATE ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
-    target_compile_options(gui_forms_deflate_fuzz PRIVATE
-        -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
-    target_link_options(gui_forms_deflate_fuzz PRIVATE -fsanitize=address,undefined)
-    if(GUI_FORMS_HAS_LIBFUZZER_RUNTIME)
-        target_compile_options(gui_forms_deflate_fuzz PRIVATE -fsanitize=fuzzer)
-        target_link_options(gui_forms_deflate_fuzz PRIVATE -fsanitize=fuzzer)
-    else()
-        target_compile_definitions(gui_forms_deflate_fuzz PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
-    endif()
-
-    add_executable(gui_forms_png_decode_fuzz
-        ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/fuzz/png_decode_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/src/decoder.cpp
-        ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/src/encoder.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/deflate.cpp
-        ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
-    target_include_directories(gui_forms_png_decode_fuzz PRIVATE ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/include ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
-    target_compile_options(gui_forms_png_decode_fuzz PRIVATE
-        -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
-    target_link_options(gui_forms_png_decode_fuzz PRIVATE -fsanitize=address,undefined)
-    if(GUI_FORMS_HAS_LIBFUZZER_RUNTIME)
-        target_compile_options(gui_forms_png_decode_fuzz PRIVATE -fsanitize=fuzzer)
-        target_link_options(gui_forms_png_decode_fuzz PRIVATE -fsanitize=fuzzer)
-    else()
-        target_compile_definitions(gui_forms_png_decode_fuzz PRIVATE STX_PNG_FUZZ_STANDALONE=1)
-    endif()
-
-    add_executable(gui_forms_png_registry_fuzz
-        fuzz/png_registry_fuzz.cpp
-        src/core/resources/image_registry/image_registry.cpp
-        ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp
-    )
-    target_include_directories(gui_forms_png_registry_fuzz PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include
-    )
-    target_compile_features(gui_forms_png_registry_fuzz PRIVATE cxx_std_20)
-    if(GUI_FORMS_HAS_LIBFUZZER_RUNTIME)
-        target_compile_options(gui_forms_png_registry_fuzz PRIVATE
-            -fsanitize=fuzzer,address,undefined
-            -fno-omit-frame-pointer
-        )
-        target_link_options(gui_forms_png_registry_fuzz PRIVATE
-            -fsanitize=fuzzer,address,undefined
-        )
-    else()
-        message(WARNING
-            "libFuzzer runtime is unavailable; building deterministic sanitizer mutation runner")
-        target_compile_definitions(gui_forms_png_registry_fuzz PRIVATE
-            GUI_FORMS_FUZZ_STANDALONE=1
-        )
-        target_compile_options(gui_forms_png_registry_fuzz PRIVATE
-            -fsanitize=address,undefined
-            -fno-omit-frame-pointer
-        )
-        target_link_options(gui_forms_png_registry_fuzz PRIVATE
-            -fsanitize=address,undefined
-        )
-    endif()
+    set(stx_zlib_dir ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib)
+    set(stx_png_dir ${GUI_FORMS_STX_SOURCE_DIR}/stx_png)
+    gui_forms_add_libfuzzer_target(inflate
+        SOURCES ${stx_zlib_dir}/fuzz/inflate_fuzz.cpp ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/checksum.cpp
+        INCLUDES ${stx_zlib_dir}/include
+        STANDALONE_DEFINITION STX_ZLIB_FUZZ_STANDALONE)
+    gui_forms_add_libfuzzer_target(inflate_protocol
+        SOURCES fuzz/inflate_protocol_fuzz.cpp ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/checksum.cpp
+        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include ${stx_zlib_dir}/include)
+    gui_forms_add_libfuzzer_target(deflate
+        SOURCES fuzz/deflate_fuzz.cpp ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/deflate.cpp
+                ${stx_zlib_dir}/src/checksum.cpp
+        INCLUDES ${stx_zlib_dir}/include)
+    gui_forms_add_libfuzzer_target(png_decode
+        SOURCES ${stx_png_dir}/fuzz/png_decode_fuzz.cpp ${stx_png_dir}/src/decoder.cpp ${stx_png_dir}/src/encoder.cpp
+                ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/deflate.cpp ${stx_zlib_dir}/src/checksum.cpp
+        INCLUDES ${stx_png_dir}/include ${stx_zlib_dir}/include
+        STANDALONE_DEFINITION STX_PNG_FUZZ_STANDALONE)
+    gui_forms_add_libfuzzer_target(png_registry
+        SOURCES fuzz/png_registry_fuzz.cpp src/core/resources/image_registry/image_registry.cpp
+                ${stx_zlib_dir}/src/checksum.cpp
+        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include ${stx_zlib_dir}/include)
 
     # The theme sheet tokenizer, parser and value reader (stage T3), from
     # their own sources.
-    add_executable(gui_forms_theme_sheet_fuzz
-        fuzz/theme_sheet_fuzz.cpp
-        src/core/theme_language/source_text/theme_source_text.cpp
-        src/core/theme_language/diagnostics/theme_diagnostics.cpp
-        src/core/theme_language/number/theme_number.cpp
-        src/core/theme_language/tokenizer/theme_tokenizer.cpp
-        src/core/theme_language/syntax_tree/theme_syntax_tree.cpp
-        src/core/theme_language/syntax_tree/theme_sheet_parser.cpp
-        src/core/theme_language/custom_properties/theme_custom_properties.cpp
-        src/core/theme_language/value/theme_value.cpp
-        src/core/theme_language/media/theme_media_query.cpp
-        src/core/engine/engine_expression/engine_expression.cpp
-        src/core/engine/theme_rules/colour_roles.cpp
-        src/core/anatomy/types/anatomy_types.cpp
-        src/core/schema/types/schema_types.cpp
-        src/core/xml/xml_characters/xml_characters.cpp
-        src/core/xml/types/xml_types.cpp
-    )
-    target_include_directories(gui_forms_theme_sheet_fuzz PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-    )
-    target_compile_features(gui_forms_theme_sheet_fuzz PRIVATE cxx_std_20)
-    if(GUI_FORMS_HAS_LIBFUZZER_RUNTIME)
-        target_compile_options(gui_forms_theme_sheet_fuzz PRIVATE
-            -fsanitize=fuzzer,address,undefined
-            -fno-omit-frame-pointer
-        )
-        target_link_options(gui_forms_theme_sheet_fuzz PRIVATE
-            -fsanitize=fuzzer,address,undefined
-        )
-    else()
-        target_compile_definitions(gui_forms_theme_sheet_fuzz PRIVATE
-            GUI_FORMS_FUZZ_STANDALONE=1
-        )
-        target_compile_options(gui_forms_theme_sheet_fuzz PRIVATE
-            -fsanitize=address,undefined
-            -fno-omit-frame-pointer
-        )
-        target_link_options(gui_forms_theme_sheet_fuzz PRIVATE
-            -fsanitize=address,undefined
-        )
-    endif()
+    gui_forms_add_libfuzzer_target(theme_sheet
+        SOURCES
+            fuzz/theme_sheet_fuzz.cpp
+            src/core/theme_language/source_text/theme_source_text.cpp
+            src/core/theme_language/diagnostics/theme_diagnostics.cpp
+            src/core/theme_language/number/theme_number.cpp
+            src/core/theme_language/tokenizer/theme_tokenizer.cpp
+            src/core/theme_language/syntax_tree/theme_syntax_tree.cpp
+            src/core/theme_language/syntax_tree/theme_sheet_parser.cpp
+            src/core/theme_language/custom_properties/theme_custom_properties.cpp
+            src/core/theme_language/value/theme_value.cpp
+            src/core/theme_language/media/theme_media_query.cpp
+            src/core/engine/engine_expression/engine_expression.cpp
+            src/core/engine/theme_rules/colour_roles.cpp
+            src/core/anatomy/types/anatomy_types.cpp
+            src/core/schema/types/schema_types.cpp
+            src/core/xml/xml_characters/xml_characters.cpp
+            src/core/xml/types/xml_types.cpp
+        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
     # The layout XML reader (DK decision 43), built from its own sources so
     # the sanitizers cover exactly the reader and writer.
-    add_executable(gui_forms_xml_reader_fuzz
-        fuzz/xml_reader_fuzz.cpp
-        src/core/xml/types/xml_types.cpp
-        src/core/xml/xml_characters/xml_characters.cpp
-        src/core/xml/xml_reader/xml_reader.cpp
-        src/core/xml/xml_writer/xml_writer.cpp
-    )
-    target_include_directories(gui_forms_xml_reader_fuzz PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-    )
-    target_compile_features(gui_forms_xml_reader_fuzz PRIVATE cxx_std_20)
-    if(GUI_FORMS_HAS_LIBFUZZER_RUNTIME)
-        target_compile_options(gui_forms_xml_reader_fuzz PRIVATE
-            -fsanitize=fuzzer,address,undefined
-            -fno-omit-frame-pointer
-        )
-        target_link_options(gui_forms_xml_reader_fuzz PRIVATE
-            -fsanitize=fuzzer,address,undefined
-        )
-    else()
-        target_compile_definitions(gui_forms_xml_reader_fuzz PRIVATE
-            GUI_FORMS_FUZZ_STANDALONE=1
-        )
-        target_compile_options(gui_forms_xml_reader_fuzz PRIVATE
-            -fsanitize=address,undefined
-            -fno-omit-frame-pointer
-        )
-        target_link_options(gui_forms_xml_reader_fuzz PRIVATE
-            -fsanitize=address,undefined
-        )
-    endif()
+    gui_forms_add_libfuzzer_target(xml_reader
+        SOURCES fuzz/xml_reader_fuzz.cpp src/core/xml/types/xml_types.cpp src/core/xml/xml_characters/xml_characters.cpp
+                src/core/xml/xml_reader/xml_reader.cpp src/core/xml/xml_writer/xml_writer.cpp
+        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
     # The theme manifest's JSON reader (stage T3, P10), from its own source.
-    add_executable(gui_forms_json_reader_fuzz
-        fuzz/json_reader_fuzz.cpp
-        src/core/json/json_reader/json_reader.cpp
-    )
-    target_include_directories(gui_forms_json_reader_fuzz PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-    )
-    target_compile_features(gui_forms_json_reader_fuzz PRIVATE cxx_std_20)
-    if(GUI_FORMS_HAS_LIBFUZZER_RUNTIME)
-        target_compile_options(gui_forms_json_reader_fuzz PRIVATE
-            -fsanitize=fuzzer,address,undefined
-            -fno-omit-frame-pointer
-        )
-        target_link_options(gui_forms_json_reader_fuzz PRIVATE
-            -fsanitize=fuzzer,address,undefined
-        )
-    else()
-        target_compile_definitions(gui_forms_json_reader_fuzz PRIVATE
-            GUI_FORMS_FUZZ_STANDALONE=1
-        )
-        target_compile_options(gui_forms_json_reader_fuzz PRIVATE
-            -fsanitize=address,undefined
-            -fno-omit-frame-pointer
-        )
-        target_link_options(gui_forms_json_reader_fuzz PRIVATE
-            -fsanitize=address,undefined
-        )
+    gui_forms_add_libfuzzer_target(json_reader
+        SOURCES fuzz/json_reader_fuzz.cpp src/core/json/json_reader/json_reader.cpp
+        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    # Whole subsystems, linked rather than rebuilt (audit N115, I3): the
+    # sanitizers reach into the libraries only when the tree is configured
+    # with them (cmake/FuzzTargets.cmake).
+    gui_forms_add_libfuzzer_target(theme_compile SOURCES fuzz/theme_compile_fuzz.cpp LIBRARIES gui_forms_controls)
+    gui_forms_add_libfuzzer_target(theme_manifest SOURCES fuzz/theme_manifest_fuzz.cpp LIBRARIES gui_forms_core)
+    gui_forms_add_libfuzzer_target(form_document SOURCES fuzz/form_document_fuzz.cpp LIBRARIES gui_forms_controls)
+    gui_forms_add_libfuzzer_target(dock_layout SOURCES fuzz/dock_layout_fuzz.cpp LIBRARIES gui_forms_core)
+    gui_forms_add_libfuzzer_target(clipboard_image SOURCES fuzz/clipboard_image_fuzz.cpp LIBRARIES gui_forms_core)
+    gui_forms_add_libfuzzer_target(rtf_import SOURCES fuzz/rtf_import_fuzz.cpp
+        LIBRARIES gui_forms_core stx_rtf2md::stx_rtf2md)
+    if(TARGET stx_vorbis::stx_vorbis_stb)
+        gui_forms_add_libfuzzer_target(vorbis SOURCES fuzz/vorbis_fuzz.cpp LIBRARIES stx_vorbis::stx_vorbis_stb)
     endif()
 endif()
 
 # Installed consumers need the notices for the code incorporated in the library.
 if(GUI_FORMS_BUILD_AUDIO)
     include(cmake/Audio.cmake)
+    if(GUI_FORMS_BUILD_TESTS AND TARGET stx_vorbis::stx_vorbis_stb)
+        # stx_vorbis's decoder over a mutated stream (audit I3).
+        gui_forms_add_fuzz_test(vorbis SOURCE fuzz/vorbis_fuzz.cpp LIBRARIES stx_vorbis::stx_vorbis_stb
+            ARGUMENTS ${CMAKE_CURRENT_SOURCE_DIR}/examples/reference/tone.ogg)
+    endif()
 endif()
 
 # An installed shared library finds the shared libraries it needs beside
@@ -5460,7 +5498,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GUI_FORMS_BUILD_TESTS)
     set(gui_forms_linux_accessibility_test_ready OFF)
     find_package(PkgConfig QUIET)
     if(PkgConfig_FOUND)
-        pkg_check_modules(GUI_FORMS_TEST_ATK QUIET IMPORTED_TARGET atk atk-bridge-2.0)
+        pkg_check_modules(GUI_FORMS_TEST_ATK QUIET IMPORTED_TARGET atk atk-bridge-2.0 gio-2.0)
         find_package(X11 QUIET)
         if(TARGET PkgConfig::GUI_FORMS_TEST_ATK AND TARGET X11::X11)
             add_executable(gui_forms_linux_accessibility_fixture
@@ -5525,7 +5563,7 @@ if(WIN32 AND GUI_FORMS_ENABLE_WINDOWS_HOST AND GUI_FORMS_BUILD_TESTS)
     # does not advertise text_composition.
     add_executable(gui_forms_windows_input_method_tests tests/windows_input_method_tests.cpp)
     target_compile_definitions(gui_forms_windows_input_method_tests PRIVATE
-        WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+        ${GUI_FORMS_WINDOWS_DEFINITIONS})
     target_link_libraries(gui_forms_windows_input_method_tests PRIVATE
         gui_forms_controls gui_forms_host_windows imm32)
     add_test(NAME gui_forms_windows_input_method_tests COMMAND gui_forms_windows_input_method_tests)
@@ -5538,7 +5576,7 @@ if(WIN32 AND GUI_FORMS_ENABLE_WINDOWS_HOST AND GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_windows_accessibility_uia_provider_tests
         tests/windows_accessibility_uia_provider_tests.cpp)
     target_compile_definitions(gui_forms_windows_accessibility_uia_provider_tests PRIVATE
-        WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+        ${GUI_FORMS_WINDOWS_DEFINITIONS})
     target_link_libraries(gui_forms_windows_accessibility_uia_provider_tests PRIVATE
         gui_forms_controls gui_forms_host_windows uiautomationcore ole32 oleaut32 uuid)
     add_test(NAME gui_forms_windows_accessibility_uia_provider_tests
@@ -5549,7 +5587,7 @@ if(WIN32 AND GUI_FORMS_ENABLE_WINDOWS_HOST AND GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_windows_accessibility_uia_text_tests
         tests/windows_accessibility_uia_text_tests.cpp)
     target_compile_definitions(gui_forms_windows_accessibility_uia_text_tests PRIVATE
-        WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+        ${GUI_FORMS_WINDOWS_DEFINITIONS})
     target_link_libraries(gui_forms_windows_accessibility_uia_text_tests PRIVATE
         gui_forms_controls gui_forms_host_windows uiautomationcore ole32 oleaut32 uuid)
     add_test(NAME gui_forms_windows_accessibility_uia_text_tests
@@ -5560,7 +5598,7 @@ if(WIN32 AND GUI_FORMS_ENABLE_WINDOWS_HOST AND GUI_FORMS_BUILD_TESTS)
     if(TARGET gui_forms_gallery_model)
         add_executable(gui_forms_windows_accessibility_msaa_gallery_tests tests/windows_accessibility_msaa_gallery_tests.cpp)
         target_compile_definitions(gui_forms_windows_accessibility_msaa_gallery_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_accessibility_msaa_gallery_tests PRIVATE
             gui_forms_gallery_model gui_forms_host_windows oleacc uiautomationcore oleaut32 uuid)
         add_test(NAME gui_forms_windows_accessibility_msaa_gallery_tests COMMAND gui_forms_windows_accessibility_msaa_gallery_tests)
@@ -5576,7 +5614,7 @@ if(WIN32 AND GUI_FORMS_ENABLE_WINDOWS_HOST AND GUI_FORMS_BUILD_TESTS)
         # action through its pattern.
         add_executable(gui_forms_windows_accessibility_uia_gallery_tests tests/windows_accessibility_uia_gallery_tests.cpp)
         target_compile_definitions(gui_forms_windows_accessibility_uia_gallery_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+            ${GUI_FORMS_WINDOWS_DEFINITIONS})
         target_link_libraries(gui_forms_windows_accessibility_uia_gallery_tests PRIVATE
             gui_forms_gallery_model gui_forms_host_windows uiautomationcore ole32 oleaut32 uuid)
         add_test(NAME gui_forms_windows_accessibility_uia_gallery_tests COMMAND gui_forms_windows_accessibility_uia_gallery_tests)
@@ -5669,7 +5707,7 @@ foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
         gui_forms_windows_prepared_text_tests gui_forms_windows_backplane_replay_tests
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests
         gui_forms_windows_control_snapshot_tests gui_forms_windows_damage_rectangles_tests
-        gui_forms_windows_scroll_copy_tests
+        gui_forms_windows_scroll_copy_tests gui_forms_windows_live_idle_tests
         gui_forms_windows_text_tests)
     if(TARGET ${gui_forms_swizzle_target})
         target_link_libraries(${gui_forms_swizzle_target} PRIVATE stx_skia::swizzle)
@@ -5680,6 +5718,28 @@ endforeach()
 if(GUI_FORMS_BUILD_TESTS)
     include(cmake/TestAreas.cmake)
     gui_forms_label_test_areas()
+endif()
+
+# The focus labs (claude/perf-focus-labs, benchmarks/focus_labs): measurement programs,
+# not tests, so no CTest entry. Each checks its rearranged kernels against the library's
+# own for equal output, then times both. composite_lab compiles the compositor's own
+# translation unit; bake_lab links as gui_forms_engine_material_tests does, exec_lab as
+# gui_drawing_skia_tests does. Since the perf fold (cp29) the library carries the
+# rearrangements, so the ratios measure what is left.
+option(GUI_FORMS_BUILD_FOCUS_LABS "Build the benchmarks/focus_labs programs" OFF)
+if(GUI_FORMS_BUILD_FOCUS_LABS)
+    add_executable(focus_composite_lab benchmarks/focus_labs/composite_lab.cpp
+        src/core/text/composite/text_composite.cpp)
+    target_include_directories(focus_composite_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/core/text/composite)
+    target_compile_features(focus_composite_lab PRIVATE cxx_std_20)
+    add_executable(focus_bake_lab benchmarks/focus_labs/bake_lab.cpp)
+    target_link_libraries(focus_bake_lab PRIVATE gui_forms_controls)
+    if(TARGET gui_drawing_skia)
+        add_executable(focus_exec_lab benchmarks/focus_labs/exec_lab.cpp)
+        target_link_libraries(focus_exec_lab PRIVATE gui_drawing_skia gui_forms_core)
+        target_include_directories(focus_exec_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+    endif()
 endif()
 
 # No floating-point contraction in first-party code (owner, 2026-11-01): Clang's default
@@ -5693,6 +5753,14 @@ endif()
 # miniaudio is compiled inside src/audio/audio.cpp and so takes the flag with it. stx_skia sets -ffp-contract=off on its
 # library itself; its raster pipeline's explicit fused stages (the FMA entries in the FMA
 # log) are a separate matter.
+# One shared test runtime for the test programs that use only the toolkit's
+# own libraries, before the options below read their links
+# (cmake/TestRuntime.cmake).
+if(GUI_FORMS_BUILD_TESTS)
+    include(cmake/TestRuntime.cmake)
+    gui_forms_link_tests_to_runtime()
+endif()
+include(cmake/Hardening.cmake)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     get_property(gui_forms_first_party_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
     foreach(gui_forms_first_party_target IN LISTS gui_forms_first_party_targets)
@@ -5700,6 +5768,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         if(gui_forms_target_type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
             target_compile_options(${gui_forms_first_party_target} PRIVATE
                 $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-ffp-contract=off>)
+            # Hardening and the warning level (cmake/Hardening.cmake, D11).
+            gui_forms_harden_target(${gui_forms_first_party_target} ${gui_forms_target_type})
             # A view (std::string_view, std::span) bound or assigned to a
             # temporary dangles: PartPaint::text twice held a temporary
             # std::string (CorrespondenceView, PropertyList) and painting read
@@ -5738,6 +5808,34 @@ foreach(gui_forms_foreground_name IN ITEMS
         gui_forms_foreground_test(${gui_forms_foreground_name})
     endif()
 endforeach()
+# The Popup checks of the menu probe (the Gallery under Application::run),
+# Python scripts run through the foreground launcher in front of the
+# interpreter (TEST_LAUNCHER only reaches a test whose command is a target).
+# They are registered only where a launcher is set, so only on a machine
+# whose tests run on private desktops: tools/popup_margin_probe.py (Popup
+# and tooltip window size and hit margin) and a short seeded smoke run of
+# tools/contention_fuzz.py, labelled timing and non_gating (a long run is
+# local and on demand; see the script).
+if(TARGET gui_forms_menu_probe_windows)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    set(gui_forms_popup_launcher "${GUI_FORMS_FOREGROUND_LAUNCHER}")
+    if(NOT gui_forms_popup_launcher)
+        set(gui_forms_popup_launcher "$ENV{GUI_FORMS_FOREGROUND_LAUNCHER}")
+    endif()
+    if(Python3_Interpreter_FOUND AND gui_forms_popup_launcher)
+        add_test(NAME gui_forms_popup_margin_probe
+            COMMAND ${gui_forms_popup_launcher} ${Python3_EXECUTABLE} -B
+                ${CMAKE_CURRENT_SOURCE_DIR}/tools/popup_margin_probe.py
+                $<TARGET_FILE:gui_forms_menu_probe_windows> 1.5)
+        set_property(TEST gui_forms_popup_margin_probe APPEND PROPERTY LABELS foreground)
+        add_test(NAME gui_forms_contention_fuzz_smoke
+            COMMAND ${gui_forms_popup_launcher} ${Python3_EXECUTABLE} -B
+                ${CMAKE_CURRENT_SOURCE_DIR}/tools/contention_fuzz.py
+                $<TARGET_FILE:gui_forms_menu_probe_windows> --seed 20261110 --steps 40 --settle-every 10
+                --no-shrink --out ${CMAKE_CURRENT_BINARY_DIR}/contention-fuzz)
+        set_property(TEST gui_forms_contention_fuzz_smoke APPEND PROPERTY LABELS timing non_gating foreground)
+    endif()
+endif()
 foreach(gui_forms_input_desktop_name IN ITEMS
         gui_forms_windows_accessibility_msaa_gallery_tests
         gui_forms_windows_accessibility_uia_gallery_tests

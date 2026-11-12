@@ -413,12 +413,11 @@ void test_typed_effect_vocabulary() {
                 has_dirty(invalidation::bounds, Dirty::paint) &&
                 has_dirty(invalidation::bounds, Dirty::hit_test),
             "bounds effect must explicitly declare measure/arrange/paint/hit-test");
-    require(has_dirty(invalidation::text_content, Dirty::text) &&
+    require(has_dirty(invalidation::text_content, Dirty::measure) &&
                 has_dirty(invalidation::text_content, Dirty::accessibility),
-            "text effect must remain distinct from paint and semantics");
-    require(has_dirty(invalidation::style_only, Dirty::style) &&
-                !has_dirty(invalidation::style_only, Dirty::measure),
-            "paint-only style effect must not silently request measurement");
+            "text effect must remeasure and republish accessibility");
+    require(invalidation::style_only == Dirty::paint,
+            "a style effect is paint only (owner ruling D4: no unread style kind)");
 }
 
 void test_affected_path_layout() {
@@ -1165,9 +1164,15 @@ void test_backend_replay_fault_and_retirement_never_issue_receipt() {
 
 void test_buffering_styles_are_retained_compatibility_facts() {
     std::shared_ptr<gui_forms::Control> control = make_control<Control>(StableId("styles.buffering"));
-    require(!(*control).double_buffered.read() &&
-                (*control).has_style(ControlStyles::all_painting_in_one_pass),
+    require(!(*control).double_buffered.read() && (*control).has_style(ControlStyles::resize_redraw),
             "coherent baseline and historical buffering request must be independent");
+    bool unknown_rejected = false;
+    try {
+        (*control).set_style(static_cast<ControlStyles>(1U << 2U), true);
+    } catch (const std::invalid_argument&) {
+        unknown_rejected = true;
+    }
+    require(unknown_rejected, "a removed Windows Forms style bit is rejected as unknown (audit A17)");
     (*control).double_buffered = true;
     require((*control).double_buffered.read() &&
                 (*control).has_style(ControlStyles::double_buffer) &&

@@ -582,19 +582,21 @@ void test_shadow_outsets_participate_in_damage() {
     RichPainter painter;
     window.paint(painter, {0.0, 0.0, 120.0, 100.0});
 
+    // Spread 1 and 3.5 deviations of a blur radius of 3 (5.25), less and
+    // plus the offset (4, 5).
     const Insets outsets = (*panel).visual_outsets();
-    require(outsets == Insets{6.0, 5.0, 14.0, 15.0},
+    require(outsets == Insets{2.25, 1.25, 10.25, 11.25},
             "material shadow must publish conservative visual outsets");
-    require(painter.shadows == 1U && painter.last_clip.x <= -6.0 &&
-                painter.last_clip.y <= -5.0 &&
-                painter.last_clip.width >= 60.0 &&
-                painter.last_clip.height >= 50.0,
+    require(painter.shadows == 1U && painter.last_clip.x <= -2.25 &&
+                painter.last_clip.y <= -1.25 &&
+                painter.last_clip.width >= 52.5 &&
+                painter.last_clip.height >= 42.5,
             "retained replay must not clip a decoration to arranged bounds");
     (*panel).material = SurfaceMaterial{};
     const Rect damage = window.take_damage().bounds();
-    require(damage.x <= 24.0 && damage.y <= 20.0 &&
-                damage.x + damage.width >= 84.0 &&
-                damage.y + damage.height >= 70.0,
+    require(damage.x <= 27.75 && damage.y <= 23.75 &&
+                damage.x + damage.width >= 80.25 &&
+                damage.y + damage.height >= 66.25,
             "shrinking a decoration must damage its former visual extent");
 }
 

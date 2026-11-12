@@ -86,6 +86,7 @@ class MessageBoxHelpRoute;
 class InteractionState;
 struct InteractionHoverWake;
 struct BandFlashWake;
+struct CaretBlinkSchedule;
 
 // The WinForms mouse events raise_mouse_events offers the window's rules
 // before raising them (SurfaceRoot::offer_mouse_rules_). The rules library
@@ -593,6 +594,9 @@ public:
     }
     [[nodiscard]] ResolvedTextLayout resolve_text_layout_utf8(
         std::string_view utf8, FontSpec effective_font) const;
+    // The extent resolve_text_layout_utf8 reports, without the layout (D2).
+    [[nodiscard]] TextExtent measure_text_extent_utf8(
+        std::string_view utf8, FontSpec effective_font) const;
     // The installed provider's line-break opportunities
     // (TextMetricsProvider::fill_line_break_opportunities_utf8), or the
     // estimate without one.
@@ -644,6 +648,19 @@ public:
     [[nodiscard]] Event<bool>& active_changed() noexcept {
         return active_changed_;
     }
+    // Raised when the host reports that the native window moved on the
+    // screen or began a native move or size loop: what is placed against
+    // the window from outside it (a menu's Popup windows) closes. Host
+    // only: report_frame_moved. UI thread.
+    [[nodiscard]] Event<>& frame_moved() noexcept { return frame_moved_; }
+    void report_frame_moved();
+    // Raised before a menu opens on this window: every menu open on it
+    // closes first, so the window shows one menu chain at a time (an open
+    // chain's focus scope would hold the new menu outside it). Raised by
+    // the opening menu through announce_menu_opening, before it subscribes
+    // itself. UI thread.
+    [[nodiscard]] Event<>& menu_opening() noexcept { return menu_opening_; }
+    void announce_menu_opening();
     // Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/
     // PLAN.md §2). Declares, before a host attaches, that this window may
     // be presented non-opaque (owner decision T5-Q4);
@@ -811,6 +828,18 @@ public:
     // device-aligned, or copies are off; the caller then repaints its
     // viewport.
     [[nodiscard]] bool request_scroll_copy(Control& scroller, Point offset);
+    // Called by Control::scroll_content, outside or inside a layout pass:
+    // what `owner` painted inside `local_area` (its own coordinates) moved by
+    // `offset` (whole device pixels). Returns true when the copy is
+    // recorded: the damage already pending (local marks placed first) moves
+    // with the pixels, the exposed band is damaged, and what is drawn over
+    // the area (the owner's children, later siblings, overlays) is damaged
+    // where it is and where the copy moved it. False, recording nothing,
+    // when copies are off, the owner or an ancestor is hidden, the visible
+    // area or the offset is not device-aligned, the offset is not smaller
+    // than the area, or the owner's last recorded paint left no opaque
+    // cover over the visible area (Control::report_opaque_cover).
+    [[nodiscard]] bool request_content_scroll(Control& owner, Rect local_area, Point offset);
     [[nodiscard]] bool needs_frame() const noexcept;
     [[nodiscard]] std::optional<FrameTime> next_wake() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
@@ -1253,6 +1282,13 @@ public:
     [[nodiscard]] std::uint64_t semantic_generation() const noexcept {
         return semantic_generation_;
     }
+    // Advances with every layout pass (and once after the last of a
+    // flush), so a reader keyed on it sees every change of arranged bounds;
+    // the native accessibility trees key on it with semantic_generation
+    // (audit N95) instead of on every repaint.
+    [[nodiscard]] std::uint64_t layout_pass_sequence() const noexcept {
+        return layout_pass_sequence_;
+    }
     // Focus goes to a focusable control directly. For a control that is not
     // focusable (a composite whose focus belongs to an inner editor or part)
     // the control's own on_semantic_action decides, and the action counts as
@@ -1358,6 +1394,17 @@ private:
     // Reaches joined windows through their lifetime records.
     friend class Application;
     friend class MotionClock;
+    friend struct detail::CaretBlinkSchedule;
+    // Called through detail::CaretBlinkSchedule (the text controls' caret
+    // blink): schedule_ui_timer's timer, except that it rests while this
+    // window is occluded. It neither ticks nor holds a wake then, so a host
+    // that rearms its wake timer on the occlusion transition stops waking
+    // at once; when the window is shown again, a deadline already past
+    // moves to one interval after that (set_occluded). Throws as
+    // schedule_ui_timer does.
+    [[nodiscard]] FrameRequestToken schedule_resting_ui_timer(
+        Component& owner, FrameInterval interval, FrameTime first_deadline,
+        std::function<void(FrameTime)> callback);
     // Called by the motion clock: its single frame request, first due at
     // `first_deadline` and then every motion_frame_interval. Each frame
     // calls the clock's advance; the clock disconnects the request when
@@ -1461,14 +1508,32 @@ private:
     void interaction_hover_due(FrameTime now);
     // Raises MouseHover on `control` when it is still eligible.
     void raise_mouse_hover(const Control::Ptr& control);
+    // One hit test's answer and the state it was taken in (audit N81): one
+    // pointer event hit-tests once, and a later step of the same event
+    // reuses the answer while nothing that moves a hit has happened since
+    // (no layout pass, no dirty mark, no structural change).
+    struct PointerHit final {
+        Control::Ptr target{};
+        Point position{};
+        std::uint64_t semantic_generation{};
+        std::uint64_t layout_pass{};
+        std::uint64_t mutation{};
+        bool taken{};
+    };
+    [[nodiscard]] PointerHit take_pointer_hit(Point position);
+    // `hit`'s target when it was taken at `position` and is still current;
+    // otherwise a new hit test's, kept in `hit`.
+    [[nodiscard]] Control::Ptr reuse_pointer_hit(PointerHit& hit, Point position);
     // dispatch_pointer's route of one event to its target: preview, target
     // and bubble. Sets `pressed_for_release` to the control a release ends
     // the press of (any button), and `target_out` to the event's target.
-    bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out);
+    // `hit` is the event's hit test so far (the hover's, for a move).
+    bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
+                       PointerHit& hit);
     // Raises the WinForms mouse events for one routed pointer event on its
     // target (Control's mouse_down and the rest), in WinForms' order.
     void raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
-                            const Control::Ptr& pressed_for_release);
+                            const Control::Ptr& pressed_for_release, PointerHit& hit);
     // Offers one of those events on `control` to the window's rules before
     // its subscribers (the owner's Q-C5: rules run before the control
     // route). `arguments` is null for Click and DoubleClick. Returns whether
@@ -1683,7 +1748,16 @@ private:
     friend class detail::AcceleratorAttachment;
 
     using ControlList = std::vector<Control::Ptr>;
-    using StableIdMap = std::unordered_map<std::string, Control::WeakPtr>;
+    // Stable identity text to its control: looked up by string_view without
+    // building a string (audit N82).
+    struct StableIdHash final {
+        using is_transparent = void;
+        [[nodiscard]] std::size_t operator()(std::string_view id) const noexcept {
+            const std::size_t result = std::hash<std::string_view>{}(id);
+            return result;
+        }
+    };
+    using StableIdMap = std::unordered_map<std::string, Control::WeakPtr, StableIdHash, std::equal_to<>>;
     using OverlayList =
         std::vector<std::shared_ptr<detail::OverlayAttachment>>;
     using AcceleratorList =
@@ -1802,6 +1876,7 @@ private:
     void on_hit_test_transparency_changed(const Control::Ptr& control);
     void publish_control_availability(Control& control);
     void register_subtree(const Control::Ptr& control);
+    void validate_subtree_registration(const Control& control) const;
     void collect_subtree_registration(
         const Control::Ptr& control, ControlList& controls,
         std::unordered_set<std::string>& local_ids);
@@ -1915,7 +1990,11 @@ private:
     void drain_deferred_input();
     void abandon_deferred_input() noexcept;
     void abandon_deferred_drag() noexcept;
+    // Adds the damage of `control` and every descendant whose paint bounds
+    // leave the control's (audit N80): the descendants are placed from the
+    // control's origin passed down, not by walking each one's ancestors.
     void add_subtree_damage(const Control::Ptr& control);
+    void add_descendant_damage(const Control& parent, Point parent_origin, Rect covered);
     void ensure_layout(bool read_barrier);
     void leave_update_scope();
     void flush_if_outermost();
@@ -1923,7 +2002,10 @@ private:
     [[nodiscard]] Control::Ptr drop_target_at(Point position);
     [[nodiscard]] DragDispatchResult route_drag(const Control::Ptr& target,
                                                 DragEvent event);
-    [[nodiscard]] Control::Ptr hit_test_recursive(const Control::Ptr& control,
+    // `parent_origin` is the window position of `control`'s parent's
+    // origin (parent_origin_of), passed down the descent so that no level
+    // walks its ancestors (audit N83).
+    [[nodiscard]] Control::Ptr hit_test_recursive(const Control::Ptr& control, Point parent_origin,
                                                   Point window_position) const;
     // Paints the window's backplane into one painted rectangle of the
     // candidate, in a copy group when the window starts clear.
@@ -1950,8 +2032,8 @@ private:
     // leaves every device pixel of `damage` opaque (its opaque cover hint),
     // looking in `control`'s subtree as paint_recursive(control) paints it.
     // When there is one, appends the path to it, `control` first.
-    [[nodiscard]] bool find_paint_cover(const Control::Ptr& control, Rect damage, PaintPlane plane,
-                                        std::vector<Control::Ptr>& path) const;
+    [[nodiscard]] bool find_paint_cover(const Control::Ptr& control, Point parent_origin, Rect damage,
+                                        PaintPlane plane, std::vector<Control::Ptr>& path) const;
     // Paints `damage` in `plane` as paint_recursive(path.front()) would,
     // from path.back() on: what it paints before path.back() lies beneath
     // that control's opaque cover (find_paint_cover).
@@ -1971,6 +2053,7 @@ private:
     // `control`'s child viewport in window coordinates.
     [[nodiscard]] Rect absolute_child_viewport_of(const Control& control) const;
     void paint_recursive(const Control::Ptr& control,
+                         Point parent_origin,
                          Painter& painter,
                          Rect window_damage,
                          PaintPlane plane,
@@ -2019,12 +2102,37 @@ private:
     // measure and arrange below the boundary, arrange only at it.
     void mark_layout_ancestors(Control& control) noexcept;
     void commit_layout_requests_recursive(const Control::Ptr& control) noexcept;
+    // Lists `control`, whose layout_deferred_ was just set, for
+    // commit_layout_requests (audit N85); once per root while listed. A
+    // list that cannot grow marks the next commit to walk the trees.
+    void list_layout_deferred(Control& control) noexcept;
+    // Commits the listed requests whose control is under no suspended
+    // control and has no layout pending below it, as
+    // commit_layout_requests_recursive does over the whole tree; keeps the
+    // others listed.
+    void commit_layout_requests() noexcept;
+    // The window position of `control`'s parent's origin, which a descent
+    // from the root passes down to `control` (audit N83); the origin for a
+    // control without a parent.
+    [[nodiscard]] Point parent_origin_of(const Control& control) const;
     [[nodiscard]] Dirty recompute_subtree_dirty(const Control::Ptr& control) noexcept;
+    // Recomputes `first`'s subtree flags from its own flags and its
+    // children's subtree flags, then each ancestor's, stopping at the first
+    // that does not change (audit N77): a structural change refreshes its
+    // ancestor chain instead of the whole tree.
+    void refresh_ancestor_summaries(Control& first) noexcept;
     void clear_layout_dirty_subtree(const Control::Ptr& control) noexcept;
     void clear_paint_dirty_subtree(const Control::Ptr& control) noexcept;
     [[nodiscard]] std::uint64_t display_cache_entries(
         const Control::Ptr& control) const noexcept;
+    // Publishes display_cache_entries_ to the metrics.
     void update_display_cache_metrics() noexcept;
+    // Counts the chunks again by walking the tree; only for abandon_paint,
+    // which restores chunks wholesale.
+    void recount_display_cache() noexcept;
+    // Keeps display_cache_entries_ as `control`'s chunk changes from
+    // `had_chunk` to what it holds now.
+    void note_display_chunk_change(const Control& control, bool had_chunk) noexcept;
     void compact_frame_requests() noexcept;
     [[nodiscard]] Rect absolute_bounds_of(const Control& control) const;
     // Whether `control` and every ancestor have been arranged (non-empty
@@ -2123,6 +2231,8 @@ private:
     ColourScheme host_colour_scheme_{ColourScheme::light};
     Event<const Theme&> theme_changed_;
     Event<bool> active_changed_;
+    Event<> frame_moved_;
+    Event<> menu_opening_;
     bool active_{true};
     StableIdMap stable_ids_;
     Control::WeakPtr focused_;
@@ -2318,6 +2428,15 @@ private:
     // paint into it from the overlay plane to `crossing`.
     [[nodiscard]] bool other_plane_crosses(const Control::Ptr& control, const Control& scroller,
                                            Rect clip, bool beneath_covered, std::vector<Rect>& crossing) const;
+    // The shared tail of request_scroll_copy and request_content_scroll,
+    // over the visible `clip` (window coordinates) of `source`'s moved
+    // pixels: checks what lies beneath (unless `covered`, an opaque fill of
+    // the source or an ancestor already covers the clip) and collects what
+    // is drawn above into scroll_overlay_crossings_ (which the caller
+    // cleared, and may have begun), then records the copy and its damage.
+    // `translating`: the source's children moved with the copy in this
+    // layout pass, so their moves damage nothing.
+    [[nodiscard]] bool accept_scroll_copy(Control& source, Rect clip, Point offset, bool covered, bool translating);
     // Scratch for request_scroll_copy's overlay crossings.
     std::vector<Rect> scroll_overlay_crossings_;
     struct PaintControlCheckpoint final {
@@ -2326,11 +2445,13 @@ private:
     };
     using PaintControlCheckpointList =
         std::vector<PaintControlCheckpoint>;
-    void collect_paint_checkpoints(
-        const Control::Ptr& control, PaintControlCheckpointList& checkpoints);
     // Restores the paint pass's checkpoints, re-damages its rectangles and
     // releases the checkpoints (paint_checkpoints_ is left empty).
     void abandon_paint(std::uint64_t generation_before);
+    // paint_rectangles timed against the paint budget
+    // (HousekeepingExpectation::paint_within_budget).
+    std::optional<PaintReceipt> paint_timed(Painter& painter, std::span<const Rect> rectangles,
+                                            bool explicit_request);
     // One paint pass over `rectangles` (window coordinates, disjoint after
     // merging). With `explicit_request`, every plane paints each rectangle;
     // otherwise each plane paints only where it holds damage.
@@ -2366,6 +2487,17 @@ private:
     // settle_dirty's index storage, reused across settles; reserved to the
     // table's slot count at attach, so a settle does not grow it.
     std::vector<std::uint32_t> settle_indices_;
+    // The attached controls (root and overlays) holding a display chunk,
+    // kept where chunks are recorded, dropped, attached and detached (audit
+    // N86) so the metric needs no tree walk.
+    std::uint64_t display_cache_entries_{};
+    // Advances at every dirty mark beyond paint (mark_dirty), so a kept
+    // PointerHit can tell that nothing a hit reads was invalidated since.
+    std::uint64_t mutation_sequence_{};
+    // The controls whose layout request waits to be committed
+    // (list_layout_deferred), and whether one could not be listed.
+    std::vector<Control::WeakPtr> layout_deferred_controls_;
+    bool layout_deferred_list_failed_{};
     // A localized paint mark's damage (mark_paint_dirty), in the control's
     // client coordinates, placed in the window at the settle. In mark order.
     struct PendingLocalDamage final {
@@ -2407,6 +2539,13 @@ private:
     using FrameRequestList =
         std::vector<std::shared_ptr<detail::ScheduledFrameRequest>>;
     FrameRequestList frame_requests_;
+    // poll_frame's scratch (audit C10): the requests it walks, copied so a
+    // callback may add or end requests, and the controls it invalidated.
+    // Owned here so a poll allocates nothing once warm; both are emptied
+    // when the poll ends (the copy's shared pointers are released), and
+    // in_frame_poll_ keeps a nested poll from reusing them.
+    FrameRequestList frame_poll_requests_;
+    std::unordered_set<std::uint64_t> frame_poll_invalidated_;
     // Counts cancel_frame_requests calls, so that work which holds no
     // request while it waits (AnimationTimer) can tell it was cancelled.
     std::uint64_t frame_request_cancellations_{};
@@ -2448,11 +2587,14 @@ private:
     bool in_paint_{};
     // Paint-pass scratch, reused by every pass so that a frame allocates
     // nothing once they have grown to the window's size (paint_rectangles
-    // is not reentrant: in_paint_ guards both). paint_checkpoints_ holds
-    // each control and its chunk only during a pass and is cleared, keeping
-    // its capacity, when the pass completes or is abandoned;
-    // painted_rectangles_ is the pass's merged window-space rectangles.
+    // is not reentrant: in_paint_ guards both). paint_checkpoints_ holds,
+    // only during a pass, each control whose chunk the pass replaced and its
+    // chunk from before (audit C1; paint_checkpointing_ is true while the
+    // pass records them), and is cleared, keeping its capacity, when the
+    // pass completes or is abandoned; painted_rectangles_ is the pass's
+    // merged window-space rectangles.
     PaintControlCheckpointList paint_checkpoints_{};
+    bool paint_checkpointing_{};
     std::vector<Rect> painted_rectangles_{};
     bool inline_with_theme_reported_{};
     std::uint64_t content_revision_{1U};

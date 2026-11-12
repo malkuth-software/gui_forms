@@ -30,6 +30,19 @@ std::shared_ptr<const PropertyEnumDescriptor> list_selection_mode_enum() {
     return value;
 }
 
+// The list's insets (audit F6), named once for measure, paint, hit testing,
+// damage and semantics. Logical units, not scaled by the text scale.
+// The well's border: rows sit this far inside the control on every side.
+constexpr double well_inset = 2.0;
+// Both borders of one axis.
+constexpr double well_insets = 2.0 * well_inset;
+// The row text's left edge, from the control's left.
+constexpr double row_text_inset = 8.0;
+// The text baseline sits at least this far below the row's middle.
+constexpr double baseline_below_middle = 4.0;
+// The active row's focus ring sits this far inside the row.
+constexpr double focus_ring_inset = 1.0;
+
 } // namespace
 using namespace input_control_detail;
 
@@ -91,6 +104,7 @@ void ListBox::written(const decltype(items)&, const CollectionEdit& edit) {
                 item_stable_ids_.begin() + static_cast<std::ptrdiff_t>(edit.index());
             item_stable_ids_.erase(first, first + static_cast<std::ptrdiff_t>(edit.count()));
         }
+        stable_id_order_.clear();
         break;
     case CollectionEditKind::replace:
         break;
@@ -98,6 +112,7 @@ void ListBox::written(const decltype(items)&, const CollectionEdit& edit) {
     case CollectionEditKind::insert:
     default:
         item_stable_ids_.clear();
+        stable_id_order_.clear();
         break;
     }
     const bool selection_changed = edit_selection_ != selected_;
@@ -142,7 +157,23 @@ void ListBox::set_item_stable_ids(std::vector<std::string> stable_ids) {
         throw std::invalid_argument("ListBox stable item IDs must be unique");
     }
     item_stable_ids_ = std::move(stable_ids);
+    stable_id_order_.clear();
     invalidate(Dirty::semantics);
+}
+
+// The order is rebuilt on the first lookup after the identities change
+// (audit N46a): one sort per change, then logarithmic lookups.
+std::optional<std::size_t> ListBox::index_of_item_stable_id(std::string_view stable_id) {
+    if (stable_id_order_.size() != item_stable_ids_.size()) {
+        stable_id_order_.resize(item_stable_ids_.size());
+        for (std::size_t index = 0U; index < stable_id_order_.size(); ++index) stable_id_order_[index] = index;
+        std::sort(stable_id_order_.begin(), stable_id_order_.end(), StableIdOrder{&item_stable_ids_});
+    }
+    const std::vector<std::size_t>::const_iterator found =
+        std::lower_bound(stable_id_order_.cbegin(), stable_id_order_.cend(), stable_id,
+                         StableIdOrder{&item_stable_ids_});
+    if (found == stable_id_order_.cend() || item_stable_ids_[*found] != stable_id) return std::nullopt;
+    return *found;
 }
 
 std::string ListBox::item_stable_id(std::size_t index) const {
@@ -242,16 +273,16 @@ void ListBox::write_view(const decltype(top_index)&, std::size_t incoming) {
 
 std::size_t ListBox::visible_row_count() const noexcept {
     double height = local_bounds().height;
-    if (height <= 4.0) {
+    if (height <= well_insets) {
         height = requested_bounds().height;
     }
     const double row_height = item_height.read() * effective_text_scale();
     return std::max<std::size_t>(1U, static_cast<std::size_t>(
-        std::floor(std::max(0.0, height - 4.0) / row_height)));
+        std::floor(std::max(0.0, height - well_insets) / row_height)));
 }
 
 void ListBox::ensure_visible(std::size_t index) {
-    if (local_bounds().height <= 4.0 && requested_bounds().height <= 4.0) {
+    if (local_bounds().height <= well_insets && requested_bounds().height <= well_insets) {
         return;
     }
     const std::size_t visible = visible_row_count();
@@ -285,29 +316,41 @@ void ListBox::settle_items_damage(bool window_moved) {
     const Rect bounds = local_bounds();
     if (bounds.empty()) return;
     const double row_height = item_height.read() * effective_text_scale();
-    const double row_width = std::max(0.0, bounds.width - 4.0);
-    const double content_bottom = std::max(2.0, bounds.height - 2.0);
+    const double row_width = std::max(0.0, bounds.width - well_insets);
+    const double content_bottom = std::max(well_inset, bounds.height - well_inset);
     const std::size_t window_end = top_index_ + visible_row_count() + 1U;
     std::size_t replaced_end = window_end;
     if (structural_from && *structural_from < window_end) {
         const std::size_t first = std::max(*structural_from, top_index_);
-        const double top = 2.0 + static_cast<double>(first - top_index_) * row_height;
-        if (top < content_bottom) invalidate(Rect{2.0, top, row_width, content_bottom - top});
+        const double top = well_inset + static_cast<double>(first - top_index_) * row_height;
+        if (top < content_bottom) invalidate(Rect{well_inset, top, row_width, content_bottom - top});
         replaced_end = first;
     }
     for (const std::uint32_t row : settled_rows_) {
         const std::size_t index = static_cast<std::size_t>(row);
         if (index < top_index_) continue;
         if (index >= replaced_end) break;
-        const double top = 2.0 + static_cast<double>(index - top_index_) * row_height;
-        invalidate(Rect{2.0, top, row_width, row_height});
+        invalidate_row(index);
     }
+}
+
+// Repaints one row when it is in the shown window (the last, partly shown
+// row included); a row outside it has nothing on screen to repaint.
+void ListBox::invalidate_row(std::size_t index) {
+    if (index < top_index_) return;
+    const std::size_t shown = visible_row_count() + 1U;
+    if (index - top_index_ >= shown) return;
+    const Rect bounds = local_bounds();
+    if (bounds.empty()) return;
+    const double row_height = item_height.read() * effective_text_scale();
+    const double top = well_inset + static_cast<double>(index - top_index_) * row_height;
+    invalidate(Rect{well_inset, top, std::max(0.0, bounds.width - well_insets), row_height});
 }
 
 std::optional<std::size_t> ListBox::index_at(Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
     if (!bounds.contains(absolute)) return {};
-    const double local_y = absolute.y - bounds.y - 2.0;
+    const double local_y = absolute.y - bounds.y - well_inset;
     if (local_y < 0.0) return {};
     const double row_height = item_height.read() * effective_text_scale();
     const std::size_t index = top_index_ +
@@ -336,16 +379,16 @@ void ListBox::on_paint(Painter& painter, Rect) {
     const FontSpec row_font = text_font(font.read());
     const double row_height = item_height.read() * effective_text_scale();
     painter.save();
-    painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
-                       std::max(0.0, bounds.height - 4.0)});
+    painter.clip_rect({well_inset, well_inset, std::max(0.0, bounds.width - well_insets),
+                       std::max(0.0, bounds.height - well_insets)});
     const std::size_t visible = visible_row_count() + 1U;
     const std::size_t end = std::min(items.read().size(), top_index_ + visible);
     for (std::size_t index = top_index_; index < end; ++index) {
-        const double y = 2.0 + static_cast<double>(index - top_index_) * row_height;
+        const double y = well_inset + static_cast<double>(index - top_index_) * row_height;
         const bool selected = detail::binary_search_contains(
             std::span<const std::size_t>(selected_), index);
         const bool hovered = hovered_index_ == index;
-        const Rect row{2.0, y, std::max(0.0, bounds.width - 4.0), row_height};
+        const Rect row{well_inset, y, std::max(0.0, bounds.width - well_insets), row_height};
         AnatomyStateSet row_states = states;
         if (hovered) row_states.insert(AnatomyState::hot);
         if (selected) row_states.insert(AnatomyState::selected);
@@ -371,13 +414,15 @@ void ListBox::on_paint(Painter& painter, Rect) {
         if (overridden) text.authored_foreground = selected && focused_ ? style().highlight : style().text;
         const double left = row_text_left();
         paint_text_part_at(painter, *this, text,
-                           {left, y + std::max(row_font.size, row_height * 0.5 + 4.0)},
+                           {left, y + std::max(row_font.size, row_height * 0.5 + baseline_below_middle)},
                            std::max(0.0, row.x + row.width - left));
         if (focused_ && active_index_ == index) {
             PartPaint ring;
             ring.family = ControlVisualRole::selection;
             ring.role = PartRole::focus;
-            ring.bounds = {3.0, y + 1.0, std::max(0.0, bounds.width - 6.0), std::max(0.0, row_height - 2.0)};
+            ring.bounds = {well_inset + focus_ring_inset, y + focus_ring_inset,
+                           std::max(0.0, bounds.width - well_insets - 2.0 * focus_ring_inset),
+                           std::max(0.0, row_height - 2.0 * focus_ring_inset)};
             ring.states = row_states;
             ring.states.insert(AnatomyState::focus_visible);
             paint_part(painter, *this, ring);
@@ -387,7 +432,7 @@ void ListBox::on_paint(Painter& painter, Rect) {
 }
 
 double ListBox::row_text_left() const noexcept {
-    return 8.0;
+    return row_text_inset;
 }
 
 void ListBox::paint_row_adornment(Painter&, std::size_t, Rect, bool,
@@ -398,14 +443,18 @@ void ListBox::on_pointer(PointerEvent& event) {
     if (event.action == PointerAction::move) {
         const std::optional<std::size_t> next = index_at(event.position);
         if (next != hovered_index_) {
+            // Only the row left and the row entered repaint (audit C9).
+            const std::optional<std::size_t> previous = hovered_index_;
             hovered_index_ = next;
-            invalidate(Dirty::paint);
+            if (previous) invalidate_row(*previous);
+            if (next) invalidate_row(*next);
         }
         return;
     }
     if (event.action == PointerAction::leave) {
+        const std::optional<std::size_t> previous = hovered_index_;
         hovered_index_.reset();
-        invalidate(Dirty::paint);
+        if (previous) invalidate_row(*previous);
         return;
     }
     if (event.action == PointerAction::wheel) {
@@ -481,13 +530,20 @@ SemanticDescriptor ListBox::semantic_descriptor() const {
 }
 
 std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
+    // Only the shown window is described (audit N46), as the data grid,
+    // ObjectView and ListView do; position_in_set and set_size still count
+    // the whole list, so a client knows where the window sits.
     std::vector<SemanticNode> nodes;
-    nodes.reserve(items.read().size());
-    const Rect list_bounds = absolute_bounds();
+    const std::size_t count = items.read().size();
+    const std::size_t first = std::min(top_index_, count);
     const std::size_t visible_count = visible_row_count();
-    const std::size_t visible_end = std::min(items.read().size(), top_index_ + visible_count);
+    const std::size_t visible_end = std::min(count, first + visible_count);
+    // Paint realizes one row past the fully visible ones; so does this.
+    const std::size_t end = std::min(count, first + visible_count + 1U);
+    nodes.reserve(end - first);
+    const Rect list_bounds = absolute_bounds();
     const double row_height = item_height.read() * effective_text_scale();
-    for (std::size_t index = 0; index < items.read().size(); ++index) {
+    for (std::size_t index = first; index < end; ++index) {
         SemanticNode node;
         node.stable_id = item_stable_id(index);
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
@@ -495,12 +551,12 @@ std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
         node.name = items.read()[index];
         node.value = items.read()[index];
         node.position_in_set = index + 1U;
-        node.set_size = items.read().size();
-        const double row_y = list_bounds.y + 2.0 +
+        node.set_size = count;
+        const double row_y = list_bounds.y + well_inset +
             (static_cast<double>(index) - static_cast<double>(top_index_)) *
                 row_height;
         node.bounds = Rect::intersection(
-            {list_bounds.x + 2.0, row_y, std::max(0.0, list_bounds.width - 4.0),
+            {list_bounds.x + well_inset, row_y, std::max(0.0, list_bounds.width - well_insets),
              row_height},
             list_bounds);
         if (effectively_enabled()) node.states |= SemanticState::enabled;
@@ -525,12 +581,9 @@ bool ListBox::on_semantic_child_action(std::string_view child_stable_id,
                                        std::string_view) {
     std::size_t index{};
     if (!item_stable_ids_.empty()) {
-        const std::vector<std::string>::iterator found =
-            std::find(item_stable_ids_.begin(),
-                                     item_stable_ids_.end(), child_stable_id);
-        if (found == item_stable_ids_.end()) return false;
-        index = static_cast<std::size_t>(
-            std::distance(item_stable_ids_.begin(), found));
+        const std::optional<std::size_t> found = index_of_item_stable_id(child_stable_id);
+        if (!found) return false;
+        index = *found;
     } else {
         const std::string prefix = std::string(stable_id().value()) + ".item.";
         if (!child_stable_id.starts_with(prefix)) return false;
@@ -605,8 +658,8 @@ void ListBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
         record.edge = panel.edge;
     }
     record.well = PartGeometry::from_bounds(bounds);
-    const Rect content{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
-                       std::max(0.0, bounds.height - 4.0)};
+    const Rect content{well_inset, well_inset, std::max(0.0, bounds.width - well_insets),
+                       std::max(0.0, bounds.height - well_insets)};
     record.content = PartGeometry::from_bounds(content);
     write_parts(anatomy(), scrollable_detail::part_fields, record.scrollable, geometry);
     write_parts(anatomy(), list_box_detail::extra_fields, record, geometry);
@@ -641,11 +694,11 @@ std::string ListBox::realized_item_stable_id(std::size_t item) const {
 
 ListBox::ItemParts ListBox::list_item_parts(std::size_t item) const {
     const Rect bounds = local_bounds();
-    const Rect content{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
-                       std::max(0.0, bounds.height - 4.0)};
+    const Rect content{well_inset, well_inset, std::max(0.0, bounds.width - well_insets),
+                       std::max(0.0, bounds.height - well_insets)};
     const double row_height = item_height.read() * effective_text_scale();
-    const double y = 2.0 + static_cast<double>(item) * row_height;
-    const Rect row{2.0, y, std::max(0.0, bounds.width - 4.0), row_height};
+    const double y = well_inset + static_cast<double>(item) * row_height;
+    const Rect row{well_inset, y, std::max(0.0, bounds.width - well_insets), row_height};
     const std::size_t index = realized_item_index(item);
     const FontSpec label_font = text_font(font.read());
     const ResolvedTextLayout text = resolve_text_layout_utf8(items.read()[index], label_font);

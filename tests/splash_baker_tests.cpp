@@ -7,6 +7,8 @@
 #include "../src/core/display/snapshot/splash_baker.hpp"
 
 #include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -121,10 +123,19 @@ void test_snapshot_refusals() {
     require(huge.refusal == DisplaySnapshotRefusal::empty, "an extent past the part raster side is empty");
 }
 
+// How long a test waits for the worker before it fails. A wall-clock
+// bound, not a count of polls: under a parallel ctest run the worker may
+// not be scheduled for a long stretch, and a fixed number of yields was
+// over in a few milliseconds (the -j6 failure). Below the test's 30 s
+// ctest timeout so the failure names its wait.
+constexpr std::chrono::seconds worker_wait_limit{20};
+
 // The fake renderer: fills the target with one byte, refuses when told,
-// and can hold a bake until released.
+// and can hold a bake until released. `changed` is notified, under
+// `mutex`, whenever `hold` is cleared or a bake is entered.
 struct FakeControl final {
     std::mutex mutex{};
+    std::condition_variable changed{};
     std::uint8_t fill{0x5AU};
     bool refuse{};
     bool hold{};
@@ -141,12 +152,12 @@ public:
     ~FakeRaster() override { ++control_.destroyed; }
 
     bool bake(const DisplaySnapshot&, const PartRasterView target) override {
+        std::unique_lock<std::mutex> lock(control_.mutex);
         ++control_.entered;
-        while (true) {
-            const std::lock_guard<std::mutex> lock(control_.mutex);
-            if (!control_.hold) break;
-        }
-        const std::lock_guard<std::mutex> lock(control_.mutex);
+        control_.changed.notify_all();
+        // Blocks, rather than spinning on the mutex, while the test holds
+        // the bake: a spinning worker starved the test thread's lock.
+        while (control_.hold) control_.changed.wait(lock);
         ++control_.baked;
         if (control_.refuse) return false;
         std::memset(target.pixels.data(), control_.fill, target.pixels.size());
@@ -178,14 +189,34 @@ std::shared_ptr<const DisplaySnapshot> small_snapshot() {
     return made.snapshot;
 }
 
-// Takes `ticket` until it leaves pending, within a bounded number of polls.
+// Takes `ticket` until it leaves pending, within worker_wait_limit. The
+// baker has no completion signal, so this polls, sleeping between takes.
 SplashBakeOutcome take_settled(SplashBaker& baker, SplashBakeTicket ticket) {
-    for (int attempt = 0; attempt < 200000; ++attempt) {
+    const std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::now() + worker_wait_limit;
+    while (std::chrono::steady_clock::now() < deadline) {
         SplashBakeOutcome outcome = baker.take(ticket);
         if (outcome.state != SplashBakeState::pending) return outcome;
-        std::this_thread::yield();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    throw std::runtime_error("a bake settles within the poll bound");
+    throw std::runtime_error("a bake settles within the wait limit");
+}
+
+// Waits until the worker has entered `count` bakes, within worker_wait_limit.
+bool wait_entered(FakeControl& control, int count) {
+    const std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::now() + worker_wait_limit;
+    std::unique_lock<std::mutex> lock(control.mutex);
+    while (control.entered.load() < count) {
+        if (control.changed.wait_until(lock, deadline) == std::cv_status::timeout) break;
+    }
+    const bool entered = control.entered.load() >= count;
+    return entered;
+}
+
+// Lets held bakes go on.
+void release_hold(FakeControl& control) {
+    const std::lock_guard<std::mutex> lock(control.mutex);
+    control.hold = false;
+    control.changed.notify_all();
 }
 
 void test_baker_finishes_and_refuses() {
@@ -225,10 +256,7 @@ void test_baker_drops_oldest_when_full() {
     // The first is taken by the worker and held; the rest fill the queue,
     // and one more pushes the oldest waiting one out.
     const SplashBakeTicket held = baker.submit(small_snapshot());
-    for (int attempt = 0; attempt < 200000 && control.entered.load() == 0; ++attempt) {
-        std::this_thread::yield();
-    }
-    require(control.entered.load() == 1, "the worker starts the first bake");
+    require(wait_entered(control, 1) && control.entered.load() == 1, "the worker starts the first bake");
     require(baker.take(held).state == SplashBakeState::pending, "a bake being painted is pending");
     std::vector<SplashBakeTicket> queued;
     for (std::size_t index = 0U; index < SplashBaker::maximum_waiting_bakes + 1U; ++index) {
@@ -237,10 +265,7 @@ void test_baker_drops_oldest_when_full() {
     require(baker.take(queued[0]).state == SplashBakeState::refused,
             "a submit past the bound drops the oldest waiting bake");
     require(baker.take(queued.back()).state == SplashBakeState::pending, "the newest stays queued");
-    {
-        const std::lock_guard<std::mutex> lock(control.mutex);
-        control.hold = false;
-    }
+    release_hold(control);
     const SplashBakeOutcome newest = take_settled(baker, queued.back());
     require(newest.state == SplashBakeState::finished, "the newest finishes once released");
     require(take_settled(baker, held).state == SplashBakeState::finished, "the held bake finishes too");
@@ -256,8 +281,7 @@ void test_baker_stops_with_work_waiting() {
         SplashBaker baker(std::make_unique<FakeFactory>(control));
         static_cast<void>(baker.submit(small_snapshot()));
         static_cast<void>(baker.submit(small_snapshot()));
-        const std::lock_guard<std::mutex> lock(control.mutex);
-        control.hold = false;
+        release_hold(control);
     }
     require(control.baked.load() <= 2, "waiting bakes are dropped or finished before the join");
     require(control.destroyed.load() == control.made.load(), "the worker's raster is destroyed on stop");

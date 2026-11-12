@@ -102,6 +102,7 @@ ToolStrip::ToolStrip(StableId stable_id) : Control(std::move(stable_id)) {
 
 ToolStrip::ToolStrip(StableId stable_id, StatusLayout) : Control(std::move(stable_id)) {
     status_layout_ = true;
+    advance_layout_revision();
     grip_visible = false;
     sizing_grip_visible = true;
     construct();
@@ -207,6 +208,7 @@ void ToolStrip::apply_items(std::vector<ToolStripItemSpec> items, bool merged) {
         }
     }
     items_ = std::move(items);
+    advance_layout_revision();
     item_states_ = std::move(next_states);
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (!hosted(items_[index].kind)) continue;
@@ -312,6 +314,7 @@ void ToolStrip::set_item_text(std::string_view item_id, std::string text) {
     if (!validate_utf8(text).valid()) throw std::invalid_argument("ToolStrip item text must be valid UTF-8");
     if (items_[*index].text == text) return;
     items_[*index].text = std::move(text);
+    advance_layout_revision();
     if (item_states_[*index].hosted) (*item_states_[*index].hosted).accessible_name = items_[*index].text;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -432,8 +435,17 @@ Size ToolStrip::item_size(const ToolStripItemSpec& item) const {
     return {width, 0.0};
 }
 
-ToolStrip::Layout ToolStrip::layout() const {
-    return layout_for(client_rectangle());
+const ToolStrip::Layout& ToolStrip::layout() const {
+    const LayoutKey key = layout_key();
+    const std::uint64_t model = 0U;
+    if (kept_layout_valid_ && kept_layout_key_ == key && kept_layout_model_ == model) return kept_layout_;
+    // The key is taken before the layout is made: a layout that
+    // writes what it reads is made again at the next call.
+    kept_layout_ = layout_for(key.client);
+    kept_layout_key_ = key;
+    kept_layout_model_ = model;
+    kept_layout_valid_ = true;
+    return kept_layout_;
 }
 
 ToolStrip::Layout ToolStrip::layout_for(Rect surface) const {

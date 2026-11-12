@@ -84,16 +84,23 @@ constexpr Color backplane_wash = Color::rgba(222, 235, 247);
 }
 
 // Applies the relief style to every button and range control in the
-// subtrees under `roots`. Walks with an explicit stack; the document is at
+// subtrees under `roots`. The classic relief is the window's theme: a
+// button's own style is cleared, so the theme draws it in either colour
+// scheme; the quiet relief writes `style` onto each button. Range controls
+// always take `style`. Walks with an explicit stack; the document is at
 // most four levels deep.
-void apply_relief_style(const std::vector<Control::Ptr>& roots, const BasicControlStyle& style)
+void apply_relief_style(const std::vector<Control::Ptr>& roots, const BasicControlStyle& style, bool quiet)
 {
     std::vector<Control::Ptr> pending(roots.begin(), roots.end());
     while (!pending.empty()) {
         const Control::Ptr control = std::move(pending.back());
         pending.pop_back();
         if (const std::shared_ptr<ButtonBase> button = std::dynamic_pointer_cast<ButtonBase>(control)) {
-            (*button).set_style(style);
+            if (quiet) {
+                (*button).set_style(style);
+            } else {
+                (*button).clear_style();
+            }
         } else if (const std::shared_ptr<RangeControl> range =
                        std::dynamic_pointer_cast<RangeControl>(control)) {
             (*range).set_style(style);
@@ -143,8 +150,9 @@ void GalleryContext::synchronize(std::string_view cause)
     }
     // The check box, the radio buttons, the slider, the progress bar and the
     // diagnostics' visibility follow the model through their bindings.
-    const BasicControlStyle style = gallery_basic_style(state.style_mode == StyleMode::quiet_relief);
-    apply_relief_style(styled_controls(), style);
+    const bool quiet = state.style_mode == StyleMode::quiet_relief;
+    const BasicControlStyle style = gallery_basic_style(quiet);
+    apply_relief_style(styled_controls(), style, quiet);
     // A text box binds a text only to a BindingSource field (FD-6), not to a
     // string the model keeps.
     if ((*pages.gallery_text_input).text.read() != state.text) {

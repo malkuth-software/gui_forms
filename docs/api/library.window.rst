@@ -44,6 +44,8 @@ Related types
      - How a window carries its chain under its grant (SurfaceRoot::backdrop_chain_resolution).
    * - :cpp:class:`BackdropOperation <gui_forms::BackdropOperation>`
      -  
+   * - :cpp:class:`CaretSettings <gui_forms::CaretSettings>`
+     - How a text caret blinks (audit N75): blink_milliseconds is one phase, the time the caret stays shown or hidden before it toggles; 0 means the caret never blinks and stays shown (the user turned blinking off).
    * - :cpp:class:`ColourSchemeSet <gui_forms::ColourSchemeSet>`
      - The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them.
    * - :cpp:class:`ControlAvailabilityChange <gui_forms::ControlAvailabilityChange>`
@@ -357,6 +359,22 @@ Related types
    .. cpp:member:: Color colour
 
       tint only (transparent black otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CaretSettings final
+
+   ``#include <gui_forms/window/presentation/input_settings.hpp>``
+
+   How a text caret blinks (audit N75): blink_milliseconds is one phase, the time the caret stays shown or hidden before it toggles; 0 means the caret never blinks and stays shown (the user turned blinking off). Sources: Windows GetCaretBlinkTime (INFINITE is 0), X11 XSettings Net/CursorBlink and Net/CursorBlinkTime (a whole cycle, halved), macOS the NSTextInsertionPointBlinkPeriodOn default where set.
+
+   .. cpp:member:: std::uint32_t blink_milliseconds
+
+      Default: ``{default_caret_blink_milliseconds}``.
+
+   .. cpp:member:: SettingOrigin origin
+
+      Default: ``{SettingOrigin::default_value}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -720,10 +738,6 @@ Related types
       Frames of the window's motion clock: at most one per poll, however many values move.
 
    .. cpp:member:: std::uint64_t coalesced_requests
-
-   .. cpp:member:: std::uint64_t callback_faults
-
-      Throwing UI timer callbacks are disconnected individually so one cannot repeatedly escape through a native timer callback.
 
    .. cpp:member:: bool reentrant_poll_deferred
 
@@ -1298,7 +1312,7 @@ Related types
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
 
-   The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN A.2): each set field wins over the window's own settings, which come from its application or its host; an unset field follows them. The double-click interval and the pointer settings are the host's alone and have no override.
+   The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN A.2): each set field wins over the window's own settings, which come from its application or its host; an unset field follows them. The double-click interval, the pointer settings and the caret settings are the host's alone and have no override.
 
 
    .. rubric:: Properties
@@ -1360,6 +1374,10 @@ Related types
    .. cpp:member:: PointerSettings pointer
 
       The drag and hover rectangles and the hover time (PointerSettings), from the host where it reports them (HostInputSettingsEvent), otherwise the Windows-like defaults. Like the double-click interval they are the host's alone.
+
+   .. cpp:member:: CaretSettings caret
+
+      The caret's blink phase (CaretSettings), from the host where it reports one, otherwise 530 ms; the host's alone. Text boxes read it each time they schedule the next blink.
 
    .. cpp:member:: ColourScheme colour_scheme
 
@@ -2213,12 +2231,6 @@ Enumerations
 
    .. cpp:enumerator:: hit_test
 
-   .. cpp:enumerator:: text
-
-   .. cpp:enumerator:: style
-
-   .. cpp:enumerator:: resource
-
    .. cpp:enumerator:: semantics
 
    .. cpp:enumerator:: accessibility
@@ -2668,19 +2680,19 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr Dirty text_content
 
-   Value: ``Dirty::text | Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics | Dirty::accessibility``.
+   Value: ``Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics | Dirty::accessibility``.
 
 .. cpp:var:: constexpr Dirty style_only
 
-   Value: ``Dirty::style | Dirty::paint``.
+   Value: ``Dirty::paint``.
 
 .. cpp:var:: constexpr Dirty resource_content
 
-   Value: ``Dirty::resource | Dirty::measure | Dirty::arrange | Dirty::paint``.
+   Value: ``Dirty::measure | Dirty::arrange | Dirty::paint``.
 
 .. cpp:var:: constexpr Dirty conservative_subtree
 
-   Value: ``Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::text | Dirty::style | Dirty::resource | Dirty::semantics | Dirty::accessibility``.
+   Value: ``Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics | Dirty::accessibility``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2856,6 +2868,10 @@ Functions, constants and aliases
 
    Whether every value lies in its range (each rectangle side finite and between 0 and maximum_pointer_distance, the hover time between 1 and maximum_hover_milliseconds) and every origin is in its enum.
 
+.. cpp:function:: bool valid_caret_settings(const CaretSettings& settings) noexcept
+
+   Whether the phase is at most maximum_caret_blink_milliseconds (0, never blinking, included) and the origin is in its enum.
+
 .. cpp:var:: constexpr std::uint32_t default_double_click_milliseconds
 
    The double-click interval GUI.Forms states where the host has none, and the longest one admitted (Windows' own limit). Perceptual durations, in milliseconds. Value: ``400U``.
@@ -2884,13 +2900,21 @@ Functions, constants and aliases
 
    Value: ``10000U``.
 
+.. cpp:var:: constexpr std::uint32_t default_caret_blink_milliseconds
+
+   The caret's blink phase GUI.Forms states where the host has none (the Windows default, GetCaretBlinkTime), and the longest phase admitted. Perceptual durations, in milliseconds. Value: ``530U``.
+
+.. cpp:var:: constexpr std::uint32_t maximum_caret_blink_milliseconds
+
+   Value: ``10000U``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/window/presentation/presentation_types.hpp>``
 
 .. cpp:function:: void validate_presentation_settings(const PresentationSettings& settings)
 
-   Throws std::invalid_argument for settings no window takes: a text scale outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, or an origin or scheme outside its enum.
+   Throws std::invalid_argument for settings no window takes: a text scale outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, caret settings that are not valid_caret_settings, or an origin or scheme outside its enum.
 
 .. cpp:function:: PresentationSettings overridden_presentation(PresentationSettings settings, const PresentationOverrides& overrides) noexcept
 

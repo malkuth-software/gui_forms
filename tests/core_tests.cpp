@@ -1100,9 +1100,9 @@ void test_control_identity_geometry_constraints_and_z_order() {
                 (*first).rectangle_from_window({12.0, 15.0, 5.0, 7.0}) ==
                     Rect{2.0, 3.0, 5.0, 7.0},
             "containment and window-coordinate conversion must use committed retained geometry");
-    require((*root).child_index((*second).runtime_id()) == 0U &&
-                (*root).child_index((*first).runtime_id()) == 1U &&
-                !(*root).child_index((*nested).runtime_id()),
+    require((*root).child_index_from_top((*second).runtime_id()) == 0U &&
+                (*root).child_index_from_top((*first).runtime_id()) == 1U &&
+                !(*root).child_index_from_top((*nested).runtime_id()),
             "child indices must expose topmost-first direct-child z order");
     require((*root).get_child_at_point({20.0, 20.0}) == second,
             "direct child lookup must return the topmost overlapping child");
@@ -1146,11 +1146,11 @@ void test_control_identity_geometry_constraints_and_z_order() {
 
     (*first).bring_to_front();
     require((*root).children().back() == first &&
-                (*root).child_index((*first).runtime_id()) == 0U,
+                (*root).child_index_from_top((*first).runtime_id()) == 0U,
             "BringToFront must move the child to retained topmost z order");
     (*first).send_to_back();
     require((*root).children().front() == first &&
-                (*root).child_index((*first).runtime_id()) == 1U,
+                (*root).child_index_from_top((*first).runtime_id()) == 1U,
             "SendToBack must move the child to retained backmost z order");
 
     std::shared_ptr<gui_forms::Control> sizing = make_control<Control>(StableId("control.autosize"));

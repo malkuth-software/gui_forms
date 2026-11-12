@@ -54,9 +54,14 @@ void Component::own_revocable(
             return expired;
         }
     };
-    const std::vector<ObservedRevocable>::iterator retained_end = std::remove_if(
-        owned_revocables_.begin(), owned_revocables_.end(), Expired{});
-    owned_revocables_.erase(retained_end, owned_revocables_.end());
+    // Expired entries are purged only when the vector is full, before it
+    // would grow: each purge then pays for the adds since the last one, so an
+    // add costs amortised constant time instead of a pass over every entry.
+    if (owned_revocables_.size() == owned_revocables_.capacity()) {
+        const std::vector<ObservedRevocable>::iterator retained_end = std::remove_if(
+            owned_revocables_.begin(), owned_revocables_.end(), Expired{});
+        owned_revocables_.erase(retained_end, owned_revocables_.end());
+    }
     const std::uint64_t order = acquire_work_order();
     owned_revocables_.push_back(ObservedRevocable{revocable, order});
 }

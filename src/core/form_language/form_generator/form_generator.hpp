@@ -98,12 +98,12 @@ enum class FormGenerateOutcome : std::uint8_t {
 
 // The member name of the object with `stable_id`: '.' and '-' spelled '_'.
 // Empty when that is not a C++ identifier the generator may declare (it
-// starts with a digit, or is a keyword).
+// starts with a digit, holds a double underscore, or is a keyword).
 [[nodiscard]] std::string form_member_name(std::string_view stable_id);
 
 // Whether `name` is an identifier the generator may declare: a letter or
-// '_' then letters, digits and '_', not a C++ keyword, and not starting
-// with '_' (reserved spellings).
+// '_' then letters, digits and '_', not a C++ keyword, and neither
+// starting with '_' nor holding "__" (reserved spellings).
 [[nodiscard]] bool form_identifier(std::string_view name) noexcept;
 
 // Whether `name` is `::`-separated form identifiers (`gui_forms::CheckBox`,

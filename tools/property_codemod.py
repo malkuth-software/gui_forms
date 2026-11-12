@@ -66,6 +66,7 @@ import argparse
 import json
 import pathlib
 import re
+import shlex
 import subprocess
 import sys
 
@@ -1263,7 +1264,9 @@ def command_rewrite(arguments):
     log_path = pathlib.Path(arguments.log)
     for round_number in range(1, arguments.rounds + 1):
         if arguments.build_command:
-            subprocess.run(arguments.build_command, shell=True, check=False)
+            # The operator's command, split as a POSIX shell would split it but
+            # run without a shell (audit P20).
+            subprocess.run(shlex.split(arguments.build_command), check=False)
         log_text = log_path.read_text(encoding="utf-8", errors="replace")
         errors = count_errors(log_text)
         if errors == 0:
@@ -1491,7 +1494,7 @@ def main():
     rewrite = commands.add_parser("rewrite")
     rewrite.add_argument("--log", required=True)
     rewrite.add_argument("--build-dir", required=True)
-    rewrite.add_argument("--build-command")
+    rewrite.add_argument("--build-command", help="split with shlex and run without a shell; no pipes or redirection")
     rewrite.add_argument("--rounds", type=int, default=8)
     rewrite.add_argument("configs", nargs="+")
     audit = commands.add_parser("audit")

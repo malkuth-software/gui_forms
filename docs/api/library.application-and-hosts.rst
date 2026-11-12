@@ -67,6 +67,8 @@ Related types
      -  
    * - :cpp:class:`CursorStatus <gui_forms::CursorStatus>`
      -  
+   * - :cpp:class:`DeferredThemeRequest <gui_forms::DeferredThemeRequest>`
+     - A request held by resources until their first window (ApplicationResources::hold_theme_request).
    * - :cpp:class:`DesktopDevicePoint <gui_forms::DesktopDevicePoint>`
      - A point on the host's device desktop: Win32 screen pixels of a per-monitor-aware process, X11 root-window pixels.
    * - :cpp:class:`DesktopLogicalPoint <gui_forms::DesktopLogicalPoint>`
@@ -233,6 +235,12 @@ Related types
      - The user-theme options of a command line (the arguments after the program's own name): ``--theme <name>`` and ``--export-themes [folder]``, the folder empty for the per-user one.
    * - :cpp:class:`ThemeExportReport <gui_forms::ThemeExportReport>`
      - What an export did: the files written, those already there (left as they were) and those that could not be written, by path; and the package resources and icons that a user theme cannot hold.
+   * - :cpp:class:`ThemeRequest <gui_forms::ThemeRequest>`
+     -  
+   * - :cpp:class:`ThemeRequestContext <gui_forms::ThemeRequestContext>`
+     - What a request compiles against.
+   * - :cpp:class:`ThemeRequestReport <gui_forms::ThemeRequestReport>`
+     - What a request did, kept by the resources it was settled on.
    * - :cpp:class:`UserThemeCandidate <gui_forms::UserThemeCandidate>`
      - One theme found: compiled, or refused with its diagnostics (a list shows it greyed out).
    * - :cpp:class:`UserThemeFolders <gui_forms::UserThemeFolders>`
@@ -570,6 +578,18 @@ Related types
    .. cpp:member:: CursorError error
 
       Default: ``{CursorError::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DeferredThemeRequest final
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   A request held by resources until their first window (ApplicationResources::hold_theme_request).
+
+   .. cpp:member:: ThemeRequest request
+
+   .. cpp:member:: ThemeRequestContext context
 
 .. cpp:namespace:: gui_forms
 
@@ -1027,7 +1047,7 @@ Related types
 
    ``#include <gui_forms/host/types/host_types.hpp>``
 
-   The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds, double_click_origin and pointer), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds, or pointer settings that are not valid_pointer_settings, are refused as invalid_payload. A host reports the pointer values its platform has with origin host and leaves the others at their defaults (origin default_value).
+   The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds, double_click_origin, pointer and caret), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, or caret settings that are not valid_caret_settings, are refused as invalid_payload. A host reports the pointer and caret values its platform has with origin host and leaves the others at their defaults (origin default_value).
 
    .. cpp:member:: std::uint32_t double_click_milliseconds
 
@@ -1038,6 +1058,10 @@ Related types
       Default: ``{SettingOrigin::host}``.
 
    .. cpp:member:: PointerSettings pointer
+
+   .. cpp:member:: CaretSettings caret
+
+      The caret's blink phase (protocol version 13, audit N75).
 
 .. cpp:namespace:: gui_forms
 
@@ -1780,8 +1804,6 @@ Related types
    .. cpp:member:: std::uint64_t events_accepted
 
    .. cpp:member:: std::uint64_t events_rejected
-
-   .. cpp:member:: std::uint64_t callback_faults
 
    .. cpp:member:: std::uint64_t close_requests
 
@@ -2745,6 +2767,80 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ThemeRequest final
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   .. cpp:member:: ThemeRequestSource source
+
+      Default: ``{ThemeRequestSource::none}``.
+
+   .. cpp:member:: ThemeRequestKind kind
+
+      Default: ``{ThemeRequestKind::none}``.
+
+   .. cpp:member:: std::string value
+
+      The theme's name, or the sheet's path, as given.
+
+   .. cpp:member:: std::string error
+
+      Set when the command line's --theme cannot be read (no value, or given twice); the request is then none, with source command_line.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemeRequestContext final
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   What a request compiles against. Its library is shared, so a request held for the first window keeps what it needs alive.
+
+   .. cpp:member:: UserThemeFolders folders
+
+   .. cpp:member:: std::shared_ptr<const ThemeLibrary> library
+
+      The program's installed packages, which a user theme may ``@import``. Null: none.
+
+   .. cpp:member:: ThemeBase base
+
+      The base a replacing theme is compiled onto (the program's). Default: ``{default_theme_base}``.
+
+   .. cpp:member:: std::vector<ControlAnatomy> controls
+
+      The control types a selector may name: the stock ones and the program's own. Empty: the stock ones alone.
+
+   .. cpp:member:: std::vector<std::string> published_values
+
+      The program's published values.
+
+   .. cpp:member:: const EffectRegistry* effects
+
+      The effects a theme's ``effect`` may name; it must outlive the request. Null: only the names' form is checked.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemeRequestReport final
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   What a request did, kept by the resources it was settled on.
+
+   .. cpp:member:: ThemeRequest request
+
+   .. cpp:member:: ThemeRequestOutcome outcome
+
+      Default: ``{ThemeRequestOutcome::none}``.
+
+   .. cpp:member:: std::vector<ThemeCompileDiagnostic> findings
+
+      The compile's findings: a refusal's diagnostics, or an applied theme's warnings.
+
+   .. cpp:member:: std::vector<std::string> log
+
+      The lines written to stderr, in order.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: UserThemeCandidate final
 
    ``#include <gui_forms/application/user_themes/user_themes.hpp>``
@@ -3511,8 +3607,6 @@ Enumerations
 
    .. cpp:enumerator:: invalid_payload
 
-   .. cpp:enumerator:: callback_fault
-
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostImageError
@@ -3741,6 +3835,54 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ThemeRequestKind
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: built_in
+
+   .. cpp:enumerator:: named
+
+   .. cpp:enumerator:: sheet
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeRequestOutcome
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: built_in
+
+   .. cpp:enumerator:: applied
+
+   .. cpp:enumerator:: ignored_by_policy
+
+   .. cpp:enumerator:: unknown_name
+
+   .. cpp:enumerator:: refused
+
+   .. cpp:enumerator:: unreadable
+
+   .. cpp:enumerator:: malformed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeRequestSource
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: command_line
+
+   .. cpp:enumerator:: environment
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ThemeSelection
 
    ``#include <gui_forms/application/user_themes/user_themes.hpp>``
@@ -3880,6 +4022,34 @@ Functions, constants and aliases
 
    Applies ``choice`` to ``resources`` (ApplicationResources::set_user_theme, so before the first window) from the themes ``scan`` found.
 
+.. cpp:function:: ThemeRequest read_theme_request(std::span<const std::string_view> arguments, std::string_view environment_sheet)
+
+   The request of ``arguments`` (after the program's own name) and of ``environment_sheet``, the environment variable's value (empty where unset): the command line's --theme when given, else the environment's sheet.
+
+.. cpp:function:: ThemeRequest process_theme_request()
+
+   The request the process was started with: read_theme_request over its own arguments and GUI_FORMS_THEME_SHEET.
+
+.. cpp:function:: std::vector<std::string_view> program_arguments(std::span<const std::string_view> arguments)
+
+   ``arguments`` without the user-theme options (``--theme <value>`` and ``--export-themes [folder]``), in order: what a program parses as its own. The views borrow ``arguments``' text.
+
+.. cpp:function:: std::vector<std::string> process_arguments()
+
+   The process's own arguments after its name, as UTF-8 (Windows: its command line split as the C runtime splits it; Linux: /proc/self/cmdline; macOS: the C runtime's argument vector). Empty where the platform gives none.
+
+.. cpp:function:: UserThemeFolders process_theme_folders()
+
+   The folders a process reads user themes from: ``themes`` beside its executable, and the per-user folder of the program named by the executable's file name without its extension (per_user_theme_folder). Either is empty where the platform names none.
+
+.. cpp:function:: ThemeRequestReport apply_theme_request(ApplicationResources& resources, const ThemeRequest& request, const ThemeRequestContext& context)
+
+   Settles ``request`` on ``resources`` now, writing the report's log lines to stderr: under the refused policy, ignored with a warning; ``built-in`` selects no user theme; a name selects the theme of that name found in the context's folders; a sheet is read (at most 1 MiB) and compiled as a user theme whose header is implied (named ``theme-sheet``), at the levels the policy needs, onto the context's base. Nothing is selected when the request cannot be met, so the program's own choice stands. std::logic_error once a window shares ``resources`` (as set_user_theme). UI thread.
+
+.. cpp:function:: void hold_process_theme_request(ApplicationResources& resources, ThemeRequestContext context)
+
+   Holds the process's request (process_theme_request) on ``resources`` with ``context``, for their first window to settle; replaces a request held already. Nothing is held for a process started with none. std::logic_error once a window shares ``resources``. UI thread.
+
 .. cpp:function:: ThemeExportReport export_user_themes(const ThemeLibrary& program, const ApplicationResources& resources, std::string_view folder)
 
    Writes every package of ``program`` into ``folder`` as a user theme (export_theme_packages: ``<name>.css``, its images in ``<name>/``), every overridable icon of ``resources`` that is a PNG as ``<name>/icons/<identifier>.png`` of each, and a ``README.txt``. Never overwrites a file.
@@ -3891,6 +4061,10 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::string_view built_in_theme_name
 
    The word ``--theme`` takes for no user theme; no user theme has the name. Value: ``"built-in"``.
+
+.. cpp:var:: constexpr std::string_view theme_sheet_environment_variable
+
+   The environment variable naming a theme sheet for a program started without --theme. Value: ``"GUI_FORMS_THEME_SHEET"``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3944,7 +4118,7 @@ Functions, constants and aliases
 
    Whether the rows run consecutively from 8, each with a feature.
 
-.. cpp:var:: constexpr std::array<HostProtocolRevision, 5> host_protocol_revisions
+.. cpp:var:: constexpr std::array<HostProtocolRevision, 6> host_protocol_revisions
 
    The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version.
 

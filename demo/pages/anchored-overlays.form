@@ -9,7 +9,7 @@
    which the page gives the layer as its content instead. The page keeps in
    code the alignment choices, the Values the choice group and check boxes
    bind, the layer and its placement, the anchors' expanded state, the
-   overlay's face, every event handler and the page style. */
+   overlay's face and every event handler. */
 scaled-panel gallery.overlays.document {
   design-size: 1000 650;
 

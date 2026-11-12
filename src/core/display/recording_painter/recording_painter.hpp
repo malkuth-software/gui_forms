@@ -17,7 +17,7 @@ public:
     // there as a part raster (material_raster.hpp). Without one it records
     // the material's layers.
     RecordingPainter(TextMetricsProvider* text_metrics, DeviceScale raster_scale)
-        : text_metrics_(text_metrics), raster_scale_(raster_scale) {}
+        : raster_scale_(raster_scale), text_metrics_(text_metrics) {}
     void save() override;
     void restore() override;
     void translate(Point offset) override;
@@ -75,6 +75,8 @@ public:
         const LayoutAuthority expected, const Point baseline, const Color color) override;
     [[nodiscard]] Size measure_text_utf8(std::string_view text,
                                          FontSpec font) override;
+    [[nodiscard]] TextExtent measure_text_extent_utf8(
+        std::string_view text, FontSpec font) override;
     [[nodiscard]] TextResolutionStatus fill_line_break_opportunities_utf8(
         std::string_view text, std::span<LineBreakOpportunity> opportunities) override;
     [[nodiscard]] ResolvedTextLayout resolve_text_layout_utf8(

@@ -32,8 +32,13 @@ constexpr std::uint32_t spec_size_1_0 = 80U;
 constexpr std::uint32_t callbacks_size_1_0 = 48U;
 constexpr std::uint32_t property_size_1_0 = 96U;
 constexpr std::uint32_t paint_target_size_1_0 = 72U;
-static_assert(sizeof(gf_custom_control_spec) == spec_size_1_0);
 static_assert(sizeof(gf_custom_control_callbacks) == callbacks_size_1_0);
+// The 1.2 spec adds the layout pointer (K11); the layout record's first
+// size holds measure, hit_test and semantics.
+constexpr std::uint32_t spec_size_1_2 = 88U;
+static_assert(sizeof(gf_custom_control_spec) == spec_size_1_2);
+constexpr std::uint32_t layout_size_1_2 = 32U;
+static_assert(sizeof(gf_custom_layout_callbacks) == layout_size_1_2);
 static_assert(sizeof(gf_custom_property) == property_size_1_0);
 static_assert(sizeof(gf_paint_target) == paint_target_size_1_0);
 
@@ -207,6 +212,18 @@ gf_status GF_CALL custom_controls_create(const gf_custom_control_spec* spec, gf_
         if (read != GF_STATUS_OK) {
             return read;
         }
+        // The layout record (since 1.2), read only when the spec covers its
+        // pointer, checked before anything is made.
+        const gf_custom_layout_callbacks* layout_given = nullptr;
+        if ((*spec).struct_size >= spec_size_1_2) {
+            layout_given = (*spec).layout;
+        }
+        if (layout_given != nullptr &&
+            ((*layout_given).struct_size < layout_size_1_2 || (*layout_given).struct_size % 8U != 0U ||
+             (*layout_given).reserved != 0U)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, create_slot,
+                        "the layout callbacks need struct_size of at least 32, a multiple of 8, and reserved zero");
+        }
         const gf_status entered = registry().enter_ui(create_slot, true);
         if (entered != GF_STATUS_OK) {
             return entered;
@@ -222,14 +239,25 @@ gf_status GF_CALL custom_controls_create(const gf_custom_control_spec* spec, gf_
                                                                                    : sizeof(gf_custom_control_callbacks);
         std::memcpy(&callbacks, &(*spec).callbacks, copied);
         callbacks.struct_size = callbacks_size_1_0;
+        gf_custom_layout_callbacks layout{};
+        layout.struct_size = layout_size_1_2;
+        if (layout_given != nullptr) {
+            // A later minor's larger record is read up to this one's size.
+            const std::size_t layout_declared = static_cast<std::size_t>((*layout_given).struct_size);
+            const std::size_t layout_copied = layout_declared < sizeof(gf_custom_layout_callbacks)
+                                                  ? layout_declared
+                                                  : sizeof(gf_custom_layout_callbacks);
+            std::memcpy(&layout, layout_given, layout_copied);
+            layout.struct_size = layout_size_1_2;
+        }
         const bool focusable = ((*spec).flags & GF_CUSTOM_CONTROL_FOCUSABLE) != 0U;
         Component::Ptr made;
         if ((*spec).base == GF_CUSTOM_BASE_USER_CONTROL) {
             made = std::make_shared<CustomControl<UserControl>>(StableId(std::string(id_text)), callbacks,
-                                                                definitions, focusable);
+                                                                layout, definitions, focusable);
         } else {
             made = std::make_shared<CustomControl<ScrollableControl>>(StableId(std::string(id_text)), callbacks,
-                                                                      definitions, focusable);
+                                                                      layout, definitions, focusable);
         }
         *object = registry().add_reference(made);
         return GF_STATUS_OK;

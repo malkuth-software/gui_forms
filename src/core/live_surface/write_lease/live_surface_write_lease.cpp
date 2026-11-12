@@ -87,11 +87,8 @@ std::uint64_t LiveSurfaceWriteLease::publish(Rect damage, const std::uint64_t co
             !(*wake).callback) {
             continue;
         }
-        try {
-            (*wake).callback();
-        } catch (...) {
-            // Publication remains committed when a retiring consumer faults.
-        }
+        // A wake is housekeeping, no-throw by construction (LiveSurface).
+        (*wake).callback();
     }
     return published;
 }

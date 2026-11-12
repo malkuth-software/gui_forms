@@ -1,5 +1,0 @@
-/* GUI.Forms C ABI: the one exported entry point (Linux; see c_api_exports_macos.txt). */
-{
-    global: gf_get_api_v0;
-    local: *;
-};

@@ -59,6 +59,23 @@ std::string hosted_key(const RibbonCommandSpec& command) {
     return key;
 }
 
+// The drop-down menu's outside press while it shows a two-pane submenu: the
+// press dismisses the two-pane menu too (as choosing a command does), so a
+// press away from both, the File tab's included, closes every menu. The
+// flags are the ribbon's, which owns the menu; the press still closes the
+// submenu (false).
+struct TwoPaneOutsidePress final {
+    const bool* application_open{};
+    const bool* application_overlay_open{};
+    bool* dismiss_two_pane{};
+    bool operator()(const PointerEvent& event) const {
+        const bool press = event.phase == EventPhase::target && event.action == PointerAction::down &&
+                           event.button != PointerButton::none;
+        if (press && *application_open && *application_overlay_open) *dismiss_two_pane = true;
+        return false;
+    }
+};
+
 } // namespace
 
 // -- construction --------------------------------------------------------------
@@ -71,6 +88,8 @@ Ribbon::Ribbon(StableId ribbon_id) : Control(std::move(ribbon_id)) {
         *this, Delegate<const MenuItemInvocation&>::bind<Ribbon, &Ribbon::on_overlay_item_invoked>(*this));
     overlay_changed_ = (*overlay_).open_changed().subscribe(
         *this, Delegate<bool>::bind<Ribbon, &Ribbon::on_overlay_open_changed>(*this));
+    (*overlay_).set_outside_pointer_handler(
+        TwoPaneOutsidePress{&application_open_, &application_overlay_open_, &application_submenu_invoked_});
 }
 
 // A live ribbon is disposed (closing its overlays) before it is destroyed;
@@ -148,6 +167,7 @@ void Ribbon::follow_theme() {
     const Window* const host = attached_window();
     if (host != nullptr) followed_scheme_ = (*host).presentation_settings().colour_scheme;
     scaling_key_ = ScalingKey{};
+    advance_layout_revision();
     for (TabSetState& state : set_states_) {
         if (!state.accent) continue;
         state.last_accent = state.accent;
@@ -472,7 +492,9 @@ std::vector<Ribbon::TabSetState> Ribbon::carried_set_states(
 // what it reuses out of `carried`.
 void Ribbon::rebuild_records(HostedCarryOver& carried) {
     records_.clear();
+    advance_layout_revision();
     records_.resize(tabs_.size());
+    advance_layout_revision();
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         const Control::Ptr& panel = tabs_[tab].panel;
         if (panel) {
@@ -549,10 +571,14 @@ void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetS
     if (selected_tab_) selected_id = tabs_[*selected_tab_].stable_id;
     std::vector<TabSetState> states = carried_set_states(sets, prepared.tab_set_of);
     tabs_ = std::move(tabs);
+    advance_layout_revision();
     tab_sets_ = std::move(sets);
     set_states_ = std::move(states);
+    advance_layout_revision();
     tab_set_of_ = std::move(prepared.tab_set_of);
+    advance_layout_revision();
     layouts_ = std::move(prepared.layouts);
+    advance_layout_revision();
     rebuild_records(carried);
     release_carried(carried);
     refresh_accents();
@@ -560,12 +586,16 @@ void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetS
     last_core_tab_.reset();
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         if (tabs_[tab].stable_id == selected_id && selectable(tab)) selected_tab_ = tab;
+        advance_layout_revision();
     }
     if (!selected_tab_) selected_tab_ = fallback_tab();
+    advance_layout_revision();
     if (selected_tab_ && !tab_set_of_[*selected_tab_]) last_core_tab_ = selected_tab_;
     scaling_.assign(tabs_.size(), TabScaling{});
+    advance_layout_revision();
     ++content_generation_;
     first_group_ = 0U;
+    advance_layout_revision();
     hot_ = Hit{};
     pressed_command_.reset();
     pressed_launcher_.reset();
@@ -652,15 +682,19 @@ void Ribbon::select_tab(std::size_t tab, SelectionCause cause) {
             if (!set || other != *set) set_states_[other].remembered_tab.reset();
         }
         if (set) set_states_[*set].remembered_tab = tab;
+        advance_layout_revision();
     }
     if (!set) last_core_tab_ = tab;
     if (selected_tab_ == tab) return;
     // Another tab has its own ladder; arrange latches scrolling afresh.
     scroll_latched_ = false;
+    advance_layout_revision();
     close_menus();
     close_group_overlay();
     selected_tab_ = tab;
+    advance_layout_revision();
     first_group_ = 0U;
+    advance_layout_revision();
     hot_ = Hit{};
     pressed_command_.reset();
     pressed_launcher_.reset();
@@ -855,6 +889,7 @@ Size Ribbon::measure(Size available) {
     }
     if (hidden != plane_hidden_) {
         plane_hidden_ = hidden;
+        advance_layout_revision();
         if (hidden) {
             close_menus();
             close_group_overlay();
@@ -884,10 +919,12 @@ void Ribbon::arrange(Rect final_bounds) {
         latched = scroll_latched_ ? client.width < narrowest + scroll_hysteresis : client.width < narrowest;
     }
     scroll_latched_ = latched;
+    advance_layout_revision();
     // Backstage follows the window's size.
     if (backstage_open_) place_backstage();
     Layout placed = layout_for(client);
     if (!placed.scrolling) first_group_ = 0U;
+    advance_layout_revision();
     // An overlay whose group grew back closes; the keyboard's command in it
     // keeps its place in the plane (RIBBON_SCALING_STUDY.md §5.8).
     if (overlay_group_ && (placed.plane.empty() || !group_collapsed(placed, *overlay_group_))) {
@@ -2007,9 +2044,11 @@ void Ribbon::set_stop(std::optional<Stop> stop) {
         const Layout placed = layout();
         if (placed.scrolling && group < placed.groups.size() && placed.groups[group].empty()) {
             first_group_ = group;
+            advance_layout_revision();
             invalidate(Dirty::arrange | Dirty::hit_test);
         } else if (placed.scrolling && group < first_group_) {
             first_group_ = group;
+            advance_layout_revision();
             invalidate(Dirty::arrange | Dirty::hit_test);
         }
     }
@@ -2296,7 +2335,8 @@ void Ribbon::on_overlay_open_changed(bool open) {
     open_command_.reset();
     if (application_overlay_) (*application_overlay_).submenu_closed();
     if (application_panel_) (*application_panel_).submenu_closed();
-    // A two-pane submenu's command ran: the two-pane menu closes after it.
+    // A two-pane submenu's command ran, or a press away from it dismissed
+    // it: the two-pane menu closes after it.
     if (application_submenu_invoked_) {
         application_submenu_invoked_ = false;
         close_application_overlay();
@@ -2452,7 +2492,7 @@ void Ribbon::move_hosted_to_ribbon() noexcept {
             for (const std::vector<CommandRecord>& group : tab) {
                 for (const CommandRecord& record : group) {
                     if (!record.hosted || (*record.hosted).parent().get() != this) continue;
-                    static_cast<void>(set_child_index((*record.hosted).runtime_id(), position));
+                    static_cast<void>(set_child_index_from_top((*record.hosted).runtime_id(), position));
                     ++position;
                 }
             }

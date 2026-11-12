@@ -577,6 +577,10 @@ void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configurat
 
 void SubSurfaceLoop::produce(SubSurface& root) {
     if (!configured_ || !framebuffer_) return;
+    // A pacing wake is for dirt that waits: once nothing does (the dirt was
+    // painted or withdrawn), a wake left set would be in the past and turn
+    // the loop without end.
+    if (!root.needs_frame()) pacing_wake_.reset();
     if (root.needs_frame()) {
         const LivePacingResult pace = pacer_.plan(FrameClock::now());
         // A new epoch's frame does not wait for pacing (pairing, design note
@@ -630,6 +634,20 @@ void SubSurfaceLoop::publish_semantics(SubSurface& root) {
     if (!configured_) return;
     const std::uint64_t generation = root.semantic_generation();
     if (generation == published_semantic_generation_) return;
+    // A snapshot walks the whole tree and copies its strings, so it is
+    // built only when one is wanted: the first, then one per snapshot taken
+    // (or listener set). A change nobody asked for marks the published one
+    // stale; taking it wakes this loop to build the newest (take_semantics).
+    {
+        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        detail::SubSurfaceChannel& channel = *channel_;
+        if (!channel.semantics_wanted) {
+            channel.semantics_stale = true;
+            return;
+        }
+        channel.semantics_wanted = false;
+        channel.semantics_stale = false;
+    }
     // Built here, on the tree's thread, and never changed after: the parent
     // reads it on its own thread through the shared pointer.
     std::shared_ptr<const SemanticSnapshot> snapshot = std::make_shared<const SemanticSnapshot>(root.semantic_snapshot());
@@ -824,6 +842,20 @@ void SubSurfaceThread::post_request_outcome(const SurfaceRequestOutcome& outcome
     channel.wake.notify_one();
 }
 
+namespace {
+
+// Asks the loop for a semantic snapshot (publish_semantics): one is built at
+// the next turn whose generation moved, and a turn is woken now when the
+// published one is already stale. Called under the channel's mutex.
+void want_semantics(detail::SubSurfaceChannel& channel) {
+    channel.semantics_wanted = true;
+    if (!channel.semantics_stale) return;
+    channel.signalled = true;
+    channel.wake.notify_one();
+}
+
+} // namespace
+
 void SubSurfaceThread::set_semantics_listener(WindowDispatcher parent,
                                               std::weak_ptr<SubSurfaceSemanticsListener> target) {
     if (!target.expired() && !parent.window_alive()) {
@@ -837,11 +869,13 @@ void SubSurfaceThread::set_semantics_listener(WindowDispatcher parent,
     std::swap((*channel_).semantics_listener, previous_target);
     // A notice owed to the previous target is owed to this one.
     (*channel_).semantics_notice_pending = false;
+    if (!(*channel_).semantics_listener.expired()) want_semantics(*channel_);
 }
 
 std::shared_ptr<const SemanticSnapshot> SubSurfaceThread::take_semantics() {
     const std::lock_guard<std::mutex> lock((*channel_).mutex);
     (*channel_).semantics_notice_pending = false;
+    want_semantics(*channel_);
     return (*channel_).semantics;
 }
 

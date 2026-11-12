@@ -316,7 +316,8 @@ void FormGenerator::check_objects() {
         std::string name = form_member_name(object.stable_id);
         if (name.empty()) {
             report(object.node, object.stable_id, {},
-                   "the stable ID does not spell a C++ member (it starts with a digit or is a keyword)");
+                   "the stable ID does not spell a C++ member (it starts with a digit, holds a reserved double underscore "
+                   "or is a keyword)");
             continue;
         }
         const std::pair<std::unordered_map<std::string, std::size_t>::iterator, bool> inserted =
@@ -840,6 +841,9 @@ bool form_identifier(std::string_view name) noexcept {
     for (const char character : name) {
         if (!identifier_part(character)) return false;
     }
+    // C++ reserves every identifier that contains a double underscore
+    // (audit P14), wherever it stands.
+    if (name.find("__") != std::string_view::npos) return false;
     const bool keyword = is_keyword(name);
     return !keyword;
 }

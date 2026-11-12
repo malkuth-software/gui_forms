@@ -2,15 +2,19 @@
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include "../theme_compiler/built_in_theme.hpp"
+#include "windows_professional_floor.hpp"
+#include "windows_professional_sheets.hpp"
 
 #include <array>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 
@@ -1743,6 +1747,30 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
                    .link = Color::rgba(0, 105, 249),
                    .visited_link = Color::rgba(0, 105, 249),
                    .scroll_arrows = false}},
+    // windows-professional (owner, 2026-11-10): its sheets and their notes
+    // are in windows_professional_sheets.hpp. A solid one-unit focus
+    // rectangle (Windows 10) and Windows 2000's pressed content offset.
+    {.id = "windows-professional",
+     .sheet = detail::windows_professional_floor_sheet,
+     .file = "windows-professional/floor.css",
+     .dark_sheet = detail::windows_professional_dark_floor_sheet,
+     .dark_file = "windows-professional/floor-dark.css",
+     .parts_sheet = detail::windows_professional_parts_sheet,
+     .parts_file = "windows-professional/parts.css",
+     .structure = {.dotted_focus = false,
+                   .focus_width = 1.0,
+                   .pressed_content_offset = Point{1.0, 1.0},
+                   .face = Color::rgba(238, 242, 248),
+                   .face_light = Color::rgba(251, 252, 254),
+                   .paper = Color::rgba(255, 255, 255),
+                   .border = Color::rgba(138, 153, 174),
+                   .dark_border = Color::rgba(110, 127, 152),
+                   .text = Color::rgba(27, 37, 51),
+                   .disabled_text = Color::rgba(106, 122, 144),
+                   .accent = Color::rgba(46, 107, 181),
+                   .accent_light = Color::rgba(219, 234, 250),
+                   .link = Color::rgba(31, 79, 143),
+                   .visited_link = Color::rgba(106, 61, 153)}},
 }};
 
 // The recipe the sheet's fields are evaluated onto: the theme's focus
@@ -1757,54 +1785,74 @@ ControlVisualRecipe recipe_structure(const FamiliarStructure& structure) {
     return result;
 }
 
-FamiliarThemeBuild build_familiar_theme(const FamiliarDescription& description) {
-    const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-    FamiliarThemeBuild result{};
+// A theme's evaluated floor: its definition with the floor sheet's
+// records and, when it has a dark sheet that compiles, the dark sheet's as
+// its authored dark records; and what evaluating them found.
+struct FamiliarFloor final {
+    std::unique_ptr<ThemeDefinition> definition{};
+    std::vector<ThemeCompileDiagnostic> diagnostics{};
+    std::uint64_t operations{};
+};
+
+FamiliarFloor evaluate_familiar_floor(const FamiliarDescription& description) {
+    FamiliarFloor result{};
     // Some 100 KB of recipes: built on the heap, not the stack
-    // (fill_professional_role's note in theme.cpp). Windows-professional
-    // supplies the structure tokens, accent ramp and overlay shadow.
-    const std::unique_ptr<ThemeDefinition> definition =
-        std::make_unique<ThemeDefinition>(windows_professional_theme_definition());
-    (*definition).id = std::string(description.id);
+    // (fill_professional_role's note in theme.cpp). Windows-professional's
+    // structural definition supplies the structure tokens, accent ramp and
+    // overlay shadow.
+    result.definition = std::make_unique<ThemeDefinition>(windows_professional_theme_definition());
+    ThemeDefinition& definition = *result.definition;
+    definition.id = std::string(description.id);
     const FamiliarStructure& structure = description.structure;
-    (*definition).structure.geometry.scroll_arrows = structure.scroll_arrows;
-    (*definition).compatibility.face = structure.face;
-    (*definition).compatibility.face_light = structure.face_light;
-    (*definition).compatibility.paper = structure.paper;
-    (*definition).compatibility.border = structure.border;
-    (*definition).compatibility.dark_border = structure.dark_border;
-    (*definition).compatibility.text = structure.text;
-    (*definition).compatibility.disabled_text = structure.disabled_text;
-    (*definition).compatibility.accent = structure.accent;
-    (*definition).compatibility.accent_light = structure.accent_light;
-    (*definition).compatibility.link = structure.link;
-    (*definition).compatibility.visited_link = structure.visited_link;
+    definition.structure.geometry.scroll_arrows = structure.scroll_arrows;
+    definition.compatibility.face = structure.face;
+    definition.compatibility.face_light = structure.face_light;
+    definition.compatibility.paper = structure.paper;
+    definition.compatibility.border = structure.border;
+    definition.compatibility.dark_border = structure.dark_border;
+    definition.compatibility.text = structure.text;
+    definition.compatibility.disabled_text = structure.disabled_text;
+    definition.compatibility.accent = structure.accent;
+    definition.compatibility.accent_light = structure.accent_light;
+    definition.compatibility.link = structure.link;
+    definition.compatibility.visited_link = structure.visited_link;
     detail::FloorSheetEvaluation evaluated =
-        detail::evaluate_floor_sheet(description.file, description.sheet, recipe_structure(structure), *definition);
+        detail::evaluate_floor_sheet(description.file, description.sheet, recipe_structure(structure), definition);
     result.diagnostics = std::move(evaluated.diagnostics);
-    result.compile_operations = evaluated.operations;
+    result.operations = evaluated.operations;
     // Light only unless the theme has a dark sheet (the header): then the
     // dark sheet is evaluated the same way onto a copy of the definition,
     // and its ordinary and selected records become the theme's authored
     // dark ones. A refused dark sheet leaves the theme light only.
-    (*definition).dark_variant = ThemeDarkVariant::none;
-    (*definition).colour_schemes = ColourSchemeSet{.light = true, .dark = false};
+    definition.dark_variant = ThemeDarkVariant::none;
+    definition.colour_schemes = ColourSchemeSet{.light = true, .dark = false};
     if (!description.dark_sheet.empty()) {
-        const std::unique_ptr<ThemeDefinition> dark = std::make_unique<ThemeDefinition>(*definition);
+        const std::unique_ptr<ThemeDefinition> dark = std::make_unique<ThemeDefinition>(definition);
         detail::FloorSheetEvaluation dark_evaluated = detail::evaluate_floor_sheet(
             description.dark_file, description.dark_sheet, recipe_structure(structure), *dark);
         result.diagnostics.insert(result.diagnostics.end(), dark_evaluated.diagnostics.begin(),
                                   dark_evaluated.diagnostics.end());
-        result.compile_operations += dark_evaluated.operations;
+        result.operations += dark_evaluated.operations;
         if (dark_evaluated.evaluated) {
             for (std::size_t index = 0U; index < control_visual_role_count; ++index) {
-                (*definition).roles[index].dark = (*dark).roles[index].ordinary;
-                (*definition).roles[index].dark_selected = (*dark).roles[index].selected;
+                definition.roles[index].dark = (*dark).roles[index].ordinary;
+                definition.roles[index].dark_selected = (*dark).roles[index].selected;
             }
-            (*definition).dark_variant = ThemeDarkVariant::authored;
-            (*definition).colour_schemes = ColourSchemeSet{.light = true, .dark = true};
+            definition.dark_variant = ThemeDarkVariant::authored;
+            definition.colour_schemes = ColourSchemeSet{.light = true, .dark = true};
         }
     }
+    return result;
+}
+
+// A theme's build from its evaluated floor, which it reads and does not
+// keep. `start` is when the floor's evaluation began.
+FamiliarThemeBuild build_from_floor(const FamiliarDescription& description, const FamiliarFloor& floor,
+                                    std::chrono::steady_clock::time_point start) {
+    FamiliarThemeBuild result{};
+    result.diagnostics = floor.diagnostics;
+    result.compile_operations = floor.operations;
+    const ThemeDefinition* const definition = floor.definition.get();
     result.theme = Theme::create(*definition);
     if (!description.parts_sheet.empty()) {
         // A refused parts sheet leaves the theme its floor alone.
@@ -1817,6 +1865,35 @@ FamiliarThemeBuild build_familiar_theme(const FamiliarDescription& description) 
     const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     result.build_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     return result;
+}
+
+FamiliarThemeBuild build_familiar_theme(const FamiliarDescription& description) {
+    const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    const FamiliarFloor floor = evaluate_familiar_floor(description);
+    FamiliarThemeBuild result = build_from_floor(description, floor, start);
+    return result;
+}
+
+// Windows-professional's floor, evaluated once on the first call's thread
+// and never changed: both its theme build and
+// windows_professional_floor_definition read it (audit P18), so it is
+// evaluated once, not twice. The time of its evaluation is kept for the
+// build's build_time.
+struct ProfessionalFloor final {
+    std::chrono::steady_clock::time_point start{};
+    FamiliarFloor floor{};
+};
+
+ProfessionalFloor evaluate_professional_floor() {
+    ProfessionalFloor result{};
+    result.start = std::chrono::steady_clock::now();
+    result.floor = evaluate_familiar_floor(descriptions[static_cast<std::size_t>(FamiliarTheme::windows_professional)]);
+    return result;
+}
+
+const ProfessionalFloor& professional_floor() {
+    static const ProfessionalFloor evaluated = evaluate_professional_floor();
+    return evaluated;
 }
 
 // Each theme's build, made on its first use. Function-local statics make
@@ -1839,6 +1916,11 @@ const FamiliarThemeBuild& windows7_style_build() {
 }
 const FamiliarThemeBuild& macos_style_build() {
     static const FamiliarThemeBuild build = build_familiar_theme(descriptions[4]);
+    return build;
+}
+const FamiliarThemeBuild& windows_professional_build() {
+    const ProfessionalFloor& evaluated = professional_floor();
+    static const FamiliarThemeBuild build = build_from_floor(descriptions[5], evaluated.floor, evaluated.start);
     return build;
 }
 
@@ -1875,6 +1957,7 @@ const FamiliarThemeBuild& familiar_theme_build(FamiliarTheme theme) {
     case FamiliarTheme::xp_style: return xp_style_build();
     case FamiliarTheme::windows7_style: return windows7_style_build();
     case FamiliarTheme::macos_style: return macos_style_build();
+    case FamiliarTheme::windows_professional: return windows_professional_build();
     case FamiliarTheme::classic:
     case FamiliarTheme::count:
     // A value outside the themes (a caller's error, the header) is the
@@ -1888,5 +1971,18 @@ std::shared_ptr<const Theme> familiar_theme(FamiliarTheme theme) {
     const std::shared_ptr<const Theme> result = familiar_theme_build(theme).theme;
     return result;
 }
+
+namespace detail {
+
+const ThemeDefinition& windows_professional_floor_definition() {
+    // Evaluated once, on the first call's thread (C++ makes the
+    // initialization thread-safe), and never changed afterwards. Its
+    // diagnostics are the theme build's (familiar_theme_build), which the
+    // familiar themes tests require to be empty.
+    const ProfessionalFloor& evaluated = professional_floor();
+    return *evaluated.floor.definition;
+}
+
+} // namespace detail
 
 } // namespace gui_forms

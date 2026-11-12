@@ -96,6 +96,25 @@ the compiler's working directory. With source and build tree at the same
 relative positions, two checkouts in different places hash identically. Move
 one relative to the other and compilations miss.
 
+Two arguments are not paths `ccache` knows how to rewrite, so the build keeps
+them free of the checkout's location. The localizable-literal plugin's source
+root goes to the compiler relative to the build tree under Ninja
+(`cmake/LocalizablePlugin.cmake`), and the test programs that share a
+precompiled header run `ccache` with `sloppiness=pch_defines,time_macros` as a
+leading argument (`cmake/TestPrecompiledHeader.cmake`). Without that sloppiness
+`ccache` refuses every unit that reads a precompiled header. These settings
+come from CMake, so a local build tree caches the same units as CI whatever
+its shell exports.
+
+### Local builds
+
+Every local workspace shares one cache directory. Its size limit lives in
+that directory's own `ccache.conf` (`ccache --set-config max_size=40G`), so
+no shell exports `CCACHE_MAXSIZE`. One workspace exporting a smaller limit
+would trim everyone's entries the next time it writes. Each workspace sets
+`CCACHE_BASEDIR` to its own root, which holds `gui_forms/` and `.build/` in
+the CI layout above, so worktrees share each other's objects.
+
 ## One compiler cache
 
 Every job sets the compilers and launchers in its environment:
@@ -133,7 +152,10 @@ needs: the test programs share one per group of programs with equal options
 (`cmake/TestPrecompiledHeader.cmake`), which takes most of the test sources' parse
 time away; the daily build compiles the tests without it
 (`GUI_FORMS_TEST_PRECOMPILED_HEADER=OFF`), so each test still includes what it
-uses. The Objective-C++ launcher
+uses. Most test programs link one shared test runtime instead of the static
+libraries (`cmake/TestRuntime.cmake`), so a change to a library source relinks
+that runtime once rather than every program that uses the library; each program
+is still its own process, so the tests stay independent. The Objective-C++ launcher
 matters on macOS, where the AppKit host is Objective-C++. The CPU renderer and the
 text stack come from the stx package (`cmake/Stx.cmake`), which CI restores from an
 Actions cache keyed by `stx.lock`, the package recipe, the platform and the compiler;

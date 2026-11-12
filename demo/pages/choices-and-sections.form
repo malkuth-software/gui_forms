@@ -10,7 +10,7 @@
    their shared Value<int>, the sections' items, content and Value<bool>s,
    the toggles' bindings, the Card's parts and selection behaviour, the
    review record, every event handler, the status lines' reports (the
-   switches' among them) and the page style. */
+   switches' among them). */
 scaled-panel gallery.choices.document {
   design-size: 1000 720;
 

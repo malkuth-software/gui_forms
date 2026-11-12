@@ -6,6 +6,8 @@
 #include "../registry/abi_registry.hpp"
 #include "../tables/abi_records.hpp"
 
+#include "../../../core/resources/fonts/bundled_font_families.hpp"
+
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -88,6 +90,8 @@ bool record_binding_value(const BindingValue& held, gf_value& record, std::strin
         record.font.italic = font.italic ? 1U : 0U;
         record.font.size = font.size;
         record.font.letter_spacing = font.letter_spacing;
+        // The family id rides in the reserved word (since 1.2, K1).
+        record.font.reserved = static_cast<std::uint32_t>(font.family.value);
     } else if (std::holds_alternative<ImageId>(held)) {
         record.kind = GF_VALUE_KIND_IMAGE;
         record.unsigned_integer = std::get<ImageId>(held).value;
@@ -110,12 +114,18 @@ namespace {
 
 // The FontSpec a caller's gf_font holds.
 gf_status read_font(const gf_font& font, SlotIdentity slot, BindingValue& converted) {
-    if (font.role > GF_FONT_ROLE_MONOSPACE || font.weight < 1U || font.weight > 1000U || font.italic > 1U ||
-        font.reserved != 0U) {
+    if (font.role > GF_FONT_ROLE_MONOSPACE || font.weight < 1U || font.weight > 1000U || font.italic > 1U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot,
-                    "a font has a known role, a weight from 1 to 1000, italic 0 or 1 and reserved zero");
+                    "a font has a known role, a weight from 1 to 1000 and italic 0 or 1");
+    }
+    // reserved is the bundled family id (since 1.2, K1): zero, or a
+    // numbered family fonts.family_id gives.
+    const BundledFontFamily family{static_cast<std::uint8_t>(font.reserved)};
+    if (font.reserved > 0xFFU || !detail::valid_bundled_family(family)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a font's family is zero or an id fonts.family_id gives");
     }
     FontSpec spec;
+    spec.family = family;
     spec.role = static_cast<FontRole>(font.role);
     spec.size = font.size;
     spec.weight = static_cast<std::uint16_t>(font.weight);
@@ -276,6 +286,13 @@ gf_status read_value(const gf_value* value, SlotIdentity slot, BindingValue& con
     default:
         return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, slot, "this library does not know that gf_value kind");
     }
+}
+
+void write_value_fields(const gf_value& complete, gf_value& destination) noexcept {
+    const std::size_t skipped = sizeof(std::uint32_t);
+    unsigned char* target = reinterpret_cast<unsigned char*>(&destination);
+    const unsigned char* source = reinterpret_cast<const unsigned char*>(&complete);
+    std::memcpy(target + skipped, source + skipped, value_size_1_0 - skipped);
 }
 
 gf_status check_value_output(const gf_value* value, const char* text_buffer, std::uint64_t text_capacity,

@@ -191,6 +191,86 @@ static void wide_actions(gf_kit* kit, gf_object window, gf_object first, gf_obje
     }
 }
 
+/* The drag levels and the keyboard drag action (since 1.2): with no drag
+ * running, dragging does not hold and its negation does; beginning a
+ * keyboard drag on a control that declares none changes nothing. Kinds the
+ * C ABI does not have (the C++-only 10 and 11, an action past 6) are
+ * refused. */
+static void drag_rules(gf_kit* kit, gf_object window, gf_object first, gf_object second) {
+    gf_kit_recorder held;
+    memset(&held, 0, sizeof(held));
+    held.kit = kit;
+    gf_kit_recorder idle;
+    memset(&idle, 0, sizeof(idle));
+    idle.kit = kit;
+    const gf_callback held_callback = gf_kit_recording_callback(&held);
+    const gf_callback idle_callback = gf_kit_recording_callback(&idle);
+
+    gf_rule_condition dragging;
+    memset(&dragging, 0, sizeof(dragging));
+    dragging.struct_size = (uint32_t)sizeof(dragging);
+    dragging.kind = GF_RULE_CONDITION_DRAGGING;
+    dragging.object = second;
+    gf_rule_action while_dragging[2];
+    while_dragging[0] = blank_action(GF_RULE_ACTION_BEGIN_KEYBOARD_DRAG);
+    while_dragging[0].target = second;
+    while_dragging[1] = blank_action(GF_RULE_ACTION_CALLBACK);
+    while_dragging[1].callback = &held_callback;
+    gf_rule rule = interaction_rule(first, "checked_changed", while_dragging, 2u);
+    rule.conditions = &dragging;
+    rule.condition_count = 1u;
+    gf_rule_token dragging_token = 0u;
+    gf_kit_status(kit, (*kit).rules.add(window, &rule, &dragging_token), GF_STATUS_OK,
+                  "add a rule on the dragging level with the keyboard drag action");
+
+    gf_rule_condition not_dragging = dragging;
+    not_dragging.negated = 1u;
+    gf_rule_condition not_candidate = dragging;
+    not_candidate.kind = GF_RULE_CONDITION_DROP_CANDIDATE;
+    not_candidate.negated = 1u;
+    gf_rule_condition idle_levels[2];
+    idle_levels[0] = not_dragging;
+    idle_levels[1] = not_candidate;
+    gf_rule_action when_idle = blank_action(GF_RULE_ACTION_CALLBACK);
+    when_idle.callback = &idle_callback;
+    rule = interaction_rule(first, "checked_changed", &when_idle, 1u);
+    rule.conditions = idle_levels;
+    rule.condition_count = 2u;
+    gf_rule_token idle_token = 0u;
+    gf_kit_status(kit, (*kit).rules.add(window, &rule, &idle_token), GF_STATUS_OK,
+                  "add a rule on the negated drag levels");
+
+    /* Two changes of the first box, whichever state it is in now. */
+    const uint32_t was_checked = checked_is(kit, first, 1u) ? 1u : 0u;
+    gf_kit_status(kit, set_checked(kit, first, 1u - was_checked), GF_STATUS_OK,
+                  "toggle the first box for the drag rules");
+    gf_kit_status(kit, set_checked(kit, first, was_checked), GF_STATUS_OK, "toggle the first box back");
+    gf_kit_check(kit, held.invoked == 0u, "dragging does not hold with no drag running");
+    gf_kit_check(kit, idle.invoked == 2u, "the negated drag levels hold with no drag running");
+
+    gf_rule_condition keyed = dragging;
+    keyed.physical_key = 4u;
+    rule = interaction_rule(first, "checked_changed", &when_idle, 1u);
+    rule.conditions = &keyed;
+    rule.condition_count = 1u;
+    gf_rule_token refused = 7u;
+    gf_kit_status(kit, (*kit).rules.add(window, &rule, &refused), GF_STATUS_INVALID_ARGUMENT,
+                  "a drag condition names a control only");
+    keyed = dragging;
+    keyed.kind = 10u;
+    gf_kit_status(kit, (*kit).rules.add(window, &rule, &refused), GF_STATUS_INVALID_ARGUMENT,
+                  "a C++-only condition kind is refused");
+    gf_rule_action unknown = blank_action(GF_RULE_ACTION_BEGIN_KEYBOARD_DRAG + 1u);
+    unknown.target = second;
+    rule = interaction_rule(first, "checked_changed", &unknown, 1u);
+    gf_kit_status(kit, (*kit).rules.add(window, &rule, &refused), GF_STATUS_INVALID_ARGUMENT,
+                  "an action kind past the vocabulary is refused");
+
+    gf_kit_status(kit, (*kit).rules.remove(dragging_token), GF_STATUS_OK, "remove the dragging rule");
+    gf_kit_status(kit, (*kit).rules.remove(idle_token), GF_STATUS_OK, "remove the idle rule");
+    gf_kit_check(kit, held.released == 1u && idle.released == 1u, "removing the drag rules releases their callbacks");
+}
+
 void gf_kit_rules(gf_kit* kit) {
     const gf_object root = gf_kit_create(kit, "panel", "kit.rules.root");
     gf_object window = 0u;
@@ -297,6 +377,7 @@ void gf_kit_rules(gf_kit* kit) {
 
     refusals(kit, window, first, second);
     wide_actions(kit, window, first, second);
+    drag_rules(kit, window, first, second);
 
     /* Disposing an object a rule names leaves the rule stale. */
     gf_kit_status(kit, (*kit).objects.dispose(third), GF_STATUS_OK, "dispose the third box");

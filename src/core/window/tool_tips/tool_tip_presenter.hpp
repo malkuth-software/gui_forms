@@ -54,6 +54,7 @@ public:
     void pointer_left() override;
     void focus_changed(const Control::Ptr& focused) override;
     void key_handled() override;
+    void escape_pressed() override;
     // Called after the window arranged its root, before its overlays: a bubble
     // below a control follows the control.
     void root_arranged() override;

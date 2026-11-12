@@ -21,6 +21,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace gui_forms::abi1 {
 namespace {
@@ -53,22 +54,41 @@ gf_status require_alive(const Control& control, SlotIdentity slot) noexcept {
 
 // The live control behind object, on the UI thread.
 gf_status enter_with_object(gf_object object, SlotIdentity slot, Control::Ptr& control) {
-    const gf_status entered = registry().enter_ui(slot, false);
-    if (entered != GF_STATUS_OK) {
-        return entered;
-    }
-    const gf_status found = registry().find_object(object, slot, control);
+    const gf_status found = registry().enter_object(object, slot, control);
     return found;
 }
 
 // The component (a control among them) behind object, on the UI thread.
 gf_status enter_with_component(gf_object object, SlotIdentity slot, Component::Ptr& component) {
-    const gf_status entered = registry().enter_ui(slot, false);
-    if (entered != GF_STATUS_OK) {
-        return entered;
-    }
-    const gf_status found = registry().find_component(object, slot, component);
+    const gf_status found = registry().enter_component(object, slot, component);
     return found;
+}
+
+// Fills sources with component and, for a control, every control below
+// it: the sources a disposal of component reaches. Iterative (an explicit
+// stack of pending controls), so a deep tree does not deepen the C stack.
+void collect_disposal_sources(const Component::Ptr& component, std::vector<const Component*>& sources) {
+    sources.push_back(component.get());
+    const Control::Ptr root = std::dynamic_pointer_cast<Control>(component);
+    if (!root) {
+        return;
+    }
+    std::vector<const Control*> pending;
+    pending.push_back(root.get());
+    while (!pending.empty()) {
+        const Control* control = pending.back();
+        pending.pop_back();
+        const std::span<const Control::Ptr> children = (*control).children();
+        std::size_t index = 0U;
+        for (index = 0U; index < children.size(); ++index) {
+            const Control* child = children[index].get();
+            if (child == nullptr) {
+                continue;
+            }
+            sources.push_back(child);
+            pending.push_back(child);
+        }
+    }
 }
 
 // Reads a type name and a stable id as create and create_with take them;
@@ -166,8 +186,12 @@ gf_status GF_CALL objects_dispose(gf_object object) noexcept {
         if (entered != GF_STATUS_OK) {
             return entered;
         }
+        // The subtree is read before the disposal detaches it; only these
+        // sources' subscriptions are visited afterwards (N8).
+        std::vector<const Component*> sources;
+        collect_disposal_sources(component, sources);
         (*component).dispose();
-        registry().end_disposed_subscriptions();
+        registry().end_disposed_subscriptions(std::span<const Component* const>(sources));
         return GF_STATUS_OK;
     } catch (...) {
         return fail_with_current_exception(dispose_slot);
@@ -293,14 +317,11 @@ gf_status GF_CALL objects_insert_child(gf_object parent, gf_object child, std::u
         if (index > count) {
             return fail(GF_STATUS_INVALID_ARGUMENT, insert_child_slot, "the index is past the child count");
         }
-        (*parent_control).add_child(child_control);
-        if (index != count) {
-            // add_child puts the child last (on top). set_child_index counts
-            // from the top, as WinForms does: position index among count + 1
-            // children is top index count - index.
-            const std::size_t from_top = static_cast<std::size_t>(count - index);
-            static_cast<void>((*parent_control).set_child_index((*child_control).runtime_id(), from_top));
-        }
+        // The core counts from the top, as WinForms does: position index
+        // among count + 1 children is top index count - index. One core
+        // mutation, so a failure leaves the parent's children as they were.
+        const std::size_t from_top = static_cast<std::size_t>(count - index);
+        (*parent_control).insert_child(child_control, from_top);
         return GF_STATUS_OK;
     } catch (...) {
         return fail_with_current_exception(insert_child_slot);

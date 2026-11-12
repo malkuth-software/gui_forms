@@ -45,17 +45,17 @@ Color with_alpha(Color color, std::uint8_t alpha) noexcept {
 }
 
 constexpr std::array<PartField<SweepScope::Parts>, 6> sweep_scope_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &SweepScope::Parts::region},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &SweepScope::Parts::caption},
-    {.declaration = {.name = "plot", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &SweepScope::Parts::plot},
-    {.declaration = {.name = "graticule", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "graticule", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &SweepScope::Parts::graticule},
-    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &SweepScope::Parts::indicator},
-    {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}},
+    {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}, .states = {}},
      .member = &SweepScope::Parts::activity},
 }};
 
@@ -74,6 +74,7 @@ constexpr ControlAnatomy sweep_scope_anatomy{
     .parts = sweep_scope_parts,
     .states = sweep_scope_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The registered scope_sweep effect.

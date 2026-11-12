@@ -4,7 +4,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <map>
 #include <string>
 #include <utility>
 
@@ -35,40 +34,20 @@ enum class BindingCompleteState : std::uint8_t {
     exception,
 };
 
+// A list change. The changes one notification makes are published in
+// order, each relative to the list as the ones before it left it:
+// item_added: a row now stands at index; item_removed: the row at index is
+// gone; item_moved (ListChangedType.ItemMoved): the row at index now stands
+// at to_index; item_changed: the row at index changed (field, or every
+// field when empty). stable_id is the row's for item_added and
+// item_changed, empty otherwise.
 enum class BindingListChangeKind : std::uint8_t {
     reset,
     item_added,
     item_changed,
     item_removed,
     position_changed,
-};
-
-struct BindingRecord final {
-    using FieldMap = std::map<std::string, BindingValue>;
-    using ErrorMap = std::map<std::string, std::string>;
-
-    BindingRecord() = default;
-    BindingRecord(std::string identity,
-                  FieldMap values,
-                  bool can_edit = true,
-                  ErrorMap error_values = {})
-        : stable_id(std::move(identity)), fields(std::move(values)),
-          editable(can_edit), errors(std::move(error_values)) {}
-
-    std::string stable_id;
-    FieldMap fields;
-    bool editable{true};
-    // Keys share the canonical field vocabulary; empty means record-wide.
-    ErrorMap errors;
-
-    friend bool operator==(const BindingRecord& left,
-                           const BindingRecord& right) noexcept(noexcept(
-        left.stable_id == right.stable_id && left.fields == right.fields &&
-        left.editable == right.editable && left.errors == right.errors)) {
-        return left.stable_id == right.stable_id &&
-               left.fields == right.fields && left.editable == right.editable &&
-               left.errors == right.errors;
-    }
+    item_moved,
 };
 
 struct BindingListChange final {
@@ -77,6 +56,8 @@ struct BindingListChange final {
     std::string stable_id;
     std::string field;
     bool metadata_changed{};
+    // item_moved: where the row now stands; -1 otherwise.
+    std::ptrdiff_t to_index{-1};
 };
 
 struct BindingConvertEvent final {
@@ -109,6 +90,8 @@ struct BindingSourceSnapshot final {
     std::ptrdiff_t position{-1};
     std::string current_stable_id;
     std::uint64_t revision{};
+    // The provider-change generation (BindingSource::generation).
+    std::uint64_t generation{};
     std::uint64_t resets{};
     std::uint64_t field_changes{};
     std::uint64_t position_changes{};

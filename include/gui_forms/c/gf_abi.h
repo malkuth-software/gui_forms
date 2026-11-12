@@ -20,9 +20,8 @@
  *   pointer, never by value.
  * - Text is UTF-8: gf_utf8_view in, caller-supplied buffers out.
  * - Names: a constant of a typedef'd enumeration carries the typedef's name
- *   as its prefix (gf_status: GF_STATUS_*). No name repeats one of the
- *   experimental 0.x header (gui_forms/c_api.h), so a program migrating from
- *   it can include both.
+ *   as its prefix (gf_status: GF_STATUS_*). This header is the library's
+ *   one C surface: the experimental 0.x header was retired before 1.0.
  * - Calling convention: GF_CALL, the platform's C convention (Microsoft x64
  *   on Windows, System V AMD64 on x86-64 Linux, AAPCS64 and Apple's arm64
  *   variant on macOS). Every function and function pointer is spelled with
@@ -66,9 +65,12 @@ extern "C" {
 #define GF_CALL
 /* gf:platform-end */
 
-/* The ABI version this header describes. */
+/* The ABI version this header describes. 1.1 is the seal (checkpoint
+ * cp24); 1.2 (owner decision D9, cp28) adds the window, focus, decoration,
+ * anchored overlay, data grid, docking and fonts surfaces and the slots
+ * marked since 1.2, additions only. */
 #define GF_ABI_MAJOR 1u
-#define GF_ABI_MINOR 1u
+#define GF_ABI_MINOR 2u
 
 /* gf_status: the result of every call. Zero is success; failures are
  * positive and the list only grows. */
@@ -113,6 +115,8 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_RULES 19u
 #define GF_TABLE_DATA_GRID 20u
 #define GF_TABLE_DOCKING 21u
+#define GF_TABLE_FONTS 22u
+#define GF_TABLE_HELP 23u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -280,6 +284,16 @@ typedef struct gf_runtime_table {
  * objects it creates are its own, as GF_TABLE_SUBSURFACES describes, and
  * "the UI thread" below reads "the object's thread" for them.
  *
+ * One registry per process (H3). A process has one library state, however
+ * many consumers load the library or ask it for tables: one UI thread, one
+ * set of object, subscription and rule identities, one theme, image
+ * registry and set of published values, one application and one run. Two
+ * consumers in one process (a C program and a plug-in it loads, say) share
+ * all of it: a handle one hands out is valid for the other, a theme one
+ * loads is the other's, and only one of them can run a window at a time.
+ * Consumers that need separate state run in separate processes. No table
+ * takes a context parameter, and 1.x adds none.
+ *
  * Callbacks. The library calls a callback on the UI thread only, never two at
  * once, and calls its release exactly once, on the UI thread, after the last
  * invoke has returned. A callback may call any function, including the ones
@@ -349,6 +363,13 @@ typedef uint32_t gf_font_role;
  * A font: its role, weight (1 to 1000; 400 regular, 700 bold), italic (0 or
  * 1), size in logical pixels (finite, above zero) and the logical pixels
  * added between grapheme clusters (finite, from -size/4 to size).
+ *
+ * reserved holds, since 1.2, the font's bundled family: an id from
+ * fonts.family_id (Selawik, say), whose faces draw before the role's, or
+ * zero for the role's faces alone. The role still draws what the family
+ * does not cover. An id the library does not have gives
+ * GF_STATUS_INVALID_ARGUMENT; a 1.1 library takes only zero. (The word
+ * keeps its sealed name: renaming a sealed field is a break.)
  */
 typedef struct gf_font {
     gf_font_role role;
@@ -662,7 +683,33 @@ typedef struct gf_properties_table {
      * is not below its count. */
     gf_status (GF_CALL* element_at)(gf_object object, gf_utf8_view name, uint64_t index, gf_value* value,
                                     char* text_buffer, uint64_t text_capacity, uint64_t* text_required);
+    /* Since 1.2. Reads count elements of the COLLECTION property name from
+     * position first into values, an array of count records (the array
+     * rule above; fields past the 1.0 size are left alone), their text
+     * copied into text_buffer one after another, each value's view pointing
+     * there. text_required receives the total text size, also with
+     * GF_STATUS_BUFFER_TOO_SMALL, which writes no value. The collection is
+     * read once per call, where element_at reads it once per element: read
+     * a long list here. A range past the count gives GF_STATUS_NOT_FOUND;
+     * more than GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements
+     * GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at. */
+    gf_status (GF_CALL* read_elements)(gf_object object, gf_utf8_view name, uint64_t first, uint64_t count,
+                                       gf_value* values, char* text_buffer, uint64_t text_capacity,
+                                       uint64_t* text_required);
+    /* Since 1.2 (N19). get and set by the property's position in the
+     * object's schema type, as schema.property_at lists it (for a window,
+     * the window type's): a binding resolves a name once, then reaches it
+     * by index. A control of a type the schema does not list, or an
+     * application subclass, uses its nearest schema type's list (its own
+     * extra properties are reached by name). An index past the list gives
+     * GF_STATUS_INVALID_ARGUMENT; otherwise as get and set. */
+    gf_status (GF_CALL* get_at)(gf_object object, uint64_t index, gf_value* value, char* text_buffer,
+                                uint64_t text_capacity, uint64_t* text_required);
+    gf_status (GF_CALL* set_at)(gf_object object, uint64_t index, const gf_value* value);
 } gf_properties_table;
+
+/* The most elements one properties.read_elements call reads (since 1.2). */
+#define GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL 65536u
 
 /*
  * GF_TABLE_EVENTS. A subscription made during an emission is first called by
@@ -729,10 +776,16 @@ typedef struct gf_dispatch_table {
 typedef uint32_t gf_run_flags;
 #define GF_RUN_FLAGS_NONE 0u
 
-/* An interaction: payload spells the handler's argument types ("ButtonBase",
- * "std::size_t, CheckState"; empty for none); mutable_payload is 1 when a
- * handler may change an argument, as a cancellable validation's. The
- * schema table lists a type's in it, and the windows table a window's. */
+/* An interaction: payload lists the event fields its callback receives
+ * (Event fields above), each as "name: kind" with the schema's kind words,
+ * separated by ", " ("value: boolean"; "value_1: unsigned_integer, value_2:
+ * enumeration"; "cancel: boolean, row_id: text"), " optional" after an
+ * OPTIONAL field's kind; empty for none (a notification, or a reference to
+ * the sender). Since 1.2 it is in this vocabulary; 1.1 spelled the C++
+ * argument types. manifests/abi/interaction_fields.json maps the C++
+ * spellings to it. mutable_payload is 1 when a handler may change an
+ * argument, as a cancellable validation's. The schema table lists a type's
+ * in it, and the windows table a window's. */
 typedef struct gf_schema_interaction {
     uint32_t struct_size;
     uint32_t mutable_payload;
@@ -746,7 +799,7 @@ typedef struct gf_schema_interaction {
  * the library calls them with sender the root and releases each once before
  * run returns.
  *
- * Since 1.1 (read when struct_size covers them): minimum_width and
+ * Since 1.2 (read when struct_size covers them): minimum_width and
  * minimum_height, the smallest client size the user may resize the window
  * to, in logical units, from 0 to 32768; a side of 0 sets no minimum there
  * beyond the host's own, as Windows Forms' empty MinimumSize. A record of the
@@ -773,7 +826,7 @@ typedef uint32_t gf_owned_window_flags;
 
 /*
  * How show_modal and show_owned open a window over the running one (since
- * 1.1). owner is the root of the running window or of an owned window that
+ * 1.2). owner is the root of the running window or of an owned window that
  * is open; zero means the running window. width and height are the client
  * size in logical units; zero keeps the default. ready, closing and closed
  * may each be null; the library calls them with sender the window's root
@@ -807,7 +860,7 @@ typedef uint32_t gf_dialog_result_code;
 #define GF_DIALOG_RESULT_CONTINUE 11u
 
 /* gf_window_property_flags: the window properties (schema type "window",
- * since 1.1), one bit each, as window_properties reports them. */
+ * since 1.2), one bit each, as window_properties reports them. */
 typedef uint32_t gf_window_property_flags;
 #define GF_WINDOW_PROPERTY_TEXT 1u
 #define GF_WINDOW_PROPERTY_ICON 2u
@@ -843,7 +896,7 @@ typedef uint32_t gf_window_property_flags;
  * help_requested, key_down, key_press, key_state_changed, key_up,
  * presentation_changed, theme_changed).
  *
- * Key input (since 1.1). A window's key_down and key_up reach a subscriber
+ * Key input (since 1.2). A window's key_down and key_up reach a subscriber
  * before the focused control (Windows Forms' KeyPreview), and every
  * control raises preview_key_down, key_down, key_press and key_up; their
  * fields are key_code (the Windows Forms Keys code, the same on every
@@ -859,14 +912,15 @@ typedef uint32_t gf_window_property_flags;
  * thread; a disposed window refuses new ones with GF_STATUS_DISPOSED.
  *
  * During the run, show_modal and show_owned open further windows over a
- * root control (since 1.1), owned by the running window or by another of
+ * root control (since 1.2), owned by the running window or by another of
  * them: a modal window, as Form.ShowDialog shows one, or a non-modal owned
  * window, as Form.Show(owner). Their stable id is their root's, unique
  * among open windows ("main" is the running window's). request_close
  * closes them too. They share the library's theme, images and published
- * values as they stand when the window opens.
+ * values; since 1.2 a value published or withdrawn while they are open
+ * reaches them as it reaches the running window.
  *
- * A window has properties (since 1.1), Form's for the native window: text
+ * A window has properties (since 1.2), Form's for the native window: text
  * (the title; until written, the run's options.title), icon (an image from
  * themes.load_image, or none), form_border_style, minimize_box,
  * maximize_box, control_box, window_state (the program's request, not a
@@ -918,13 +972,13 @@ typedef struct gf_windows_table {
     gf_status (GF_CALL* request_help)(gf_object window, uint32_t* handled);
     /* down receives 1 when physical_key (a USB HID usage) is down in window
      * now, as the window has seen it (pressed, not released, not released by
-     * the window losing activation), else 0 (since 1.1). UI thread.
+     * the window losing activation), else 0 (since 1.2). UI thread.
      * GF_STATUS_INVALID_ARGUMENT without down; GF_STATUS_DISPOSED once the
      * window is gone. */
     gf_status (GF_CALL* key_state)(gf_object window, uint32_t physical_key, uint32_t* down);
     /* Opens a window over root, a control with no parent and not in a
      * window, owned by options.owner, and runs a nested event loop until it
-     * closes (since 1.1): the run's other windows refuse the user's input
+     * closes (since 1.2): the run's other windows refuse the user's input
      * meanwhile, while posted work, events of other sources, timers and
      * repaint continue in every window. A dialog result other than none
      * set on the window (a button's dialog_result, the window's own) asks
@@ -942,12 +996,12 @@ typedef struct gf_windows_table {
     gf_status (GF_CALL* show_modal)(gf_object root, const gf_owned_window_options* options,
                                     gf_dialog_result_code* result);
     /* Opens a window over root owned by options.owner, as show_modal does,
-     * and returns once it is ready, without a nested loop (since 1.1). The
+     * and returns once it is ready, without a nested loop (since 1.2). The
      * window closes through request_close, its close box, its owner
      * closing or the run ending. The same refusals as show_modal, without
      * the depth limit. */
     gf_status (GF_CALL* show_owned)(gf_object root, const gf_owned_window_options* options);
-    /* The window properties window's host applies (since 1.1): supported
+    /* The window properties window's host applies (since 1.2): supported
      * receives the GF_WINDOW_PROPERTY_* bits of those the host honours, 0
      * before the window runs; applied the bits of the written properties
      * the host applied when each was last sent. Either output may be null.
@@ -955,7 +1009,7 @@ typedef struct gf_windows_table {
      * window; GF_STATUS_DISPOSED once the window is gone. */
     gf_status (GF_CALL* window_properties)(gf_object window, gf_window_property_flags* supported,
                                            gf_window_property_flags* applied);
-    /* The focused control of a window (since 1.1): window_or_root is a
+    /* The focused control of a window (since 1.2): window_or_root is a
      * window from create, or a control in a window (a root passed to run,
      * a root of a show_modal or show_owned window, or any control under
      * one). control receives a new reference to the window's focused
@@ -1286,6 +1340,28 @@ typedef uint32_t gf_theme_outcome;
 #define GF_THEME_OUTCOME_APPLIED 0u
 #define GF_THEME_OUTCOME_REFUSED 1u
 
+/* gf_user_theme_policy: how a program admits user themes and the theme it
+ * is started with (--theme, GUI_FORMS_THEME_SHEET), as C++
+ * UserThemePolicy. */
+typedef uint32_t gf_user_theme_policy;
+#define GF_USER_THEME_POLICY_LAYERED 0u
+#define GF_USER_THEME_POLICY_REPLACES_PROGRAM_SHEET 1u
+#define GF_USER_THEME_POLICY_REFUSED 2u
+
+/* gf_theme_request_outcome: what the theme the process was started with
+ * did, as C++ ThemeRequestOutcome; PENDING until the first window settles
+ * it. */
+typedef uint32_t gf_theme_request_outcome;
+#define GF_THEME_REQUEST_NONE 0u
+#define GF_THEME_REQUEST_PENDING 1u
+#define GF_THEME_REQUEST_BUILT_IN 2u
+#define GF_THEME_REQUEST_APPLIED 3u
+#define GF_THEME_REQUEST_IGNORED_BY_POLICY 4u
+#define GF_THEME_REQUEST_UNKNOWN_NAME 5u
+#define GF_THEME_REQUEST_REFUSED 6u
+#define GF_THEME_REQUEST_UNREADABLE 7u
+#define GF_THEME_REQUEST_MALFORMED 8u
+
 /* What a load or an install gave. An output record (as gf_abi_version_info).
  * diagnostic_count counts the findings now held (diagnostic_at). */
 typedef struct gf_theme_report {
@@ -1359,8 +1435,8 @@ typedef struct gf_themes_table {
     /* Publishes a named value for themes to read (var(--name)). name is 1
      * to 64 lowercase ASCII letters, digits, hyphens and underscores,
      * starting with a letter, and value is finite, else
-     * GF_STATUS_INVALID_ARGUMENT. The running window repaints the parts
-     * that read it. A name once published stays admitted to later loads,
+     * GF_STATUS_INVALID_ARGUMENT. Every open window (the running one and,
+     * since 1.2, each owned one) repaints the parts that read it. A name once published stays admitted to later loads,
      * withdrawn or not; at most GF_THEME_MAXIMUM_PUBLISHED_VALUES names
      * (GF_STATUS_LIMIT_EXCEEDED). */
     gf_status (GF_CALL* publish_value)(gf_utf8_view name, double value);
@@ -1389,10 +1465,38 @@ typedef struct gf_themes_table {
      */
     gf_status (GF_CALL* load_pixels)(const uint8_t* pixels, uint32_t width, uint32_t height, uint64_t row_bytes,
                                      uint64_t* image);
+    /* Loads sheet (since 1.2), the UTF-8 text of one CSS theme sheet (at
+     * most GF_THEME_PACKAGE_MAXIMUM_BYTES), as load does a package: the package
+     * of that one sheet named name, its manifest made by the library (the
+     * sheet's sha256 included). An application's theme kept as a plain
+     * file, edited and read again at start-up without a rebuild. A refused
+     * sheet changes nothing; its findings name the file sheet.theme.css
+     * with their line and column. GF_STATUS_INVALID_ARGUMENT for a view
+     * with a size and no data, GF_STATUS_LIMIT_EXCEEDED past the bound. */
+    gf_status (GF_CALL* load_sheet)(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report);
+    /* Chooses how the library's windows admit user themes and the theme the
+     * process was started with (--theme <name|built-in|path.css>, or
+     * GUI_FORMS_THEME_SHEET), for the resources they will share: the
+     * current application's, or the library's own. Resources made later
+     * (a new application) start LAYERED. REFUSED ignores the request with a
+     * warning. GF_STATUS_INVALID_STATE once a window shares the resources;
+     * GF_STATUS_INVALID_ARGUMENT for an unknown policy. */
+    gf_status (GF_CALL* set_user_theme_policy)(gf_user_theme_policy policy);
+    /* What the theme the process was started with did on the resources the
+     * library's windows share: NONE without one, PENDING until the first
+     * window settles it, then its outcome; a request that is not APPLIED
+     * or BUILT_IN changed nothing and wrote its findings to stderr. */
+    gf_status (GF_CALL* theme_request)(gf_theme_request_outcome* outcome);
 } gf_themes_table;
 
 /* gf_host_capability: what a host can do, one bit each; a host reports the
- * set it implements. A later minor may add bits. */
+ * set it implements. A later minor may add bits to this word until bit 55
+ * is taken (K7); the bits from 56 to 63 stay free in 1.x. When they run
+ * short, a second 64-bit word, available_2, follows at the tail of
+ * gf_host_capabilities (the record is size-prefixed, so the word is an
+ * addition) and later bits go there. A consumer reads a capability's bit
+ * from the word its constant's comment names; every constant below is in
+ * available. */
 typedef uint64_t gf_host_capability;
 #define GF_HOST_CAPABILITY_LIFECYCLE 1ull
 #define GF_HOST_CAPABILITY_SCALE_NOTIFICATIONS 2ull
@@ -1582,6 +1686,11 @@ typedef struct gf_dialog_request {
     gf_dialog_flags flags;
     uint32_t initial_rgba;
     uint32_t reserved;
+    /* Since 1.2: the root of the open window the dialog belongs to (the
+     * run's root, or an owned window's from show_modal or show_owned), or
+     * zero for the run's window, which a 1.0-sized record means. Any other
+     * object gives GF_STATUS_INVALID_STATE. */
+    gf_object owner;
 } gf_dialog_request;
 
 /* How a dialog closed. An output record. choice is a message dialog's
@@ -1729,7 +1838,7 @@ typedef struct gf_diagnostics_table {
     gf_status (GF_CALL* shadow_frames)(gf_shadow_frame* frames, uint64_t capacity, uint64_t* required,
                                        gf_shadow_stack_info* info);
     /*
-     * The invalidation overlay (since 1.1), a debugging mode: every area a
+     * The invalidation overlay (since 1.2), a debugging mode: every area a
      * window presents again is outlined for 300 ms, in a style naming its
      * cause (red: a control's invalidation; orange: layout; blue: a host
      * expose; green: a scroll copy; magenta: a live surface; cyan: external
@@ -1808,9 +1917,9 @@ typedef struct gf_scroll_snapshot {
 
 /*
  * GF_TABLE_CONTROLS: operations on a control that are not state: layout
- * transactions, window-relative bounds, pointer capture and scrolling. The
- * state the 0.x table set (a range's bounds, the cursor, the auto-scroll
- * settings, ...) is schema properties (GF_TABLE_PROPERTIES). UI thread
+ * transactions, window-relative bounds, pointer capture and scrolling. A
+ * control's state (a range's bounds, the cursor, the auto-scroll settings,
+ * ...) is schema properties (GF_TABLE_PROPERTIES). UI thread
  * only. A scrolling function on a control that does not scroll gives
  * GF_STATUS_WRONG_HANDLE_KIND.
  */
@@ -1843,7 +1952,7 @@ typedef struct gf_controls_table {
      * that is not finite, or has a negative size, gives INVALID_ARGUMENT. */
     gf_status (GF_CALL* invalidate)(gf_object object, const gf_logical_rect* damage);
     /* Gives the control keyboard focus, as Control.Focus and Select do
-     * (since 1.1): it becomes its window's focused control, the one its
+     * (since 1.2): it becomes its window's focused control, the one its
      * window gives the keyboard to while active. A composite field (a
      * combo box with an edit field, a numeric or domain up-down, a masked
      * text box, a search field, a token box) gives the caret to its edit
@@ -1859,7 +1968,7 @@ typedef struct gf_controls_table {
     gf_status (GF_CALL* focus)(gf_object object, uint32_t* focused);
     /* Whether the control is its window's focused control (Focused; a
      * composite field is while its edit part has the caret), and whether it
-     * or a descendant holds focus (ContainsFocus), as 0 or 1 (since 1.1).
+     * or a descendant holds focus (ContainsFocus), as 0 or 1 (since 1.2).
      * A control not in a window has neither. Either output may be null. UI
      * thread. */
     gf_status (GF_CALL* focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus);
@@ -1893,7 +2002,7 @@ typedef uint32_t gf_text_decoration_fields;
 #define GF_TEXT_DECORATION_BACKGROUND 0x40u
 
 /*
- * One styled text run (since 1.1; C++ TextDecoration): UTF-8 byte offsets
+ * One styled text run (since 1.2; C++ TextDecoration): UTF-8 byte offsets
  * [start, end) into the text and the look it gives that text. Colours are
  * 0xRRGGBBAA; weight is 1 to 1000; italic is 0 or 1. tag belongs to the
  * caller and comes back unchanged. reserved is 0.
@@ -1915,7 +2024,7 @@ typedef struct gf_text_decoration {
 
 /*
  * GF_TABLE_TEXT_EDITING: a text box's selection, grapheme navigation, edits
- * and history (TextBox), and its styled text runs (since 1.1). Positions are UTF-8 byte offsets
+ * and history (TextBox), and its styled text runs (since 1.2). Positions are UTF-8 byte offsets
  * into the text property; a position inside a grapheme cluster or past the
  * text gives GF_STATUS_INVALID_ARGUMENT. Another control gives
  * GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
@@ -1940,7 +2049,7 @@ typedef struct gf_text_editing_table {
     gf_status (GF_CALL* redo)(gf_object object, uint32_t* changed);
     /* Starts the history afresh without touching the text. */
     gf_status (GF_CALL* clear_undo_history)(gf_object object);
-    /* Styled text runs (since 1.1; TextBox::set_decorations): decoration
+    /* Styled text runs (since 1.2; TextBox::set_decorations): decoration
      * layers over the text, composed in ascending layer order, which follow
      * every edit and never change the text. A multiline box draws them. A
      * range past the text, a range ending before it starts, a weight
@@ -1967,6 +2076,15 @@ typedef struct gf_text_editing_table {
      * end. */
     gf_status (GF_CALL* decoration_at)(gf_object object, uint32_t layer, uint64_t index,
                                        gf_text_decoration* decoration);
+    /* Since 1.2. The position in UTF-16 code units of the byte offset
+     * utf8_offset in the text, for a caller whose positions are UTF-16 (a
+     * Windows Forms SelectionStart), and back: utf16_to_utf8_offset gives
+     * the byte offset of a UTF-16 position. An offset past the text, inside
+     * a UTF-8 sequence or between the halves of a surrogate pair gives
+     * GF_STATUS_INVALID_ARGUMENT. Positions on scalar boundaries convert
+     * both ways exactly. */
+    gf_status (GF_CALL* utf8_to_utf16_offset)(gf_object object, uint64_t utf8_offset, uint64_t* utf16_offset);
+    gf_status (GF_CALL* utf16_to_utf8_offset)(gf_object object, uint64_t utf16_offset, uint64_t* utf8_offset);
 } gf_text_editing_table;
 
 /*
@@ -1975,7 +2093,7 @@ typedef struct gf_text_editing_table {
  * its owner leaves the window or until the window closes. Tooltips belong to
  * a tool_tip component (create_with). UI thread only.
  *
- * open_anchored (since 1.1) shows a content control beside an anchor, as a
+ * open_anchored (since 1.2) shows a content control beside an anchor, as a
  * menu, drop-down or context menu shows: an anchored overlay in the
  * anchor's window, placed below or above the anchor and kept inside the
  * window, with click-away and Escape dismissal. Menus, drop-downs and
@@ -2001,7 +2119,7 @@ typedef uint32_t gf_anchored_overlay_flags;
 #define GF_ANCHORED_OVERLAY_TAKE_FOCUS 32u
 
 /*
- * How open_anchored shows content (since 1.1). width and height are the
+ * How open_anchored shows content (since 1.2). width and height are the
  * content's preferred size in logical units (zero: its measured size); gap
  * is the distance from the anchor. events, which may be null, receives the
  * overlay's events with sender the content: "click_away" and "escape_key"
@@ -2020,7 +2138,7 @@ typedef struct gf_anchored_overlay_options {
 } gf_anchored_overlay_options;
 
 /*
- * gf_tool_tips_setting: a window's tooltip switch (since 1.1). A window
+ * gf_tool_tips_setting: a window's tooltip switch (since 1.2). A window
  * that follows takes the program's switch (the current application's;
  * shown when there is none); the others decide for the window alone.
  * Tooltips whose text is empty or only white space never show, whatever
@@ -2047,27 +2165,27 @@ typedef struct gf_overlays_table {
     gf_status (GF_CALL* show_tool_tip)(gf_object tool_tip, gf_object target, uint64_t duration_ms);
     gf_status (GF_CALL* hide_tool_tip)(gf_object tool_tip);
     /* Shows content, a control with no parent and not in a window, beside
-     * anchor, a control in a running window (since 1.1). The library holds
+     * anchor, a control in a running window (since 1.2). The library holds
      * content while it is open. GF_STATUS_INVALID_STATE when anchor is not
      * in a window or is disabled, or content is already open or has a
-     * parent; GF_STATUS_INVALID_ARGUMENT for options smaller than their 1.1
+     * parent; GF_STATUS_INVALID_ARGUMENT for options smaller than their 1.2
      * size, unknown flags or a size or gap that is negative or not finite.
      * Nothing is shown on a refusal. */
     gf_status (GF_CALL* open_anchored)(gf_object anchor, gf_object content,
                                        const gf_anchored_overlay_options* options);
     /* Closes content's anchored overlay: its "closed" event follows before
-     * this returns. GF_STATUS_NOT_FOUND when it is not open (since 1.1). */
+     * this returns. GF_STATUS_NOT_FOUND when it is not open (since 1.2). */
     gf_status (GF_CALL* close_anchored)(gf_object content);
     /* Sets a window's tooltip switch, or with window null the program's
      * (the current application's; GF_STATUS_INVALID_STATE without one),
      * where FOLLOW is refused. Turning tooltips off closes one that shows.
      * GF_STATUS_INVALID_ARGUMENT for an unknown setting;
-     * GF_STATUS_WRONG_HANDLE_KIND when window is not a window (since 1.1). */
+     * GF_STATUS_WRONG_HANDLE_KIND when window is not a window (since 1.2). */
     gf_status (GF_CALL* set_tool_tips_shown)(gf_object window, gf_tool_tips_setting setting);
     /* Whether a window's tooltips show now (its switch, else the
      * program's), or with window null the program's switch: 1 or 0 in
      * shown, and the window's own setting in setting, which may be null
-     * (FOLLOW for the program's) (since 1.1). */
+     * (FOLLOW for the program's) (since 1.2). */
     gf_status (GF_CALL* tool_tips_shown)(gf_object window, uint32_t* shown, gf_tool_tips_setting* setting);
 } gf_overlays_table;
 
@@ -2171,6 +2289,24 @@ typedef struct gf_paint_target {
 } gf_paint_target;
 
 /*
+ * What a custom control publishes to accessibility (since 1.2), filled by
+ * its semantics callback. The library sets struct_size and fills the record
+ * with the base's own description first, so a callback changes only what it
+ * knows. role is an index into the schema's semantic roles
+ * (GF_SCHEMA_VOCABULARY_SEMANTIC_ROLES); name, value and description are
+ * UTF-8 the callback lends until the library's next callback on the
+ * control. A role past the vocabulary, or text that is not UTF-8, makes the
+ * library keep the base's description.
+ */
+typedef struct gf_custom_semantics {
+    uint32_t struct_size;
+    uint32_t role;
+    gf_utf8_view name;
+    gf_utf8_view value;
+    gf_utf8_view description;
+} gf_custom_semantics;
+
+/*
  * The callbacks of a custom control, called on the UI thread with context
  * and the control's identity (zero while the caller holds no reference to
  * it). paint draws over the base's own painting (its background). index is
@@ -2198,11 +2334,38 @@ typedef struct gf_custom_control_callbacks {
 } gf_custom_control_callbacks;
 
 /*
+ * A custom control's layout callbacks (since 1.2), each optional (null
+ * keeps the base's behaviour) and called as the gf_custom_control_callbacks
+ * are, with their context: measure writes the control's preferred size for
+ * available (each axis finite; 1e9 stands for unbounded) into preferred,
+ * for auto-sizing layouts; hit_test writes 1 to hit when point (in the
+ * control's logical units, inside its bounds) is on the control, 0 to let
+ * the pointer through to what lies under it; semantics fills a
+ * gf_custom_semantics. Each returns GF_STATUS_OK to answer; any other
+ * status, a negative or non-finite size, or a hit other than 0 or 1 makes
+ * the library use the base's answer. Like paint, they must not change
+ * controls. (They are a record of their own because the spec holds the
+ * 1.0 callbacks by value, which cannot grow.) reserved is zero.
+ */
+typedef struct gf_custom_layout_callbacks {
+    uint32_t struct_size;
+    uint32_t reserved;
+    gf_status (GF_CALL* measure)(void* context, gf_object control, gf_logical_size available,
+                                 gf_logical_size* preferred);
+    gf_status (GF_CALL* hit_test)(void* context, gf_object control, gf_logical_point point, uint32_t* hit);
+    gf_status (GF_CALL* semantics)(void* context, gf_object control, gf_custom_semantics* semantics);
+} gf_custom_layout_callbacks;
+
+/*
  * A custom control's definition. property_size is the size of one
  * gf_custom_property as the caller declares it (at least the 1.0 size); the
  * library steps through properties by it. properties may be null when
  * property_count is 0; at most GF_CUSTOM_MAXIMUM_PROPERTIES. callbacks is
  * read up to its own struct_size; fields past it are taken as zero.
+ *
+ * layout (since 1.2, read when struct_size covers it) points at the
+ * control's layout callbacks, or is null for none; create copies the
+ * record up to its struct_size, so it need live only through the call.
  */
 typedef struct gf_custom_control_spec {
     uint32_t struct_size;
@@ -2212,6 +2375,7 @@ typedef struct gf_custom_control_spec {
     const gf_custom_property* properties;
     uint64_t property_count;
     gf_custom_control_callbacks callbacks;
+    const gf_custom_layout_callbacks* layout;
 } gf_custom_control_spec;
 
 typedef struct gf_custom_controls_table {
@@ -2291,6 +2455,147 @@ typedef struct gf_binding_record {
 } gf_binding_record;
 
 #define GF_BINDING_MAXIMUM_FIELDS 1024u
+/* The most records one bindings.add_records call takes (since 1.2). */
+#define GF_BINDING_MAXIMUM_RECORDS_PER_CALL 65536u
+/* The position add_record gives a record the source's filter hides (since
+ * 1.2). */
+#define GF_BINDING_HIDDEN_POSITION 18446744073709551615ull
+/* The column that names a whole row: its own error text, or a change to
+ * every cell of it (since 1.2). */
+#define GF_BINDING_WHOLE_ROW 18446744073709551615ull
+
+/*
+ * Since 1.2 (N31): data providers. A source shows the rows of a provider in
+ * place instead of holding copies: the provider declares its columns once,
+ * answers the source's reads (the row count, a cell, a row's stable id) and
+ * accepts or refuses its writes, and reports its own changes through
+ * bindings.notify. A source made by create_with starts with the library's
+ * own provider, a column table, which add_record and the other record slots
+ * fill (growing a column for each new field name).
+ *
+ * The provider is untrusted data: a callback that fails, or answers a value
+ * of the wrong kind, text that is not UTF-8 or past the bounds, or an id
+ * that breaks the StableId rule, makes that cell or row an error the source
+ * shows, never a failure of the source. Only the row count is trusted to
+ * change through notify alone.
+ */
+
+/* One column of a provider: its name (a registered name in any spelling;
+ * names are distinct after folding), the gf_value_kind it holds
+ * (GF_VALUE_KIND_NULL for any kind; every column takes a NULL value), and
+ * read_only 0 or 1. reserved is zero. */
+typedef struct gf_binding_column {
+    uint32_t struct_size;
+    gf_value_kind kind;
+    gf_utf8_view name;
+    uint32_t read_only;
+    uint32_t reserved;
+} gf_binding_column;
+
+/* gf_binding_sort_direction. */
+typedef uint32_t gf_binding_sort_direction;
+#define GF_BINDING_SORT_ASCENDING 0u
+#define GF_BINDING_SORT_DESCENDING 1u
+
+/* One sort key: a column by name and its direction. Equal keys keep the
+ * provider's order; text compares ignoring case, by code point. */
+typedef struct gf_binding_sort_key {
+    uint32_t struct_size;
+    gf_binding_sort_direction direction;
+    gf_utf8_view column;
+} gf_binding_sort_key;
+
+/* gf_binding_predicate_operator: how a cell is compared with the operand
+ * (contains and starts_with compare text ignoring case; is_null and
+ * is_not_null take no operand). */
+typedef uint32_t gf_binding_predicate_operator;
+#define GF_BINDING_PREDICATE_EQUAL 0u
+#define GF_BINDING_PREDICATE_NOT_EQUAL 1u
+#define GF_BINDING_PREDICATE_LESS 2u
+#define GF_BINDING_PREDICATE_LESS_OR_EQUAL 3u
+#define GF_BINDING_PREDICATE_GREATER 4u
+#define GF_BINDING_PREDICATE_GREATER_OR_EQUAL 5u
+#define GF_BINDING_PREDICATE_CONTAINS 6u
+#define GF_BINDING_PREDICATE_STARTS_WITH 7u
+#define GF_BINDING_PREDICATE_IS_NULL 8u
+#define GF_BINDING_PREDICATE_IS_NOT_NULL 9u
+
+/* One filter predicate: a column by name, an operator and its operand (NULL
+ * for none). A filter shows the rows every predicate holds for. */
+typedef struct gf_binding_predicate {
+    uint32_t struct_size;
+    gf_binding_predicate_operator op;
+    gf_utf8_view column;
+    const gf_value* operand;
+} gf_binding_predicate;
+
+/* gf_binding_notification_kind: a provider's change. reset: anything may
+ * have changed (the columns too); inserted and removed: count rows at row;
+ * moved: count rows at row now start at target; changed: the cell (row,
+ * target), or every cell of the row with target GF_BINDING_WHOLE_ROW. Rows
+ * are the provider's, counted after the change for inserted, before it
+ * for removed and moved. */
+typedef uint32_t gf_binding_notification_kind;
+#define GF_BINDING_NOTIFY_RESET 0u
+#define GF_BINDING_NOTIFY_INSERTED 1u
+#define GF_BINDING_NOTIFY_REMOVED 2u
+#define GF_BINDING_NOTIFY_MOVED 3u
+#define GF_BINDING_NOTIFY_CHANGED 4u
+
+/* gf_binding_provider_flags: what a provider does itself. */
+typedef uint32_t gf_binding_provider_flags;
+/* apply_sort orders its rows; otherwise the source keeps its own index. */
+#define GF_BINDING_PROVIDER_SORTS 1u
+/* apply_filter subsets its rows; otherwise the source keeps its own index. */
+#define GF_BINDING_PROVIDER_FILTERS 2u
+/* insert_row adds rows. */
+#define GF_BINDING_PROVIDER_INSERTS 4u
+/* remove_rows removes rows. */
+#define GF_BINDING_PROVIDER_REMOVES 8u
+
+/*
+ * A provider's callbacks, called on the source's UI thread with context,
+ * only from within a call on the source (a read while painting, a binding's
+ * transfer, a slot), never after release. Rows are the provider's own
+ * order, below its row count. Text a callback lends (a value's text, an id,
+ * a reason, an error) stays valid until the library's next callback on the
+ * provider. Each returns GF_STATUS_OK to answer; any other status is a
+ * refusal or, for a read, a cell error.
+ *
+ * row_count writes the number of rows (at most 2^31). read_value fills
+ * value, whose struct_size the library sets, with the cell (row, column).
+ * read_stable_id writes the row's stable id. write_value receives a value
+ * already checked against the column's kind and read-only flag, and writes
+ * accepted 1 to take it into the provider's data, 0 to refuse it with
+ * reason; the provider reports nothing for a write it accepted (the source
+ * applies it). read_cell_state, which may be null, writes the cell's
+ * read_only (0 or 1) and error text (empty for none), or the row's with
+ * column GF_BINDING_WHOLE_ROW. apply_sort and apply_filter, required with
+ * their flags, reorder or subset the rows (count 0 clears) and report a
+ * reset afterwards; insert_row and remove_rows, required with their flags,
+ * write accepted and report nothing (the source applies it). release,
+ * which may be null, is called once, when the source lets the provider go
+ * (another set_provider, or its disposal); no callback runs after it.
+ * reserved is zero.
+ */
+typedef struct gf_binding_provider_callbacks {
+    uint32_t struct_size;
+    gf_binding_provider_flags flags;
+    void* context;
+    gf_status (GF_CALL* row_count)(void* context, uint64_t* count);
+    gf_status (GF_CALL* read_value)(void* context, uint64_t row, uint64_t column, gf_value* value);
+    gf_status (GF_CALL* read_stable_id)(void* context, uint64_t row, gf_utf8_view* stable_id);
+    gf_status (GF_CALL* write_value)(void* context, uint64_t row, uint64_t column, const gf_value* value,
+                                     uint32_t* accepted, gf_utf8_view* reason);
+    gf_status (GF_CALL* read_cell_state)(void* context, uint64_t row, uint64_t column, uint32_t* read_only,
+                                         gf_utf8_view* error);
+    gf_status (GF_CALL* apply_sort)(void* context, const gf_binding_sort_key* keys, uint64_t count);
+    gf_status (GF_CALL* apply_filter)(void* context, const gf_binding_predicate* predicates, uint64_t count);
+    gf_status (GF_CALL* insert_row)(void* context, uint64_t row, gf_utf8_view stable_id, const gf_value* values,
+                                    uint64_t value_count, uint32_t* accepted);
+    gf_status (GF_CALL* remove_rows)(void* context, uint64_t row, uint64_t count, uint32_t* accepted);
+    void (GF_CALL* release)(void* context);
+} gf_binding_provider_callbacks;
 
 typedef struct gf_bindings_table {
     uint32_t struct_size;
@@ -2308,7 +2613,8 @@ typedef struct gf_bindings_table {
      * would; updated receives 0 when conversion or validation refused it. */
     gf_status (GF_CALL* read_value)(gf_object binding, uint32_t* updated);
     gf_status (GF_CALL* write_value)(gf_object binding, uint32_t* updated);
-    /* Appends a record; index receives its position. */
+    /* Appends a record; index receives its position
+     * (GF_BINDING_HIDDEN_POSITION when the source's filter hides it). */
     gf_status (GF_CALL* add_record)(gf_object source, const gf_binding_record* record, uint64_t* index);
     /* Inserts a record at index (at most the count). */
     gf_status (GF_CALL* insert_record)(gf_object source, uint64_t index, const gf_binding_record* record);
@@ -2331,6 +2637,49 @@ typedef struct gf_bindings_table {
      * record or it, or the source, allows no edit. */
     gf_status (GF_CALL* set_current_field)(gf_object source, gf_utf8_view field, const gf_value* value,
                                            uint32_t* accepted);
+    /* Since 1.2 (N31). Appends count records (the array rule: the stride
+     * is records[0].struct_size), validated whole before any is added, so
+     * a refusal adds none; first receives the first one's position. The
+     * source raises one reset list change for the call instead of one per
+     * record (when it raises list changes at all). More than
+     * GF_BINDING_MAXIMUM_RECORDS_PER_CALL records give
+     * GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes first. */
+    gf_status (GF_CALL* add_records)(gf_object source, const gf_binding_record* records, uint64_t count,
+                                     uint64_t* first);
+    /* Since 1.2 (N31). Binds the provider callbacks describes, with
+     * column_count columns (at most GF_BINDING_MAXIMUM_FIELDS), to source;
+     * provider receives its id for notify. NULL callbacks bind a new empty
+     * column table. The previous provider is let go (its release is called
+     * and its id refused from then on); the first row becomes current. The
+     * library copies columns and callbacks during the call. */
+    gf_status (GF_CALL* set_provider)(gf_object source, const gf_binding_column* columns, uint64_t column_count,
+                                      const gf_binding_provider_callbacks* callbacks, uint64_t* provider);
+    /* Since 1.2 (N31). Reports a provider's change, from any thread: on
+     * the source's UI thread outside a callback it applies at once,
+     * otherwise it is posted and applied there in order. An id the source
+     * has let go, or whose source is disposed, gives GF_STATUS_REMOVED. */
+    gf_status (GF_CALL* notify)(uint64_t provider, gf_binding_notification_kind kind, uint64_t row, uint64_t count,
+                                uint64_t target);
+    /* Since 1.2 (N31). Sorts the source's rows by count keys (0 clears),
+     * through the provider when it sorts, otherwise through the source's
+     * own index; an unknown column gives GF_STATUS_NOT_FOUND and changes
+     * nothing. */
+    gf_status (GF_CALL* set_sort)(gf_object source, const gf_binding_sort_key* keys, uint64_t count);
+    /* Since 1.2 (N31). Filters the source's rows by count predicates (0
+     * clears), as set_sort does. */
+    gf_status (GF_CALL* set_filter)(gf_object source, const gf_binding_predicate* predicates, uint64_t count);
+    /* Since 1.2 (N31). The source's generation, which every change
+     * advances, and its count of shown rows. */
+    gf_status (GF_CALL* generation)(gf_object source, uint64_t* generation, uint64_t* count);
+    /* Since 1.2 (N31). The cell (row, column) of the shown rows, read at
+     * generation, as properties.get gives a value; a generation that is no
+     * longer the source's gives GF_STATUS_STALE_HANDLE, a row or column
+     * past the source's GF_STATUS_NOT_FOUND, and a cell the provider gave
+     * no valid answer for GF_STATUS_INVALID_STATE with its error as the
+     * failure's message. */
+    gf_status (GF_CALL* read_cell)(gf_object source, uint64_t generation, uint64_t row, uint64_t column,
+                                   gf_value* value, char* text_buffer, uint64_t text_capacity,
+                                   uint64_t* text_required);
 } gf_bindings_table;
 
 /*
@@ -2588,6 +2937,13 @@ typedef uint32_t gf_rule_condition_kind;
 #define GF_RULE_CONDITION_VISIBLE 8u
 /* The window is the active window. */
 #define GF_RULE_CONDITION_WINDOW_ACTIVE 9u
+/* Since 1.2 (10 and 11 are C++ only). A session of the window's drag engine
+ * is planning, dragging or settling on the control object or one of its
+ * descendants. */
+#define GF_RULE_CONDITION_DRAGGING 12u
+/* Since 1.2. The control object is the container of the running drag's
+ * selected candidate (the group container its client named). */
+#define GF_RULE_CONDITION_DROP_CANDIDATE 13u
 
 /* The modifiers GF_RULE_CONDITION_MODIFIERS names, combined as flags. */
 #define GF_RULE_MODIFIER_SHIFT 1u
@@ -2609,6 +2965,10 @@ typedef uint32_t gf_rule_action_kind;
 #define GF_RULE_ACTION_TOGGLE 4u
 /* Gives the control target the keyboard focus. */
 #define GF_RULE_ACTION_FOCUS 5u
+/* Since 1.2. Enters the control target's keyboard drag mode, so a program
+ * binds its own move key; a control that declares no drag, or a window
+ * already running one, is left as it is. */
+#define GF_RULE_ACTION_BEGIN_KEYBOARD_DRAG 6u
 
 /* gf_rule_flags: how a rule fires. */
 typedef uint32_t gf_rule_flags;
@@ -2708,7 +3068,7 @@ typedef struct gf_rules_table {
 } gf_rules_table;
 
 /*
- * GF_TABLE_DATA_GRID (since 1.1): a data_grid_view's columns, rows, cells,
+ * GF_TABLE_DATA_GRID (since 1.2): a data_grid_view's columns, rows, cells,
  * current cell, selection and edit (C++ DataGridView). Its events (cell
  * value changed, current cell changed, selection changed, cell begin and
  * end edit, validating, user added row and the others the schema lists)
@@ -2956,7 +3316,7 @@ typedef struct gf_data_grid_table {
 } gf_data_grid_table;
 
 /*
- * GF_TABLE_DOCKING (since 1.1): a dock workspace's panels and layout (C++
+ * GF_TABLE_DOCKING (since 1.2): a dock workspace's panels and layout (C++
  * DockWorkspace), for a program whose own docking vocabulary maps onto
  * GUI.Forms docking (a Windows Forms docking library's shim, for example).
  * The workspace is a dock_workspace object (objects.create); a dock_site
@@ -3267,6 +3627,76 @@ typedef struct gf_docking_table {
     gf_status (GF_CALL* set_floating_window_visibility)(gf_object workspace, uint32_t site,
                                                         gf_dock_window_visibility visibility);
 } gf_docking_table;
+
+/*
+ * GF_TABLE_FONTS (since 1.2): the bundled font families a gf_font names in
+ * its reserved word (owner decision D2). A family is a fixed set of faces
+ * the library ships; family_id gives the id of one by the name its faces
+ * report (ASCII case ignored), family_name the name of an id. A role's own
+ * face (Portsmouth Rapids, Carlito, Cousine) has no id: gf_font.role names
+ * it, and family_id gives GF_STATUS_NOT_FOUND for it as for an unknown
+ * name. Both read only the library's constant list and may be called from
+ * any thread.
+ */
+typedef struct gf_fonts_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    gf_status (GF_CALL* family_id)(gf_utf8_view name, uint32_t* family);
+    gf_status (GF_CALL* family_name)(uint32_t family, char* buffer, uint64_t capacity, uint64_t* required);
+} gf_fonts_table;
+
+/* gf_help_navigator: what help.show_navigator opens (Windows Forms'
+ * HelpNavigator): the contents, the keyword index at text, or a search for
+ * text. */
+typedef uint32_t gf_help_navigator;
+#define GF_HELP_NAVIGATOR_CONTENTS 0u
+#define GF_HELP_NAVIGATOR_INDEX 1u
+#define GF_HELP_NAVIGATOR_SEARCH 2u
+
+/*
+ * GF_TABLE_HELP (since 1.2; roadmap row 3.7): a help book system's viewer,
+ * popup, F1 resolution and What's This mode. system is a help_book_system
+ * component (objects.create, schema type "help_book_system"); its records
+ * come from a language file's help fields, given whole to load_built_in
+ * (the <locale> document the C++ HelpBookSystem::load_built_in reads), so
+ * a C program declares its topics as that file declares them. Every
+ * function runs on the UI thread; text is borrowed for the call; a system
+ * that is not a help_book_system is GF_STATUS_WRONG_HANDLE_KIND, a
+ * disposed one GF_STATUS_DISPOSED.
+ *
+ * - attach makes window (a window object) one the system serves: its F1,
+ *   Shift+F1 and help requests reach the system, and the viewer opens over
+ *   it. detach undoes it.
+ * - load_built_in reads locale_xml as the program's own help text and
+ *   merges it over what earlier calls loaded (a field it gives replaces
+ *   the earlier one); a file the reader refuses gives
+ *   GF_STATUS_INVALID_ARGUMENT and leaves the records as they were.
+ * - show, show_navigator and show_popup open the viewer at a record, at
+ *   the contents, index or search, or the paper popup at a record beside
+ *   anchor (a control in an attached window); shown receives 1 when it
+ *   opened, 0 when there was nothing to open (an unknown record, no
+ *   attached window).
+ * - resolve writes the record F1 on control would open (the control's own,
+ *   else the nearest ancestor's, else the home page) into buffer (the
+ *   BUFFER_TOO_SMALL rule) and home 1 when it is the home page.
+ * - enter_help_mode starts What's This on window (entered 1 when it
+ *   started); cancel_help_mode ends it, if active.
+ */
+typedef struct gf_help_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    gf_status (GF_CALL* attach)(gf_object system, gf_object window);
+    gf_status (GF_CALL* detach)(gf_object system, gf_object window);
+    gf_status (GF_CALL* load_built_in)(gf_object system, gf_utf8_view locale_xml);
+    gf_status (GF_CALL* show)(gf_object system, gf_utf8_view stable_id, uint32_t* shown);
+    gf_status (GF_CALL* show_navigator)(gf_object system, gf_help_navigator navigator, gf_utf8_view text,
+                                        uint32_t* shown);
+    gf_status (GF_CALL* show_popup)(gf_object system, gf_utf8_view stable_id, gf_object anchor, uint32_t* shown);
+    gf_status (GF_CALL* resolve)(gf_object system, gf_object control, char* buffer, uint64_t capacity,
+                                 uint64_t* required, uint32_t* home);
+    gf_status (GF_CALL* enter_help_mode)(gf_object system, gf_object window, uint32_t* entered);
+    gf_status (GF_CALL* cancel_help_mode)(gf_object system);
+} gf_help_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability

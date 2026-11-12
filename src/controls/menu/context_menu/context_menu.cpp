@@ -169,6 +169,17 @@ struct ContextMenu::Impl final {
                 paint_part(painter, *this, shadow);
             }
             Panel::on_paint(painter, local_damage);
+            // The icon gutter, inside the border and under the rows, which
+            // paint over it as children; a row's hot plate covers it.
+            const Rect bounds = local_bounds();
+            PartPaint gutter;
+            gutter.family = ControlVisualRole::menu_item;
+            gutter.role = PartRole::well;
+            gutter.control_type = menu_item_control_type;
+            gutter.key = PartKey{menu_gutter_part, {}, {}};
+            gutter.bounds = {menu_border, menu_border, menu_gutter_width,
+                             std::max(0.0, bounds.height - menu_border * 2.0)};
+            paint_part(painter, *this, gutter);
         }
 
         // Whether the panel casts its shadow (true until changed): an opaque
@@ -261,6 +272,9 @@ struct ContextMenu::Impl final {
             : Control(std::move(id)),
               reveal_(*this, MotionCurve::timed(reveal_duration, MotionEasing::smoothstep), 1.0) {
             set_paint_plane(PaintPlane::overlay);
+            // The shadow round the panel takes no input: the host passes a
+            // point there to the window beneath.
+            hit_test_transparent = true;
             reveal_.set_listener(MotionListener::bind<PopupFrame, &PopupFrame::on_reveal>(*this));
         }
 
@@ -358,6 +372,11 @@ struct ContextMenu::Impl final {
             const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                               committed_arranged_bounds().height};
             const BasicControlStyle style;
+            // The gutters, marks and chevron follow the text scale, as the
+            // label's font and the row's height do (audit N111); the
+            // plate's 2 by 1 inset is the edge and stays.
+            const double scale = impl_.text_scale();
+            const double label_left = menu_label_left * scale;
             // The separator rule, the hot plate, the check or radio mark,
             // the label and the submenu chevron are menu item parts the
             // theme's engine draws; a row is hot while hot or focused and
@@ -374,8 +393,8 @@ struct ContextMenu::Impl final {
                 PartPaint rule;
                 rule.family = ControlVisualRole::panel;
                 rule.role = PartRole::divider;
-                rule.bounds = {menu_label_left, bounds.height * .5 - 0.5,
-                               std::max(1.0, bounds.width - menu_label_left - 7.0), 1.0};
+                rule.bounds = {label_left, bounds.height * .5 - 0.5,
+                               std::max(1.0, bounds.width - label_left - 7.0 * scale), 1.0};
                 paint_part(painter, *this, rule);
                 return;
             }
@@ -402,8 +421,9 @@ struct ContextMenu::Impl final {
                 icon.role = PartRole::icon;
                 icon.states = states;
                 icon.image = item_.image;
-                icon.bounds = {menu_icon_left, std::floor((bounds.height - menu_icon_size) * 0.5),
-                               menu_icon_size, menu_icon_size};
+                const double icon_size = menu_icon_size * scale;
+                icon.bounds = {menu_icon_left * scale, std::floor((bounds.height - icon_size) * 0.5),
+                               icon_size, icon_size};
                 paint_part(painter, *this, icon);
             }
             if (checked) {
@@ -415,10 +435,12 @@ struct ContextMenu::Impl final {
                 // Centred on the row, in the icon gutter.
                 if (item_.kind == MenuItemKind::check) {
                     mark.mark = PartMark::check;
-                    mark.bounds = {7.0, std::floor((bounds.height - 14.0) * 0.5), 14.0, 14.0};
+                    mark.bounds = {7.0 * scale, std::floor((bounds.height - 14.0 * scale) * 0.5), 14.0 * scale,
+                                   14.0 * scale};
                 } else {
                     mark.mark = PartMark::radio_dot;
-                    mark.bounds = {9.0, std::floor((bounds.height - 12.0) * 0.5), 12.0, 12.0};
+                    mark.bounds = {9.0 * scale, std::floor((bounds.height - 12.0 * scale) * 0.5), 12.0 * scale,
+                                   12.0 * scale};
                 }
                 paint_part(painter, *this, mark);
             }
@@ -435,8 +457,8 @@ struct ContextMenu::Impl final {
             // A destructive command's red ink, provisionally an authored
             // colour until the theme has a text tone for it (asked).
             if (item_.command_state.destructive) label.authored_foreground = menu_ink(item_, style);
-            paint_text_part_at(painter, *this, label, {menu_label_left, baseline},
-                               std::max(0.0, bounds.width - menu_label_left));
+            paint_text_part_at(painter, *this, label, {label_left, baseline},
+                               std::max(0.0, bounds.width - label_left));
             if (!item_.command_state.shortcut.empty()) {
                 const FontSpec shortcut_font = effective_font(menu_shortcut_font());
                 const Size size = painter.measure_text_utf8(
@@ -452,7 +474,7 @@ struct ContextMenu::Impl final {
                 // Right-aligned in the shortcut column, before the chevron's
                 // trailing space.
                 paint_text_part_at(painter, *this, shortcut,
-                                   {std::max(menu_label_left + 4.0, bounds.width - size.width - menu_trailing),
+                                   {std::max(label_left + 4.0 * scale, bounds.width - size.width - menu_trailing * scale),
                                     baseline},
                                    size.width);
             }
@@ -461,7 +483,8 @@ struct ContextMenu::Impl final {
                 chevron.family = ControlVisualRole::menu_item;
                 chevron.role = PartRole::disclosure;
                 chevron.mark = PartMark::chevron_right;
-                chevron.bounds = {bounds.width - 18.0, std::floor((bounds.height - 8.0) * 0.5), 8.0, 8.0};
+                chevron.bounds = {bounds.width - 18.0 * scale, std::floor((bounds.height - 8.0 * scale) * 0.5),
+                                  8.0 * scale, 8.0 * scale};
                 chevron.states = states;
                 paint_part(painter, *this, chevron);
             }
@@ -633,6 +656,12 @@ struct ContextMenu::Impl final {
             throw std::logic_error("ContextMenu has no visible items to show");
         }
         window = (*invoker).attached_window();
+        // Every other menu on the window closes first (one menu chain per
+        // window); this one is closed and not yet subscribed, so it is not
+        // among them.
+        (*window).announce_menu_opening();
+        other_menu_opening = (*window).menu_opening().subscribe(
+            owner, Delegate<>::bind<Impl, &Impl::on_other_menu_opening>(*this));
         owner_control = invoker;
         invoker_theme = invoker_theme_override(invoker);
         const Size client = (*window).client_size();
@@ -666,6 +695,8 @@ struct ContextMenu::Impl final {
                 owner, Delegate<std::size_t>::bind<Impl, &Impl::on_popup_closed>(*this));
             owner_active = (*window).active_changed().subscribe(
                 owner, Delegate<bool>::bind<Impl, &Impl::on_owner_active>(*this));
+            owner_moved = (*window).frame_moved().subscribe(
+                owner, Delegate<>::bind<Impl, &Impl::on_owner_moved>(*this));
             static_cast<void>(focus_row(0U, preferred));
         } else {
             focus_scope = (*window).begin_focus_scope(layer, preferred);
@@ -677,6 +708,7 @@ struct ContextMenu::Impl final {
     void close() noexcept {
         if (closing) return;
         closing = true;
+        ++close_count;
         if (window && focus_scope) {
             try {
                 static_cast<void>((*window).end_focus_scope(focus_scope));
@@ -685,6 +717,7 @@ struct ContextMenu::Impl final {
         }
         focus_scope = {};
         hide_popups();
+        other_menu_opening.disconnect();
         overlay_token.disconnect();
         overlay_revocation.disconnect();
         const bool changed = open;
@@ -704,10 +737,18 @@ struct ContextMenu::Impl final {
         }
         focus_scope = {};
         overlay_revocation.disconnect();
+        ++close_count;
         hide_popups();
         const bool changed = open;
         reset_visual_state();
         if (changed && owner.is_alive()) owner.open_changed_.emit(false);
+    }
+
+    // Whether the row at `depth` and `index` still exists and the menu has
+    // not closed since `closes` was read.
+    [[nodiscard]] bool row_still_shown(std::size_t depth, std::size_t index, std::uint64_t closes) const noexcept {
+        const bool shown = close_count == closes && depth < panels.size() && index < panels[depth].rows.size();
+        return shown;
     }
 
     // The owner's Popup window of a shown panel closed (the host destroyed
@@ -719,6 +760,12 @@ struct ContextMenu::Impl final {
     void on_owner_active(bool active) {
         if (!active) close();
     }
+
+    // The owner moved under its Popup windows: they no longer sit by the
+    // rows that opened them, so the whole chain closes.
+    void on_owner_moved() { close(); }
+
+    void on_other_menu_opening() { close(); }
 
     // Hides every Popup window the menu shows, deepest first, and empties
     // their frames.
@@ -732,6 +779,7 @@ struct ContextMenu::Impl final {
         }
         popup_closed.disconnect();
         owner_active.disconnect();
+        owner_moved.disconnect();
     }
 
     // The window that hosts the panel at `depth`: its Popup window's model
@@ -782,6 +830,8 @@ struct ContextMenu::Impl final {
             frame = make_control<PopupFrame>(
                 StableId(owner.stable_id_ + ".popup.frame." + std::to_string(depth)));
         }
+        // The window first, so the shadow follows what it was granted.
+        static_cast<void>((*window).prepare_popup_window(depth));
         (*state.panel).set_shadow((*window).popup_windows_translucent());
         const Insets outsets = (*state.panel).visual_outsets();
         (*frame).hold(state.panel, Rect{outsets.left, outsets.top, face.width, face.height});
@@ -848,8 +898,10 @@ struct ContextMenu::Impl final {
                 (*window).resolve_text_layout_utf8(item.command_state.shortcut, shortcut_font);
             shortcuts = std::max(shortcuts, shortcut.logical_size.width);
         }
-        const double shortcut_column = shortcuts > 0.0 ? menu_shortcut_gap + shortcuts : 0.0;
-        const double width = menu_border * 2.0 + 2.0 + menu_label_left + labels + shortcut_column + menu_trailing;
+        // The gutters scale with the text, as the rows draw them (N111).
+        const double shortcut_column = shortcuts > 0.0 ? menu_shortcut_gap * scale + shortcuts : 0.0;
+        const double width = menu_border * 2.0 + 2.0 + menu_label_left * scale + labels + shortcut_column +
+                             menu_trailing * scale;
         return std::ceil(width);
     }
 
@@ -857,7 +909,10 @@ struct ContextMenu::Impl final {
                     double requested_x, double requested_y,
                     std::optional<std::size_t> parent_index) {
         if (!layer || !window || depth >= maximum_menu_depth) return;
+        const std::uint64_t closes = close_count;
         remove_panels_from(depth);
+        // `items` lies in the snapshot, which a close destroys.
+        if (close_count != closes || panels.size() != depth) return;
         const Rect area = placement_area(Point{requested_x, requested_y});
         const double area_right = area.x + area.width;
         const double area_bottom = area.y + area.height;
@@ -908,7 +963,11 @@ struct ContextMenu::Impl final {
         layout_rows(depth);
         // A panel clamped above where it was asked for opens upward.
         const bool upward = y < requested_y;
-        if (!popup_mode || !present_in_popup(depth, placed, face, upward)) {
+        const bool presented = popup_mode && present_in_popup(depth, placed, face, upward);
+        // Showing the Popup window may have closed the menu, destroying
+        // `placed`.
+        if (close_count != closes || panels.size() != depth + 1U) return;
+        if (!presented) {
             // Placed against the work area but refused a Popup (the host
             // refused, or the depth is past the menu slots): back inside
             // the owner's client, where the layer shows it.
@@ -941,12 +1000,16 @@ struct ContextMenu::Impl final {
 
     void remove_panels_from(std::size_t depth) {
         while (panels.size() > depth) {
-            const std::shared_ptr<MenuPanel> panel = panels.back().panel;
-            if (panels.back().in_popup) {
-                if (window) (*window).hide_popup_window(panels.size() - 1U);
-                if (panels.back().frame) (*panels.back().frame).release();
-            }
+            // Out of the list first: hiding the window may run code that
+            // reads the panels (or closes the menu and empties them).
+            const std::size_t slot = panels.size() - 1U;
+            PanelState removed = std::move(panels.back());
             panels.pop_back();
+            if (removed.in_popup) {
+                if (window) (*window).hide_popup_window(slot);
+                if (removed.frame) (*removed.frame).release();
+            }
+            const std::shared_ptr<MenuPanel>& panel = removed.panel;
             if (layer && panel && (*panel).parent().get() == layer.get()) {
                 static_cast<void>((*layer).remove_child((*panel).runtime_id()));
             }
@@ -1013,9 +1076,11 @@ struct ContextMenu::Impl final {
         for (std::size_t current = 0; current < panels[depth].rows.size(); ++current) {
             (*panels[depth].rows[current]).set_hot(current == index);
         }
+        const std::uint64_t closes = close_count;
         if (window && (*panels[depth].rows[index]).focusable.read()) {
             static_cast<void>(focus_row(depth, panels[depth].rows[index]));
         }
+        if (!row_still_shown(depth, index, closes)) return;
         const MenuSnapshot& item = (*panels[depth].items)[index];
         if (item.kind == MenuItemKind::submenu) {
             open_submenu(depth, index, false);
@@ -1046,8 +1111,10 @@ struct ContextMenu::Impl final {
             const bool flips = right_x + child_width + 4.0 > area.x + area.width;
             const double x = flips ? parent.x - child_width + 3.0 : right_x;
             panels[depth].child_source_index = index;
+            const std::uint64_t closes = close_count;
             // Its first row level with the row that opened it.
             open_panel(depth + 1U, item.children, x, row.y - menu_border, index);
+            if (!row_still_shown(depth, index, closes)) return;
             panels[depth].child_source_index = index;
             (*panels[depth].rows[index]).submenu_changed();
         }
@@ -1120,13 +1187,14 @@ struct ContextMenu::Impl final {
             open_submenu(depth, index, true);
             return;
         }
-        if (item.kind == MenuItemKind::separator || !item.command ||
-            !item.command_state.enabled) return;
+        if (item.kind == MenuItemKind::separator || !item.command_state.enabled) return;
         const std::string source_id = std::string(
             (*panels[depth].rows[index]).stable_id().value());
         const std::string item_id = item.stable_id;
-        const std::string command_id = (*item.command).stable_id();
+        // An item without a Command (GAPS E9) is chosen with an empty
+        // command_id; there is nothing to execute.
         const std::shared_ptr<Command> command = item.command;
+        const std::string command_id = command ? (*command).stable_id() : std::string{};
         // Release containment and restore the invoker before application code
         // runs. A command may deliberately focus its resulting surface; doing
         // this after execution would overwrite that destination with the menu
@@ -1135,10 +1203,10 @@ struct ContextMenu::Impl final {
             static_cast<void>((*window).end_focus_scope(focus_scope));
         }
         focus_scope = {};
-        bool executed = false;
-        if (window != nullptr) {
+        bool executed = !command;
+        if (command && window != nullptr) {
             executed = (*command).execute_routed(*window, source_id);
-        } else {
+        } else if (command) {
             executed = (*command).execute(source_id);
         }
         if (executed && owner.is_alive()) {
@@ -1215,8 +1283,19 @@ struct ContextMenu::Impl final {
     std::array<std::shared_ptr<PopupFrame>, maximum_menu_depth> frames{};
     SubscriptionToken popup_closed;
     SubscriptionToken owner_active;
+    SubscriptionToken owner_moved;
+    // The window's menu_opening, while the menu shows (both modes).
+    SubscriptionToken other_menu_opening;
     bool open{};
     bool closing{};
+    // Counts closes. Showing a Popup window, focusing a row or hiding a
+    // window can run code that closes the menu (an owner deactivated, a
+    // focus handler, a host that closed a slot); a caller that held a depth
+    // and an index across such a call compares this counter before it uses
+    // them again, since close() destroys every panel, row and the snapshot
+    // the rows refer to (owner, 2026-11-10: the use after free in
+    // open_submenu, gdb2 to gdb4).
+    std::uint64_t close_count{};
     std::function<bool(int)> root_navigation_handler;
     std::function<bool(const PointerEvent&)> outside_pointer_handler;
 };

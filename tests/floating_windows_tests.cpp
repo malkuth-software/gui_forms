@@ -363,9 +363,39 @@ void test_session_end_is_its_own_close_reason() {
             "the closed windows do not report the session-end reason");
 }
 
+// Every window's closing handler is asked at a session end, not only the
+// run-ending window's (audit P2): a secondary window that refuses, say for
+// unsaved work, cancels it and every window stays open. This is the
+// contract the Windows host meets through WM_QUERYENDSESSION, which
+// Windows sends to each top-level window, and the macOS host's quit path.
+void test_session_end_asks_every_window() {
+    std::vector<HostCloseReason> main_reasons;
+    std::vector<HostCloseReason> tool_reasons;
+    const bool accept = false;
+    const bool refuse = true;
+    ApplicationWindowHandle main{};
+    ApplicationWindowHandle tool{};
+    std::vector<ApplicationWindow> windows;
+    ApplicationWindow primary = make_entry("main", "", HostWindowFloating::none, {800.0, 600.0});
+    primary.options.ready = KeepHandle{&main};
+    primary.options.closing = RecordClosing{&main_reasons, &accept};
+    windows.push_back(std::move(primary));
+    ApplicationWindow panel = make_entry("tool", "main", HostWindowFloating::tool, {200.0, 300.0});
+    panel.options.ready = KeepHandle{&tool};
+    panel.options.closing = RecordClosing{&tool_reasons, &refuse};
+    windows.push_back(std::move(panel));
+    host::HeadlessApplication application(std::move(windows));
+
+    require(!application.simulate_session_end(), "a secondary window's refusal did not cancel the session end");
+    require(tool_reasons.size() == 1U && tool_reasons[0] == HostCloseReason::session_end,
+            "the secondary window's closing handler was not asked");
+    require(main.active() && tool.active(), "a cancelled session end closed a window");
+}
+
 int main() {
     try {
         test_kinds_traits_and_clamp();
+        test_session_end_asks_every_window();
         test_floating_validation();
         test_tools_hide_while_the_application_is_inactive();
         test_hide_on_close_is_remembered();

@@ -839,7 +839,10 @@ private:
 };
 
 // Lets the wake return a while after it entered, so that the UI thread is
-// already removing the handler when it does.
+// already removing the handler when it does. The wait only widens the window
+// in which a removal that did not wait would be caught (N104): a correct
+// removal returns after the wake however late the release comes, so a slow
+// runner cannot fail the test.
 struct LateRelease final {
     const std::atomic<int>* phase{};
     std::atomic<bool>* release{};

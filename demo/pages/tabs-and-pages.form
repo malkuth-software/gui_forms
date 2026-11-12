@@ -10,8 +10,7 @@
    content, the page records and late content, the tab controls' sizes,
    alignments and appearances, the two controls a document cannot make
    alone (the PageStrip over the page's set and the document-preset
-   PageView, each placed ahead of its status line), every event handler
-   and the page style. */
+   PageView, each placed ahead of its status line) and every event handler. */
 scaled-panel gallery.tabs.document {
   design-size: 1000 2020;
 

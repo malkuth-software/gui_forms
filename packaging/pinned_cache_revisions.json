@@ -19,6 +19,10 @@
     {
       "sha": "2fe26d8d1a830e82a1db5781c6e8a05c2a0df6d0",
       "consumer": "File Manager (malkuth-software/file_manager dependencies.lock.json gui_forms.revision and release build-2fe26d8d..., sha256 per platform); the release exists"
+    },
+    {
+      "sha": "66a7f2e5b6a48e935867de7853927e5c3104858e",
+      "consumer": "Plan Paint (malkuth-software/plan-paint third_party/gui-forms.lock.json commit and cache_release build-66a7f2e5..., sha256 per platform; PR #49); the release exists"
     }
   ]
 }

@@ -8,8 +8,8 @@
    children into the shell's page body (a 1000 x 660 design surface), where
    each is placed by its bounds in design coordinates. The page keeps in
    code what the form language does not state: the pictures' grounds, the
-   drawing board's paint callback, the raster's bitmap and sampling and the
-   page style. The Gallery theme styles the classes. */
+   drawing board's paint callback and the raster's bitmap and sampling.
+   The Gallery theme styles the classes. */
 scaled-panel gallery.images.document {
   design-size: 1000 660;
 

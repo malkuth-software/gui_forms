@@ -17,13 +17,24 @@
 
 namespace gui_forms {
 namespace {
+// The label's text insets (audit F6), named once for measure, layout and
+// paint. Logical units.
+// The text sits this far inside the left and right edges.
+constexpr double horizontal_inset = 2.0;
+// Both horizontal insets: the width measure adds and wrapping subtracts.
+constexpr double horizontal_insets = 2.0 * horizontal_inset;
+// The text block sits at least this far inside the top and bottom edges.
+constexpr double vertical_inset = 1.0;
+// The height the measure adds around the text block.
+constexpr double vertical_allowance = 4.0;
+
 // These resolvers borrow their host only for the synchronous label_lines call.
 struct LabelWidth final {
     const Label& label;
     FontSpec font{};
     double operator()(const std::string_view value) const {
-        const ResolvedTextLayout layout = label.resolve_text_layout_utf8(value, font);
-        return layout.logical_size.width;
+        const TextExtent extent = label.measure_text_extent_utf8(value, font);
+        return extent.logical_size.width;
     }
 };
 
@@ -31,8 +42,8 @@ struct PainterLabelWidth final {
     Painter& painter;
     FontSpec font{};
     double operator()(const std::string_view value) const {
-        const ResolvedTextLayout layout = painter.resolve_text_layout_utf8(value, font);
-        return layout.logical_size.width;
+        const TextExtent extent = painter.measure_text_extent_utf8(value, font);
+        return extent.logical_size.width;
     }
 };
 std::shared_ptr<const PropertyEnumDescriptor> horizontal_alignment_enum() {
@@ -215,7 +226,7 @@ Size Label::measure(const Size available) {
     }
     const double wrap_width = requested.width > 0.0
         ? requested.width : available.width;
-    const Size measured = measure_wrapped_text(std::max(0.0, wrap_width - 4.0), available);
+    const Size measured = measure_wrapped_text(std::max(0.0, wrap_width - horizontal_insets), available);
     return measured;
 }
 
@@ -242,7 +253,7 @@ Size Label::measure_intrinsic(const LayoutConstraint& constraint) {
     // the last place until it cannot. One step corrects the rounding of one
     // addition; four bound the loop.
     if (kind == AvailableExtentKind::min_content) {
-        for (int step = 0; step < 4 && measured.width - 4.0 < content_width_limit; ++step) {
+        for (int step = 0; step < 4 && measured.width - horizontal_insets < content_width_limit; ++step) {
             measured.width = std::nextafter(measured.width, practical_unbounded_extent);
         }
     }
@@ -270,8 +281,8 @@ double Label::widest_unbreakable_segment(const std::string_view shown,
             ++word_end;
         }
         if (word_end > cursor) {
-            const ResolvedTextLayout word =
-                resolve_text_layout_utf8(shown.substr(cursor, word_end - cursor), face);
+            const TextExtent word =
+                measure_text_extent_utf8(shown.substr(cursor, word_end - cursor), face);
             widest = std::max(widest, word.logical_size.width);
         }
         cursor = word_end;
@@ -290,7 +301,7 @@ Size Label::measure_wrapped_text(const double content_width_limit,
     double content_width{};
     double line_height{};
     for (const std::string& line : lines) {
-        const ResolvedTextLayout metrics = resolve_text_layout_utf8(line, face);
+        const TextExtent metrics = measure_text_extent_utf8(line, face);
         content_width = std::max(content_width, metrics.logical_size.width);
         line_height = std::max(
             line_height, std::max(face.size, metrics.logical_size.height) *
@@ -298,10 +309,10 @@ Size Label::measure_wrapped_text(const double content_width_limit,
     }
     if (line_height <= 0.0) line_height = face.size * line_spacing.read();
     const double preferred_width = requested.width > 0.0
-        ? requested.width : content_width + 4.0;
+        ? requested.width : content_width + horizontal_insets;
     const double preferred_height = requested.height > 0.0
         ? requested.height
-        : static_cast<double>(lines.size()) * line_height + 4.0;
+        : static_cast<double>(lines.size()) * line_height + vertical_allowance;
     const Size measured{std::min(available.width, preferred_width),
                         std::min(available.height, preferred_height)};
     return measured;
@@ -331,15 +342,15 @@ Label::TextLayout Label::layout_label_text(const std::string_view shown,
         : TextWidthResolver{LabelWidth{*this, face}};
     TextLayout layout;
     layout.lines = label_lines(
-        shown, face, std::max(0.0, arranged.width - 4.0), text_wrapping.read(), resolve, maximum_lines.read());
-    std::vector<ResolvedTextLayout> metrics{};
+        shown, face, std::max(0.0, arranged.width - horizontal_insets), text_wrapping.read(), resolve, maximum_lines.read());
+    std::vector<TextExtent> metrics{};
     metrics.reserve(layout.lines.size());
     double line_height{};
     for (const std::string& line : layout.lines) {
         if (painter != nullptr) {
-            metrics.push_back((*painter).resolve_text_layout_utf8(line, face));
+            metrics.push_back((*painter).measure_text_extent_utf8(line, face));
         } else {
-            metrics.push_back(resolve_text_layout_utf8(line, face));
+            metrics.push_back(measure_text_extent_utf8(line, face));
         }
         line_height = std::max(
             line_height,
@@ -348,11 +359,11 @@ Label::TextLayout Label::layout_label_text(const std::string_view shown,
     }
     if (line_height <= 0.0) line_height = face.size * line_spacing.read();
     const double block_height = static_cast<double>(layout.lines.size()) * line_height;
-    double top = 1.0;
+    double top = vertical_inset;
     if (vertical_alignment.read() == VerticalAlignment::center) {
-        top = std::max(1.0, (arranged.height - block_height) * 0.5);
+        top = std::max(vertical_inset, (arranged.height - block_height) * 0.5);
     } else if (vertical_alignment.read() == VerticalAlignment::far) {
-        top = std::max(1.0, arranged.height - block_height - 1.0);
+        top = std::max(vertical_inset, arranged.height - block_height - vertical_inset);
     }
     layout.origins.reserve(layout.lines.size());
     layout.widths.reserve(layout.lines.size());
@@ -360,11 +371,11 @@ Label::TextLayout Label::layout_label_text(const std::string_view shown,
     double block_right = 0.0;
     for (std::size_t index = 0; index < layout.lines.size(); ++index) {
         const double text_width = metrics[index].logical_size.width;
-        double x = 2.0;
+        double x = horizontal_inset;
         if (alignment.read() == HorizontalAlignment::center) {
-            x = std::max(2.0, (arranged.width - text_width) * 0.5);
+            x = std::max(horizontal_inset, (arranged.width - text_width) * 0.5);
         } else if (alignment.read() == HorizontalAlignment::far) {
-            x = std::max(2.0, arranged.width - text_width - 2.0);
+            x = std::max(horizontal_inset, arranged.width - text_width - horizontal_inset);
         }
         const double leading = std::max(
             0.0, line_height - metrics[index].logical_size.height);

@@ -1071,6 +1071,54 @@ void virtual_mode() {
     require(threw, "a virtual view's source owns the checked state");
 }
 
+void virtual_splice() {
+    // Audit N94: bulk insertion and removal in a million-item virtual list
+    // without a refresh; selection and focus follow their items.
+    std::shared_ptr<CountingSource> source = std::make_shared<CountingSource>(1'000'000U);
+    std::shared_ptr<ListView> view = make_control<ListView>(StableId("splice"));
+    (*view).set_columns(sample_columns());
+    (*view).set_virtual_source(source);
+    Window window(view, {400.0, 240.0});
+    window.perform_layout();
+    require(window.request_focus(view), "the splice view takes focus");
+    require(key(window, PhysicalKey::end) && (*view).focused_index() == 999'999U, "focus at the end");
+    (*view).set_selected(10U, true);
+    (*view).set_selected(600'000U, true);
+    (*view).set_selected(900'000U, true);
+    (*source).set_count(1'000'000U + 250'000U);
+    (*view).splice_virtual_items(500'000U, 0U, 250'000U);
+    require((*view).item_count() == 1'250'000U && (*view).is_selected(10U) && (*view).is_selected(850'000U) &&
+                (*view).is_selected(1'150'000U) && (*view).is_selected(1'249'999U) &&
+                (*view).focused_index() == 1'249'999U && !(*view).is_selected(600'000U),
+            "a bulk insertion moves the selection and focus past it");
+    (*source).set_count(1'250'000U - 300'000U);
+    (*view).splice_virtual_items(800'000U, 300'000U, 0U);
+    require((*view).item_count() == 950'000U && (*view).is_selected(10U) && (*view).selected_count() == 3U &&
+                (*view).is_selected(850'000U) &&
+                (*view).focused_index() == 949'999U,
+            "a bulk removal drops the selection inside it and shifts the rest");
+    window.perform_layout();
+    require((*view).realized_items().back().stable_id == "row-949999", "the view still shows the focused end");
+    bool threw = false;
+    try {
+        (*view).splice_virtual_items(0U, 1U, 0U);
+    } catch (const std::logic_error&) {
+        threw = true;
+    }
+    require(threw && (*view).item_count() == 950'000U, "a splice the source does not match is refused");
+    threw = false;
+    try {
+        (*view).splice_virtual_items(950'001U, 0U, 0U);
+    } catch (const std::out_of_range&) {
+        threw = true;
+    }
+    require(threw, "a splice past the items is refused");
+    const ListViewSpliceRemap remap{5U, 8U, 1U};
+    require(remap.apply(std::optional<std::size_t>{4U}) == 4U && !remap.apply(std::optional<std::size_t>{6U}) &&
+                remap.apply(std::optional<std::size_t>{9U}) == 7U && !remap.apply(std::nullopt),
+            "the splice remap keeps, drops and shifts indices");
+}
+
 void semantics() {
     std::shared_ptr<ListView> view = details_view(3U);
     (*view).accessible_name = "Files";
@@ -1269,6 +1317,7 @@ int main() {
     virtual_label_editing();
     scrolling();
     virtual_mode();
+    virtual_splice();
     semantics();
     capabilities();
     refusals();

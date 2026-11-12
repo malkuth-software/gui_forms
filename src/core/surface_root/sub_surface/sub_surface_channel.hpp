@@ -56,6 +56,12 @@ struct SubSurfaceChannel final {
     std::weak_ptr<SubSurfaceSemanticsListener> semantics_listener{};
     std::shared_ptr<const SemanticSnapshot> semantics{};
     bool semantics_notice_pending{};
+    // Whether the loop builds a snapshot at the next turn whose semantic
+    // generation moved (true until the first is built, then set again by
+    // take_semantics and a live listener), and whether the generation moved
+    // since the newest published one while none was wanted (N44).
+    bool semantics_wanted{true};
+    bool semantics_stale{};
     // Where the notice of the thread ending on its own goes
     // (SubSurfaceThread::set_end_listener), held weakly.
     WindowDispatcher end_dispatcher{};

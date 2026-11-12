@@ -1,4 +1,5 @@
 #include "windows_automation.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 
 #include "windows_text_automation.hpp"
 
@@ -412,12 +413,12 @@ private:
     ~UiaElement() = default;
 
     // Takes a snapshot into `client` and finds this element's node.
-    HRESULT resolve(SemanticTreeRef& client, SemanticLocation& self) noexcept;
+    HRESULT resolve(SemanticTreeRef& client, SemanticLocation& self);
     // As resolve, and refuses a node that does not offer `pattern`.
     HRESULT resolve_pattern(PATTERNID pattern, SemanticTreeRef& client,
-                            SemanticLocation& self) noexcept;
+                            SemanticLocation& self);
     // Performs `action` on this element's node, which must offer `pattern`.
-    HRESULT act(PATTERNID pattern, SemanticAction action, std::string_view value) noexcept;
+    HRESULT act(PATTERNID pattern, SemanticAction action, std::string_view value);
     // A new element for the located node, as IRawElementProviderFragment.
     HRESULT fragment_for(const SemanticLocation& location,
                          IRawElementProviderFragment** out) noexcept;
@@ -431,6 +432,64 @@ private:
     std::atomic<ULONG> references_{1U};
     std::shared_ptr<SemanticSource> source_;
     SemanticElementId id_;
+private:
+    // The COM methods' bodies: each method calls its own through the
+    // fail-fast boundary (site "windows.UiaElement.<method>").
+    HRESULT answer_QueryInterface(REFIID iid, void** out);
+    ULONG answer_AddRef();
+    ULONG answer_Release();
+    HRESULT answer_get_ProviderOptions(ProviderOptions* out);
+    HRESULT answer_GetPatternProvider(PATTERNID pattern, IUnknown** out);
+    HRESULT answer_GetPropertyValue(PROPERTYID property, VARIANT* out);
+    HRESULT answer_get_HostRawElementProvider(IRawElementProviderSimple** out);
+    HRESULT answer_Navigate(NavigateDirection direction, IRawElementProviderFragment** out);
+    HRESULT answer_GetRuntimeId(SAFEARRAY** out);
+    HRESULT answer_get_BoundingRectangle(UiaRect* out);
+    HRESULT answer_GetEmbeddedFragmentRoots(SAFEARRAY** out);
+    HRESULT answer_SetFocus();
+    HRESULT answer_get_FragmentRoot(IRawElementProviderFragmentRoot** out);
+    HRESULT answer_ElementProviderFromPoint(double x, double y, IRawElementProviderFragment** out);
+    HRESULT answer_GetFocus(IRawElementProviderFragment** out);
+    HRESULT answer_Invoke();
+    HRESULT answer_Toggle();
+    HRESULT answer_get_ToggleState(ToggleState* out);
+    HRESULT answer_SetValue(LPCWSTR value);
+    HRESULT answer_get_Value(BSTR* out);
+    HRESULT answer_get_IsReadOnly(BOOL* out);
+    // IRangeValueProvider's SetValue and get_Value, named apart from
+    // IValueProvider's so that call_failing_fast names one member each.
+    HRESULT answer_SetRangeValue(double value);
+    HRESULT answer_get_RangeValue(double* out);
+    HRESULT answer_get_Maximum(double* out);
+    HRESULT answer_get_Minimum(double* out);
+    HRESULT answer_get_LargeChange(double* out);
+    HRESULT answer_get_SmallChange(double* out);
+    HRESULT answer_Expand();
+    HRESULT answer_Collapse();
+    HRESULT answer_get_ExpandCollapseState(ExpandCollapseState* out);
+    HRESULT answer_Select();
+    HRESULT answer_AddToSelection();
+    HRESULT answer_RemoveFromSelection();
+    HRESULT answer_get_IsSelected(BOOL* out);
+    HRESULT answer_get_SelectionContainer(IRawElementProviderSimple** out);
+    HRESULT answer_GetSelection(SAFEARRAY** out);
+    HRESULT answer_GetVisibleRanges(SAFEARRAY** out);
+    HRESULT answer_RangeFromChild(IRawElementProviderSimple* child, ITextRangeProvider** out);
+    HRESULT answer_RangeFromPoint(UiaPoint point, ITextRangeProvider** out);
+    HRESULT answer_get_DocumentRange(ITextRangeProvider** out);
+    HRESULT answer_get_SupportedTextSelection(SupportedTextSelection* out);
+    HRESULT answer_RangeFromAnnotation(IRawElementProviderSimple* annotation, ITextRangeProvider** out);
+    HRESULT answer_GetCaretRange(BOOL* active, ITextRangeProvider** out);
+    HRESULT answer_get_CanSelectMultiple(BOOL* out);
+    HRESULT answer_get_IsSelectionRequired(BOOL* out);
+    HRESULT answer_GetItem(int row, int column, IRawElementProviderSimple** out);
+    HRESULT answer_get_RowCount(int* out);
+    HRESULT answer_get_ColumnCount(int* out);
+    HRESULT answer_get_Row(int* out);
+    HRESULT answer_get_Column(int* out);
+    HRESULT answer_get_RowSpan(int* out);
+    HRESULT answer_get_ColumnSpan(int* out);
+    HRESULT answer_get_ContainingGrid(IRawElementProviderSimple** out);
 };
 
 // Performs a press posted by IInvokeProvider::Invoke on the window's next
@@ -457,14 +516,14 @@ void PostedInvoke::operator()() const {
     (*element).Release();
 }
 
-HRESULT UiaElement::resolve(SemanticTreeRef& client, SemanticLocation& self) noexcept {
+HRESULT UiaElement::resolve(SemanticTreeRef& client, SemanticLocation& self) {
     if (!(*source_).snapshot(client)) return element_not_available;
     if (!locate_semantic_element(*client, id_, self)) return element_not_available;
     return S_OK;
 }
 
 HRESULT UiaElement::resolve_pattern(PATTERNID pattern, SemanticTreeRef& client,
-                                    SemanticLocation& self) noexcept {
+                                    SemanticLocation& self) {
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
     if (self.parent == nullptr || !supports_pattern(*self.node, pattern)) return invalid_operation;
@@ -472,7 +531,7 @@ HRESULT UiaElement::resolve_pattern(PATTERNID pattern, SemanticTreeRef& client,
 }
 
 HRESULT UiaElement::act(PATTERNID pattern, SemanticAction action,
-                        std::string_view value) noexcept {
+                        std::string_view value) {
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(pattern, client, self);
@@ -492,7 +551,7 @@ HRESULT UiaElement::fragment_for(const SemanticLocation& location,
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE UiaElement::QueryInterface(REFIID iid, void** out) {
+HRESULT UiaElement::answer_QueryInterface(REFIID iid, void** out) {
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
     if (iid == IID_IUnknown || iid == IID_IRawElementProviderSimple) {
@@ -529,19 +588,28 @@ HRESULT STDMETHODCALLTYPE UiaElement::QueryInterface(REFIID iid, void** out) {
     AddRef();
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::QueryInterface(REFIID iid, void** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.QueryInterface", &UiaElement::answer_QueryInterface, *this, iid, out);
+}
 
-ULONG STDMETHODCALLTYPE UiaElement::AddRef() {
+ULONG UiaElement::answer_AddRef() {
     const ULONG count = ++references_;
     return count;
 }
+ULONG STDMETHODCALLTYPE UiaElement::AddRef() {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.AddRef", &UiaElement::answer_AddRef, *this);
+}
 
-ULONG STDMETHODCALLTYPE UiaElement::Release() {
+ULONG UiaElement::answer_Release() {
     const ULONG count = --references_;
     if (count == 0U) delete this;
     return count;
 }
+ULONG STDMETHODCALLTYPE UiaElement::Release() {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.Release", &UiaElement::answer_Release, *this);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_ProviderOptions(ProviderOptions* out) {
+HRESULT UiaElement::answer_get_ProviderOptions(ProviderOptions* out) {
     if (out == nullptr) return E_INVALIDARG;
     // See windows_automation.hpp: COM threading keeps every call on the UI
     // thread.
@@ -549,8 +617,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_ProviderOptions(ProviderOptions* out) 
     *out = static_cast<ProviderOptions>(options);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_ProviderOptions(ProviderOptions* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_ProviderOptions", &UiaElement::answer_get_ProviderOptions, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::GetPatternProvider(PATTERNID pattern, IUnknown** out) {
+HRESULT UiaElement::answer_GetPatternProvider(PATTERNID pattern, IUnknown** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     SemanticTreeRef client;
@@ -561,6 +632,9 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetPatternProvider(PATTERNID pattern, IUnk
     *out = static_cast<IUnknown*>(static_cast<IRawElementProviderSimple*>(this));
     AddRef();
     return S_OK;
+}
+HRESULT STDMETHODCALLTYPE UiaElement::GetPatternProvider(PATTERNID pattern, IUnknown** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.GetPatternProvider", &UiaElement::answer_GetPatternProvider, *this, pattern, out);
 }
 
 HRESULT UiaElement::controller_for(const SemanticNode& client, const SemanticNode& tab,
@@ -673,7 +747,7 @@ HRESULT UiaElement::property_value(const SemanticNode& client, const SemanticLoc
     }
 }
 
-HRESULT STDMETHODCALLTYPE UiaElement::GetPropertyValue(PROPERTYID property, VARIANT* out) {
+HRESULT UiaElement::answer_GetPropertyValue(PROPERTYID property, VARIANT* out) {
     if (out == nullptr) return E_INVALIDARG;
     VariantInit(out);
     SemanticTreeRef client;
@@ -682,8 +756,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetPropertyValue(PROPERTYID property, VARI
     if (FAILED(status)) return status;
     return property_value(*client, self, property, out);
 }
+HRESULT STDMETHODCALLTYPE UiaElement::GetPropertyValue(PROPERTYID property, VARIANT* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.GetPropertyValue", &UiaElement::answer_GetPropertyValue, *this, property, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_HostRawElementProvider(IRawElementProviderSimple** out) {
+HRESULT UiaElement::answer_get_HostRawElementProvider(IRawElementProviderSimple** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     // Only the fragment root is hosted by the window; fragments are not.
@@ -691,8 +768,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_HostRawElementProvider(IRawElementProv
     if ((*source_).hwnd == nullptr) return element_not_available;
     return UiaHostProviderFromHwnd((*source_).hwnd, out);
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_HostRawElementProvider(IRawElementProviderSimple** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_HostRawElementProvider", &UiaElement::answer_get_HostRawElementProvider, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::Navigate(NavigateDirection direction,
+HRESULT UiaElement::answer_Navigate(NavigateDirection direction,
                                                IRawElementProviderFragment** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
@@ -721,8 +801,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::Navigate(NavigateDirection direction,
     }
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::Navigate(NavigateDirection direction, IRawElementProviderFragment** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.Navigate", &UiaElement::answer_Navigate, *this, direction, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::GetRuntimeId(SAFEARRAY** out) {
+HRESULT UiaElement::answer_GetRuntimeId(SAFEARRAY** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     SemanticTreeRef client;
@@ -747,8 +830,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetRuntimeId(SAFEARRAY** out) {
     *out = array;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::GetRuntimeId(SAFEARRAY** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.GetRuntimeId", &UiaElement::answer_GetRuntimeId, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_BoundingRectangle(UiaRect* out) {
+HRESULT UiaElement::answer_get_BoundingRectangle(UiaRect* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = UiaRect{0.0, 0.0, 0.0, 0.0};
     SemanticTreeRef client;
@@ -782,14 +868,20 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_BoundingRectangle(UiaRect* out) {
     (*out).height = height;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_BoundingRectangle(UiaRect* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_BoundingRectangle", &UiaElement::answer_get_BoundingRectangle, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::GetEmbeddedFragmentRoots(SAFEARRAY** out) {
+HRESULT UiaElement::answer_GetEmbeddedFragmentRoots(SAFEARRAY** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::GetEmbeddedFragmentRoots(SAFEARRAY** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.GetEmbeddedFragmentRoots", &UiaElement::answer_GetEmbeddedFragmentRoots, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::SetFocus() {
+HRESULT UiaElement::answer_SetFocus() {
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
@@ -804,8 +896,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::SetFocus() {
     if (!(*source_).perform(self, SemanticAction::focus, {})) return invalid_operation;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::SetFocus() {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.SetFocus", &UiaElement::answer_SetFocus, *this);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_FragmentRoot(IRawElementProviderFragmentRoot** out) {
+HRESULT UiaElement::answer_get_FragmentRoot(IRawElementProviderFragmentRoot** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     if ((*source_).model == nullptr) return element_not_available;
@@ -814,8 +909,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_FragmentRoot(IRawElementProviderFragme
     *out = static_cast<IRawElementProviderFragmentRoot*>(root);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_FragmentRoot(IRawElementProviderFragmentRoot** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_FragmentRoot", &UiaElement::answer_get_FragmentRoot, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::ElementProviderFromPoint(double x, double y,
+HRESULT UiaElement::answer_ElementProviderFromPoint(double x, double y,
                                                                IRawElementProviderFragment** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
@@ -832,8 +930,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::ElementProviderFromPoint(double x, double 
     if (!hit_semantic_location(self, logical_x, logical_y, hit)) return S_OK;
     return fragment_for(hit, out);
 }
+HRESULT STDMETHODCALLTYPE UiaElement::ElementProviderFromPoint(double x, double y, IRawElementProviderFragment** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.ElementProviderFromPoint", &UiaElement::answer_ElementProviderFromPoint, *this, x, y, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::GetFocus(IRawElementProviderFragment** out) {
+HRESULT UiaElement::answer_GetFocus(IRawElementProviderFragment** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     SemanticTreeRef client;
@@ -845,8 +946,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetFocus(IRawElementProviderFragment** out
     if (focused.id == id_) return S_OK;
     return fragment_for(focused, out);
 }
+HRESULT STDMETHODCALLTYPE UiaElement::GetFocus(IRawElementProviderFragment** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.GetFocus", &UiaElement::answer_GetFocus, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::Invoke() {
+HRESULT UiaElement::answer_Invoke() {
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_InvokePatternId, client, self);
@@ -855,21 +959,23 @@ HRESULT STDMETHODCALLTYPE UiaElement::Invoke() {
         return element_not_enabled;
     }
     Window* model = (*source_).model;
-    try {
-        const DispatchOperation posted =
-            (*model).begin_invoke(std::function<void()>(PostedInvoke{source_, id_}));
-        if (posted.state() == DispatchOperationState::invalid) return invalid_operation;
-    } catch (...) {
-        return invalid_operation;
-    }
+    const DispatchOperation posted =
+        (*model).begin_invoke(std::function<void()>(PostedInvoke{source_, id_}));
+    if (posted.state() == DispatchOperationState::invalid) return invalid_operation;
     return S_OK;
 }
-
-HRESULT STDMETHODCALLTYPE UiaElement::Toggle() {
-    return act(UIA_TogglePatternId, SemanticAction::press, {});
+HRESULT STDMETHODCALLTYPE UiaElement::Invoke() {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.Invoke", &UiaElement::answer_Invoke, *this);
 }
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_ToggleState(ToggleState* out) {
+HRESULT UiaElement::answer_Toggle() {
+    return act(UIA_TogglePatternId, SemanticAction::press, {});
+}
+HRESULT STDMETHODCALLTYPE UiaElement::Toggle() {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.Toggle", &UiaElement::answer_Toggle, *this);
+}
+
+HRESULT UiaElement::answer_get_ToggleState(ToggleState* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = ToggleState_Off;
     SemanticTreeRef client;
@@ -879,17 +985,16 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_ToggleState(ToggleState* out) {
     *out = toggle_state(*self.node);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_ToggleState(ToggleState* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_ToggleState", &UiaElement::answer_get_ToggleState, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::SetValue(LPCWSTR value) {
+HRESULT UiaElement::answer_SetValue(LPCWSTR value) {
     if (value == nullptr) return E_INVALIDARG;
     std::string text;
-    try {
-        const std::wstring_view wide(value);
-        if (wide.size() > maximum_value_length) return E_INVALIDARG;
-        if (!utf8_from_wide(wide, text)) return E_INVALIDARG;
-    } catch (...) {
-        return E_OUTOFMEMORY;
-    }
+    const std::wstring_view wide(value);
+    if (wide.size() > maximum_value_length) return E_INVALIDARG;
+    if (!utf8_from_wide(wide, text)) return E_INVALIDARG;
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_ValuePatternId, client, self);
@@ -897,8 +1002,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::SetValue(LPCWSTR value) {
     if (read_only_value(*self.node)) return invalid_operation;
     return act(UIA_ValuePatternId, SemanticAction::set_value, text);
 }
+HRESULT STDMETHODCALLTYPE UiaElement::SetValue(LPCWSTR value) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.SetValue", &UiaElement::answer_SetValue, *this, value);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_Value(BSTR* out) {
+HRESULT UiaElement::answer_get_Value(BSTR* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     SemanticTreeRef client;
@@ -912,8 +1020,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Value(BSTR* out) {
     if (*out == nullptr) return E_OUTOFMEMORY;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_Value(BSTR* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_Value", &UiaElement::answer_get_Value, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_IsReadOnly(BOOL* out) {
+HRESULT UiaElement::answer_get_IsReadOnly(BOOL* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = TRUE;
     SemanticTreeRef client;
@@ -926,8 +1037,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_IsReadOnly(BOOL* out) {
     *out = read_only_value(*self.node) ? TRUE : FALSE;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_IsReadOnly(BOOL* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_IsReadOnly", &UiaElement::answer_get_IsReadOnly, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::SetValue(double value) {
+HRESULT UiaElement::answer_SetRangeValue(double value) {
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
@@ -944,8 +1058,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::SetValue(double value) {
     const std::string_view number(text, static_cast<std::size_t>(written.ptr - text));
     return act(UIA_RangeValuePatternId, SemanticAction::set_value, number);
 }
+HRESULT STDMETHODCALLTYPE UiaElement::SetValue(double value) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.SetValue", &UiaElement::answer_SetRangeValue, *this, value);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_Value(double* out) {
+HRESULT UiaElement::answer_get_RangeValue(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
     SemanticTreeRef client;
@@ -955,8 +1072,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Value(double* out) {
     *out = *(*self.node).numeric_value;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_Value(double* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_Value", &UiaElement::answer_get_RangeValue, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_Maximum(double* out) {
+HRESULT UiaElement::answer_get_Maximum(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
     SemanticTreeRef client;
@@ -967,8 +1087,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Maximum(double* out) {
     *out = node.maximum_value ? *node.maximum_value : *node.numeric_value;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_Maximum(double* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_Maximum", &UiaElement::answer_get_Maximum, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_Minimum(double* out) {
+HRESULT UiaElement::answer_get_Minimum(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
     SemanticTreeRef client;
@@ -979,10 +1102,13 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Minimum(double* out) {
     *out = node.minimum_value ? *node.minimum_value : *node.numeric_value;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_Minimum(double* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_Minimum", &UiaElement::answer_get_Minimum, *this, out);
+}
 
 // A node's large_step and small_step; zero, for a node that publishes none,
 // tells a client no step is known.
-HRESULT STDMETHODCALLTYPE UiaElement::get_LargeChange(double* out) {
+HRESULT UiaElement::answer_get_LargeChange(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
     SemanticTreeRef client;
@@ -992,8 +1118,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_LargeChange(double* out) {
     if ((*self.node).large_step) *out = *(*self.node).large_step;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_LargeChange(double* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_LargeChange", &UiaElement::answer_get_LargeChange, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_SmallChange(double* out) {
+HRESULT UiaElement::answer_get_SmallChange(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
     SemanticTreeRef client;
@@ -1003,8 +1132,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_SmallChange(double* out) {
     if ((*self.node).small_step) *out = *(*self.node).small_step;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_SmallChange(double* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_SmallChange", &UiaElement::answer_get_SmallChange, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::Expand() {
+HRESULT UiaElement::answer_Expand() {
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_ExpandCollapsePatternId, client, self);
@@ -1014,8 +1146,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::Expand() {
     if (has_semantic_state((*self.node).states, SemanticState::expanded)) return S_OK;
     return act(UIA_ExpandCollapsePatternId, action, {});
 }
+HRESULT STDMETHODCALLTYPE UiaElement::Expand() {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.Expand", &UiaElement::answer_Expand, *this);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::Collapse() {
+HRESULT UiaElement::answer_Collapse() {
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_ExpandCollapsePatternId, client, self);
@@ -1023,8 +1158,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::Collapse() {
     if (!has_semantic_state((*self.node).states, SemanticState::expanded)) return S_OK;
     return act(UIA_ExpandCollapsePatternId, SemanticAction::collapse, {});
 }
+HRESULT STDMETHODCALLTYPE UiaElement::Collapse() {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.Collapse", &UiaElement::answer_Collapse, *this);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_ExpandCollapseState(ExpandCollapseState* out) {
+HRESULT UiaElement::answer_get_ExpandCollapseState(ExpandCollapseState* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = ExpandCollapseState_Collapsed;
     SemanticTreeRef client;
@@ -1034,8 +1172,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_ExpandCollapseState(ExpandCollapseStat
     *out = expand_collapse_state(*self.node);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_ExpandCollapseState(ExpandCollapseState* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_ExpandCollapseState", &UiaElement::answer_get_ExpandCollapseState, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::Select() {
+HRESULT UiaElement::answer_Select() {
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_SelectionItemPatternId, client, self);
@@ -1045,8 +1186,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::Select() {
     if ((*self.node).role == SemanticRole::radio_button) action = SemanticAction::press;
     return act(UIA_SelectionItemPatternId, action, {});
 }
+HRESULT STDMETHODCALLTYPE UiaElement::Select() {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.Select", &UiaElement::answer_Select, *this);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::AddToSelection() {
+HRESULT UiaElement::answer_AddToSelection() {
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_SelectionItemPatternId, client, self);
@@ -1056,8 +1200,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::AddToSelection() {
     if (selected_item(*self.node)) return S_OK;
     return invalid_operation;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::AddToSelection() {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.AddToSelection", &UiaElement::answer_AddToSelection, *this);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::RemoveFromSelection() {
+HRESULT UiaElement::answer_RemoveFromSelection() {
     SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_SelectionItemPatternId, client, self);
@@ -1065,8 +1212,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::RemoveFromSelection() {
     if (!selected_item(*self.node)) return S_OK;
     return invalid_operation;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::RemoveFromSelection() {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.RemoveFromSelection", &UiaElement::answer_RemoveFromSelection, *this);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelected(BOOL* out) {
+HRESULT UiaElement::answer_get_IsSelected(BOOL* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = FALSE;
     SemanticTreeRef client;
@@ -1076,8 +1226,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelected(BOOL* out) {
     *out = selected_item(*self.node) ? TRUE : FALSE;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelected(BOOL* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_IsSelected", &UiaElement::answer_get_IsSelected, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_SelectionContainer(IRawElementProviderSimple** out) {
+HRESULT UiaElement::answer_get_SelectionContainer(IRawElementProviderSimple** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     SemanticTreeRef client;
@@ -1091,8 +1244,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_SelectionContainer(IRawElementProvider
     if (*out == nullptr) return E_OUTOFMEMORY;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_SelectionContainer(IRawElementProviderSimple** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_SelectionContainer", &UiaElement::answer_get_SelectionContainer, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::GetSelection(SAFEARRAY** out) {
+HRESULT UiaElement::answer_GetSelection(SAFEARRAY** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     SemanticTreeRef client;
@@ -1104,6 +1260,9 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetSelection(SAFEARRAY** out) {
     }
     if (self.parent == nullptr || !selection_pattern(*self.node)) return invalid_operation;
     return item_selection(self, out);
+}
+HRESULT STDMETHODCALLTYPE UiaElement::GetSelection(SAFEARRAY** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.GetSelection", &UiaElement::answer_GetSelection, *this, out);
 }
 
 HRESULT UiaElement::item_selection(const SemanticLocation& self, SAFEARRAY** out) noexcept {
@@ -1135,25 +1294,37 @@ HRESULT UiaElement::item_selection(const SemanticLocation& self, SAFEARRAY** out
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE UiaElement::GetVisibleRanges(SAFEARRAY** out) {
+HRESULT UiaElement::answer_GetVisibleRanges(SAFEARRAY** out) {
     return text_visible_ranges(source_, id_, out);
 }
+HRESULT STDMETHODCALLTYPE UiaElement::GetVisibleRanges(SAFEARRAY** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.GetVisibleRanges", &UiaElement::answer_GetVisibleRanges, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::RangeFromChild(IRawElementProviderSimple*,
+HRESULT UiaElement::answer_RangeFromChild(IRawElementProviderSimple*,
                                                      ITextRangeProvider** out) {
     if (out != nullptr) *out = nullptr;
     return E_INVALIDARG;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::RangeFromChild(IRawElementProviderSimple* unnamed_0, ITextRangeProvider** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.RangeFromChild", &UiaElement::answer_RangeFromChild, *this, unnamed_0, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::RangeFromPoint(UiaPoint point, ITextRangeProvider** out) {
+HRESULT UiaElement::answer_RangeFromPoint(UiaPoint point, ITextRangeProvider** out) {
     return text_range_from_point(source_, id_, point, out);
 }
-
-HRESULT STDMETHODCALLTYPE UiaElement::get_DocumentRange(ITextRangeProvider** out) {
-    return text_document_range(source_, id_, out);
+HRESULT STDMETHODCALLTYPE UiaElement::RangeFromPoint(UiaPoint point, ITextRangeProvider** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.RangeFromPoint", &UiaElement::answer_RangeFromPoint, *this, point, out);
 }
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_SupportedTextSelection(SupportedTextSelection* out) {
+HRESULT UiaElement::answer_get_DocumentRange(ITextRangeProvider** out) {
+    return text_document_range(source_, id_, out);
+}
+HRESULT STDMETHODCALLTYPE UiaElement::get_DocumentRange(ITextRangeProvider** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_DocumentRange", &UiaElement::answer_get_DocumentRange, *this, out);
+}
+
+HRESULT UiaElement::answer_get_SupportedTextSelection(SupportedTextSelection* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = SupportedTextSelection_None;
     SemanticTreeRef client;
@@ -1163,18 +1334,27 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_SupportedTextSelection(SupportedTextSe
     *out = SupportedTextSelection_Single;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_SupportedTextSelection(SupportedTextSelection* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_SupportedTextSelection", &UiaElement::answer_get_SupportedTextSelection, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::RangeFromAnnotation(IRawElementProviderSimple*,
+HRESULT UiaElement::answer_RangeFromAnnotation(IRawElementProviderSimple*,
                                                           ITextRangeProvider** out) {
     if (out != nullptr) *out = nullptr;
     return E_INVALIDARG;
 }
-
-HRESULT STDMETHODCALLTYPE UiaElement::GetCaretRange(BOOL* active, ITextRangeProvider** out) {
-    return text_caret_range(source_, id_, active, out);
+HRESULT STDMETHODCALLTYPE UiaElement::RangeFromAnnotation(IRawElementProviderSimple* unnamed_0, ITextRangeProvider** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.RangeFromAnnotation", &UiaElement::answer_RangeFromAnnotation, *this, unnamed_0, out);
 }
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_CanSelectMultiple(BOOL* out) {
+HRESULT UiaElement::answer_GetCaretRange(BOOL* active, ITextRangeProvider** out) {
+    return text_caret_range(source_, id_, active, out);
+}
+HRESULT STDMETHODCALLTYPE UiaElement::GetCaretRange(BOOL* active, ITextRangeProvider** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.GetCaretRange", &UiaElement::answer_GetCaretRange, *this, active, out);
+}
+
+HRESULT UiaElement::answer_get_CanSelectMultiple(BOOL* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = FALSE;
     SemanticTreeRef client;
@@ -1184,26 +1364,39 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_CanSelectMultiple(BOOL* out) {
     if (has_semantic_state((*self.node).states, SemanticState::multiselectable)) *out = TRUE;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_CanSelectMultiple(BOOL* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_CanSelectMultiple", &UiaElement::answer_get_CanSelectMultiple, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelectionRequired(BOOL* out) {
+HRESULT UiaElement::answer_get_IsSelectionRequired(BOOL* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = FALSE;
     SemanticTreeRef client;
     SemanticLocation self;
     return resolve_pattern(UIA_SelectionPatternId, client, self);
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelectionRequired(BOOL* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_IsSelectionRequired", &UiaElement::answer_get_IsSelectionRequired, *this, out);
+}
 
 // The first node at or below `at`, in tree order, that is the grid item at
 // `row_index` and `column_index` (counting from one). Returns false, leaving
 // `found` unchanged, when there is none: the cell is outside the grid or not
 // realized (only the visible rows and columns publish cells).
+//
+// The search skips the subtree of any node that carries another row's
+// index, since a row publishes only its own cells, and does not descend
+// into a cell, so one call visits the rows and the wanted row's cells
+// rather than every cell of the grid (audit P4).
 bool find_grid_item(const SemanticLocation& at, std::size_t row_index, std::size_t column_index,
                     SemanticLocation& found) noexcept {
     const SemanticNode& node = *at.node;
-    if (grid_item_pattern(node) && *node.row_index == row_index && *node.column_index == column_index) {
+    if (grid_item_pattern(node)) {
+        if (*node.row_index != row_index || *node.column_index != column_index) return false;
         found = at;
         return true;
     }
+    if (node.row_index.has_value() && *node.row_index != row_index) return false;
     const std::size_t count = node.children.size();
     for (std::size_t index = 0; index < count; ++index) {
         if (find_grid_item(child_location(at, index), row_index, column_index, found)) return true;
@@ -1211,7 +1404,7 @@ bool find_grid_item(const SemanticLocation& at, std::size_t row_index, std::size
     return false;
 }
 
-HRESULT STDMETHODCALLTYPE UiaElement::GetItem(int row, int column, IRawElementProviderSimple** out) {
+HRESULT UiaElement::answer_GetItem(int row, int column, IRawElementProviderSimple** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     SemanticTreeRef client;
@@ -1229,8 +1422,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetItem(int row, int column, IRawElementPr
     if (*out == nullptr) return E_OUTOFMEMORY;
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::GetItem(int row, int column, IRawElementProviderSimple** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.GetItem", &UiaElement::answer_GetItem, *this, row, column, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_RowCount(int* out) {
+HRESULT UiaElement::answer_get_RowCount(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0;
     SemanticTreeRef client;
@@ -1241,8 +1437,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_RowCount(int* out) {
     *out = static_cast<int>(count);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_RowCount(int* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_RowCount", &UiaElement::answer_get_RowCount, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_ColumnCount(int* out) {
+HRESULT UiaElement::answer_get_ColumnCount(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0;
     SemanticTreeRef client;
@@ -1253,8 +1452,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_ColumnCount(int* out) {
     *out = static_cast<int>(count);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_ColumnCount(int* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_ColumnCount", &UiaElement::answer_get_ColumnCount, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_Row(int* out) {
+HRESULT UiaElement::answer_get_Row(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0;
     SemanticTreeRef client;
@@ -1265,8 +1467,11 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Row(int* out) {
     *out = static_cast<int>(row);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_Row(int* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_Row", &UiaElement::answer_get_Row, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_Column(int* out) {
+HRESULT UiaElement::answer_get_Column(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0;
     SemanticTreeRef client;
@@ -1277,26 +1482,35 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Column(int* out) {
     *out = static_cast<int>(column);
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_Column(int* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_Column", &UiaElement::answer_get_Column, *this, out);
+}
 
 // The tree has no spanning cells: every cell spans one row and one column.
-HRESULT STDMETHODCALLTYPE UiaElement::get_RowSpan(int* out) {
+HRESULT UiaElement::answer_get_RowSpan(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 1;
     SemanticTreeRef client;
     SemanticLocation self;
     return resolve_pattern(UIA_GridItemPatternId, client, self);
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_RowSpan(int* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_RowSpan", &UiaElement::answer_get_RowSpan, *this, out);
+}
 
-HRESULT STDMETHODCALLTYPE UiaElement::get_ColumnSpan(int* out) {
+HRESULT UiaElement::answer_get_ColumnSpan(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 1;
     SemanticTreeRef client;
     SemanticLocation self;
     return resolve_pattern(UIA_GridItemPatternId, client, self);
+}
+HRESULT STDMETHODCALLTYPE UiaElement::get_ColumnSpan(int* out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_ColumnSpan", &UiaElement::answer_get_ColumnSpan, *this, out);
 }
 
 // The nearest ancestor that is a grid, or none.
-HRESULT STDMETHODCALLTYPE UiaElement::get_ContainingGrid(IRawElementProviderSimple** out) {
+HRESULT UiaElement::answer_get_ContainingGrid(IRawElementProviderSimple** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
     SemanticTreeRef client;
@@ -1315,13 +1529,20 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_ContainingGrid(IRawElementProviderSimp
     }
     return S_OK;
 }
+HRESULT STDMETHODCALLTYPE UiaElement::get_ContainingGrid(IRawElementProviderSimple** out) {
+    return gui_forms::detail::call_failing_fast("windows.UiaElement.get_ContainingGrid", &UiaElement::answer_get_ContainingGrid, *this, out);
+}
 
 // -- events ----------------------------------------------------------------
 
 // One node of a published tree, by identity, for comparing two trees.
+// A published node, its parent's identity (the client node has none) and
+// whether it has one.
 struct PublishedNode final {
     SemanticElementId id;
     const SemanticNode* node;
+    SemanticElementId parent{};
+    bool has_parent{};
 };
 
 struct PublishedNodeBefore final {
@@ -1331,12 +1552,95 @@ struct PublishedNodeBefore final {
     }
 };
 
-void collect_published(const SemanticLocation& at, std::vector<PublishedNode>& nodes) {
-    nodes.push_back(PublishedNode{at.id, at.node});
+void collect_published(const SemanticLocation& at, SemanticElementId parent, bool has_parent,
+                       std::vector<PublishedNode>& nodes) {
+    nodes.push_back(PublishedNode{at.id, at.node, parent, has_parent});
     const std::size_t count = (*at.node).children.size();
     for (std::size_t index = 0; index < count; ++index) {
-        collect_published(child_location(at, index), nodes);
+        collect_published(child_location(at, index), at.id, true, nodes);
     }
+}
+
+// The entry for `id` in `sorted` (ordered by PublishedNodeBefore), or null.
+const PublishedNode* find_published(const std::vector<PublishedNode>& sorted, SemanticElementId id) noexcept {
+    const PublishedNode probe{id, nullptr, SemanticElementId{}, false};
+    const std::vector<PublishedNode>::const_iterator found =
+        std::lower_bound(sorted.begin(), sorted.end(), probe, PublishedNodeBefore{});
+    if (found == sorted.end() || (*found).id != id) return nullptr;
+    const PublishedNode* const entry = &*found;
+    return entry;
+}
+const PublishedNode* find_published(std::vector<PublishedNode>&& sorted, SemanticElementId id) noexcept = delete;
+
+// The parent of `id`, read from the current tree first, else the previous.
+bool published_parent(const std::vector<PublishedNode>& after, const std::vector<PublishedNode>& before,
+                      SemanticElementId id, SemanticElementId& parent) noexcept {
+    const PublishedNode* entry = find_published(after, id);
+    if (entry == nullptr) entry = find_published(before, id);
+    if (entry == nullptr || !(*entry).has_parent) return false;
+    parent = (*entry).parent;
+    return true;
+}
+
+// Whether the identity set changed and, when it did, the nearest node of
+// the current tree above every node that came or went (audit N97). Both
+// lists are sorted by PublishedNodeBefore.
+bool children_changed_at(const std::vector<PublishedNode>& before, const std::vector<PublishedNode>& after,
+                         SemanticElementId& changed) {
+    std::vector<SemanticElementId> parents;
+    std::size_t old_index = 0U;
+    std::size_t new_index = 0U;
+    while (old_index < before.size() || new_index < after.size()) {
+        const bool old_left = old_index < before.size();
+        const bool new_left = new_index < after.size();
+        if (old_left && new_left && before[old_index].id == after[new_index].id) {
+            ++old_index;
+            ++new_index;
+            continue;
+        }
+        const bool removed = old_left && (!new_left || PublishedNodeBefore{}(before[old_index], after[new_index]));
+        const PublishedNode& entry = removed ? before[old_index] : after[new_index];
+        parents.push_back(entry.has_parent ? entry.parent : SemanticElementId{});
+        if (removed) {
+            ++old_index;
+        } else {
+            ++new_index;
+        }
+    }
+    if (parents.empty()) return false;
+    // The first changed parent's chain to the client, cut back to the part
+    // every other changed parent reaches.
+    std::vector<SemanticElementId> chain{parents.front()};
+    SemanticElementId step = parents.front();
+    SemanticElementId above{};
+    while (published_parent(after, before, step, above)) {
+        chain.push_back(above);
+        step = above;
+    }
+    std::size_t common = 0U;
+    for (std::size_t index = 1U; index < parents.size(); ++index) {
+        SemanticElementId climbing = parents[index];
+        bool reached = false;
+        while (!reached) {
+            const std::vector<SemanticElementId>::const_iterator met =
+                std::find(chain.begin() + static_cast<std::ptrdiff_t>(common), chain.end(), climbing);
+            if (met != chain.end()) {
+                common = static_cast<std::size_t>(std::distance(chain.cbegin(), met));
+                reached = true;
+            } else if (!published_parent(after, before, climbing, climbing)) {
+                common = chain.size() - 1U;
+                reached = true;
+            }
+        }
+    }
+    // A common node that left the tree gives way to its nearest kept one.
+    std::size_t kept = common;
+    while (kept + 1U < chain.size() && chain[kept] != SemanticElementId{} &&
+           find_published(after, chain[kept]) == nullptr) {
+        ++kept;
+    }
+    changed = find_published(after, chain[kept]) != nullptr ? chain[kept] : SemanticElementId{};
+    return true;
 }
 
 // Raises one property-changed event for `id` when `before` and `after`
@@ -1442,52 +1746,56 @@ IRawElementProviderSimple* make_automation_element(const std::shared_ptr<Semanti
 
 void raise_automation_events(const std::shared_ptr<SemanticSource>& source,
                              const SemanticNode& previous, const SemanticNode& current) noexcept {
-    try {
-        std::vector<PublishedNode> before;
-        std::vector<PublishedNode> after;
-        collect_published(client_location(previous), before);
-        collect_published(client_location(current), after);
-        std::sort(before.begin(), before.end(), PublishedNodeBefore{});
-        // Children changed: one event on the root says the whole tree may
-        // have; clients read it again.
-        IRawElementProviderSimple* root = make_automation_element(source, SemanticElementId{});
-        if (root != nullptr) {
+    std::vector<PublishedNode> before;
+    std::vector<PublishedNode> after;
+    collect_published(client_location(previous), SemanticElementId{}, false, before);
+    collect_published(client_location(current), SemanticElementId{}, false, after);
+    std::sort(before.begin(), before.end(), PublishedNodeBefore{});
+    std::vector<PublishedNode> after_sorted = after;
+    std::sort(after_sorted.begin(), after_sorted.end(), PublishedNodeBefore{});
+    // Children changed only when nodes came or went: one event on the
+    // nearest node above them says its subtree may have; clients read
+    // that subtree again. A change of names, states or bounds alone
+    // raises none (audit N97).
+    SemanticElementId changed{};
+    if (children_changed_at(before, after_sorted, changed)) {
+        IRawElementProviderSimple* parent = make_automation_element(source, changed);
+        if (parent != nullptr) {
             int no_runtime_id = 0;
-            UiaRaiseStructureChangedEvent(root, StructureChangeType_ChildrenInvalidated,
+            UiaRaiseStructureChangedEvent(parent, StructureChangeType_ChildrenInvalidated,
                                           &no_runtime_id, 0);
-            (*root).Release();
+            (*parent).Release();
         }
-        SemanticElementId focus_before{};
-        bool had_focus = false;
-        for (const PublishedNode& entry : before) {
-            if (has_semantic_state((*entry.node).states, SemanticState::focused)) {
-                focus_before = entry.id;
-                had_focus = true;
-                break;
+    }
+    SemanticElementId focus_before{};
+    bool had_focus = false;
+    for (const PublishedNode& entry : before) {
+        if (has_semantic_state((*entry.node).states, SemanticState::focused)) {
+            focus_before = entry.id;
+            had_focus = true;
+            break;
+        }
+    }
+    for (const PublishedNode& entry : after) {
+        const std::vector<PublishedNode>::const_iterator found = std::lower_bound(
+            before.begin(), before.end(), entry, PublishedNodeBefore{});
+        const bool both = found != before.end() && (*found).id == entry.id;
+        if (both && entry.id != SemanticElementId{}) {
+            raise_node_changes(source, entry.id, *(*found).node, *entry.node);
+        }
+        // A new node that announces on appearance (a toast) is spoken
+        // as it appears.
+        if (!both && entry.id != SemanticElementId{} && semantic_announcement_due(nullptr, *entry.node)) {
+            raise_live_region_changed(source, entry.id);
+        }
+        const bool focused = has_semantic_state((*entry.node).states, SemanticState::focused);
+        if (focused && (!had_focus || focus_before != entry.id)) {
+            IRawElementProviderSimple* element = make_automation_element(source, entry.id);
+            if (element != nullptr) {
+                UiaRaiseAutomationEvent(element, UIA_AutomationFocusChangedEventId);
+                (*element).Release();
             }
         }
-        for (const PublishedNode& entry : after) {
-            const std::vector<PublishedNode>::const_iterator found = std::lower_bound(
-                before.begin(), before.end(), entry, PublishedNodeBefore{});
-            const bool both = found != before.end() && (*found).id == entry.id;
-            if (both && entry.id != SemanticElementId{}) {
-                raise_node_changes(source, entry.id, *(*found).node, *entry.node);
-            }
-            // A new node that announces on appearance (a toast) is spoken
-            // as it appears.
-            if (!both && entry.id != SemanticElementId{} && semantic_announcement_due(nullptr, *entry.node)) {
-                raise_live_region_changed(source, entry.id);
-            }
-            const bool focused = has_semantic_state((*entry.node).states, SemanticState::focused);
-            if (focused && (!had_focus || focus_before != entry.id)) {
-                IRawElementProviderSimple* element = make_automation_element(source, entry.id);
-                if (element != nullptr) {
-                    UiaRaiseAutomationEvent(element, UIA_AutomationFocusChangedEventId);
-                    (*element).Release();
-                }
-            }
-        }
-    } catch (...) {
     }
 }
 

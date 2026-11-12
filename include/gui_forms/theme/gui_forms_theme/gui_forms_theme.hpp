@@ -27,9 +27,10 @@ namespace gui_forms {
 // at rest, and enabled text colours that meet the contrast gate (4.5:1)
 // on every face (disabled text is exempt). Its recipes are the floor sheet's
 // (gui_forms_floor_sheet), evaluated once on the first call (thread-safe)
-// over the C++ structure (owner option 1); a copy each call. Id
-// `gui-forms`; its rules are empty.
-[[nodiscard]] ThemeDefinition gui_forms_theme_definition();
+// over the C++ structure (owner option 1) and kept for the process: the
+// reference stays valid until exit (S3). Id `gui-forms`; its rules are
+// empty.
+[[nodiscard]] const ThemeDefinition& gui_forms_theme_definition();
 
 // The floor sheet's source text (`gui-forms/floor.css` in diagnostics):
 // every family's recipe in every surface state, as `:family()` rules.

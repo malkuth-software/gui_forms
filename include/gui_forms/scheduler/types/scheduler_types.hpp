@@ -32,9 +32,6 @@ struct FramePollResult final {
     // many values move.
     std::uint64_t motion_clock_ticks{};
     std::uint64_t coalesced_requests{};
-    // Throwing UI timer callbacks are disconnected individually so one
-    // cannot repeatedly escape through a native timer callback.
-    std::uint64_t callback_faults{};
     bool reentrant_poll_deferred{};
     bool damage_pending{};
     bool suppressed_by_occlusion{};

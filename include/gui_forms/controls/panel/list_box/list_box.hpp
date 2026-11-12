@@ -142,8 +142,27 @@ private:
                          std::optional<std::size_t> active);
     void ensure_visible(std::size_t index);
     [[nodiscard]] std::size_t visible_row_count() const noexcept;
+    // Repaints one shown row; nothing for a row outside the shown window.
+    void invalidate_row(std::size_t index);
+    // The index of an authored stable item ID, or nullopt.
+    [[nodiscard]] std::optional<std::size_t> index_of_item_stable_id(std::string_view stable_id);
+
+    // Orders indices into item_stable_ids_ by the identity they name.
+    struct StableIdOrder {
+        const std::vector<std::string>* ids{};
+        [[nodiscard]] bool operator()(std::size_t left, std::size_t right) const noexcept {
+            return (*ids)[left] < (*ids)[right];
+        }
+        [[nodiscard]] bool operator()(std::size_t left, std::string_view right) const noexcept {
+            return std::string_view((*ids)[left]) < right;
+        }
+    };
 
     std::vector<std::string> item_stable_ids_;
+    // Indices into item_stable_ids_ sorted by identity, for the semantic
+    // action lookup; emptied whenever the identities change and rebuilt on
+    // the next lookup.
+    std::vector<std::size_t> stable_id_order_;
     std::vector<std::size_t> selected_;
     // The selection an edit leaves, made by prepare_edit before the edit
     // is stored; after the written hook swaps it in, the selection before

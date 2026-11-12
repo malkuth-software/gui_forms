@@ -5,7 +5,6 @@
 #endif
 #include <windows.h>
 
-#include "gui_forms/c_api.h"
 #include "gui_forms/c/gf_abi.h"
 
 #include <algorithm>
@@ -228,31 +227,19 @@ struct BorrowableDib final {
     std::size_t row_bytes{};
 };
 
-using BeginWriteV1 = decltype(&gf_windows_paint_endpoint_begin_write_v1);
-using EndWriteV1 = decltype(&gf_windows_paint_endpoint_end_write_v1);
 using GetStableTable = decltype(&gf_abi_get_table);
 
+// The C ABI's paint endpoint table (gui_forms_abi1.dll), resolved by name.
 struct EndpointProbe final {
-    BeginWriteV1 begin_write_v1{};
-    EndWriteV1 end_write_v1{};
     gf_windows_paint_endpoint_table table{};
     bool table_present{};
 };
 
-// Resolved on first use. The libraries are loaded before any endpoint
-// exists (an endpoint is made through them), so a library absent here has
-// no endpoints to exclude.
+// Resolved on first use. The library is loaded before any endpoint exists
+// (an endpoint is made through it), so a library absent here has no
+// endpoints to exclude.
 EndpointProbe load_endpoint_probe() noexcept {
     EndpointProbe probe{};
-    const HMODULE forms = GetModuleHandleW(L"gui_forms_abi0.dll");
-    if (forms != nullptr) {
-        FARPROC begin_raw = GetProcAddress(forms, "gf_windows_paint_endpoint_begin_write_v1");
-        FARPROC end_raw = GetProcAddress(forms, "gf_windows_paint_endpoint_end_write_v1");
-        if (begin_raw != nullptr && end_raw != nullptr) {
-            std::memcpy(&probe.begin_write_v1, &begin_raw, sizeof(probe.begin_write_v1));
-            std::memcpy(&probe.end_write_v1, &end_raw, sizeof(probe.end_write_v1));
-        }
-    }
     const HMODULE stable = GetModuleHandleW(L"gui_forms_abi1.dll");
     if (stable != nullptr) {
         FARPROC raw = GetProcAddress(stable, "gf_abi_get_table");
@@ -274,13 +261,6 @@ EndpointProbe load_endpoint_probe() noexcept {
 bool is_endpoint_dc(HDC device) noexcept {
     static const EndpointProbe probe = load_endpoint_probe();
     const std::uintptr_t value = reinterpret_cast<std::uintptr_t>(device);
-    if (probe.begin_write_v1 != nullptr) {
-        std::uint64_t lease{};
-        if (probe.begin_write_v1(value, &lease) == GF_OK) {
-            probe.end_write_v1(lease, 0U);
-            return true;
-        }
-    }
     if (probe.table_present) {
         gf_paint_write_lease lease{};
         if (probe.table.begin_write(static_cast<std::uint64_t>(value), &lease) == GF_STATUS_OK) {
@@ -328,7 +308,9 @@ bool top_down_section(HDC device, HGDIOBJ selected, const DIBSECTION& section) n
 // Fills dib when device's selected bitmap can be borrowed; false otherwise
 // (the copying path then serves the surface).
 bool borrowable_dib(HDC device, BorrowableDib& dib) noexcept {
-    if (std::getenv("GUI_DRAWING_NO_BORROW") != nullptr) return false;
+    // Read once (B3): getenv walks the environment on every call.
+    static const bool borrowing_refused = std::getenv("GUI_DRAWING_NO_BORROW") != nullptr;
+    if (borrowing_refused) return false;
     if (GetObjectType(device) != OBJ_MEMDC) return false;
     const HGDIOBJ selected = GetCurrentObject(device, OBJ_BITMAP);
     if (selected == nullptr) return false;
@@ -418,7 +400,8 @@ gd_result capture_surface(std::uintptr_t source, std::uint32_t kind,
         // The copy is read from the DIB's memory below; GDI may hold the
         // BitBlt in this thread's batch until flushed.
         GdiFlush() != FALSE;
-    if (std::getenv("GUI_DRAWING_TRACE_NATIVE_SURFACES") != nullptr && !ok) {
+    static const bool traced = std::getenv("GUI_DRAWING_TRACE_NATIVE_SURFACES") != nullptr;
+    if (traced && !ok) {
         std::fprintf(stderr,
                      "gui-drawing-native-surface=capture-failed|kind:%u|size:%ux%u|dc:%p|dib:%p|memory:%p|previous:%p|error:%lu\n",
                      kind, width, height, static_cast<void*>(device),
@@ -549,19 +532,18 @@ gd_result publish_retained_surface(std::uintptr_t destination,
         ? reinterpret_cast<HWND>(destination)
         : WindowFromDC(reinterpret_cast<HDC>(destination));
     if (window == nullptr) return GD_ERROR_UNSUPPORTED_VERSION;
-    const HMODULE forms = GetModuleHandleW(L"gui_forms_abi0.dll");
-    if (forms == nullptr) return GD_ERROR_UNSUPPORTED_VERSION;
-    // Declared in gui_forms/c_api.h; only the declaration is used, the ABI
-    // is resolved by name.
-    using Submit = decltype(&gf_windows_paint_endpoint_submit_bgra_v1);
-    const Submit submit = reinterpret_cast<Submit>(GetProcAddress(
-        forms, "gf_windows_paint_endpoint_submit_bgra_v1"));
-    if (submit == nullptr) return GD_ERROR_UNSUPPORTED_VERSION;
+    // The C ABI's paint endpoint table, resolved by name (the drawing
+    // library never links GUI.Forms): submit_bgra publishes to the endpoint
+    // behind the window's compatibility handle.
+    static const EndpointProbe probe = load_endpoint_probe();
+    if (!probe.table_present || probe.table.submit_bgra == nullptr) return GD_ERROR_UNSUPPORTED_VERSION;
     const ImageSnapshot snapshot = bitmap.snapshot();
-    return submit(reinterpret_cast<std::uintptr_t>(window),
-                  snapshot.width, snapshot.height, snapshot.row_bytes(),
-                  snapshot.pixels().data()) == GF_OK
-        ? GD_OK : GD_ERROR_UNSUPPORTED_VERSION;
+    const std::uint64_t handle = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(window));
+    const std::uint8_t* const pixels = reinterpret_cast<const std::uint8_t*>(snapshot.pixels().data());
+    const gf_status submitted =
+        probe.table.submit_bgra(handle, snapshot.width, snapshot.height, snapshot.row_bytes(), pixels);
+    if (submitted != GF_STATUS_OK) return GD_ERROR_UNSUPPORTED_VERSION;
+    return GD_OK;
 }
 
 gd_result present_surface(std::uintptr_t destination, std::uint32_t kind,

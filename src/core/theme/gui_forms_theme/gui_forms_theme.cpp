@@ -640,8 +640,10 @@ GuiFormsThemeBuild build_gui_forms_theme() {
 
 } // namespace
 
-ThemeDefinition gui_forms_theme_definition() {
-    ThemeDefinition result = *floor_evaluation().definition;
+const ThemeDefinition& gui_forms_theme_definition() {
+    // S3: the evaluated floor, kept for the process, by reference: a caller
+    // that edits it copies it.
+    const ThemeDefinition& result = *floor_evaluation().definition;
     return result;
 }
 

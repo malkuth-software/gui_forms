@@ -65,9 +65,18 @@ struct MenuItemSpec final {
 
     std::string stable_id;
     MenuItemKind kind{MenuItemKind::command};
+    // The shared Command a command, check or radio item runs and follows
+    // (text, enabled, checked, shortcut). Optional (GAPS E9): an item
+    // without one shows its own text, `enabled` and `checked`, and choosing
+    // it raises item_invoked with an empty command_id; the application
+    // updates `checked` itself (set_items).
     std::shared_ptr<Command> command;
     GUI_FORMS_LOCALIZABLE(text) std::string text;
     std::vector<MenuItemSpec> children;
+    // Used only by an item without a Command: whether it can be chosen, and
+    // whether a check or radio item shows its mark.
+    bool enabled{true};
+    bool checked{};
     // The row's text is set in the italic style. A presentational bridge:
     // no anatomy state names why a row is set apart (PageStrip's list sets
     // the pages it does not show in italic, owner decision DK-42, PT6).
@@ -126,6 +135,8 @@ protected:
 
 private:
     friend class MenuStrip;
+    // The ribbon closes its two-pane menu on its submenu's outside press.
+    friend class Ribbon;
     struct Impl;
 
     void set_root_navigation_handler(std::function<bool(int)> handler);

@@ -191,6 +191,11 @@ void SubSurfaceToolTipRequester::key_handled() {
     request_focus(false);
 }
 
+void SubSurfaceToolTipRequester::escape_pressed() {
+    revoke(keyboard_);
+    revoke(pointer_);
+}
+
 void SubSurfaceToolTipRequester::focus_left() {
     revoke(keyboard_);
 }

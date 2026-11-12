@@ -1,6 +1,7 @@
-/* Kit part: theme packages, their findings, the installed library and
- * published values (GF_TABLE_THEMES), and tooltips as a property. Each
- * fixture sheet's manifest carries the SHA-256 of the sheet as written
+/* Kit part: theme packages and plain sheets (load_sheet), their findings,
+ * the installed library and published values (GF_TABLE_THEMES), and
+ * tooltips as a property. Each fixture sheet's manifest carries the
+ * SHA-256 of the sheet as written
  * here; a sheet changed without its digest is refused, which a check
  * below relies on. */
 
@@ -160,6 +161,49 @@ static void check_load(gf_kit* kit) {
                   "reset clears the findings");
 }
 
+/* load_sheet: a plain sheet, its package made by the library. A sheet that
+ * does not parse is refused with its finding on its own line; a
+ * well-formed one is the theme under the name given. */
+static void check_load_sheet(gf_kit* kit) {
+    char builtin[128];
+    uint64_t builtin_size = 0u;
+    gf_kit_status(kit, (*kit).themes.theme_id(builtin, sizeof(builtin) - 1u, &builtin_size), GF_STATUS_OK,
+                  "read the theme's id before a sheet");
+    builtin[builtin_size < sizeof(builtin) ? builtin_size : 0u] = '\0';
+
+    gf_theme_report report = empty_report();
+    gf_kit_status(kit, (*kit).themes.load_sheet(gf_kit_text(good_sheet), gf_kit_text("kit-sheet"), &report),
+                  GF_STATUS_OK, "load a sheet");
+    gf_kit_check(kit, report.outcome == GF_THEME_OUTCOME_APPLIED && report.diagnostic_count == 0u,
+                 "a clean sheet is applied without findings");
+    gf_kit_check(kit, theme_is(kit, "kit-sheet"), "the sheet is the theme under its name");
+
+    static const char broken_sheet[] = "button { opacity: 0.9 }\n/* never closed\n";
+    report = empty_report();
+    gf_kit_status(kit, (*kit).themes.load_sheet(gf_kit_text(broken_sheet), gf_kit_text("kit-broken"), &report),
+                  GF_STATUS_OK, "load a broken sheet");
+    gf_kit_check(kit, report.outcome == GF_THEME_OUTCOME_REFUSED && report.diagnostic_count > 0u,
+                 "a broken sheet is refused with findings");
+    gf_kit_check(kit, theme_is(kit, "kit-sheet"), "a refused sheet leaves the theme in use");
+    gf_theme_diagnostic finding;
+    memset(&finding, 0, sizeof(finding));
+    finding.struct_size = (uint32_t)sizeof(finding);
+    gf_kit_status(kit, (*kit).themes.diagnostic_at(0u, &finding), GF_STATUS_OK, "read the sheet's finding");
+    gf_kit_check(kit, finding.severity == GF_THEME_SEVERITY_ERROR && finding.line == 2u,
+                 "the sheet's error is placed on its line");
+
+    gf_utf8_view no_data;
+    no_data.data = NULL;
+    no_data.size = 4u;
+    report = empty_report();
+    gf_kit_status(kit, (*kit).themes.load_sheet(no_data, gf_kit_text("kit-none"), &report),
+                  GF_STATUS_INVALID_ARGUMENT, "a sheet with a size and no data is refused");
+    gf_kit_status(kit, (*kit).themes.load_sheet(gf_kit_text(good_sheet), gf_kit_text("kit-sheet"), NULL),
+                  GF_STATUS_INVALID_ARGUMENT, "load_sheet needs its report");
+    gf_kit_status(kit, (*kit).themes.reset(), GF_STATUS_OK, "reset after the sheet");
+    gf_kit_check(kit, theme_is(kit, builtin), "reset restores the theme before the sheet");
+}
+
 static void check_published(gf_kit* kit) {
     kit_package reading;
     make_package(&reading, "kit-reading", reading_sheet, reading_digest, "kit-level");
@@ -239,9 +283,28 @@ static void check_tooltip(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(button), GF_STATUS_OK, "release the tooltip's button");
 }
 
+/* The theme the process was started with (--theme, GUI_FORMS_THEME_SHEET):
+ * the kit is started with none, so the request reads NONE. The launched
+ * cases are gf_abi_theme_request_app.c's. A policy is checked before the
+ * resources are touched, and chosen only before their first window. */
+static void check_theme_request(gf_kit* kit) {
+    gf_theme_request_outcome outcome = GF_THEME_REQUEST_MALFORMED + 1u;
+    gf_kit_status(kit, (*kit).themes.theme_request(&outcome), GF_STATUS_OK, "read the theme request");
+    gf_kit_check(kit, outcome == GF_THEME_REQUEST_NONE, "a process started without a theme has no request");
+    gf_kit_status(kit, (*kit).themes.theme_request(NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "theme_request needs its output");
+    gf_kit_status(kit, (*kit).themes.set_user_theme_policy(GF_USER_THEME_POLICY_REFUSED + 1u),
+                  GF_STATUS_INVALID_ARGUMENT, "an unknown policy is refused");
+    const gf_status chosen = (*kit).themes.set_user_theme_policy(GF_USER_THEME_POLICY_LAYERED);
+    gf_kit_check(kit, chosen == GF_STATUS_OK || chosen == GF_STATUS_INVALID_STATE,
+                 "the layered policy is chosen, or refused once a window shares the resources");
+}
+
 void gf_kit_themes(gf_kit* kit) {
     check_load(kit);
+    check_load_sheet(kit);
     check_published(kit);
     check_library(kit);
     check_tooltip(kit);
+    check_theme_request(kit);
 }

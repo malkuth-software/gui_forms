@@ -314,10 +314,10 @@ void overlay_shadow(const Control& control) {
             "a part's own corner radius shapes its shadow");
 
     const Insets reach = overlay_shadow_outsets(control);
-    // The wide layer reaches furthest: three blur radii (30) shifted by its
-    // offset (2, 4).
-    require(reach.left == 28.0 && reach.top == 26.0 && reach.right == 32.0 && reach.bottom == 34.0,
-            "the overlay shadow reaches three blur radii past the surface, shifted down and right");
+    // The wide layer reaches furthest: 3.5 standard deviations of its blur
+    // (1.75 blur radii, 17.5) shifted by its offset (2, 4).
+    require(reach.left == 15.5 && reach.top == 13.5 && reach.right == 19.5 && reach.bottom == 21.5,
+            "the overlay shadow reaches 3.5 deviations past the surface, shifted down and right");
 
     RecordingPainter from_recipe;
     const ControlVisualContext context = part_visual_context(control, shadow.states);

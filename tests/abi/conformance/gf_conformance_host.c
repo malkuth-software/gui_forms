@@ -141,6 +141,14 @@ void gf_kit_host_running(gf_kit* kit) {
     request = message_request();
     gf_kit_status(kit, (*kit).host.show_dialog(&request, &small), GF_STATUS_INVALID_ARGUMENT,
                   "a short result record is refused");
+    /* A dialog's owner is the root of an open window (N32): any other
+     * object is refused before a dialog shows. */
+    const gf_object stranger = gf_kit_create(kit, "Panel", "kit.host.stranger");
+    request = message_request();
+    request.owner = stranger;
+    gf_kit_status(kit, (*kit).host.show_dialog(&request, &result), GF_STATUS_INVALID_STATE,
+                  "an owner that is not an open window's root is refused");
+    gf_kit_status(kit, (*kit).objects.release(stranger), GF_STATUS_OK, "release the stranger");
     /* A value published during the run reaches the running window. */
     gf_kit_status(kit, (*kit).themes.publish_value(gf_kit_text("kit-running"), 2.0), GF_STATUS_OK,
                   "publish a value during a run");

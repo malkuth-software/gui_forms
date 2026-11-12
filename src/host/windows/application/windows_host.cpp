@@ -28,6 +28,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 
 #include "../paint_endpoint/windows_compatibility_paint_endpoint_metrics.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
@@ -37,6 +38,7 @@
 #include <windowsx.h>
 #include <commdlg.h>
 #include <shlobj.h>
+#include <shobjidl.h>
 #include <shellapi.h>
 #include <shellscalingapi.h>
 #include <dwmapi.h>
@@ -49,9 +51,11 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstdlib>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <deque>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -109,6 +113,40 @@ bool present_bgra_area(HDC target, const std::byte* pixels, std::size_t row_byte
     const bool presented = copied != 0 && copied != static_cast<int>(GDI_ERROR);
     return presented;
 }
+
+// Retries automation commands deferred while the UI thread was inside a
+// dispatch or a native size/move loop (WindowsHostState::automation).
+constexpr UINT_PTR automation_retry_timer = 4;
+constexpr UINT automation_retry_milliseconds = 10;
+// At most this many automation commands wait per window; more are refused.
+constexpr std::size_t maximum_deferred_automation = 64U;
+
+// How deep the UI thread is in host dispatches into a model, across every
+// window of the thread: an automation command arriving through WM_COPYDATA
+// while one runs (sent by another process, it is delivered whenever the
+// thread waits in a send or a nested pump) would run model code inside
+// model code, menus and popups half opened. Such commands wait until the
+// count is back to zero. A modal loop entered by a dispatch sets the count
+// aside for its length (ModalDispatchDepth): the modal window is meant to
+// take input there.
+thread_local std::uint32_t host_dispatch_depth = 0U;
+
+// Counts one host dispatch for its length.
+struct HostDispatchScope final {
+    HostDispatchScope() noexcept { ++host_dispatch_depth; }
+    ~HostDispatchScope() { --host_dispatch_depth; }
+    HostDispatchScope(const HostDispatchScope&) = delete;
+    HostDispatchScope& operator=(const HostDispatchScope&) = delete;
+};
+
+// Sets the dispatch count aside for a modal loop's length.
+struct ModalDispatchDepth final {
+    std::uint32_t saved{host_dispatch_depth};
+    ModalDispatchDepth() noexcept { host_dispatch_depth = 0U; }
+    ~ModalDispatchDepth() { host_dispatch_depth = saved; }
+    ModalDispatchDepth(const ModalDispatchDepth&) = delete;
+    ModalDispatchDepth& operator=(const ModalDispatchDepth&) = delete;
+};
 constexpr UINT live_surface_period_milliseconds = 16;
 // The live frame clock's cadence when the display's composition timing is
 // unavailable: 60 Hz, in milliseconds per thousand frames.
@@ -126,15 +164,37 @@ constexpr UINT render_dispatch_message = WM_APP + 0x42U;
 // Posted by the modal live clock (modal_live_clock_signalled) when the live
 // frame clock fires inside the native size/move loop.
 constexpr UINT modal_live_clock_message = WM_APP + 0x43U;
+// Posted from a producer thread when a live surface publishes while the
+// window's live clock rests (the idle handshake, audit E4).
+constexpr UINT live_surface_wake_message = WM_APP + 0x44U;
+// A scheduled wake nearer than this rides the high-resolution scheduler
+// clock instead of WM_TIMER, whose floor is about 10 ms, whose granularity
+// is the system timer's (15.6 ms by default) and whose message has the
+// lowest priority (audit N63). Farther wakes keep SetTimer.
+constexpr std::chrono::milliseconds near_wake_limit{50};
+
+// The live-surface idle wake (audit E4): runs on the producer thread that
+// published, so it only posts to the window. It holds the HWND by value,
+// not the host state, so a call racing the window's teardown posts to a
+// window that is gone, which the post rejects.
+struct PostLiveSurfaceWake final {
+    HWND window{};
+    void operator()() const noexcept {
+        static_cast<void>(PostMessageW(window, live_surface_wake_message, 0, 0));
+    }
+};
 
 // The live frame clock fired while the window is in the native size/move
 // loop, which waits on messages only (threadpool thread). `context` is the
 // window's HWND; posting to it is all this does, and a window already gone
 // rejects the post. The host stops the wait, and waits for this callback to
 // finish, before it destroys the window.
-void CALLBACK modal_live_clock_signalled(PTP_CALLBACK_INSTANCE, PVOID context, PTP_WAIT, TP_WAIT_RESULT) {
+void post_modal_live_clock(PVOID context) {
     const HWND window = static_cast<HWND>(context);
     static_cast<void>(PostMessageW(window, modal_live_clock_message, 0, 0));
+}
+void CALLBACK modal_live_clock_signalled(PTP_CALLBACK_INSTANCE, PVOID context, PTP_WAIT, TP_WAIT_RESULT) {
+    gui_forms::detail::call_failing_fast("windows.modal_live_clock", &post_modal_live_clock, context);
 }
 constexpr std::size_t maximum_automation_command = 4096;
 
@@ -209,34 +269,6 @@ std::string utf8_from_wide(std::wstring_view text) {
     return result;
 }
 
-std::wstring native_filter(const std::vector<HostFileDialogFilter>& filters) {
-    std::wstring result;
-    for (const gui_forms::HostFileDialogFilter& filter : filters) {
-        std::wstring label = wide_from_utf8(filter.label);
-        if (label.empty()) label = L"Files";
-        std::wstring pattern;
-        for (const std::basic_string<char>& extension_utf8 : filter.extensions) {
-            std::wstring extension = wide_from_utf8(extension_utf8);
-            while (!extension.empty() && (extension.front() == L'.' ||
-                                           extension.front() == L'*')) {
-                extension.erase(extension.begin());
-            }
-            if (extension.empty()) continue;
-            if (!pattern.empty()) pattern.push_back(L';');
-            pattern.append(L"*.").append(extension);
-        }
-        if (pattern.empty()) pattern = L"*.*";
-        result.append(label).push_back(L'\0');
-        result.append(pattern).push_back(L'\0');
-    }
-    if (result.empty()) {
-        result.append(L"All files").push_back(L'\0');
-        result.append(L"*.*").push_back(L'\0');
-    }
-    result.push_back(L'\0');
-    return result;
-}
-
 // The native filter index (counting from one) the dialog starts on, and the
 // request's filter (counting from zero) it ended on. Without filters the
 // dialog shows its own "All files", which is no filter of the request.
@@ -259,129 +291,254 @@ HostDialogResult path_dialog_failure(std::uint64_t request_id,
     return {{error}, request_id, HostPathDialogResult{}};
 }
 
+// One COM interface reference, released when the holder ends.
+template <typename Interface>
+class ComReference final {
+public:
+    ComReference() = default;
+    ComReference(const ComReference&) = delete;
+    ComReference& operator=(const ComReference&) = delete;
+    ~ComReference() {
+        if (pointer != nullptr) (*pointer).Release();
+    }
+    Interface* pointer{};
+};
+
+// A shell path (CoTaskMemAlloc'd by the shell), freed when the holder ends.
+class ShellPath final {
+public:
+    ShellPath() = default;
+    ShellPath(const ShellPath&) = delete;
+    ShellPath& operator=(const ShellPath&) = delete;
+    ~ShellPath() { CoTaskMemFree(text); }
+    PWSTR text{};
+};
+
+// A path the dialog chose, as UTF-8, or nullopt when it cannot be converted
+// (an unpaired surrogate, legal in an NTFS name) or is empty: the dialog
+// then reports a failure, never an empty accepted path (audit N65).
+std::optional<std::string> dialog_path_utf8(std::wstring_view path) {
+    if (path.empty()) return std::nullopt;
+    std::string converted = utf8_from_wide(path);
+    if (converted.empty()) return std::nullopt;
+    return converted;
+}
+
+// The file system path of `item`, or nullopt when it has none or it cannot
+// be converted.
+std::optional<std::string> shell_item_path(IShellItem& item) {
+    ShellPath path;
+    if (FAILED(item.GetDisplayName(SIGDN_FILESYSPATH, &path.text)) || path.text == nullptr) {
+        return std::nullopt;
+    }
+    const std::optional<std::string> converted = dialog_path_utf8(std::wstring_view(path.text));
+    return converted;
+}
+
+// The request's filters as the dialog's file types: labels and patterns
+// kept alive in `labels` and `patterns`, which `specs` points into. Filled
+// in place; empty without filters (the dialog then lists every file).
+struct DialogFileTypes final {
+    std::vector<std::wstring> labels;
+    std::vector<std::wstring> patterns;
+    std::vector<COMDLG_FILTERSPEC> specs;
+};
+
+void fill_dialog_file_types(const std::vector<HostFileDialogFilter>& filters, DialogFileTypes& types) {
+    types.labels.reserve(filters.size());
+    types.patterns.reserve(filters.size());
+    types.specs.reserve(filters.size());
+    for (const gui_forms::HostFileDialogFilter& filter : filters) {
+        std::wstring label = wide_from_utf8(filter.label);
+        if (label.empty()) label = L"Files";
+        std::wstring pattern;
+        for (const std::basic_string<char>& extension_utf8 : filter.extensions) {
+            std::wstring extension = wide_from_utf8(extension_utf8);
+            while (!extension.empty() && (extension.front() == L'.' || extension.front() == L'*')) {
+                extension.erase(extension.begin());
+            }
+            if (extension.empty()) continue;
+            if (!pattern.empty()) pattern.push_back(L';');
+            pattern.append(L"*.").append(extension);
+        }
+        if (pattern.empty()) pattern = L"*.*";
+        types.labels.push_back(std::move(label));
+        types.patterns.push_back(std::move(pattern));
+    }
+    // The strings no longer move: the specs point into them.
+    for (std::size_t index = 0; index < types.labels.size(); ++index) {
+        const COMDLG_FILTERSPEC spec{types.labels[index].c_str(), types.patterns[index].c_str()};
+        types.specs.push_back(spec);
+    }
+}
+
+// The settings every path dialog shares: title, starting folder, suggested
+// name and file types. A starting folder the shell cannot parse is left to
+// the dialog's own choice.
+void configure_path_dialog(IFileDialog& dialog, const std::string& title_utf8,
+                           const std::string& directory_utf8, const std::string& suggested_utf8,
+                           const DialogFileTypes& types, const std::vector<HostFileDialogFilter>& filters,
+                           std::size_t initial_filter) {
+    const std::wstring title = wide_from_utf8(title_utf8);
+    if (!title.empty()) static_cast<void>(dialog.SetTitle(title.c_str()));
+    const std::wstring directory = wide_from_utf8(directory_utf8);
+    if (!directory.empty()) {
+        ComReference<IShellItem> folder;
+        const HRESULT parsed = SHCreateItemFromParsingName(
+            directory.c_str(), nullptr, IID_IShellItem, reinterpret_cast<void**>(&folder.pointer));
+        if (SUCCEEDED(parsed) && folder.pointer != nullptr) static_cast<void>(dialog.SetFolder(folder.pointer));
+    }
+    const std::wstring suggested = wide_from_utf8(suggested_utf8);
+    if (!suggested.empty()) static_cast<void>(dialog.SetFileName(suggested.c_str()));
+    if (!types.specs.empty()) {
+        static_cast<void>(dialog.SetFileTypes(static_cast<UINT>(types.specs.size()), types.specs.data()));
+        static_cast<void>(dialog.SetFileTypeIndex(native_filter_index(filters, initial_filter)));
+    }
+}
+
+// The outcome of Show: accepted, cancelled by the user, or failed.
+enum class DialogShown : std::uint8_t { accepted, cancelled, failed };
+
+DialogShown show_path_dialog(IFileDialog& dialog, HWND owner) {
+    const HRESULT shown = dialog.Show(owner);
+    if (SUCCEEDED(shown)) return DialogShown::accepted;
+    if (shown == HRESULT_FROM_WIN32(ERROR_CANCELLED)) return DialogShown::cancelled;
+    return DialogShown::failed;
+}
+
+HostDialogResult path_dialog_cancelled(std::uint64_t request_id) {
+    return {{}, request_id, HostPathDialogResult{HostDialogOutcome::cancelled, {}}};
+}
+
+// The request's filter the dialog ended on.
+std::optional<std::size_t> dialog_chosen_filter(IFileDialog& dialog,
+                                                const std::vector<HostFileDialogFilter>& filters) {
+    UINT index = 0U;
+    if (FAILED(dialog.GetFileTypeIndex(&index))) return std::nullopt;
+    const std::optional<std::size_t> chosen = chosen_filter(filters, static_cast<DWORD>(index));
+    return chosen;
+}
+
+// The open, save and folder dialogs use the shell's common item dialog
+// (IFileOpenDialog, IFileSaveDialog; audit N65): no fixed path buffer, no
+// MAX_PATH limit on folders, and a path that cannot be converted to UTF-8
+// is a backend failure, never an empty accepted path. COM is initialized by
+// the host's run (apartment threaded).
 HostDialogResult native_open_dialog(HWND owner, std::uint64_t request_id,
                                     const HostOpenFileDialogRequest& request) {
-    std::vector<wchar_t> path(65536, L'\0');
-    const std::wstring title = wide_from_utf8(request.title);
-    const std::wstring directory = wide_from_utf8(request.initial_directory);
-    const std::wstring suggested = wide_from_utf8(request.suggested_name);
-    const std::wstring filter = native_filter(request.filters);
-    if (!suggested.empty()) {
-        const std::size_t count = std::min(suggested.size(), path.size() - 2U);
-        std::copy_n(suggested.data(), count, path.data());
+    ComReference<IFileOpenDialog> dialog;
+    const HRESULT created = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
+                                             IID_IFileOpenDialog, reinterpret_cast<void**>(&dialog.pointer));
+    if (FAILED(created) || dialog.pointer == nullptr) {
+        return path_dialog_failure(request_id, HostServiceError::backend_failure);
     }
-    OPENFILENAMEW native{};
-    native.lStructSize = sizeof(native);
-    native.hwndOwner = owner;
-    native.lpstrFilter = filter.c_str();
-    native.nFilterIndex = native_filter_index(request.filters, request.initial_filter);
-    native.lpstrFile = path.data();
-    native.nMaxFile = static_cast<DWORD>(path.size());
-    native.lpstrInitialDir = directory.empty() ? nullptr : directory.c_str();
-    native.lpstrTitle = title.empty() ? nullptr : title.c_str();
-    native.Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST |
-                   OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
-    if (request.allow_multiple) native.Flags |= OFN_ALLOWMULTISELECT;
-    if (!GetOpenFileNameW(&native)) {
-        const DWORD error = CommDlgExtendedError();
-        return error == 0 ? HostDialogResult{{}, request_id,
-                    HostPathDialogResult{HostDialogOutcome::cancelled, {}}}
-            : path_dialog_failure(request_id, HostServiceError::backend_failure);
+    IFileOpenDialog& open = *dialog.pointer;
+    FILEOPENDIALOGOPTIONS options = 0;
+    static_cast<void>(open.GetOptions(&options));
+    options |= FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR;
+    if (request.allow_multiple) options |= FOS_ALLOWMULTISELECT;
+    static_cast<void>(open.SetOptions(options));
+    DialogFileTypes types;
+    fill_dialog_file_types(request.filters, types);
+    configure_path_dialog(open, request.title, request.initial_directory, request.suggested_name, types,
+                          request.filters, request.initial_filter);
+    const DialogShown shown = show_path_dialog(open, owner);
+    if (shown == DialogShown::cancelled) return path_dialog_cancelled(request_id);
+    if (shown == DialogShown::failed) return path_dialog_failure(request_id, HostServiceError::backend_failure);
+    ComReference<IShellItemArray> items;
+    if (FAILED(open.GetResults(&items.pointer)) || items.pointer == nullptr) {
+        return path_dialog_failure(request_id, HostServiceError::backend_failure);
+    }
+    DWORD count = 0U;
+    if (FAILED((*items.pointer).GetCount(&count)) || count == 0U) {
+        return path_dialog_failure(request_id, HostServiceError::backend_failure);
     }
     HostPathDialogResult value;
     value.outcome = HostDialogOutcome::accepted;
-    value.chosen_filter = chosen_filter(request.filters, native.nFilterIndex);
-    const std::wstring first(path.data());
-    const wchar_t* cursor = path.data() + first.size() + 1U;
-    if (*cursor == L'\0') {
-        value.paths.push_back(utf8_from_wide(first));
-    } else {
-        for (std::size_t count = 0; *cursor != L'\0' &&
-             count < HostServices::maximum_dialog_paths; ++count) {
-            const std::wstring name(cursor);
-            std::wstring combined = first;
-            if (!combined.empty() && combined.back() != L'\\' &&
-                combined.back() != L'/') combined.push_back(L'\\');
-            combined.append(name);
-            value.paths.push_back(utf8_from_wide(combined));
-            cursor += name.size() + 1U;
+    value.chosen_filter = dialog_chosen_filter(open, request.filters);
+    const std::size_t taken = std::min<std::size_t>(count, HostServices::maximum_dialog_paths);
+    value.paths.reserve(taken);
+    for (std::size_t index = 0; index < taken; ++index) {
+        ComReference<IShellItem> item;
+        if (FAILED((*items.pointer).GetItemAt(static_cast<DWORD>(index), &item.pointer)) || item.pointer == nullptr) {
+            return path_dialog_failure(request_id, HostServiceError::backend_failure);
         }
+        std::optional<std::string> path = shell_item_path(*item.pointer);
+        if (!path) return path_dialog_failure(request_id, HostServiceError::backend_failure);
+        value.paths.push_back(std::move(*path));
     }
     return {{}, request_id, std::move(value)};
 }
 
 HostDialogResult native_save_dialog(HWND owner, std::uint64_t request_id,
                                     const HostSaveFileDialogRequest& request) {
-    std::vector<wchar_t> path(32768, L'\0');
-    const std::wstring title = wide_from_utf8(request.title);
-    const std::wstring directory = wide_from_utf8(request.initial_directory);
-    const std::wstring suggested = wide_from_utf8(request.suggested_name);
-    const std::wstring extension = wide_from_utf8(request.default_extension);
-    const std::wstring filter = native_filter(request.filters);
-    if (!suggested.empty()) {
-        const std::size_t count = std::min(suggested.size(), path.size() - 2U);
-        std::copy_n(suggested.data(), count, path.data());
+    ComReference<IFileSaveDialog> dialog;
+    const HRESULT created = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER,
+                                             IID_IFileSaveDialog, reinterpret_cast<void**>(&dialog.pointer));
+    if (FAILED(created) || dialog.pointer == nullptr) {
+        return path_dialog_failure(request_id, HostServiceError::backend_failure);
     }
-    OPENFILENAMEW native{};
-    native.lStructSize = sizeof(native);
-    native.hwndOwner = owner;
-    native.lpstrFilter = filter.c_str();
-    native.nFilterIndex = native_filter_index(request.filters, request.initial_filter);
-    native.lpstrFile = path.data();
-    native.nMaxFile = static_cast<DWORD>(path.size());
-    native.lpstrInitialDir = directory.empty() ? nullptr : directory.c_str();
-    native.lpstrTitle = title.empty() ? nullptr : title.c_str();
-    native.lpstrDefExt = extension.empty() ? nullptr : extension.c_str();
-    native.Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY |
-                   OFN_NOCHANGEDIR;
-    if (request.confirm_overwrite) native.Flags |= OFN_OVERWRITEPROMPT;
-    if (!GetSaveFileNameW(&native)) {
-        const DWORD error = CommDlgExtendedError();
-        return error == 0 ? HostDialogResult{{}, request_id,
-                    HostPathDialogResult{HostDialogOutcome::cancelled, {}}}
-            : path_dialog_failure(request_id, HostServiceError::backend_failure);
+    IFileSaveDialog& save = *dialog.pointer;
+    FILEOPENDIALOGOPTIONS options = 0;
+    static_cast<void>(save.GetOptions(&options));
+    options |= FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR;
+    if (request.confirm_overwrite) {
+        options |= FOS_OVERWRITEPROMPT;
+    } else {
+        options &= ~static_cast<FILEOPENDIALOGOPTIONS>(FOS_OVERWRITEPROMPT);
     }
+    static_cast<void>(save.SetOptions(options));
+    DialogFileTypes types;
+    fill_dialog_file_types(request.filters, types);
+    configure_path_dialog(save, request.title, request.initial_directory, request.suggested_name, types,
+                          request.filters, request.initial_filter);
+    std::wstring extension = wide_from_utf8(request.default_extension);
+    while (!extension.empty() && extension.front() == L'.') extension.erase(extension.begin());
+    if (!extension.empty()) static_cast<void>(save.SetDefaultExtension(extension.c_str()));
+    const DialogShown shown = show_path_dialog(save, owner);
+    if (shown == DialogShown::cancelled) return path_dialog_cancelled(request_id);
+    if (shown == DialogShown::failed) return path_dialog_failure(request_id, HostServiceError::backend_failure);
+    ComReference<IShellItem> item;
+    if (FAILED(save.GetResult(&item.pointer)) || item.pointer == nullptr) {
+        return path_dialog_failure(request_id, HostServiceError::backend_failure);
+    }
+    std::optional<std::string> path = shell_item_path(*item.pointer);
+    if (!path) return path_dialog_failure(request_id, HostServiceError::backend_failure);
     HostPathDialogResult value;
     value.outcome = HostDialogOutcome::accepted;
-    value.chosen_filter = chosen_filter(request.filters, native.nFilterIndex);
-    value.paths.push_back(utf8_from_wide(path.data()));
+    value.chosen_filter = dialog_chosen_filter(save, request.filters);
+    value.paths.push_back(std::move(*path));
     return {{}, request_id, std::move(value)};
-}
-
-int CALLBACK select_initial_folder(HWND dialog, UINT message, LPARAM,
-                                   LPARAM context) {
-    if (message == BFFM_INITIALIZED && context != 0) {
-        SendMessageW(dialog, BFFM_SETSELECTIONW, TRUE, context);
-    }
-    return 0;
 }
 
 HostDialogResult native_folder_dialog(HWND owner, std::uint64_t request_id,
                                       const HostFolderDialogRequest& request) {
-    const std::wstring title = wide_from_utf8(request.title);
-    const std::wstring directory = wide_from_utf8(request.initial_directory);
-    BROWSEINFOW native{};
-    native.hwndOwner = owner;
-    native.lpszTitle = title.empty() ? nullptr : title.c_str();
-    native.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE |
-                     BIF_EDITBOX | BIF_VALIDATE;
-    native.lpfn = select_initial_folder;
-    native.lParam = directory.empty() ? 0 :
-        reinterpret_cast<LPARAM>(directory.c_str());
-    PIDLIST_ABSOLUTE selected = SHBrowseForFolderW(&native);
-    if (selected == nullptr) {
-        return {{}, request_id,
-                HostPathDialogResult{HostDialogOutcome::cancelled, {}}};
-    }
-    std::vector<wchar_t> path(32768, L'\0');
-    const bool converted = SHGetPathFromIDListW(selected, path.data()) != FALSE;
-    CoTaskMemFree(selected);
-    if (!converted) {
+    ComReference<IFileOpenDialog> dialog;
+    const HRESULT created = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
+                                             IID_IFileOpenDialog, reinterpret_cast<void**>(&dialog.pointer));
+    if (FAILED(created) || dialog.pointer == nullptr) {
         return path_dialog_failure(request_id, HostServiceError::backend_failure);
     }
+    IFileOpenDialog& folder = *dialog.pointer;
+    FILEOPENDIALOGOPTIONS options = 0;
+    static_cast<void>(folder.GetOptions(&options));
+    options |= FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR;
+    static_cast<void>(folder.SetOptions(options));
+    const DialogFileTypes none;
+    const std::vector<HostFileDialogFilter> no_filters;
+    configure_path_dialog(folder, request.title, request.initial_directory, std::string(), none, no_filters, 0U);
+    const DialogShown shown = show_path_dialog(folder, owner);
+    if (shown == DialogShown::cancelled) return path_dialog_cancelled(request_id);
+    if (shown == DialogShown::failed) return path_dialog_failure(request_id, HostServiceError::backend_failure);
+    ComReference<IShellItem> item;
+    if (FAILED(folder.GetResult(&item.pointer)) || item.pointer == nullptr) {
+        return path_dialog_failure(request_id, HostServiceError::backend_failure);
+    }
+    std::optional<std::string> path = shell_item_path(*item.pointer);
+    if (!path) return path_dialog_failure(request_id, HostServiceError::backend_failure);
     HostPathDialogResult value;
     value.outcome = HostDialogOutcome::accepted;
-    value.paths.push_back(utf8_from_wide(path.data()));
+    value.paths.push_back(std::move(*path));
     return {{}, request_id, std::move(value)};
 }
 
@@ -781,6 +938,7 @@ struct DeviceArea final {
     int bottom{};
 };
 
+#if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
 // The whole device pixels a logical rectangle touches at `scale`, clamped to a
 // raster of `width` by `height` pixels; the same rounding as the Skia raster's
 // damage clip, so a copy covers every pixel a frame may have changed.
@@ -797,7 +955,6 @@ DeviceArea device_area(const Rect rect, const double scale, const int width, con
     return area;
 }
 
-#if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
 // Copies `area` of a premultiplied BGRA8 raster into a 32-bit top-down DIB of
 // the same extent, byte for byte (SK2: both are BGRA8, so nothing converts).
 // With `opaque`, every copied pixel's alpha byte becomes 255, which is the
@@ -1047,16 +1204,12 @@ public:
         }
         DamageRegion clip;
         clip.add(presentation.clip);
-        try {
-            if (!begin_frame(clip)) return false;
-            canvas_.save();
-            canvas_.clip_rect(presentation.clip);
-            canvas_.draw_live_surface(presentation.surface, presentation.destination, 1.0);
-            canvas_.restore();
-        } catch (...) {
-            abort_frame();
-            return false;
-        }
+        // A live drain is housekeeping: nothing here is caught.
+        if (!begin_frame(clip)) return false;
+        canvas_.save();
+        canvas_.clip_rect(presentation.clip);
+        canvas_.draw_live_surface(presentation.surface, presentation.destination, 1.0);
+        canvas_.restore();
         canvas_.end_frame();
 #if defined(GUI_FORMS_WINDOWS_PREPARED_TEXT)
         const PreparedTextStatus published = canvas_.commit_prepared_frame(canvas_.prepared_front_receipt());
@@ -1295,6 +1448,9 @@ class WindowsHostState final {
 #if defined(GUI_FORMS_WINDOWS_SCROLL_COPY_TEST)
     friend struct ScrollCopyHostFixture;
 #endif
+#if defined(GUI_FORMS_WINDOWS_LIVE_IDLE_TEST)
+    friend struct LiveIdleHostFixture;
+#endif
 public:
     WindowsHostState(std::unique_ptr<Window> model, WindowsHostOptions options)
         : model_(std::move(model)), options_(std::move(options)),
@@ -1314,6 +1470,13 @@ public:
         if (live_frame_clock_ == nullptr) {
             live_frame_clock_ = CreateWaitableTimerExW(
                 nullptr, nullptr, 0, TIMER_ALL_ACCESS);
+        }
+        // The scheduler clock for near wakes (audit N63), high resolution
+        // where the system offers it. Without one, every wake uses SetTimer.
+        scheduler_clock_ = CreateWaitableTimerExW(
+            nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+        if (scheduler_clock_ == nullptr) {
+            scheduler_clock_ = CreateWaitableTimerExW(nullptr, nullptr, 0, TIMER_ALL_ACCESS);
         }
         LARGE_INTEGER frequency{};
         QueryPerformanceFrequency(&frequency);
@@ -1348,7 +1511,13 @@ public:
             CloseHandle(live_frame_clock_);
             live_frame_clock_ = nullptr;
         }
+        if (scheduler_clock_ != nullptr) {
+            CancelWaitableTimer(scheduler_clock_);
+            CloseHandle(scheduler_clock_);
+            scheduler_clock_ = nullptr;
+        }
         if (model_) {
+            (*model_).set_live_surface_idle_wake_handler({});
             (*model_).set_paint_wake_handler({});
             (*model_).set_text_metrics_provider(nullptr);
             (*model_).set_framebuffer_painter(nullptr);
@@ -1404,6 +1573,7 @@ public:
             gui_forms::detail::BoundMemberFunction<
                 void (WindowsHostState::*)() noexcept>(
                     *this, &WindowsHostState::request_render_wake));
+        (*model_).set_live_surface_idle_wake_handler(PostLiveSurfaceWake{hwnd_});
 #if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
         // The painter keeps its pixels between frames, so a scroll's pixels
         // can be moved instead of repainted (apply_scroll_copies). The
@@ -1556,6 +1726,31 @@ public:
     [[nodiscard]] WindowsRaster::PresentedView presented_view() const noexcept { return raster_.presented_view(); }
     // Defined in windows_application_run.inc.
     void report_frame_to_run();
+    // Whether the screen point in `lparam` (WM_NCHITTEST) lies in a content
+    // surface's margin: inside the client, where the model hits no control
+    // but its root.
+    [[nodiscard]] bool popup_margin_at(LPARAM lparam) noexcept {
+        if (!model_ || !(*model_).content_surface_declared()) return false;
+        POINT point{static_cast<LONG>(static_cast<short>(LOWORD(lparam))),
+                    static_cast<LONG>(static_cast<short>(HIWORD(lparam)))};
+        if (!ScreenToClient(hwnd_, &point)) return false;
+        const Point logical{point.x / scale_, point.y / scale_};
+        const Control::Ptr hit = (*model_).hit_test(logical);
+        const bool margin = !hit || hit.get() == (*model_).root().get();
+        return margin;
+    }
+    // WM_MOVE: tells the model the window moved when its client origin on
+    // the screen changed (not for a Popup or Splash window, which nothing
+    // is placed against).
+    void report_moved_to_model(LPARAM lparam) {
+        if (passive_popup_ || splash_ || model_ == nullptr) return;
+        const POINT origin{static_cast<LONG>(static_cast<short>(LOWORD(lparam))),
+                           static_cast<LONG>(static_cast<short>(HIWORD(lparam)))};
+        const bool first = !last_client_origin_.has_value();
+        const bool moved = !first && ((*last_client_origin_).x != origin.x || (*last_client_origin_).y != origin.y);
+        last_client_origin_ = origin;
+        if (moved) (*model_).report_frame_moved();
+    }
     void retire_from_run() noexcept;
     void report_application_active_to_run(bool active);
     void hidden_on_close_to_run() noexcept;
@@ -1567,6 +1762,16 @@ public:
 
     [[nodiscard]] HANDLE live_frame_clock() const noexcept {
         return live_frame_clock_;
+    }
+    // The clock near scheduled wakes ride (audit N63); null without one.
+    [[nodiscard]] HANDLE scheduler_clock() const noexcept {
+        return scheduler_clock_;
+    }
+    // The scheduler clock fired: the model's near wake is due.
+    void scheduler_clock_signalled() {
+        scheduler_clock_armed_ = false;
+        ++scheduler_clock_signals_;
+        scheduled_wake();
     }
 
     // The live clock fired: a live frame is due, and the clock is armed for
@@ -1652,8 +1857,17 @@ public:
             report_frame_to_run();
             report_window_state();
             return 0;
-        case WM_MOVE: report_frame_to_run(); return 0;
+        case WM_MOVE:
+            report_frame_to_run();
+            report_moved_to_model(lparam);
+            return 0;
         case WM_DPICHANGED: dpi_changed(wparam, lparam); return 0;
+        case WM_DISPLAYCHANGE:
+            // A display was added, removed or changed resolution (audit
+            // N62): the window hears the new monitor set, as the macOS
+            // host's screen-parameters notification reports it.
+            report_displays();
+            break;
         case WM_ACTIVATE:
             if (LOWORD(wparam) == WA_INACTIVE) { services_.revoke_cursor_interaction(); }
             if (trace_win32_input()) {
@@ -1664,10 +1878,25 @@ public:
             }
             dispatch(HostActivationEvent{LOWORD(wparam) != WA_INACTIVE});
             collect_damage(); return 0;
+        case WM_NCLBUTTONDOWN: {
+            // A press on the frame or caption whose button is already up
+            // (dispatched behind a long frame) starts no move or size loop:
+            // that loop would wait for a second click to end.
+            const int primary = GetSystemMetrics(SM_SWAPBUTTON) != 0 ? VK_RBUTTON : VK_LBUTTON;
+            const bool primary_down = (GetAsyncKeyState(primary) & 0x8000) != 0;
+            if (!detail::frame_press_may_drag(wparam, primary_down)) return 0;
+            break;
+        }
         case WM_NCHITTEST:
             // A Splash is never hit: the message goes to the window beneath
             // it on this thread (its owner, for a tooltip).
             if (splash_) return HTTRANSPARENT;
+            // A Popup window drawing its own content (a menu panel, a list)
+            // is larger than its face by the shadow around it; the shadow
+            // takes no input, so a point there reaches the window beneath
+            // (the owner) as if the Popup were not there (owner,
+            // 2026-11-10: the dead margin round a menu).
+            if (passive_popup_ && popup_margin_at(lparam)) return HTTRANSPARENT;
             break;
         case WM_MOUSEACTIVATE:
             if (trace_win32_input()) {
@@ -1738,6 +1967,9 @@ public:
             // message (coarse, and only sent when the queue is empty) is the
             // fallback when that wait cannot be made.
             in_size_move_ = true;
+            // A native move or size loop starts: menus placed against the
+            // window close before it moves under them.
+            if (!passive_popup_ && !splash_ && model_ != nullptr) (*model_).report_frame_moved();
             if ((*model_).has_live_surface_presentations() && !start_modal_live_clock()) {
                 SetTimer(hwnd_, modal_live_surface_timer,
                          live_surface_period_milliseconds, nullptr);
@@ -1766,11 +1998,16 @@ public:
             live_frame_due_ = false;
             if (live_clock_armed_) SetThreadpoolWait(modal_live_clock_, live_frame_clock_, nullptr);
             return 0;
-        case managed_dispatch_message:
+        case live_surface_wake_message:
+            leave_live_idle();
+            return 0;
+        case managed_dispatch_message: {
+            const HostDispatchScope scope;
             static_cast<void>((*model_).drain_posted_work());
             if (options_.dispatch_pending) options_.dispatch_pending();
             collect_damage();
             return 0;
+        }
         case render_dispatch_message:
             // Gather damage in this asynchronous turn, but let the outer host
             // loop drain its bounded message batch before presenting. A
@@ -1786,6 +2023,10 @@ public:
                 present_invalidation_overlay();
                 return 0;
             }
+            if (wparam == automation_retry_timer) {
+                run_deferred_automation();
+                return 0;
+            }
             if (wparam == modal_live_surface_timer) {
                 // Do not enter retained polling/layout from the native modal
                 // loop. Sample and present only the newest live generation,
@@ -1796,30 +2037,20 @@ public:
             }
             if (wparam == scheduler_timer) {
                 KillTimer(hwnd_, scheduler_timer);
-                try {
-                    collect_damage();
-                } catch (const std::exception& error) {
-                    ++native_callback_faults_;
-                    std::fprintf(
-                        stderr,
-                        "gui-forms-host=scheduled-wake-fault|what:%s\n",
-                        error.what());
-                    std::fflush(stderr);
-                } catch (...) {
-                    ++native_callback_faults_;
-                    std::fprintf(
-                        stderr,
-                        "gui-forms-host=scheduled-wake-fault|what:unknown\n");
-                    std::fflush(stderr);
-                }
+                scheduled_wake();
                 return 0;
             }
             break;
         case WM_MOUSEMOVE: pointer(message, PointerAction::move, wparam, lparam); return 0;
+        // A passive popup (a menu panel, a list) never takes the native
+        // focus: SetFocus would activate it and deactivate its owner, whose
+        // open menu then closes under the press.
         case WM_LBUTTONDOWN: case WM_RBUTTONDOWN: case WM_MBUTTONDOWN:
-            SetFocus(hwnd_); pointer(message, PointerAction::down, wparam, lparam); return 0;
+            if (!passive_popup_ && !splash_) SetFocus(hwnd_);
+            pointer(message, PointerAction::down, wparam, lparam); return 0;
         case WM_LBUTTONDBLCLK: case WM_RBUTTONDBLCLK: case WM_MBUTTONDBLCLK:
-            SetFocus(hwnd_); pointer(message, PointerAction::down, wparam, lparam); return 0;
+            if (!passive_popup_ && !splash_) SetFocus(hwnd_);
+            pointer(message, PointerAction::down, wparam, lparam); return 0;
         case WM_LBUTTONUP: case WM_MBUTTONUP:
             pointer(message, PointerAction::up, wparam, lparam); return 0;
         case WM_RBUTTONUP:
@@ -1845,15 +2076,36 @@ public:
             if (!key(KeyAction::up, wparam, lparam) && context_key(message, wparam)) break;
             return 0;
         case WM_CHAR: character(static_cast<wchar_t>(wparam)); return 0;
-        case WM_IME_STARTCOMPOSITION:
-        case WM_IME_COMPOSITION:
-            // The system input method still draws its own composition and
-            // candidate windows, and its committed text still arrives as
-            // WM_CHAR (DefWindowProc turns WM_IME_CHAR into it); the host
-            // only places them at the focused control's caret. No preedit
-            // reaches the model, so text_composition is not advertised.
-            place_input_method_windows();
+        case WM_IME_SETCONTEXT:
+            // Inline composition (audit N61): the window draws the
+            // composition itself, so the input method shows only its
+            // candidate window.
+            lparam &= ~static_cast<LPARAM>(ISC_SHOWUICOMPOSITIONWINDOW);
             break;
+        case WM_IME_STARTCOMPOSITION:
+            // Handled without DefWindowProc, which would open the system's
+            // own composition window.
+            place_input_method_windows();
+            return 0;
+        case WM_IME_COMPOSITION:
+            // The composition string reaches the focused control as a
+            // composing text input and the result string as committed input
+            // (ime_composition). Not passed on: DefWindowProc would turn
+            // the result into WM_IME_CHAR and WM_CHAR, a second insertion.
+            place_input_method_windows();
+            ime_composition(lparam);
+            return 0;
+        case WM_IME_ENDCOMPOSITION:
+            // An open composition that ended without a result was cancelled:
+            // its marked text is removed.
+            if (ime_composing_) {
+                TextInputEvent cancel{};
+                cancel.composing = true;
+                static_cast<void>(dispatch(std::move(cancel)));
+                ime_composing_ = false;
+                collect_damage();
+            }
+            return 0;
         case WM_GETOBJECT:
             if (static_cast<LONG>(lparam) == OBJID_CLIENT) { return accessibility_.object(wparam); }
             if (WindowsAccessibility::automation_request(lparam)) {
@@ -1883,6 +2135,7 @@ public:
                 retire_from_run();
                 if (options_.closed) options_.closed();
             }
+            (*model_).set_live_surface_idle_wake_handler({});
             (*model_).set_paint_wake_handler({});
             session_.shutdown();
             native_phase_ = NativePhase::shutdown;
@@ -1903,6 +2156,8 @@ public:
                detail::compatibility_paint_metrics_json() +
                ",\"live_presentations\":{" +
                "\"clock_signals\":" + std::to_string(live_clock_signals_) +
+               ",\"idle_entries\":" + std::to_string(live_idle_entries_) +
+               ",\"scheduler_clock_signals\":" + std::to_string(scheduler_clock_signals_) +
                ",\"drains\":" + std::to_string(live_presentation_drains_) +
                ",\"updates_sampled\":" +
                    std::to_string(live_updates_sampled_) +
@@ -2032,7 +2287,8 @@ private:
     void toggle_full_screen() noexcept {
         if (hwnd_ == nullptr || closed_) return;
         if (!full_screen_) {
-            MONITORINFO monitor{sizeof(MONITORINFO)};
+            MONITORINFO monitor{};
+            monitor.cbSize = sizeof(MONITORINFO);
             restore_placement_.length = sizeof(WINDOWPLACEMENT);
             if (!GetWindowPlacement(hwnd_, &restore_placement_) ||
                 !GetMonitorInfoW(MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONEAREST), &monitor)) return;
@@ -2083,6 +2339,7 @@ private:
         event.sequence = next_sequence_++;
         event.timestamp_nanoseconds = now_nanoseconds();
         event.payload = std::move(payload);
+        const HostDispatchScope scope;
         return session_.dispatch(std::move(event));
     }
 
@@ -2115,12 +2372,31 @@ private:
             pointer.hover_origin = SettingOrigin::host;
         }
         pointer.native_hover = true;
+        // The caret's blink phase (audit N75): INFINITE means the user
+        // turned blinking off; 0 is a failed read, which keeps the default.
+        const UINT blink = GetCaretBlinkTime();
+        if (blink == INFINITE) {
+            input.caret = CaretSettings{0U, SettingOrigin::host};
+        } else if (blink != 0U) {
+            std::uint32_t phase = static_cast<std::uint32_t>(blink);
+            if (phase > maximum_caret_blink_milliseconds) phase = maximum_caret_blink_milliseconds;
+            input.caret = CaretSettings{phase, SettingOrigin::host};
+        }
         const bool unchanged = reported_input_settings_ &&
                                (*reported_input_settings_).double_click_milliseconds == input.double_click_milliseconds &&
-                               (*reported_input_settings_).pointer == input.pointer;
+                               (*reported_input_settings_).pointer == input.pointer &&
+                               (*reported_input_settings_).caret == input.caret;
         if (unchanged) return;
         const HostDispatchResult reported = dispatch(input);
         if (reported.accepted()) reported_input_settings_ = input;
+    }
+
+    // Sends the current monitors (HostDisplayEvent); a failed query sends
+    // nothing and the window keeps its last set.
+    void report_displays() {
+        HostMonitorResult monitors = services_.query_monitors();
+        if (!monitors.status.accepted()) return;
+        static_cast<void>(dispatch(HostDisplayEvent{std::move(monitors.monitors)}));
     }
 
     static double clamp_pointer_distance(double distance) noexcept {
@@ -2349,15 +2625,12 @@ private:
                 InvalidateRect(hwnd_, &native_damage, FALSE);
             }
         }
-        KillTimer(hwnd_, scheduler_timer);
-        if (const std::optional<FrameTime> wake = (*model_).next_wake()) {
-            const std::chrono::milliseconds::rep milliseconds =
-                std::chrono::duration_cast<std::chrono::milliseconds>(
-                    *wake - FrameClock::now()).count();
-            SetTimer(hwnd_, scheduler_timer,
-                     static_cast<UINT>(std::clamp<std::int64_t>(milliseconds, 1, 60'000)), nullptr);
-        }
-        const bool needs_live_clock = (*model_).has_live_surface_presentations();
+        arm_scheduled_wake();
+        // New retained damage may move or uncover a live surface: an idle
+        // clock runs one more drain, which rests it again if nothing is
+        // published (audit E4).
+        if (!rectangles.empty() && live_idle_) leave_live_idle();
+        const bool needs_live_clock = (*model_).has_live_surface_presentations() && !live_idle_;
         if (needs_live_clock && !live_clock_armed_) {
             arm_live_clock();
         } else if (!needs_live_clock && live_clock_armed_) {
@@ -2365,6 +2638,71 @@ private:
             live_clock_armed_ = false;
             live_frame_due_ = false;
             live_clock_deadline_ = 0;
+        }
+    }
+
+    // Arms the model's next wake (audit N63): one nearer than
+    // near_wake_limit on the high-resolution scheduler clock, a farther one
+    // (or any while the native size/move loop runs, which waits on messages
+    // only) on WM_TIMER. Either way the other is cancelled first.
+    void arm_scheduled_wake() {
+        KillTimer(hwnd_, scheduler_timer);
+        if (scheduler_clock_armed_) {
+            CancelWaitableTimer(scheduler_clock_);
+            scheduler_clock_armed_ = false;
+        }
+        const std::optional<FrameTime> wake = (*model_).next_wake();
+        if (!wake) return;
+        const FrameInterval remaining = *wake - FrameClock::now();
+        const bool soon = remaining < near_wake_limit;
+        if (soon && scheduler_clock_ != nullptr && !in_size_move_) {
+            // Relative due times are in 100 ns units, negative.
+            const std::chrono::nanoseconds::rep nanoseconds =
+                std::chrono::duration_cast<std::chrono::nanoseconds>(remaining).count();
+            LARGE_INTEGER due{};
+            due.QuadPart = -(std::max<LONGLONG>)(static_cast<LONGLONG>(nanoseconds / 100), 1);
+            scheduler_clock_armed_ = SetWaitableTimer(scheduler_clock_, &due, 0, nullptr, nullptr, FALSE) != FALSE;
+            if (scheduler_clock_armed_) return;
+        }
+        const std::chrono::milliseconds::rep milliseconds =
+            std::chrono::duration_cast<std::chrono::milliseconds>(remaining).count();
+        SetTimer(hwnd_, scheduler_timer,
+                 static_cast<UINT>(std::clamp<std::int64_t>(milliseconds, 1, 60'000)), nullptr);
+    }
+
+    // A scheduled wake came due (WM_TIMER or the scheduler clock): the model
+    // polls its schedule and its damage is collected. Housekeeping: nothing
+    // is caught here; the window procedure is the fail-fast boundary.
+    void scheduled_wake() {
+        collect_damage();
+    }
+
+    // The live clock rests (audit E4): a drain found no new publication, so
+    // the clock stops and the window arms the idle handshake; a producer's
+    // next publication posts live_surface_wake_message. An idle window with
+    // live surfaces registered schedules no frames.
+    void enter_live_idle() {
+        if (live_clock_armed_) CancelWaitableTimer(live_frame_clock_);
+        live_clock_armed_ = false;
+        live_frame_due_ = false;
+        live_clock_deadline_ = 0;
+        live_idle_ = true;
+        ++live_idle_entries_;
+        // Arming rechecks the generations, so a publication racing this
+        // drain still wakes the window.
+        (*model_).set_live_surface_idle_waiting(true);
+    }
+
+    // A publication or retained damage ends the rest: the clock runs again
+    // while live presentations remain.
+    void leave_live_idle() {
+        if (!live_idle_) return;
+        live_idle_ = false;
+        (*model_).set_live_surface_idle_waiting(false);
+        if (!(*model_).has_live_surface_presentations() || live_clock_armed_) return;
+        arm_live_clock();
+        if (in_size_move_ && modal_live_clock_ != nullptr && live_clock_armed_) {
+            SetThreadpoolWait(modal_live_clock_, live_frame_clock_, nullptr);
         }
     }
 
@@ -2397,6 +2735,17 @@ private:
             live_timing_vblank_ = anchor;
             live_timing_source_ = LiveTimingSource::fallback;
         }
+        // DWM reports the primary display's timing only (a window handle is
+        // refused since Windows 8.1). A window on another display with a
+        // different refresh rate takes that display's period, at the
+        // cadence's own phase (audit N64).
+        const LONGLONG window_period = window_monitor_period();
+        if (window_period > 0 && (window_period * 100 < period * 99 || window_period * 100 > period * 101)) {
+            period = window_period;
+            anchor = live_clock_deadline_ != 0 ? live_clock_deadline_ : now.QuadPart;
+            live_timing_vblank_ = anchor;
+            live_timing_source_ = LiveTimingSource::fallback;
+        }
         live_timing_period_ = period;
         LONGLONG earliest = now.QuadPart + 1;
         if (live_clock_deadline_ != 0) {
@@ -2413,6 +2762,27 @@ private:
         live_clock_armed_ = SetWaitableTimer(live_frame_clock_, &due, 0, nullptr, nullptr,
                                              FALSE) != FALSE;
         if (live_clock_armed_) live_clock_deadline_ = deadline;
+    }
+
+    // The refresh period, in counter ticks, of the display the window is on
+    // when that is not the primary display (EnumDisplaySettingsW); 0 on the
+    // primary display or when the rate is unknown (0 or 1 Hz: the
+    // hardware default).
+    [[nodiscard]] LONGLONG window_monitor_period() const noexcept {
+        if (hwnd_ == nullptr || qpc_frequency_ <= 0) return 0;
+        const HMONITOR monitor = MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONULL);
+        const POINT origin{0, 0};
+        const HMONITOR primary = MonitorFromPoint(origin, MONITOR_DEFAULTTOPRIMARY);
+        if (monitor == nullptr || monitor == primary) return 0;
+        MONITORINFOEXW info{};
+        info.cbSize = sizeof(info);
+        if (GetMonitorInfoW(monitor, &info) == FALSE) return 0;
+        DEVMODEW mode{};
+        mode.dmSize = sizeof(mode);
+        if (EnumDisplaySettingsW(info.szDevice, ENUM_CURRENT_SETTINGS, &mode) == FALSE) return 0;
+        if (mode.dmDisplayFrequency <= 1U) return 0;
+        const LONGLONG ticks = qpc_frequency_ / static_cast<LONGLONG>(mode.dmDisplayFrequency);
+        return ticks;
     }
 
     // The display timing the live clock was last phased to, in FrameClock
@@ -2693,6 +3063,8 @@ private:
             live_clock_armed_ = false;
             live_clock_deadline_ = 0;
         }
+        // Nothing new: the clock rests until a producer publishes (E4).
+        if (updates.empty() && (*model_).has_live_surface_presentations()) enter_live_idle();
         if (updates.empty() || hwnd_ == nullptr) return;
 #if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
         HDC target = GetDC(hwnd_);
@@ -2763,22 +3135,20 @@ private:
         std::optional<PaintReceipt> receipt{};
         bool presented = false;
         std::uint64_t transactional_copy_nanoseconds = 0U;
-        try {
-            prepare_frame_alpha();
-            const bool images_ready = raster_.synchronize_images((*model_).image_resources());
-            const bool begun = images_ready && raster_.begin_frame(pending_damage_);
-            if (begun) receipt = (*model_).paint(raster_.painter(), pending_damage_.rectangles());
-            if (receipt) {
-                const std::chrono::steady_clock::time_point copy_started =
-                    std::chrono::steady_clock::now();
-                presented = raster_.commit_frame(dc, present_rectangles, *receipt);
-                transactional_copy_nanoseconds = static_cast<std::uint64_t>(
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        std::chrono::steady_clock::now() - copy_started).count());
-            }
-        } catch (...) {
-            ++native_callback_faults_;
-            std::fprintf(stderr, "gui-forms-host=transaction-paint-fault\n");
+        // A paint tick is housekeeping: nothing is caught. Its budget is the
+        // model's expectation (paint_within_budget); an exception from a
+        // control's paint ends the process at the window procedure.
+        prepare_frame_alpha();
+        const bool images_ready = raster_.synchronize_images((*model_).image_resources());
+        const bool begun = images_ready && raster_.begin_frame(pending_damage_);
+        if (begun) receipt = (*model_).paint(raster_.painter(), pending_damage_.rectangles());
+        if (receipt) {
+            const std::chrono::steady_clock::time_point copy_started =
+                std::chrono::steady_clock::now();
+            presented = raster_.commit_frame(dc, present_rectangles, *receipt);
+            transactional_copy_nanoseconds = static_cast<std::uint64_t>(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now() - copy_started).count());
         }
         if (!presented) {
             raster_.abort_frame();
@@ -3064,6 +3434,68 @@ private:
         static_cast<void>(ImmReleaseContext(hwnd_, context));
     }
 
+    // Reads the strings WM_IME_COMPOSITION announces in `flags` (GCS_RESULTSTR,
+    // GCS_COMPSTR) from the window's input context and passes them on.
+    void ime_composition(LPARAM flags) {
+        const HIMC context = ImmGetContext(hwnd_);
+        if (context == nullptr) return;
+        std::wstring result;
+        std::wstring composition;
+        const bool has_result = (flags & GCS_RESULTSTR) != 0 && read_ime_string(context, GCS_RESULTSTR, result);
+        const bool has_composition =
+            (flags & GCS_COMPSTR) != 0 && read_ime_string(context, GCS_COMPSTR, composition);
+        static_cast<void>(ImmReleaseContext(hwnd_, context));
+        ime_strings(has_result, result, has_composition, composition);
+    }
+
+    // One input context string into `text`; false when it cannot be read.
+    // The byte count IMM reports is checked against the string's limit
+    // before the buffer is sized.
+    static bool read_ime_string(HIMC context, DWORD which, std::wstring& text) {
+        const LONG bytes = ImmGetCompositionStringW(context, which, nullptr, 0U);
+        if (bytes < 0) return false;
+        const std::size_t units = static_cast<std::size_t>(bytes) / sizeof(wchar_t);
+        if (units > maximum_ime_units) return false;
+        text.assign(units, L'\0');
+        if (units == 0U) return true;
+        const LONG copied = ImmGetCompositionStringW(context, which, text.data(), static_cast<DWORD>(bytes));
+        if (copied != bytes) return false;
+        return true;
+    }
+
+    // The input method's strings as text input (audit N61): a result is
+    // committed input, which replaces the composition's marked text; a
+    // composition string, sent after the result as WM_IME_COMPOSITION
+    // orders them, is the new marked text, and an empty one cancels an open
+    // composition. A string that is not valid UTF-16 is dropped.
+    void ime_strings(bool has_result, std::wstring_view result, bool has_composition,
+                     std::wstring_view composition) {
+        bool changed = false;
+        if (has_result && !result.empty()) {
+            TextInputEvent committed{};
+            committed.text_utf8 = utf8_from_wide(result);
+            if (!committed.text_utf8.empty()) {
+                static_cast<void>(dispatch(std::move(committed)));
+                changed = true;
+            }
+            ime_composing_ = false;
+        }
+        if (has_composition) {
+            const bool open = !composition.empty();
+            if (open || ime_composing_) {
+                TextInputEvent composing{};
+                composing.composing = true;
+                composing.text_utf8 = utf8_from_wide(composition);
+                if (!open || !composing.text_utf8.empty()) {
+                    static_cast<void>(dispatch(std::move(composing)));
+                    changed = true;
+                    ime_composing_ = open;
+                }
+            }
+        }
+        if (changed) collect_damage();
+    }
+
     void character(wchar_t character) {
         // Key events own editing commands. TranslateMessage also emits these
         // WM_CHAR values; forwarding them would insert a second newline/tab or
@@ -3178,6 +3610,43 @@ private:
         constexpr std::string_view prefix = "GUI.Forms.Automation/1 ";
         if (!command.starts_with(prefix)) return FALSE;
         command.erase(0, prefix.size());
+        // A command that feeds the model waits while the thread is inside a
+        // dispatch or a native size/move loop, and runs, in arrival order,
+        // once neither holds: whichever of an input and a command arrives
+        // first, each runs whole before the other starts. It is accepted
+        // (TRUE) when deferred; its own result is printed when it runs.
+        const bool reads_only = command == "snapshot" || command == "capture" ||
+                                command.starts_with("capture ") || command.starts_with("capture-composite ") ||
+                                command == "close";
+        if (!reads_only && (automation_busy() || !deferred_automation_.empty())) {
+            if (deferred_automation_.size() >= maximum_deferred_automation) return FALSE;
+            deferred_automation_.push_back(std::move(command));
+            SetTimer(hwnd_, automation_retry_timer, automation_retry_milliseconds, nullptr);
+            return TRUE;
+        }
+        return automation_command(command);
+    }
+
+    [[nodiscard]] bool automation_busy() const noexcept {
+        const bool busy = host_dispatch_depth != 0U || in_size_move_;
+        return busy;
+    }
+
+    // Runs the deferred automation commands, oldest first, while the thread
+    // is free; the timer stops once none wait.
+    void run_deferred_automation() {
+        while (!deferred_automation_.empty() && !automation_busy() && hwnd_ != nullptr) {
+            const std::string command = std::move(deferred_automation_.front());
+            deferred_automation_.pop_front();
+            static_cast<void>(automation_command(command));
+        }
+        if (deferred_automation_.empty() && hwnd_ != nullptr) KillTimer(hwnd_, automation_retry_timer);
+    }
+
+    // Model code run by a command counts as a dispatch: a command sent
+    // while it runs waits for it.
+    LRESULT automation_command(const std::string& command) {
+        const HostDispatchScope scope;
         if (command == "snapshot") {
             const DispatcherSnapshot dispatcher = (*model_).dispatcher_snapshot();
             std::fprintf(
@@ -3223,6 +3692,16 @@ private:
             return saved ? TRUE : FALSE;
         }
         if (command == "close") { PostMessageW(hwnd_, WM_CLOSE, 0, 0); return TRUE; }
+        // The invalidation overlay on, off, or following the program's
+        // switch (tools/contention_fuzz.py toggles it under load).
+        if (command == "overlay on" || command == "overlay off" || command == "overlay default") {
+            std::optional<bool> enabled{};
+            if (command == "overlay on") enabled = true;
+            if (command == "overlay off") enabled = false;
+            (*model_).set_invalidation_overlay(enabled);
+            collect_damage();
+            return TRUE;
+        }
         constexpr std::string_view move_at = "move ";
         if (command.starts_with(move_at)) {
             std::istringstream input(command.substr(move_at.size()));
@@ -3549,7 +4028,6 @@ private:
     // The control TrackMouseEvent's hover report is armed for (zero for
     // none): each control raises MouseHover once per entry.
     RuntimeId hover_tracked_{};
-    std::uint64_t native_callback_faults_{};
     wchar_t pending_high_surrogate_{};
     bool render_dispatch_pending_{};
     bool presentation_pending_{};
@@ -3581,6 +4059,19 @@ private:
     LiveTimingSource live_timing_source_{LiveTimingSource::none};
     DwmCompositionTimingFunction dwm_composition_timing_{};
     bool live_frame_due_{};
+    // An inline composition is open in the model (audit N61): the last
+    // composing input had text.
+    bool ime_composing_{};
+    // The longest input method string read, in UTF-16 units.
+    static constexpr std::size_t maximum_ime_units = 4096U;
+    // The live clock rests (enter_live_idle) until a publication or new
+    // retained damage (leave_live_idle); counted for the idle proof.
+    bool live_idle_{};
+    std::uint64_t live_idle_entries_{};
+    // The high-resolution clock for near scheduled wakes (audit N63).
+    HANDLE scheduler_clock_{};
+    bool scheduler_clock_armed_{};
+    std::uint64_t scheduler_clock_signals_{};
     std::uint64_t live_clock_signals_{};
     std::uint64_t live_presentation_drains_{};
     std::uint64_t live_updates_sampled_{};
@@ -3605,6 +4096,12 @@ private:
     HostWindowId window_id_{};
     // mark_passive_popup: never activated by a click.
     bool passive_popup_{};
+    // Automation commands waiting for the thread to leave a dispatch or a
+    // size/move loop, oldest first (at most maximum_deferred_automation).
+    std::deque<std::string> deferred_automation_{};
+    // The client origin on the screen at the last WM_MOVE, for
+    // report_moved_to_model.
+    std::optional<POINT> last_client_origin_{};
     // mark_splash: transparent to the pointer.
     bool splash_{};
     // The reason WM_DESTROY reports: user for every native close, application
@@ -3629,7 +4126,9 @@ HostServiceStatus RequestClientSize::operator()(const Size client_size) const {
     } catch (...) { return {HostServiceError::backend_failure}; }
 }
 
-LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+// One window message, delivered to the window's host state (bound at
+// WM_NCCREATE). Runs inside the fail-fast boundary (window_procedure).
+LRESULT deliver_window_message(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
     WindowsHostState* state = reinterpret_cast<WindowsHostState*>(
         GetWindowLongPtrW(window, GWLP_USERDATA));
     if (message == WM_NCCREATE) {
@@ -3641,6 +4140,12 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPAR
     }
     if (state != nullptr) return (*state).message(message, wparam, lparam);
     return DefWindowProcW(window, message, wparam, lparam);
+}
+
+LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+    const LRESULT result = gui_forms::detail::call_failing_fast("windows.window_procedure", &deliver_window_message,
+                                                                window, message, wparam, lparam);
+    return result;
 }
 
 #include "windows_application_run.inc"
@@ -3676,6 +4181,7 @@ HostCapabilities windows_capabilities() {
                 HostCapability::scheduled_wake |
                 HostCapability::pointer_input |
                 HostCapability::keyboard_input |
+                HostCapability::text_composition |
                 HostCapability::monitor_geometry |
                 HostCapability::pointer_capture |
                 HostCapability::cursor |
@@ -3770,14 +4276,20 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
     MSG message{};
     bool quit{};
     while (!quit) {
-        HANDLE clock = state.live_frame_clock();
-        const DWORD handle_count = clock == nullptr ? 0U : 1U;
+        // The live clock and the scheduler clock (audit N63), whichever
+        // exist, in that order.
+        std::array<HANDLE, 2> clocks{};
+        DWORD handle_count = 0U;
+        if (state.live_frame_clock() != nullptr) clocks[handle_count++] = state.live_frame_clock();
+        if (state.scheduler_clock() != nullptr) clocks[handle_count++] = state.scheduler_clock();
         const DWORD wait = MsgWaitForMultipleObjectsEx(
-            handle_count, handle_count == 0U ? nullptr : &clock, INFINITE,
+            handle_count, handle_count == 0U ? nullptr : clocks.data(), INFINITE,
             QS_ALLINPUT, MWMO_INPUTAVAILABLE);
         if (wait == WAIT_FAILED) break;
-        if (handle_count != 0U && wait == WAIT_OBJECT_0) {
-            state.mark_live_frame_due();
+        if (wait >= WAIT_OBJECT_0 && wait < WAIT_OBJECT_0 + handle_count) {
+            const HANDLE ready = clocks[wait - WAIT_OBJECT_0];
+            if (ready == state.live_frame_clock()) state.mark_live_frame_due();
+            else state.scheduler_clock_signalled();
         }
 
         // Input and managed callbacks receive a bounded turn, not an
@@ -3805,9 +4317,13 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
                 break;
             }
         }
-        if (clock != nullptr &&
-            WaitForSingleObject(clock, 0U) == WAIT_OBJECT_0) {
+        if (state.live_frame_clock() != nullptr &&
+            WaitForSingleObject(state.live_frame_clock(), 0U) == WAIT_OBJECT_0) {
             state.mark_live_frame_due();
+        }
+        if (state.scheduler_clock() != nullptr &&
+            WaitForSingleObject(state.scheduler_clock(), 0U) == WAIT_OBJECT_0) {
+            state.scheduler_clock_signalled();
         }
         if (!quit && IsWindow(window)) state.present_pending_frame();
         if (!options.quit_thread_on_close && !IsWindow(window)) break;

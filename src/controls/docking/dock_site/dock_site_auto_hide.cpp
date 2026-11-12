@@ -917,9 +917,11 @@ void DockSite::paint_flyout(Painter& painter, const Control& surface) const {
     part.role = PartRole::shadow;
     part.bounds = moved(placed.full, offset);
     part.corner_radius = 0.0;
+    part.key = PartKey{"flyout_shadow", {}, {}};
     paint_part(painter, surface, part);
     part.corner_radius.reset();
     part.role = PartRole::face;
+    part.key = PartKey{"flyout_face", {}, {}};
     paint_part(painter, surface, part);
     paint_caption(painter, surface, stacks_[index], index, offset);
     PartPaint grip{};
@@ -927,6 +929,7 @@ void DockSite::paint_flyout(Painter& painter, const Control& surface) const {
     grip.role = PartRole::grip;
     grip.mark = PartMark::grip_dots;
     grip.bounds = moved(placed.grip, offset);
+    grip.key = PartKey{"flyout_grip", {}, {}};
     if (hot_.zone == Zone::grip) grip.states.insert(AnatomyState::hot);
     if (grip_captured_) grip.states.insert(AnatomyState::captured);
     paint_part(painter, surface, grip);

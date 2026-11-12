@@ -4,14 +4,12 @@ class DibFixtureControl final : public Control {
 public:
     DibFixtureControl() : Control(StableId("dib-fixture")) {}
     Color color{0x22, 0x44, 0x66, 0xff};
-    bool fail{};
     bool revoke_epoch{};
     std::shared_ptr<LiveSurface> surface{};
 protected:
     void on_paint(Painter& painter, Rect damage) override {
         painter.fill_rect(damage, color);
         if (surface) painter.draw_live_surface(surface, client_rectangle(), 1.0);
-        if (fail) throw std::runtime_error("fixture callback failure");
         if (revoke_epoch) {
             revoke_epoch = false;
             Window& model = *attached_window();
@@ -120,17 +118,6 @@ struct DibHostFixture final {
                 "recovery exposure unexpectedly repainted");
         request_paint(state);
         require(state.raster_.matches_front((*state.model_).paint_lease_snapshot()), "recovery commit mismatch");
-
-        control.fail = true;
-        control.invalidate(Dirty::paint);
-        state.collect_damage();
-        const detail::DibFrameKey before_throw = state.raster_.frames_.front_key();
-        request_paint(state);
-        require(detail::same_frame_key(state.raster_.frames_.front_key(), before_throw), "callback failure committed");
-        require(state.native_callback_faults_ == 1, "callback failure not contained");
-        control.fail = false;
-        request_paint(state);
-        request_paint(state);
 
         control.revoke_epoch = true;
         control.invalidate(Dirty::paint);

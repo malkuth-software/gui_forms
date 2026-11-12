@@ -4,6 +4,7 @@
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../../../../core/drag_engine/drag_engine.hpp"
+#include "../../../basic/number_text.hpp"
 
 #include <vector>
 #include <array>
@@ -619,19 +620,15 @@ bool SplitContainer::on_semantic_action(SemanticAction action,
             return true;
         }
         if (action == SemanticAction::set_value) {
+            double requested{};
+            if (!number_text::parse_finite_decimal(value, requested) || requested < 0.0) return false;
+            // A distance the container refuses fails the client's request.
             try {
-                std::size_t consumed{};
-                const std::string owned(value);
-                const double requested = std::stod(owned, &consumed);
-                if (consumed != owned.size() || !std::isfinite(requested) ||
-                    requested < 0.0) {
-                    return false;
-                }
                 set_distance(requested, SplitChangeReason::semantic);
-                return true;
-            } catch (...) {
+            } catch (const std::exception&) {
                 return false;
             }
+            return true;
         }
     }
     return ContainerControl::on_semantic_action(action, value);

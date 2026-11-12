@@ -1,4 +1,5 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/application/user_themes/user_themes.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window.hpp"
@@ -140,6 +141,21 @@ void ApplicationResources::set_user_theme(std::shared_ptr<const Theme> theme) {
     }
     user_theme_ = std::move(theme);
     theme_ = replaces && user_theme_ != nullptr ? user_theme_ : program_theme_;
+}
+
+void ApplicationResources::hold_theme_request(std::unique_ptr<DeferredThemeRequest> request) {
+    require_access("theme request");
+    if (!windows_.empty()) throw std::logic_error("a theme request is held before the first window");
+    held_theme_request_ = std::move(request);
+}
+
+void ApplicationResources::settle_theme_request() {
+    require_access("theme request");
+    if (held_theme_request_ == nullptr || !windows_.empty()) return;
+    // Released first: a request that throws is not settled twice.
+    const std::unique_ptr<DeferredThemeRequest> held = std::move(held_theme_request_);
+    ThemeRequestReport report = apply_theme_request(*this, (*held).request, (*held).context);
+    theme_request_report_ = std::make_unique<ThemeRequestReport>(std::move(report));
 }
 
 bool icon_identifier_valid(std::string_view identifier) noexcept {

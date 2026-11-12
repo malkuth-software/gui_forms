@@ -53,12 +53,11 @@ public:
     // the box so that the field and its events follow.
     [[nodiscard]] const MaskedTextProvider& provider() const noexcept { return provider_; }
 
-    // The text in text_mask_format.
-    [[nodiscard]] std::string text() const;
-    // Clears the box and places `text` from the first position, literals in
-    // the text matching the mask's literals. Refused text leaves the box
-    // unchanged and raises mask_input_rejected.
-    MaskEditResult set_text(std::string_view text);
+    // Clears the box and places `incoming` from the first position, literals
+    // in it matching the mask's literals, and reports how. Refused text
+    // leaves the box unchanged and raises mask_input_rejected. Writing the
+    // `text` property does the same and drops the result.
+    MaskEditResult place_text(std::string_view incoming);
     void clear();
     // Every required position is assigned.
     [[nodiscard]] bool mask_completed() const noexcept { return provider_.mask_completed(); }
@@ -189,6 +188,7 @@ protected:
 private:
     friend struct MaskedTextBoxMaskCapability<MaskedTextBox>;
     friend struct MaskedTextBoxCultureCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxTextCapability<MaskedTextBox>;
     friend struct MaskedTextBoxTextMaskFormatCapability<MaskedTextBox>;
     friend struct MaskedTextBoxPromptCharacterCapability<MaskedTextBox>;
     friend struct MaskedTextBoxAllowPromptAsInputCapability<MaskedTextBox>;
@@ -204,6 +204,8 @@ private:
     [[nodiscard]] std::string read_view(const decltype(mask)& cell) const;
     void write_view(const decltype(culture)& cell, MaskCulture incoming);
     [[nodiscard]] MaskCulture read_view(const decltype(culture)& cell) const;
+    void write_view(const decltype(text)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(text)& cell) const;
     void prepare_write(const decltype(text_mask_format)& cell, MaskTextFormat& incoming);
     void written(const decltype(text_mask_format)& cell);
     void write_view(const decltype(prompt_character)& cell, char32_t incoming);

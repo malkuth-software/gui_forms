@@ -323,6 +323,9 @@ gui_forms::SurfaceRoot
          A number that changes whenever the semantic (accessibility) tree may
          have changed.
 
+      **layout_pass_sequence** : ``std::uint64_t``, read-only
+         Advances with every layout pass (and once after the last of a flush), so a reader keyed on it sees every change of arranged bounds; the native accessibility trees key on it with semantic_generation (audit N95) instead of on every repaint.
+
    :Events:
 
       **presentation_changed** : ``Event<const PresentationSettings&>``
@@ -333,6 +336,12 @@ gui_forms::SurfaceRoot
 
       **active_changed** : ``Event<bool>``
          Raised after :cpp:func:`active <gui_forms::SurfaceRoot::active>` changes, with the new value.
+
+      **frame_moved** : ``Event<>``
+         Raised when the host reports that the native window moved on the screen or began a native move or size loop: what is placed against the window from outside it (a menu's Popup windows) closes. Host only: report_frame_moved. UI thread.
+
+      **menu_opening** : ``Event<>``
+         Raised before a menu opens on this window: every menu open on it closes first, so the window shows one menu chain at a time (an open chain's focus scope would hold the new menu outside it). Raised by the opening menu through announce_menu_opening, before it subscribes itself. UI thread.
 
       **backdrop_changed** : ``Event<const WindowBackdropGrant&>``
          Raised on the UI thread after the grant's backdrop, reason or request changes (not for a new generation alone), once per change. When the granted backdrop changes, the backplane's generation has advanced and the window is marked for repaint before it is raised. A handler may call request_backdrop; its change raises its own event within this one, and later handlers of this emission still see this emission's grant.
@@ -424,9 +433,15 @@ gui_forms::SurfaceRoot
         - Removes a snapshot's image; false when it is not there.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`
         -  
+      * - :cpp:func:`measure_text_extent_utf8 <gui_forms::SurfaceRoot::measure_text_extent_utf8>`
+        - The extent resolve_text_layout_utf8 reports, without the layout (D2).
       * - :cpp:func:`fill_line_break_opportunities_utf8 <gui_forms::SurfaceRoot::fill_line_break_opportunities_utf8>`
         - The installed provider's line-break opportunities (TextMetricsProvider::fill_line_break_opportunities_utf8), or the estimate without one.
       * - :cpp:func:`shares_resources_with <gui_forms::SurfaceRoot::shares_resources_with>`
+        -  
+      * - :cpp:func:`report_frame_moved <gui_forms::SurfaceRoot::report_frame_moved>`
+        -  
+      * - :cpp:func:`announce_menu_opening <gui_forms::SurfaceRoot::announce_menu_opening>`
         -  
       * - :cpp:func:`declare_non_opaque <gui_forms::SurfaceRoot::declare_non_opaque>`
         - Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/ PLAN.md §2).
@@ -458,6 +473,8 @@ gui_forms::SurfaceRoot
         - Appends the copies recorded since the last take to ``copies``, in the order recorded, and forgets them.
       * - :cpp:func:`request_scroll_copy <gui_forms::SurfaceRoot::request_scroll_copy>`
         - Called by ``scroller``'s arrange, inside the layout pass, after it moved its scrolling children by ``offset`` (whole device pixels) and nothing else changed in its child viewport.
+      * - :cpp:func:`request_content_scroll <gui_forms::SurfaceRoot::request_content_scroll>`
+        - Called by Control::scroll_content, outside or inside a layout pass: what ``owner`` painted inside ``local_area`` (its own coordinates) moved by ``offset`` (whole device pixels).
       * - :cpp:func:`schedule_paint <gui_forms::SurfaceRoot::schedule_paint>`
         -  
       * - :cpp:func:`schedule_ui_timer <gui_forms::SurfaceRoot::schedule_ui_timer>`
@@ -1020,6 +1037,10 @@ gui_forms::SurfaceRoot
       A number that changes whenever the semantic (accessibility) tree may
       have changed.
 
+   .. cpp:function:: std::uint64_t layout_pass_sequence() const noexcept
+
+      Advances with every layout pass (and once after the last of a flush), so a reader keyed on it sees every change of arranged bounds; the native accessibility trees key on it with semantic_generation (audit N95) instead of on every repaint.
+
 
    .. rubric:: Events
 
@@ -1034,6 +1055,14 @@ gui_forms::SurfaceRoot
    .. cpp:function:: Event<bool>& active_changed() noexcept
 
       Raised after :cpp:func:`active <gui_forms::SurfaceRoot::active>` changes, with the new value.
+
+   .. cpp:function:: Event<>& frame_moved() noexcept
+
+      Raised when the host reports that the native window moved on the screen or began a native move or size loop: what is placed against the window from outside it (a menu's Popup windows) closes. Host only: report_frame_moved. UI thread.
+
+   .. cpp:function:: Event<>& menu_opening() noexcept
+
+      Raised before a menu opens on this window: every menu open on it closes first, so the window shows one menu chain at a time (an open chain's focus scope would hold the new menu outside it). Raised by the opening menu through announce_menu_opening, before it subscribes itself. UI thread.
 
    .. cpp:function:: Event<const WindowBackdropGrant&>& backdrop_changed() noexcept
 
@@ -1196,11 +1225,19 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: ResolvedTextLayout resolve_text_layout_utf8(std::string_view utf8, FontSpec effective_font) const
 
+   .. cpp:function:: TextExtent measure_text_extent_utf8(std::string_view utf8, FontSpec effective_font) const
+
+      The extent resolve_text_layout_utf8 reports, without the layout (D2).
+
    .. cpp:function:: TextResolutionStatus fill_line_break_opportunities_utf8(std::string_view utf8, std::span<LineBreakOpportunity> opportunities) const
 
       The installed provider's line-break opportunities (TextMetricsProvider::fill_line_break_opportunities_utf8), or the estimate without one.
 
    .. cpp:function:: bool shares_resources_with(const SurfaceRoot& other) const noexcept
+
+   .. cpp:function:: void report_frame_moved()
+
+   .. cpp:function:: void announce_menu_opening()
 
    .. cpp:function:: bool declare_non_opaque()
 
@@ -1292,6 +1329,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: bool request_scroll_copy(Control& scroller, Point offset)
 
       Called by ``scroller``'s arrange, inside the layout pass, after it moved its scrolling children by ``offset`` (whole device pixels) and nothing else changed in its child viewport. Returns true when the copy is recorded: the damage already pending in the viewport is moved by ``offset``, the exposed band is damaged, and the children's moves by exactly ``offset`` in this pass damage nothing; controls drawn over the viewport (later siblings, overlays) are damaged where they are and where the copy moved their pixels. False when the pixels beneath the viewport would not move with it (an earlier sibling or a backplane control crosses it, or an ancestor's paint depends on its size, below the first opaque fill covering it), the viewport or offset is not device-aligned, or copies are off; the caller then repaints its viewport.
+
+   .. cpp:function:: bool request_content_scroll(Control& owner, Rect local_area, Point offset)
+
+      Called by Control::scroll_content, outside or inside a layout pass: what ``owner`` painted inside ``local_area`` (its own coordinates) moved by ``offset`` (whole device pixels). Returns true when the copy is recorded: the damage already pending (local marks placed first) moves with the pixels, the exposed band is damaged, and what is drawn over the area (the owner's children, later siblings, overlays) is damaged where it is and where the copy moved it. False, recording nothing, when copies are off, the owner or an ancestor is hidden, the visible area or the offset is not device-aligned, the offset is not smaller than the area, or the owner's last recorded paint left no opaque cover over the visible area (Control::report_opaque_cover).
 
    .. cpp:function:: FrameRequestToken schedule_paint(const Control::Ptr& control, FrameTime deadline)
 

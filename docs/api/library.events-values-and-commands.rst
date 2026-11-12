@@ -912,7 +912,7 @@ Functions, constants and aliases
 
 .. cpp:function:: RuleCondition dragging(Control& control)
 
-   The drag engine's levels (C++ only for now; see RuleConditionKind).
+   The drag engine's levels (GF_RULE_CONDITION_DRAGGING and _DROP_CANDIDATE in the C ABI).
 
 .. cpp:function:: RuleCondition not_dragging(Control& control)
 

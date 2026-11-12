@@ -16,9 +16,17 @@
 // while the callback runs; when it returns the forwarder reads the written
 // fields back into the argument with the read_field overloads.
 //
-// Every EventFields lives on the UI thread, in one forwarder's frame. Its
+// Every EventFields lives on the thread that raises its events. Its
 // storage (names, values, texts) is stable from publish() until the frame
 // ends, so the records it lends stay valid for the whole invoke.
+//
+// Reuse (N12): a subscription's forwarder keeps one EventFields for all of
+// its emissions. An emission claims it, builds, publishes and reads back,
+// then releases it: release() returns the lent identities and empties the
+// fields but keeps every buffer, so after the first emission an event of the
+// same shape builds without allocating. A nested emission of the same
+// subscription (a callback that raises the event again) finds it claimed
+// and builds in its own EventFields.
 
 #include "gui_forms/c/gf_abi.h"
 
@@ -110,6 +118,12 @@ public:
     // is replaced by one NULL field.
     void mark_optional(std::size_t mark, std::string_view name, bool absent);
 
+    // Reuse: claim() marks the fields in use for one emission and is false
+    // when they already are; release() ends the emission (end_publication,
+    // the lent identities released, the fields emptied, storage kept).
+    [[nodiscard]] bool claim() noexcept;
+    void release() noexcept;
+
     // Publication: fills event's field_count and fields (and payload, for
     // one argument that is one field named "value"), then makes the frame
     // current for write_field and field_element until it ends.
@@ -141,14 +155,23 @@ private:
         bool written = false;
     };
 
-    [[nodiscard]] std::string full_name(std::string_view name) const;
+    // Writes the full name of name below the current prefix into out (an
+    // empty name in no struct is "value", in a struct the struct's name).
+    void compose_name(std::string_view name, std::string& out) const;
+    // Whether stored is the full name of name below the current prefix.
+    [[nodiscard]] bool name_matches(const std::string& stored, std::string_view name) const noexcept;
 
     bool writable_ = false;
+    bool claimed_ = false;
     std::string prefix_;
-    // Stable storage: a deque keeps its elements in place as it grows.
+    // Stable pooled storage: a deque keeps its elements in place as it
+    // grows, and release() keeps them. names_[i] and values_[i] belong to
+    // fields_[i] for i < fields_.size(); entries past that are spare.
+    // texts_[0, texts_used_) are this emission's texts, the rest spare.
     std::deque<std::string> names_;
     std::deque<gf_value> values_;
     std::deque<std::string> texts_;
+    std::size_t texts_used_ = 0U;
     std::vector<Field> fields_;
     std::vector<gf_event_field> records_;
     std::vector<gf_object> lent_;
@@ -478,11 +501,26 @@ void read_argument(EventFields& fields, std::size_t index, std::size_t count, Ar
     }
 }
 
+// Holds an EventFields claimed for one emission and releases it when the
+// emission's forward ends, however it ends.
+class EventFieldsClaim final {
+public:
+    explicit EventFieldsClaim(EventFields& fields) noexcept : fields_(&fields) {}
+    ~EventFieldsClaim() { (*fields_).release(); }
+    EventFieldsClaim(const EventFieldsClaim&) = delete;
+    EventFieldsClaim& operator=(const EventFieldsClaim&) = delete;
+
+private:
+    EventFields* fields_ = nullptr;
+};
+
 // Forwards one C++ event of Arguments to a subscription's callback. The
-// event's copy of the forwarder owns the binding.
+// event's copy of the forwarder owns the binding and the reused fields.
 template <typename... Arguments>
 struct EventForwarder final {
     std::shared_ptr<SubscriptionBinding> binding;
+    // Reused by every emission of this subscription (N12).
+    std::shared_ptr<EventFields> reusable;
 
     void operator()(Arguments... arguments) const {
         forward(std::index_sequence_for<Arguments...>{}, arguments...);
@@ -492,7 +530,17 @@ struct EventForwarder final {
     void forward(std::index_sequence<Indices...>, Arguments&... arguments) const {
         constexpr std::size_t count = sizeof...(Arguments);
         constexpr bool any_mutable = (false || ... || mutable_argument<Arguments>);
-        EventFields fields;
+        // A nested emission of this subscription builds in its own fields;
+        // nested is declared first so the claim ends before it is destroyed.
+        std::optional<EventFields> nested;
+        EventFields* claimed = reusable.get();
+        if (!(*claimed).claim()) {
+            nested.emplace();
+            claimed = &nested.value();
+            static_cast<void>((*claimed).claim());
+        }
+        const EventFieldsClaim claim(*claimed);
+        EventFields& fields = *claimed;
         gf_event event{};
         try {
             (append_argument<mutable_argument<Arguments>>(fields, Indices, count, arguments), ...);
@@ -512,7 +560,7 @@ struct EventForwarder final {
 
 template <typename... Arguments>
 SubscriptionToken subscribe_forwarded(Event<Arguments...>& event, const EventSink& sink) {
-    EventForwarder<Arguments...> forwarder{sink.binding};
+    EventForwarder<Arguments...> forwarder{sink.binding, std::make_shared<EventFields>()};
     SubscriptionToken token = event.subscribe(std::move(forwarder));
     return token;
 }

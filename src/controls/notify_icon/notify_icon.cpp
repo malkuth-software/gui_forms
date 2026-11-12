@@ -234,8 +234,14 @@ void NotifyIcon::show_menu() {
         HostTrayMenuItem item;
         if (spec.kind == MenuItemKind::separator) {
             item.separator = true;
-        } else if (spec.kind == MenuItemKind::submenu || !spec.command) {
+        } else if (spec.kind == MenuItemKind::submenu) {
             continue;
+        } else if (!spec.command) {
+            // An item without a Command shows its own state (GAPS E9).
+            item.id = spec.stable_id;
+            item.text = spec.text;
+            item.enabled = spec.enabled;
+            item.checked = spec.kind != MenuItemKind::command && spec.checked;
         } else {
             const CommandState& state = (*spec.command).state();
             if (!state.visible) continue;
@@ -255,14 +261,24 @@ void NotifyIcon::show_menu() {
     // everything the invocation reports is copied before it runs.
     const std::shared_ptr<ContextMenu> menu_owner = context_menu.read();
     std::shared_ptr<Command> command{};
+    bool found = false;
     for (const MenuItemSpec& spec : (*menu_owner).items()) {
-        if (spec.stable_id != chosen.chosen_id || !spec.command) continue;
+        if (spec.stable_id != chosen.chosen_id || spec.kind == MenuItemKind::separator ||
+            spec.kind == MenuItemKind::submenu) continue;
+        if (!spec.command && !spec.enabled) break;
         command = spec.command;
+        found = true;
         break;
     }
-    if (!command) return;
-    const MenuItemInvocation invocation{(*menu_owner).stable_id(), chosen.chosen_id, (*command).stable_id(),
+    if (!found) return;
+    const std::string command_id = command ? (*command).stable_id() : std::string{};
+    const MenuItemInvocation invocation{(*menu_owner).stable_id(), chosen.chosen_id, command_id,
                                         std::string(notify_icon_source)};
+    if (!command) {
+        // An item without a Command (GAPS E9) is reported, not executed.
+        menu_item_invoked_.emit(invocation);
+        return;
+    }
     // Through the bound window's command chain (owner decision DK-47).
     Window* const routing = bound_window();
     bool executed = false;

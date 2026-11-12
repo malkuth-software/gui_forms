@@ -79,6 +79,122 @@ std::string detail::compatibility_paint_metrics_json() {
     return compatibility_paint_metrics_snapshot_json();
 }
 
+// One publisher thread for every compatibility endpoint of the process
+// (audit N49), instead of one per endpoint: an endpoint whose content
+// changed joins the queue once, and the thread publishes each queued
+// endpoint in turn. The thread exists while at least one endpoint does:
+// the first registration starts it and the last unregistration stops and
+// joins it, on the releasing thread, never from a static destructor.
+//
+// Lock order: an endpoint's state_mutex may be held while the queue's
+// mutex is taken (enqueue), never the reverse; the thread takes an
+// endpoint's state_mutex only after leaving the queue's mutex.
+class CompatibilityPublisher final {
+public:
+    using Publish = void (*)(void* endpoint) noexcept;
+
+    // Process lifetime, never destroyed: an endpoint still alive at exit
+    // must not meet a destroyed publisher, and a joinable thread must not
+    // reach a destructor.
+    static CompatibilityPublisher& instance() noexcept {
+        static CompatibilityPublisher* const publisher = new CompatibilityPublisher();
+        return *publisher;
+    }
+
+    // An endpoint was created; false when the thread cannot start.
+    bool register_endpoint() noexcept {
+        const std::scoped_lock lifecycle(lifecycle_mutex_);
+        if (endpoints_ == 0U) {
+            {
+                const std::scoped_lock lock(mutex_);
+                stop_ = false;
+            }
+            try {
+                thread_ = std::thread(&CompatibilityPublisher::loop, this);
+            } catch (...) {
+                return false;
+            }
+        }
+        endpoints_ = endpoints_ + 1U;
+        return true;
+    }
+
+    // An endpoint was released after leave(): the last one stops the thread.
+    void unregister_endpoint() noexcept {
+        const std::scoped_lock lifecycle(lifecycle_mutex_);
+        if (endpoints_ == 0U) return;
+        endpoints_ = endpoints_ - 1U;
+        if (endpoints_ != 0U) return;
+        {
+            const std::scoped_lock lock(mutex_);
+            stop_ = true;
+        }
+        wake_.notify_all();
+        if (thread_.joinable()) thread_.join();
+    }
+
+    // `endpoint` asks to be published once; `publish` runs on the thread.
+    void enqueue(void* endpoint, Publish publish) noexcept {
+        {
+            const std::scoped_lock lock(mutex_);
+            try {
+                queue_.push_back(QueuedEndpoint{endpoint, publish});
+            } catch (...) {
+                // Out of memory: the request stays set and the next one, or
+                // the owner's drain, publishes it.
+                return;
+            }
+        }
+        wake_.notify_one();
+    }
+
+    // `endpoint` leaves: its queued entries are removed, and the call waits
+    // while the thread is publishing it. Called without its state_mutex.
+    void leave(void* endpoint) noexcept {
+        std::unique_lock lock(mutex_);
+        std::size_t kept = 0U;
+        for (std::size_t index = 0; index < queue_.size(); ++index) {
+            if (queue_[index].endpoint == endpoint) continue;
+            queue_[kept] = queue_[index];
+            kept = kept + 1U;
+        }
+        queue_.resize(kept);
+        while (current_ == endpoint) idle_.wait(lock);
+    }
+
+private:
+    struct QueuedEndpoint final {
+        void* endpoint{};
+        Publish publish{};
+    };
+
+    void loop() noexcept {
+        std::unique_lock lock(mutex_);
+        for (;;) {
+            while (!stop_ && queue_.empty()) wake_.wait(lock);
+            if (stop_) return;
+            const QueuedEndpoint next = queue_.front();
+            queue_.erase(queue_.begin());
+            current_ = next.endpoint;
+            lock.unlock();
+            next.publish(next.endpoint);
+            lock.lock();
+            current_ = nullptr;
+            idle_.notify_all();
+        }
+    }
+
+    std::mutex lifecycle_mutex_;
+    std::size_t endpoints_{};
+    std::thread thread_;
+    std::mutex mutex_;
+    std::condition_variable wake_;
+    std::condition_variable idle_;
+    std::vector<QueuedEndpoint> queue_;
+    void* current_{};
+    bool stop_{};
+};
+
 struct WindowsCompatibilityPaintEndpoint::Implementation final {
     ~Implementation() { release(); }
 
@@ -148,12 +264,8 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         if (!surface || !create_backing(width, height)) return false;
         compatibility_handle = allocate_compatibility_handle();
         if (compatibility_handle == 0U) return false;
-        try {
-            publisher_thread =
-                std::thread(&Implementation::publisher_loop, this);
-        } catch (...) {
-            return false;
-        }
+        if (!CompatibilityPublisher::instance().register_endpoint()) return false;
+        publisher_registered = true;
         metrics_registered = true;
         compatibility_paint_metrics.active.fetch_add(
             1U, std::memory_order_relaxed);
@@ -237,55 +349,58 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
             compatibility_paint_metrics.coalesced.fetch_add(
                 1U, std::memory_order_relaxed);
         }
-        publish_requested = true;
-        publish_wake.notify_one();
+        // Queued once per pending request: a request made while one is
+        // pending is coalesced into it.
+        if (!publish_requested) {
+            publish_requested = true;
+            CompatibilityPublisher::instance().enqueue(this, &Implementation::publish_queued);
+        }
         return true;
     }
 
-    void publisher_loop() noexcept {
+    // The shared publisher's call for one queued endpoint.
+    static void publish_queued(void* endpoint) noexcept {
+        Implementation& implementation = *static_cast<Implementation*>(endpoint);
+        implementation.publish_requested_frame();
+    }
+
+    // Publishes the requested frame, on the shared publisher's thread. A
+    // request already taken by the owner's drain, or an endpoint released
+    // meanwhile, publishes nothing.
+    void publish_requested_frame() noexcept {
         std::unique_lock lock(state_mutex);
-        for (;;) {
-            while (!publisher_stop && !publish_requested) {
-                publish_wake.wait(lock);
-            }
-            if (publisher_stop) return;
-
-            publish_requested = false;
-            const std::chrono::steady_clock::time_point started =
-                std::chrono::steady_clock::now();
-            // One copy: the DIB straight into the live surface's write lease
-            // (alpha forced in the same pass), under state_mutex so the DIB
-            // is coherent, then publication after GDI writes may resume. The
-            // epoch and revision are read with the copy.
-            const std::uint64_t copied_epoch = epoch;
-            const std::uint64_t copied_revision = content_revision;
-            bool published = false;
-            if (!released && pixels != nullptr && surface) {
-                std::unique_lock publish_lock(surface_publish_mutex);
-                LiveSurfaceWriteLease lease = (*surface).try_acquire_write(false);
-                const bool copied = lease && copy_opaque(lease);
-                lock.unlock();
-                published = copied && lease.publish() != 0U;
-            } else {
-                lock.unlock();
-            }
-            const std::uint64_t duration = static_cast<std::uint64_t>(
-                std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    std::chrono::steady_clock::now() - started).count());
-            record_compatibility_copy_duration(duration);
-            lock.lock();
-
-            if (published && !released && copied_epoch == epoch) {
-                published_revision = (std::max)(
-                    published_revision, copied_revision);
-                ++publish_commits;
-                compatibility_paint_metrics.commits.fetch_add(
-                    1U, std::memory_order_relaxed);
-            } else {
-                ++publish_drops;
-                compatibility_paint_metrics.drops.fetch_add(
-                    1U, std::memory_order_relaxed);
-            }
+        if (released || !publish_requested) return;
+        publish_requested = false;
+        const std::chrono::steady_clock::time_point started =
+            std::chrono::steady_clock::now();
+        // One copy: the DIB straight into the live surface's write lease
+        // (alpha forced in the same pass), under state_mutex so the DIB
+        // is coherent, then publication after GDI writes may resume. The
+        // epoch and revision are read with the copy.
+        const std::uint64_t copied_epoch = epoch;
+        const std::uint64_t copied_revision = content_revision;
+        bool published = false;
+        if (pixels != nullptr && surface) {
+            std::unique_lock publish_lock(surface_publish_mutex);
+            LiveSurfaceWriteLease lease = (*surface).try_acquire_write(false);
+            const bool copied = lease && copy_opaque(lease);
+            lock.unlock();
+            published = copied && lease.publish() != 0U;
+        } else {
+            lock.unlock();
+        }
+        const std::uint64_t duration = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - started).count());
+        record_compatibility_copy_duration(duration);
+        lock.lock();
+        if (published && !released && copied_epoch == epoch) {
+            published_revision = (std::max)(published_revision, copied_revision);
+            ++publish_commits;
+            compatibility_paint_metrics.commits.fetch_add(1U, std::memory_order_relaxed);
+        } else {
+            ++publish_drops;
+            compatibility_paint_metrics.drops.fetch_add(1U, std::memory_order_relaxed);
         }
     }
 
@@ -420,12 +535,13 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
             if (released) return;
             released = true;
             compatibility_handle = 0U;
-            publisher_stop = true;
-            publish_wake.notify_all();
         }
-        if (publisher_thread.joinable() &&
-            publisher_thread.get_id() != std::this_thread::get_id()) {
-            publisher_thread.join();
+        // The shared thread no longer reaches this endpoint once leave
+        // returns; the last endpoint stops it.
+        if (publisher_registered) {
+            CompatibilityPublisher::instance().leave(this);
+            CompatibilityPublisher::instance().unregister_endpoint();
+            publisher_registered = false;
         }
         std::scoped_lock lock(state_mutex);
         if (metrics_registered) {
@@ -447,8 +563,8 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
 
     mutable std::mutex state_mutex;
     std::mutex surface_publish_mutex;
-    std::condition_variable publish_wake;
-    std::thread publisher_thread;
+    // Registered with the shared publisher (create); left on release.
+    bool publisher_registered{};
     std::uintptr_t compatibility_handle{};
     HDC memory_dc{};
     HBITMAP bitmap{};
@@ -467,7 +583,6 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     std::uint64_t publish_drops{};
     bool explicit_present{};
     bool publish_requested{};
-    bool publisher_stop{};
     bool metrics_registered{};
     bool released{};
     // Writes closed by a later begin_write on the same thread, and writes

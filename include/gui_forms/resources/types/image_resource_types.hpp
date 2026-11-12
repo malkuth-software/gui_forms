@@ -114,6 +114,23 @@ struct ImageLoadResult final {
     }
 };
 
+// The part of an image patched since an earlier state of it (D4). A run of
+// patch_bgra32_premultiplied calls with no other change between them is one
+// run: base_image and base_hash name the image as it was before the run's
+// first patch, and the rectangle is the union of the run's patches, so the
+// pixels differ from that state, and from every state inside the run, only
+// inside it. base_hash 0 means no run is open: a consumer resynchronizes the
+// whole image.
+struct ImagePatchRegion final {
+    // ImageId::value before the run's first patch.
+    std::uint64_t base_image{};
+    std::uint64_t base_hash{};
+    std::uint32_t x{};
+    std::uint32_t y{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+};
+
 struct ImageResourceView final {
     ImageId image{};
     ImageResourceEncoding encoding{ImageResourceEncoding::png};
@@ -125,6 +142,8 @@ struct ImageResourceView final {
     // Opaque cache revision paired with ImageId. Initial loads may seed this
     // from pixel bytes; updates advance it. It is not a content digest.
     std::uint64_t content_hash{};
+    // The open patch run, if any (ImagePatchRegion).
+    ImagePatchRegion patched{};
 };
 
 struct ImageRegistrySnapshot final {

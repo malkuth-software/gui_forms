@@ -1,8 +1,9 @@
 #pragma once
 // The X11 host's input settings (HostInputSettingsEvent): the double-click
-// interval and distance and the drag threshold from the screen's XSETTINGS
-// manager (Net/DoubleClickTime, Net/DoubleClickDistance,
-// Net/DndDragThreshold), or the Windows-like defaults where no manager runs
+// interval and distance, the drag threshold and the caret blink from the
+// screen's XSETTINGS manager (Net/DoubleClickTime, Net/DoubleClickDistance,
+// Net/DndDragThreshold, Net/CursorBlink, Net/CursorBlinkTime), or the
+// Windows-like defaults where no manager runs
 // or it has no such setting. Xlib types stay here and
 // in src/host/linux/.
 #include "../application/linux_input_rules.hpp"
@@ -53,6 +54,9 @@ public:
   // host) when it has a usable one, otherwise the defaults. X11 reports no
   // hover, so the window times it.
   [[nodiscard]] const PointerSettings &pointer_settings() const noexcept { return pointer_settings_; }
+  // The caret settings to report (xsettings_caret over the manager's
+  // Net/CursorBlink and Net/CursorBlinkTime), otherwise the default.
+  [[nodiscard]] const CaretSettings &caret_settings() const noexcept { return caret_settings_; }
 
 private:
   // Finds the manager with the server grabbed, selects its property and
@@ -74,6 +78,7 @@ private:
   SettingOrigin double_click_origin_{SettingOrigin::default_value};
   double double_click_distance_{default_double_click_distance};
   PointerSettings pointer_settings_{};
+  CaretSettings caret_settings_{};
 };
 
 } // namespace gui_forms::host::linux_detail

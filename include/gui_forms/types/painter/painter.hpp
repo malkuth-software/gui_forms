@@ -253,6 +253,10 @@ public:
         result.logical_size = measure_text_utf8(text, font);
         return result;
     }
+    // Draws `image` over `destination`. Below 1x on either axis the CPU
+    // renderer draws a copy resampled by pixel area (stx_conv) to the device
+    // size, cached by image content and size; at or above 1x it draws the
+    // image directly with a linear filter.
     virtual void draw_image(ImageId image,
                             Rect destination,
                             double opacity = 1.0) = 0;

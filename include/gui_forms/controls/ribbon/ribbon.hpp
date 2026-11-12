@@ -861,8 +861,15 @@ private:
     };
     [[nodiscard]] RealizedItem locate_realized(const Layout& placed, std::size_t item) const;
     [[nodiscard]] std::vector<RealizedItem> realized_list(const Layout& placed) const;
-    [[nodiscard]] Layout layout() const;
+    // The layout at the current key, kept (S5): made again only when the
+    // key (Control::LayoutKey, and the model revision where one is read)
+    // has moved. The reference is valid until the next layout().
+    [[nodiscard]] const Layout& layout() const;
     [[nodiscard]] Layout layout_for(Rect client) const;
+    mutable Layout kept_layout_{};
+    mutable LayoutKey kept_layout_key_{};
+    mutable std::uint64_t kept_layout_model_{};
+    mutable bool kept_layout_valid_{};
     [[nodiscard]] Layout overlay_layout(Rect panel) const;
     void reset_layout_groups(Layout& placed) const;
     void place_plane(Layout& placed) const;
@@ -888,6 +895,13 @@ private:
     // is measured in the CheckBox's own text font, not the ribbon's.
     [[nodiscard]] CommandMetrics measure_command(const RibbonCommandSpec& command, const CheckBox* box) const;
     [[nodiscard]] bool field_labelled(const RibbonCommandSpec& command) const;
+    // Whether command `command` of `group` in `group_layout` is a small text
+    // label for the field after it: a small button-family command with a
+    // label and no image (or a label command), followed by a visible hosted
+    // command other than a check box (which carries its own label) or a
+    // gallery, not beside it.
+    [[nodiscard]] bool labels_next_field(const RibbonGroupSpec& group, const RibbonGroupLayout& group_layout,
+                                         std::size_t command) const;
     [[nodiscard]] double hosted_field_width(const RibbonCommandSpec& command) const;
     [[nodiscard]] FieldSplit split_field(const RibbonCommandSpec& command, Rect bounds) const;
     [[nodiscard]] TabParts tab_parts(const Layout& placed, std::size_t tab) const;
@@ -970,8 +984,10 @@ private:
     // and Backstage.
     [[nodiscard]] bool file_area_open() const noexcept;
     bool show_application_overlay(MenuOpenMode mode);
+    void close_application_submenus() noexcept;
     void close_application_overlay() noexcept;
     void on_application_overlay_revoked();
+    void on_application_owner_moved();
     // Opens `item`'s children in the ribbon's menu beside `row` (the row's
     // bounds in `panel`'s coordinates), with the keyboard on the first row
     // when `keyboard`; false when the item has no children or the ribbon
@@ -1059,12 +1075,15 @@ private:
     std::shared_ptr<RibbonApplicationMenu> application_panel_{};
     PopupLift application_lift_{};
     Rect application_face_{};
-    // A submenu item of the two-pane menu ran its command: the menu closes
-    // once the ribbon's menu has.
+    // A submenu item of the two-pane menu ran its command, or a press away
+    // from the submenu dismissed it: the menu closes once the ribbon's
+    // menu has.
     bool application_submenu_invoked_{};
     OverlayToken application_overlay_token_{};
     FocusScopeId application_scope_{};
     SubscriptionToken application_overlay_revoked_{};
+    // The owner window's frame_moved while the application menu shows.
+    SubscriptionToken application_owner_moved_{};
     bool application_overlay_open_{};
     SubscriptionToken backstage_close_{};
     OverlayToken backstage_token_{};

@@ -6,6 +6,7 @@
 
 #include "gui_forms/gui_forms.hpp"
 
+#include <array>
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
@@ -111,12 +112,49 @@ void test_unscheduled_close_and_absent_smoke() {
             "without --smoke-test the host's code must pass through");
 }
 
+// The Gallery's capture-staging and colour-scheme options parse into their
+// fields; a missing value is refused.
+void test_scheme_and_staging_options_parse() {
+    std::array<char*, 7> arguments{const_cast<char*>("gallery"), const_cast<char*>("--reveal"),
+                                   const_cast<char*>("gallery.commands.ribbon"), const_cast<char*>("--open-menu"),
+                                   const_cast<char*>("gallery.commands.menu/0"), const_cast<char*>("--scheme"),
+                                   const_cast<char*>("dark")};
+    const std::optional<demo::ProgramOptions> parsed =
+        demo::parse_program_options(static_cast<int>(arguments.size()), arguments.data());
+    require(parsed.has_value() && (*parsed).reveal == "gallery.commands.ribbon" && (*parsed).open_menu == "gallery.commands.menu/0" &&
+                (*parsed).scheme == "dark",
+            "--reveal, --open-menu and --scheme parse into their fields");
+    std::array<char*, 2> missing{const_cast<char*>("gallery"), const_cast<char*>("--reveal")};
+    require(!demo::parse_program_options(static_cast<int>(missing.size()), missing.data()).has_value(),
+            "--reveal without a control is refused");
+}
+
+// The user-theme options are the library's: the demos pass them over, and
+// the Gallery's own base is --theme-base.
+void test_user_theme_options_are_passed_over() {
+    char program[] = "gallery";
+    char theme[] = "--theme";
+    char sheet[] = "dx.css";
+    char base_option[] = "--theme-base";
+    char base[] = "windows-professional";
+    char export_option[] = "--export-themes";
+    char page_option[] = "--page";
+    char page[] = "buttons";
+    char* arguments[] = {program, theme, sheet, base_option, base, export_option, page_option, page};
+    const std::optional<demo::ProgramOptions> parsed = demo::parse_program_options(8, arguments);
+    require(parsed.has_value(), "the user-theme options must not be refused as unknown");
+    require((*parsed).theme_base == "windows-professional", "--theme-base names the Gallery's base");
+    require((*parsed).page == "buttons", "an option after --export-themes without a folder is read");
+}
+
 } // namespace
 
 int main() {
     test_deadline_without_a_presented_frame_fails();
     test_presented_frame_passes();
     test_unscheduled_close_and_absent_smoke();
+    test_scheme_and_staging_options_parse();
+    test_user_theme_options_are_passed_over();
     std::cout << "GUI.Forms program options tests passed\n";
     return 0;
 }

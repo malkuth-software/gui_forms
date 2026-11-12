@@ -12,9 +12,9 @@ int main(int argc, char** argv) {
     const std::optional<gui_forms::demo::ProgramOptions> program =
         gui_forms::demo::parse_program_options(argc, argv);
     if (!program) return 2;
-    const std::optional<gui_forms::ThemeBase> base = gui_forms::gallery::gallery_theme_base((*program).theme);
+    const std::optional<gui_forms::ThemeBase> base = gui_forms::gallery::gallery_theme_base((*program).theme_base);
     if (!base) {
-        std::fprintf(stderr, "unknown Gallery theme: %s\n", (*program).theme.c_str());
+        std::fprintf(stderr, "unknown Gallery theme base: %s\n", (*program).theme_base.c_str());
         return 2;
     }
     // The program's application before any window (APP_WINDOW_RULES_DESIGN
@@ -32,6 +32,26 @@ int main(int argc, char** argv) {
     if (!(*program).page.empty() && !gui_forms::gallery::select_gallery_page(*window, (*program).page)) {
         std::fprintf(stderr, "unknown Gallery page: %s\n", (*program).page.c_str());
         return 2;
+    }
+    if (!(*program).reveal.empty() && !gui_forms::gallery::reveal_gallery_control(*window, (*program).reveal)) {
+        std::fprintf(stderr, "cannot reveal Gallery control: %s\n", (*program).reveal.c_str());
+        return 2;
+    }
+    if (!(*program).open_menu.empty()) {
+        const std::string& request = (*program).open_menu;
+        const std::size_t slash = request.find('/');
+        const std::string control = request.substr(0U, slash);
+        const std::string item = slash == std::string::npos ? std::string() : request.substr(slash + 1U);
+        if (!gui_forms::gallery::open_gallery_menu(*window, control, item)) {
+            std::fprintf(stderr, "cannot open Gallery menu: %s\n", request.c_str());
+            return 2;
+        }
+    }
+    if (!(*program).scheme.empty()) {
+        gui_forms::PresentationOverrides overrides{};
+        overrides.colour_scheme =
+            (*program).scheme == "dark" ? gui_forms::ColourScheme::dark : gui_forms::ColourScheme::light;
+        (*window).set_presentation_overrides(overrides);
     }
     const std::shared_ptr<gui_forms::demo::SmokeTest> smoke =
         gui_forms::demo::arm_smoke_test(*program, options, *window);

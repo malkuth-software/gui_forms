@@ -1,7 +1,7 @@
 #include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
 
 #include "../collection_control_utilities.hpp"
-#include "gui_forms/detail/algorithm/sort.hpp"
+#include "../../../core/algorithm/sort.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "../../basic/basic_control_rendering.hpp"
@@ -582,7 +582,7 @@ void CorrespondenceView::paint_glyph(Painter& painter, Rect b,
 CorrespondenceView::CorrespondenceCardFonts CorrespondenceView::card_fonts() const {
     CorrespondenceCardFonts fonts;
     const FontSpec title = text_font(font.read());
-    fonts.title = {title.role, title.size, 700, title.italic, title.letter_spacing};
+    fonts.title = {title.role, title.size, 700, title.italic, title.letter_spacing, title.family};
     fonts.secondary = effective_font({font.read().role, std::max(8.0, font.read().size - 2.0), 400, false});
     fonts.metric = effective_font({FontRole::content, std::max(12.0, font.read().size + 5.0), 700, false});
     fonts.evidence = effective_font({FontRole::content, std::max(8.0, font.read().size - 1.5), 400, false});

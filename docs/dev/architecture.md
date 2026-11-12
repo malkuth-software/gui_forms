@@ -23,7 +23,8 @@ your application
                    └─ Drawing
        and, privately,
          host adapter       src/host/macos | windows | linux
-         CPU renderer       src/render/skia (macOS, Linux), DIB compositor (Windows)
+         CPU renderer       src/render/skia on every host (Windows presents its
+                            frames from DIB sections, src/host/windows/raster)
          text engine        HarfBuzz, FreeType, SheenBidi
 
 renderer-free code (tests, models, automation)
@@ -42,9 +43,10 @@ that set.
 
 Some build targets are never installed. The headless host
 (`src/host/headless/`) is the deterministic reference adapter the tests link.
-The experimental C ABIs (`src/abi/`, built as `gui_forms_abi0`, and the
-separate drawing C ABI) are built and tested in the source tree; their
-libraries are not part of the package. The development text services refuse
+The experimental drawing C ABI (`src/abi/drawing_*`) is built and tested in
+the source tree; its library is not part of the package. (The experimental
+0.x C ABI, `gui_forms_abi0`, was retired before 1.0; the sealed C ABI,
+`gui_forms_abi1`, is GUI.Forms' one C surface.) The development text services refuse
 to install: configuring with them enabled makes `cmake --install` stop.
 
 ### Boundaries the build enforces
@@ -115,12 +117,20 @@ The details are in [Retained tree](../user/retained-tree),
 - Attached state changes only on the window's UI thread. A wrong-thread
   setter throws and is counted; it never partially applies. Other threads
   post with `begin_invoke` or block with `invoke`.
-- Faults are contained where they arise. A throwing paint callback restores
-  the previous chunks, a throwing frame or timer callback is disconnected and
-  counted while its peers continue, and a dispatched callback's exception
-  stays on its operation. The AppKit and Win32 scheduler callbacks contain any
-  exception that still escapes, and the experimental C ABI turns exceptions
-  into error results.
+- Real problems fail fast; housekeeping is not a fault. Every native entry
+  (window procedure, COM method, ATK or X11 callback, AppKit delegate) and
+  every application callback the scheduler, motion clock or host session
+  runs goes through one boundary, `call_failing_fast`, which reports the
+  site, the exception text and a stack, then ends the process
+  (`tools/check_native_boundaries.py` flags an unrouted entry). Scheduler
+  wakes, paint ticks, the motion clock, damage collection and live-surface
+  drains catch nothing: they keep counters against named expectations
+  (a wake on time, a paint within budget, a drain that keeps up, damage
+  that stays bounded), and a missed one adds to `MetricsSnapshot` and
+  prints a rate-limited `gui-forms-telemetry=expectation|...` record. A
+  throwing paint callback still restores the previous chunks before the
+  exception goes on, a dispatched callback's exception stays on its
+  operation, and the experimental C ABI turns exceptions into error results.
 
 ## Host-owned appearance
 

@@ -95,8 +95,11 @@ private:
 // The built-in theme a program theme is compiled onto (stage T4 phase 6):
 // its recipes are the floor every rule the sheets leave unset falls back
 // to.
-// - windows_professional: the Windows-familiar theme's recipes, with no
-//   sheet of its own and no dark variant.
+// - windows_professional: the stock Windows-familiar theme,
+//   `windows-professional` (owner, 2026-11-10): its floor's recipes, light
+//   and authored dark, and its parts sheet (named
+//   `windows-professional/parts.css` in diagnostics) placed first in the
+//   cascade, so the package's sheets override it.
 // - gui_forms: GUI.Forms' own theme, `gui-forms`: its recipes, and its light
 //   sheet (gui_forms_light_sheet(), named `gui-forms/light.css` in
 //   diagnostics) placed first in the cascade, so the package's sheets
@@ -268,6 +271,10 @@ struct UserThemeFiles final {
     std::string name{};
     std::string main_sheet{};
     std::vector<ThemePackageFile> files{};
+    // A sheet named on the command line or in GUI_FORMS_THEME_SHEET is a
+    // theme by being named: its `@theme` header is implied (no engine
+    // bound, version or author), and one it has is read as usual.
+    bool header_implied{};
 };
 
 // A user theme's limits (USER_THEMES.md section 2): its folder holds at
@@ -314,6 +321,15 @@ struct ThemePackageExport final {
 
 // Every package of `library`, in name order, as export writes it.
 [[nodiscard]] std::vector<ThemePackageExport> export_theme_packages(const ThemeLibrary& library);
+
+// A theme package of one sheet: an application's theme as one plain CSS
+// file, edited and read again at start-up without a rebuild. The manifest
+// is made here, naming the package `name` and the sheet
+// `sheet.theme.css` with its sha256 (gui-forms-theme/1, engine >=0.3,
+// version 1.0.0). The name is checked when the package is compiled, as
+// any manifest's is (E601); a quote, backslash or control character in it
+// is escaped, so the manifest is always well-formed JSON.
+[[nodiscard]] ThemePackage theme_sheet_package(std::string_view sheet, std::string_view name);
 
 // As compile_theme_package, for the installed package named `name`; an
 // unknown name is refused (E603).

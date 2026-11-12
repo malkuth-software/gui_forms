@@ -240,6 +240,9 @@ public:
         // not be opened and covers nothing.
         std::span<const gui_forms::detail::CodepointRange> coverage{};
         LazyFaceLoader loader{};
+        // The numbered bundled family (FontSpec::family) this face belongs to, or zero for a
+        // role or fallback face. A family face serves only text that names its family.
+        std::uint8_t named_family{};
 
         Face(FontFaceId id_value, std::optional<FontRole> role_value,
              std::uint16_t weight_value, bool italic_value,
@@ -261,7 +264,7 @@ public:
               family(std::move(other.family)), encoded(std::move(other.encoded)),
               face(std::exchange(other.face, nullptr)), shaping_font(std::move(other.shaping_font)),
               shaping_size(other.shaping_size), coverage(other.coverage),
-              loader(std::move(other.loader)) {}
+              loader(std::move(other.loader)), named_family(other.named_family) {}
         Face& operator=(Face&&) = delete;
     };
 
@@ -269,6 +272,7 @@ public:
         FontSpec font{};
 
         [[nodiscard]] int tier(const Face& face) const noexcept {
+            if (face.named_family != 0U && face.named_family == font.family.value) return -1;
             if (face.role && *face.role == font.role) return 0;
             if (face.role && *face.role == FontRole::content) return 1;
             return 2;
@@ -304,6 +308,15 @@ public:
         std::vector<Face*> result{};
         result.reserve(faces.size());
         for (Face& face : faces) {
+            // A family face takes part only when the font names its family, and only once it
+            // is open, so the front candidate always has a face; one that cannot be loaded
+            // leaves the role's faces in charge.
+            if (face.named_family != 0U) {
+                if (face.named_family != font.family.value) continue;
+                if (face.face == nullptr && (!face.loader || !open_lazy(face))) continue;
+                result.push_back(&face);
+                continue;
+            }
             // The body face is the house text fallback for control and
             // monospace roles. This keeps Portsmouth as the preferred control
             // voice without turning punctuation, arrows, or localized text
@@ -417,6 +430,18 @@ public:
                                         std::shared_ptr<const void>{}, nullptr);
         face.coverage = coverage;
         face.loader = std::move(load);
+        return id;
+    }
+
+    [[nodiscard]] std::optional<FontFaceId> register_lazy_family_face(
+        BundledFontFamily family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
+        if (bounded_face_limit != 0) return std::nullopt;
+        if (family.value == 0U || !load || faces.size() >= maximum_faces) return std::nullopt;
+        const FontFaceId id{next_face_id++};
+        Face& face = faces.emplace_back(id, std::nullopt, weight, italic, false, std::string{},
+                                        std::shared_ptr<const void>{}, nullptr);
+        face.loader = std::move(load);
+        face.named_family = family.value;
         return id;
     }
 
@@ -658,6 +683,9 @@ public:
         std::size_t count = 0U;
         const FacePreference preference{font};
         for (Face& face : faces) {
+            // Bounded (prepared) engines shape with the role's faces only; family faces are
+            // never registered with them.
+            if (face.named_family != 0U) continue;
             if (!face.role || *face.role == font.role ||
                 (font.role != FontRole::content && *face.role == FontRole::content)) {
                 if (count == candidates.size()) throw std::length_error("Face candidate capacity exceeded");
@@ -838,6 +866,13 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_lazy_fallback_typeface(
     LazyFaceLoader load) {
     const std::optional<FontFaceId> id =
         (*impl_).register_lazy_face(weight, italic, coverage, std::move(load));
+    return id;
+}
+
+std::optional<FontFaceId> HarfBuzzFontEngine::register_lazy_family_typeface(
+    BundledFontFamily family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
+    const std::optional<FontFaceId> id =
+        (*impl_).register_lazy_family_face(family, weight, italic, std::move(load));
     return id;
 }
 
@@ -1200,6 +1235,16 @@ PrimaryLineMetrics sized_line_metrics(FT_Face face, FontFaceId id, const FontSpe
 
 std::optional<PrimaryLineMetrics> HarfBuzzFontEngine::primary_line_metrics(const FontSpec font) {
     if (!valid_font_spec(font)) throw std::invalid_argument("Invalid primary line font");
+    // A named family's exact face first, opened if it has not been; otherwise the role's.
+    if (font.family.value != 0U) {
+        for (Impl::Face& face : (*impl_).faces) {
+            if (face.named_family != font.family.value || face.weight != font.weight ||
+                face.italic != font.italic) continue;
+            if (face.face == nullptr && (!face.loader || !(*impl_).open_lazy(face))) continue;
+            const PrimaryLineMetrics result = sized_line_metrics(face.face, face.id, font);
+            return result;
+        }
+    }
     for (Impl::Face& face : (*impl_).faces) {
         if (!face.role || *face.role != font.role || face.weight != font.weight || face.italic != font.italic) continue;
         const PrimaryLineMetrics result = sized_line_metrics(face.face, face.id, font);
@@ -1307,12 +1352,14 @@ ResolvedTextLayout HarfBuzzFontEngine::resolve(std::string_view utf8,
             }
         }
         if (resolved == nullptr) continue;
+        const bool family_face =
+            (*resolved).named_family != 0U && (*resolved).named_family == font.family.value;
         result.runs.push_back({
             run.source_range.start.value(),
             run.source_range.end.value() - run.source_range.start.value(),
             (*resolved).family, (*resolved).weight, (*resolved).italic,
-            (*resolved).fallback || !(*resolved).role ||
-                *(*resolved).role != font.role});
+            !family_face && ((*resolved).fallback || !(*resolved).role ||
+                *(*resolved).role != font.role)});
     }
     return result;
 }

@@ -7,8 +7,8 @@
    children into the shell's page body (a 1000 x 660 design surface), where
    each is placed by its bounds in design coordinates. The page keeps in
    code the shared level and its bindings, the scroll observers, the
-   animation periods, the motion policy's list, the status line and the
-   page style. The Gallery theme styles the classes. */
+   animation periods, the motion policy's list and the status line. The Gallery theme
+   styles the classes. */
 scaled-panel gallery.ranges.document {
   design-size: 1000 660;
 

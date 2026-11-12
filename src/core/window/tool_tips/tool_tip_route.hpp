@@ -29,6 +29,11 @@ public:
     virtual void pointer_left() = 0;
     virtual void focus_changed(const Control::Ptr& focused) = 0;
     virtual void key_handled() = 0;
+    // Escape went down (after the root's routing, in place of key_handled):
+    // the bubble showing or waiting closes, and does not show again for the
+    // same thing until the pointer leaves it or focus moves (WCAG 1.4.13,
+    // dismissible without moving the pointer or focus).
+    virtual void escape_pressed() = 0;
     // After the root arranged its tree, before its overlays.
     virtual void root_arranged() = 0;
     // `control`'s own tooltip text changed.

@@ -530,7 +530,14 @@ void DockSite::end_drag(DockDragEnd end) {
         result = (*workspace_).float_subject(subject, *float_frame);
         if (result.applied) ending = DockDragEnd::floated;
     }
-    if (!is_alive() || workspace_ == nullptr) return;
+    if (!is_alive()) return;
+    if (workspace_ == nullptr) {
+        // The drop's transaction took the workspace away; with no layout to
+        // settle into, the session ends now instead of staying in settling
+        // (audit N76), so the layer hides and new drags are accepted.
+        finish_settling();
+        return;
+    }
     if (ending != DockDragEnd::dropped && ending != DockDragEnd::floated && panel_only) {
         StackSlot* const slot = slot_for(source_stack);
         const DockNode* const node = (*workspace_).layout().find_node(source_stack);
@@ -562,7 +569,12 @@ void DockSite::end_drag(DockDragEnd end) {
 // At the layout pass after the end: the stamp grows from where the drag
 // ended into the panel's rectangle (reduced motion: at once).
 void DockSite::place_settle_target() {
-    if (drag_.settle_found || workspace_ == nullptr) return;
+    if (drag_.settle_found) return;
+    if (workspace_ == nullptr) {
+        // No layout to settle into (audit N76): end the session.
+        if (drag_.phase == DockDragPhase::settling) finish_settling();
+        return;
+    }
     const DockPanelLocation location = (*workspace_).layout().locate(drag_.settle_panel);
     const StackSlot* const slot = slot_for(location.stack);
     if (slot == nullptr || (*slot).collapsed || (*slot).bounds.empty() || motion_reduced()) {

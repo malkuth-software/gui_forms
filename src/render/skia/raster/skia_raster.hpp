@@ -93,6 +93,8 @@ public:
     [[nodiscard]] bool register_fallback_typeface_file(
         std::uint16_t weight, bool italic, const char* path);
     [[nodiscard]] bool synchronize_images(const ImageRegistry& registry);
+    // Image patch runs synchronized by copying only their rectangle (D4).
+    [[nodiscard]] std::uint64_t image_patches_applied() const noexcept;
     [[nodiscard]] const void* pixels() const noexcept;
     [[nodiscard]] std::size_t row_bytes() const noexcept;
     [[nodiscard]] std::uint32_t pixel_width() const noexcept;
@@ -170,6 +172,9 @@ public:
                                          FontSpec font) override;
     [[nodiscard]] ResolvedTextLayout resolve_text_layout_utf8(
         std::string_view text, FontSpec font) override;
+    // Read from the kept layout (N56), with no copy of it.
+    [[nodiscard]] TextExtent measure_text_extent_utf8(
+        std::string_view text, FontSpec font_spec) override;
     [[nodiscard]] TextResolutionStatus fill_line_break_opportunities_utf8(
         std::string_view text, std::span<LineBreakOpportunity> opportunities) override;
     void draw_image(ImageId image, Rect destination, double opacity) override;
@@ -223,10 +228,15 @@ public:
     // the clip in force when it began, as part rasters are composited.
     void begin_group(const PaintGroup& group) override;
     void end_group() override;
-    // Paint groups begun deeper than maximum_paint_group_depth.
+    // Paint groups drawn without isolation although they asked for it:
+    // begun deeper than maximum_paint_group_depth, over a parent whose clips
+    // or pixels are unknown, or whose isolation surface could not be
+    // allocated. Each draws its content directly, clipped to its bounds,
+    // without its opacity or composite.
     [[nodiscard]] std::uint64_t group_refusals() const noexcept;
 
 private:
+    [[nodiscard]] bool apply_image_patch(const ImageResourceView& resource);
     friend struct SkiaLiveSurfaceTestAccess;
     friend struct SkiaCanvasTestAccess;
     class Impl;

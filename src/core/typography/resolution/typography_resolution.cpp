@@ -81,6 +81,23 @@ TextResolutionStatus estimate_line_break_opportunities_utf8(
     return TextResolutionStatus::estimated;
 }
 
+TextExtent text_extent_of(const ResolvedTextLayout& layout) noexcept {
+    TextExtent extent{};
+    extent.logical_size = layout.logical_size;
+    extent.ascent = layout.ascent;
+    extent.descent = layout.descent;
+    extent.line_gap = layout.line_gap;
+    extent.status = layout.status;
+    return extent;
+}
+
+TextExtent TextMetricsProvider::measure_text_extent_utf8(
+    std::string_view utf8, FontSpec effective_font) {
+    const ResolvedTextLayout layout = resolve_text_layout_utf8(utf8, effective_font);
+    const TextExtent extent = text_extent_of(layout);
+    return extent;
+}
+
 TextResolutionStatus TextMetricsProvider::fill_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) {
     return estimate_line_break_opportunities_utf8(utf8, opportunities);

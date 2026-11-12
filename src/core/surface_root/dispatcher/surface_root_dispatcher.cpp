@@ -134,10 +134,8 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
             (*work).state.notify_all();
             ++result.invoked;
         } catch (...) {
-            {
-                std::scoped_lock lock((*work).fault_mutex);
-                (*work).fault = std::current_exception();
-            }
+            // Published by the release store of `faulted` below.
+            (*work).fault = std::current_exception();
             (*work).callback = {};
             (*work).state.store(DispatchOperationState::faulted,
                               std::memory_order_release);

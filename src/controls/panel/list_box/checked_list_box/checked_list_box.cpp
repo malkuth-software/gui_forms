@@ -207,19 +207,23 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
 }
 
 std::vector<SemanticNode> CheckedListBox::semantic_virtual_children() const {
+    // ListBox publishes a window of the rows; each node's position_in_set
+    // names its row.
     std::vector<SemanticNode> nodes = ListBox::semantic_virtual_children();
-    for (std::size_t index = 0U;
-         index < nodes.size() && index < check_states_.size(); ++index) {
-        nodes[index].role = SemanticRole::check_list_item;
-        nodes[index].states |= SemanticState::checkable;
+    for (SemanticNode& node : nodes) {
+        if (!node.position_in_set || *node.position_in_set == 0U) continue;
+        const std::size_t index = *node.position_in_set - 1U;
+        if (index >= check_states_.size()) continue;
+        node.role = SemanticRole::check_list_item;
+        node.states |= SemanticState::checkable;
         if (check_states_[index] == CheckState::checked) {
-            nodes[index].states |= SemanticState::checked;
-            nodes[index].value = "checked";
+            node.states |= SemanticState::checked;
+            node.value = "checked";
         } else if (check_states_[index] == CheckState::indeterminate) {
-            nodes[index].states |= SemanticState::mixed;
-            nodes[index].value = "indeterminate";
+            node.states |= SemanticState::mixed;
+            node.value = "indeterminate";
         } else {
-            nodes[index].value = "unchecked";
+            node.value = "unchecked";
         }
     }
     return nodes;

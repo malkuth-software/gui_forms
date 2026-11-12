@@ -115,7 +115,7 @@ ToggleSwitch::Placement ToggleSwitch::placement(Size size) const {
     double x = track_width + gap;
     const std::string shown = display_text();
     if (!shown.empty()) {
-        const Size measured = resolve_text_layout_utf8(shown, label_font()).logical_size;
+        const Size measured = measure_text_extent_utf8(shown, label_font()).logical_size;
         const double width = std::min(std::ceil(measured.width), std::max(0.0, size.width - x));
         const double height = std::ceil(measured.height);
         placed.label = Rect{x, std::floor(centre - height * 0.5), width, height};
@@ -123,7 +123,7 @@ ToggleSwitch::Placement ToggleSwitch::placement(Size size) const {
     }
     const std::string& state = state_text();
     if (!state.empty()) {
-        const Size measured = resolve_text_layout_utf8(state, label_font()).logical_size;
+        const Size measured = measure_text_extent_utf8(state, label_font()).logical_size;
         const double width = std::min(std::ceil(measured.width), std::max(0.0, size.width - x));
         const double height = std::ceil(measured.height);
         placed.state = Rect{x, std::floor(centre - height * 0.5), width, height};
@@ -140,7 +140,7 @@ Size ToggleSwitch::measure(Size available) {
     double height = track_height;
     const std::string shown = display_text();
     if (!shown.empty()) {
-        const Size measured = resolve_text_layout_utf8(shown, spec).logical_size;
+        const Size measured = measure_text_extent_utf8(shown, spec).logical_size;
         width += gap + std::ceil(measured.width);
         height = std::max(height, std::ceil(measured.height));
     }
@@ -148,7 +148,7 @@ Size ToggleSwitch::measure(Size available) {
     const std::array<const std::string*, 2> states{&on_text.read(), &off_text.read()};
     for (const std::string* state : states) {
         if ((*state).empty()) continue;
-        const Size measured = resolve_text_layout_utf8(*state, spec).logical_size;
+        const Size measured = measure_text_extent_utf8(*state, spec).logical_size;
         state_width = std::max(state_width, std::ceil(measured.width));
         height = std::max(height, std::ceil(measured.height));
     }
@@ -202,7 +202,7 @@ void ToggleSwitch::on_paint(Painter& painter, Rect) {
 
 Insets ToggleSwitch::visual_outsets() const noexcept {
     const ControlVisualContext context =
-        visual_context(hovered_visual(), pressed_visual(), checked.read(), focus_cue_visible());
+        visual_context({.hovered = hovered_visual(), .pressed = pressed_visual(), .selected = checked.read(), .focused = focus_cue_visible()});
     const Insets outsets =
         surface_material_visual_outsets(effective_theme().resolve(ControlVisualRole::choice, context).material);
     return outsets;

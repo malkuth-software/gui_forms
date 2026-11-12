@@ -8,6 +8,7 @@
 #include "floor_sheet.hpp"
 #include "forced_high_contrast.hpp"
 #include "material_layers.hpp"
+#include "kept_resolutions.hpp"
 #include "theme_access.hpp"
 #include "../contrast/theme_contrast.hpp"
 #include "../dark_variant/dark_variant.hpp"
@@ -1271,8 +1272,14 @@ Insets box_shadow_visual_outsets(std::span<const MaterialShadow> shadows) noexce
     Insets result{};
     for (const MaterialShadow& shadow : shadows) {
         if (shadow.inset) continue;
+        // A CSS blur radius is two standard deviations (the renderer blurs
+        // with sigma = radius / 2); the engine's shadow raster draws 3.5 of
+        // them (overlay_shadow_primitive.hpp), where what is left is under
+        // 0.03% of the shadow's colour, and the reach is as far as it draws
+        // (owner, 2026-11-10: a Popup or tooltip window is its face and its
+        // real shadow, not a margin of six deviations round it).
         const double extent = std::max(0.0, shadow.spread) +
-                              shadow.blur_radius * 3.0;
+                              shadow.blur_radius * 1.75;
         result.left = std::max(result.left,
                                std::max(0.0, extent - shadow.offset.x));
         result.top = std::max(result.top,
@@ -1942,7 +1949,10 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own, std::stri
     }
     // The size before the spacing, whose em is the resolved size.
     const RecipeDeclaration* const family = set_recipe_field(fields, RecipeField::font_family);
-    if (family != nullptr) themed.font.role = (*family).font_role;
+    if (family != nullptr) {
+        themed.font.role = (*family).font_role;
+        themed.font.family = (*family).font_family;
+    }
     const RecipeDeclaration* const size = set_recipe_field(fields, RecipeField::font_size);
     if (size != nullptr) {
         double resolved = (*size).number;
@@ -2044,6 +2054,42 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
 ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
                                      AnatomyStateSet states, std::string_view part,
                                      std::string_view control_type) const {
+    // The control's kept result in these facts (N90), else the cascade's,
+    // kept for the next call.
+    detail::KeptResolutions& kept = detail::kept_resolutions_of(control);
+    const detail::KeptPlacement placement = detail::kept_placement_of(control);
+    for (const detail::KeptRecipe& entry : kept.recipes) {
+        const bool same = entry.resolver == this && entry.placement == placement && entry.role == role &&
+                          entry.context == context && entry.states == states && entry.part == part &&
+                          entry.control_type == control_type;
+        if (!same) continue;
+        if (entry.reads_ancestor_states && !detail::ancestor_states_match(control, entry.ancestor_states)) continue;
+        return entry.recipe;
+    }
+    bool reads_ancestor_states = false;
+    ResolvedControlRecipe resolved =
+        resolve_from_rules(control, role, context, states, part, control_type, reads_ancestor_states);
+    if (kept.recipes.size() >= detail::maximum_kept_recipes) kept.recipes.clear();
+    detail::KeptRecipe entry{this,
+                             placement,
+                             role,
+                             context,
+                             states,
+                             std::string(part),
+                             std::string(control_type),
+                             reads_ancestor_states,
+                             {},
+                             resolved};
+    if (reads_ancestor_states) detail::fill_ancestor_states(control, entry.ancestor_states);
+    kept.recipes.push_back(std::move(entry));
+    return resolved;
+}
+
+ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlVisualRole role,
+                                                ControlVisualContext context, AnatomyStateSet states,
+                                                std::string_view part, std::string_view control_type,
+                                                bool& reads_ancestor_states) const {
+    reads_ancestor_states = false;
     const ControlVisualRecipe& floor = resolve(role, context);
     // Forced high contrast is the engine's own pass (E1): the built-in
     // recipe's high-contrast records draw the part, under the non-colour
@@ -2091,6 +2137,7 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     // control's, and currentcolor names the result.
     Color text = floor.text;
     const RecipeDeclaration* const written = set_recipe_field(fields, RecipeField::text);
+    if (written != nullptr && (*written).inherit) reads_ancestor_states = true;
     if (written != nullptr) text = (*written).inherit ? inherited_text(control, floor.text) : (*written).colour;
     // The fields relative to the control, copied: an inherited text colour,
     // currentcolor, and lengths in em at the control's em.
@@ -2157,6 +2204,7 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     }
     if (reads_em) {
         const FontDeclaration font = engine_.rules().resolve(facts).font;
+        if (font.inherit) reads_ancestor_states = true;
         const double em = text_role_em(control, resolved_text_role(control, font));
         for (RecipeDeclaration& field : scaled) add_recipe_em(field, em);
     }
@@ -2166,7 +2214,10 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     const std::size_t text_position = static_cast<std::size_t>(RecipeField::text);
     const bool important_text = fields.fields[text_position] != nullptr &&
                                 fields.levels[text_position] >= CascadeLevel::important_user_theme;
-    return ResolvedControlRecipe(floor, std::move(authored), important_text);
+    const std::size_t glyph_position = static_cast<std::size_t>(RecipeField::glyph);
+    const bool important_glyph = fields.fields[glyph_position] != nullptr &&
+                                 fields.levels[glyph_position] >= CascadeLevel::important_user_theme;
+    return ResolvedControlRecipe(floor, std::move(authored), important_text, important_glyph);
 }
 
 namespace {

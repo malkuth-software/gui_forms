@@ -241,10 +241,10 @@ void test_bindings() {
     const std::shared_ptr<gui_forms::Panel> host =
         gui_forms::make_control<gui_forms::Panel>(gui_forms::StableId("host"));
     gui_forms::Window window(host, gui_forms::Size{320.0, 200.0});
-    gui_forms::BindingRecord::FieldMap fields{};
-    fields["name"] = std::string("Ada");
     const std::shared_ptr<gui_forms::BindingSource> people = std::make_shared<gui_forms::BindingSource>(window);
-    (*people).set_records({gui_forms::BindingRecord("person.1", fields)});
+    gui_forms::BindingTable& people_table = *(*people).table();
+    static_cast<void>(people_table.add_column(gui_forms::BindingColumn{"name"}));
+    static_cast<void>(people_table.append(gui_forms::BindingRow{"person.1", {std::string("Ada")}}));
     gui_forms::Value<bool> autosave{true};
     gui_forms::Value<double> level{25.0};
     gui_forms::Command save{};
@@ -315,9 +315,8 @@ void test_bindings() {
         (*number).value = 30.0;
         require(level.get() == 30.0, "bindings: the numeric value, two way by its property's default");
         (*name).text = std::string("Ada Lovelace");
-        const gui_forms::BindingRecord* record = (*people).current();
         const gui_forms::BindingValue written{std::string("Ada Lovelace")};
-        require(record != nullptr && (*record).fields.at("name") == written,
+        require((*people).current_field("name") == std::optional<gui_forms::BindingValue>{written},
                 "bindings: the field, written back on every change");
         static_cast<void>((*button).perform_click());
         require(saved.calls == 1, "bindings: the button runs its command");
@@ -672,8 +671,75 @@ void test_table_placement() {
 
 } // namespace
 
+// Audit S7: each type's schema carries, per property, the prototype's
+// property table entry the loader writes through (null where the registry
+// holds the name), so loading a property is no lookup by name.
+void test_property_entries() {
+    const FormSchema schema = sample_schema();
+    std::size_t typed = 0U;
+    for (const FormSchemaType& type : schema.types) {
+        require(type.property_entries.size() <= type.properties.size(), "entries: at most one per property");
+        for (std::size_t index = 0U; index < type.property_entries.size(); ++index) {
+            const gui_forms::PropertyEntry* const entry = type.property_entries[index];
+            if (entry == nullptr) continue;
+            require(std::string_view((*entry).name) == type.properties[index].name,
+                    "entries: an entry describes the property at its index");
+            ++typed;
+        }
+    }
+    require(typed > 0U, "entries: the control types' properties have table entries");
+    const FormSchemaType* check_type = nullptr;
+    for (const FormSchemaType& type : schema.types) {
+        if (type.name == "check_box") check_type = &type;
+    }
+    require(check_type != nullptr, "entries: the check box type");
+    bool text_entry = false;
+    bool checked_entry = false;
+    for (std::size_t index = 0U; check_type != nullptr && index < (*check_type).property_entries.size(); ++index) {
+        if ((*check_type).property_entries[index] == nullptr) continue;
+        if ((*check_type).properties[index].name == "text") text_entry = true;
+        if ((*check_type).properties[index].name == "checked") checked_entry = true;
+    }
+    require(text_entry && checked_entry, "entries: text and checked load through the table");
+    // The load itself (test_load) writes through these entries; a second
+    // load of the same document gives the same values.
+    const std::string_view document = "user-control entries.root {\n"
+                                      "  check-box entries.box { text: \"Entry\"; checked: true; tab-index: 4; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
+    print_diagnostics(workspace);
+    const std::shared_ptr<gui_forms::CheckBox> check =
+        loaded.objects.size() == 2U ? std::dynamic_pointer_cast<gui_forms::CheckBox>(loaded.objects[1]) : nullptr;
+    require(outcome == FormLoadOutcome::loaded && check != nullptr && (*check).text.read() == "Entry" &&
+                (*check).checked.read() && (*check).tab_index.read() == 4U,
+            "entries: values written through the table land on the control");
+}
+
+// A model with no objects (never built, or refused) is a caller error
+// (audit P16): load_form throws rather than index its missing root.
+void test_empty_model() {
+    const FormSchema schema = sample_schema();
+    Workspace workspace{};
+    LoadedForm loaded{};
+    static_cast<void>(load(workspace, "user-control app.root { }\n", schema, loaded));
+    const FormModel empty{};
+    const FormSources no_sources{};
+    LoadedForm refused{};
+    bool thrown = false;
+    try {
+        static_cast<void>(load_form(workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, empty,
+                                    no_sources, refused, workspace.diagnostics));
+    } catch (const std::invalid_argument&) {
+        thrown = true;
+    }
+    require(thrown, "empty model: refused with std::invalid_argument");
+}
+
 int main() {
     test_load();
+    test_empty_model();
     test_bindings();
     test_refusals();
     test_form_root();
@@ -684,6 +750,7 @@ int main() {
     test_value_bar();
     test_load_window();
     test_load_window_application();
+    test_property_entries();
     if (failures != 0) {
         std::cerr << failures << " form loader checks failed\n";
         return 1;

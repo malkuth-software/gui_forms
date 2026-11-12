@@ -18,6 +18,9 @@ namespace {
 using gui_forms::host::linux_detail::XSettingsInteger;
 using gui_forms::host::linux_detail::XSettingsLookup;
 using gui_forms::host::linux_detail::find_xsettings_integer;
+using gui_forms::host::linux_detail::xsettings_caret;
+using gui_forms::CaretSettings;
+using gui_forms::SettingOrigin;
 
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
@@ -194,6 +197,32 @@ void test_the_first_of_two_is_used() {
     require(found.lookup == XSettingsLookup::found && found.value == 300, "a repeated setting gives its first value");
 }
 
+// The caret rule (audit N75): off is a host 0, a cycle is halved and
+// bounded, and anything unusable keeps the default.
+void test_the_caret_rule() {
+    const XSettingsInteger absent{};
+    const XSettingsInteger off{XSettingsLookup::found, 0};
+    const XSettingsInteger on{XSettingsLookup::found, 1};
+    const XSettingsInteger cycle{XSettingsLookup::found, 1200};
+    const CaretSettings none = xsettings_caret(absent, absent);
+    require(none.blink_milliseconds == 530U && none.origin == SettingOrigin::default_value,
+            "without either setting the default stays");
+    const CaretSettings stopped = xsettings_caret(off, cycle);
+    require(stopped.blink_milliseconds == 0U && stopped.origin == SettingOrigin::host,
+            "blinking off is a host phase of 0, whatever the cycle");
+    const CaretSettings halved = xsettings_caret(on, cycle);
+    require(halved.blink_milliseconds == 600U && halved.origin == SettingOrigin::host, "the cycle is halved");
+    const CaretSettings shortest = xsettings_caret(absent, XSettingsInteger{XSettingsLookup::found, 1});
+    require(shortest.blink_milliseconds == 1U, "a 1 ms cycle is a 1 ms phase");
+    const CaretSettings longest = xsettings_caret(on, XSettingsInteger{XSettingsLookup::found, 100000});
+    require(longest.blink_milliseconds == 10000U, "a long cycle is bounded");
+    const CaretSettings negative = xsettings_caret(on, XSettingsInteger{XSettingsLookup::found, -5});
+    require(negative.origin == SettingOrigin::default_value && negative.blink_milliseconds == 530U,
+            "a negative cycle keeps the default");
+    const CaretSettings wrong = xsettings_caret(XSettingsInteger{XSettingsLookup::wrong_type, 0}, absent);
+    require(wrong.origin == SettingOrigin::default_value, "a mistyped switch is not an off switch");
+}
+
 } // namespace
 
 int main() {
@@ -202,6 +231,7 @@ int main() {
         test_absent_and_wrong_type();
         test_malformed_properties_are_refused();
         test_the_first_of_two_is_used();
+        test_the_caret_rule();
         std::cout << "gui_forms_xsettings_parse_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

@@ -450,6 +450,9 @@ void live_frame_sequence(Runtime &runtime) {
   require((*window).visible, "Frame sequence window is not shown");
   require(raster_pixel(*window, 60U, 60U) == blue && raster_pixel(*window, 15U, 15U) == green,
           "First frame and overlay not composed");
+  // Audit E4: with nothing published since, the live clock rests.
+  runtime.step(0);
+  require((*window).live_idle, "An idle live surface keeps the 16 ms clock running");
 
   // A change away from the overlay: a live-only tick copies the changed
   // region, widened by one surface pixel on each side (live_damage_in_window),

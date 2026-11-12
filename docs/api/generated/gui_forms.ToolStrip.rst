@@ -375,9 +375,11 @@ gui_forms::ToolStrip
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
 
-   .. cpp:function:: Layout layout() const
+   .. cpp:function:: const Layout& layout() const
 
       *Protected.*
+
+      The layout at the current key, kept (S5): made again only when the key (Control::LayoutKey, and the model revision where one is read) has moved. The reference is valid until the next layout().
 
    .. cpp:function:: Layout layout_for(Rect surface) const
 

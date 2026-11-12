@@ -13,7 +13,6 @@ std::string HostSessionSnapshot::to_json() const {
            << ",\"last_sequence\":" << last_sequence
            << ",\"events_accepted\":" << events_accepted
            << ",\"events_rejected\":" << events_rejected
-           << ",\"callback_faults\":" << callback_faults
            << ",\"close_requests\":" << close_requests
            << ",\"close_cancellations\":" << close_cancellations
            << ",\"display_changes\":" << display_changes

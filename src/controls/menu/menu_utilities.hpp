@@ -10,7 +10,7 @@
 
 namespace gui_forms::menu_detail {
 
-inline constexpr double menu_width = 268.0;
+inline constexpr double menu_width = 120.0;
 inline constexpr double command_row_height = 28.0;
 inline constexpr double separator_row_height = 9.0;
 inline constexpr double menu_border = 2.0;
@@ -30,6 +30,13 @@ inline constexpr double menu_trailing = 25.0;
 // both the designed hover (built_in_rules.cpp).
 inline constexpr std::string_view menu_item_control_type = "menu_strip";
 inline constexpr std::string_view menu_item_part = "menu_item";
+// A drop-down panel's icon gutter is the menu strip anatomy's `gutter`
+// part: the band from the panel's border to menu_gutter_width, behind the
+// rows' icons and check marks. It is a menu item part at rest (clear unless
+// a theme styles `menu-strip::part(gutter)`), so themes without a rule for
+// it are unchanged.
+inline constexpr std::string_view menu_gutter_part = "gutter";
+inline constexpr double menu_gutter_width = menu_label_left - 4.0;
 
 [[nodiscard]] inline std::string menu_display_text(std::string_view text) {
     return parse_mnemonic_text(text).display_text;
@@ -112,9 +119,11 @@ inline void validate_specs(const std::vector<MenuItemSpec>& items,
                 throw std::invalid_argument(
                     "ContextMenu submenu requires text and children but no command");
             }
-        } else if (!item.command || !item.children.empty()) {
+        } else if (!item.children.empty() || (!item.command && item.text.empty())) {
+            // A Command is optional (GAPS E9); without one the item needs
+            // its own text.
             throw std::invalid_argument(
-                "ContextMenu command/check/radio item requires one shared command");
+                "ContextMenu command/check/radio item takes no children and needs a command or text");
         }
         validate_specs(item.children, identities, depth + 1U, count,
                        allow_empty_submenus);
@@ -155,6 +164,10 @@ inline std::vector<MenuSnapshot> snapshot_items(
             snapshot.command_state = (*spec.command).state();
             if (!snapshot.command_state.visible) continue;
             if (snapshot.text.empty()) snapshot.text = snapshot.command_state.text;
+        } else {
+            // An item without a Command (GAPS E9) carries its own state.
+            snapshot.command_state.enabled = spec.enabled;
+            snapshot.command_state.checked = spec.checked;
         }
         snapshot.children = snapshot_items(spec.children);
         if (snapshot.kind == MenuItemKind::submenu && snapshot.children.empty()) {

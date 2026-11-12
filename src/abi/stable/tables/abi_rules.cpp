@@ -19,6 +19,7 @@
 
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/detail/storage_growth.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/rules.hpp"
 #include "gui_forms/window.hpp"
@@ -155,9 +156,11 @@ private:
             RuleFiring firing{};
             detail::fire_rule_tap(*static_cast<detail::RuleTap*>(context), firing);
         } catch (...) {
-            // The actions of a C rule report their own failures; this is
-            // what the C++ side might still throw (an allocation).
-            static_cast<void>(fail_with_current_exception(add_slot));
+            // A firing runs inside whatever call raised the interaction, and
+            // no call returns its failure: recording it would leave a RULES
+            // failure for error_detail after a call that returned OK (N30).
+            // What the C++ side might still throw here (an allocation) ends
+            // this firing only.
         }
     }
 
@@ -215,7 +218,9 @@ void run_property(PropertyAction& property_action, const RuleFiring&) {
         const bool toggled = !*held;
         (*control).set_property_value(property_action.property, BindingValue{toggled});
     } catch (...) {
-        static_cast<void>(fail_with_current_exception(add_slot));
+        // A property the target refuses ends this action only. It is not
+        // recorded: the firing's caller returns its own status, and a RULES
+        // failure there would name a call that did not fail (N30).
     }
 }
 
@@ -379,7 +384,9 @@ gf_status build_condition(const gf_rule_condition* record, RuleCondition& made) 
         made.kind = RuleConditionKind::window_active;
         return GF_STATUS_OK;
     }
-    if (kind >= GF_RULE_CONDITION_HOVERING && kind <= GF_RULE_CONDITION_VISIBLE) {
+    const bool control_level = (kind >= GF_RULE_CONDITION_HOVERING && kind <= GF_RULE_CONDITION_VISIBLE) ||
+                               kind == GF_RULE_CONDITION_DRAGGING || kind == GF_RULE_CONDITION_DROP_CANDIDATE;
+    if (control_level) {
         if ((*record).physical_key != 0U || (*record).modifiers != 0U) {
             return fail(GF_STATUS_INVALID_ARGUMENT, add_slot, "a control condition names a control only");
         }
@@ -433,7 +440,7 @@ gf_status build_action(const gf_rule_action* record, const Component* sender, Ru
         }
         // Room first, so that the binding is listed the moment it exists
         // and a later throw disarms it with the rest.
-        building.callbacks.reserve(building.callbacks.size() + 1U);
+        detail::reserve_one_more(building.callbacks);
         const std::shared_ptr<CallbackAction> context = std::make_shared<CallbackAction>();
         (*context).callback = std::make_unique<CallbackBinding>(copy);
         building.callbacks.push_back((*context).callback.get());
@@ -458,6 +465,15 @@ gf_status build_action(const gf_rule_action* record, const Component* sender, Ru
             return found;
         }
         made = builtin::focus(*control);
+        return GF_STATUS_OK;
+    }
+    if (kind == GF_RULE_ACTION_BEGIN_KEYBOARD_DRAG) {
+        Control::Ptr control;
+        const gf_status found = find_live_control((*record).target, control);
+        if (found != GF_STATUS_OK) {
+            return found;
+        }
+        made = builtin::begin_keyboard_drag(*control);
         return GF_STATUS_OK;
     }
     if (names_property) {

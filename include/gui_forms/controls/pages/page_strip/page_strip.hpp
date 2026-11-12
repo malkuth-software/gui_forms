@@ -393,6 +393,9 @@ private:
         double width{};
         // The width the tab asks for before shrinking.
         double natural{};
+        // The width measure_tabs computed, before fill sharing and frozen
+        // widths; restored when the measurement is reused.
+        double measured{};
         Rect bounds{};
         std::string label{};
         bool has_icon{};
@@ -459,6 +462,10 @@ private:
         // The selected page's position when the layout was computed (the
         // set's revision, part of the key, moves with every selection).
         std::optional<std::size_t> selected{};
+        // The label font the tabs' measured widths were made with, and
+        // whether those widths are held (see measured_widths_current).
+        FontSpec measured_font{};
+        bool measured_valid{};
         bool overflow{};
         bool valid{};
         LayoutKey key{};
@@ -470,6 +477,8 @@ private:
     [[nodiscard]] const Layout& layout() const;
     void compute_layout(const LayoutKey& key) const;
     void measure_tabs() const;
+    [[nodiscard]] bool measured_widths_current(const LayoutKey& previous, const LayoutKey& key) const;
+    void restore_measured_widths() const;
     void apply_frozen_widths() const;
     [[nodiscard]] std::size_t first_showing(std::size_t target, double area) const;
     void place_tabs(double start, double area) const;

@@ -113,7 +113,7 @@ void Card::written(const decltype(interactive)&) {
         focused_ = false;
         keyboard_key_ = 0U;
     }
-    invalidate(Dirty::style | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 Size Card::measure(Size available) {
@@ -200,7 +200,7 @@ void Card::arrange(Rect final_bounds) {
 }
 
 ControlVisualContext Card::current_context() const noexcept {
-    return visual_context(hovered_, pressed_, selected.read(), focused_);
+    return visual_context({.hovered = hovered_, .pressed = pressed_, .selected = selected.read(), .focused = focused_});
 }
 
 void Card::on_paint(Painter& painter, Rect local_damage) {
@@ -253,17 +253,17 @@ void Card::on_pointer(PointerEvent& event) {
         const bool next = event.action == PointerAction::enter;
         if (hovered_ != next) {
             hovered_ = next;
-            invalidate(Dirty::style | Dirty::paint);
+            invalidate(Dirty::paint);
         }
     } else if (event.button == PointerButton::primary &&
                event.action == PointerAction::down) {
         pressed_ = true;
-        invalidate(Dirty::style | Dirty::paint);
+        invalidate(Dirty::paint);
         event.handled = true;
     } else if (event.button == PointerButton::primary &&
                event.action == PointerAction::up) {
         pressed_ = false;
-        invalidate(Dirty::style | Dirty::paint);
+        invalidate(Dirty::paint);
         event.handled = true;
     }
 }
@@ -276,13 +276,13 @@ void Card::on_key(KeyEvent& event) {
     if (event.action == KeyAction::down && !event.repeat && !pressed_) {
         keyboard_key_ = event.physical_key;
         pressed_ = true;
-        invalidate(Dirty::style | Dirty::paint);
+        invalidate(Dirty::paint);
         event.handled = true;
     } else if (event.action == KeyAction::up && pressed_ &&
                keyboard_key_ == event.physical_key) {
         keyboard_key_ = 0U;
         pressed_ = false;
-        invalidate(Dirty::style | Dirty::paint);
+        invalidate(Dirty::paint);
         event.handled = true;
         on_activate();
     }
@@ -294,7 +294,7 @@ void Card::on_focus_changed(bool focused) {
         pressed_ = false;
         keyboard_key_ = 0U;
     }
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void Card::on_activate() {
@@ -411,7 +411,7 @@ void Card::prepare_write(const decltype(selected)&, bool&) {
 }
 
 void Card::written(const decltype(selected)&) {
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::paint | Dirty::semantics);
     publish_change(selected_changed_, selected.read());
 }
 

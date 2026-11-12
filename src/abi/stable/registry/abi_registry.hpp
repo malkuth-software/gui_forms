@@ -20,6 +20,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <span>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -124,6 +125,18 @@ public:
     // and never binds the UI thread; every other table is
     // GF_STATUS_WRONG_THREAD there.
     [[nodiscard]] gf_status enter_ui(SlotIdentity slot, bool bind);
+    // enter_ui without bind, then find_component, in one critical section
+    // when the calling thread has no deferred release waiting (N13): the
+    // common call takes the lock once. With deferred releases it completes
+    // them first, as enter_ui does.
+    [[nodiscard]] gf_status enter_component(gf_object object, SlotIdentity slot, Component::Ptr& component);
+    // enter_component, then the component as a control
+    // (GF_STATUS_WRONG_HANDLE_KIND for a component that is not one).
+    [[nodiscard]] gf_status enter_object(gf_object object, SlotIdentity slot, Control::Ptr& control);
+    // Whether a UI-thread slot may run on the calling thread now (the test
+    // enter_ui makes), without recording a failure: for a call that succeeds
+    // from any thread and only skips its UI-thread work elsewhere.
+    [[nodiscard]] bool calling_ui_thread() noexcept;
     // Unbinds the UI thread when nothing holds it: no object, subscription,
     // posted or deferred callback, or run. Ends a call that bound the
     // library for itself alone (a schema read).
@@ -169,8 +182,10 @@ public:
     // Frees the identity of a subscription whose binding died. A no-op for
     // one already freed by disconnect.
     void end_subscription(gf_subscription subscription) noexcept;
-    // Ends every subscription whose source has been disposed or destroyed.
-    void end_disposed_subscriptions();
+    // Ends every subscription on one of sources whose source has been
+    // disposed or destroyed: the sources a disposal reached (a control and
+    // its subtree). Only those sources' subscriptions are visited (N8).
+    void end_disposed_subscriptions(std::span<const Component* const> sources);
 
     // Queues callback for the thread target belongs to and wakes it (a
     // running window, or the sub-surface's loop). Any thread. On failure
@@ -250,6 +265,9 @@ private:
         bool occupied = false;
         SubscriptionToken token;
         std::weak_ptr<Component> source;
+        // The source's address when reserved: the key of this slot in
+        // subscriptions_by_source_. Observes only; never dereferenced.
+        const Component* source_key = nullptr;
     };
 
     [[nodiscard]] bool on_ui_thread_locked() const noexcept;
@@ -267,6 +285,12 @@ private:
     [[nodiscard]] WindowDispatcher wake_locked(ThreadDomain domain) noexcept;
     [[nodiscard]] ObjectSlot* object_slot_locked(gf_object object) noexcept;
     [[nodiscard]] SubscriptionSlot* subscription_slot_locked(gf_subscription subscription) noexcept;
+    // find_component's search; the caller holds the lock.
+    [[nodiscard]] gf_status find_component_locked(gf_object object, SlotIdentity slot, Component::Ptr& component);
+    // Frees the subscription slot at index (one-based): moves its token into
+    // ended, takes it out of its source's list and onto the free list. The
+    // caller holds the lock and disconnects ended without it.
+    void free_subscription_locked(std::uint32_t index, SubscriptionToken& ended) noexcept;
     // Drops one reference; at zero frees the identity and moves the control
     // into ended. ended is destroyed by the caller without the lock.
     void drop_reference_locked(gf_object object, ObjectSlot& slot, Component::Ptr& ended);
@@ -284,6 +308,11 @@ private:
     std::vector<SubSurfaceDomain> domains_;
     std::vector<SubscriptionSlot> subscriptions_;
     std::vector<std::uint32_t> free_subscriptions_;
+    // The occupied subscription slots (one-based) by source address, in no
+    // order: a disposal visits its sources' slots only. A key whose address
+    // is reused by a new component may still list the old one's slots; each
+    // slot's weak source decides whether it has ended.
+    std::unordered_map<const Component*, std::vector<std::uint32_t>> subscriptions_by_source_;
     std::size_t live_subscriptions_ = 0U;
     // UI-thread objects whose last reference was released off the UI thread.
     std::vector<Component::Ptr> deferred_;

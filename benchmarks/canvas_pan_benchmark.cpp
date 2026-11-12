@@ -18,6 +18,12 @@
 // "fit" lies inside the canvas (a zoom-to-fit view), "large" is a
 // 3000 x 2000 sheet at zoom 1, most of it outside the canvas.
 //
+// The "copy" cases paint the surround so that it follows the sheet (the felt
+// tiled from the sheet's corner, the gradient spanning the sheet and a
+// margin) and pan by Control::scroll_content: the raster moves its pixels
+// (SkiaRaster::scroll_copy, timed with the paint) and the window paints only
+// the exposed band.
+//
 // Per case it prints the paint time per step (mean, median and worst over
 // the measured steps), the damage area and the window's counters, then each
 // canvas operation timed alone over the canvas.
@@ -91,16 +97,26 @@ public:
     // One operation the attribution runs leave out (time_omissions), or
     // none.
     std::optional<CanvasOperation> omitted;
+    // Whether the surround follows the sheet, so that a pan is a copy.
+    bool follows_sheet{};
+
+    void paint_following_surround(Painter& painter, Rect bounds);
 
     void on_paint(Painter& painter, Rect) override {
         const Rect bounds = client_rectangle();
-        if (omitted != CanvasOperation::felt) {
-            painter.fill_image_pattern(felt, {static_cast<double>(felt_pixels), static_cast<double>(felt_pixels)},
-                                       bounds, {felt_tile, felt_tile});
-        }
-        const GradientStop light[] = {{0.0, Color::rgba(255, 255, 255, 22)}, {1.0, Color::rgba(60, 77, 95, 15)}};
-        if (omitted != CanvasOperation::gradient) {
-            painter.fill_linear_gradient(bounds, {0.0, 0.0}, {0.0, bounds.height}, light);
+        if (follows_sheet) {
+            paint_following_surround(painter, bounds);
+        } else {
+            if (omitted != CanvasOperation::felt) {
+                painter.fill_image_pattern(felt,
+                                           {static_cast<double>(felt_pixels), static_cast<double>(felt_pixels)},
+                                           bounds, {felt_tile, felt_tile});
+            }
+            const GradientStop light[] = {{0.0, Color::rgba(255, 255, 255, 22)},
+                                          {1.0, Color::rgba(60, 77, 95, 15)}};
+            if (omitted != CanvasOperation::gradient) {
+                painter.fill_linear_gradient(bounds, {0.0, 0.0}, {0.0, bounds.height}, light);
+            }
         }
         const Rect page = sheet();
         if (omitted != CanvasOperation::shadow) {
@@ -115,6 +131,30 @@ public:
         }
     }
 };
+
+// The felt tiled from the sheet's corner and the gradient over the sheet's
+// rows and a margin, both drawn under a clip to the canvas: a pan moves
+// them with the sheet. The felt is opaque, so the canvas reports its cover.
+void PanCanvas::paint_following_surround(Painter& painter, Rect bounds) {
+    constexpr double gradient_margin = 300.0;
+    const double left = sheet_origin.x - felt_tile * std::ceil((sheet_origin.x - bounds.x) / felt_tile);
+    const double top = sheet_origin.y - felt_tile * std::ceil((sheet_origin.y - bounds.y) / felt_tile);
+    const Rect tiled{left, top, bounds.right() - left, bounds.bottom() - top};
+    const GradientStop light[] = {{0.0, Color::rgba(255, 255, 255, 22)}, {1.0, Color::rgba(60, 77, 95, 15)}};
+    painter.save();
+    painter.clip_rect(bounds);
+    if (omitted != CanvasOperation::felt) {
+        painter.fill_image_pattern(felt, {static_cast<double>(felt_pixels), static_cast<double>(felt_pixels)},
+                                   tiled, {felt_tile, felt_tile});
+    }
+    if (omitted != CanvasOperation::gradient) {
+        const Point start{0.0, sheet_origin.y - gradient_margin};
+        const Point end{0.0, sheet_origin.y + sheet_size.height + gradient_margin};
+        painter.fill_linear_gradient(bounds, start, end, light);
+    }
+    painter.restore();
+    if (omitted != CanvasOperation::felt) report_opaque_cover(painter, bounds);
+}
 
 // Writes the visible part of the sheet, at device resolution, into the
 // canvas's viewport surface (made or remade at that size).
@@ -198,6 +238,8 @@ CaseResult run_case(SkiaRaster& raster, Window& window, PanCanvas& canvas, doubl
 
     std::vector<double> samples;
     samples.reserve(steps);
+    std::vector<ScrollCopy> copies;
+    window.take_scroll_copies(copies);
     CaseResult result{};
     MetricsSnapshot before{};
     std::uint64_t covers_before = 0U;
@@ -210,10 +252,19 @@ CaseResult run_case(SkiaRaster& raster, Window& window, PanCanvas& canvas, doubl
         const double direction = ((step / 16U) % 2U) == 0U ? 1.0 : -1.0;
         canvas.sheet_origin.x += direction * pan_step;
         publish_viewport(canvas, scale);
-        canvas.invalidate(Dirty::paint);
+        if (canvas.follows_sheet) {
+            static_cast<void>(canvas.scroll_content(canvas.client_rectangle(), {direction * pan_step, 0.0}));
+        } else {
+            canvas.invalidate(Dirty::paint);
+        }
         window.perform_layout();
         const DamageRegion damage = window.take_damage();
+        copies.clear();
+        window.take_scroll_copies(copies);
         const Clock::time_point start = Clock::now();
+        for (const ScrollCopy& copy : copies) {
+            if (!raster.scroll_copy(copy.clip, copy.offset)) throw std::runtime_error("scroll copy refused");
+        }
         paint_damage(raster, window, damage);
         const double elapsed = milliseconds_since(start);
         if (step < warmup_steps) continue;
@@ -336,6 +387,7 @@ int main(int argc, char** argv) {
         (*canvas).set_requested_bounds(canvas_bounds);
         (*root).add_child(canvas);
         Window window(root, window_size);
+        window.set_scroll_copies_supported(true);
 
         std::vector<std::byte> felt(static_cast<std::size_t>(felt_pixels) * felt_pixels * 4U);
         for (std::uint32_t y = 0U; y < felt_pixels; ++y) {
@@ -358,17 +410,23 @@ int main(int argc, char** argv) {
         const std::array<const char*, 2> sheet_names{"fit", "large"};
         std::printf("canvas pan: window %.0f x %.0f, canvas %.0f x %.0f, %zu steps of %.0f units\n",
                     window_size.width, window_size.height, canvas_bounds.width, canvas_bounds.height, steps, pan_step);
-        for (std::size_t sheet = 0U; sheet < sheets.size(); ++sheet) {
-            for (const double scale : scales) {
-                const CaseResult result = run_case(raster, window, *canvas, scale, sheets[sheet], steps);
-                std::printf("  %s sheet %.0f x %.0f, scale %.0f: paint %.3f ms mean, %.3f median, %.3f worst; "
-                            "damage %.0f; controls %.1f, commands %.1f, chunks rebuilt %.1f, covers %.1f per step\n",
-                            sheet_names[sheet], sheets[sheet].width, sheets[sheet].height, scale, result.mean_ms,
-                            result.median_ms, result.worst_ms, result.damage_area, result.controls_painted,
-                            result.commands_replayed, result.chunks_rebuilt, result.covers);
-                time_operations(raster, *canvas);
+        constexpr std::array<bool, 2> follows{false, true};
+        for (const bool following : follows) {
+            (*canvas).follows_sheet = following;
+            for (std::size_t sheet = 0U; sheet < sheets.size(); ++sheet) {
+                for (const double scale : scales) {
+                    const CaseResult result = run_case(raster, window, *canvas, scale, sheets[sheet], steps);
+                    std::printf("  %s%s sheet %.0f x %.0f, scale %.0f: paint %.3f ms mean, %.3f median, %.3f worst; "
+                                "damage %.0f; controls %.1f, commands %.1f, chunks rebuilt %.1f, covers %.1f per step\n",
+                                sheet_names[sheet], following ? " copy" : "", sheets[sheet].width,
+                                sheets[sheet].height, scale, result.mean_ms,
+                                result.median_ms, result.worst_ms, result.damage_area, result.controls_painted,
+                                result.commands_replayed, result.chunks_rebuilt, result.covers);
+                    if (!following) time_operations(raster, *canvas);
+                }
             }
         }
+        (*canvas).follows_sheet = false;
         time_omissions(raster, window, *canvas, sheets[0], steps);
         return 0;
     } catch (const std::exception& error) {

@@ -282,9 +282,7 @@ void test_repeated_focus_show_hide_reuses_no_stale_overlay_identity() {
             throw std::runtime_error(
                 "tooltip focus cycle " + std::to_string(cycle) +
                 " opened visible=" + (tips.visible() ? "true" : "false") +
-                " count=" + std::to_string(shown) + " frame_faults=" +
-                std::to_string(
-                    fixture.window.metrics_snapshot().frame_callback_faults));
+                " count=" + std::to_string(shown));
         }
         require(fixture.window.request_focus(fixture.other),
                 "focus must leave the repeated tooltip target");
@@ -523,6 +521,41 @@ void test_press_hides_and_text_changes_follow() {
     require(explicit_refused, "showing a control without text is refused");
 }
 
+// Escape dismisses a bubble without moving the pointer or focus (WCAG
+// 1.4.13): the keyboard's does not show again for the same thing on the
+// next key, the pointer's not until the pointer leaves its thing. The
+// contention fuzzer's seed 3 found a focus bubble outliving four Escapes.
+void test_escape_dismisses() {
+    Fixture fixture;
+    ToolTipSettings settings = fixture.window.tool_tip_settings();
+    settings.initial_delay = 1ms;
+    settings.auto_pop_delay = 0ms;
+    fixture.window.set_tool_tip_settings(settings);
+    (*fixture.button).tool_tip_text = "Keyboard help";
+    require(fixture.window.request_focus(fixture.other), "fixture other button must accept focus");
+    press_key(fixture.window, PhysicalKey::tab);
+    require(fixture.window.focused_control() == fixture.button, "Tab moves focus to the button");
+    fire_next(fixture.window);
+    require(fixture.window.tool_tip_visible(), "keyboard focus shows the bubble");
+    press_key(fixture.window, PhysicalKey::escape);
+    require(!fixture.window.tool_tip_visible() && fixture.window.focused_control() == fixture.button,
+            "Escape closes the keyboard's bubble and leaves focus where it was");
+    press_key(fixture.window, PhysicalKey::left_shift);
+    require(!fixture.window.next_wake() && !fixture.window.tool_tip_visible(),
+            "another key on the same thing does not show it again");
+    static_cast<void>(fixture.window.request_focus(fixture.other));
+    hover(fixture.window, {60.0, 60.0});
+    fire_next(fixture.window);
+    require(fixture.window.tool_tip_visible(), "the pointer resting on the button shows the bubble");
+    press_key(fixture.window, PhysicalKey::escape);
+    require(!fixture.window.tool_tip_visible(), "Escape closes the pointer's bubble");
+    hover(fixture.window, {61.0, 61.0});
+    require(!fixture.window.next_wake(), "after Escape nothing waits until the pointer leaves the thing");
+    hover(fixture.window, {390.0, 210.0});
+    hover(fixture.window, {60.0, 60.0});
+    require(fixture.window.next_wake().has_value(), "back over the thing, its bubble waits again");
+}
+
 // A strip's items carry their own tooltips; the presenter finds the one
 // under the pointer and the one the keyboard is on.
 void test_strip_item_tooltips() {
@@ -721,6 +754,7 @@ int main() {
         test_window_and_program_switches();
         test_blank_text_and_open_scopes();
         test_press_hides_and_text_changes_follow();
+        test_escape_dismisses();
         test_strip_item_tooltips();
         test_tab_header_tooltips();
         test_typed_text_fields_show_hints();

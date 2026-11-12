@@ -20,7 +20,6 @@ public:
         static_cast<void>(context);
         document_.initialize_component(*this);
         mount_form_children(*document_.gallery_docking_document, *body);
-        (*document_.gallery_docking_group).set_style(page_style());
         build_workspace(*document_.gallery_docking_group);
         on((*workspace_).activation_changed(), *this, &DockingWorkspacePage::on_activation);
         on((*workspace_).document_closing(), *this, &DockingWorkspacePage::on_closing);
@@ -106,7 +105,7 @@ private:
         const std::string title = (*workspace_).panel_title(creation.panel);
         std::shared_ptr<Panel> content = make_control<Panel>(StableId("gallery.docking.content." + creation.panel.value));
         std::shared_ptr<Label> copy =
-            label("gallery.docking.copy." + creation.panel.value, title, 11.0, 400, ink);
+            label("gallery.docking.copy." + creation.panel.value, title, 11.0, 400, "ink");
         (*copy).set_requested_bounds({8.0, 8.0, 160.0, 22.0});
         (*content).add_child(copy);
         std::shared_ptr<TextBox> field = make_control<TextBox>(StableId("gallery.docking.field." + creation.panel.value));

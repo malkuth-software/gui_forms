@@ -1,5 +1,6 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
+#include "gui_forms/integrity/sha256/sha256.hpp"
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
@@ -10,6 +11,8 @@
 #include "../../theme_language/package/theme_header.hpp"
 #include "../../theme_language/package/theme_package.hpp"
 #include "../theme/floor_sheet.hpp"
+#include "../familiar_themes/windows_professional_floor.hpp"
+#include "../familiar_themes/windows_professional_sheets.hpp"
 #include "../theme/theme_access.hpp"
 #include "built_in_theme.hpp"
 #include "control_inline_style.hpp"
@@ -17,6 +20,7 @@
 #include "theme_source_record.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -335,24 +339,48 @@ bool order_names(std::span<const VerifiedThemePack* const> order, std::string_vi
 // first reached: a pack a later root imports again keeps its earlier
 // place. Two roots of one name are refused (E601). With no roots the theme
 // is the base alone.
+// Whether `controls` holds an anatomy for `control_id`.
+bool names_control(std::span<const ControlAnatomy> controls, std::string_view control_id) {
+    for (const ControlAnatomy& control : controls) {
+        if (control.control_id == control_id) return true;
+    }
+    return false;
+}
+
+// The anatomies a closure's selectors resolve against: the caller's, then,
+// onto windows-professional, each stock control the caller did not name,
+// since that base's parts sheet speaks the stock controls' vocabulary
+// whatever the caller compiles for. Fills `storage` only in that case.
+std::span<const ControlAnatomy> closure_vocabulary(const ThemeCompileOptions& options,
+                                                   std::vector<ControlAnatomy>& storage) {
+    if (options.base == ThemeBase::gui_forms) return options.controls;
+    const std::span<const ControlAnatomy> stock = stock_control_anatomies();
+    storage.reserve(options.controls.size() + stock.size());
+    storage.insert(storage.end(), options.controls.begin(), options.controls.end());
+    for (const ControlAnatomy& control : stock) {
+        if (!names_control(options.controls, control.control_id)) storage.push_back(control);
+    }
+    const std::span<const ControlAnatomy> merged(storage);
+    return merged;
+}
+
 ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roots,
                                    const theme_language::InstalledThemeIndex& index, ImageRegistry& images,
                                    ThemeImageShares& shares, const ThemeCompileOptions& options, ThemeRuleSet set,
                                    std::string_view id, std::span<const UserIcon> icons) {
-    // GUI.Forms' own theme as the base: its light sheet as the first sheet
-    // of the cascade, a pack with no manifest entries of its own, held here
-    // for the whole compilation (`order` borrows it). Onto
-    // windows-professional it only names the theme's findings when there
-    // is no root, and is not part of the cascade.
+    // The base's sheet as the first sheet of the cascade: GUI.Forms' own
+    // theme's light sheet, or windows-professional's parts sheet (owner,
+    // 2026-11-10). A pack with no manifest entries of its own, held here
+    // for the whole compilation (`order` borrows it); it also names the
+    // theme's findings when there is no root.
     const bool onto_gui_forms = options.base == ThemeBase::gui_forms;
     VerifiedThemePack base_pack{};
     base_pack.manifest.name = onto_gui_forms ? "gui-forms" : "windows-professional";
+    base_pack.manifest.sheet.path = onto_gui_forms ? "light.css" : "parts.css";
+    base_pack.sheet = onto_gui_forms ? std::string(gui_forms_light_sheet())
+                                     : std::string(detail::windows_professional_parts_sheet);
     std::vector<const VerifiedThemePack*> order{};
-    if (onto_gui_forms) {
-        base_pack.manifest.sheet.path = "light.css";
-        base_pack.sheet = std::string(gui_forms_light_sheet());
-        order.push_back(&base_pack);
-    }
+    order.push_back(&base_pack);
     std::vector<const VerifiedThemePack*> reached{};
     ThemeDiagnostic problem{};
     for (std::size_t position = 0U; position < roots.size(); ++position) {
@@ -444,14 +472,16 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
     // user-agent origin under them (selector step 1). Alone, it is the
     // program's own sheet.
     std::optional<std::uint32_t> base_origin_end{};
-    if (onto_gui_forms && set == ThemeRuleSet::program && segments.size() > 1U) {
+    if (set == ThemeRuleSet::program && segments.size() > 1U) {
         base_origin_end = static_cast<std::uint32_t>(segments[1].start);
     }
     const theme_language::ThemeSource source{.file = closure_file, .text = text};
     const PrimitiveRegistry& registry = builtin_primitive_registry();
+    std::vector<ControlAnatomy> vocabulary_storage{};
+    const std::span<const ControlAnatomy> vocabulary = closure_vocabulary(options, vocabulary_storage);
     const theme_language::ThemeCompileInput input{.source = source,
                                                   .registry = registry,
-                                                  .vocabulary = theme_language::SelectorVocabulary{options.controls},
+                                                  .vocabulary = theme_language::SelectorVocabulary{vocabulary},
                                                   .published_values = published,
                                                   .resources = names,
                                                   .images = loaded,
@@ -463,7 +493,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
                                                   .effects = options.effects};
     // The base's recipes, some 100 KB held out of line.
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(
-        onto_gui_forms ? gui_forms_theme_definition() : windows_professional_theme_definition()));
+        onto_gui_forms ? gui_forms_theme_definition() : detail::windows_professional_floor_definition()));
     (*definition).rule_set = set;
     theme_language::ThemeCompiler compiler{};
     theme_language::ThemeDiagnosticList diagnostics{};
@@ -476,7 +506,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
         found.push_back(public_diagnostic(placed));
     }
     if (outcome != theme_language::CompileOutcome::compiled) return ThemeCompileResult::refused(std::move(found));
-    place_rules((*definition).rules, segments, roots, onto_gui_forms ? &base_pack : nullptr, set);
+    place_rules((*definition).rules, segments, roots, &base_pack, set);
     // A program theme with rules for the dark scheme but no dark variant
     // (T4 theme variants): a dark window shows GUI.Forms' own dark theme,
     // so the rules apply nowhere. A user theme is layered, and has none.
@@ -519,7 +549,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
             .resource = icon.identifier, .image = (*lease).image(), .pixel_size = (*lease).pixel_size()});
         held.push_back(lease);
     }
-    (*record).controls.assign(options.controls.begin(), options.controls.end());
+    (*record).controls.assign(vocabulary.begin(), vocabulary.end());
     (*record).requires_engine = requires_engine;
     std::shared_ptr<const detail::ThemeSourceRecord> kept(std::move(record));
     std::shared_ptr<const Theme> theme =
@@ -812,6 +842,51 @@ std::shared_ptr<const Theme> default_compiled_theme() {
     return theme;
 }
 
+namespace {
+
+// `text` as the inside of a JSON string: a quote, a backslash and the
+// control characters escaped; every other byte as it is (UTF-8 passes
+// through).
+std::string json_string_body(std::string_view text) {
+    static constexpr char hex_digits[] = "0123456789abcdef";
+    std::string escaped;
+    escaped.reserve(text.size());
+    for (const char character : text) {
+        const unsigned char byte = static_cast<unsigned char>(character);
+        if (character == '"' || character == '\\') {
+            escaped.push_back('\\');
+            escaped.push_back(character);
+        } else if (byte < 0x20U) {
+            escaped.append("\\u00");
+            escaped.push_back(hex_digits[byte >> 4U]);
+            escaped.push_back(hex_digits[byte & 0x0FU]);
+        } else {
+            escaped.push_back(character);
+        }
+    }
+    return escaped;
+}
+
+} // namespace
+
+ThemePackage theme_sheet_package(std::string_view sheet, std::string_view name) {
+    std::array<char, sha256_hex_digits> digest{};
+    format_sha256_hex(sha256_of_text(sheet), digest);
+    const std::string_view digest_text(digest.data(), digest.size());
+    ThemePackage package{};
+    package.manifest.append("{\"format\": \"gui-forms-theme/1\", \"name\": \"");
+    package.manifest.append(json_string_body(name));
+    package.manifest.append("\", \"version\": \"1.0.0\", \"engine\": \">=0.3\", "
+                            "\"sheet\": {\"path\": \"sheet.theme.css\", \"sha256\": \"");
+    package.manifest.append(digest_text);
+    package.manifest.append("\"}}");
+    ThemePackageFile file{};
+    file.path = "sheet.theme.css";
+    file.bytes = std::string(sheet);
+    package.files.push_back(std::move(file));
+    return package;
+}
+
 ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images,
                                            const ThemeCompileOptions& options) {
     const VerifiedThemePack* const root =
@@ -902,7 +977,7 @@ ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLi
         (*header).author = read.author;
         (*header).provenance = read.provenance;
     }
-    if (!read.present) {
+    if (!read.present && !files.header_implied) {
         return refusal(problem_of(DiagnosticCode::manifest_invalid, main_name, "no @theme header: not a theme"));
     }
     if (read.engine && current_engine_version < *read.engine) {

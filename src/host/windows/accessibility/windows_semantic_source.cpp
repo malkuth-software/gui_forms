@@ -230,8 +230,7 @@ bool utf8_from_wide(std::wstring_view value, std::string& text) {
 
 bool operator==(const SemanticTreeKey& left, const SemanticTreeKey& right) noexcept {
     const bool equal = left.semantic_generation == right.semantic_generation &&
-                       left.content_revision == right.content_revision &&
-                       left.display_generation == right.display_generation &&
+                       left.layout_pass == right.layout_pass &&
                        left.focused == right.focused && left.pressed == right.pressed &&
                        left.captured == right.captured && left.active == right.active &&
                        left.client_width == right.client_width &&
@@ -258,8 +257,7 @@ std::uint64_t control_id(const Control::Ptr& control) noexcept {
 SemanticTreeKey read_tree_key(const Window& window, HWND hwnd, double scale) {
     SemanticTreeKey key;
     key.semantic_generation = window.semantic_generation();
-    key.content_revision = window.paint_lease_snapshot().content_revision;
-    key.display_generation = window.metrics_snapshot().display_generation;
+    key.layout_pass = window.layout_pass_sequence();
     key.focused = control_id(window.focused_control());
     key.pressed = control_id(window.pressed_control());
     key.captured = control_id(window.captured_control());
@@ -276,74 +274,69 @@ SemanticTreeKey read_tree_key(const Window& window, HWND hwnd, double scale) {
 
 } // namespace
 
-bool SemanticSource::snapshot(SemanticTreeRef& client) noexcept {
+bool SemanticSource::snapshot(SemanticTreeRef& client) {
     client.reset();
     if (model == nullptr || hwnd == nullptr) return false;
-    try {
-        const SemanticTreeKey before = read_tree_key(*model, hwnd, scale);
-        if (current && before == current_key) {
-            ++trees_reused;
-            client = current;
-            return true;
-        }
-        SemanticSnapshot tree = (*model).semantic_snapshot();
-        // The key is read again after the build, which may lay the window
-        // out first and so move its revisions.
-        SemanticTreeKey after = read_tree_key(*model, hwnd, scale);
-        std::shared_ptr<SemanticNode> built = std::make_shared<SemanticNode>();
-        SemanticNode& node = *built;
-        node.runtime_id = 0U;
-        node.stable_id.clear();
-        node.role = SemanticRole::group;
-        node.children = std::move(tree.roots);
-        node.states = SemanticState::enabled | SemanticState::visible;
-        node.name = after.title;
-        // The client node covers the content rectangle: a declared outer
-        // band lies outside it, as it lies outside every hit test (owner,
-        // 2026-11-08). Without a band it is the whole client area.
-        node.bounds = after.content;
-        current = std::move(built);
-        current_key = std::move(after);
-        ++trees_built;
+    const SemanticTreeKey before = read_tree_key(*model, hwnd, scale);
+    if (current && before == current_key) {
+        ++trees_reused;
         client = current;
         return true;
-    } catch (...) {
-        return false;
     }
+    SemanticSnapshot tree = (*model).semantic_snapshot();
+    // The key is read again after the build, which may lay the window
+    // out first and so move its revisions.
+    SemanticTreeKey after = read_tree_key(*model, hwnd, scale);
+    std::shared_ptr<SemanticNode> built = std::make_shared<SemanticNode>();
+    SemanticNode& node = *built;
+    node.runtime_id = 0U;
+    node.stable_id.clear();
+    node.role = SemanticRole::group;
+    node.children = std::move(tree.roots);
+    node.states = SemanticState::enabled | SemanticState::visible;
+    node.name = after.title;
+    // The client node covers the content rectangle: a declared outer
+    // band lies outside it, as it lies outside every hit test (owner,
+    // 2026-11-08). Without a band it is the whole client area.
+    node.bounds = after.content;
+    current = std::move(built);
+    current_key = std::move(after);
+    ++trees_built;
+    client = current;
+    return true;
 }
 
 void SemanticSource::release_trees() noexcept {
     current.reset();
     current_key = SemanticTreeKey{};
     published.reset();
+    text_layout_tree.reset();
+    text_layout_control = 0U;
+    text_layout.reset();
 }
 
 bool SemanticSource::perform(const SemanticLocation& location, SemanticAction action,
-                             std::string_view value) noexcept {
+                             std::string_view value) {
     // The client node takes no action of its own.
     if (model == nullptr || (*location.node).runtime_id == 0U) return false;
-    try {
-        if (action == SemanticAction::focus) SetFocus(hwnd);
-        const SemanticNode& node = *location.node;
-        bool handled = false;
-        if (location.scope == nullptr) {
-            // A virtual child with no control-backed node above it: no
-            // control names it, so the window looks for it by stable ID
-            // under its root and overlays.
-            handled = (*model).perform_semantic_action(node.stable_id, action, value);
-        } else {
-            // The window refuses a scope whose control was disposed or
-            // replaced since the snapshot (interview GF017).
-            const RuntimeId scope{(*location.scope).runtime_id};
-            std::string_view virtual_child;
-            if (location.scope != location.node) virtual_child = node.stable_id;
-            handled = (*model).perform_semantic_action(scope, virtual_child, action, value);
-        }
-        if (handled) NotifyWinEvent(EVENT_OBJECT_VALUECHANGE, hwnd, OBJID_CLIENT, CHILDID_SELF);
-        return handled;
-    } catch (...) {
-        return false;
+    if (action == SemanticAction::focus) SetFocus(hwnd);
+    const SemanticNode& node = *location.node;
+    bool handled = false;
+    if (location.scope == nullptr) {
+        // A virtual child with no control-backed node above it: no
+        // control names it, so the window looks for it by stable ID
+        // under its root and overlays.
+        handled = (*model).perform_semantic_action(node.stable_id, action, value);
+    } else {
+        // The window refuses a scope whose control was disposed or
+        // replaced since the snapshot (interview GF017).
+        const RuntimeId scope{(*location.scope).runtime_id};
+        std::string_view virtual_child;
+        if (location.scope != location.node) virtual_child = node.stable_id;
+        handled = (*model).perform_semantic_action(scope, virtual_child, action, value);
     }
+    if (handled) NotifyWinEvent(EVENT_OBJECT_VALUECHANGE, hwnd, OBJID_CLIENT, CHILDID_SELF);
+    return handled;
 }
 
 } // namespace gui_forms::host

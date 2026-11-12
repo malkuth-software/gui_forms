@@ -227,7 +227,7 @@ HostWindowChromeResult HeadlessHostServices::apply_window_chrome_impl(const Wind
 HostServiceStatus HeadlessHostServices::apply_window_backdrop_impl(WindowBackdrop backdrop) {
     HostServiceStatus status{};
     // Opaque never fails (the HostServices contract).
-    if (fail_next_backdrop_ && backdrop != WindowBackdrop::opaque) {
+    if ((fail_next_backdrop_ || refuse_backdrops_) && backdrop != WindowBackdrop::opaque) {
         fail_next_backdrop_ = false;
         status.error = HostServiceError::backend_failure;
     } else {

@@ -46,6 +46,8 @@ Types
      -  
    * - :cpp:class:`BoxLength <gui_forms::BoxLength>`
      - A length along one axis of the part's box: ``fraction`` of the box's extent on that axis plus ``units`` logical units, as CSS's <length-percentage> (a percentage, a length, or the calc() of both).
+   * - :cpp:class:`BundledFontFamily <gui_forms::BundledFontFamily>`
+     - A bundled font family a theme names in place of a role's faces (theme-language ``font-family: Selawik``).
    * - :cpp:class:`CachedPartRaster <gui_forms::CachedPartRaster>`
      - A part's cached raster and what drew it: the primitive, every parameter (animated ones included, since they change the pixels), the target with its states restricted to those the primitive reads, and the extent.
    * - :cpp:class:`CheckerPattern <gui_forms::CheckerPattern>`
@@ -408,6 +410,8 @@ Types
      - A user theme's files (T3 user themes, notes:planning/stages/ T3-theme-language/USER_THEMES.md): its name, the stem of its main file ``themes/<name>.css``; that file's bytes; and the files of its folder ``themes/<name>/``, each by its path inside the folder, as the host read them.
    * - :cpp:class:`UserThemeHeader <gui_forms::UserThemeHeader>`
      - The header of a user theme's main file, which makes the file a theme.
+   * - :cpp:class:`VisualInteraction <gui_forms::VisualInteraction>`
+     - A control's interaction state as it asks for its visual context (Control::visual_context, audit A13): named fields, all false by default.
 
 .. cpp:namespace:: gui_forms
 
@@ -744,6 +748,16 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: BundledFontFamily
+
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+
+   A bundled font family a theme names in place of a role's faces (theme-language ``font-family: Selawik``). Zero is none: the role's own faces. Only families bundled with the library have numbers (the table in src/core/resources/fonts/bundled_font_families.hpp); a host font never has one, so a family can never reach a font the application did not ship.
+
+   .. cpp:member:: std::uint8_t value
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CachedPartRaster final
 
    ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
@@ -777,6 +791,14 @@ Types
       The record's and the table's raster generations when ``raster`` was drawn; invalidation advances the current ones.
 
    .. cpp:member:: std::uint64_t raster_table_generation
+
+   .. cpp:member:: bool listed
+
+      N37: the table's recency list of part rasters it budgets (held, not shared), least recently painted first. Observing links, kept by the table; ``listed`` says whether this raster is on the list.
+
+   .. cpp:member:: CachedPartRaster* older_raster
+
+   .. cpp:member:: CachedPartRaster* newer_raster
 
 .. cpp:namespace:: gui_forms
 
@@ -2614,6 +2636,10 @@ Types
 
       Additional logical pixels inserted between shaped grapheme clusters. This is a layout input: painters and measurement must apply the same value. Zero preserves the typeface's native spacing.
 
+   .. cpp:member:: BundledFontFamily family
+
+      A named bundled family whose faces draw before the role's. The role still chooses the faces for characters the family does not cover, and a family whose faces could not be loaded leaves the role's faces in charge.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: GlossColours final
@@ -3856,6 +3882,8 @@ Types
 
    .. cpp:function:: virtual void draw_image(ImageId image, Rect destination, double opacity = 1.0) = 0
 
+      Draws ``image`` over ``destination``. Below 1x on either axis the CPU renderer draws a copy resampled by pixel area (stx_conv) to the device size, cached by image content and size; at or above 1x it draws the image directly with a linear filter.
+
    .. cpp:function:: virtual void draw_live_surface(std::shared_ptr<LiveSurface> surface, Rect destination, double opacity = 1.0)
 
       A live raster is a retained renderer-neutral resource whose producer may publish independently of the UI dispatcher. Display lists retain the resource and terminal renderers sample only its newest complete frame.
@@ -4100,7 +4128,7 @@ Types
 
    .. cpp:member:: std::optional<Color> authored_background
 
-      The colours an application authored for this part (design language 8.5; owner decision T4-1), or none, such as a DataGridView cell style's BackColor and ForeColor. They stand where an inline style's colours would stand for this one part: over the theme's ordinary declarations, under its important ones, and never in high contrast, where the role's colours stand (§5.8). Unlike the content colour they are a look, not data. - The background: a surface role (and an indicator or glyph without a mark, which paints its ground) paints it flat in place of the material's fills, keeping the material's border, keylines and shadows and the part's shape. A fill with a content colour shows the content colour. A disabled part keeps it. - The foreground: text roles and the caret draw in it, marks are inked with it and rules (keyline, divider, seam) are drawn in it. A disabled part keeps the theme's disabled colours, so disabled stays greyed; a theme text colour declared important stands over it for text. A rule that chooses a primitive for the part at an important level stands over both; a primitive that draws a theme material takes the background in its material's fills, and a primitive's own colour parameters do not read them.
+      The colours an application authored for this part (design language 8.5; owner decision T4-1), or none, such as a DataGridView cell style's BackColor and ForeColor. They stand where an inline style's colours would stand for this one part: over the theme's ordinary declarations, under its important ones, and never in high contrast, where the role's colours stand (§5.8). Unlike the content colour they are a look, not data. - The background: a surface role (and an indicator or glyph without a mark, which paints its ground) paints it flat in place of the material's fills, keeping the material's border, keylines and shadows and the part's shape. A fill with a content colour shows the content colour. A disabled part keeps it. - The foreground: text roles and the caret draw in it, marks are inked with it and rules (keyline, divider, seam) are drawn in it. A disabled part keeps the theme's disabled colours, so disabled stays greyed; a theme text colour declared important stands over it for text, and a glyph colour declared important for marks. A rule that chooses a primitive for the part at an important level stands over both; a primitive that draws a theme material takes the background in its material's fills, and a primitive's own colour parameters do not read them.
 
    .. cpp:member:: std::optional<Color> authored_foreground
 
@@ -4155,6 +4183,10 @@ Types
 
    .. rubric:: Properties
 
+   .. cpp:function:: bool opaque() const noexcept
+
+      Whether record_opacity found every pixel opaque since the last view().
+
    .. cpp:function:: std::span<const std::uint8_t> pixels() const noexcept
 
    .. cpp:function:: DeviceExtent extent() const noexcept
@@ -4172,7 +4204,11 @@ Types
 
    .. cpp:function:: PartRasterView view() noexcept
 
-      The raster as a destination for a primitive: valid while the raster lives and is not shared read-only.
+      The raster as a destination for a primitive: valid while the raster lives and is not shared read-only. Clears the recorded opacity, since the pixels may change through the view.
+
+   .. cpp:function:: void record_opacity() noexcept
+
+      Records whether every pixel's alpha is 255. The maker calls it after its last write through view(), before sharing the raster; the composite then copies the raster's rows rather than blending them.
 
 .. cpp:namespace:: gui_forms
 
@@ -4706,7 +4742,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, and ``font_family`` for a numbered bundled family (FontSpec::family, zero for a role); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
 
    .. cpp:member:: RecipeField field
 
@@ -4751,6 +4787,8 @@ Types
    .. cpp:member:: FontRole font_role
 
       Default: ``{FontRole::control}``.
+
+   .. cpp:member:: BundledFontFamily font_family
 
    .. cpp:member:: bool italic
 
@@ -4811,7 +4849,7 @@ Types
 
    .. cpp:function:: explicit ResolvedControlRecipe(const ControlVisualRecipe& floor) noexcept
 
-   .. cpp:function:: ResolvedControlRecipe(const ControlVisualRecipe& floor, ControlVisualRecipe&& authored, bool important_text = false) noexcept
+   .. cpp:function:: ResolvedControlRecipe(const ControlVisualRecipe& floor, ControlVisualRecipe&& authored, bool important_text = false, bool important_glyph = false) noexcept
 
 
    .. rubric:: Properties
@@ -4825,6 +4863,10 @@ Types
    .. cpp:function:: bool important_text() const noexcept
 
       Whether the text colour was declared at an important level (CascadeLevel::important_user_theme or above), where it stands over a part's authored foreground (owner decision T4-1).
+
+   .. cpp:function:: bool important_glyph() const noexcept
+
+      Whether the glyph colour was declared at an important level, where it stands over a part's authored foreground for the marks it inks.
 
 .. cpp:namespace:: gui_forms
 
@@ -5511,6 +5553,10 @@ Types
 
       Paints one part of ``control`` (see paint_part). A part with a key (PartPaint::key) and paintable bounds, painted by a control attached to a window, has its record in that window's part table made or updated first; a primitive then draws into the record's cached raster. A part without a key leaves no record; a primitive draws it into a raster of its own for this paint. If the primitive refuses the part, the built-in recipe draws it. A part with a blend (blend_property) is drawn inside a paint group of that composite.
 
+   .. cpp:function:: void paint_clipped(Painter& painter, const Control& control, const PartPaint& part, std::span<const Rect> clips) const
+
+      As paint, with what it draws repeated under each of ``clips`` (each in a save, clip_rect and restore; none for an empty span), the part planned, noted and baked once (N91): a pointed part's body and the strips of its nose.
+
    .. cpp:function:: PartHitRegion hit_region(const Control& control, const PartPaint& part) const noexcept
 
       The hit region of one part of ``control`` (E8, T1's hand-off): the part's bounds and the shape its primitive draws there, as plan() decides it. A part the built-in recipe draws, for any reason, has a rectangle. Themes choose a primitive's shape; they never set a hit region (design language §7.4 rule 1). Test a point with part_hit.
@@ -5927,6 +5973,10 @@ Types
 
    .. cpp:member:: std::vector<ThemePackageFile> files
 
+   .. cpp:member:: bool header_implied
+
+      A sheet named on the command line or in GUI_FORMS_THEME_SHEET is a theme by being named: its ``@theme`` header is implied (no engine bound, version or author), and one it has is read as usual.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: UserThemeHeader final
@@ -5944,6 +5994,24 @@ Types
    .. cpp:member:: std::string author
 
    .. cpp:member:: std::string provenance
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VisualInteraction final
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
+
+   A control's interaction state as it asks for its visual context (Control::visual_context, audit A13): named fields, all false by default.
+
+   .. cpp:member:: bool hovered
+
+   .. cpp:member:: bool pressed
+
+   .. cpp:member:: bool selected
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool defaulted
 
 Enumerations
 ------------
@@ -6469,6 +6537,8 @@ Enumerations
    .. cpp:enumerator:: windows7_style
 
    .. cpp:enumerator:: macos_style
+
+   .. cpp:enumerator:: windows_professional
 
    .. cpp:enumerator:: count
 
@@ -8563,7 +8633,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view familiar_theme_id(FamiliarTheme theme) noexcept
 
-   The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``, ``macos-style``); empty for ``count``.
+   The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``, ``macos-style``, ``windows-professional``); empty for ``count``.
 
 .. cpp:function:: std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept
 
@@ -8591,9 +8661,9 @@ Functions, constants and aliases
 
 ``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
 
-.. cpp:function:: ThemeDefinition gui_forms_theme_definition()
+.. cpp:function:: const ThemeDefinition& gui_forms_theme_definition()
 
-   The floor: Plan Paint's action plate for push buttons, the gold active tool for selected ones, recessed wells for entry fields and choices, near-white stock (#F4F4F5) for windows and panels, flat command members at rest, and enabled text colours that meet the contrast gate (4.5:1) on every face (disabled text is exempt). Its recipes are the floor sheet's (gui_forms_floor_sheet), evaluated once on the first call (thread-safe) over the C++ structure (owner option 1); a copy each call. Id ``gui-forms``; its rules are empty.
+   The floor: Plan Paint's action plate for push buttons, the gold active tool for selected ones, recessed wells for entry fields and choices, near-white stock (#F4F4F5) for windows and panels, flat command members at rest, and enabled text colours that meet the contrast gate (4.5:1) on every face (disabled text is exempt). Its recipes are the floor sheet's (gui_forms_floor_sheet), evaluated once on the first call (thread-safe) over the C++ structure (owner option 1) and kept for the process: the reference stays valid until exit (S3). Id ``gui-forms``; its rules are empty.
 
 .. cpp:function:: std::string_view gui_forms_floor_sheet() noexcept
 
@@ -8716,6 +8786,10 @@ Functions, constants and aliases
 .. cpp:function:: std::vector<ThemePackageExport> export_theme_packages(const ThemeLibrary& library)
 
    Every package of ``library``, in name order, as export writes it.
+
+.. cpp:function:: ThemePackage theme_sheet_package(std::string_view sheet, std::string_view name)
+
+   A theme package of one sheet: an application's theme as one plain CSS file, edited and read again at start-up without a rebuild. The manifest is made here, naming the package ``name`` and the sheet ``sheet.theme.css`` with its sha256 (gui-forms-theme/1, engine >=0.3, version 1.0.0). The name is checked when the package is compiled, as any manifest's is (E601); a quote, backslash or control character in it is escaped, so the manifest is always well-formed JSON.
 
 .. cpp:function:: ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)
 

@@ -8,6 +8,10 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 #include "macos_host.hpp"
+#include "../../../core/failure/fail_fast.hpp"
+#if defined(GUI_FORMS_PREPARED_TEXT)
+#include "../../../core/text/prepared/prepared_storage.hpp"
+#endif
 #include "application_menu.hpp"
 #include "front_reuse.hpp"
 #include "live_surface_damage.hpp"
@@ -519,6 +523,7 @@ static std::uint32_t physical_key_for(unsigned short key_code) {
     case 7: return 0x1BU;   // X
     case 8: return 0x06U;   // C
     case 9: return 0x19U;   // V
+    case 10: return 0x64U;  // ISO section key (Non-US backslash; N108)
     case 11: return 0x05U;  // B
     case 12: return 0x14U;  // Q
     case 13: return 0x1AU;  // W
@@ -578,6 +583,8 @@ static std::uint32_t physical_key_for(unsigned short key_code) {
     case 75: return 0x54U;  // Keypad divide
     case 76: return 0x58U;  // Keypad enter
     case 78: return 0x56U;  // Keypad minus
+    case 79: return 0x6DU;  // F18 (N108)
+    case 80: return 0x6EU;  // F19 (N108)
     case 81: return 0x67U;  // Keypad equals
     case 82: return 0x62U;  // Keypad 0
     case 83: return 0x59U;  // Keypad 1
@@ -587,15 +594,21 @@ static std::uint32_t physical_key_for(unsigned short key_code) {
     case 87: return 0x5DU;  // Keypad 5
     case 88: return 0x5EU;  // Keypad 6
     case 89: return 0x5FU;  // Keypad 7
+    case 90: return 0x6FU;  // F20 (N108)
     case 91: return 0x60U;  // Keypad 8
     case 92: return 0x61U;  // Keypad 9
+    case 93: return 0x89U;  // JIS Yen (International3; N108)
+    case 94: return 0x87U;  // JIS underscore (International1; N108)
+    case 95: return 0x85U;  // JIS keypad comma (N108)
     case 96: return 0x3EU;  // F5
     case 97: return 0x3FU;  // F6
     case 98: return 0x40U;  // F7
     case 99: return 0x3CU;  // F3
     case 100: return 0x41U; // F8
     case 101: return 0x42U; // F9
+    case 102: return 0x91U; // JIS Eisu (LANG2; N108)
     case 103: return 0x44U; // F11
+    case 104: return 0x90U; // JIS Kana (LANG1; N108)
     case 105: return 0x68U; // F13
     case 106: return 0x6BU; // F16
     case 107: return 0x69U; // F14
@@ -922,6 +935,8 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     // The double-click interval last reported, in milliseconds; 0 (as the
     // runtime zeroes ivars) before the first report.
     std::uint32_t _reportedDoubleClickMilliseconds;
+    // The caret settings last reported (audit N75).
+    gui_forms::CaretSettings _reportedCaret;
     SkiaRaster _raster;
     BOOL _rasterHasContent;
     DamageRegion _pendingDamage;
@@ -982,7 +997,6 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     // semantic change then republishes the tree at once, so that its
     // element posts a changed value or selection when it changes.
     BOOL _publishesTextRanges;
-    std::uint64_t _nativeCallbackFaults;
     BOOL _initialHostOccluded;
     std::uint64_t _scheduledWakeCount;
     std::uint64_t _damageCollectionCount;
@@ -1039,6 +1053,10 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (HostDispatchResult)dispatchHostPayload:(HostEventPayload)payload
                          timestampNanoseconds:(std::uint64_t)timestamp;
 - (BOOL)requestCloseHiding:(BOOL)hiding reason:(HostCloseReason)reason;
+// Whether the closing handler refuses a close for `reason`, asked without
+// closing (audit P2). A detached host, or a request nothing accepted,
+// refuses nothing, as in the headless host's session end.
+- (BOOL)closeRefusedForReason:(HostCloseReason)reason;
 - (void)notifyClosed;
 - (void)notifyClosedWithReason:(HostCloseReason)reason;
 - (void)notifyActivation:(BOOL)active;
@@ -1069,8 +1087,8 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (void)invalidationOverlayTick;
 - (void)setDisplayTraceEnabled:(BOOL)enabled;
 - (MacDisplayLinkTrace)displayTraceSnapshot;
-- (void)recordNativeCallbackFault:(const char*)operation
-                          message:(const char*)message;
+- (void)answerDisplayLinkTick;
+- (void)answerDrainPostedWork;
 - (void)drawRetainedRect:(NSRect)dirtyRect;
 - (void)prepareForShutdown;
 - (BOOL)acceptsWindowRequest;
@@ -1106,6 +1124,9 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 // Each returns NO when the window has gone or the control refuses.
 - (BOOL)readSemanticTextLayout:(std::uint64_t)control layout:(SemanticTextLayout&)layout;
 - (BOOL)selectSemanticText:(std::uint64_t)control selection:(SemanticTextSelection)selection;
+// The window's accessibility tree key now (read_accessibility_tree_key);
+// NO when the window has gone.
+- (BOOL)readAccessibilityTreeKey:(MacAccessibilityTreeKey&)key;
 // A point in screen coordinates (AppKit's, origin at the bottom left) in
 // the view's semantic coordinates.
 - (NSPoint)semanticPointForScreenPoint:(NSPoint)point;
@@ -1169,9 +1190,16 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     // The virtual child's stable identity; empty for a control's own node.
     std::string _virtualChild;
     NSArray* _semanticChildren;
-    // A text node's layout, read again by every text attribute
-    // (readSemanticText) into this one storage.
+    // A text node's layout (readSemanticText), kept while the window's
+    // accessibility tree key reads as it did after the layout was read
+    // (N101): the key moves with the semantic generation, the content
+    // revision and the display generation, so the value and the layout
+    // pass are then unchanged. Every text attribute reads it, so VoiceOver
+    // reading a character at a time no longer lays the text out for each
+    // attribute.
     SemanticTextLayout _textLayout;
+    MacAccessibilityTreeKey _textLayoutKey;
+    BOOL _textLayoutCurrent;
 }
 - (instancetype)initWithNode:(const SemanticNode&)node
                        owner:(GUIFormsView*)owner
@@ -1297,14 +1325,22 @@ static bool utf8_range(std::string_view value, NSRange range, std::size_t& start
     return true;
 }
 
-// The visual line that holds byte `offset`: the last line starting at or
-// before it, so a line break belongs to the line it ends.
-static std::size_t line_of_offset(const SemanticTextLayout& layout, std::size_t offset) noexcept {
-    std::size_t found = 0U;
-    for (std::size_t index = 0U; index < layout.lines.size(); ++index) {
-        if (layout.lines[index].range.start.value() > offset) break;
-        found = index;
+// Orders an offset before a line that starts after it (std::upper_bound
+// over the lines, which run in text order).
+struct OffsetBeforeLine final {
+    bool operator()(std::size_t offset, const SemanticTextLine& line) const noexcept {
+        return offset < line.range.start.value();
     }
+};
+
+// The visual line that holds byte `offset`: the last line starting at or
+// before it, so a line break belongs to the line it ends. A binary search
+// (N101): the lines start in ascending order.
+static std::size_t line_of_offset(const SemanticTextLayout& layout, std::size_t offset) noexcept {
+    const std::vector<SemanticTextLine>::const_iterator after =
+        std::upper_bound(layout.lines.begin(), layout.lines.end(), offset, OffsetBeforeLine{});
+    const std::size_t past = static_cast<std::size_t>(after - layout.lines.begin());
+    const std::size_t found = past == 0U ? 0U : past - 1U;
     return found;
 }
 
@@ -1655,9 +1691,10 @@ static bool contains_live_region(const SemanticNode& node) {
     static_cast<void>([self performNodeAction:SemanticAction::set_value value:text]);
 }
 
-// Brings this element's node up to date and reads its layout into
-// _textLayout. Returns NO when the node publishes no text ranges, its
-// control has left the window or the window has gone.
+// Brings this element's node up to date and makes _textLayout its current
+// layout: the one kept, while the tree key reads the same, else read again.
+// Returns NO when the node publishes no text ranges, its control has left
+// the window or the window has gone.
 - (BOOL)readSemanticText {
     if (_owner == nil || !publishes_text_ranges(_node)) return NO;
     try {
@@ -1665,7 +1702,15 @@ static bool contains_live_region(const SemanticNode& node) {
         // moved, which updates this element's node in place.
         static_cast<void>([_owner accessibilityChildren]);
         if (!publishes_text_ranges(_node)) return NO;
-        return [_owner readSemanticTextLayout:_control layout:_textLayout];
+        MacAccessibilityTreeKey key;
+        if (![_owner readAccessibilityTreeKey:key]) return NO;
+        if (_textLayoutCurrent && key == _textLayoutKey) return YES;
+        _textLayoutCurrent = NO;
+        if (![_owner readSemanticTextLayout:_control layout:_textLayout]) return NO;
+        // The key after the read, in case the query itself settled a layout.
+        if (![_owner readAccessibilityTreeKey:_textLayoutKey]) return NO;
+        _textLayoutCurrent = YES;
+        return YES;
     } catch (...) {
         return NO;
     }
@@ -1875,15 +1920,19 @@ static NSString* accessibility_element_key(std::uint64_t control, std::string_vi
 // element in tree order for each stable identity (the tab-to-panel
 // relation). `owner_control` is the runtime identity of the nearest control
 // node at or above `parent`, which publishes `node` when it is a virtual
-// child.
+// child. The node's children are moved out of it first, so the element
+// keeps a copy of the node's own fields only (audit N100: no element holds
+// a deep copy of its subtree); the snapshot is not read again.
 static GUIFormsAccessibilityElement* reconcile_accessibility_element(
-    const SemanticNode& node,
+    SemanticNode& node,
     GUIFormsView* owner,
     id parent,
     std::uint64_t owner_control,
     NSDictionary<NSString*, GUIFormsAccessibilityElement*>* previous,
     NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* next,
     NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* by_stable_id) {
+    std::vector<SemanticNode> child_nodes = std::move(node.children);
+    node.children.clear();
     const bool virtual_child = gui_forms::is_virtual_semantic_runtime_id(node.runtime_id);
     const std::uint64_t control = virtual_child ? owner_control : node.runtime_id;
     const std::string child_identity = virtual_child ? node.stable_id : std::string{};
@@ -1905,8 +1954,8 @@ static GUIFormsAccessibilityElement* reconcile_accessibility_element(
     NSString* stable_identity = native_string(node.stable_id);
     if (by_stable_id[stable_identity] == nil) by_stable_id[stable_identity] = element;
     NSMutableArray* children = [[NSMutableArray alloc]
-        initWithCapacity:node.children.size()];
-    for (const SemanticNode& childNode : node.children) {
+        initWithCapacity:child_nodes.size()];
+    for (SemanticNode& childNode : child_nodes) {
         [children addObject:reconcile_accessibility_element(
             childNode, owner, element, control, previous, next, by_stable_id)];
     }
@@ -2047,6 +2096,20 @@ void post_perform_close(NSWindow* window) {
     WindowWork* const work = new WindowWork{window};
     post_main_work(work, &perform_close_on_main);
 }
+// The named targets the fail-fast boundary calls for GUIFormsView's native
+// entries (call_failing_fast): each sends the entry's own message.
+void run_display_link_tick(GUIFormsView* view) {
+    [view answerDisplayLinkTick];
+}
+void run_posted_work(GUIFormsView* view) {
+    [view answerDrainPostedWork];
+}
+void run_collect_damage(GUIFormsView* view) {
+    [view collectDamage];
+}
+void run_draw_retained(GUIFormsView* view, NSRect dirty) {
+    [view drawRetainedRect:dirty];
+}
 } // namespace
 
 @implementation GUIFormsView
@@ -2072,7 +2135,6 @@ void post_perform_close(NSWindow* window) {
         _hostAttached = NO;
         _lastSemanticGeneration = 0;
         _accessibilityCacheKey = MacAccessibilityTreeKey{};
-        _nativeCallbackFaults = 0;
         _initialHostOccluded = YES;
         _scheduledWakeCount = 0;
         _damageCollectionCount = 0;
@@ -2250,6 +2312,14 @@ void post_perform_close(NSWindow* window) {
     return result.accepted() && result.close_allowed;
 }
 
+- (BOOL)closeRefusedForReason:(HostCloseReason)reason {
+    if (_hostAttached == NO) return NO;
+    const HostDispatchResult result = [self dispatchHostPayload:HostCloseRequest{reason, false, false}
+                                           timestampNanoseconds:host_now_nanoseconds()];
+    const BOOL refused = result.accepted() && !result.close_allowed ? YES : NO;
+    return refused;
+}
+
 - (void)installFrameCapturePath:(std::string)path {
     _frameCapturePath = std::move(path);
     _frameCaptureCompleted = NO;
@@ -2291,11 +2361,36 @@ void post_perform_close(NSWindow* window) {
     const double bounded = std::clamp(milliseconds, 1.0,
                                       static_cast<double>(gui_forms::maximum_double_click_milliseconds));
     const std::uint32_t interval = static_cast<std::uint32_t>(bounded);
-    if (interval == _reportedDoubleClickMilliseconds) return;
-    const gui_forms::HostInputSettingsEvent input{interval, gui_forms::SettingOrigin::host};
+    const gui_forms::CaretSettings caret = [self caretSettings];
+    if (interval == _reportedDoubleClickMilliseconds && caret == _reportedCaret) return;
+    gui_forms::HostInputSettingsEvent input{interval, gui_forms::SettingOrigin::host};
+    input.caret = caret;
     const HostDispatchResult reported = [self dispatchHostPayload:input
                                              timestampNanoseconds:host_now_nanoseconds()];
-    if (reported.accepted()) _reportedDoubleClickMilliseconds = interval;
+    if (reported.accepted()) {
+        _reportedDoubleClickMilliseconds = interval;
+        _reportedCaret = caret;
+    }
+}
+
+// The caret's blink phase (audit N75): the NSTextInsertionPointBlinkPeriodOn
+// user default, in milliseconds, where set; a period above the maximum is
+// the usual way to stop blinking and reports a caret that never blinks.
+// Without the default, GUI.Forms' default with origin default_value.
+- (gui_forms::CaretSettings)caretSettings {
+    gui_forms::CaretSettings caret{};
+    id stored = [NSUserDefaults.standardUserDefaults objectForKey:@"NSTextInsertionPointBlinkPeriodOn"];
+    if (![stored isKindOfClass:NSNumber.class]) return caret;
+    const double period = [(NSNumber*)stored doubleValue];
+    if (!std::isfinite(period) || period <= 0.0) return caret;
+    caret.origin = gui_forms::SettingOrigin::host;
+    if (period > static_cast<double>(gui_forms::maximum_caret_blink_milliseconds)) {
+        caret.blink_milliseconds = 0U;
+        return caret;
+    }
+    const double rounded = std::max(1.0, std::round(period));
+    caret.blink_milliseconds = static_cast<std::uint32_t>(rounded);
+    return caret;
 }
 
 - (void)notifyActivation:(BOOL)active {
@@ -2408,7 +2503,8 @@ void post_perform_close(NSWindow* window) {
     if (_semanticAccessibilityChildren != nil && _accessibilityCacheKey == before) {
         return _semanticAccessibilityChildren;
     }
-    const gui_forms::SemanticSnapshot snapshot = (*_model).semantic_snapshot();
+    // Not const: reconciling moves each node's children out of it.
+    gui_forms::SemanticSnapshot snapshot = (*_model).semantic_snapshot();
     // The snapshot lays the window out first, which can move the key; the
     // children describe the window as it is after that layout.
     const MacAccessibilityTreeKey after = read_accessibility_tree_key(*_model);
@@ -2420,12 +2516,13 @@ void post_perform_close(NSWindow* window) {
         [[NSMutableDictionary alloc] initWithCapacity:snapshot.node_count];
     NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* byStableId =
         [[NSMutableDictionary alloc] initWithCapacity:snapshot.node_count];
-    for (const SemanticNode& node : snapshot.roots) {
+    for (SemanticNode& node : snapshot.roots) {
+        // Read before reconciling, which empties the node's children.
+        if (contains_live_region(node)) live_region = true;
+        if (contains_text_ranges(node)) text_ranges = true;
         GUIFormsAccessibilityElement* element = reconcile_accessibility_element(
             node, self, self, 0U, _semanticAccessibilityElements, next, byStableId);
         [result addObject:element];
-        if (contains_live_region(node)) live_region = true;
-        if (contains_text_ranges(node)) text_ranges = true;
     }
     _publishesLiveRegion = live_region ? YES : NO;
     _publishesTextRanges = text_ranges ? YES : NO;
@@ -2456,6 +2553,12 @@ void post_perform_close(NSWindow* window) {
     const gui_forms::RuntimeId identity{control};
     const gui_forms::SemanticTextResult result = (*_model).semantic_text_layout(identity, layout);
     return result == gui_forms::SemanticTextResult::done ? YES : NO;
+}
+
+- (BOOL)readAccessibilityTreeKey:(MacAccessibilityTreeKey&)key {
+    if (!_model) return NO;
+    key = read_accessibility_tree_key(*_model);
+    return YES;
 }
 
 - (BOOL)selectSemanticText:(std::uint64_t)control selection:(SemanticTextSelection)selection {
@@ -2620,45 +2723,42 @@ void post_perform_close(NSWindow* window) {
     std::optional<MacCpuScope> cpuScope{};
     if (_cpuAttribution.enabled) cpuScope.emplace(_cpuAttribution, 2U);
     ++_damageCollectionCount;
-    try {
-        if (!_model) {
-            return;
-        }
-        const gui_forms::FrameTime pollTime = std::chrono::steady_clock::now();
-        const gui_forms::FramePollResult pollResult = (*_model).poll_frame_schedule(pollTime);
-        if (_causalTrace && (*_causalTrace).enabled) {
-            (*_causalTrace).record_poll(pollTime, pollResult.deadlines_fired, pollResult.next_wake);
-        }
-        const std::uint64_t semanticGeneration = (*_model).semantic_generation();
-        if (semanticGeneration != _lastSemanticGeneration) {
-            _lastSemanticGeneration = semanticGeneration;
-            _semanticAccessibilityChildren = nil;
-            _accessibilityCacheKey = MacAccessibilityTreeKey{};
-            // Republishing posts a changed live region's announcement, and
-            // a text node's changed value or selection, now.
-            if (_publishesLiveRegion == YES || _publishesTextRanges == YES) {
-                static_cast<void>([self accessibilityChildren]);
-            }
-            NSAccessibilityPostNotification(
-                self, NSAccessibilityLayoutChangedNotification);
-        }
-        DamageRegion damage = (*_model).take_damage();
-        const double scale =
-            self.window == nil ? 1.0 : self.window.backingScaleFactor;
-        [self takeScrollCopies];
-        for (GFRect rect : damage.rectangles()) {
-            rect = gui_forms::detail::align_damage_outward(rect, scale);
-            _pendingDamage.add(rect);
-            [self setNeedsDisplayInRect:
-                NSMakeRect(rect.x, rect.y, rect.width, rect.height)];
-        }
-        [self startDisplayLinkIfNeeded];
-        [self armWakeTimer];
-    } catch (const std::exception& error) {
-        [self recordNativeCallbackFault:"collect-damage" message:error.what()];
-    } catch (...) {
-        [self recordNativeCallbackFault:"collect-damage" message:"unknown"];
+    // Housekeeping: nothing is caught. The native entries that call it
+    // (the wake, the display link, posted work, drawing) are the fail-fast
+    // boundary.
+    if (!_model) {
+        return;
     }
+    const gui_forms::FrameTime pollTime = std::chrono::steady_clock::now();
+    const gui_forms::FramePollResult pollResult = (*_model).poll_frame_schedule(pollTime);
+    if (_causalTrace && (*_causalTrace).enabled) {
+        (*_causalTrace).record_poll(pollTime, pollResult.deadlines_fired, pollResult.next_wake);
+    }
+    const std::uint64_t semanticGeneration = (*_model).semantic_generation();
+    if (semanticGeneration != _lastSemanticGeneration) {
+        _lastSemanticGeneration = semanticGeneration;
+        _semanticAccessibilityChildren = nil;
+        _accessibilityCacheKey = MacAccessibilityTreeKey{};
+        // Republishing posts a changed live region's announcement, and
+        // a text node's changed value or selection, now.
+        if (_publishesLiveRegion == YES || _publishesTextRanges == YES) {
+            static_cast<void>([self accessibilityChildren]);
+        }
+        NSAccessibilityPostNotification(
+            self, NSAccessibilityLayoutChangedNotification);
+    }
+    DamageRegion damage = (*_model).take_damage();
+    const double scale =
+        self.window == nil ? 1.0 : self.window.backingScaleFactor;
+    [self takeScrollCopies];
+    for (GFRect rect : damage.rectangles()) {
+        rect = gui_forms::detail::align_damage_outward(rect, scale);
+        _pendingDamage.add(rect);
+        [self setNeedsDisplayInRect:
+            NSMakeRect(rect.x, rect.y, rect.width, rect.height)];
+    }
+    [self startDisplayLinkIfNeeded];
+    [self armWakeTimer];
 }
 
 - (void)startDisplayLinkIfNeeded {
@@ -2782,6 +2882,10 @@ void post_perform_close(NSWindow* window) {
 }
 
 - (void)displayLinkTick {
+    gui_forms::detail::call_failing_fast("macos.display_link", &run_display_link_tick, self);
+}
+
+- (void)answerDisplayLinkTick {
     if (_displayTrace) {
         MacDisplayLinkTrace& trace = *_displayTrace;
         if (trace.count < trace.timestamps.size()) {
@@ -2793,95 +2897,85 @@ void post_perform_close(NSWindow* window) {
             ++trace.count;
         } else trace.overflow = true;
     }
-    try {
-        ++_displayTickCount;
-        if (!_model || self.window == nil || _hostOccluded == YES) {
-            [self stopDisplayLink];
-            return;
-        }
-        // A failed batch needs a fresh composition, including unchanged surfaces.
-        // Reusing cached clips could cover a newly opened overlay or hidden control.
-        const bool retry = !_pendingLivePresentations.empty();
-        bool publicationChanged = false;
-        std::vector<LiveSurfacePresentation> updates =
-            (*_model).take_live_surface_presentations(retry, &publicationChanged);
-        _pendingLivePresentations = std::move(updates);
-        if (!(*_model).has_live_surface_presentations()) {
-            [self stopDisplayLink];
-            return;
-        }
-        if (_pendingLivePresentations.empty()) {
-            // Publication posts CollectDamageWake, which restarts this paused link.
-            // Arm after pausing, then recheck generations to avoid a lost wake.
-            [self stopDisplayLink];
-            (*_model).set_live_surface_idle_waiting(true);
-            return;
-        }
-        const double scale = self.window.backingScaleFactor;
-        // When the raster still holds the previous presentation, ask AppKit to
-        // redraw only where the surface actually changed. Redrawing the whole
-        // clip left every overlay inside it as uncovered damage, so a floating
-        // control was retained-painted on each publication however far away
-        // the change was. drawRetainedRect: re-requests any part of the copied
-        // region the flush did not cover, so a narrower request never leaves
-        // stale pixels presented.
-        const bool rasterReusable = _rasterHasContent == YES && _liveRegionLost == NO &&
-            (*_model).paint_lease_snapshot().state == gui_forms::PaintLeaseState::clean;
-        for (const LiveSurfacePresentation& update : _pendingLivePresentations) {
-            GFRect request = update.clip;
-            if (rasterReusable && update.damage_limited && update.surface) {
-                const gui_forms::LiveSurfaceFrame latest = (*update.surface).acquire_latest();
-                if (latest && latest.opaque() && !latest.damage().empty()) {
-                    const GFRect changed = gui_forms::detail::live_damage_in_window(
-                        latest.damage(), update.destination, latest.width(), latest.height(), scale);
-                    const GFRect narrowed = GFRect::intersection(update.clip, changed);
-                    if (!narrowed.empty()) request = narrowed;
-                }
+    ++_displayTickCount;
+    if (!_model || self.window == nil || _hostOccluded == YES) {
+        [self stopDisplayLink];
+        return;
+    }
+    // A failed batch needs a fresh composition, including unchanged surfaces.
+    // Reusing cached clips could cover a newly opened overlay or hidden control.
+    const bool retry = !_pendingLivePresentations.empty();
+    bool publicationChanged = false;
+    std::vector<LiveSurfacePresentation> updates =
+        (*_model).take_live_surface_presentations(retry, &publicationChanged);
+    _pendingLivePresentations = std::move(updates);
+    if (!(*_model).has_live_surface_presentations()) {
+        [self stopDisplayLink];
+        return;
+    }
+    if (_pendingLivePresentations.empty()) {
+        // Publication posts CollectDamageWake, which restarts this paused link.
+        // Arm after pausing, then recheck generations to avoid a lost wake.
+        [self stopDisplayLink];
+        (*_model).set_live_surface_idle_waiting(true);
+        return;
+    }
+    const double scale = self.window.backingScaleFactor;
+    // When the raster still holds the previous presentation, ask AppKit to
+    // redraw only where the surface actually changed. Redrawing the whole
+    // clip left every overlay inside it as uncovered damage, so a floating
+    // control was retained-painted on each publication however far away
+    // the change was. drawRetainedRect: re-requests any part of the copied
+    // region the flush did not cover, so a narrower request never leaves
+    // stale pixels presented.
+    const bool rasterReusable = _rasterHasContent == YES && _liveRegionLost == NO &&
+        (*_model).paint_lease_snapshot().state == gui_forms::PaintLeaseState::clean;
+    for (const LiveSurfacePresentation& update : _pendingLivePresentations) {
+        GFRect request = update.clip;
+        if (rasterReusable && update.damage_limited && update.surface) {
+            const gui_forms::LiveSurfaceFrame latest = (*update.surface).acquire_latest();
+            if (latest && latest.opaque() && !latest.damage().empty()) {
+                const GFRect changed = gui_forms::detail::live_damage_in_window(
+                    latest.damage(), update.destination, latest.width(), latest.height(), scale);
+                const GFRect narrowed = GFRect::intersection(update.clip, changed);
+                if (!narrowed.empty()) request = narrowed;
             }
-            const GFRect aligned = gui_forms::detail::align_damage_outward(request, scale);
-            [self setNeedsDisplayInRect:
-                NSMakeRect(aligned.x, aligned.y, aligned.width, aligned.height)];
         }
-        // Where a new frame changed pixels beneath an overlay, the model now
-        // holds that share as damage (take_live_surface_presentations). Take
-        // it into this flush so the overlay is retained-painted over the new
-        // frame together with the live copy, not one wake later.
-        const DamageRegion beneathOverlays = (*_model).take_damage();
-        [self takeScrollCopies];
-        for (GFRect rect : beneathOverlays.rectangles()) {
-            rect = gui_forms::detail::align_damage_outward(rect, scale);
-            _pendingDamage.add(rect);
-            [self setNeedsDisplayInRect:
-                NSMakeRect(rect.x, rect.y, rect.width, rect.height)];
-        }
-        // AppKit calls on the main run loop, following this view's screen. Keep
-        // its default variable refresh policy; sample only the newest frame.
-        [self displayIfNeeded];
-        if (!publicationChanged && _pendingLivePresentations.empty()) {
-            // Unchanged surfaces may still need one composition for an overlay
-            // edit. Once presented, a static overlay must not keep us ticking.
-            [self stopDisplayLink];
-            (*_model).set_live_surface_idle_waiting(true);
-        }
-    } catch (const std::exception& error) {
-        [self recordNativeCallbackFault:"display-link" message:error.what()];
+        const GFRect aligned = gui_forms::detail::align_damage_outward(request, scale);
+        [self setNeedsDisplayInRect:
+            NSMakeRect(aligned.x, aligned.y, aligned.width, aligned.height)];
+    }
+    // Where a new frame changed pixels beneath an overlay, the model now
+    // holds that share as damage (take_live_surface_presentations). Take
+    // it into this flush so the overlay is retained-painted over the new
+    // frame together with the live copy, not one wake later.
+    const DamageRegion beneathOverlays = (*_model).take_damage();
+    [self takeScrollCopies];
+    for (GFRect rect : beneathOverlays.rectangles()) {
+        rect = gui_forms::detail::align_damage_outward(rect, scale);
+        _pendingDamage.add(rect);
+        [self setNeedsDisplayInRect:
+            NSMakeRect(rect.x, rect.y, rect.width, rect.height)];
+    }
+    // AppKit calls on the main run loop, following this view's screen. Keep
+    // its default variable refresh policy; sample only the newest frame.
+    [self displayIfNeeded];
+    if (!publicationChanged && _pendingLivePresentations.empty()) {
+        // Unchanged surfaces may still need one composition for an overlay
+        // edit. Once presented, a static overlay must not keep us ticking.
         [self stopDisplayLink];
-    } catch (...) {
-        [self recordNativeCallbackFault:"display-link" message:"unknown"];
-        [self stopDisplayLink];
+        (*_model).set_live_surface_idle_waiting(true);
     }
 }
 
 - (void)drainPostedWork {
-    try {
-        if (!_model) return;
-        static_cast<void>((*_model).drain_posted_work());
-        [self collectDamage];
-    } catch (const std::exception& error) {
-        [self recordNativeCallbackFault:"posted-work" message:error.what()];
-    } catch (...) {
-        [self recordNativeCallbackFault:"posted-work" message:"unknown"];
-    }
+    gui_forms::detail::call_failing_fast("macos.posted_work", &run_posted_work, self);
+}
+
+- (void)answerDrainPostedWork {
+    if (!_model) return;
+    static_cast<void>((*_model).drain_posted_work());
+    [self collectDamage];
 }
 
 - (void)armWakeTimer {
@@ -2899,11 +2993,11 @@ void post_perform_close(NSWindow* window) {
     }
     const std::chrono::steady_clock::time_point now =
         std::chrono::steady_clock::now();
-    const std::chrono::duration<long long, std::ratio<1, 1000>> delay = std::max(std::chrono::milliseconds(1),
-                                std::chrono::duration_cast<std::chrono::milliseconds>(
-                                    *wake - now));
-    const std::chrono::nanoseconds::rep nanoseconds =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(delay).count();
+    // Nanosecond precision, never rounded down (audit N107): a deadline
+    // less than a millisecond away used to fire early and be armed again.
+    // A deadline already past fires at once.
+    const std::chrono::nanoseconds remaining = std::chrono::ceil<std::chrono::nanoseconds>(*wake - now);
+    const std::chrono::nanoseconds::rep nanoseconds = std::max<std::chrono::nanoseconds::rep>(remaining.count(), 0);
     dispatch_source_set_timer(
         _wakeSource,
         dispatch_time(DISPATCH_TIME_NOW, static_cast<std::int64_t>(nanoseconds)),
@@ -2918,33 +3012,11 @@ void post_perform_close(NSWindow* window) {
     std::optional<MacCausalWakeScope> causalScope{};
     if (_causalTrace && (*_causalTrace).enabled) causalScope.emplace(*_causalTrace);
     ++_scheduledWakeCount;
-    // Objective-C exceptions do not participate in C++ exception handling.
-    // A raised AppKit exception escaping a libdispatch source terminates the
-    // process, so contain it at the native callback boundary and preserve its
-    // exact name/reason in the same structured fault channel as C++ failures.
-    @try {
-        [self collectDamage];
-    } @catch (NSException* exception) {
-        NSString* name = exception.name == nil ? @"NSException" : exception.name;
-        NSString* reason = exception.reason == nil ? @"no reason" : exception.reason;
-        NSString* diagnostic = [NSString stringWithFormat:@"%@: %@", name, reason];
-        [self recordNativeCallbackFault:"scheduled-wake"
-                                 message:diagnostic.UTF8String];
-    }
+    // A libdispatch source's handler: the fail-fast boundary. On the 64-bit
+    // runtime it catches an Objective-C exception as well as a C++ one.
+    gui_forms::detail::call_failing_fast("macos.scheduled_wake", &run_collect_damage, self);
 }
 
-- (void)recordNativeCallbackFault:(const char*)operation
-                          message:(const char*)message {
-    ++_nativeCallbackFaults;
-    if (_wakeSource != nil) {
-        dispatch_source_set_timer(_wakeSource, DISPATCH_TIME_FOREVER,
-                                  DISPATCH_TIME_FOREVER, 0);
-    }
-    std::fprintf(stderr, "gui-forms-host=%s-fault|what:%s\n",
-                 operation == nullptr ? "native-callback" : operation,
-                 message == nullptr ? "unknown" : message);
-    std::fflush(stderr);
-}
 
 - (BOOL)acceptsWindowRequest {
     if (_hostSession == nullptr) return NO;
@@ -3028,29 +3100,7 @@ void post_perform_close(NSWindow* window) {
 
 - (void)drawRect:(NSRect)dirtyRect {
     ++_nativeDrawCount;
-    try {
-        [self drawRetainedRect:dirtyRect];
-    } catch (const std::exception& error) {
-        _raster.end_frame();
-        _liveFrames.clear();
-        _liveRegionLost = YES;
-        for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
-        _appliedCopyClips.clear();
-#if defined(GUI_FORMS_PREPARED_TEXT)
-        _raster.abort_prepared_frame();
-#endif
-        [self recordNativeCallbackFault:"draw" message:error.what()];
-    } catch (...) {
-        _raster.end_frame();
-        _liveFrames.clear();
-        _liveRegionLost = YES;
-        for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
-        _appliedCopyClips.clear();
-#if defined(GUI_FORMS_PREPARED_TEXT)
-        _raster.abort_prepared_frame();
-#endif
-        [self recordNativeCallbackFault:"draw" message:"unknown"];
-    }
+    gui_forms::detail::call_failing_fast("macos.draw", &run_draw_retained, self, dirtyRect);
 }
 
 - (void)drawRetainedRect:(NSRect)dirtyRect {
@@ -3312,7 +3362,19 @@ void post_perform_close(NSWindow* window) {
         // opposite corners cost their own areas, not the strip between them.
         _raster.save();
         _raster.clip_damage(_pendingDamage);
+#if defined(GUI_FORMS_PREPARED_TEXT)
+        // A control's exception is not caught here (the fail-fast boundary
+        // ends the process); core's typed prepared-text refusal (a stale or
+        // cancelled layout) is an expected alternative: no receipt, so the
+        // candidate is aborted below and the presented front stays.
+        try {
+            receipt = (*_model).paint(_raster, _pendingDamage.rectangles());
+        } catch (const gui_forms::detail::PreparedTextPaintFailure&) {
+            receipt.reset();
+        }
+#else
         receipt = (*_model).paint(_raster, _pendingDamage.rectangles());
+#endif
         _raster.restore();
         const std::chrono::steady_clock::time_point paintEnded =
             std::chrono::steady_clock::now();
@@ -3761,6 +3823,15 @@ void post_perform_close(NSWindow* window) {
     input.scan_code = event.keyCode;
     input.modifiers = modifiers_for(event.modifierFlags);
     input.repeat = event.isARepeat;
+    // While the input method holds marked text it owns every key: Return
+    // commits, Escape cancels, arrows and Backspace edit the composition
+    // (audit N105). The model sees the key only when no composition is
+    // open, as before.
+    if ([self hasMarkedText]) {
+        [self interpretKeyEvents:@[event]];
+        [self collectDamage];
+        return;
+    }
     const bool handled = [self dispatchHostPayload:std::move(input)
                                timestampNanoseconds:host_event_nanoseconds(event)].handled;
     if (!handled) {
@@ -3849,8 +3920,18 @@ void post_perform_close(NSWindow* window) {
     [self collectDamage];
 }
 
+// The system asks to keep the marked text as typed (NSTextInputClient):
+// it is committed as ordinary input, replacing the composition (N105).
 - (void)unmarkText {
+    if (_markedText.length != 0) {
+        TextInputEvent input;
+        input.text_utf8 = utf8_string(_markedText.string);
+        input.composing = false;
+        static_cast<void>([self dispatchHostPayload:std::move(input)
+                                   timestampNanoseconds:host_now_nanoseconds()]);
+    }
     [_markedText setAttributedString:[[NSAttributedString alloc] initWithString:@""]];
+    [self collectDamage];
 }
 
 - (BOOL)hasMarkedText {
@@ -4006,9 +4087,7 @@ void post_perform_close(NSWindow* window) {
         ",\"last_frame_damage_bounds_area\":" + std::to_string(_lastFrameDamageBoundsArea) +
         ",\"last_cg_destination_area\":" + std::to_string(_lastCGDestinationArea) +
         ",\"last_cg_clip_bounds_area\":" + std::to_string(_lastCGClipBoundsArea) +
-        ",\"last_cg_source_bytes\":" + std::to_string(_lastCGSourceBytes) +
-        ",\"native_callback_faults\":" +
-        std::to_string(_nativeCallbackFaults) + "}";
+        ",\"last_cg_source_bytes\":" + std::to_string(_lastCGSourceBytes) + "}";
 }
 
 @end
@@ -4093,6 +4172,18 @@ void finish_run(MacRunEnd& end) {
 
 } // namespace gui_forms::host
 
+namespace {
+// The named targets the fail-fast boundary calls for the run's application
+// callbacks (windowWillClose:, application:openURLs:).
+void run_closed_handler(std::function<void()>& callback) {
+    callback();
+}
+void run_open_files(const std::function<void(std::vector<std::string>)>& open_files,
+                    std::vector<std::string>& paths) {
+    open_files(std::move(paths));
+}
+} // namespace
+
 @interface GUIFormsWindowDelegate : NSObject <NSWindowDelegate> {
     __weak GUIFormsView* _view;
     BOOL _stopsApplicationOnClose;
@@ -4122,6 +4213,13 @@ void finish_run(MacRunEnd& end) {
 // when it agrees. A hide-on-close window closes rather than hides.
 - (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window
                                                      reason:(HostCloseReason)reason;
+// Before a quit request closes the run-ending window, every other window's
+// closing handler is asked with the same reason, without closing it (audit
+// P2), so a secondary window with unsaved work can cancel a quit or a
+// log-out, as each window can on Windows (WM_QUERYENDSESSION) and in the
+// headless host. NO for the run-ending window, which closeForTermination:
+// asks.
+- (BOOL)refusesTermination:(HostCloseReason)reason;
 @end
 
 @implementation GUIFormsWindowDelegate
@@ -4179,7 +4277,8 @@ void finish_run(MacRunEnd& end) {
     if (_closedHandler) {
         std::function<void()> callback = std::move(_closedHandler);
         _closedHandler = {};
-        callback();
+        // Application code (audit P1): through the fail-fast boundary.
+        gui_forms::detail::call_failing_fast("macos.window_will_close", &run_closed_handler, callback);
     }
     gui_forms::host::mac_run_close_finished(_run, _windowId);
     if (!_stopsApplicationOnClose) return;
@@ -4238,6 +4337,11 @@ void finish_run(MacRunEnd& end) {
     [window close];
     return gui_forms::host::MacTerminationClose::closed;
 }
+- (BOOL)refusesTermination:(HostCloseReason)reason {
+    if (_stopsApplicationOnClose || _view == nil) return NO;
+    const BOOL refused = [_view closeRefusedForReason:reason];
+    return refused;
+}
 @end
 
 // The application delegate for a run. AppKit's terminate: ends the process
@@ -4245,7 +4349,8 @@ void finish_run(MacRunEnd& end) {
 // its window closes. A quit request therefore closes the window that ends
 // the run, as its close button does, then ends the run in place (the run's
 // MacRunEnd) and lets the termination proceed, so a log-out or restart goes
-// on. When the closing handler refuses, the termination is cancelled, as an
+// on. Every other window's closing handler is asked first (audit P2). When
+// a closing handler refuses, the termination is cancelled, as an
 // application with unsaved work cancels it. With no such window, the
 // termination proceeds. The work is synchronous, so the reply is given at
 // once rather than deferred with NSTerminateLater.
@@ -4295,7 +4400,8 @@ void finish_run(MacRunEnd& end) {
         paths.emplace_back(path);
     }
     if (paths.empty()) return;
-    (*_openFiles)(std::move(paths));
+    // Application code (audit P1): through the fail-fast boundary.
+    gui_forms::detail::call_failing_fast("macos.open_urls", &run_open_files, *_openFiles, paths);
 }
 // The reason of the quit request being handled: session_end when the quit
 // Apple event says the session is ending (log out, restart, shut down, with
@@ -4324,6 +4430,16 @@ static HostCloseReason termination_close_reason() {
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
     const HostCloseReason reason = termination_close_reason();
+    // First every window that does not end the run is asked, in NSApp's
+    // window order, and the first refusal cancels the termination (audit
+    // P2). A copy is walked: a closing handler may open or close windows.
+    NSArray<NSWindow*>* asked = [NSArray arrayWithArray:[sender windows]];
+    for (NSWindow* window in asked) {
+        const id delegate = [window delegate];
+        if (![delegate isKindOfClass:[GUIFormsWindowDelegate class]]) continue;
+        GUIFormsWindowDelegate* windowDelegate = static_cast<GUIFormsWindowDelegate*>(delegate);
+        if ([windowDelegate refusesTermination:reason]) return NSTerminateCancel;
+    }
     for (NSWindow* window in [sender windows]) {
         const id delegate = [window delegate];
         if (![delegate isKindOfClass:[GUIFormsWindowDelegate class]]) continue;

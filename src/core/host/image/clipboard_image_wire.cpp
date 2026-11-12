@@ -25,6 +25,17 @@ std::uint32_t read_u32(std::span<const std::byte> bytes, std::size_t offset) noe
     }
     return value;
 }
+// Lowers every colour channel above its pixel's alpha to that alpha, in
+// place, over tight BGRA8 pixels (a whole number of pixels).
+void clamp_colour_to_alpha(std::span<std::byte> pixels) noexcept {
+    for (std::size_t offset = 0U; offset + 4U <= pixels.size(); offset += 4U) {
+        const std::byte alpha = pixels[offset + 3U];
+        for (std::size_t channel = 0U; channel < 3U; ++channel) {
+            const std::byte colour = pixels[offset + channel];
+            pixels[offset + channel] = std::min(colour, alpha);
+        }
+    }
+}
 void copy_rows(HostImageView image, std::span<std::byte> destination) {
     const std::size_t row_bytes = static_cast<std::size_t>(image.width) * 4U;
     for (std::uint32_t row = 0; row < image.height; ++row) {
@@ -83,6 +94,9 @@ HostClipboardImageResult decode_clipboard_image(
         return HostClipboardImageResult::failed(HostServiceError::backend_failure);
     }
     HostImage image = copy_host_image(view);
+    if (version == premultiplied_bgra_version) {
+        clamp_colour_to_alpha(image.pixels);
+    }
     if (version == straight_rgba_version) {
         const std::size_t row = static_cast<std::size_t>(image.row_bytes);
         for (std::uint32_t y = 0; y < image.height; ++y) {

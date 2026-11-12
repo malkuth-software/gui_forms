@@ -71,6 +71,14 @@ Application& checked_application(Application& application) {
     return application;
 }
 
+// `resources` with the process's theme request settled (user_themes.hpp:
+// --theme, GUI_FORMS_THEME_SHEET) before the first window reads their
+// theme. Off their thread nothing is settled; the constructor refuses then.
+std::shared_ptr<ApplicationResources> settled_resources(std::shared_ptr<ApplicationResources> resources) {
+    if (resources && (*resources).check_access()) (*resources).settle_theme_request();
+    return resources;
+}
+
 } // namespace
 
 Window::Window(Control::Ptr root, Size client_size)
@@ -90,7 +98,7 @@ Window::Window(Control::Ptr root, Size client_size,
 
 Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources,
                Application* application)
-    : SurfaceRoot(std::move(root), client_size, std::move(resources)) {
+    : SurfaceRoot(std::move(root), client_size, settled_resources(std::move(resources))) {
     presenting_window_ = this;
     if (application != nullptr) application_tool_tips_shown_ = (*application).tool_tips_shown_;
     // The application's key table, read until a window-local change (K.1).
@@ -230,7 +238,6 @@ bool SurfaceRoot::resize_surface(Size client_size) {
     const bool width_changed = old_slot.width != new_slot.width;
     const bool height_changed = old_slot.height != new_slot.height;
     ++surface_epoch_;
-    if (surface_epoch_ == 0U) ++surface_epoch_;
     apply_client_resize(old_bounds, new_bounds, width_changed, height_changed);
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
         if (const Control::Ptr overlay_root = (*overlay).overlay()) {
@@ -352,7 +359,6 @@ bool SurfaceRoot::set_surface_scale(double scale) {
     // The band is snapped to whole device pixels of the new scale.
     refresh_band();
     ++surface_epoch_;
-    if (surface_epoch_ == 0U) ++surface_epoch_;
     mark_subtree_dirty(*root_, invalidation::conservative_subtree);
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
         if (const Control::Ptr overlay_root = (*overlay).overlay()) {
@@ -370,6 +376,12 @@ bool valid_pointer_settings(const PointerSettings& settings) noexcept {
                        valid_pointer_distance(settings.hover_height);
     const bool origins = known_setting_origin(settings.drag_origin) && known_setting_origin(settings.hover_origin);
     return drag && hover && origins;
+}
+
+bool valid_caret_settings(const CaretSettings& settings) noexcept {
+    const bool phase = settings.blink_milliseconds <= maximum_caret_blink_milliseconds;
+    const bool origin = known_setting_origin(settings.origin);
+    return phase && origin;
 }
 
 void validate_presentation_settings(const PresentationSettings& settings) {
@@ -390,6 +402,10 @@ void validate_presentation_settings(const PresentationSettings& settings) {
     if (!valid_pointer_settings(settings.pointer)) {
         throw std::invalid_argument(
             "GUI.Forms pointer settings are outside their ranges or enums");
+    }
+    if (!valid_caret_settings(settings.caret)) {
+        throw std::invalid_argument(
+            "GUI.Forms caret blink must be at most 10000 milliseconds, with a SettingOrigin");
     }
     if (settings.colour_scheme != ColourScheme::light && settings.colour_scheme != ColourScheme::dark) {
         throw std::invalid_argument("GUI.Forms colour scheme is not a ColourScheme");
@@ -597,7 +613,7 @@ void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
         if (const Control::Ptr overlay_root = (*overlay).overlay()) {
             mark_subtree_dirty(*overlay_root,
-                               Dirty::style | Dirty::paint | Dirty::semantics);
+                               Dirty::paint | Dirty::semantics);
         }
     }
     // Held here: a handler that sets another theme replaces theme_, which
@@ -606,6 +622,16 @@ void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     // emission have seen the newer one.
     const std::shared_ptr<const Theme> emitted = theme_;
     theme_changed_.emit(*emitted);
+}
+
+void SurfaceRoot::report_frame_moved() {
+    require_root_thread("frame report");
+    frame_moved_.emit();
+}
+
+void SurfaceRoot::announce_menu_opening() {
+    require_root_thread("menu opening");
+    menu_opening_.emit();
 }
 
 void SurfaceRoot::set_active(bool active) {
@@ -625,11 +651,11 @@ void SurfaceRoot::set_active(bool active) {
     if (!active && drag_engine_) (*drag_engine_).cancel(DragEnd::deactivated);
     // The window's backplane material follows activation (E9-B).
     damage_backplane_readers(nullptr);
-    mark_subtree_dirty(*root_, Dirty::style | Dirty::paint | Dirty::semantics);
+    mark_subtree_dirty(*root_, Dirty::paint | Dirty::semantics);
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
         if (const Control::Ptr overlay_root = (*overlay).overlay()) {
             mark_subtree_dirty(*overlay_root,
-                               Dirty::style | Dirty::paint | Dirty::semantics);
+                               Dirty::paint | Dirty::semantics);
         }
     }
     active_changed_.emit(active_);

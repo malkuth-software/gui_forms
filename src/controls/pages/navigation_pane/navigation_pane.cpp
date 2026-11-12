@@ -310,6 +310,7 @@ void NavigationPane::write_view(const decltype(collapsed)&, bool incoming) {
         close_overlay();
     }
     collapsed_ = incoming;
+    advance_layout_revision();
     hot_ = {};
     pressed_ = {};
     grip_captured_ = false;
@@ -329,6 +330,7 @@ void NavigationPane::write_view(const decltype(button_count)&, std::size_t incom
     }
     if (button_count_ == incoming) return;
     button_count_ = incoming;
+    advance_layout_revision();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     notify_state();
 }
@@ -338,12 +340,12 @@ std::size_t NavigationPane::read_view(const decltype(button_count)&) const {
 }
 
 std::size_t NavigationPane::visible_button_count() const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     return placed.large_count;
 }
 
 bool NavigationPane::step_buttons(int direction) {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     if (placed.collapsed) return false;
     const std::size_t maximum = std::min(placed.shown_count, placed.button_capacity);
     const std::size_t current = placed.large_count;
@@ -351,6 +353,7 @@ bool NavigationPane::step_buttons(int direction) {
     const std::size_t next = direction < 0 ? current - 1U : current + 1U;
     if (next > maximum) return false;
     button_count_ = next;
+    advance_layout_revision();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     notify_state();
     return true;
@@ -383,8 +386,10 @@ bool NavigationPane::set_page_hidden(const PageId& page, bool hidden) {
     if (!pages_.find(page) || page_hidden(page) == hidden) return false;
     if (hidden) {
         hidden_.push_back(page);
+        advance_layout_revision();
     } else {
         hidden_.erase(std::remove(hidden_.begin(), hidden_.end(), page), hidden_.end());
+        advance_layout_revision();
     }
     hot_ = {};
     pressed_ = {};
@@ -485,8 +490,10 @@ NavigationPaneRestore NavigationPane::apply_state(const NavigationPaneState& sav
     }
     applying_state_ = false;
     hidden_.clear();
+    advance_layout_revision();
     for (const PageId& id : saved.hidden_pages) {
         if (pages_.find(id)) hidden_.push_back(id);
+        advance_layout_revision();
     }
     if (saved.collapsed) {
         close_configure_menu();
@@ -494,7 +501,9 @@ NavigationPaneRestore NavigationPane::apply_state(const NavigationPaneState& sav
         close_overlay();
     }
     collapsed_ = saved.collapsed;
+    advance_layout_revision();
     button_count_ = saved.button_count;
+    advance_layout_revision();
     hot_ = {};
     pressed_ = {};
     grip_captured_ = false;
@@ -525,6 +534,7 @@ void NavigationPane::on_pages_changed(const PageSetChange& change) {
             if (pages_.find(id)) kept.push_back(id);
         }
         hidden_ = std::move(kept);
+        advance_layout_revision();
     }
     if (change.membership || change.content) refresh_content();
     if (change.records && host_) (*host_).set_panel_name(selected_text());
@@ -622,8 +632,17 @@ Size NavigationPane::measure(Size available) {
     return result;
 }
 
-NavigationPane::Layout NavigationPane::layout() const {
-    return layout_for(client_rectangle());
+const NavigationPane::Layout& NavigationPane::layout() const {
+    const LayoutKey key = layout_key();
+    const std::uint64_t model = pages_.revision();
+    if (kept_layout_valid_ && kept_layout_key_ == key && kept_layout_model_ == model) return kept_layout_;
+    // The key is taken before the layout is made: a layout that
+    // writes what it reads is made again at the next call.
+    kept_layout_ = layout_for(key.client);
+    kept_layout_key_ = key;
+    kept_layout_model_ = model;
+    kept_layout_valid_ = true;
+    return kept_layout_;
 }
 
 // One layout pass: the pages the buttons and icons show (every page not
@@ -953,7 +972,7 @@ void NavigationPane::paint_tab(Painter& painter, const TabSlot& slot) const {
 }
 
 void NavigationPane::on_paint(Painter& painter, Rect) {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const std::string title = selected_text();
     PartPaint part{};
     part.family = ControlVisualRole::panel;
@@ -1101,6 +1120,7 @@ void NavigationPane::continue_grip_drag(Point local) {
     const std::size_t count = static_cast<std::size_t>(wanted);
     if (count == placed.large_count) return;
     button_count_ = count;
+    advance_layout_revision();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     notify_state();
 }
@@ -1349,7 +1369,7 @@ void NavigationPane::on_key(KeyEvent& event) {
 void NavigationPane::on_focus_changed(bool focused) {
     focused_ = focused;
     if (focused_) {
-        const Layout placed = layout();
+        const Layout& placed = layout();
         if (target_bounds(placed, stop_).empty()) stop_ = default_stop(placed);
     }
     invalidate(Dirty::paint | Dirty::semantics);
@@ -1553,7 +1573,7 @@ SemanticDescriptor NavigationPane::semantic_descriptor() const {
 
 std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const Rect absolute = absolute_bounds();
     const std::string prefix(stable_id().value());
     SemanticState base = SemanticState::visible;
@@ -1713,6 +1733,7 @@ bool NavigationPane::on_semantic_child_action(std::string_view id, SemanticActio
             if (parsed.ec != std::errc{} || parsed.ptr != last || count > maximum) return false;
             if (count != placed.large_count) {
                 button_count_ = count;
+                advance_layout_revision();
                 invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
                 notify_state();
             }
@@ -1866,7 +1887,7 @@ const ControlAnatomy& NavigationPane::anatomy() const noexcept {
 }
 
 void NavigationPane::publish_part_geometry(std::span<PartGeometry> geometry) const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const Rect surface = client_rectangle();
     Target target{};
     Parts record{};
@@ -1913,26 +1934,26 @@ NavigationPane::Parts NavigationPane::parts() const {
 }
 
 std::size_t NavigationPane::realized_item_count() const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     return placed.tabs.size();
 }
 
 std::string NavigationPane::realized_item_stable_id(std::size_t item) const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const TabSlot& slot = placed.tabs.at(item);
     std::string id = std::string(stable_id().value()) + ".tab." + pages_.record_at(PagePosition{slot.position}).id.value;
     return id;
 }
 
 ItemSystemIndex NavigationPane::publish_realized_item_system(std::size_t item) const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const TabSlot& slot = placed.tabs.at(item);
     const ItemSystemIndex system{static_cast<std::uint8_t>(slot.kind == NavigationPaneItemKind::large_button ? 0U : 1U)};
     return system;
 }
 
 void NavigationPane::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const TabSlot& slot = placed.tabs.at(item);
     if (slot.kind == NavigationPaneItemKind::large_button) {
         const PageButtonParts record = button_parts(slot);
@@ -1944,7 +1965,7 @@ void NavigationPane::publish_realized_item_geometry(std::size_t item, std::span<
 }
 
 AnatomyStateSet NavigationPane::realized_item_anatomy_states(std::size_t item) const {
-    const Layout placed = layout();
+    const Layout& placed = layout();
     const TabSlot& slot = placed.tabs.at(item);
     return tab_states(slot.position);
 }
@@ -1953,7 +1974,7 @@ std::vector<NavigationPane::Item> NavigationPane::realized_items() const {
     const std::size_t count = realized_item_count();
     std::vector<Item> records{};
     records.reserve(count);
-    const Layout placed = layout();
+    const Layout& placed = layout();
     for (std::size_t item = 0; item < count; ++item) {
         const TabSlot& slot = placed.tabs[item];
         const PartGeometryBuffer published = published_realized_item_geometry(item);

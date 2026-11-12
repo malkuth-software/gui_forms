@@ -95,7 +95,11 @@ std::string MetricsSnapshot::to_json() const {
            << "\"frame_deadlines_fired\":" << frame_deadlines_fired << ','
            << "\"motion_clock_ticks\":" << motion_clock_ticks << ','
            << "\"frame_requests_coalesced\":" << frame_requests_coalesced << ','
-           << "\"frame_callback_faults\":" << frame_callback_faults << ','
+           << "\"wake_expectation_misses\":" << wake_expectation_misses << ','
+           << "\"paint_budget_misses\":" << paint_budget_misses << ','
+           << "\"live_drain_misses\":" << live_drain_misses << ','
+           << "\"damage_bound_misses\":" << damage_bound_misses << ','
+           << "\"expectation_telemetry_records\":" << expectation_telemetry_records << ','
            << "\"reentrant_frame_polls_deferred\":"
            << reentrant_frame_polls_deferred << ','
            << "\"occlusion_suspensions\":" << occlusion_suspensions << ','

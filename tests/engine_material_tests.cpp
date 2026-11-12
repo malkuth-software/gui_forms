@@ -1609,6 +1609,73 @@ void kernel_overlap_rule() {
     primitives::require_disjoint(front, back);
 }
 
+
+// -- the repeated spans of a bake ------------------------------------------------------
+//
+// A look that does not vary across (or down) its interior is baked at its
+// edges and in one interior column (or row), which is copied over the
+// rest. bake_material_region bakes every pixel, so for a material without
+// part filters or a reflection the two give the same bytes: the guard for
+// the spans, over a ladder of materials whose looks repeat across, down,
+// both or neither, at whole and fractional sizes and scales.
+void bake_spans_match_every_pixel() {
+    std::vector<SurfaceMaterial> materials{};
+    materials.push_back(solid_material(Color::rgba(240, 240, 244)));
+    SurfaceMaterial bordered = materials.back();
+    bordered.border = MaterialBorder{Color::rgba(90, 100, 120), 1.0};
+    bordered.corner_radius = 4.0;
+    materials.push_back(bordered);
+    SurfaceMaterial vertical = bordered;
+    vertical.fills.assign(1U, MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 1.0},
+                                                        std::vector<GradientStop>{
+                                                            GradientStop{0.0, Color::rgba(250, 250, 252)},
+                                                            GradientStop{1.0, Color::rgba(220, 224, 232)}}));
+    materials.push_back(vertical);
+    SurfaceMaterial shaded = vertical;
+    MaterialShadow outer{};
+    outer.offset = Point{0.0, 2.0};
+    outer.blur_radius = 8.0;
+    shaded.shadows.push_back(outer);
+    MaterialShadow inset{};
+    inset.offset = Point{0.0, 1.0};
+    inset.blur_radius = 3.0;
+    inset.inset = true;
+    shaded.shadows.push_back(inset);
+    materials.push_back(shaded);
+    SurfaceMaterial across = solid_material(red);
+    across.fills.push_back(MaterialFillLayer::linear(Point{0.0, 0.0}, Point{1.0, 0.0},
+                                                     std::vector<GradientStop>{GradientStop{0.0, clear},
+                                                                               GradientStop{1.0, blue}}));
+    materials.push_back(across);
+    SurfaceMaterial edged = solid_material(red);
+    edged.corner_radius = 6.0;
+    edged.keylines.push_back(MaterialKeyline{MaterialEdge::top, blue, 1.0, 0.0});
+    edged.keylines.push_back(MaterialKeyline{MaterialEdge::left, white_half, 2.0, 1.0});
+    edged.border_edges.bottom = MaterialBorder{blue, 2.0};
+    materials.push_back(edged);
+    SurfaceMaterial lit = solid_material(red);
+    lit.glows.push_back(glow_of(white_half, 2.0, 0.0));
+    materials.push_back(lit);
+    SurfaceMaterial dashed = bordered;
+    dashed.border = MaterialBorder{blue, 2.0, MaterialBorderStyle::dashed};
+    materials.push_back(dashed);
+    const std::array<Size, 3> sizes{Size{120.0, 28.0}, Size{400.0, 300.0}, Size{37.5, 19.25}};
+    const std::array<double, 3> scales{1.0, 1.5, 2.0};
+    for (const SurfaceMaterial& material : materials) {
+        for (const Size size : sizes) {
+            for (const double scale : scales) {
+                TestRaster spans = make_raster(size, scale);
+                TestRaster every = make_raster(size, scale);
+                const PrimitiveTarget target = target_for(size, scale, &material);
+                engine_primitives::bake_material(material, target, spans.view());
+                const double origin = -engine_primitives::material_outset * scale;
+                engine_primitives::bake_material_region(material, target, Point{origin, origin}, every.view());
+                require(spans.bytes == every.bytes, "a bake with repeated spans equals the bake of every pixel");
+            }
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc > 1 && std::strcmp(argv[1], "--measure") == 0) {
         measure();
@@ -1626,6 +1693,7 @@ int main(int argc, char** argv) {
     glow_painter_path();
     glow_placements();
     gloss_preset();
+    bake_spans_match_every_pixel();
     surface_finish();
     surface_mask();
     image_fills();

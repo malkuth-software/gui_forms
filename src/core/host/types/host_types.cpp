@@ -98,7 +98,6 @@ const char* host_dispatch_error_name(HostDispatchError error) noexcept {
     case HostDispatchError::invalid_lifecycle: return "invalid_lifecycle";
     case HostDispatchError::invalid_geometry: return "invalid_geometry";
     case HostDispatchError::invalid_payload: return "invalid_payload";
-    case HostDispatchError::callback_fault: return "callback_fault";
     }
     return "unknown";
 }

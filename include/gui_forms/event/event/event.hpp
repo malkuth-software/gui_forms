@@ -69,13 +69,17 @@ struct EventStatistics {
 // place until the outermost emission finishes, avoiding a heap snapshot for
 // each notification. The emission retains State, not the Event object: a
 // callback may destroy the event owner without invalidating dispatch.
+// State is made by the first subscription (audit A4): an event nobody
+// subscribed to holds no allocation, and emitting it does nothing. Slots
+// are compacted only after a disconnect (A5): connect and emit do not scan
+// the slots otherwise.
 template <typename... Arguments>
 class Event final {
 public:
     using Callback = std::function<void(Arguments...)>;
     using DelegateCallback = Delegate<Arguments...>;
 
-    Event() : state_(std::make_shared<State>()) {}
+    Event() noexcept = default;
     ~Event() { disconnect_all(); }
     Event(const Event&) = delete;
     Event& operator=(const Event&) = delete;
@@ -106,6 +110,7 @@ public:
     }
 
     void emit(Arguments... arguments) {
+        if (state_ == nullptr) return;
         const std::shared_ptr<State> state = state_;
         const std::size_t boundary = (*state).slots.size();
         EmissionScope emission(state);
@@ -122,6 +127,7 @@ public:
     }
 
     void disconnect_all() noexcept {
+        if (state_ == nullptr) return;
         const std::shared_ptr<State> state = state_;
         const std::size_t boundary = (*state).slots.size();
         EmissionScope emission(state);
@@ -133,7 +139,9 @@ public:
     }
 
     [[nodiscard]] EventStatistics statistics() const noexcept {
-        return (*state_).statistics;
+        if (state_ == nullptr) return EventStatistics{};
+        const EventStatistics statistics = (*state_).statistics;
+        return statistics;
     }
 
 private:
@@ -165,6 +173,7 @@ private:
             const std::shared_ptr<State> event_state = state.lock();
             if (event_state != nullptr) {
                 ++(*event_state).statistics.subscriptions_disconnected;
+                ++(*event_state).pending_disconnects;
             }
         }
 
@@ -247,6 +256,9 @@ private:
         std::vector<std::shared_ptr<Slot>> slots{};
         EventStatistics statistics{};
         std::size_t emission_depth{};
+        // Slots disconnected since the last compaction; compact does nothing
+        // while it is zero.
+        std::size_t pending_disconnects{};
     };
 
     class EmissionScope final {
@@ -271,7 +283,7 @@ private:
             return {};
         }
         const std::shared_ptr<Slot> slot =
-            std::make_shared<Slot>(state_, std::move(callback));
+            std::make_shared<Slot>(ensure_state(), std::move(callback));
         SubscriptionToken token(slot);
         connect(owner, slot);
         return token;
@@ -283,7 +295,7 @@ private:
             return {};
         }
         const std::shared_ptr<Slot> slot =
-            std::make_shared<Slot>(state_, callback);
+            std::make_shared<Slot>(ensure_state(), callback);
         SubscriptionToken token(slot);
         connect(owner, slot);
         return token;
@@ -294,12 +306,20 @@ private:
                                                       const Method method,
                                                       Bound... bound) {
         const std::shared_ptr<Slot> slot =
-            std::make_shared<MemberSlot<Owner, Method, Bound...>>(state_, owner, method, bound...);
+            std::make_shared<MemberSlot<Owner, Method, Bound...>>(ensure_state(), owner, method, bound...);
         SubscriptionToken token(slot);
         connect(nullptr, slot);
         return token;
     }
 
+    // The state, made on first use. Throws std::bad_alloc and leaves the
+    // event without state when it cannot be made.
+    [[nodiscard]] const std::shared_ptr<State>& ensure_state() {
+        if (state_ == nullptr) state_ = std::make_shared<State>();
+        return state_;
+    }
+
+    // Called after ensure_state(): state_ is not null here.
     void connect(Component* const owner, const std::shared_ptr<Slot>& slot) {
         compact(*state_);
         (*state_).slots.push_back(slot);
@@ -319,14 +339,15 @@ private:
     };
 
     static void compact(State& state) noexcept {
-        if (state.emission_depth != 0U) return;
+        if (state.emission_depth != 0U || state.pending_disconnects == 0U) return;
         std::vector<std::shared_ptr<Slot>>& slots = state.slots;
         const typename std::vector<std::shared_ptr<Slot>>::iterator retained_end =
             std::remove_if(slots.begin(), slots.end(), SlotDisconnected{});
         slots.erase(retained_end, slots.end());
+        state.pending_disconnects = 0U;
     }
 
-    std::shared_ptr<State> state_;
+    std::shared_ptr<State> state_{};
 };
 
 // Owner-held named member subscription. Owner must explicitly participate in

@@ -1,4 +1,5 @@
 #include "gui_forms/gui_forms.hpp"
+#include "support/binding_test_rows.hpp"
 #include "support/named_callbacks.hpp"
 
 #include <iostream>
@@ -245,11 +246,12 @@ void test_validation_callback_disposal_rechecks_focus_endpoints() {
 void test_on_validation_binding_and_error_provider_share_focus_transaction() {
     Fixture fixture;
     std::shared_ptr<gui_forms::BindingSource> source = std::make_shared<BindingSource>(fixture.window);
-    BindingRecord first{"amount.first", {{"amount", 12.5}}, true};
-    first.errors["amount"] = "Amount is outside the recommended range.";
-    first.errors["profile.amount"] = "Profile amount requires review.";
-    BindingRecord second{"amount.second", {{"amount", 8.0}}, true};
-    (*source).set_records({first, second});
+    test_rows::fill_source(*source, {
+        {"amount.first", {{"amount", 12.5}}, true,
+         {{"amount", "Amount is outside the recommended range."},
+          {"profile.amount", "Profile amount requires review."}}},
+        {"amount.second", {{"amount", 8.0}}, true, {}},
+    });
 
     BindingOptions options;
     options.formatting_enabled = true;

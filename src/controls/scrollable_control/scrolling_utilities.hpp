@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../basic/number_text.hpp"
+
 #include <cmath>
 #include <cstdint>
 #include <string>
@@ -16,16 +18,7 @@ inline constexpr double comparison_epsilon = 0.0001;
 
 [[nodiscard]] inline bool parse_finite_number(
     std::string_view text, double& value) noexcept {
-    try {
-        std::size_t consumed{};
-        const std::string copy(text);
-        const double parsed = std::stod(copy, &consumed);
-        if (consumed != copy.size() || !std::isfinite(parsed)) return false;
-        value = parsed;
-        return true;
-    } catch (...) {
-        return false;
-    }
+    return number_text::parse_finite_decimal(text, value);
 }
 
 } // namespace gui_forms::scrolling_detail

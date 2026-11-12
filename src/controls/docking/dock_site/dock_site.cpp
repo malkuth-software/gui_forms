@@ -10,10 +10,13 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 
 namespace gui_forms {
@@ -354,7 +357,7 @@ void DockSite::realize() {
     std::size_t child_index = 0U;
     for (StackSlot& slot : stacks_) {
         if (!slot.in_flyout) {
-            static_cast<void>(set_child_index((*slot.view).runtime_id(), child_index));
+            static_cast<void>(set_child_index_from_top((*slot.view).runtime_id(), child_index));
             ++child_index;
         }
         sync_pages(slot, *layout.find_node(slot.stack));
@@ -1330,20 +1333,28 @@ void DockSite::on_paint(Painter& painter, Rect) {
     // background; the theme engine paints it (and withdraws it under high
     // contrast).
     if (workspace_ != nullptr) part.authored_background = (*workspace_).area_background();
+    // Every part carries its anatomy name (PartKey), so that a theme's
+    // `dock-site::part(...)` rules reach it; a seam item is known by its
+    // split's node.
+    part.key = PartKey{"document_area", {}, {}};
     paint_part(painter, *this, part);
     for (std::size_t seam = 0; seam < seams_.size(); ++seam) {
         const SeamParts parts = seam_parts(seam);
+        const std::string item = seam_identity(seams_[seam].split);
         part.family = ControlVisualRole::panel;
         part.states = seam_states(seam);
         part.role = PartRole::seam;
         part.bounds = parts.seam_bar.bounds;
+        part.key = PartKey{"seam_bar", item, {}};
         paint_part(painter, *this, part);
         part.role = PartRole::grip;
         part.mark = PartMark::grip_dots;
         part.bounds = parts.seam_grip.bounds;
+        part.key = PartKey{"seam_grip", item, {}};
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
     }
+    part.key.reset();
     for (std::size_t index = 0; index < stacks_.size(); ++index) {
         const StackSlot& slot = stacks_[index];
         if (slot.collapsed || slot.kind != DockNodeKind::tool_stack || slot.caption.empty()) continue;
@@ -1357,6 +1368,9 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
                              Point offset) const {
     const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot), close_shown(slot));
     const AnatomyStateSet states = stack_states(slot);
+    // The stack item's identity: its node's, so that each part carries its
+    // anatomy name (the `stack` item system's) and theme rules reach it.
+    const std::string item = stack_identity(slot.stack);
     PartPaint part{};
     part.font = caption_font();
     // The caption strip and, while current, its accent line: the pale tint
@@ -1366,19 +1380,23 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     part.states = states;
     part.role = PartRole::face;
     part.bounds = moved(placed.caption, offset);
+    part.key = PartKey{"caption", item, {}};
     paint_part(painter, surface, part);
     if (states.contains(AnatomyState::current)) {
         part.role = PartRole::keyline;
         part.bounds = moved(placed.accent, offset);
+        part.key = PartKey{"caption_accent", item, {}};
         part.accent = AccentIndex{0U};
         paint_part(painter, surface, part);
         part.accent.reset();
     }
     part.role = PartRole::chip;
     part.bounds = moved(placed.key, offset);
+    part.key = PartKey{"caption_key", item, {}};
     paint_part(painter, surface, part);
     part.role = PartRole::caption;
     part.bounds = moved(placed.label, offset);
+    part.key = PartKey{"caption_label", item, {}};
     part.text = slot.title;
     paint_part(painter, surface, part);
     part.text = {};
@@ -1388,16 +1406,20 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     const std::array<Rect, 3> buttons{placed.menu, placed.pin, placed.close};
     const std::array<Rect, 3> glyphs{placed.menu_glyph, placed.pin_glyph, placed.close_glyph};
     const std::array<PartMark, 3> marks{PartMark::chevron_down, PartMark::pin, PartMark::close};
+    const std::array<std::string_view, 3> button_names{"caption_menu", "caption_pin", "caption_close"};
+    const std::array<std::string_view, 3> glyph_names{"caption_menu_glyph", "caption_pin_glyph", "caption_close_glyph"};
     part.family = ControlVisualRole::menu_item;
     for (std::size_t button = 0; button < zones.size(); ++button) {
         if (buttons[button].empty()) continue;
         part.states = button_states(index, zones[button]);
         part.role = PartRole::actuator;
         part.bounds = moved(buttons[button], offset);
+        part.key = PartKey{button_names[button], item, {}};
         paint_part(painter, surface, part);
         part.role = PartRole::glyph;
         part.bounds = moved(glyphs[button], offset);
         part.mark = marks[button];
+        part.key = PartKey{glyph_names[button], item, {}};
         paint_part(painter, surface, part);
         part.mark = PartMark::none;
     }

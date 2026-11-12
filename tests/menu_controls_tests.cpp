@@ -4,6 +4,7 @@
 #include "support/named_callbacks.hpp"
 #include "support/typography_painter.hpp"
 
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -384,6 +385,57 @@ void test_context_menu_scroll_and_validation_bounds() {
     }
     require(duplicate_rejected,
             "menu model validation must reject duplicate stable identities");
+}
+
+struct RecordMenuInvocation final {
+    std::vector<MenuItemInvocation>* invocations{};
+    void operator()(const MenuItemInvocation& invocation) const { (*invocations).push_back(invocation); }
+};
+
+// GAPS E9: an item without a Command shows its own text and state, and
+// choosing it raises item_invoked with an empty command_id.
+void test_context_menu_items_without_commands() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("plain.root"));
+    std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("plain.owner"), "Menu");
+    (*owner).set_requested_bounds({4.0, 4.0, 80.0, 30.0});
+    (*root).add_child(owner);
+    Window window(root, {320.0, 190.0});
+    require(window.request_focus(owner), "the plain menu owner takes focus");
+    MenuItemSpec off{};
+    off.stable_id = "off";
+    off.kind = MenuItemKind::command;
+    off.text = "Off";
+    off.enabled = false;
+    MenuItemSpec plain{};
+    plain.stable_id = "plain";
+    plain.kind = MenuItemKind::check;
+    plain.text = "Plain";
+    plain.checked = true;
+    ContextMenu menu("plain.menu");
+    menu.set_items({off, plain});
+    std::vector<MenuItemInvocation> invocations{};
+    SubscriptionToken recorded = menu.item_invoked().subscribe(RecordMenuInvocation{&invocations});
+    menu.show(owner, {20.0, 20.0});
+    require(window.find("plain.menu.overlay.row.plain") != nullptr && window.find("plain.menu.overlay.row.off") != nullptr,
+            "items without a Command are shown");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::end}) &&
+                (*window.focused_control()).stable_id().value() == "plain.menu.overlay.row.plain",
+            "End reaches the command-less item");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}), "Enter chooses the command-less item");
+    require(invocations.size() == 1U && invocations[0].item_id == "plain" && invocations[0].command_id.empty() &&
+                !menu.is_open(),
+            "choosing it raises item_invoked with an empty command_id and closes the menu");
+    MenuItemSpec empty{};
+    empty.stable_id = "empty";
+    empty.kind = MenuItemKind::command;
+    bool refused = false;
+    try {
+        menu.set_items({empty});
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused, "an item with neither a Command nor text is refused");
+    static_cast<void>(recorded);
 }
 
 // Item IDs that become part of a StableId are checked when they are set,
@@ -820,15 +872,75 @@ void test_menu_font_controls_geometry_paint_and_hit_testing() {
 
 } // namespace
 
+// The menu strip anatomy declares the drop-downs' icon gutter as a well
+// part, so that a theme can style `menu-strip::part(gutter)`; the strip
+// itself has no gutter and publishes the part absent (the drop-down panels
+// paint it).
+void test_menu_strip_declares_the_drop_down_gutter() {
+    const std::shared_ptr<MenuStrip> strip = make_control<MenuStrip>(StableId("gutter.strip"));
+    const ControlAnatomy& anatomy = (*strip).anatomy();
+    bool declared = false;
+    for (const PartDeclaration& part : anatomy.parts) {
+        if (part.name == "gutter") declared = part.role == PartRole::well;
+    }
+    require(declared, "the menu strip anatomy must declare the gutter as a well part");
+    const MenuStrip::Parts parts = (*strip).parts();
+    require(!parts.gutter.present, "the menu strip itself must publish its gutter absent");
+    require(parts.gutter.bounds.empty(), "an absent gutter must publish empty bounds");
+}
+
+// Audit N111: a menu row's gutters, marks and label position follow the
+// text scale, as its font and height do.
+double scaled_menu_label_x(double scale, double& panel_width) {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("scaled.root"));
+    std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("scaled.owner"), "Menu");
+    (*owner).set_requested_bounds({4.0, 4.0, 80.0, 30.0});
+    (*root).add_child(owner);
+    Window window(root, {600.0, 400.0});
+    window.set_text_scale(scale);
+    window.perform_layout();
+    require(window.request_focus(owner), "the scaled menu owner takes focus");
+    const std::shared_ptr<Command> command = std::make_shared<Command>("scaled.open", "Open");
+    ContextMenu menu("scaled.menu");
+    menu.set_items({{"open", MenuItemKind::check, command}});
+    menu.show(owner, {20.0, 20.0});
+    window.perform_layout();
+    const Control::Ptr row = window.find("scaled.menu.overlay.row.open");
+    const Control::Ptr panel = window.find("scaled.menu.overlay.panel.0");
+    require(row != nullptr && panel != nullptr, "the scaled menu shows its row");
+    panel_width = (*panel).absolute_bounds().width;
+    test_support::TypographyPainter painter{};
+    const Rect bounds = (*row).absolute_bounds();
+    (*row).on_paint(painter, {0.0, 0.0, bounds.width, bounds.height});
+    const test_support::PaintedText* label = painter.find("Open");
+    require(label != nullptr, "the scaled menu paints its label");
+    const double x = (*label).origin.x;
+    menu.close();
+    return x;
+}
+
+void test_menu_row_insets_follow_the_text_scale() {
+    double single_width = 0.0;
+    double double_width = 0.0;
+    const double single = scaled_menu_label_x(1.0, single_width);
+    const double doubled = scaled_menu_label_x(2.0, double_width);
+    require(single > 0.0 && std::abs(doubled - single * 2.0) < 0.01,
+            "at text scale 2 the label starts twice as far in");
+    require(double_width > single_width * 1.8, "at text scale 2 the menu's gutters widen with its text");
+}
+
 int main() {
     try {
         test_context_menu_command_snapshot_keyboard_nesting_and_restore();
         test_context_menu_scroll_and_validation_bounds();
+        test_context_menu_items_without_commands();
         test_item_ids_follow_the_stable_id_segment_rule();
         test_menu_strip_retained_switching_commands_and_semantics();
         test_menu_mnemonics_strip_markers_and_overlay_activation();
         test_menu_plain_letter_mnemonics();
         test_menu_font_controls_geometry_paint_and_hit_testing();
+        test_menu_strip_declares_the_drop_down_gutter();
+        test_menu_row_insets_follow_the_text_scale();
         std::cout << "gui_forms_menu_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

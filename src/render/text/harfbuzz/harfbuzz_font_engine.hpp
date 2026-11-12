@@ -116,6 +116,14 @@ public:
     [[nodiscard]] std::optional<FontFaceId> register_lazy_fallback_typeface(
         std::uint16_t weight, bool italic, std::span<const gui_forms::detail::CodepointRange> coverage,
         LazyFaceLoader load);
+    // A face of the numbered bundled family `family` (FontSpec::family, never zero), loaded and
+    // opened the first time text names its family. It is preferred over every role face for
+    // such text and takes no part in any other; fallback through the role's faces and the
+    // fallback faces still covers what it lacks. `load` runs on the shaping thread, at most
+    // once unless it throws; a face that does not open is left out from then on. Refused by
+    // a bounded engine (configure_bounded_registration).
+    [[nodiscard]] std::optional<FontFaceId> register_lazy_family_typeface(
+        BundledFontFamily family, std::uint16_t weight, bool italic, LazyFaceLoader load);
     // Faces opened so far: eager faces and lazy faces that have been needed.
     [[nodiscard]] std::size_t opened_face_count() const noexcept;
     // Native setup/allocation failures throw; a call-owned partial result never

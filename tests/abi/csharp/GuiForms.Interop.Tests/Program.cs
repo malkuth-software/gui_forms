@@ -5,8 +5,20 @@
 // was once the call returns (the C kit checks the same balance for C
 // callbacks; tests/shadow_frames_tests.cpp for C++ unwinding).
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
 using System.Text;
 using GuiForms.Interop;
+
+// An item a List<T> binds (BindingListProvider): its properties are the
+// source's columns.
+internal sealed class City
+{
+    public string Name { get; set; } = string.Empty;
+    public double Population { get; set; }
+    public bool Capital { get; set; }
+}
 
 internal static unsafe class Program
 {
@@ -45,6 +57,13 @@ internal static unsafe class Program
         gf_status refused = Exports.gf_abi_get_table(Constants.GF_TABLE_RUNTIME, Constants.GF_ABI_MAJOR + 1u, 0u,
                                                      &later, (ulong)sizeof(gf_runtime_table));
         expect(refused == Constants.GF_STATUS_UNSUPPORTED_VERSION, "a later major is refused");
+        // The tables are negotiated once and lent in place (N72): two reads
+        // borrow the same table, not two copies.
+        ref gf_objects_table first = ref System.Runtime.CompilerServices.Unsafe.AsRef(in Abi.objects);
+        ref gf_objects_table second = ref System.Runtime.CompilerServices.Unsafe.AsRef(in Abi.objects);
+        expect(System.Runtime.CompilerServices.Unsafe.AreSame(ref first, ref second),
+               "every call borrows the one negotiated table");
+        expect(IntPtr.Size == 8, "the binding runs 64-bit (N73)");
     }
 
     private static void ownership()
@@ -306,6 +325,217 @@ internal static unsafe class Program
         Abi.check(Abi.events.disconnect(subscription));
     }
 
+    // A binding source over the window root made here, and its handle.
+    private static ObjectHandle make_source(ObjectHandle window, ReadOnlySpan<byte> stable_id)
+    {
+        gf_create_arguments arguments = default;
+        arguments.struct_size = (uint)sizeof(gf_create_arguments);
+        arguments.owner = window.value;
+        gf_object made = 0;
+        fixed (byte* type = "binding_source"u8)
+        fixed (byte* id = stable_id)
+        {
+            Abi.check(Abi.objects.create_with(Utf8.view(type, 14), Utf8.view(id, stable_id.Length), &arguments, &made));
+        }
+        return ObjectHandle.adopt(made);
+    }
+
+    // The current row's field as text or a number, through the bindings table.
+    private static string current_text(ObjectHandle source, ReadOnlySpan<byte> field)
+    {
+        gf_value value = default;
+        value.struct_size = (uint)sizeof(gf_value);
+        byte* text = stackalloc byte[128];
+        ulong required = 0;
+        fixed (byte* name = field)
+        {
+            Abi.check(Abi.bindings.current_field(source.value, Utf8.view(name, field.Length), &value, text, 128u,
+                                                 &required));
+        }
+        if (value.kind == Constants.GF_VALUE_KIND_TEXT)
+        {
+            return Encoding.UTF8.GetString(value.text.data, (int)value.text.size);
+        }
+        if (value.kind == Constants.GF_VALUE_KIND_NUMBER)
+        {
+            return value.number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        return "?";
+    }
+
+    private static void move_to(ObjectHandle source, long position)
+    {
+        uint moved = 0;
+        Abi.check(Abi.bindings.set_position(source.value, position, &moved));
+    }
+
+    private static ulong shown_count(ObjectHandle source)
+    {
+        ulong generation = 0;
+        ulong count = 0;
+        Abi.check(Abi.bindings.generation(source.value, &generation, &count));
+        return count;
+    }
+
+    // N31: a List<T> as a source's data provider: read in place, edited in
+    // place, sorted by the source's own index; a BindingList<T>'s ListChanged
+    // reaches the source without a call; set_provider releases the provider.
+    private static void binding_list()
+    {
+        using ObjectHandle root = ObjectHandle.create("Panel"u8, "csharp.binding"u8);
+        gf_object made = 0;
+        Abi.check(Abi.windows.create(root.value, &made));
+        using ObjectHandle window = ObjectHandle.adopt(made);
+        using ObjectHandle source = make_source(window, "csharp.binding.source"u8);
+
+        List<City> cities = new List<City>
+        {
+            new City { Name = "Oslo", Population = 0.7, Capital = true },
+            new City { Name = "Lima", Population = 10.0, Capital = true },
+            new City { Name = "Bern", Population = 0.1, Capital = true },
+        };
+        BindingListProvider provider = BindingListProvider.bind(source.value, cities);
+        expect(provider.id != 0u && shown_count(source) == 3u, "a List<T> binds with its count");
+        move_to(source, 1);
+        expect(current_text(source, "name"u8) == "Lima", "the source reads the list's item in place");
+
+        gf_value population = default;
+        population.struct_size = (uint)sizeof(gf_value);
+        population.kind = Constants.GF_VALUE_KIND_NUMBER;
+        population.number = 11.5;
+        uint accepted = 0;
+        fixed (byte* name = "Population"u8)
+        {
+            Abi.check(Abi.bindings.set_current_field(source.value, Utf8.view(name, 10), &population, &accepted));
+        }
+        expect(accepted == 1u && cities[1].Population == 11.5, "an edit writes straight to the item's property");
+
+        cities.Add(new City { Name = "Rome", Population = 2.8 });
+        provider.notify_inserted(3, 1);
+        expect(shown_count(source) == 4u, "a reported insertion reaches the source");
+
+        gf_binding_sort_key key = default;
+        key.struct_size = (uint)sizeof(gf_binding_sort_key);
+        key.direction = Constants.GF_BINDING_SORT_DESCENDING;
+        fixed (byte* column = "population"u8)
+        {
+            key.column = Utf8.view(column, 10);
+            Abi.check(Abi.bindings.set_sort(source.value, &key, 1u));
+        }
+        move_to(source, 0);
+        string largest = current_text(source, "name"u8);
+        move_to(source, 3);
+        string smallest = current_text(source, "name"u8);
+        expect(largest == "Lima" && smallest == "Bern", "the source sorts a list that cannot sort itself");
+        Abi.check(Abi.bindings.set_sort(source.value, null, 0u));
+
+        BindingList<City> observed = new BindingList<City>(new List<City>(cities));
+        ulong replaced = 0;
+        BindingListProvider listening = BindingListProvider.bind(source.value, observed);
+        expect(provider.id == 0u, "binding another provider releases the first");
+        observed.Add(new City { Name = "Kyiv", Population = 3.0 });
+        expect(shown_count(source) == 5u, "a BindingList<T>'s ListChanged reaches the source");
+        observed[0].Name = "Paris";
+        observed.ResetItem(0);
+        move_to(source, 0);
+        expect(current_text(source, "name"u8) == "Paris", "an item change reaches the source");
+        Abi.check(Abi.bindings.set_provider(source.value, null, 0u, null, &replaced));
+        expect(listening.id == 0u, "set_provider with no callbacks releases the provider");
+    }
+
+    // The name at a view position.
+    private static string name_at(ObjectHandle source, long position)
+    {
+        move_to(source, position);
+        return current_text(source, "name"u8);
+    }
+
+    // One predicate over a column, with an optional operand.
+    private static void set_filter(ObjectHandle source, ReadOnlySpan<byte> column, gf_binding_predicate_operator op,
+                                   gf_value* operand)
+    {
+        gf_binding_predicate predicate = default;
+        predicate.struct_size = (uint)sizeof(gf_binding_predicate);
+        predicate.op = op;
+        predicate.operand = operand;
+        fixed (byte* name = column)
+        {
+            predicate.column = Utf8.view(name, column.Length);
+            Abi.check(Abi.bindings.set_filter(source.value, &predicate, 1u));
+        }
+    }
+
+    // N31 batch 2: a reported move moves the rows without a reset; a
+    // DataView (IBindingListView) filters itself from the structured
+    // predicates; a BindingList<T> that cannot filter is filtered by the
+    // source's own index.
+    private static void binding_moves_and_filters()
+    {
+        using ObjectHandle root = ObjectHandle.create("Panel"u8, "csharp.filter"u8);
+        gf_object made = 0;
+        Abi.check(Abi.windows.create(root.value, &made));
+        using ObjectHandle window = ObjectHandle.adopt(made);
+        using ObjectHandle source = make_source(window, "csharp.filter.source"u8);
+
+        List<City> cities = new List<City>
+        {
+            new City { Name = "Oslo", Population = 0.7 },
+            new City { Name = "Lima", Population = 10.0 },
+            new City { Name = "Bern", Population = 0.1 },
+            new City { Name = "Rome", Population = 2.8 },
+        };
+        BindingListProvider provider = BindingListProvider.bind(source.value, cities);
+        City moved = cities[0];
+        cities.RemoveAt(0);
+        cities.Insert(2, moved);
+        provider.notify_moved(0, 1, 2);
+        expect(shown_count(source) == 4u && name_at(source, 0) == "Lima" && name_at(source, 2) == "Oslo" &&
+                   name_at(source, 3) == "Rome",
+               "a reported move reaches the source in place");
+
+        DataTable table = new DataTable("cities");
+        table.Columns.Add("Name", typeof(string));
+        table.Columns.Add("Population", typeof(double));
+        table.Rows.Add("Oslo", 0.7);
+        table.Rows.Add("Lima", 10.0);
+        table.Rows.Add("O'Hare*", 2.8);
+        table.Rows.Add("Rome", DBNull.Value);
+        DataView view = new DataView(table);
+        BindingListProvider viewing = BindingListProvider.bind(source.value, view);
+        expect(provider.id == 0u && shown_count(source) == 4u, "a DataView binds through its ITypedList columns");
+
+        gf_value bound = default;
+        bound.struct_size = (uint)sizeof(gf_value);
+        bound.kind = Constants.GF_VALUE_KIND_NUMBER;
+        bound.number = 1.0;
+        set_filter(source, "population"u8, Constants.GF_BINDING_PREDICATE_GREATER, &bound);
+        expect(view.RowFilter == "[Population] > 1" && view.Count == 2 && shown_count(source) == 2u,
+               "a DataView filters itself from the predicate");
+        fixed (byte* pattern = "'H"u8)
+        {
+            gf_value text = default;
+            text.struct_size = (uint)sizeof(gf_value);
+            text.kind = Constants.GF_VALUE_KIND_TEXT;
+            text.text = Utf8.view(pattern, 2);
+            set_filter(source, "name"u8, Constants.GF_BINDING_PREDICATE_CONTAINS, &text);
+        }
+        expect(view.Count == 1 && shown_count(source) == 1u && name_at(source, 0) == "O'Hare*",
+               "a quote in a contains operand is escaped for the grammar");
+        set_filter(source, "population"u8, Constants.GF_BINDING_PREDICATE_IS_NULL, null);
+        expect(view.Count == 1 && name_at(source, 0) == "Rome", "IS NULL reaches the DataView");
+        Abi.check(Abi.bindings.set_filter(source.value, null, 0u));
+        expect(string.IsNullOrEmpty(view.RowFilter) && shown_count(source) == 4u, "clearing the filter clears the view's");
+
+        BindingList<City> plain = new BindingList<City>(new List<City>(cities));
+        BindingListProvider listening = BindingListProvider.bind(source.value, plain);
+        expect(viewing.id == 0u, "binding another provider releases the DataView's");
+        set_filter(source, "population"u8, Constants.GF_BINDING_PREDICATE_GREATER, &bound);
+        expect(shown_count(source) == 2u, "a list that cannot filter is filtered by the source");
+        ulong replaced = 0;
+        Abi.check(Abi.bindings.set_provider(source.value, null, 0u, null, &replaced));
+        expect(listening.id == 0u, "set_provider with no callbacks releases the provider");
+    }
+
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -320,6 +550,8 @@ internal static unsafe class Program
         posted_thunk();
         refused_call_carries_failures();
         subsurfaces();
+        binding_list();
+        binding_moves_and_filters();
         expect(unhandled_raised == 0, "no failure in these checks ran under an event loop");
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");

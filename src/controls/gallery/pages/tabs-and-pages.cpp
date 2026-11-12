@@ -18,14 +18,6 @@ public:
         static_cast<void>(context);
         document_.initialize_component(*this);
         mount_form_children(*document_.gallery_tabs_document, *body);
-        const std::array<std::shared_ptr<ScaledGroupBox>, 7> groups{
-            document_.gallery_tabs_primary_group, document_.gallery_tabs_variants,
-            document_.gallery_tabs_strip_group,   document_.gallery_tabs_view_group,
-            document_.gallery_tabs_documents_group, document_.gallery_tabs_side_group,
-            document_.gallery_tabs_navigation_group};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
         build_primary();
         build_variants();
         build_strip();
@@ -57,7 +49,6 @@ private:
 
     void build_primary() {
         TabControl& primary = *document_.gallery_tabs_primary;
-        primary.set_style(page_style());
         primary.item_size = Size{150.0, 30.0};
         for (std::size_t index = 0U; index < primary_names.size(); ++index) {
             std::shared_ptr<TabPage> tab_page = make_control<TabPage>(
@@ -66,12 +57,12 @@ private:
             std::shared_ptr<Label> title = label(
                 "gallery.tabs.primary.page.title." + std::to_string(index),
                 std::string(primary_names[index]) + " workspace", 16.0, 700,
-                shell_blue_dark);
+                "heading");
             (*title).set_requested_bounds({22.0, 22.0, 420.0, 30.0});
             (*tab_page).add_child(title);
             std::shared_ptr<Label> copy = label(
                 "gallery.tabs.primary.page.copy." + std::to_string(index),
-                std::string(primary_copy[index]), 11.0, 400, ink);
+                std::string(primary_copy[index]), 11.0, 400, "ink");
             (*copy).set_requested_bounds({22.0, 58.0, 660.0, 26.0});
             (*tab_page).add_child(copy);
             (*tab_page).add_child(page_content(index));
@@ -136,7 +127,6 @@ private:
             }};
         for (std::size_t index = 0U; index < variants_spec.size(); ++index) {
             TabControl& tabs = *variants[index];
-            tabs.set_style(page_style());
             tabs.alignment = std::get<0>(variants_spec[index]);
             tabs.appearance = std::get<1>(variants_spec[index]);
             tabs.item_size = index == 0U ? Size{86.0, 28.0} : Size{82.0, 28.0};
@@ -149,7 +139,7 @@ private:
                     "gallery.tabs.variant.content." + std::to_string(index) + "." +
                         std::to_string(page_index),
                     "Retained page " + std::to_string(page_index + 1U), 10.0, 600,
-                    muted);
+                    "muted");
                 (*content).set_requested_bounds({12.0, 14.0, 150.0, 24.0});
                 (*tab_page).add_child(content);
                 tabs.add_page(tab_page);
@@ -179,7 +169,7 @@ private:
         on((*document_.gallery_tabs_view).content_requested(), *this, &TabsPage::on_view_content_requested);
         std::shared_ptr<Label> summary = label(
             "gallery.tabs.view.summary", "Ctrl+PageDown and Ctrl+Tab move between pages from inside one.",
-            11.0, 400, ink);
+            11.0, 400, "ink");
         static_cast<void>((*document_.gallery_tabs_view).add_page(view_record("summary", "&Summary"), summary));
         std::shared_ptr<Panel> details = make_control<Panel>(StableId("gallery.tabs.view.details"));
         std::shared_ptr<TextBox> name = make_control<TextBox>(StableId("gallery.tabs.view.details.name"));
@@ -219,7 +209,7 @@ private:
             record.image_key = "folder";
             std::shared_ptr<Label> body = label(
                 "gallery.tabs.documents.body." + std::to_string(index),
-                std::string(document_titles[index]) + " · middle-click or Ctrl+F4 closes it", 11.0, 400, ink);
+                std::string(document_titles[index]) + " · middle-click or Ctrl+F4 closes it", 11.0, 400, "ink");
             static_cast<void>((*documents_).add_page(record, body));
         }
         static_cast<void>((*documents_).pages().select(PageId{"doc.1"}, PageSelectionCause::programmatic));
@@ -265,7 +255,7 @@ private:
                 record.title = std::string(side_titles[index]);
                 std::shared_ptr<Label> body = label(
                     prefix + ".body." + std::to_string(index),
-                    std::string(side_titles[index]) + " · " + std::string(names[edge]) + " edge", 11.0, 400, ink);
+                    std::string(side_titles[index]) + " · " + std::string(names[edge]) + " edge", 11.0, 400, "ink");
                 static_cast<void>(view.add_page(record, body));
             }
         }
@@ -296,7 +286,7 @@ private:
     void on_view_content_requested(const PageContentRequest& request) {
         std::shared_ptr<Label> made = label(
             "gallery.tabs.view.made." + request.page.value,
-            "Created when " + request.page.value + " was first selected.", 11.0, 400, ink);
+            "Created when " + request.page.value + " was first selected.", 11.0, 400, "ink");
         static_cast<void>((*document_.gallery_tabs_view).set_page_content(request.page, made));
         (*document_.gallery_tabs_view_status).text = "Created " + request.page.value + " on its first selection";
     }
@@ -316,7 +306,7 @@ private:
             static_cast<void>(pages.insert(record, PagePlacement::end_of_group()));
             std::shared_ptr<Label> content = label(
                 "gallery.tabs.navigation.content." + std::string(ids[index]),
-                std::string(titles[index]) + " · the selected page's control", 11.0, 400, ink);
+                std::string(titles[index]) + " · the selected page's control", 11.0, 400, "ink");
             std::unique_ptr<PageContent> held = std::make_unique<PageControlContent>(content);
             static_cast<void>(pages.set_content(record.id, held));
         }

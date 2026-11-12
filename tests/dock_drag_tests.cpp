@@ -891,6 +891,28 @@ void stamp_picture() {
 
 } // namespace
 
+// Audit N76: a workspace that goes away while the stamp settles leaves no
+// layout to settle into; the drag session ends at the next layout pass
+// instead of staying in settling, so a new drag can start.
+void settling_ends_without_a_workspace() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockSite& site = *(*fixture).site;
+    Window& window = *(*fixture).window;
+    const Point from = centre(caption_of(site, stack_of(*(*fixture).workspace, "output")));
+    press(window, from);
+    move(window, {from.x, from.y - 20.0});
+    require(site.drag_phase() == DockDragPhase::dragging, "the drag starts");
+    require(key(window, PhysicalKey::escape) && site.drag_phase() == DockDragPhase::settling,
+            "Escape starts the settling");
+    (*fixture).changed.disconnect();
+    (*fixture).workspace.reset();
+    window.perform_layout();
+    static_cast<void>(window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(1)));
+    window.perform_layout();
+    require(site.drag_phase() == DockDragPhase::idle && site.drag_stamp().empty(),
+            "with no workspace the session ends instead of settling forever");
+}
+
 int main() {
     geometry();
     threshold_escape_and_close_up();
@@ -905,6 +927,7 @@ int main() {
     documents_by_recent_use();
     auto_hide_meets_dragging();
     stamp_picture();
+    settling_ends_without_a_workspace();
     std::cout << "DockSite dragging: geometry, the target table, threshold, Escape, capture loss, deactivation, "
                  "layout changes, invalid drops, Ctrl, one transaction per drop, the stamp and its frames, tab drags, the "
                  "keyboard move mode and restrictions passed\n";

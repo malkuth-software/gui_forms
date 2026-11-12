@@ -108,7 +108,7 @@ std::vector<StepIndicator::StepPlacement> StepIndicator::placements(double width
     // Each step owns an equal column; its chip is centred in the column and
     // the connector runs from this chip to the next one's.
     const double column = width / static_cast<double>(count);
-    const Size caption_size = resolve_text_layout_utf8("Ag", caption_font()).logical_size;
+    const Size caption_size = measure_text_extent_utf8("Ag", caption_font()).logical_size;
     const double caption_height = std::ceil(caption_size.height);
     for (std::size_t index = 0U; index < count; ++index) {
         StepPlacement step;
@@ -140,7 +140,7 @@ std::optional<std::size_t> StepIndicator::step_at(Point local_point) const {
 
 Size StepIndicator::measure(Size available) {
     const Rect requested = requested_bounds();
-    const Size caption_size = resolve_text_layout_utf8("Ag", caption_font()).logical_size;
+    const Size caption_size = measure_text_extent_utf8("Ag", caption_font()).logical_size;
     const double natural_height = chip_side + caption_gap + std::ceil(caption_size.height);
     const double natural_width = natural_step_width * static_cast<double>(std::max<std::size_t>(1U, steps_.size()));
     const double width = requested.width > 0.0 ? requested.width : natural_width;

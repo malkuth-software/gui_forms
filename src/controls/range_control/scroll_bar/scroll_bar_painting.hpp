@@ -37,6 +37,11 @@ struct ScrollBarPaintParts final {
     std::string_view item{};
 };
 
+// The square an arrow button's mark fills, centred in `button` on whole
+// units; empty when the button is narrower or shorter than
+// scroll_arrow_mark_extent.
+[[nodiscard]] Rect arrow_mark_bounds(Rect button) noexcept;
+
 // Draws the trough, the track, the arrow buttons with their marks and the
 // thumb of `drawn` for `control`, in that order. A button narrower or
 // shorter than scroll_arrow_mark_extent draws no mark.

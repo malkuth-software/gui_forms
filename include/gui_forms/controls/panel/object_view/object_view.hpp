@@ -321,6 +321,7 @@ private:
     void paint_glyph(Painter& painter, Rect bounds, ObjectGlyph glyph,
                      bool enabled) const;
     void paint_focus_ring_part(Painter& painter, Rect bounds) const;
+    void invalidate_hover_change(std::optional<std::size_t> previous, std::optional<std::size_t> next);
 
     std::vector<ObjectViewItem> items_{};
     std::string selected_id_{};
@@ -328,6 +329,11 @@ private:
     std::string focused_id_{};
     std::string selection_anchor_id_{};
     std::optional<std::size_t> hovered_index_{};
+    // The shown items the last paint truncated, and whether it drew a
+    // complete-name inspection; rebuilt by each paint, read by the hover
+    // damage. Bounded by the shown items.
+    std::vector<std::size_t> painted_truncated_{};
+    bool painted_inspection_{};
     std::optional<std::size_t> pressed_index_{};
     std::uint32_t pressed_click_count_{1U};
     PointerButton pressed_button_{PointerButton::none};

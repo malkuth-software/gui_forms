@@ -8,8 +8,8 @@
    children into the shell's page body, where each is placed by its bounds
    in design coordinates. The page keeps in code the Commands and their
    bindings, the dialog components and their requests, the font sample (its
-   font seeds the FontDialog), the NotifyIcon, every event handler, the
-   status line's reports and the page style. */
+   font seeds the FontDialog), the NotifyIcon, every event handler and the
+   status line's reports. */
 scaled-panel gallery.host.document {
   design-size: 1000 870;
 

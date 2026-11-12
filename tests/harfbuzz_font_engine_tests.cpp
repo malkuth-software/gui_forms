@@ -543,6 +543,76 @@ void test_lazy_fallback_matches_eager_and_loads_once() {
             "a lazy face needs coverage and a loader");
 }
 
+// A numbered bundled family (theme-language `font-family: Selawik`): its faces are read only
+// when text names the family, then draw before every role face, by weight, with the role's
+// faces and the fallbacks still covering what the family lacks. Text that names no family,
+// or another family, never reaches them; a family face that cannot be opened leaves the
+// role's faces in charge.
+void test_named_family_draws_first_and_loads_on_demand() {
+    const std::vector<std::byte> rapids = read_file(GUI_FORMS_TEST_RAPIDS_REGULAR);
+    const std::vector<std::byte> carlito = read_file(GUI_FORMS_TEST_CARLITO_REGULAR);
+    const std::vector<std::byte> cousine = read_file(GUI_FORMS_TEST_COUSINE_REGULAR);
+    HarfBuzzFontEngine engine;
+    register_primaries(engine, rapids, carlito, cousine);
+    require(engine.register_fallback_typeface(400, false, read_file(GUI_FORMS_TEST_NOTO_CJK_REGULAR)).has_value(),
+            "CJK fallback registers");
+    const BundledFontFamily selawik{1U};
+    CountingLoader regular = counting_loader(GUI_FORMS_TEST_SELAWIK_REGULAR);
+    CountingLoader bold = counting_loader(GUI_FORMS_TEST_SELAWIK_BOLD);
+    const std::optional<FontFaceId> regular_id = engine.register_lazy_family_typeface(selawik, 400, false, regular);
+    require(regular_id.has_value() && engine.register_lazy_family_typeface(selawik, 700, false, bold).has_value(),
+            "family faces register");
+    require(engine.face_count() == 6U && engine.opened_face_count() == 4U, "family faces are registered unopened");
+
+    const FontSpec content{FontRole::content, 12.0, 400, false};
+    const ResolvedTextLayout plain = engine.resolve("Plain text", content);
+    require(plain.status == TextResolutionStatus::exact && plain.primary_family == "Carlito",
+            "text that names no family draws the role's face");
+    FontSpec other = content;
+    other.family = BundledFontFamily{2U};
+    require(engine.resolve("Plain text", other).primary_family == "Carlito", "another family draws the role's face");
+    require(*regular.calls + *bold.calls == 0, "no family face is read for text that does not name it");
+
+    FontSpec named = content;
+    named.family = selawik;
+    const ResolvedTextLayout drawn = engine.resolve("Plain text", named);
+    require(drawn.status == TextResolutionStatus::exact && drawn.primary_family == "Selawik",
+            "text that names the family draws its face");
+    require(!drawn.runs.empty() && drawn.runs.front().family == "Selawik" && !drawn.runs.front().fallback &&
+                drawn.runs.front().registered_weight == 400,
+            "the family's run is its regular face and not a fallback");
+    require(*regular.calls == 1 && *bold.calls == 1 && engine.opened_face_count() == 6U,
+            "the family's faces are read once, when first named");
+    FontSpec named_bold = named;
+    named_bold.weight = 700;
+    const ResolvedTextLayout heavy = engine.resolve("Bold", named_bold);
+    require(!heavy.runs.empty() && heavy.runs.front().family == "Selawik" &&
+                heavy.runs.front().registered_weight == 700,
+            "a bold request draws the family's bold face");
+    const ResolvedTextLayout mixed = engine.resolve("A日", named);
+    require(mixed.runs.size() == 2U && mixed.runs[0].family == "Selawik" && mixed.runs[1].family != "Selawik" &&
+                mixed.runs[1].fallback,
+            "the fallbacks cover what the family lacks");
+    const std::optional<PrimaryLineMetrics> metrics = engine.primary_line_metrics(named);
+    require(metrics && regular_id && (*metrics).face == *regular_id, "the family's face gives the primary line metrics");
+    require(*regular.calls == 1 && *bold.calls == 1, "an opened family face is not read again");
+
+    HarfBuzzFontEngine unreadable;
+    register_primaries(unreadable, rapids, carlito, cousine);
+    CountingLoader missing = counting_loader(nullptr);
+    require(unreadable.register_lazy_family_typeface(selawik, 400, false, missing).has_value(),
+            "an unreadable family face registers");
+    const ResolvedTextLayout instead = unreadable.resolve("Plain text", named);
+    require(instead.status == TextResolutionStatus::exact && instead.primary_family == "Carlito",
+            "a family face that cannot be opened leaves the role's face in charge");
+    static_cast<void>(unreadable.resolve("Plain text", named));
+    require(*missing.calls == 1, "a family face that cannot be opened is read once");
+
+    require(!engine.register_lazy_family_typeface(BundledFontFamily{}, 400, false, regular).has_value() &&
+                !engine.register_lazy_family_typeface(selawik, 400, false, LazyFaceLoader{}).has_value(),
+            "a family face needs a family and a loader");
+}
+
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
 void test_call_failure_preserves_caller_and_recovers() {
     HarfBuzzFontEngine engine{};
@@ -677,6 +747,7 @@ int main() {
         test_metrics_scale_and_repeat_deterministically();
         test_shared_cjk_and_emoji_fallback_across_roles();
         test_lazy_fallback_matches_eager_and_loads_once();
+        test_named_family_draws_first_and_loads_on_demand();
         test_letter_spacing_is_a_shaped_layout_input();
         test_rejection_and_missing_role_are_honest();
         test_public_resolution_record_names_actual_bundled_runs();

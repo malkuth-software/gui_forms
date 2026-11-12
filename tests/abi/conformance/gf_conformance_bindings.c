@@ -59,6 +59,360 @@ static int text_is(gf_kit* kit, gf_object control, const char* expected) {
     return gf_kit_view_equals(value.text, expected);
 }
 
+/* N31: a C data provider. Rows live here; the source reads them in place. */
+typedef struct kit_provider {
+    uint64_t rows;
+    const char* names[8];
+    double amounts[8];
+    const char* ids[8];
+    uint32_t writes;
+    uint32_t releases;
+} kit_provider;
+
+static gf_status GF_CALL provider_row_count(void* context, uint64_t* count) {
+    *count = (*(kit_provider*)context).rows;
+    return GF_STATUS_OK;
+}
+
+static gf_status GF_CALL provider_read_value(void* context, uint64_t row, uint64_t column, gf_value* value) {
+    const kit_provider* provider = (const kit_provider*)context;
+    if (row >= (*provider).rows) {
+        return GF_STATUS_NOT_FOUND;
+    }
+    if (column == 0u) {
+        (*value).kind = GF_VALUE_KIND_TEXT;
+        (*value).text = gf_kit_text((*provider).names[row]);
+    } else {
+        (*value).kind = GF_VALUE_KIND_NUMBER;
+        (*value).number = (*provider).amounts[row];
+    }
+    return GF_STATUS_OK;
+}
+
+static gf_status GF_CALL provider_read_stable_id(void* context, uint64_t row, gf_utf8_view* stable_id) {
+    const kit_provider* provider = (const kit_provider*)context;
+    if (row >= (*provider).rows) {
+        return GF_STATUS_NOT_FOUND;
+    }
+    *stable_id = gf_kit_text((*provider).ids[row]);
+    return GF_STATUS_OK;
+}
+
+static gf_status GF_CALL provider_write_value(void* context, uint64_t row, uint64_t column, const gf_value* value,
+                                              uint32_t* accepted, gf_utf8_view* reason) {
+    kit_provider* provider = (kit_provider*)context;
+    if (column != 1u || (*value).kind != GF_VALUE_KIND_NUMBER || (*value).number < 0.0) {
+        *accepted = 0u;
+        *reason = gf_kit_text("amounts are not negative");
+        return GF_STATUS_OK;
+    }
+    (*provider).amounts[row] = (*value).number;
+    ++(*provider).writes;
+    *accepted = 1u;
+    return GF_STATUS_OK;
+}
+
+static void GF_CALL provider_release(void* context) {
+    ++(*(kit_provider*)context).releases;
+}
+
+/* Whether the shown cell (row, 0) at generation is the name expected. */
+static int shown_name_is(gf_kit* kit, gf_object source, uint64_t generation, uint64_t row, const char* expected) {
+    gf_value value;
+    memset(&value, 0, sizeof(value));
+    value.struct_size = (uint32_t)sizeof(value);
+    char text[64];
+    uint64_t required = 0u;
+    if ((*kit).bindings.read_cell(source, generation, row, 0u, &value, text, sizeof(text), &required) !=
+        GF_STATUS_OK) {
+        return 0;
+    }
+    return value.kind == GF_VALUE_KIND_TEXT && gf_kit_view_equals(value.text, expected);
+}
+
+static void kit_binding_provider(gf_kit* kit, gf_object source) {
+    kit_provider provider;
+    memset(&provider, 0, sizeof(provider));
+    provider.rows = 3u;
+    provider.names[0] = "Oslo";
+    provider.names[1] = "Lima";
+    provider.names[2] = "Bern";
+    provider.amounts[0] = 2.0;
+    provider.amounts[1] = 9.0;
+    provider.amounts[2] = 5.0;
+    provider.ids[0] = "city.oslo";
+    provider.ids[1] = "city.lima";
+    provider.ids[2] = "city.bern";
+    provider.names[3] = "Rome";
+    provider.amounts[3] = 7.0;
+    provider.ids[3] = "city.rome";
+
+    gf_binding_column columns[2];
+    memset(columns, 0, sizeof(columns));
+    columns[0].struct_size = (uint32_t)sizeof(gf_binding_column);
+    columns[0].kind = GF_VALUE_KIND_TEXT;
+    columns[0].name = gf_kit_text("name");
+    columns[0].read_only = 1u;
+    columns[1].struct_size = (uint32_t)sizeof(gf_binding_column);
+    columns[1].kind = GF_VALUE_KIND_NUMBER;
+    columns[1].name = gf_kit_text("amount");
+    gf_binding_provider_callbacks callbacks;
+    memset(&callbacks, 0, sizeof(callbacks));
+    callbacks.struct_size = (uint32_t)sizeof(callbacks);
+    callbacks.context = &provider;
+    callbacks.row_count = &provider_row_count;
+    callbacks.read_value = &provider_read_value;
+    callbacks.read_stable_id = &provider_read_stable_id;
+    callbacks.write_value = &provider_write_value;
+    callbacks.release = &provider_release;
+
+    uint64_t id = 0u;
+    callbacks.flags = GF_BINDING_PROVIDER_SORTS;
+    gf_kit_status(kit, (*kit).bindings.set_provider(source, columns, 2u, &callbacks, &id), GF_STATUS_INVALID_ARGUMENT,
+                  "a flag needs its callback");
+    callbacks.flags = 0u;
+    columns[1].name = gf_kit_text("Name");
+    gf_kit_status(kit, (*kit).bindings.set_provider(source, columns, 2u, &callbacks, &id), GF_STATUS_INVALID_ARGUMENT,
+                  "column names are distinct after folding");
+    columns[1].name = gf_kit_text("amount");
+    gf_kit_status(kit, (*kit).bindings.set_provider(source, columns, 2u, &callbacks, &id), GF_STATUS_OK,
+                  "bind a C provider");
+    gf_kit_check(kit, id != 0u, "the provider has an id");
+
+    uint64_t generation = 0u;
+    uint64_t count = 0u;
+    gf_kit_status(kit, (*kit).bindings.generation(source, &generation, &count), GF_STATUS_OK, "read the generation");
+    gf_kit_check(kit, count == 3u && shown_name_is(kit, source, generation, 1u, "Lima"),
+                 "the source reads the provider's rows in place");
+    gf_value value;
+    memset(&value, 0, sizeof(value));
+    value.struct_size = (uint32_t)sizeof(value);
+    char text[64];
+    uint64_t required = 0u;
+    gf_kit_status(kit, (*kit).bindings.read_cell(source, generation, 3u, 0u, &value, text, sizeof(text), &required),
+                  GF_STATUS_NOT_FOUND, "a row past the source's is not found");
+
+    gf_value amount;
+    memset(&amount, 0, sizeof(amount));
+    amount.struct_size = (uint32_t)sizeof(amount);
+    amount.kind = GF_VALUE_KIND_NUMBER;
+    amount.number = 4.0;
+    uint32_t accepted = 9u;
+    gf_kit_status(kit, (*kit).bindings.set_current_field(source, gf_kit_text("amount"), &amount, &accepted),
+                  GF_STATUS_OK, "write the current amount");
+    gf_kit_check(kit, accepted == 1u && provider.writes == 1u && provider.amounts[0] == 4.0,
+                 "the write reaches the provider's data");
+    amount.number = -1.0;
+    gf_kit_status(kit, (*kit).bindings.set_current_field(source, gf_kit_text("amount"), &amount, &accepted),
+                  GF_STATUS_OK, "write a refused amount");
+    gf_kit_check(kit, accepted == 0u && provider.amounts[0] == 4.0, "the provider refuses it");
+    const gf_value renamed = text_value("Paris");
+    gf_kit_status(kit, (*kit).bindings.set_current_field(source, gf_kit_text("name"), &renamed, &accepted),
+                  GF_STATUS_OK, "write a read-only column");
+    gf_kit_check(kit, accepted == 0u, "a read-only column is not written");
+
+    gf_kit_status(kit, (*kit).bindings.read_cell(source, generation, 0u, 0u, &value, text, sizeof(text), &required),
+                  GF_STATUS_STALE_HANDLE, "a read at a stale generation is refused");
+
+    gf_binding_sort_key key;
+    memset(&key, 0, sizeof(key));
+    key.struct_size = (uint32_t)sizeof(key);
+    key.direction = GF_BINDING_SORT_DESCENDING;
+    key.column = gf_kit_text("missing");
+    gf_kit_status(kit, (*kit).bindings.set_sort(source, &key, 1u), GF_STATUS_NOT_FOUND,
+                  "a sort on an unknown column is not found");
+    key.column = gf_kit_text("AMOUNT");
+    gf_kit_status(kit, (*kit).bindings.set_sort(source, &key, 1u), GF_STATUS_OK, "sort by amount, descending");
+    gf_kit_status(kit, (*kit).bindings.generation(source, &generation, &count), GF_STATUS_OK, "read after the sort");
+    gf_kit_check(kit, shown_name_is(kit, source, generation, 0u, "Lima") &&
+                      shown_name_is(kit, source, generation, 2u, "Oslo"),
+                 "the source's own index sorts the provider's rows");
+
+    gf_value floor;
+    memset(&floor, 0, sizeof(floor));
+    floor.struct_size = (uint32_t)sizeof(floor);
+    floor.kind = GF_VALUE_KIND_NUMBER;
+    floor.number = 4.5;
+    gf_binding_predicate predicate;
+    memset(&predicate, 0, sizeof(predicate));
+    predicate.struct_size = (uint32_t)sizeof(predicate);
+    predicate.op = GF_BINDING_PREDICATE_GREATER;
+    predicate.column = gf_kit_text("amount");
+    predicate.operand = &floor;
+    gf_kit_status(kit, (*kit).bindings.set_filter(source, &predicate, 1u), GF_STATUS_OK, "filter amounts over 4.5");
+    gf_kit_status(kit, (*kit).bindings.generation(source, &generation, &count), GF_STATUS_OK, "read after the filter");
+    gf_kit_check(kit, count == 2u && shown_name_is(kit, source, generation, 1u, "Bern"), "the filter keeps two rows");
+
+    provider.rows = 4u;
+    gf_kit_status(kit, (*kit).bindings.notify(id, GF_BINDING_NOTIFY_INSERTED, 3u, 1u, 0u), GF_STATUS_OK,
+                  "report an inserted row");
+    gf_kit_status(kit, (*kit).bindings.generation(source, &generation, &count), GF_STATUS_OK, "read after the insert");
+    gf_kit_check(kit, count == 3u && shown_name_is(kit, source, generation, 1u, "Rome"),
+                 "the inserted row takes its place in the view");
+    gf_kit_status(kit, (*kit).bindings.notify(id, 9u, 0u, 0u, 0u), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown notification kind is refused");
+    gf_kit_status(kit, (*kit).bindings.notify(id + 1000u, GF_BINDING_NOTIFY_RESET, 0u, 0u, 0u), GF_STATUS_REMOVED,
+                  "an id no source holds is removed");
+
+    gf_kit_status(kit, (*kit).bindings.set_provider(source, NULL, 0u, NULL, &id), GF_STATUS_OK,
+                  "bind an empty table again");
+    gf_kit_check(kit, provider.releases == 1u && id == 0u, "the C provider is released once");
+    gf_kit_status(kit, (*kit).bindings.set_sort(source, NULL, 0u), GF_STATUS_OK, "clear the sort");
+    gf_kit_status(kit, (*kit).bindings.set_filter(source, NULL, 0u), GF_STATUS_OK, "clear the filter");
+}
+
+/* N31 batch 2: a provider that adds rows at its end and refuses a negative
+ * amount; add_records over it is all or none. */
+typedef struct kit_batch_provider {
+    uint64_t rows;
+    double amounts[8];
+    char ids[8][16];
+} kit_batch_provider;
+
+static gf_status GF_CALL batch_row_count(void* context, uint64_t* count) {
+    *count = (*(kit_batch_provider*)context).rows;
+    return GF_STATUS_OK;
+}
+
+static gf_status GF_CALL batch_read_value(void* context, uint64_t row, uint64_t column, gf_value* value) {
+    const kit_batch_provider* provider = (const kit_batch_provider*)context;
+    if (row >= (*provider).rows || column != 0u) {
+        return GF_STATUS_NOT_FOUND;
+    }
+    (*value).kind = GF_VALUE_KIND_NUMBER;
+    (*value).number = (*provider).amounts[row];
+    return GF_STATUS_OK;
+}
+
+static gf_status GF_CALL batch_read_stable_id(void* context, uint64_t row, gf_utf8_view* stable_id) {
+    const kit_batch_provider* provider = (const kit_batch_provider*)context;
+    if (row >= (*provider).rows) {
+        return GF_STATUS_NOT_FOUND;
+    }
+    *stable_id = gf_kit_text((*provider).ids[row]);
+    return GF_STATUS_OK;
+}
+
+static gf_status GF_CALL batch_write_value(void* context, uint64_t row, uint64_t column, const gf_value* value,
+                                           uint32_t* accepted, gf_utf8_view* reason) {
+    (void)context;
+    (void)row;
+    (void)column;
+    (void)value;
+    *accepted = 0u;
+    *reason = gf_kit_text("read only");
+    return GF_STATUS_OK;
+}
+
+static gf_status GF_CALL batch_insert_row(void* context, uint64_t row, gf_utf8_view stable_id, const gf_value* values,
+                                          uint64_t value_count, uint32_t* accepted) {
+    kit_batch_provider* provider = (kit_batch_provider*)context;
+    *accepted = 0u;
+    if (row != (*provider).rows || row >= 8u || value_count < 1u || stable_id.size >= 16u ||
+        values[0].kind != GF_VALUE_KIND_NUMBER || values[0].number < 0.0) {
+        return GF_STATUS_OK;
+    }
+    /* The id is lent for the call: copied. */
+    memcpy((*provider).ids[row], stable_id.data, (size_t)stable_id.size);
+    (*provider).ids[row][stable_id.size] = '\0';
+    (*provider).amounts[row] = values[0].number;
+    ++(*provider).rows;
+    *accepted = 1u;
+    return GF_STATUS_OK;
+}
+
+static gf_status GF_CALL batch_remove_rows(void* context, uint64_t row, uint64_t count, uint32_t* accepted) {
+    kit_batch_provider* provider = (kit_batch_provider*)context;
+    *accepted = 0u;
+    if (row + count != (*provider).rows) {
+        return GF_STATUS_OK;
+    }
+    (*provider).rows = row;
+    *accepted = 1u;
+    return GF_STATUS_OK;
+}
+
+static void GF_CALL batch_release(void* context) {
+    (void)context;
+}
+
+static gf_binding_record amount_record(const char* stable_id, gf_binding_field* field, const gf_value* amount) {
+    (*field).name = gf_kit_text("amount");
+    (*field).value = amount;
+    gf_binding_record record;
+    memset(&record, 0, sizeof(record));
+    record.struct_size = (uint32_t)sizeof(record);
+    record.editable = 1u;
+    record.stable_id = gf_kit_text(stable_id);
+    record.fields = field;
+    record.field_count = 1u;
+    return record;
+}
+
+static void kit_binding_provider_batches(gf_kit* kit, gf_object source) {
+    kit_batch_provider provider;
+    memset(&provider, 0, sizeof(provider));
+    gf_binding_column column;
+    memset(&column, 0, sizeof(column));
+    column.struct_size = (uint32_t)sizeof(column);
+    column.kind = GF_VALUE_KIND_NUMBER;
+    column.name = gf_kit_text("amount");
+    gf_binding_provider_callbacks callbacks;
+    memset(&callbacks, 0, sizeof(callbacks));
+    callbacks.struct_size = (uint32_t)sizeof(callbacks);
+    callbacks.flags = GF_BINDING_PROVIDER_INSERTS | GF_BINDING_PROVIDER_REMOVES;
+    callbacks.context = &provider;
+    callbacks.row_count = &batch_row_count;
+    callbacks.read_value = &batch_read_value;
+    callbacks.read_stable_id = &batch_read_stable_id;
+    callbacks.write_value = &batch_write_value;
+    callbacks.insert_row = &batch_insert_row;
+    callbacks.remove_rows = &batch_remove_rows;
+    callbacks.release = &batch_release;
+    uint64_t id = 0u;
+    gf_kit_status(kit, (*kit).bindings.set_provider(source, &column, 1u, &callbacks, &id), GF_STATUS_OK,
+                  "bind a provider that inserts and removes");
+
+    gf_value amounts[3];
+    memset(amounts, 0, sizeof(amounts));
+    for (size_t index = 0u; index < 3u; ++index) {
+        amounts[index].struct_size = (uint32_t)sizeof(gf_value);
+        amounts[index].kind = GF_VALUE_KIND_NUMBER;
+        amounts[index].number = (double)index + 1.0;
+    }
+    amounts[2].number = -1.0;
+    gf_binding_field fields[3];
+    gf_binding_record records[3];
+    records[0] = amount_record("batch.a", &fields[0], &amounts[0]);
+    records[1] = amount_record("batch.b", &fields[1], &amounts[1]);
+    records[2] = amount_record("batch.c", &fields[2], &amounts[2]);
+    uint64_t first = 0u;
+    gf_kit_status(kit, (*kit).bindings.add_records(source, records, 3u, &first), GF_STATUS_INVALID_ARGUMENT,
+                  "a record the provider refuses fails the batch");
+    uint64_t generation = 0u;
+    uint64_t count = 9u;
+    gf_kit_status(kit, (*kit).bindings.generation(source, &generation, &count), GF_STATUS_OK, "read after the refusal");
+    gf_kit_check(kit, provider.rows == 0u && count == 0u, "a refused batch adds no record");
+    gf_kit_status(kit, (*kit).bindings.add_records(source, records, 2u, &first), GF_STATUS_OK, "add an accepted batch");
+    gf_kit_status(kit, (*kit).bindings.generation(source, &generation, &count), GF_STATUS_OK, "read after the batch");
+    gf_kit_check(kit, provider.rows == 2u && count == 2u && first == 0u, "an accepted batch adds every record");
+
+    callbacks.flags = GF_BINDING_PROVIDER_INSERTS;
+    callbacks.remove_rows = NULL;
+    gf_kit_status(kit, (*kit).bindings.set_provider(source, &column, 1u, &callbacks, &id), GF_STATUS_OK,
+                  "bind a provider that only inserts");
+    records[0] = amount_record("batch.d", &fields[0], &amounts[0]);
+    records[1] = amount_record("batch.e", &fields[1], &amounts[1]);
+    gf_kit_status(kit, (*kit).bindings.add_records(source, records, 2u, &first), GF_STATUS_INVALID_STATE,
+                  "several records need a provider that can remove them again");
+    gf_kit_check(kit, provider.rows == 2u, "the refused batch changed nothing");
+    gf_kit_status(kit, (*kit).bindings.add_records(source, records, 1u, &first), GF_STATUS_OK,
+                  "one record needs no undo");
+    gf_kit_check(kit, provider.rows == 3u, "the one record is added");
+    gf_kit_status(kit, (*kit).bindings.set_provider(source, NULL, 0u, NULL, &id), GF_STATUS_OK,
+                  "bind an empty table after the batches");
+}
+
 void gf_kit_bindings(gf_kit* kit) {
     const gf_object root = gf_kit_create(kit, "panel", "kit.bindings.root");
     gf_object window = 0u;
@@ -164,6 +518,37 @@ void gf_kit_bindings(gf_kit* kit) {
     gf_kit_status(kit, (*kit).bindings.remove_record(source, 0u, &removed), GF_STATUS_OK, "remove a record");
     gf_kit_check(kit, removed == 1u, "the record is removed");
 
+    /* N31: records in bulk, validated whole, so a repeated id adds none. */
+    const char* bulk_ids[3] = {"fourth", "fifth", "sixth"};
+    const gf_value bulk_title = text_value("Bulk");
+    gf_binding_field bulk_field;
+    bulk_field.name = gf_kit_text("title");
+    bulk_field.value = &bulk_title;
+    gf_binding_record bulk[3];
+    memset(bulk, 0, sizeof(bulk));
+    for (uint32_t index = 0u; index < 3u; ++index) {
+        bulk[index].struct_size = (uint32_t)sizeof(gf_binding_record);
+        bulk[index].editable = 1u;
+        bulk[index].stable_id = gf_kit_text(bulk_ids[index]);
+        bulk[index].fields = &bulk_field;
+        bulk[index].field_count = 1u;
+    }
+    uint64_t first = 99u;
+    gf_kit_status(kit, (*kit).bindings.add_records(source, bulk, 3u, &first), GF_STATUS_OK, "add records in bulk");
+    gf_kit_status(kit, (*kit).bindings.position(source, &position, &count), GF_STATUS_OK, "read the bulk count");
+    gf_kit_check(kit, first == 2u && count == 5u, "the bulk records follow the two");
+    bulk[0].stable_id = gf_kit_text("seventh");
+    bulk[1].stable_id = gf_kit_text("fifth");
+    gf_kit_status(kit, (*kit).bindings.add_records(source, bulk, 2u, &first), GF_STATUS_INVALID_ARGUMENT,
+                  "a stable id already present refuses the batch");
+    bulk[1].stable_id = gf_kit_text("seventh");
+    gf_kit_status(kit, (*kit).bindings.add_records(source, bulk, 2u, &first), GF_STATUS_INVALID_ARGUMENT,
+                  "a stable id repeated in the batch refuses it");
+    gf_kit_status(kit, (*kit).bindings.position(source, &position, &count), GF_STATUS_OK, "read the count again");
+    gf_kit_check(kit, count == 5u, "a refused batch adds none");
+    gf_kit_status(kit, (*kit).bindings.add_records(source, bulk, 0u, &first), GF_STATUS_OK, "an empty batch");
+    gf_kit_check(kit, first == 5u, "an empty batch writes first");
+
     gf_kit_status(kit, (*kit).bindings.unbind(binding), GF_STATUS_OK, "unbind");
     gf_kit_status(kit, (*kit).bindings.unbind(binding), GF_STATUS_DISPOSED, "unbinding disposes the binding");
     gf_kit_status(kit, (*kit).bindings.read_value(box, &updated), GF_STATUS_WRONG_HANDLE_KIND,
@@ -171,6 +556,9 @@ void gf_kit_bindings(gf_kit* kit) {
     gf_kit_status(kit, (*kit).bindings.clear_records(source), GF_STATUS_OK, "clear the records");
     gf_kit_status(kit, (*kit).bindings.position(source, &position, &count), GF_STATUS_OK, "read the empty source");
     gf_kit_check(kit, count == 0u && position == -1, "an empty source has no position");
+
+    kit_binding_provider(kit, source);
+    kit_binding_provider_batches(kit, source);
 
     gf_kit_status(kit, (*kit).objects.release(binding), GF_STATUS_OK, "release the binding");
     gf_kit_status(kit, (*kit).objects.release(box), GF_STATUS_OK, "release the text box");

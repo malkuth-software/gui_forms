@@ -218,6 +218,9 @@ public:
     // the current state right after its attach. No state is reported until
     // the first call.
     void simulate_compositor_state(CompositorState state);
+    // Popup and Splash windows opened from now on are refused every
+    // non-opaque backdrop although the compositor state offers it (Wine).
+    void refuse_popup_alpha() noexcept { refuse_popup_alpha_ = true; }
     [[nodiscard]] const CompositorState& compositor_state() const noexcept { return compositor_state_; }
     // Applies `fault` to the next runtime open only, after admission and
     // after the entry is consumed.
@@ -275,6 +278,7 @@ private:
     std::vector<std::unique_ptr<Window>> refused_models_;
     // The simulated compositor; generation 0 until the first report.
     CompositorState compositor_state_{};
+    bool refuse_popup_alpha_{};
 };
 
 } // namespace gui_forms::host

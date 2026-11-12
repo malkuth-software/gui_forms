@@ -12,6 +12,7 @@
 #include "gui_forms/visual_inspection.hpp"
 #include "gui_forms/window.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -536,10 +537,11 @@ void test_copy_blend() {
             "the copy group composite has the copy blend");
 }
 
-// The pixels wholly inside a rectangular clip skip the coverage arithmetic
-// (and an opaque source-over pixel at full opacity is stored as it is):
-// the result equals the per-pixel path, which a rounded clip of radius 0
-// around the whole target forces on every pixel.
+// The interior (pixels whose clip coverage is a whole unit) skips the
+// coverage arithmetic, and under a rounded clip of radius 0 its bands are
+// the whole interior: a rectangular clip and that rounded clip around the
+// whole target give the same bytes. The interior against the per-pixel
+// formula is test_blocks_match_the_reference.
 void test_interior_shortcut_matches_coverage() {
     constexpr std::uint32_t width = 13U;
     constexpr std::uint32_t height = 9U;
@@ -595,6 +597,451 @@ void test_interior_shortcut_matches_coverage() {
     }
 }
 
+// A scaled source: the stepped sample positions and the direct texel
+// fetches give the bytes of the divided, edge-tested path, which a rounded
+// clip of radius 0 cannot force, so the reference here is the per-pixel
+// formula itself (sample_position and the bilinear weights as documented).
+void test_scaled_steps_match_the_formula() {
+    constexpr std::uint32_t source_width = 5U;
+    constexpr std::uint32_t source_height = 4U;
+    std::vector<std::uint8_t> bytes{};
+    for (std::uint32_t index = 0U; index < source_width * source_height; ++index) {
+        const unsigned alpha = 60U + (index * 31U) % 196U;
+        bytes.push_back(static_cast<std::uint8_t>((index * 11U) % (alpha + 1U)));
+        bytes.push_back(static_cast<std::uint8_t>((index * 23U) % (alpha + 1U)));
+        bytes.push_back(static_cast<std::uint8_t>((index * 41U) % (alpha + 1U)));
+        bytes.push_back(static_cast<std::uint8_t>(alpha));
+    }
+    constexpr std::array<std::array<std::uint32_t, 2>, 3> shown{{{13U, 9U}, {7U, 11U}, {3U, 2U}}};
+    for (const std::array<std::uint32_t, 2>& size : shown) {
+        PartRasterSource source = source_of(bytes, source_width, source_height, 1, 2);
+        source.shown_width = size[0];
+        source.shown_height = size[1];
+        const std::uint32_t width = size[0] + 3U;
+        const std::uint32_t height = size[1] + 4U;
+        TestTarget target = make_target(width, height, 0U, false);
+        require(detail::composite_part_raster(source, target.target, whole(width, height), 255U) ==
+                    TextCompositeStatus::success,
+                "a scaled source composites");
+        for (std::uint32_t y = 0U; y < height; ++y) {
+            for (std::uint32_t x = 0U; x < width; ++x) {
+                const std::int64_t shown_x = static_cast<std::int64_t>(x) - 1;
+                const std::int64_t shown_y = static_cast<std::int64_t>(y) - 2;
+                std::uint32_t expected = 0U;
+                if (shown_x >= 0 && shown_y >= 0 && shown_x < static_cast<std::int64_t>(size[0]) &&
+                    shown_y < static_cast<std::int64_t>(size[1])) {
+                    const std::int64_t across =
+                        (2 * shown_x + 1) * static_cast<std::int64_t>(source_width) * 256 / (2 * size[0]) - 128;
+                    const std::int64_t down =
+                        (2 * shown_y + 1) * static_cast<std::int64_t>(source_height) * 256 / (2 * size[1]) - 128;
+                    const std::int64_t texel_x = across >> 8;
+                    const std::int64_t texel_y = down >> 8;
+                    const std::uint64_t after = static_cast<std::uint64_t>(across & 255);
+                    const std::uint64_t below = static_cast<std::uint64_t>(down & 255);
+                    std::array<std::uint64_t, 4> channels{};
+                    constexpr std::array<std::size_t, 4> order{2U, 1U, 0U, 3U};
+                    for (std::size_t channel = 0U; channel < 4U; ++channel) {
+                        std::array<std::uint64_t, 4> texels{};
+                        for (std::size_t corner = 0U; corner < 4U; ++corner) {
+                            const std::int64_t tx = texel_x + static_cast<std::int64_t>(corner % 2U);
+                            const std::int64_t ty = texel_y + static_cast<std::int64_t>(corner / 2U);
+                            if (tx < 0 || ty < 0 || tx >= static_cast<std::int64_t>(source_width) ||
+                                ty >= static_cast<std::int64_t>(source_height)) {
+                                continue;
+                            }
+                            texels[corner] = bytes[static_cast<std::size_t>(ty * source_width + tx) * 4U + order[channel]];
+                        }
+                        const std::uint64_t upper = texels[0] * (256U - after) + texels[1] * after;
+                        const std::uint64_t lower = texels[2] * (256U - after) + texels[3] * after;
+                        channels[channel] = (upper * (256U - below) + lower * below + 32768U) >> 16U;
+                    }
+                    // Over a transparent target at full weight the result is
+                    // the weighted source itself.
+                    if (channels[3] != 0U) {
+                        expected = pack(static_cast<unsigned>(channels[0]), static_cast<unsigned>(channels[1]),
+                                        static_cast<unsigned>(channels[2]), static_cast<unsigned>(channels[3]));
+                    }
+                }
+                require(target.pixels[static_cast<std::size_t>(y) * width + x] == expected,
+                        "a stepped scaled sample equals the formula");
+            }
+        }
+    }
+}
+
+
+// -- the block kernels against the documented formulas -------------------------------
+//
+// The interior's block kernels (text_composite.cpp) must give the per-pixel
+// path's bytes. The reference here is the formulas as the header states
+// them, pixel by pixel, with each pixel's clip coverage from
+// text_clip_coverage; randomized blits cover rectangular, rounded and
+// nested rounded clips on whole and fractional pixels, scaled sources and
+// opaque sources recorded as such.
+
+// The two byte identities the kernels rest on, checked over their whole
+// domains: the 16-bit lane form of rounded_quotient_by_255 is the rounded
+// quotient for every product of two bytes, and a channel weighted at
+// opacity o times a whole unit of clip coverage is that rounded product.
+void test_block_identities_are_exact() {
+    for (unsigned value = 0U; value <= 65025U; ++value) {
+        const std::uint16_t lane = static_cast<std::uint16_t>(value);
+        const std::uint16_t biased = static_cast<std::uint16_t>(lane + 128U);
+        const std::uint16_t carried = static_cast<std::uint16_t>(biased + (biased >> 8U));
+        const unsigned quotient = static_cast<std::uint16_t>(carried >> 8U);
+        require(quotient == (value + 127U) / 255U, "the 16-bit quotient lane is the rounded quotient");
+        require(detail::rounded_quotient_by_255(value) == quotient, "the lane form is rounded_quotient_by_255");
+    }
+    for (std::uint64_t channel = 0U; channel <= 255U; ++channel) {
+        for (std::uint64_t opacity = 0U; opacity <= 255U; ++opacity) {
+            const std::uint64_t wide = (channel * opacity * 256U + 32640U) / 65280U;
+            const unsigned product = static_cast<unsigned>(channel * opacity);
+            require(wide == detail::rounded_quotient_by_255(product),
+                    "a whole-unit weight is the rounded product of channel and opacity");
+        }
+    }
+}
+
+// A small deterministic generator (xorshift32), so that a failure repeats.
+struct TestRandom final {
+    std::uint32_t state{0x2026111bU};
+};
+
+std::uint32_t next_random(TestRandom& random) {
+    std::uint32_t value = random.state;
+    value ^= value << 13U;
+    value ^= value >> 17U;
+    value ^= value << 5U;
+    random.state = value;
+    return value;
+}
+
+std::uint32_t random_below(TestRandom& random, const std::uint32_t bound) {
+    const std::uint32_t value = next_random(random) % bound;
+    return value;
+}
+
+// A clip on whole pixels or on 1/256 of one, sometimes rounded, sometimes
+// with an outer rounded clip, sometimes reaching outside the target.
+TextCompositeClip random_clip(TestRandom& random, const std::uint32_t width, const std::uint32_t height) {
+    const bool whole_pixels = random_below(random, 2U) == 0U;
+    const double step = whole_pixels ? 1.0 : 1.0 / 256.0;
+    const std::uint32_t scale = whole_pixels ? 1U : 256U;
+    TextCompositeClip clip{};
+    clip.rect.x = static_cast<double>(static_cast<std::int64_t>(random_below(random, width * scale)) - 8) * step;
+    clip.rect.y = static_cast<double>(static_cast<std::int64_t>(random_below(random, height * scale)) - 8) * step;
+    clip.rect.width = static_cast<double>(random_below(random, width * scale)) * step;
+    clip.rect.height = static_cast<double>(random_below(random, height * scale)) * step;
+    if (random_below(random, 2U) == 0U) {
+        clip.rounded = true;
+        clip.rounded_rect.x = clip.rect.x + static_cast<double>(static_cast<std::int64_t>(random_below(random, 9U)) - 4) * step;
+        clip.rounded_rect.y = clip.rect.y + static_cast<double>(static_cast<std::int64_t>(random_below(random, 9U)) - 4) * step;
+        clip.rounded_rect.width = clip.rect.width + static_cast<double>(random_below(random, 9U)) * step;
+        clip.rounded_rect.height = clip.rect.height + static_cast<double>(random_below(random, 9U)) * step;
+        clip.radius = static_cast<double>(random_below(random, 3000U)) / 100.0;
+        if (random_below(random, 3U) == 0U) {
+            clip.outer_rounded = true;
+            clip.outer_rounded_rect.x = clip.rect.x - static_cast<double>(random_below(random, 6U));
+            clip.outer_rounded_rect.y = clip.rect.y - static_cast<double>(random_below(random, 6U));
+            clip.outer_rounded_rect.width = clip.rect.width + static_cast<double>(random_below(random, 12U));
+            clip.outer_rounded_rect.height = clip.rect.height + static_cast<double>(random_below(random, 12U));
+            clip.outer_radius = static_cast<double>(random_below(random, 2000U)) / 100.0;
+        }
+    }
+    return clip;
+}
+
+// A source pixel's premultiplied red, green, blue and alpha.
+using SourceChannels = std::array<std::uint64_t, 4>;
+
+// Source-over of `source` at weight w = opacity x clip coverage, as the
+// header states it: s' = (s * w + 32640) / 65280 per channel, alpha
+// included; out = min(255, s' + (d * (255 - alpha') + 127) / 255), alpha
+// 255 on an opaque target. A pixel whose weighted alpha is 0 is left as it
+// is.
+std::uint32_t reference_over(const std::uint32_t previous, const SourceChannels& source, const std::uint64_t weight,
+                             const bool opaque) {
+    std::array<std::uint64_t, 4> weighted{};
+    for (std::size_t channel = 0U; channel < 4U; ++channel) {
+        weighted[channel] = (source[channel] * weight + 32640U) / 65280U;
+    }
+    if (weighted[3] == 0U) return previous;
+    const std::uint64_t remaining = 255U - weighted[3];
+    constexpr std::array<unsigned, 4> shifts{16U, 8U, 0U, 24U};
+    std::uint32_t result = 0U;
+    for (std::size_t channel = 0U; channel < 4U; ++channel) {
+        const std::uint64_t destination = (previous >> shifts[channel]) & 255U;
+        std::uint64_t out = std::min<std::uint64_t>(255U, weighted[channel] + (destination * remaining + 127U) / 255U);
+        if (channel == 3U && opaque) out = 255U;
+        result |= static_cast<std::uint32_t>(out) << shifts[channel];
+    }
+    return result;
+}
+
+// One source channel at texel (x, y): 0 beyond the source's edges.
+std::uint64_t reference_texel(const std::vector<std::uint8_t>& bytes, const std::uint32_t width,
+                              const std::uint32_t height, const std::int64_t x, const std::int64_t y,
+                              const std::size_t byte) {
+    if (x < 0 || y < 0 || x >= static_cast<std::int64_t>(width) || y >= static_cast<std::int64_t>(height)) return 0U;
+    const std::uint64_t value = bytes[(static_cast<std::size_t>(y) * width + static_cast<std::size_t>(x)) * 4U + byte];
+    return value;
+}
+
+// Shown pixel (x, y) of a source shown across shown_width x shown_height:
+// its own texel unscaled, otherwise its centre sampled bilinearly as
+// PartRasterSource states it.
+SourceChannels reference_sample(const std::vector<std::uint8_t>& bytes, const std::uint32_t width,
+                                const std::uint32_t height, const std::uint32_t shown_width,
+                                const std::uint32_t shown_height, const std::int64_t x, const std::int64_t y) {
+    constexpr std::array<std::size_t, 4> order{2U, 1U, 0U, 3U};
+    SourceChannels channels{};
+    if (shown_width == width && shown_height == height) {
+        for (std::size_t channel = 0U; channel < 4U; ++channel) {
+            channels[channel] = reference_texel(bytes, width, height, x, y, order[channel]);
+        }
+        return channels;
+    }
+    const std::int64_t across = (2 * x + 1) * static_cast<std::int64_t>(width) * 256 / (2 * static_cast<std::int64_t>(shown_width)) - 128;
+    const std::int64_t down = (2 * y + 1) * static_cast<std::int64_t>(height) * 256 / (2 * static_cast<std::int64_t>(shown_height)) - 128;
+    const std::int64_t texel_x = across >> 8;
+    const std::int64_t texel_y = down >> 8;
+    const std::uint64_t after = static_cast<std::uint64_t>(across & 255);
+    const std::uint64_t below = static_cast<std::uint64_t>(down & 255);
+    for (std::size_t channel = 0U; channel < 4U; ++channel) {
+        const std::size_t byte = order[channel];
+        const std::uint64_t upper = reference_texel(bytes, width, height, texel_x, texel_y, byte) * (256U - after) +
+                                    reference_texel(bytes, width, height, texel_x + 1, texel_y, byte) * after;
+        const std::uint64_t lower = reference_texel(bytes, width, height, texel_x, texel_y + 1, byte) * (256U - after) +
+                                    reference_texel(bytes, width, height, texel_x + 1, texel_y + 1, byte) * after;
+        channels[channel] = (upper * (256U - below) + lower * below + 32768U) >> 16U;
+    }
+    return channels;
+}
+
+// Source pixels of one of four kinds: random translucent, opaque, a part's
+// opaque body with a soft edge and clear corners, or text-like runs.
+enum class SourceKind : std::uint8_t { translucent, opaque, part_like, text_like };
+
+std::vector<std::uint8_t> random_source(TestRandom& random, const std::uint32_t width, const std::uint32_t height,
+                                        const SourceKind kind) {
+    std::vector<std::uint8_t> bytes(static_cast<std::size_t>(width) * height * 4U, std::uint8_t{0U});
+    for (std::uint32_t y = 0U; y < height; ++y) {
+        for (std::uint32_t x = 0U; x < width; ++x) {
+            unsigned alpha = 255U;
+            if (kind == SourceKind::translucent) alpha = random_below(random, 256U);
+            if (kind == SourceKind::part_like) {
+                const std::uint32_t edge = std::min(std::min(x, width - 1U - x), std::min(y, height - 1U - y));
+                const bool corner = (x < 3U || x + 3U >= width) && (y < 3U || y + 3U >= height);
+                alpha = corner ? 0U : (edge == 0U ? 96U : 255U);
+            }
+            if (kind == SourceKind::text_like) {
+                const std::uint32_t phase = (x + y * 3U) % 7U;
+                alpha = phase < 2U ? 0U : (phase == 2U ? random_below(random, 256U) : 255U);
+            }
+            const std::size_t offset = (static_cast<std::size_t>(y) * width + x) * 4U;
+            for (std::size_t channel = 0U; channel < 3U; ++channel) {
+                const unsigned value = random_below(random, 256U);
+                bytes[offset + channel] = static_cast<std::uint8_t>((value * alpha + 127U) / 255U);
+            }
+            bytes[offset + 3U] = static_cast<std::uint8_t>(alpha);
+        }
+    }
+    return bytes;
+}
+
+std::vector<std::uint32_t> random_pixels(TestRandom& random, const std::size_t count, const bool opaque_alpha) {
+    std::vector<std::uint32_t> pixels(count, 0U);
+    for (std::uint32_t& pixel : pixels) {
+        pixel = next_random(random);
+        if (opaque_alpha) pixel |= 0xff000000U;
+    }
+    return pixels;
+}
+
+// Source-over part blits, unscaled and scaled, against reference_over.
+void test_blocks_match_the_reference() {
+    TestRandom random{};
+    for (std::uint32_t round = 0U; round < 800U; ++round) {
+        const std::uint32_t width = 30U + random_below(random, 110U);
+        const std::uint32_t height = 16U + random_below(random, 24U);
+        const std::uint32_t source_width = 1U + random_below(random, 180U);
+        const std::uint32_t source_height = 1U + random_below(random, 40U);
+        const SourceKind kind = static_cast<SourceKind>(random_below(random, 4U));
+        const std::vector<std::uint8_t> bytes = random_source(random, source_width, source_height, kind);
+        const bool opaque = random_below(random, 2U) == 0U;
+        const std::vector<std::uint32_t> before = random_pixels(random, static_cast<std::size_t>(width) * height,
+                                                                random_below(random, 2U) == 0U);
+        const TextCompositeClip clip = random_clip(random, width, height);
+        PartRasterSource source = source_of(bytes, source_width, source_height,
+                                            static_cast<std::int64_t>(random_below(random, width + 20U)) - 20,
+                                            static_cast<std::int64_t>(random_below(random, height + 20U)) - 20);
+        if (random_below(random, 3U) == 0U) {
+            source.shown_width = 1U + random_below(random, 220U);
+            source.shown_height = 1U + random_below(random, 60U);
+        }
+        // The maker's record: only a wholly opaque source may claim it.
+        source.opaque = kind == SourceKind::opaque && random_below(random, 2U) == 0U;
+        const std::uint8_t opacity =
+            random_below(random, 3U) == 0U ? std::uint8_t{255U} : static_cast<std::uint8_t>(random_below(random, 256U));
+        std::vector<std::uint32_t> blocks = before;
+        TextCompositeTarget target{};
+        target.pixels = std::span<std::uint32_t>(blocks.data(), blocks.size());
+        target.width = width;
+        target.height = height;
+        target.stride = width;
+        target.opaque = opaque;
+        require(detail::composite_part_raster(source, target, clip, opacity) == TextCompositeStatus::success,
+                "a randomized part blit composites");
+        const std::uint32_t shown_width = source.shown_width != 0U ? source.shown_width : source_width;
+        const std::uint32_t shown_height = source.shown_height != 0U ? source.shown_height : source_height;
+        for (std::uint32_t y = 0U; y < height; ++y) {
+            for (std::uint32_t x = 0U; x < width; ++x) {
+                const std::size_t at = static_cast<std::size_t>(y) * width + x;
+                const std::int64_t shown_x = static_cast<std::int64_t>(x) - source.left;
+                const std::int64_t shown_y = static_cast<std::int64_t>(y) - source.top;
+                std::uint32_t expected = before[at];
+                const std::uint64_t coverage = detail::text_clip_coverage(clip, x, y);
+                const bool shown = shown_x >= 0 && shown_y >= 0 && shown_x < static_cast<std::int64_t>(shown_width) &&
+                                   shown_y < static_cast<std::int64_t>(shown_height);
+                if (shown && coverage != 0U) {
+                    const SourceChannels channels = reference_sample(bytes, source_width, source_height, shown_width,
+                                                                     shown_height, shown_x, shown_y);
+                    expected = reference_over(before[at], channels, opacity * coverage, opaque);
+                }
+                require(blocks[at] == expected, "a part blit equals the source-over formula, pixel by pixel");
+            }
+        }
+    }
+}
+
+// Text: alpha = (coverage x colour alpha x clip + 32640) / 65280, each
+// channel (s * alpha + d * (255 - alpha) + 127) / 255, alpha 255 on an
+// opaque target; source mode blends the premultiplied colour at the
+// coverage x clip alone. A pixel at alpha 0 is left as it is.
+std::uint32_t reference_text(const std::uint32_t previous, const std::uint64_t coverage, const Color colour,
+                             const std::uint64_t clip, const bool opaque, const detail::TextCompositeMode mode) {
+    const bool replaces = mode == detail::TextCompositeMode::source;
+    const std::uint64_t colour_alpha = replaces ? 255U : colour.alpha;
+    const std::uint64_t alpha = (coverage * colour_alpha * clip + 32640U) / 65280U;
+    if (alpha == 0U) return previous;
+    std::array<std::uint64_t, 4> source{colour.red, colour.green, colour.blue, 255U};
+    if (replaces) {
+        for (std::size_t channel = 0U; channel < 3U; ++channel) {
+            source[channel] = (source[channel] * colour.alpha + 127U) / 255U;
+        }
+        source[3] = colour.alpha;
+    }
+    constexpr std::array<unsigned, 4> shifts{16U, 8U, 0U, 24U};
+    std::uint32_t result = 0U;
+    for (std::size_t channel = 0U; channel < 4U; ++channel) {
+        const std::uint64_t destination = (previous >> shifts[channel]) & 255U;
+        std::uint64_t out = (source[channel] * alpha + destination * (255U - alpha) + 127U) / 255U;
+        if (channel == 3U && opaque) out = 255U;
+        result |= static_cast<std::uint32_t>(out) << shifts[channel];
+    }
+    return result;
+}
+
+void test_text_blocks_match_the_reference() {
+    TestRandom random{};
+    random.state = 0x7e47b10cU;
+    for (std::uint32_t round = 0U; round < 800U; ++round) {
+        const std::uint32_t width = 30U + random_below(random, 110U);
+        const std::uint32_t height = 16U + random_below(random, 24U);
+        const std::uint32_t coverage_width = 1U + random_below(random, 180U);
+        const std::uint32_t coverage_height = 1U + random_below(random, 40U);
+        // Text-like runs (gaps, soft edges, solid stems) or noise.
+        std::vector<std::uint8_t> coverage(static_cast<std::size_t>(coverage_width) * coverage_height, std::uint8_t{0U});
+        const bool runs = random_below(random, 2U) == 0U;
+        for (std::size_t index = 0U; index < coverage.size(); ++index) {
+            const std::uint32_t roll = random_below(random, 100U);
+            std::uint32_t value = roll < 60U ? 0U : (roll < 85U ? 255U : random_below(random, 256U));
+            if (runs) value = (index % 11U) < 4U ? 0U : ((index % 11U) == 4U ? random_below(random, 256U) : 255U);
+            coverage[index] = static_cast<std::uint8_t>(value);
+        }
+        const bool opaque = random_below(random, 2U) == 0U;
+        const std::vector<std::uint32_t> before = random_pixels(random, static_cast<std::size_t>(width) * height,
+                                                                random_below(random, 2U) == 0U);
+        const TextCompositeClip clip = random_clip(random, width, height);
+        const std::uint8_t colour_alpha =
+            random_below(random, 2U) == 0U ? std::uint8_t{255U} : static_cast<std::uint8_t>(random_below(random, 256U));
+        const Color colour = Color::rgba(static_cast<std::uint8_t>(random_below(random, 256U)),
+                                         static_cast<std::uint8_t>(random_below(random, 256U)),
+                                         static_cast<std::uint8_t>(random_below(random, 256U)), colour_alpha);
+        const detail::TextCompositeMode mode = random_below(random, 4U) == 0U ? detail::TextCompositeMode::source
+                                                                              : detail::TextCompositeMode::source_over;
+        detail::TextCoverage source{};
+        source.pixels = std::span<const std::uint8_t>(coverage.data(), coverage.size());
+        source.width = coverage_width;
+        source.height = coverage_height;
+        source.left = static_cast<std::int64_t>(random_below(random, width + 20U)) - 20;
+        source.top = static_cast<std::int64_t>(random_below(random, height + 20U)) - 20;
+        std::vector<std::uint32_t> blocks = before;
+        TextCompositeTarget target{};
+        target.pixels = std::span<std::uint32_t>(blocks.data(), blocks.size());
+        target.width = width;
+        target.height = height;
+        target.stride = width;
+        target.opaque = opaque;
+        require(detail::composite_text_coverage(source, target, clip, colour, mode) == TextCompositeStatus::success,
+                "a randomized text blit composites");
+        const bool draws = colour.alpha != 0U || mode == detail::TextCompositeMode::source;
+        for (std::uint32_t y = 0U; y < height; ++y) {
+            for (std::uint32_t x = 0U; x < width; ++x) {
+                const std::size_t at = static_cast<std::size_t>(y) * width + x;
+                const std::int64_t column = static_cast<std::int64_t>(x) - source.left;
+                const std::int64_t row = static_cast<std::int64_t>(y) - source.top;
+                std::uint32_t expected = before[at];
+                const bool inside = column >= 0 && row >= 0 && column < static_cast<std::int64_t>(coverage_width) &&
+                                    row < static_cast<std::int64_t>(coverage_height);
+                if (draws && inside) {
+                    const std::uint64_t covered = coverage[static_cast<std::size_t>(row) * coverage_width +
+                                                           static_cast<std::size_t>(column)];
+                    const std::uint64_t clipped = detail::text_clip_coverage(clip, x, y);
+                    expected = reference_text(before[at], covered, colour, clipped, opaque, mode);
+                }
+                require(blocks[at] == expected, "a text blit equals the text formula, pixel by pixel");
+            }
+        }
+    }
+}
+
+// A wholly opaque raster recorded as such copies its interior rows: the
+// bytes are those of the same raster blended, and PartRaster records the
+// opacity only while no view may still write it.
+void test_opaque_rasters_copy_rows() {
+    const std::shared_ptr<PartRaster> raster = PartRaster::create(DeviceExtent{6U, 4U}, DeviceScale{1.0});
+    require(raster != nullptr, "a raster is made");
+    const PartRasterView view = (*raster).view();
+    for (std::size_t offset = 0U; offset < view.pixels.size(); offset += 4U) {
+        view.pixels[offset] = static_cast<std::uint8_t>(offset);
+        view.pixels[offset + 1U] = static_cast<std::uint8_t>(offset * 3U);
+        view.pixels[offset + 2U] = static_cast<std::uint8_t>(offset * 7U);
+        view.pixels[offset + 3U] = 255U;
+    }
+    require(!(*raster).opaque(), "a raster is not recorded opaque before its maker records it");
+    (*raster).record_opacity();
+    require((*raster).opaque(), "a wholly opaque raster is recorded opaque");
+    const std::vector<std::uint8_t> bytes((*raster).pixels().begin(), (*raster).pixels().end());
+    PartRasterSource copied = source_of(bytes, 6U, 4U, 2, 1);
+    copied.opaque = true;
+    const PartRasterSource blended = source_of(bytes, 6U, 4U, 2, 1);
+    TestTarget first = make_target(10U, 7U, pack(10U, 20U, 30U, 255U), false);
+    TestTarget second = make_target(10U, 7U, pack(10U, 20U, 30U, 255U), false);
+    TextCompositeClip clip{};
+    clip.rect = {2.5, 1.0, 6.0, 4.0};
+    require(detail::composite_part_raster(copied, first.target, clip, 255U) == TextCompositeStatus::success,
+            "the recorded raster composites");
+    require(detail::composite_part_raster(blended, second.target, clip, 255U) == TextCompositeStatus::success,
+            "the unrecorded raster composites");
+    require(first.pixels == second.pixels, "copied rows equal blended ones");
+    const PartRasterView again = (*raster).view();
+    require(!(*raster).opaque(), "a new view clears the record");
+    again.pixels[3] = 254U;
+    (*raster).record_opacity();
+    require(!(*raster).opaque(), "a raster with one translucent pixel is not recorded opaque");
+}
+
 int main() {
     test_opacity_quantization();
     test_blend_arithmetic();
@@ -607,6 +1054,11 @@ int main() {
     test_separable_blends();
     test_copy_blend();
     test_interior_shortcut_matches_coverage();
+    test_scaled_steps_match_the_formula();
+    test_block_identities_are_exact();
+    test_blocks_match_the_reference();
+    test_text_blocks_match_the_reference();
+    test_opaque_rasters_copy_rows();
     test_part_raster();
     test_command_is_recorded_replayed_and_inspected();
     std::cout << "part composite tests passed\n";

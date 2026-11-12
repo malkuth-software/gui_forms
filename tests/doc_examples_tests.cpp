@@ -134,10 +134,10 @@ void example() {
     (*root).add_child(name);
     gf::Window window(root, gf::Size{320.0, 120.0});
 
-    gf::BindingRecord::FieldMap fields;
-    fields["name"] = std::string("Ada");
     std::shared_ptr<gf::BindingSource> people = std::make_shared<gf::BindingSource>(window);
-    (*people).set_records({gf::BindingRecord("person.1", fields)});
+    gf::BindingTable& table = *(*people).table();
+    static_cast<void>(table.add_column(gf::BindingColumn{"name", gf::BindingValueKind::text}));
+    static_cast<void>(table.append(gf::BindingRow{"person.1", {std::string("Ada")}}));
 
     gf::BindingOptions options;
     options.data_source_update_mode = gf::DataSourceUpdateMode::on_property_changed;
@@ -162,10 +162,10 @@ struct PriceField final : gf::Component {
 void example() {
     std::shared_ptr<gf::TextBox> price = gf::make_control<gf::TextBox>(gf::StableId("item.price"));
     gf::Window window(price, gf::Size{200.0, 32.0});
-    gf::BindingRecord::FieldMap fields;
-    fields["price"] = 12.5;
     std::shared_ptr<gf::BindingSource> items = std::make_shared<gf::BindingSource>(window);
-    (*items).set_records({gf::BindingRecord("item.1", fields)});
+    gf::BindingTable& table = *(*items).table();
+    static_cast<void>(table.add_column(gf::BindingColumn{"price", gf::BindingValueKind::number}));
+    static_cast<void>(table.append(gf::BindingRow{"item.1", {12.5}}));
 
     gf::BindingOptions options;
     options.formatting_enabled = true;
@@ -186,12 +186,10 @@ void example() {
     std::shared_ptr<gf::Control> root = gf::make_control<gf::Control>(gf::StableId("app"));
     gf::Window window(root, gf::Size{200.0, 100.0});
     std::shared_ptr<gf::BindingSource> orders = std::make_shared<gf::BindingSource>(window);
-    gf::BindingRecord::FieldMap first;
-    first["number"] = std::int64_t{1001};
-    gf::BindingRecord::FieldMap second;
-    second["number"] = std::int64_t{1002};
-    (*orders).set_records({gf::BindingRecord("order.1001", first),
-                           gf::BindingRecord("order.1002", second)});
+    gf::BindingTable& table = *(*orders).table();
+    static_cast<void>(table.add_column(gf::BindingColumn{"number", gf::BindingValueKind::signed_integer}));
+    table.assign({gf::BindingRow{"order.1001", {std::int64_t{1001}}},
+                  gf::BindingRow{"order.1002", {std::int64_t{1002}}}});
 
     gf::BindingContext context(window);
     gf::CurrencyManager& manager = context.manager(orders);   // registers orders
@@ -236,13 +234,11 @@ void example() {
     gf::Window window(root, gf::Size{200.0, 100.0});
     std::shared_ptr<gf::BindingSource> cities = std::make_shared<gf::BindingSource>(window);
 
-    gf::BindingRecord::FieldMap oslo;
-    oslo["name"] = std::string("Oslo");
-    gf::BindingRecord::FieldMap lima;
-    lima["name"] = std::string("Lima");
-    (*cities).set_records({gf::BindingRecord("city.oslo", oslo),
-                           gf::BindingRecord("city.lima", lima)});
-    // position() is 0, the first record is current
+    gf::BindingTable& table = *(*cities).table();
+    static_cast<void>(table.add_column(gf::BindingColumn{"name", gf::BindingValueKind::text}));
+    table.assign({gf::BindingRow{"city.oslo", {std::string("Oslo")}},
+                  gf::BindingRow{"city.lima", {std::string("Lima")}}});
+    // position() is 0, the first row is current
     static_cast<void>((*cities).move_next());
     std::optional<gf::BindingValue> name = (*cities).current_field("Name");
     // name holds std::string("Lima")
@@ -262,10 +258,9 @@ void example() {
     Navigator navigator;
     gf::on((*notes).position_changed(), navigator, &Navigator::on_position);
 
-    gf::BindingRecord::FieldMap fields;
-    fields["title"] = std::string("Draft");
-    static_cast<void>((*notes).add(gf::BindingRecord("note.1", fields)));
-    // navigator.shown is 0: the first record became current
+    static_cast<void>((*(*notes).table()).add_column(gf::BindingColumn{"title"}));
+    static_cast<void>((*notes).add(gf::BindingRow{"note.1", {std::string("Draft")}}));
+    // navigator.shown is 0: the first row became current
     static_cast<void>((*notes).set_current_field("title", std::string("Final")));
     (*notes).cancel_edit();
     // the title is "Draft" again
@@ -1481,12 +1476,11 @@ void example() {
     (*root).add_child(email);
     gf::Window window(root, gf::Size{320.0, 120.0});
 
-    gf::BindingRecord::FieldMap fields;
-    fields["email"] = std::string("ada@");
-    gf::BindingRecord::ErrorMap field_errors;
-    field_errors["email"] = "Enter a complete e-mail address.";
     std::shared_ptr<gf::BindingSource> people = std::make_shared<gf::BindingSource>(window);
-    (*people).set_records({gf::BindingRecord("person.1", fields, true, field_errors)});
+    gf::BindingTable& table = *(*people).table();
+    const std::size_t email_column = table.add_column(gf::BindingColumn{"email"});
+    static_cast<void>(table.append(gf::BindingRow{"person.1", {std::string("ada@")}}));
+    table.set_error(0U, email_column, "Enter a complete e-mail address.");
     (*email).data_bindings().add("text", people, "email");
 
     gf::ErrorProvider errors(window);
@@ -2206,9 +2200,9 @@ namespace doc_example_MaskedTextBox_1 {
 void example() {
     std::shared_ptr<gf::MaskedTextBox> phone =
         gf::make_control<gf::MaskedTextBox>(gf::StableId("contact.phone"), "(000) 000-0000");
-    (*phone).set_text("5551234567");   // the field shows "(555) 123-4567"
+    (*phone).text = "5551234567";   // the field shows "(555) 123-4567"
     const bool complete = (*phone).mask_completed();   // true
-    const gf::MaskEditResult refused = (*phone).set_text("55x");
+    const gf::MaskEditResult refused = (*phone).place_text("55x");
     // refused.hint == gf::MaskResultHint::digit_expected; the text is unchanged
 }
 }  // namespace doc_example_MaskedTextBox_1

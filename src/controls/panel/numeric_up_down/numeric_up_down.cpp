@@ -6,6 +6,7 @@
 #include "../panel_anatomy.hpp"
 #include "../../../core/drag_engine/scrub_gesture.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../../basic/number_text.hpp"
 
 #include <array>
 #include <algorithm>
@@ -265,31 +266,32 @@ void NumericUpDown::synchronize_editor() {
 
 void NumericUpDown::commit_editor_text() {
     if (!editor_ || (*editor_).text.read().empty()) return;
-    try {
-        // Group commas are accepted whether or not the editor shows them.
-        const std::string typed = hexadecimal.read() ? std::string((*editor_).text.read())
-                                                     : without_commas((*editor_).text.read());
-        std::size_t consumed{};
-        double parsed{};
-        if (hexadecimal.read()) {
-            parsed = static_cast<double>(std::stoll(typed, &consumed, 16));
-        } else {
-            parsed = std::stod(typed, &consumed);
-        }
-        if (consumed == typed.size() && std::isfinite(parsed) &&
-            parsed >= minimum.read() && parsed <= maximum.read() && parsed != value.read()) {
-            // The user's text stays as typed: the write does not reformat it.
-            committing_ = true;
-            try {
-                value = parsed;
-            } catch (...) {
-                committing_ = false;
-                throw;
-            }
-            committing_ = false;
-        }
-    } catch (const std::exception&) {
+    // Group commas are accepted whether or not the editor shows them.
+    const std::string typed = hexadecimal.read() ? std::string((*editor_).text.read())
+                                                 : without_commas((*editor_).text.read());
+    double parsed{};
+    bool understood = false;
+    if (hexadecimal.read()) {
+        std::int64_t whole{};
+        understood = number_text::parse_hexadecimal_integer(typed, whole);
+        parsed = static_cast<double>(whole);
+    } else {
+        understood = number_text::parse_finite_decimal(typed, parsed);
     }
+    // Text that is not a number, or a number outside the range, leaves the
+    // value as it was (audit F4: no locale, no exception).
+    if (!understood || parsed < minimum.read() || parsed > maximum.read() || parsed == value.read()) return;
+    // The user's text stays as typed: the write does not reformat it.
+    committing_ = true;
+    try {
+        value = parsed;
+    } catch (const std::exception&) {
+        // A refusal by a bound value's validation leaves the value as it
+        // was, as text that is not a number does.
+        committing_ = false;
+        return;
+    }
+    committing_ = false;
 }
 
 void NumericUpDown::step(int direction) {
@@ -403,15 +405,18 @@ bool NumericUpDown::on_semantic_action(SemanticAction action,
         return true;
     }
     if (action == SemanticAction::set_value) {
+        double parsed{};
+        if (!number_text::parse_finite_decimal(value_text, parsed)) return false;
+        // A value outside the range is refused, not thrown (the client's
+        // request fails; the value stays).
+        if (parsed < minimum.read() || parsed > maximum.read()) return false;
+        // A refusal by a bound value's validation fails the request too.
         try {
-            std::size_t consumed{};
-            const double parsed = std::stod(std::string(value_text), &consumed);
-            if (consumed != value_text.size()) return false;
             value = parsed;
-            return true;
         } catch (const std::exception&) {
             return false;
         }
+        return true;
     }
     if (action == SemanticAction::focus && editor_ && window() != nullptr) {
         return (*window()).request_focus(editor_);

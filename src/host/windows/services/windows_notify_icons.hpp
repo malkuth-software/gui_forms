@@ -59,6 +59,9 @@ private:
     [[nodiscard]] bool show(const Icon& icon) noexcept;
     void handle_callback(WPARAM w_parameter, LPARAM l_parameter);
     static LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM w_parameter, LPARAM l_parameter);
+    // The window procedure's body; window_procedure calls it through the
+    // fail-fast boundary.
+    static LRESULT answer_window_procedure(HWND window, UINT message, WPARAM w_parameter, LPARAM l_parameter);
 
     Sink sink_{};
     std::vector<Icon> icons_{};

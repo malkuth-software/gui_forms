@@ -210,9 +210,10 @@ void BindingNavigator::on_add_new(const CommandInvocation&) {
     const std::shared_ptr<BindingSource> source = source_;
     BindingNavigatorAddNew request{std::string(stable_id().value()), std::nullopt};
     adding_new_.emit(request);
-    if (!request.record || !is_alive() || !(*source).is_alive() || !(*source).allow_new()) return;
-    const std::size_t index = (*source).add(std::move(*request.record));
-    static_cast<void>((*source).set_position(static_cast<std::ptrdiff_t>(index)));
+    if (!request.row || !is_alive() || !(*source).is_alive() || !(*source).allow_new()) return;
+    const std::optional<std::size_t> index = (*source).add(std::move(*request.row));
+    // A row the source's filter hides is added but not shown.
+    if (index) static_cast<void>((*source).set_position(static_cast<std::ptrdiff_t>(*index)));
 }
 
 void BindingNavigator::on_delete(const CommandInvocation&) {

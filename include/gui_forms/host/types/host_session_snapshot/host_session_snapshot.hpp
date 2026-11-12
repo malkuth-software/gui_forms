@@ -14,7 +14,6 @@ struct HostSessionSnapshot final {
     std::uint64_t last_sequence{};
     std::uint64_t events_accepted{};
     std::uint64_t events_rejected{};
-    std::uint64_t callback_faults{};
     std::uint64_t close_requests{};
     std::uint64_t close_cancellations{};
     std::uint64_t display_changes{};

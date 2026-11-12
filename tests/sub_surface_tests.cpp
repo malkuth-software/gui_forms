@@ -41,6 +41,10 @@ void require(const bool condition, const char* const message) {
     if (!condition) throw std::runtime_error(message);
 }
 
+void require(const bool condition, const std::string& message) {
+    if (!condition) throw std::runtime_error(message);
+}
+
 // What the sub-surface's thread reports back to the test: written there,
 // read here, under the mutex. The control is held weakly, so the test never
 // keeps a sub-surface control alive past its thread.
@@ -197,7 +201,9 @@ void thread_produces_tagged_frames() {
         require((*probe).saw_surface_root, "a control in a sub-surface sees its surface root");
     }
 
-    // Idle: with nothing posted, dirty or due, the loop does not turn.
+    // Idle: with nothing posted, dirty or due, the loop does not turn. The
+    // wait is a window for a stray turn to show in (N104); no turn is due in
+    // it, so a slow runner cannot fail the check.
     const std::uint64_t turns = thread.statistics().loop_turns;
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     require(thread.statistics().loop_turns == turns, "an idle sub-surface does not turn its loop");
@@ -1287,6 +1293,50 @@ void thread_publishes_semantics() {
             "an identity the tree does not hold is refused");
 }
 
+// N44: after the first, a snapshot is built only once the previous one was
+// taken. Changes nobody asked for build nothing; taking the stale snapshot
+// has the newest built.
+void thread_builds_semantics_only_when_taken() {
+    std::shared_ptr<InputLog> log = std::make_shared<InputLog>();
+    std::shared_ptr<SemanticStops> stops = std::make_shared<SemanticStops>();
+    std::shared_ptr<LiveSurface> surface = LiveSurface::create({100U, 30U});
+    require(static_cast<bool>(surface), "surface");
+    SubSurfaceThread thread(std::make_unique<SemanticContent>(log, stops), surface, default_theme(), nullptr);
+    require(wait_for_state(thread, SubSurfaceState::running), "thread reaches running");
+    thread.configure(configuration_of(1U, 100U, 30U));
+    const std::chrono::steady_clock::time_point first_limit = std::chrono::steady_clock::now() + wait_limit;
+    while (thread.statistics().semantic_snapshots_published < 1U && std::chrono::steady_clock::now() < first_limit) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    require(thread.statistics().semantic_snapshots_published == 1U, "the first snapshot is built untaken");
+
+    // Two changes, neither snapshot taken: each completes on the thread, and
+    // a correct thread builds nothing however long it is given.
+    const DispatchInvokeResult once = thread.dispatcher().invoke(RenameFirst(stops, "once"));
+    const DispatchInvokeResult twice = thread.dispatcher().invoke(RenameFirst(stops, "twice"));
+    require(once == DispatchInvokeResult::completed && twice == DispatchInvokeResult::completed,
+            "both changes complete on the thread");
+    const std::chrono::steady_clock::time_point quiet_until =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    while (std::chrono::steady_clock::now() < quiet_until) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    require(thread.statistics().semantic_snapshots_published == 1U,
+            "changes while the snapshot is untaken build no snapshot");
+
+    std::shared_ptr<const SemanticSnapshot> stale = thread.take_semantics();
+    require(stale && (*find_node((*stale).roots, "sub.first")).name == "first",
+            "the snapshot taken is the one built before the changes");
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (thread.statistics().semantic_snapshots_published < 2U && std::chrono::steady_clock::now() < limit) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    std::shared_ptr<const SemanticSnapshot> newest = thread.take_semantics();
+    require(thread.statistics().semantic_snapshots_published == 2U && newest &&
+                (*find_node((*newest).roots, "sub.first")).name == "twice",
+            "taking a stale snapshot has exactly one newest built");
+}
+
 // The host in a window: the sub-surface's nodes are the host's children in
 // the window's snapshot, translated into the window; actions on them are
 // posted and performed on the sub-surface's thread; focus follows the
@@ -1777,6 +1827,18 @@ private:
     return log.ticks.size();
 }
 
+// The loop's counters and the ticks seen, for a failure's message: a stall
+// is told apart from a slow machine by whether the loop turned at all.
+[[nodiscard]] std::string ambient_state(const SubSurfaceHost& host, AmbientLog& log) {
+    const SubSurfaceStatistics statistics = host.statistics();
+    const std::string text = " (ticks " + std::to_string(ticks_of(log)) + ", loop turns " +
+                             std::to_string(statistics.loop_turns) + ", deadline wakes " +
+                             std::to_string(statistics.deadline_wakes) + ", frames published " +
+                             std::to_string(statistics.frames_published) + ", publish retries " +
+                             std::to_string(statistics.publish_retries) + ")";
+    return text;
+}
+
 [[nodiscard]] bool wait_for_ticks(AmbientLog& log, std::size_t ticks) {
     const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
     while (std::chrono::steady_clock::now() < limit) {
@@ -1811,7 +1873,8 @@ void ambient_effect_ticks_off_the_ui_thread() {
     // 200 ms. Nothing here runs the window, so each tick is the sub-surface's.
     const std::size_t before_block = ticks_of(*log);
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    require(wait_for_ticks(*log, before_block + 3U), "ticks continue while the UI thread is blocked");
+    require(wait_for_ticks(*log, before_block + 3U),
+            "ticks continue while the UI thread is blocked" + ambient_state(*host, *log));
 
     // Display timing: a 10 ms refresh phased at `phase`. Later ticks are on
     // its vertical blanks.
@@ -2268,6 +2331,7 @@ int run_all() {
     window_shows_alerts();
     sub_surface_forwards_alerts();
     thread_publishes_semantics();
+    thread_builds_semantics_only_when_taken();
     host_stitches_semantics();
     return 0;
 }

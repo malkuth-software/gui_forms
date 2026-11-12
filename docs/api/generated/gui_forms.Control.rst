@@ -197,6 +197,9 @@ gui_forms::Control
          the backmost; the last is the frontmost. Each child is owned by this
          control.
 
+      **children_revision** : ``std::uint64_t``, read-only
+         Advances whenever the child list changes (an add, a removal, a new order, a disposal), so a walk that indexes the live list instead of copying it can tell that a callback changed it meanwhile (audit N84).
+
       **attached** : ``bool``, read-only
          Whether the control is in a window's tree.
 
@@ -495,10 +498,12 @@ gui_forms::Control
 
       * - :cpp:func:`add_child <gui_forms::Control::add_child>`
         - Makes a control the frontmost child of this one, detaching it from its previous parent first.
+      * - :cpp:func:`insert_child <gui_forms::Control::insert_child>`
+        - Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index_from_top moves it.
       * - :cpp:func:`remove_child <gui_forms::Control::remove_child>`
         - Detaches the child with the given :cpp:class:`RuntimeId <gui_forms::RuntimeId>` and returns it, or returns null if there is no such child.
-      * - :cpp:func:`child_index <gui_forms::Control::child_index>`
-        - The child's z-order index, where 0 is the frontmost child, or none.
+      * - :cpp:func:`child_index_from_top <gui_forms::Control::child_index_from_top>`
+        - The child's z-order index counted from the top, where 0 is the frontmost child (the Windows Forms index), or none.
       * - :cpp:func:`clear_children <gui_forms::Control::clear_children>`
         - Removes every child, frontmost first, without disposing them.
       * - :cpp:func:`point_to_window <gui_forms::Control::point_to_window>`
@@ -527,6 +532,8 @@ gui_forms::Control
         - The primary text font before the text scale, with where each field came from.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::Control::resolve_text_layout_utf8>`
         - Resolves an already-effective FontSpec (normally from effective_font) through the attached terminal provider without applying text scale a second time.
+      * - :cpp:func:`measure_text_extent_utf8 <gui_forms::Control::measure_text_extent_utf8>`
+        - The extent resolve_text_layout_utf8 reports, without the layout (D2): for measuring, as a wrap probe does.
       * - :cpp:func:`fill_line_break_opportunities_utf8 <gui_forms::Control::fill_line_break_opportunities_utf8>`
         - The attached window's line-break opportunities (Window::fill_line_break_opportunities_utf8), or the estimate while detached.
       * - :cpp:func:`snap_text_baseline <gui_forms::Control::snap_text_baseline>`
@@ -561,6 +568,8 @@ gui_forms::Control
         - Whether the control has the style class.
       * - :cpp:func:`invalidate <gui_forms::Control::invalidate>`
         - ``invalidate(Dirty)`` records what a change invalidated, for this control and the path to the root; the window acts on it at its next flush or paint.
+      * - :cpp:func:`scroll_content <gui_forms::Control::scroll_content>`
+        - Declares that what this control painted inside ``area`` (client coordinates) has moved by ``offset`` logical units, as a pan of its content does.
       * - :cpp:func:`invalidate_subtree <gui_forms::Control::invalidate_subtree>`
         - Like ``invalidate(Dirty)``, but marks every descendant too, for changes such as a font or theme that affect how children measure and paint.
       * - :cpp:func:`invalidate_declared <gui_forms::Control::invalidate_declared>`
@@ -579,6 +588,8 @@ gui_forms::Control
         -  
       * - :cpp:func:`has_bindable_property <gui_forms::Control::has_bindable_property>`
         - The properties below are the instance registry's (define_bindable_property) and the type's table's (Component:: property_table) together; a registration replaces a table entry of the same name.
+      * - :cpp:func:`registry_holds_property <gui_forms::Control::registry_holds_property>`
+        - Whether the instance registry holds ``canonical_name`` (a registered, snake_case name), which then replaces the table entry of that name.
       * - :cpp:func:`property_descriptor <gui_forms::Control::property_descriptor>`
         -  
       * - :cpp:func:`property_value <gui_forms::Control::property_value>`
@@ -607,8 +618,8 @@ gui_forms::Control
         - The item system a realized item belongs to; the first by default.
       * - :cpp:func:`fill_realized_item_geometry <gui_forms::Control::fill_realized_item_geometry>`
         - Fills one record per part of the item's system for one realized item.
-      * - :cpp:func:`set_child_index <gui_forms::Control::set_child_index>`
-        - Moves a child to a z-order index, where 0 is frontmost.
+      * - :cpp:func:`set_child_index_from_top <gui_forms::Control::set_child_index_from_top>`
+        - Moves a child to a z-order index counted from the top, where 0 is frontmost.
       * - :cpp:func:`set_bounds <gui_forms::Control::set_bounds>`
         - Changes the fields of :cpp:func:`requested_bounds <gui_forms::Control::requested_bounds>` selected by :cpp:enum:`BoundsSpecified <gui_forms::BoundsSpecified>`, all of them by default.
       * - :cpp:func:`set_style <gui_forms::Control::set_style>`
@@ -936,6 +947,10 @@ gui_forms::Control
       The children, in paint order: the first child is painted first and is
       the backmost; the last is the frontmost. Each child is owned by this
       control.
+
+   .. cpp:function:: std::uint64_t children_revision() const noexcept
+
+      Advances whenever the child list changes (an add, a removal, a new order, a disposal), so a walk that indexes the live list instead of copying it can tell that a callback changed it meanwhile (audit N84).
 
    .. cpp:function:: bool attached() const noexcept
 
@@ -1328,15 +1343,21 @@ gui_forms::Control
       ``std::invalid_argument`` for a null child. Adding a control that is
       already a child does nothing.
 
+   .. cpp:function:: void insert_child(Ptr child, std::size_t index)
+
+      Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index_from_top moves it. On failure the tree is unchanged.
+
    .. cpp:function:: Ptr remove_child(RuntimeId child)
 
       Detaches the child with the given :cpp:class:`RuntimeId <gui_forms::RuntimeId>` and returns it, or returns
       null if there is no such child. The child is not disposed: it lives on
       as long as someone holds it.
 
-   .. cpp:function:: std::optional<std::size_t> child_index(RuntimeId child) const noexcept
+   .. cpp:function:: std::optional<std::size_t> child_index_from_top(RuntimeId child) const noexcept
 
-      The child's z-order index, where 0 is the frontmost child, or none.
+      The child's z-order index counted from the top, where 0 is the
+      frontmost child (the Windows Forms index), or none. children() runs
+      the other way, back to front.
 
    .. cpp:function:: void clear_children()
 
@@ -1398,6 +1419,10 @@ gui_forms::Control
 
       Resolves an already-effective FontSpec (normally from effective_font) through the attached terminal provider without applying text scale a second time.
 
+   .. cpp:function:: TextExtent measure_text_extent_utf8(std::string_view utf8, FontSpec effective) const
+
+      The extent resolve_text_layout_utf8 reports, without the layout (D2): for measuring, as a wrap probe does.
+
    .. cpp:function:: TextResolutionStatus fill_line_break_opportunities_utf8(std::string_view utf8, std::span<LineBreakOpportunity> opportunities) const
 
       The attached window's line-break opportunities (Window::fill_line_break_opportunities_utf8), or the estimate while detached.
@@ -1416,7 +1441,7 @@ gui_forms::Control
 
    .. cpp:function:: void clear_owned_decorations()
 
-   .. cpp:function:: ControlVisualContext visual_context(bool hovered = false, bool pressed = false, bool selected = false, bool focused = false, bool defaulted = false) const noexcept
+   .. cpp:function:: ControlVisualContext visual_context(VisualInteraction interaction = {}) const noexcept
 
    .. cpp:function:: DispatchOperation begin_invoke(std::function<void()> callback)
 
@@ -1476,6 +1501,10 @@ gui_forms::Control
       paint. ``invalidate(Rect)`` asks for a repaint of part of the client area
       only.
 
+   .. cpp:function:: bool scroll_content(Rect area, Point offset)
+
+      Declares that what this control painted inside ``area`` (client coordinates) has moved by ``offset`` logical units, as a pan of its content does. The window then moves those pixels with a scroll copy (SurfaceRoot::request_content_scroll) and repaints only the band the move exposed and what is drawn over the area (this control's children, later siblings, overlays); the control's display chunk is recorded again. The caller's promise: the next paint draws, inside the area and outside the exposed band, exactly the pixels it drew before, moved by ``offset``; paint that stays in place (a marker at a fixed spot) is the caller's to invalidate where it is and where the copy moved it. Returns false and invalidates the area instead when the window cannot copy: copies are off, the visible area or the offset is not whole device pixels, the offset is not smaller than the area, the control or an ancestor is hidden, or its last paint did not report an opaque cover of the visible area (report_opaque_cover). Not during a paint.
+
    .. cpp:function:: void invalidate_subtree(Dirty dirty)
 
       Like ``invalidate(Dirty)``, but marks every descendant too, for changes
@@ -1518,6 +1547,10 @@ gui_forms::Control
    .. cpp:function:: bool has_bindable_property(std::string_view name) const
 
       The properties below are the instance registry's (define_bindable_property) and the type's table's (Component:: property_table) together; a registration replaces a table entry of the same name.
+
+   .. cpp:function:: bool registry_holds_property(const std::string& canonical_name) const
+
+      Whether the instance registry holds ``canonical_name`` (a registered, snake_case name), which then replaces the table entry of that name. The form schema asks it once per type (audit S7).
 
    .. cpp:function:: std::optional<PropertyDescriptor> property_descriptor(std::string_view name) const
 
@@ -1563,10 +1596,12 @@ gui_forms::Control
 
       Fills one record per part of the item's system for one realized item. Throws std::out_of_range for an item past realized_item_count() and std::invalid_argument when ``geometry`` does not hold exactly one record per part of realized_item_system(item); ``geometry`` is then unchanged.
 
-   .. cpp:function:: bool set_child_index(RuntimeId child, std::size_t index)
+   .. cpp:function:: bool set_child_index_from_top(RuntimeId child, std::size_t index)
 
-      Moves a child to a z-order index, where 0 is frontmost. An index past
-      the end makes it the backmost. Returns false if it is not a child.
+      Moves a child to a z-order index counted from the top, where 0 is
+      frontmost. An index past the end makes it the backmost; a move to
+      where it already is changes nothing. Returns false if it is not a
+      child.
 
    .. cpp:function:: void set_bounds(Rect values, BoundsSpecified specified = BoundsSpecified::all)
 
@@ -2088,6 +2123,16 @@ gui_forms::Control
       *Protected.*
 
       Derived disposal hooks that retain child controls must finish through this base implementation; it owns the mutation-free child detach path.
+
+   .. cpp:function:: LayoutKey layout_key() const
+
+      *Protected.*
+
+   .. cpp:function:: void advance_layout_revision() noexcept
+
+      *Protected.*
+
+      Called after writing a field a kept layout reads that is neither a property cell nor a collection cell, before the next layout read.
 
    .. cpp:type:: Ptr = std::shared_ptr<Control>
 

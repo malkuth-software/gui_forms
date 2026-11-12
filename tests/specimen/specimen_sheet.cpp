@@ -14,9 +14,9 @@
 //
 // The Gallery's own theme (its project sheet on the default base,
 // `gui-forms`, since T4 phase 6) is drawn unless --theme names the bare
-// default theme `gui-forms` (stage T4, phase 3), `windows-professional`
-// (the test fixture, test_support::professional_theme) or a familiar
-// theme (phase 7, familiar_theme_named); --light
+// default theme `gui-forms` (stage T4, phase 3) or a familiar theme
+// (phase 7, familiar_theme_named; `windows-professional` is one since the
+// owner's redesign of 2026-11-10); --light
 // captures light only, at scales 1 and 2.
 //
 // A full run writes, under <directory>, one PNG contact sheet per
@@ -38,7 +38,6 @@
 #include "gui_forms/gui_forms.hpp"
 #include "skia_raster.hpp"
 #include "../src/core/image/png_writer.hpp"
-#include "../support/professional_theme.hpp"
 #include "../src/core/resources/fonts/bundled_font_set.hpp"
 #if defined(_WIN32)
 #include "../src/host/windows/fonts/sealed_pages_windows.hpp"
@@ -971,10 +970,6 @@ int main(int argument_count, char** arguments) {
             options.light_only = true;
         } else if (argument == "--theme" && index + 1 < argument_count && std::string_view(arguments[index + 1]) == "gui-forms") {
             options.theme = gui_forms_theme();
-            ++index;
-        } else if (argument == "--theme" && index + 1 < argument_count &&
-                   std::string_view(arguments[index + 1]) == "windows-professional") {
-            options.theme = test_support::professional_theme();
             ++index;
         } else if (argument == "--theme" && index + 1 < argument_count &&
                    familiar_theme_named(std::string_view(arguments[index + 1]))) {

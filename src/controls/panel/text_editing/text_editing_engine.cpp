@@ -193,6 +193,56 @@ bool TextEditingEngine::redo() {
     return result;
 }
 
+namespace {
+
+// The line whose start is the last at or before `offset`: a binary search
+// over the store's line starts, which ascend from 0.
+std::size_t line_holding(const TextStore& store, Utf8Offset offset) {
+    std::size_t first = 0U;
+    std::size_t count = store.line_count();
+    while (count > 1U) {
+        const std::size_t half = count / 2U;
+        const std::size_t middle = first + half;
+        if (store.line_start(LineIndex(middle)).value() <= offset.value()) {
+            first = middle;
+            count -= half;
+        } else {
+            count = half;
+        }
+    }
+    return first;
+}
+
+} // namespace
+
+// Whether replacing [start, end) with `replacement` keeps every line within
+// TextBox's multiline line bound (N51). A multiline text always meets the
+// bounds (TextBox checks the whole text when it is set or the mode turns
+// on, and every edit here), so only the lines the edit touches can break
+// them: from the start of the line holding `start` to the end of the line
+// content holding `end`. A line break ends each side and lies outside the
+// edit, so those lines are the lines of that stretch of the new text.
+// The total size is checked by the caller.
+bool TextEditingEngine::edited_lines_fit(Utf8Offset start, Utf8Offset end, std::string_view replacement) const {
+    const std::string_view current = store_.utf8();
+    const std::size_t line = line_holding(store_, start);
+    const std::size_t stretch_start = store_.line_start(LineIndex(line)).value();
+    const std::size_t last = line_holding(store_, end);
+    const std::size_t stretch_end = std::max(end.value(), store_.line_content_range(LineIndex(last)).end.value());
+    std::string stretch{};
+    stretch.reserve(start.value() - stretch_start + replacement.size() + (stretch_end - end.value()));
+    stretch.append(current.substr(stretch_start, start.value() - stretch_start));
+    stretch.append(replacement);
+    stretch.append(current.substr(end.value(), stretch_end - end.value()));
+    const TextStore edited(stretch);
+    for (std::size_t index = 0U; index < edited.line_count(); ++index) {
+        const Utf8Range range = edited.line_content_range(LineIndex(index));
+        const std::size_t line_bytes = range.end.value() - range.start.value();
+        if (line_bytes > TextBox::maximum_multiline_line_bytes) return false;
+    }
+    return true;
+}
+
 bool TextEditingEngine::replace(Utf8Offset start, Utf8Offset end, std::string_view replacement, TextEditKind kind) {
     host_.editing_require_mutable();
     const Utf8ValidationResult replacement_validation = validate_utf8(replacement);
@@ -217,20 +267,17 @@ bool TextEditingEngine::replace(Utf8Offset start, Utf8Offset end, std::string_vi
     }
     if (multiline_ && replacement.size() > TextBox::maximum_multiline_bytes -
             (text().size() - (end.value() - start.value()))) return false;
-    if (multiline_) {
-        std::string candidate(text());
-        candidate.replace(start.value(), end.value() - start.value(), replacement);
-        if (TextBox::validate_multiline_text(candidate) != TextBox::MultilineValidation::valid) return false;
-    }
+    if (multiline_ && !edited_lines_fit(start, end, replacement)) return false;
     if (maximum_bytes_ != 0U && replacement.size() > maximum_bytes_ -
             std::min(maximum_bytes_, text().size() - (end.value() - start.value()))) return false;
-    const std::size_t removed_scalars =
-        store_.scalar_index(end).value() - store_.scalar_index(start).value();
+    const std::string_view existing = store_.utf8().substr(start.value(), end.value() - start.value());
+    // The removed bytes' scalars, counted over those bytes alone (N51); the
+    // range lies on grapheme boundaries of valid text, so it is valid.
+    const std::size_t removed_scalars = validate_utf8(existing).scalar_count;
     if (maximum_length_ != 0U &&
         store_.scalar_count().value() - removed_scalars + replacement_validation.scalar_count > maximum_length_) {
         return false;
     }
-    const std::string_view existing = store_.utf8().substr(start.value(), end.value() - start.value());
     if (existing == replacement) {
         host_.editing_select({Utf8Offset(start.value() + replacement.size()),
                               Utf8Offset(start.value() + replacement.size())});
@@ -502,6 +549,15 @@ void TextEditingEngine::handle_text_input(TextInputEvent& event) {
     }
     Utf8Offset start = selection_.start();
     Utf8Offset end = selection_.end();
+    // A composition's next update replaces its marked text, not the caret's
+    // empty selection, so "k", "ka", "か" leave one か (audit N106).
+    const bool marked_current = composing_ && store_.revision() == marked_revision_ &&
+                                marked_start_.value() <= marked_end_.value() &&
+                                marked_end_.value() <= store_.utf8_size().value();
+    if (marked_current) {
+        start = marked_start_;
+        end = marked_end_;
+    }
     if (event.replacement_start >= 0 && event.replacement_length >= 0) {
         try {
             // Widen validated nonnegative host units before summation; never
@@ -521,6 +577,11 @@ void TextEditingEngine::handle_text_input(TextInputEvent& event) {
     composing_ = event.composing && !event.text_utf8.empty();
     const TextInputScope input_scope(text_input_active_);
     event.handled = replace(start, end, event.text_utf8, TextEditKind::typing);
+    if (event.handled && composing_) {
+        marked_start_ = start;
+        marked_end_ = Utf8Offset(std::min(start.value() + event.text_utf8.size(), store_.utf8_size().value()));
+        marked_revision_ = store_.revision();
+    }
     if (event.handled) host_.editing_user_edit(TextEditKind::typing, event.composing);
 }
 

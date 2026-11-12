@@ -69,15 +69,6 @@ private:
 
     void mount_document(const std::shared_ptr<Surface>& body) {
         mount_form_children(*document_.gallery_commands_document, *body);
-        const std::array<std::shared_ptr<ScaledGroupBox>, 9> groups{
-            document_.gallery_commands_row,          document_.gallery_commands_state,
-            document_.gallery_commands_context_group, document_.gallery_commands_strips,
-            document_.gallery_commands_container,    document_.gallery_commands_ribbon,
-            document_.gallery_commands_gallery,      document_.gallery_commands_ribbon_scaling,
-            document_.gallery_commands_ribbon_file_area};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
         status_ = document_.gallery_commands_status;
     }
 
@@ -148,7 +139,7 @@ private:
 
     void build_menu_strip() {
         const std::shared_ptr<MenuStrip>& menu = document_.gallery_commands_menu;
-        (*menu).font = {FontRole::control, 11.5, 400, false, 0.12};
+        static_cast<void>((*menu).add_class("menu-bar-type"));
         (*menu).set_items({
             {"gallery.commands.menu.file", "&File",
              {item("file.new", new_), item("file.save", save_), separator("file.separator"),
@@ -167,7 +158,6 @@ private:
 
     void build_command_row() {
         const std::shared_ptr<CommandBar>& bar = document_.gallery_commands_bar;
-        (*bar).set_style(page_style());
         (*bar).set_items({
             {.id = bar_new, .label = "New", .accessible_name = "New document",
              .shortcut = KeyGesture{PhysicalKey::n, Modifier::control}, .command = new_.get()},
@@ -180,13 +170,11 @@ private:
         });
         for (int index = 0; index < static_cast<int>((*bar).items().size()); ++index) {
             Button& button = (*bar).item(index);
-            button.set_style(page_style());
             button.visual_style = ButtonVisualStyle::command;
         }
         on((*bar).invoked(), *this, &CommandsAndMenusPage::on_bar_invoked);
 
         export_ = document_.gallery_commands_export;
-        (*export_).set_style(page_style());
         on((*export_).drop_down_requested(), *this, &CommandsAndMenusPage::on_export_requested);
         on((*export_).drop_down_close_requested(), *this, &CommandsAndMenusPage::on_export_close);
         export_menu_.set_items(export_items("export"));
@@ -194,7 +182,6 @@ private:
 
         run_button_ = document_.gallery_commands_run;
         (*run_button_).drop_down_mode = DropDownButtonMode::split;
-        (*run_button_).set_style(page_style());
         (*run_button_).bind(*run_); // Primary region: the ordinary Click path.
         on((*run_button_).drop_down_requested(), *this, &CommandsAndMenusPage::on_run_requested);
         on((*run_button_).drop_down_close_requested(), *this, &CommandsAndMenusPage::on_run_close);
@@ -206,17 +193,17 @@ private:
     // document (FD-6).
     void build_shared_state() {
         Button& save = *document_.gallery_commands_save_button;
-        save.set_style(page_style());
         save.bind(*save_);
         Button& remove = *document_.gallery_commands_delete_button;
-        remove.set_style(page_style());
         remove.bind(*delete_);
         saves_label_ = document_.gallery_commands_saves;
     }
 
     void build_context_menu() {
         context_button_ = document_.gallery_commands_context_open;
-        (*context_button_).set_style(page_style());
+        // The page's one tooltip: its window is the bubble and its shadow,
+        // and the shadow takes no input (tools/popup_margin_probe.py).
+        (*context_button_).tool_tip_text = "Opens the context menu";
         on((*context_button_).clicked(), *this, &CommandsAndMenusPage::on_context_requested);
         context_menu_.set_items({
             item("save", save_), item("delete", delete_), separator("separator.edit"),
@@ -426,8 +413,8 @@ private:
     // items' IDs extend the view's own.
     void fill_backstage(BackstageView& view) const {
         const std::string id(view.stable_id().value());
-        std::shared_ptr<Label> info = label(id + ".info", "Fixture document · 2 pages · not saved", 11.0, 400, muted);
-        std::shared_ptr<Label> recent = label(id + ".recent", "Report.txt\nNotes.txt", 11.0, 400, muted);
+        std::shared_ptr<Label> info = label(id + ".info", "Fixture document · 2 pages · not saved", 11.0, 400, "muted");
+        std::shared_ptr<Label> recent = label(id + ".recent", "Report.txt\nNotes.txt", 11.0, 400, "muted");
         view.set_items({{.stable_id = id + ".save", .command = save_},
                            {.stable_id = id + ".new", .command = new_},
                            {.stable_id = id + ".info-topic", .kind = BackstageItemKind::topic, .text = "&Info",
@@ -487,7 +474,7 @@ private:
         (*(*frame).bottom_panel()).join(status);
         std::shared_ptr<Label> content = label("gallery.commands.container.content",
                                                "Content: the application's controls go in content_panel().", 11.0,
-                                               400, muted);
+                                               400, "muted");
         (*content).dock = DockStyle::fill;
         (*(*frame).content_panel()).add_child(content);
     }
@@ -543,7 +530,7 @@ private:
         // The panel tab's body: the application's control, sized to the plane.
         std::shared_ptr<Label> palette =
             label("gallery.commands.ribbon.palette",
-                  "Palette · a panel tab: the application's own control fills the command plane", 11.0, 400, muted);
+                  "Palette · a panel tab: the application's own control fills the command plane", 11.0, 400, "muted");
         RibbonTabSpec palette_tab{.stable_id = "ribbon.palette", .text = "&Palette", .panel = palette};
         RibbonTabSpec format{.stable_id = "ribbon.format", .text = "Format", .tab_set = "ribbon.picture"};
         RibbonGroupSpec arrange{.stable_id = "ribbon.arrange", .caption = "Arrange"};

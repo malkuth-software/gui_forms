@@ -47,6 +47,11 @@ public:
     }
 
 private:
+    // The empty collection a control without bindings reads through its
+    // const data_bindings() (audit A16): no target, never added to.
+    friend class Control;
+    ControlBindingsCollection() noexcept {}
+
     using BindingList = std::vector<std::shared_ptr<Binding>>;
     Control* target_{};
     BindingList bindings_;

@@ -22,9 +22,6 @@ public:
         : context_(context) {
         document_.initialize_component(*this);
         mount_form_children(*document_.gallery_dock_document, *body);
-        (*document_.gallery_dock_group).set_style(page_style());
-        (*document_.gallery_anchor_group).set_style(page_style());
-        (*document_.gallery_splitter_group).set_style(page_style());
         static_cast<void>((*document_.gallery_dock_canvas).add_class("canvas-cool"));
         static_cast<void>((*document_.gallery_anchor_canvas).add_class("canvas-mist"));
         static_cast<void>((*document_.gallery_splitter_canvas).add_class("canvas-mist"));
@@ -57,9 +54,9 @@ private:
         const std::shared_ptr<Button>& old_first = next ? document_.gallery_dock_top_first : document_.gallery_dock_top_second;
         const std::shared_ptr<Button>& new_first = next ? document_.gallery_dock_top_second : document_.gallery_dock_top_first;
         const std::optional<std::size_t> destination =
-            (*document_.gallery_dock_canvas).child_index((*old_first).runtime_id());
+            (*document_.gallery_dock_canvas).child_index_from_top((*old_first).runtime_id());
         if (!destination ||
-            !(*document_.gallery_dock_canvas).set_child_index((*new_first).runtime_id(), *destination)) {
+            !(*document_.gallery_dock_canvas).set_child_index_from_top((*new_first).runtime_id(), *destination)) {
             return;
         }
         top_b_front_ = next;

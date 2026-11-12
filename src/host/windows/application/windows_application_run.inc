@@ -29,7 +29,7 @@ struct WindowsRunSlot final {
     std::string capture_path{};
 };
 
-BOOL CALLBACK collect_device_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context) {
+BOOL answer_collect_device_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context) {
     std::vector<HostMonitor>& monitors = *reinterpret_cast<std::vector<HostMonitor>*>(context);
     MONITORINFOEXW info{};
     info.cbSize = sizeof(info);
@@ -51,6 +51,10 @@ BOOL CALLBACK collect_device_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM conte
     return TRUE;
 }
 
+BOOL CALLBACK collect_device_monitor(HMONITOR monitor, HDC unnamed_1, LPRECT unnamed_2, LPARAM context) {
+    return gui_forms::detail::call_failing_fast("windows.collect_device_monitor", &answer_collect_device_monitor, monitor, unnamed_1, unnamed_2, context);
+}
+
 // EnumDisplayMonitors' context for fill_logical_monitor: the records to
 // write in place and how many have been written.
 struct LogicalMonitorFill final {
@@ -62,7 +66,7 @@ struct LogicalMonitorFill final {
 // logical units, reusing the record's id storage: the same monitor as
 // collect_device_monitor followed by logical_monitor, allocating nothing
 // once the records exist.
-BOOL CALLBACK fill_logical_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context) {
+BOOL answer_fill_logical_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context) {
     LogicalMonitorFill& fill = *reinterpret_cast<LogicalMonitorFill*>(context);
     MONITORINFOEXW info{};
     info.cbSize = sizeof(info);
@@ -93,6 +97,9 @@ BOOL CALLBACK fill_logical_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context
     make_logical_monitor(value);
     ++fill.count;
     return TRUE;
+}
+BOOL CALLBACK fill_logical_monitor(HMONITOR monitor, HDC unnamed_1, LPRECT unnamed_2, LPARAM context) {
+    return gui_forms::detail::call_failing_fast("windows.fill_logical_monitor", &answer_fill_logical_monitor, monitor, unnamed_1, unnamed_2, context);
 }
 
 // The monitors in Win32 device desktop units, as HostServices reports them.
@@ -210,7 +217,8 @@ public:
     explicit WindowsApplicationRun(HINSTANCE instance)
         : HostWindowing(windows_capabilities()), instance_(instance) {
         slots_.reserve(reserved_slots);
-        clocks_.reserve(reserved_slots);
+        // Two clocks per window: live and scheduler.
+        clocks_.reserve(2U * reserved_slots);
     }
     WindowsApplicationRun(const WindowsApplicationRun&) = delete;
     WindowsApplicationRun& operator=(const WindowsApplicationRun&) = delete;
@@ -636,9 +644,12 @@ bool WindowsApplicationRun::turn(MSG& quit_message, const bool outermost) {
     // A window opened or closed in the previous turn changes the slots;
     // their count is read afresh in every turn.
     clocks_.clear();
+    // Each window's live clock and scheduler clock (audit N63).
     for (std::size_t index = 0; index < slots_.size(); ++index) {
         const HANDLE clock = (*(*slots_[index]).state).live_frame_clock();
         if (clock != nullptr) clocks_.push_back(clock);
+        const HANDLE scheduler = (*(*slots_[index]).state).scheduler_clock();
+        if (scheduler != nullptr) clocks_.push_back(scheduler);
     }
     if (clocks_.size() >= MAXIMUM_WAIT_OBJECTS) {
         clocks_.resize(MAXIMUM_WAIT_OBJECTS - 1U);
@@ -657,6 +668,10 @@ bool WindowsApplicationRun::turn(MSG& quit_message, const bool outermost) {
             WindowsHostState& state = *(*slots_[index]).state;
             if (state.live_frame_clock() == ready) {
                 state.mark_live_frame_due();
+                break;
+            }
+            if (state.scheduler_clock() == ready) {
+                state.scheduler_clock_signalled();
                 break;
             }
         }
@@ -703,6 +718,9 @@ bool WindowsApplicationRun::turn(MSG& quit_message, const bool outermost) {
 HostServiceStatus WindowsApplicationRun::run_modal_impl(HostWindowId window) {
     WindowsRunSlot* modal = slot(window);
     if (modal == nullptr) return {HostServiceError::after_shutdown};
+    // The modal window takes input, automation included, though the loop
+    // runs inside the dispatch that opened it.
+    const ModalDispatchDepth modal_depth;
     const HWND modal_native = (*(*modal).state).native_window();
     // Every other enabled window of the run is disabled, except windows
     // owned (at any depth) by the modal one. The list is fixed here: a

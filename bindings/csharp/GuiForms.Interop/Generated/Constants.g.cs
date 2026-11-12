@@ -7,7 +7,7 @@ namespace GuiForms.Interop;
 public static class Constants
 {
     public const uint GF_ABI_MAJOR = 1u;
-    public const uint GF_ABI_MINOR = 1u;
+    public const uint GF_ABI_MINOR = 2u;
     public const int GF_STATUS_OK = 0;
     public const int GF_STATUS_INVALID_ARGUMENT = 1;
     public const int GF_STATUS_STALE_HANDLE = 2;
@@ -45,6 +45,8 @@ public static class Constants
     public const uint GF_TABLE_RULES = 19u;
     public const uint GF_TABLE_DATA_GRID = 20u;
     public const uint GF_TABLE_DOCKING = 21u;
+    public const uint GF_TABLE_FONTS = 22u;
+    public const uint GF_TABLE_HELP = 23u;
     public const uint GF_TABLE_WINDOWS_PAINT_ENDPOINT = 256u;
     public const uint GF_ABI_ENTRY_SLOT = 4294967295u;
     public const uint GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES = 512u;
@@ -78,6 +80,7 @@ public static class Constants
     public const uint GF_CREATE_FLAGS_COMBINABLE = 1u;
     public const uint GF_CREATE_MAXIMUM_CHOICES = 256u;
     public const uint GF_CREATE_MAXIMUM_NAME_BYTES = 256u;
+    public const uint GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL = 65536u;
     public const uint GF_RUN_FLAGS_NONE = 0u;
     public const uint GF_OWNED_WINDOW_FLAGS_NONE = 0u;
     public const uint GF_OWNED_WINDOW_TOOL = 1u;
@@ -147,6 +150,18 @@ public static class Constants
     public const uint GF_THEME_MAXIMUM_PUBLISHED_VALUES = 256u;
     public const uint GF_THEME_OUTCOME_APPLIED = 0u;
     public const uint GF_THEME_OUTCOME_REFUSED = 1u;
+    public const uint GF_USER_THEME_POLICY_LAYERED = 0u;
+    public const uint GF_USER_THEME_POLICY_REPLACES_PROGRAM_SHEET = 1u;
+    public const uint GF_USER_THEME_POLICY_REFUSED = 2u;
+    public const uint GF_THEME_REQUEST_NONE = 0u;
+    public const uint GF_THEME_REQUEST_PENDING = 1u;
+    public const uint GF_THEME_REQUEST_BUILT_IN = 2u;
+    public const uint GF_THEME_REQUEST_APPLIED = 3u;
+    public const uint GF_THEME_REQUEST_IGNORED_BY_POLICY = 4u;
+    public const uint GF_THEME_REQUEST_UNKNOWN_NAME = 5u;
+    public const uint GF_THEME_REQUEST_REFUSED = 6u;
+    public const uint GF_THEME_REQUEST_UNREADABLE = 7u;
+    public const uint GF_THEME_REQUEST_MALFORMED = 8u;
     public const uint GF_THEME_SEVERITY_ERROR = 0u;
     public const uint GF_THEME_SEVERITY_WARNING = 1u;
     public const uint GF_THEME_DIAGNOSTIC_TEXT_CODE = 0u;
@@ -287,6 +302,30 @@ public static class Constants
     public const uint GF_CONTROL_UPDATE_ON_PROPERTY_CHANGED = 0u;
     public const uint GF_CONTROL_UPDATE_NEVER = 1u;
     public const uint GF_BINDING_MAXIMUM_FIELDS = 1024u;
+    public const uint GF_BINDING_MAXIMUM_RECORDS_PER_CALL = 65536u;
+    public const ulong GF_BINDING_HIDDEN_POSITION = 18446744073709551615ul;
+    public const ulong GF_BINDING_WHOLE_ROW = 18446744073709551615ul;
+    public const uint GF_BINDING_SORT_ASCENDING = 0u;
+    public const uint GF_BINDING_SORT_DESCENDING = 1u;
+    public const uint GF_BINDING_PREDICATE_EQUAL = 0u;
+    public const uint GF_BINDING_PREDICATE_NOT_EQUAL = 1u;
+    public const uint GF_BINDING_PREDICATE_LESS = 2u;
+    public const uint GF_BINDING_PREDICATE_LESS_OR_EQUAL = 3u;
+    public const uint GF_BINDING_PREDICATE_GREATER = 4u;
+    public const uint GF_BINDING_PREDICATE_GREATER_OR_EQUAL = 5u;
+    public const uint GF_BINDING_PREDICATE_CONTAINS = 6u;
+    public const uint GF_BINDING_PREDICATE_STARTS_WITH = 7u;
+    public const uint GF_BINDING_PREDICATE_IS_NULL = 8u;
+    public const uint GF_BINDING_PREDICATE_IS_NOT_NULL = 9u;
+    public const uint GF_BINDING_NOTIFY_RESET = 0u;
+    public const uint GF_BINDING_NOTIFY_INSERTED = 1u;
+    public const uint GF_BINDING_NOTIFY_REMOVED = 2u;
+    public const uint GF_BINDING_NOTIFY_MOVED = 3u;
+    public const uint GF_BINDING_NOTIFY_CHANGED = 4u;
+    public const uint GF_BINDING_PROVIDER_SORTS = 1u;
+    public const uint GF_BINDING_PROVIDER_FILTERS = 2u;
+    public const uint GF_BINDING_PROVIDER_INSERTS = 4u;
+    public const uint GF_BINDING_PROVIDER_REMOVES = 8u;
     public const uint GF_SUBSURFACE_STATE_STOPPED = 0u;
     public const uint GF_SUBSURFACE_STATE_STARTING = 1u;
     public const uint GF_SUBSURFACE_STATE_RUNNING = 2u;
@@ -326,6 +365,8 @@ public static class Constants
     public const uint GF_RULE_CONDITION_ENABLED = 7u;
     public const uint GF_RULE_CONDITION_VISIBLE = 8u;
     public const uint GF_RULE_CONDITION_WINDOW_ACTIVE = 9u;
+    public const uint GF_RULE_CONDITION_DRAGGING = 12u;
+    public const uint GF_RULE_CONDITION_DROP_CANDIDATE = 13u;
     public const uint GF_RULE_MODIFIER_SHIFT = 1u;
     public const uint GF_RULE_MODIFIER_CONTROL = 2u;
     public const uint GF_RULE_MODIFIER_ALT = 4u;
@@ -335,6 +376,7 @@ public static class Constants
     public const uint GF_RULE_ACTION_SET = 3u;
     public const uint GF_RULE_ACTION_TOGGLE = 4u;
     public const uint GF_RULE_ACTION_FOCUS = 5u;
+    public const uint GF_RULE_ACTION_BEGIN_KEYBOARD_DRAG = 6u;
     public const uint GF_RULE_FLAGS_CONSUME = 1u;
     public const uint GF_RULE_STATE_ARMED = 1u;
     public const uint GF_RULE_STATE_REVOKED = 2u;
@@ -423,5 +465,8 @@ public static class Constants
     public const uint GF_DOCK_REFUSAL_SITE_REFUSES_KIND = 22u;
     public const uint GF_DOCK_REFUSAL_SITE_REFUSES_GROUP = 23u;
     public const uint GF_DOCK_REFUSAL_USER_DOCKING_LOCKED = 24u;
+    public const uint GF_HELP_NAVIGATOR_CONTENTS = 0u;
+    public const uint GF_HELP_NAVIGATOR_INDEX = 1u;
+    public const uint GF_HELP_NAVIGATOR_SEARCH = 2u;
     public const uint GF_PAINT_ENDPOINT_MAXIMUM_SIDE = 32768u;
 }

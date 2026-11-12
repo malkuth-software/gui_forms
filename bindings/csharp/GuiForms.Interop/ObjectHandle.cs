@@ -1,6 +1,8 @@
 // One reference to a library object. The library allows release from any
 // thread (destruction is deferred to the owning UI thread), so the finalizer
-// thread may release a handle the program dropped.
+// thread may release a handle the program dropped. The handle keeps the
+// 64-bit gf_object in its IntPtr, so the binding runs in 64-bit processes
+// only; Abi refuses a 32-bit one at its first negotiation (N73).
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
