@@ -319,7 +319,25 @@ void test_matches_greedy_reference() {
                                  line_what + ": its baseline");
                 }
                 require_near(result.height, 15.0 * static_cast<double>(expected.size()), what + ": the height");
-                require(result.status == TextResolutionStatus::exact, what + ": exact throughout");
+                // The fixed provider takes TextMetricsProvider's default
+                // breaks (the white-space estimate), so the status is
+                // estimated at every width; the fit is reported apart.
+                require(result.status == TextResolutionStatus::estimated,
+                        what + ": estimated, from the estimate's break opportunities");
+                std::size_t expected_overflow = 0U;
+                for (const line_wrapping_detail::WrappedLine& line : expected) {
+                    if (line.width > width + 1.0 / 1024.0) ++expected_overflow;
+                }
+                require(result.overflowing_lines == expected_overflow, what + ": the overflowing lines are counted");
+                if (width == 0.0) {
+                    for (std::size_t index = 0U; index < expected.size(); ++index) {
+                        const ParagraphLine& line = lines[index];
+                        const std::string_view shown =
+                            text.substr(line.bytes.start.value(), line.bytes.end.value() - line.bytes.start.value());
+                        require(shown.find(' ') == std::string_view::npos,
+                                what + ": at width 0 each line is one word");
+                    }
+                }
 
                 // Advance sums are exact without kerning, so the estimated
                 // fit gives the same lines with one shaping.
@@ -612,6 +630,8 @@ void test_long_words_and_emoji() {
         laid_out(lay_out_paragraph(&metrics, emoji, emoji_style, buffers.storage()), "narrow emoji");
     require(narrow.line_count == 4U && narrow.widest_line == 16.0,
             "a cluster wider than the line overflows on its own, unsplit");
+    require(narrow.overflowing_lines == 4U, "and every such line is reported overflowing");
+    require(clusters.overflowing_lines == 0U, "at 20 px every cluster fits");
     emoji_style.overflow_wrap = ParagraphOverflowWrap::normal;
     const ParagraphMetrics unbroken =
         laid_out(lay_out_paragraph(&metrics, emoji, emoji_style, buffers.storage()), "unbroken emoji");

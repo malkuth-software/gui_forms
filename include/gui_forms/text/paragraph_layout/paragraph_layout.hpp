@@ -181,9 +181,21 @@ struct GUI_FORMS_API ParagraphMetrics final {
     // line_count line boxes: zero for an empty text, which has no line.
     double height{};
     double widest_line{};
-    // The least exact status the provider answered (exact, estimated or a
-    // missing face), in TextResolutionStatus's order.
+    // The least exact status the provider answered for the break
+    // opportunities, the cluster advances and every measurement (exact,
+    // estimated or a missing face), in TextResolutionStatus's order. It
+    // describes the text engine's answers only, never the fit: a provider
+    // using the white-space estimate for breaks
+    // (estimate_line_break_opportunities_utf8, TextMetricsProvider's
+    // default) makes it estimated at any width.
     TextResolutionStatus status{TextResolutionStatus::exact};
+    // The lines wider than ParagraphStyle::width (beyond the fit
+    // tolerance). When nothing fits (a width of zero, or narrower than a
+    // cluster) each line holds the smallest unit the overflow rule allows,
+    // a word under ParagraphOverflowWrap::normal and a cluster under
+    // break_word, and every line with visible text overflows. Zero when
+    // every line fits.
+    std::size_t overflowing_lines{};
     // Provider shaping calls (the cluster advances and each whole-run
     // measurement) and the bytes they shaped: what the layout cost.
     std::uint64_t shaping_calls{};
