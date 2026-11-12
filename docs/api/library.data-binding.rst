@@ -966,7 +966,7 @@ Types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const std::shared_ptr<Binding>> items() const& noexcept
+   .. cpp:function:: BorrowedSpan<std::shared_ptr<Binding>> items() const& noexcept
 
       Returns the ordered shared-owner view.
 

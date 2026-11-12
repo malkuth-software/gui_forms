@@ -1523,7 +1523,9 @@ Related types
 
    .. cpp:function:: TextDecorationLayer layer_at(std::size_t index) const
 
-   .. cpp:function:: std::span<const TextDecoration> items(TextDecorationLayer layer) const noexcept
+   .. cpp:function:: BorrowedSpan<TextDecoration> items(TextDecorationLayer layer) const noexcept
+
+      Borrowed: any change of the decorations (replace, clear, an edit's shift) ends the views lent so far.
 
    .. cpp:function:: void compose(Utf8Range window, std::vector<StyledTextRun>& runs)
 
@@ -1604,7 +1606,7 @@ Related types
 
 .. cpp:struct:: TextSelection final
 
-   ``#include <gui_forms/controls/text_box.hpp>``
+   ``#include <gui_forms/controls/text_box_base.hpp>``
 
    TextSelection is TextBox's normalized byte-boundary selection value. It keeps anchor and active endpoints distinct while exposing ordered ranges for mutation and painting.
 

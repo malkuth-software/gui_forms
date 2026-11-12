@@ -41,6 +41,9 @@ gui_forms::SurfaceRoot
       **presenting_window** : ``BorrowedPointer<Window>``, read-only
          The Window this root is, borrowed (null for a root presented some other way). In the sanitizer tree the copy reports a use after the Window died; a table that holds a Window across callbacks keeps this.
 
+      **window_ref** : ``WindowRef``, read-only
+         A weak handle on the Window this root is (one that answers null for a root presented some other way): what a holder keeps across callbacks.
+
       **dispatcher** : ``WindowDispatcher``, read-only
          A handle to this root's dispatcher that any thread may keep and post through after the root has closed (WindowDispatcher).
 
@@ -653,6 +656,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: BorrowedPointer<Window> presenting_window() const noexcept
 
       The Window this root is, borrowed (null for a root presented some other way). In the sanitizer tree the copy reports a use after the Window died; a table that holds a Window across callbacks keeps this.
+
+   .. cpp:function:: WindowRef window_ref() const
+
+      A weak handle on the Window this root is (one that answers null for a root presented some other way): what a holder keeps across callbacks.
 
    .. cpp:function:: WindowDispatcher dispatcher() const
 

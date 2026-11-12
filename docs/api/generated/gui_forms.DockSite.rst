@@ -605,7 +605,7 @@ gui_forms::DockSite
 
       The stamp's rectangle while dragging or settling.
 
-   .. cpp:function:: const std::string& drag_announcement() const noexcept
+   .. cpp:function:: const std::string& drag_announcement() const& noexcept
 
       What the drag announces ("Output: dock left of Properties"), also the
       name of the site's last semantic child, a ``live_region`` with the ID

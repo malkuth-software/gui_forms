@@ -327,7 +327,7 @@ gui_forms::DockWorkspace
       decision DK-27, E1-1): resting the pointer on the tab or clicking it, or
       (``click``) only clicking it.
 
-   .. cpp:function:: const std::string& stable_id() const noexcept
+   .. cpp:function:: const std::string& stable_id() const& noexcept
 
    .. cpp:function:: const DockLayout& layout() const noexcept
 

@@ -75,10 +75,6 @@ gui_forms::ListBox
       **selected_indices** : ``std::span<const std::size_t>``, read-only
          The indices of all selected rows, in ascending order.
 
-      **selected_index** : ``std::optional<std::size_t>``, read-only
-         The lowest selected index, or no value when nothing is selected. In
-         ``one`` mode this is the selected row.
-
       **parts** : ``Parts``, read-only
 
       **realized_items** : ``std::vector<Item>``, read-only
@@ -100,6 +96,8 @@ gui_forms::ListBox
          caused, if any. Selection methods never raise it.
 
    :Inherited:
+
+      From :cpp:class:`ListControl <gui_forms::ListControl>`: properties :cpp:func:`selected_index <gui_forms::ListControl::selected_index>`; events :cpp:func:`selected_index_changed <gui_forms::ListControl::selected_index_changed>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
@@ -258,11 +256,6 @@ gui_forms::ListBox
    .. cpp:function:: std::span<const std::size_t> selected_indices() const& noexcept
 
       The indices of all selected rows, in ascending order.
-
-   .. cpp:function:: std::optional<std::size_t> selected_index() const noexcept
-
-      The lowest selected index, or no value when nothing is selected. In
-      ``one`` mode this is the selected row.
 
    .. cpp:function:: Parts parts() const
 
@@ -442,7 +435,7 @@ gui_forms::ListBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ListBox``. Members declared here and by the counterpart: 12 supported, 0 deferred, 1 excluded, 51 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ListBox``. Members declared here and by the counterpart: 13 supported, 0 deferred, 1 excluded, 49 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -575,8 +568,8 @@ Counterpart: ``ListBox``. Members declared here and by the counterpart: 12 suppo
      - unclassified (unmatched)
    * - event
      - ``SelectedIndexChanged``
-     - none
-     - unclassified (unmatched)
+     - ``selected_index_changed``
+     - supported
    * - event
      - ``TextChanged``
      - none
@@ -649,10 +642,6 @@ Counterpart: ``ListBox``. Members declared here and by the counterpart: 12 suppo
      - GUI.Forms-only
      - ``realized_items``
      - supported
-   * - property
-     - ``ListControl.SelectedIndex``
-     - ``selected_index``
-     - supported
    * - event
      - GUI.Forms-only
      - ``item_activated``
@@ -664,7 +653,7 @@ Counterpart: ``ListBox``. Members declared here and by the counterpart: 12 suppo
    * - method
      - GUI.Forms-only
      - ``clear_selection``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``item_stable_id``

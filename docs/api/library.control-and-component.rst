@@ -583,7 +583,7 @@ Related types
 
    ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
 
-   A checked view of ``Element`` (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp. Made only by detail::lend_view and the subviews.
+   A checked view of :cpp:func:`Element <gui_forms::BasicBorrowedSpan::Element>` (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp. Made only by detail::lend_view and the subviews.
 
 
    .. rubric:: Construction
@@ -629,6 +629,10 @@ Related types
    .. cpp:function:: BasicBorrowedSpan first(std::size_t count) const noexcept
 
    .. cpp:function:: BasicBorrowedSpan last(std::size_t count) const noexcept
+
+   .. cpp:function:: template <typename Other> requires std::is_convertible_v<Element (*)[], Other (*)[]> operator std::span<Other>() const noexcept
+
+      The plain view, untracked from here on: the stamp is checked once. A mutable view also converts to the plain const view (as std::span<T> to std::span<const T>).
 
    .. cpp:type:: element_type = Element
 
@@ -741,9 +745,9 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const BlockFlowItemResult> items() const& noexcept
+   .. cpp:function:: BorrowedSpan<BlockFlowItemResult> items() const& noexcept
 
-   .. cpp:function:: std::span<const BlockFlowLine> lines() const& noexcept
+   .. cpp:function:: BorrowedSpan<BlockFlowLine> lines() const& noexcept
 
    .. cpp:function:: double content_height() const noexcept
 
@@ -843,6 +847,8 @@ Related types
    .. cpp:function:: iterator begin() const noexcept
 
    .. cpp:function:: iterator end() const noexcept
+
+   .. cpp:function:: std::size_t length() const noexcept
 
 
    .. rubric:: Methods
@@ -1627,11 +1633,11 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const FlexItemResult> items() const& noexcept
+   .. cpp:function:: BorrowedSpan<FlexItemResult> items() const& noexcept
 
-   .. cpp:function:: std::span<const FlexLine> lines() const& noexcept
+   .. cpp:function:: BorrowedSpan<FlexLine> lines() const& noexcept
 
-   .. cpp:function:: std::span<const std::uint32_t> order() const& noexcept
+   .. cpp:function:: BorrowedSpan<std::uint32_t> order() const& noexcept
 
    .. cpp:function:: double content_main() const noexcept
 
@@ -1953,11 +1959,11 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const GridItemResult> items() const& noexcept
+   .. cpp:function:: BorrowedSpan<GridItemResult> items() const& noexcept
 
-   .. cpp:function:: std::span<const GridTrack> columns() const& noexcept
+   .. cpp:function:: BorrowedSpan<GridTrack> columns() const& noexcept
 
-   .. cpp:function:: std::span<const GridTrack> rows() const& noexcept
+   .. cpp:function:: BorrowedSpan<GridTrack> rows() const& noexcept
 
    .. cpp:function:: std::uint32_t leading_implicit_columns() const noexcept
 
@@ -3983,6 +3989,22 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+
+.. cpp:function:: template <typename Element> std::span<Element> unchecked_view(const BasicBorrowedSpan<Element>& view) noexcept
+
+   The plain view of ``view``, valid in both builds: the checked build checks the stamp once here and the result is not tracked. For a callee that takes the plain view and returns before the owner can change.
+
+.. cpp:function:: inline std::string_view unchecked_view(const BorrowedText& view) noexcept
+
+.. cpp:function:: template <typename Target> Target* unchecked_view(const BorrowedPointer<Target>& pointer) noexcept
+
+.. cpp:function:: template <typename Element> inline std::span<Element> unchecked_view(std::span<Element> view) noexcept
+
+   The plain view (the identity here; see the checked build).
+
+.. cpp:function:: inline std::string_view unchecked_view(std::string_view view) noexcept
+
+.. cpp:function:: template <typename Target> inline Target* unchecked_view(Target* pointer) noexcept
 
 .. cpp:type:: BorrowedText = std::string_view
 

@@ -600,9 +600,9 @@ Related types
 
    .. cpp:function:: PreparedTextMetrics metrics() const noexcept
 
-   .. cpp:function:: std::span<const std::uint8_t> pixels() const noexcept
+   .. cpp:function:: BorrowedSpan<std::uint8_t> pixels() const noexcept
 
-      Top-left gray8, tightly packed rows; borrow ends at release/replacement.
+      Top-left gray8, tightly packed rows; borrow ends at release/replacement (the sanitizer tree reports a later use).
 
 .. cpp:namespace:: gui_forms
 
@@ -648,7 +648,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& built_in_language() const noexcept
+   .. cpp:function:: const std::string& built_in_language() const& noexcept
 
    .. cpp:function:: const LocaleFileInfo& translation_info() const noexcept
 
@@ -2128,7 +2128,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::string_view utf8() const& noexcept
+   .. cpp:function:: BorrowedText utf8() const& noexcept
 
       Returns the current contiguous UTF-8 view until the next mutation.
 
@@ -2160,7 +2160,7 @@ Related types
 
       Returns immutable byte and style-span limits.
 
-   .. cpp:function:: std::span<const TextStyleSpan> style_spans() const& noexcept
+   .. cpp:function:: BorrowedSpan<TextStyleSpan> style_spans() const& noexcept
 
       Returns normalized nonoverlapping retained style spans.
 

@@ -189,7 +189,7 @@ gui_forms::Command
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& stable_id() const noexcept
+   .. cpp:function:: const std::string& stable_id() const& noexcept
 
       The identity given to the constructor, or an empty string.
 

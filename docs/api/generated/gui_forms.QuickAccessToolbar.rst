@@ -169,7 +169,7 @@ gui_forms::QuickAccessToolbar
       value changes and throws ``std::invalid_argument`` for a value outside the
       enumeration.
 
-   .. cpp:function:: const std::vector<QuickAccessToolbarCommand>& commands() const noexcept
+   .. cpp:function:: const std::vector<QuickAccessToolbarCommand>& commands() const& noexcept
 
       The declared commands, in toolbar order, as given to :cpp:func:`set_commands <gui_forms::QuickAccessToolbar::set_commands>`.
       Each has its :cpp:class:`Command <gui_forms::Command>`, an optional image (a command with an image shows
@@ -184,7 +184,7 @@ gui_forms::QuickAccessToolbar
 
       Sets :cpp:func:`commands <gui_forms::QuickAccessToolbar::commands>`; see the property's description above.
 
-   .. cpp:function:: const std::vector<std::string>& shown_command_ids() const noexcept
+   .. cpp:function:: const std::vector<std::string>& shown_command_ids() const& noexcept
 
       The IDs of the commands the toolbar shows, in toolbar order.
       :cpp:func:`set_shown_command_ids <gui_forms::QuickAccessToolbar::set_shown_command_ids>` shows exactly the given IDs in the given order,

@@ -141,7 +141,7 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: HelpBookSystemSnapshot snapshot() const noexcept
 
-   .. cpp:function:: const std::vector<std::string>& bookmarks() const noexcept
+   .. cpp:function:: const std::vector<std::string>& bookmarks() const& noexcept
 
    .. cpp:function:: void set_bookmarks(std::vector<std::string> stable_ids)
 

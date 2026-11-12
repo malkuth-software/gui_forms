@@ -76,12 +76,6 @@ gui_forms::RichTextBox
 
       **scroll_offset** : ``Point``, read-only
 
-      **selection** : ``TextSelection``, read-only
-         The selection as byte offsets into the source on grapheme boundaries.
-
-      **selected_text** : ``std::string``, read-only
-         The selected source.
-
       **selection_format** : ``RichTextFormat``, read-only
          The formatting at the selection, as the bar shows it, each format on,
          off or mixed (:cpp:enum:`RichTextFormatState <gui_forms::RichTextFormatState>`): a span style is on when every
@@ -90,8 +84,6 @@ gui_forms::RichTextBox
          line format reads the non-blank lines the selection touches the same
          way; headings of different levels, or a heading beside body text, are
          mixed.
-
-      **can_undo** : ``bool``, read-only
 
       **can_redo** : ``bool``, read-only
 
@@ -120,6 +112,8 @@ gui_forms::RichTextBox
 
    :Inherited:
 
+      From :cpp:class:`TextBoxBase <gui_forms::TextBoxBase>`: properties :cpp:func:`selection <gui_forms::TextBoxBase::selection>`, :cpp:func:`selected_text <gui_forms::TextBoxBase::selected_text>`, :cpp:func:`can_undo <gui_forms::TextBoxBase::can_undo>`; methods :cpp:func:`clear_undo_history <gui_forms::TextBoxBase::clear_undo_history>`, :cpp:func:`copy <gui_forms::TextBoxBase::copy>`, :cpp:func:`cut <gui_forms::TextBoxBase::cut>`, :cpp:func:`paste <gui_forms::TextBoxBase::paste>`, :cpp:func:`select <gui_forms::TextBoxBase::select>`, :cpp:func:`select_all <gui_forms::TextBoxBase::select_all>`, :cpp:func:`undo <gui_forms::TextBoxBase::undo>`.
+
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
       From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:member:`wheel_scrolls <gui_forms::ScrollableControl::wheel_scrolls>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
@@ -138,10 +132,6 @@ gui_forms::RichTextBox
         - Empties the document and clears the history.
       * - :cpp:func:`visual_line_count <gui_forms::RichTextBox::visual_line_count>`
         - The number of displayed lines after wrapping.
-      * - :cpp:func:`select <gui_forms::RichTextBox::select>`
-        - Sets the selection from an anchor and a caret offset.
-      * - :cpp:func:`select_all <gui_forms::RichTextBox::select_all>`
-        - Selects the whole source.
       * - :cpp:func:`toggle_bold <gui_forms::RichTextBox::toggle_bold>`
         - Wraps the selection's text on each line it covers in ``**``, or removes the delimiters that already wrap it; with an empty selection it inserts a pair with the caret between.
       * - :cpp:func:`toggle_italic <gui_forms::RichTextBox::toggle_italic>`
@@ -154,22 +144,12 @@ gui_forms::RichTextBox
         - As :cpp:func:`toggle_bulleted_list <gui_forms::RichTextBox::toggle_bulleted_list>`, numbering the lines ``1.``, ``2.`` and on.
       * - :cpp:func:`insert_link <gui_forms::RichTextBox::insert_link>`
         - Wraps the selection as a link's text and puts the caret where the destination goes; with an empty selection it writes an empty link with the caret in its brackets.
-      * - :cpp:func:`undo <gui_forms::RichTextBox::undo>`
-        - Restores the source and selection before the last edit or command.
       * - :cpp:func:`redo <gui_forms::RichTextBox::redo>`
         - Reapplies the last undone step.
-      * - :cpp:func:`clear_undo_history <gui_forms::RichTextBox::clear_undo_history>`
-        - Forgets every undo and redo step.
       * - :cpp:func:`replace_selection <gui_forms::RichTextBox::replace_selection>`
         - Replaces the selection with source text as one undoable edit.
       * - :cpp:func:`delete_selection <gui_forms::RichTextBox::delete_selection>`
         - Removes the selection as one undoable edit.
-      * - :cpp:func:`copy <gui_forms::RichTextBox::copy>`
-        - Copies the selected source to the clipboard.
-      * - :cpp:func:`cut <gui_forms::RichTextBox::cut>`
-        - Copies the selection and then deletes it.
-      * - :cpp:func:`paste <gui_forms::RichTextBox::paste>`
-        - Replaces the selection with the clipboard's text, as source.
       * - :cpp:func:`rich_text_box_property_entries <gui_forms::RichTextBox::rich_text_box_property_entries>`
         -  
       * - :cpp:func:`set_rtf <gui_forms::RichTextBox::set_rtf>`
@@ -290,14 +270,6 @@ gui_forms::RichTextBox
 
    .. cpp:function:: Point scroll_offset() const noexcept
 
-   .. cpp:function:: TextSelection selection() const noexcept
-
-      The selection as byte offsets into the source on grapheme boundaries.
-
-   .. cpp:function:: std::string selected_text() const
-
-      The selected source.
-
    .. cpp:function:: RichTextFormat selection_format() const
 
       The formatting at the selection, as the bar shows it, each format on,
@@ -307,8 +279,6 @@ gui_forms::RichTextBox
       line format reads the non-blank lines the selection touches the same
       way; headings of different levels, or a heading beside body text, are
       mixed.
-
-   .. cpp:function:: bool can_undo() const noexcept
 
    .. cpp:function:: bool can_redo() const noexcept
 
@@ -356,15 +326,6 @@ gui_forms::RichTextBox
 
       The number of displayed lines after wrapping.
 
-   .. cpp:function:: void select(Utf8Offset anchor, Utf8Offset caret)
-
-      Sets the selection from an anchor and a caret offset. Both must lie on
-      grapheme boundaries of the source, or it throws ``std::out_of_range``.
-
-   .. cpp:function:: void select_all()
-
-      Selects the whole source.
-
    .. cpp:function:: bool toggle_bold()
 
       Wraps the selection's text on each line it covers in ``**``, or removes
@@ -395,17 +356,9 @@ gui_forms::RichTextBox
       destination goes; with an empty selection it writes an empty link with
       the caret in its brackets.
 
-   .. cpp:function:: bool undo()
-
-      Restores the source and selection before the last edit or command.
-
    .. cpp:function:: bool redo()
 
       Reapplies the last undone step.
-
-   .. cpp:function:: void clear_undo_history()
-
-      Forgets every undo and redo step.
 
    .. cpp:function:: bool replace_selection(std::string_view replacement)
 
@@ -416,18 +369,6 @@ gui_forms::RichTextBox
    .. cpp:function:: bool delete_selection()
 
       Removes the selection as one undoable edit.
-
-   .. cpp:function:: bool copy()
-
-      Copies the selected source to the clipboard.
-
-   .. cpp:function:: bool cut()
-
-      Copies the selection and then deletes it.
-
-   .. cpp:function:: bool paste()
-
-      Replaces the selection with the clipboard's text, as source.
 
    .. cpp:function:: static const std::array<PropertyEntry, rich_text_box_property_count>& rich_text_box_property_entries() noexcept
 
@@ -520,6 +461,16 @@ gui_forms::RichTextBox
 
       *Protected.*
 
+   .. cpp:function:: detail::TextEditingEngine* editing_engine() const noexcept override
+
+      *Protected.*
+
+      TextBoxBase's hooks: the engine this box owns, and set_selection.
+
+   .. cpp:function:: void apply_selection(TextSelection selection) override
+
+      *Protected.*
+
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
    .. cpp:function:: virtual void on_text_changed()
@@ -550,7 +501,7 @@ gui_forms::RichTextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 supported, 0 deferred, 0 excluded, 60 unclassified; 22 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 26 supported, 0 deferred, 0 excluded, 57 unclassified; 20 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -794,10 +745,6 @@ Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 s
      - none
      - unclassified (unmatched)
    * - property
-     - ``TextBoxBase.CanUndo``
-     - ``can_undo``
-     - supported
-   * - property
      - GUI.Forms-only
      - ``document``
      - supported
@@ -812,14 +759,6 @@ Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 s
    * - property
      - GUI.Forms-only
      - ``scroll_offset``
-     - supported
-   * - property
-     - ``TextBoxBase.SelectedText``
-     - ``selected_text``
-     - supported
-   * - property
-     - GUI.Forms-only
-     - ``selection``
      - supported
    * - property
      - GUI.Forms-only
@@ -840,19 +779,7 @@ Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 s
    * - method
      - ``TextBoxBase.Clear``
      - ``clear``
-     - unclassified (untested)
-   * - method
-     - GUI.Forms-only
-     - ``clear_undo_history``
-     - unclassified (untested)
-   * - method
-     - ``TextBoxBase.Copy``
-     - ``copy``
      - supported
-   * - method
-     - ``TextBoxBase.Cut``
-     - ``cut``
-     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``delete_selection``
@@ -886,14 +813,6 @@ Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 s
      - ``rich_text_box_property_entries``
      - unclassified (untested)
    * - method
-     - ``TextBoxBase.Select``
-     - ``select``
-     - supported
-   * - method
-     - ``TextBoxBase.SelectAll``
-     - ``select_all``
-     - supported
-   * - method
      - GUI.Forms-only
      - ``set_heading_level``
      - supported
@@ -920,10 +839,6 @@ Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 32 s
    * - method
      - GUI.Forms-only
      - ``toggle_numbered_list``
-     - supported
-   * - method
-     - ``TextBoxBase.Undo``
-     - ``undo``
      - supported
    * - method
      - GUI.Forms-only

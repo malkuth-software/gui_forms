@@ -237,7 +237,7 @@ gui_forms::MenuStrip
       name a visible item, or ``std::out_of_range`` is thrown; an empty ID
       clears the selection.
 
-   .. cpp:function:: const std::vector<MenuStripItemSpec>& items() const noexcept
+   .. cpp:function:: const std::vector<MenuStripItemSpec>& items() const& noexcept
 
       The top-level menus, empty by default. Each :cpp:class:`MenuStripItemSpec <gui_forms::MenuStripItemSpec>` has a
       stable ID, the text shown on the bar, its menu's :cpp:class:`MenuItemSpec <gui_forms::MenuItemSpec>` items, and

@@ -51,7 +51,7 @@ gui_forms::ChoiceGroup
          group is bound, the bound value's own validators are consulted too, and
          an exception from them leaves both unchanged.
 
-      **items** : ``std::span<const ChoiceItem>``
+      **items** : ``BorrowedSpan<ChoiceItem>``
          The choices, in display order. Empty by default. Item IDs must be
          unique and every text valid UTF-8, or :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` throws
          ``std::invalid_argument``. Each item's button shows its glyph and label
@@ -209,7 +209,7 @@ gui_forms::ChoiceGroup
       group is bound, the bound value's own validators are consulted too, and
       an exception from them leaves both unchanged.
 
-   .. cpp:function:: std::span<const ChoiceItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<ChoiceItem> items() const noexcept
 
       The choices, in display order. Empty by default. Item IDs must be
       unique and every text valid UTF-8, or :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` throws

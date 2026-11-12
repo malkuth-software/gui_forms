@@ -205,11 +205,11 @@ gui_forms::ContextMenu
       finite and between 120 and 1024, or ``std::invalid_argument`` is thrown.
       Changing it closes an open menu.
 
-   .. cpp:function:: const std::string& stable_id() const noexcept
+   .. cpp:function:: const std::string& stable_id() const& noexcept
 
       The identity given to the constructor.
 
-   .. cpp:function:: const std::vector<MenuItemSpec>& items() const noexcept
+   .. cpp:function:: const std::vector<MenuItemSpec>& items() const& noexcept
 
       The menu's item tree; empty by default. :cpp:func:`set_items <gui_forms::ContextMenu::set_items>` validates the whole
       tree before changing anything and throws ``std::invalid_argument`` unless

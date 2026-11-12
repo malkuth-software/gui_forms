@@ -241,9 +241,9 @@ Related types
 
    ``#include <gui_forms/controls/dock_workspace.hpp>``
 
-   Documents about to close at the user's request (DockWorkspace:: document_closing). ``documents`` is the one document asked about (each) or every document of the request (combined), in the request's order; it is valid only while the event is raised. A handler sets ``cancel`` to keep them, which ends the request with nothing closed, or ``defer`` to answer later with DockWorkspace::answer_close (an asynchronous prompt). With neither set, the request goes on.
+   Documents about to close at the user's request (DockWorkspace:: document_closing). ``documents`` is the one document asked about (each) or every document of the request (combined), in the request's order; it is a call-scope borrow, valid only while the event is raised (the sanitizer tree reports a use after the raise). A handler sets ``cancel`` to keep them, which ends the request with nothing closed, or ``defer`` to answer later with DockWorkspace::answer_close (an asynchronous prompt). With neither set, the request goes on.
 
-   .. cpp:member:: std::span<const DockPanelId> documents
+   .. cpp:member:: BorrowedSpan<DockPanelId> documents
 
    .. cpp:member:: DockCloseCause cause
 

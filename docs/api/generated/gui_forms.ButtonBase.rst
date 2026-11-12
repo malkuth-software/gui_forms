@@ -383,7 +383,7 @@ gui_forms::ButtonBase
 
       Sets :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`; see the property's description above.
 
-   .. cpp:function:: const std::string& image_key() const noexcept
+   .. cpp:function:: const std::string& image_key() const& noexcept
 
       Key into :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`. Setting it clears :cpp:member:`image <gui_forms::ButtonBase::image>` and :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`. The
       key must be valid UTF-8 of at most 256 bytes.

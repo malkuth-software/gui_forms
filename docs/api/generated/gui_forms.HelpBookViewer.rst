@@ -161,7 +161,7 @@ gui_forms::HelpBookViewer
 
    .. cpp:function:: void set_labels(HelpBookViewerLabels labels)
 
-   .. cpp:function:: const std::vector<std::string>& bookmarks() const noexcept
+   .. cpp:function:: const std::vector<std::string>& bookmarks() const& noexcept
 
    .. cpp:function:: void set_bookmarks(std::vector<std::string> stable_ids)
 

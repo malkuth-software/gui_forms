@@ -1102,7 +1102,7 @@ Related types
 
       The untranslatable way back (translation design): while set, only the built-in layer resolves, whatever the translation and user files say.
 
-   .. cpp:function:: const std::string& language() const noexcept
+   .. cpp:function:: const std::string& language() const& noexcept
 
    .. cpp:function:: std::uint64_t revision() const noexcept
 
@@ -1821,15 +1821,15 @@ Related types
 
    .. cpp:function:: const StableId& stable_id() const noexcept
 
-   .. cpp:function:: const std::string& title() const noexcept
+   .. cpp:function:: const std::string& title() const& noexcept
 
-   .. cpp:function:: const std::string& body() const noexcept
+   .. cpp:function:: const std::string& body() const& noexcept
 
    .. cpp:function:: const HelpPlace& place() const noexcept
 
-   .. cpp:function:: const std::string& help_line() const noexcept
+   .. cpp:function:: const std::string& help_line() const& noexcept
 
-   .. cpp:function:: const std::string& keywords() const noexcept
+   .. cpp:function:: const std::string& keywords() const& noexcept
 
    .. cpp:function:: const HelpTopic* next() const noexcept
 

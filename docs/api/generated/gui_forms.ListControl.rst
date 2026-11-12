@@ -16,10 +16,27 @@ gui_forms::ListControl
    :cpp:class:`ListControl <gui_forms::ListControl>` is the base of :cpp:class:`ListBox <gui_forms::ListBox>` (and so of :cpp:class:`CheckedListBox <gui_forms::CheckedListBox>`) and
    :cpp:class:`ComboBox <gui_forms::ComboBox>`, as Windows Forms names it. It cannot be created on its own;
    create one of those controls instead, and use this type when code should
-   work with any of them. It adds nothing to :cpp:class:`Panel <gui_forms::Panel>` yet: each derived control
-   holds its own ``items`` and selection.
+   work with any of them. It carries the selected index and its change event;
+   each derived control holds its own ``items`` and the rest of its selection.
 
    *Status:* provisional. *Windows Forms counterpart:* ``ListControl``.
+
+   :Properties:
+
+      **selected_index** : ``std::optional<std::size_t>``, read-only
+         The selected item's index, or no value when nothing is selected. For a
+         :cpp:class:`ListBox <gui_forms::ListBox>` it is the lowest selected index, which in ``one`` mode is the
+         selected row. A :cpp:class:`ComboBox <gui_forms::ComboBox>` also declares it as a settable cell of the
+         same name.
+
+   :Events:
+
+      **selected_index_changed** : ``Event<std::optional<std::size_t>>``
+         Raised with the new index, or no value, after the selected index
+         changes. A :cpp:class:`ListBox <gui_forms::ListBox>` raises it after ``selection_changed``, only when its
+         lowest selected index moved. A :cpp:class:`ComboBox <gui_forms::ComboBox>` raises it after a change by
+         input, by the setter, or by an edit of ``items`` moving or clearing the
+         selection; setting the current index again raises nothing.
 
    :Inherited:
 
@@ -40,9 +57,39 @@ gui_forms::ListControl
       :cpp:class:`ComboBox <gui_forms::ComboBox>`
          A field with a drop-down list of choices.
 
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::optional<std::size_t> selected_index() const noexcept
+
+      The selected item's index, or no value when nothing is selected. For a
+      :cpp:class:`ListBox <gui_forms::ListBox>` it is the lowest selected index, which in ``one`` mode is the
+      selected row. A :cpp:class:`ComboBox <gui_forms::ComboBox>` also declares it as a settable cell of the
+      same name.
+
+
+   .. rubric:: Events
+
+   .. cpp:function:: Event<std::optional<std::size_t>>& selected_index_changed() noexcept
+
+      Raised with the new index, or no value, after the selected index
+      changes. A :cpp:class:`ListBox <gui_forms::ListBox>` raises it after ``selection_changed``, only when its
+      lowest selected index moved. A :cpp:class:`ComboBox <gui_forms::ComboBox>` raises it after a change by
+      input, by the setter, or by an edit of ``items`` moving or clearing the
+      selection; setting the current index again raises nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: bool record_selected_index(std::optional<std::size_t> index) noexcept
+
+      *Protected.*
+
+      Records the leaf's selected index before the leaf raises its own selection events; returns whether it changed. The leaf raises selected_index_changed (publish_change) when it did, after them.
+
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ListControl``. Members declared here and by the counterpart: 0 supported, 0 deferred, 0 excluded, 34 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ListControl``. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 33 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -87,8 +134,8 @@ Counterpart: ``ListControl``. Members declared here and by the counterpart: 0 su
      - unclassified (unmatched)
    * - property
      - ``SelectedIndex``
-     - on ``ListBox``, ``CheckedListBox``, ``ComboBox``
-     - unclassified (carried)
+     - ``selected_index``
+     - supported
    * - property
      - ``SelectedValue``
      - none
@@ -189,3 +236,7 @@ Counterpart: ``ListControl``. Members declared here and by the counterpart: 0 su
      - ``SetItemsCore``
      - none
      - unclassified (unmatched)
+   * - event
+     - GUI.Forms-only
+     - ``selected_index_changed``
+     - supported

@@ -214,7 +214,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& name() const noexcept
+   .. cpp:function:: const std::string& name() const& noexcept
 
    .. cpp:function:: std::size_t handler_count() const noexcept
 

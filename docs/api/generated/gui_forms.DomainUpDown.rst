@@ -99,10 +99,6 @@ gui_forms::DomainUpDown
         - The items in display order (:cpp:member:`items <gui_forms::DomainUpDown::items>`, TextItemsCapability, edited in place): while sorted is true, every edit is followed by sorting (ASCII case folded, then byte order), as Windows Forms' sorted DomainUpDown, so an inserted item need not stay at its position.
       * - :cpp:func:`written <gui_forms::DomainUpDown::written>`
         -  
-      * - :cpp:func:`up_button <gui_forms::DomainUpDown::up_button>`
-        - Selects the previous item, or the last when nothing is selected.
-      * - :cpp:func:`down_button <gui_forms::DomainUpDown::down_button>`
-        - Selects the next item, or the first when nothing is selected.
       * - :cpp:func:`domain_up_down_property_entries <gui_forms::DomainUpDown::domain_up_down_property_entries>`
         -  
 
@@ -231,18 +227,18 @@ gui_forms::DomainUpDown
 
    .. cpp:function:: void written(const decltype(items)& cell, const CollectionEdit& edit)
 
-   .. cpp:function:: void up_button()
-
-      Selects the previous item, or the last when nothing is selected.
-
-   .. cpp:function:: void down_button()
-
-      Selects the next item, or the first when nothing is selected.
-
    .. cpp:function:: static const std::array<PropertyEntry, domain_up_down_property_count>& domain_up_down_property_entries() noexcept
 
 
    .. rubric:: Extension points
+
+   .. cpp:function:: void up_button() override
+
+      Selects the previous item, or the last when nothing is selected.
+
+   .. cpp:function:: void down_button() override
+
+      Selects the next item, or the first when nothing is selected.
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 
@@ -288,7 +284,7 @@ gui_forms::DomainUpDown
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 13 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 13 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -348,10 +344,6 @@ Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 5 s
      - ``domain_up_down_property_entries``
      - unclassified (untested)
    * - method
-     - ``UpDownBase.DownButton``
-     - ``down_button``
-     - supported
-   * - method
      - GUI.Forms-only
      - ``initialize_control_tree``
      - unclassified (untested)
@@ -363,10 +355,6 @@ Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 5 s
      - GUI.Forms-only
      - ``prepare_edit``
      - unclassified (untested)
-   * - method
-     - ``UpDownBase.UpButton``
-     - ``up_button``
-     - supported
    * - method
      - GUI.Forms-only
      - ``written``

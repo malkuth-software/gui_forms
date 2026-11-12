@@ -201,10 +201,13 @@ gui_forms::Control
          The control this one is a child of, or null. A child refers to its
          parent weakly, so the parent's lifetime is decided by its own owners.
 
-      **children** : ``BorrowedSpan<Ptr>``, read-only
+      **children** : ``ChildView``, read-only
          The children, in paint order: the first child is painted first and is
          the backmost; the last is the frontmost. Each child is owned by this
          control.
+
+      **child_count** : ``std::size_t``, read-only
+         The number of children, and the child at ``index`` in children()'s order as a shared copy (null past the end). The copy keeps the child alive across a callback; re-read child_count() after one, since the list may have changed (children_revision() tells).
 
       **children_revision** : ``std::uint64_t``, read-only
          Advances whenever the child list changes (an add, a removal, a new order, a disposal), so a walk that indexes the live list instead of copying it can tell that a callback changed it meanwhile (audit N84).
@@ -325,8 +328,8 @@ gui_forms::Control
          The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
          :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
 
-      **inline_style** : ``std::string_view``
-         The inline style's text in force; empty without one.
+      **inline_style** : ``BorrowedText``
+         The inline style's text in force; empty without one. Valid until the style is set, cleared or recompiled for a theme change (checked builds fail fast on a later read).
 
       **inline_style_rules** : ``CompiledThemeRules*``, read-only
          Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
@@ -510,6 +513,8 @@ gui_forms::Control
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`child_at <gui_forms::Control::child_at>`
+        -  
       * - :cpp:func:`add_child <gui_forms::Control::add_child>`
         - Makes a control the frontmost child of this one, detaching it from its previous parent first.
       * - :cpp:func:`insert_child <gui_forms::Control::insert_child>`
@@ -968,11 +973,15 @@ gui_forms::Control
       The control this one is a child of, or null. A child refers to its
       parent weakly, so the parent's lifetime is decided by its own owners.
 
-   .. cpp:function:: BorrowedSpan<Ptr> children() const& noexcept
+   .. cpp:function:: ChildView children() const& noexcept
 
       The children, in paint order: the first child is painted first and is
       the backmost; the last is the frontmost. Each child is owned by this
       control.
+
+   .. cpp:function:: std::size_t child_count() const noexcept
+
+      The number of children, and the child at ``index`` in children()'s order as a shared copy (null past the end). The copy keeps the child alive across a callback; re-read child_count() after one, since the list may have changed (children_revision() tells).
 
    .. cpp:function:: std::uint64_t children_revision() const noexcept
 
@@ -1142,9 +1151,9 @@ gui_forms::Control
       The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
       :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
 
-   .. cpp:function:: std::string_view inline_style() const noexcept
+   .. cpp:function:: BorrowedText inline_style() const noexcept
 
-      The inline style's text in force; empty without one.
+      The inline style's text in force; empty without one. Valid until the style is set, cleared or recompiled for a theme change (checked builds fail fast on a later read).
 
    .. cpp:function:: InlineStyleResult set_inline_style(std::string_view text)
 
@@ -1368,6 +1377,8 @@ gui_forms::Control
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: Ptr child_at(std::size_t index) const
 
    .. cpp:function:: void add_child(Ptr child)
 
@@ -2190,13 +2201,17 @@ gui_forms::Control
 
       Compound controls opt in explicitly by hiding this constant with true. make_control never infers lifecycle behavior from method presence. Default: ``false``.
 
+   .. cpp:type:: ChildView = BorrowedSpan<Ptr>
+
+      Back to front (painter order, as the C ABI's insert_child and child_at count): index 0 paints first, the last child paints on top. A borrowed view: in the sanitizer tree (GUI_FORMS_CHECKED_BORROWS) it reports a use after the child list changed or this control died. Spell ChildView to keep the check; a walk that calls out to code that may edit the tree (measure, arrange, events) walks child_count() and child_at() instead.
+
    .. cpp:member:: constexpr std::size_t control_property_count
 
       Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``33U``.
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 206 supported, 0 deferred, 5 excluded, 344 unclassified; 198 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 208 supported, 0 deferred, 5 excluded, 344 unclassified; 200 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -3565,7 +3580,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 206 supp
      - unclassified (unmatched)
    * - method
      - ``Select``
-     - on ``TextBox``, ``RichTextBox``
+     - on ``TextBox``, ``MaskedTextBox``, ``RichTextBox``, ``TextBoxBase``
      - unclassified (carried)
    * - method
      - ``SelectNextControl``
@@ -3686,6 +3701,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 206 supp
    * - property
      - GUI.Forms-only
      - ``bindable_property_names``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``child_count``
      - supported
    * - property
      - GUI.Forms-only
@@ -3974,6 +3993,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 206 supp
    * - method
      - GUI.Forms-only
      - ``begin_keyboard_drag``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``child_at``
      - supported
    * - method
      - GUI.Forms-only

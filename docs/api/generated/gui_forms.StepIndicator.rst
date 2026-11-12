@@ -62,7 +62,7 @@ gui_forms::StepIndicator
 
       The step under way, counted from zero; the steps before it are complete. Past the last step throws std::invalid_argument (zero is always accepted).
 
-   .. cpp:function:: const std::vector<std::string>& steps() const noexcept
+   .. cpp:function:: const std::vector<std::string>& steps() const& noexcept
 
    .. cpp:function:: void set_steps(std::vector<std::string> steps)
 

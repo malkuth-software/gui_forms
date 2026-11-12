@@ -578,9 +578,9 @@ Related types
 
    ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>``
 
-   Raised by a file dialog after the user accepts and before the dialog takes the names (Windows Forms' FileOk). ``file_names`` holds the chosen paths and stays valid for the handler's call only. Setting ``cancel`` keeps the dialog's old names and shows the dialog again with the same settings, where Windows Forms keeps its dialog open.
+   Raised by a file dialog after the user accepts and before the dialog takes the names (Windows Forms' FileOk). ``file_names`` holds the chosen paths and stays valid for the handler's call only (a call-scope borrow: the sanitizer tree reports a use after the raise). Setting ``cancel`` keeps the dialog's old names and shows the dialog again with the same settings, where Windows Forms keeps its dialog open.
 
-   .. cpp:member:: std::span<const std::string> file_names
+   .. cpp:member:: BorrowedSpan<std::string> file_names
 
    .. cpp:member:: bool cancel
 

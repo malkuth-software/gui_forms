@@ -60,9 +60,15 @@ gui_forms::UpDownBase
 
       Focus on the control goes to its edit field (null without one).
 
+   .. cpp:function:: virtual void up_button() = 0
+
+      One step up and one step down, as the spin column's halves step: the derived class says what a step is (NumericUpDown adds or subtracts its increment within the range; DomainUpDown moves to the previous or the next item). Neither moves the focus.
+
+   .. cpp:function:: virtual void down_button() = 0
+
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``UpDownBase``. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 30 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``UpDownBase``. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 28 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -151,8 +157,8 @@ Counterpart: ``UpDownBase``. Members declared here and by the counterpart: 1 sup
      - unclassified (untested)
    * - method
      - ``DownButton``
-     - on ``DomainUpDown``
-     - unclassified (carried)
+     - ``down_button``
+     - supported
    * - method
      - ``OnChanged``
      - none
@@ -183,8 +189,8 @@ Counterpart: ``UpDownBase``. Members declared here and by the counterpart: 1 sup
      - unclassified (unmatched)
    * - method
      - ``UpButton``
-     - on ``DomainUpDown``
-     - unclassified (carried)
+     - ``up_button``
+     - supported
    * - method
      - ``UpdateEditText``
      - none

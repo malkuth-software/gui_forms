@@ -54,7 +54,7 @@ gui_forms::ToolStrip
       **end_reserve** : ``double``
          For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
 
-      **items** : ``std::vector<ToolStripItemSpec>``
+      **items** : ``BorrowedSpan<ToolStripItemSpec>``
          The items, in strip order. :cpp:func:`set_items <gui_forms::ToolStrip::set_items>` replaces them and throws
          ``std::invalid_argument`` for a repeated ID or one that breaks the
          :cpp:class:`StableId <gui_forms::StableId>` segment rule (hosted controls and overflow menu rows are named
@@ -245,7 +245,7 @@ gui_forms::ToolStrip
 
       For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
 
-   .. cpp:function:: const std::vector<ToolStripItemSpec>& items() const noexcept
+   .. cpp:function:: BorrowedSpan<ToolStripItemSpec> items() const& noexcept
 
       The items, in strip order. :cpp:func:`set_items <gui_forms::ToolStrip::set_items>` replaces them and throws
       ``std::invalid_argument`` for a repeated ID or one that breaks the

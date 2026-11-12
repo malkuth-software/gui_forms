@@ -240,11 +240,11 @@ gui_forms::Binding
 
       The source, or null once the source or the binding has been disposed.
 
-   .. cpp:function:: const std::string& property_name() const noexcept
+   .. cpp:function:: const std::string& property_name() const& noexcept
 
       The control property, in canonical form: trimmed and lower-case.
 
-   .. cpp:function:: const std::string& data_member() const noexcept
+   .. cpp:function:: const std::string& data_member() const& noexcept
 
       The record field, in canonical form: trimmed and lower-case.
 

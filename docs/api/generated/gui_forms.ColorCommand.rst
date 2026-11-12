@@ -102,7 +102,7 @@ gui_forms::ColorCommand
 
       The shared :cpp:class:`Command <gui_forms::Command>`.
 
-   .. cpp:function:: const std::string& stable_id() const noexcept
+   .. cpp:function:: const std::string& stable_id() const& noexcept
 
       The command's stable ID.
 

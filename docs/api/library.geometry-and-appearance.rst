@@ -913,9 +913,9 @@ Types
 
       How many scoped custom property names the rules' conditions read (P12).
 
-   .. cpp:function:: const std::vector<RuleDiagnostic>& diagnostics() const noexcept
+   .. cpp:function:: const std::vector<RuleDiagnostic>& diagnostics() const& noexcept
 
-   .. cpp:function:: const std::vector<std::string>& published_values() const noexcept
+   .. cpp:function:: const std::vector<std::string>& published_values() const& noexcept
 
       The published values the sheet's expressions read, in position order (an invalid name is kept empty, so later positions stay).
 
@@ -1529,7 +1529,7 @@ Types
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::vector<CursorImage>& images() const noexcept
+   .. cpp:function:: const std::vector<CursorImage>& images() const& noexcept
 
    .. cpp:function:: double normalized_x() const noexcept
 
@@ -4096,7 +4096,7 @@ Types
 
    ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
 
-   One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is borrowed for the call. ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark.
+   One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is lent for the call (lend_paint_text). ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark.
 
    .. cpp:member:: PartRole role
 
@@ -4114,7 +4114,7 @@ Types
 
       Default: ``{PartMark::none}``.
 
-   .. cpp:member:: std::string_view text
+   .. cpp:member:: BorrowedText text
 
    .. cpp:member:: FontSpec font
 
@@ -4225,7 +4225,9 @@ Types
 
       Whether record_opacity found every pixel opaque since the last view().
 
-   .. cpp:function:: std::span<const std::uint8_t> pixels() const& noexcept
+   .. cpp:function:: BorrowedSpan<std::uint8_t> pixels() const& noexcept
+
+      Borrowed from the raster: the sanitizer tree reports a use after the raster died (the last shared owner let it go).
 
    .. cpp:function:: DeviceExtent extent() const noexcept
 
@@ -8842,6 +8844,12 @@ Functions, constants and aliases
 .. cpp:function:: std::string_view part_mark_name(PartMark mark) noexcept
 
    Registered (snake_case) name of a mark, as the schema's vocabulary lists it.
+
+.. cpp:function:: BorrowedText lend_paint_text(std::string_view text)
+
+   PartPaint::text is lent for one paint call (borrow sanitizer study, section 2.5, row 7). lend_paint_text stamps ``text`` from the innermost paint scope on the calling thread; the window opens one around each control's on_paint, so in the checked build a record (or a view taken from it) kept past that call fails at its next read, and so does one whose owner's text was replaced during the call by a nested scope's end. Outside any paint scope (a test or a bake painting a part directly) the text is not tracked. The ordinary build returns ``text`` unchanged.
+
+.. cpp:function:: inline BorrowedText lend_paint_text(std::string_view text) noexcept
 
 .. cpp:function:: ControlVisualContext part_visual_context(const Control& control, AnatomyStateSet states) noexcept
 

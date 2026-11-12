@@ -47,7 +47,7 @@ gui_forms::ComboBox
          selection follows the editor's text. Otherwise the selected index
          follows its item: an insertion or erasure before it moves it, erasing
          it clears it, and an assignment keeps an index that still exists, even
-         if a different item now has it; :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>` and then
+         if a different item now has it; ``selected_index_changed`` and then
          :cpp:func:`text_changed <gui_forms::ComboBox::text_changed>` are raised first when the index or its text changed.
          Every item must be valid UTF-8, or ``std::invalid_argument`` is thrown,
          and a position outside the items throws ``std::out_of_range``; a refused
@@ -142,25 +142,22 @@ gui_forms::ComboBox
 
    :Events:
 
-      **selected_index_changed** : ``Event<std::optional<std::size_t>>``
-         Raised after :cpp:member:`selected_index <gui_forms::ComboBox::selected_index>` changes, by input, by the setter, or by
-         an edit of :cpp:member:`items <gui_forms::ComboBox::items>` moving or clearing it. It carries the new
-         index, or no value. Setting the current index again raises nothing.
-
       **drop_down_changed** : ``Event<bool>``
          Raised with ``true`` after the overlay list opens and with ``false`` after
          it closes, whichever way it closed.
 
       **items_changed** : ``Event<>``
-         Raised after each edit of :cpp:member:`items <gui_forms::ComboBox::items>`, after any :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>`
+         Raised after each edit of :cpp:member:`items <gui_forms::ComboBox::items>`, after any ``selected_index_changed``
          and :cpp:func:`text_changed <gui_forms::ComboBox::text_changed>` the edit caused.
 
       **text_changed** : ``Event<const std::string&>``
          Raised after :cpp:member:`text <gui_forms::ComboBox::text>` changes, with the new text: in the drop_down style
          for every change of the editor's text, before any selection change it
-         causes; in the drop_down_list style after :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>`.
+         causes; in the drop_down_list style after ``selected_index_changed``.
 
    :Inherited:
+
+      From :cpp:class:`ListControl <gui_forms::ListControl>`: events :cpp:func:`selected_index_changed <gui_forms::ListControl::selected_index_changed>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
@@ -203,7 +200,7 @@ gui_forms::ComboBox
 
    The open list is a :cpp:class:`ListBox <gui_forms::ListBox>` in an overlay layer over the window, and it
    takes the keyboard focus. Moving through it with the arrow keys selects
-   each row as it is reached, raising :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>` each time.
+   each row as it is reached, raising ``selected_index_changed`` each time.
    Clicking a row, or pressing Enter, selects it and closes the list; a
    semantic press on a row does the same. Escape or a press outside the list
    closes it without restoring the earlier selection. Closing returns the
@@ -241,7 +238,7 @@ gui_forms::ComboBox
    whose own plate marks it.
 
    Opening the list and clicking a row therefore raises :cpp:func:`drop_down_changed <gui_forms::ComboBox::drop_down_changed>`
-   with ``true``, then :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>` if the row was not already
+   with ``true``, then ``selected_index_changed`` if the row was not already
    selected, then :cpp:func:`drop_down_changed <gui_forms::ComboBox::drop_down_changed>` with ``false``.
 
    The control publishes the accessibility role ``combo_box``; the open list
@@ -335,7 +332,7 @@ gui_forms::ComboBox
       selection follows the editor's text. Otherwise the selected index
       follows its item: an insertion or erasure before it moves it, erasing
       it clears it, and an assignment keeps an index that still exists, even
-      if a different item now has it; :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>` and then
+      if a different item now has it; ``selected_index_changed`` and then
       :cpp:func:`text_changed <gui_forms::ComboBox::text_changed>` are raised first when the index or its text changed.
       Every item must be valid UTF-8, or ``std::invalid_argument`` is thrown,
       and a position outside the items throws ``std::out_of_range``; a refused
@@ -446,12 +443,6 @@ gui_forms::ComboBox
 
    .. rubric:: Events
 
-   .. cpp:function:: Event<std::optional<std::size_t>>& selected_index_changed() noexcept
-
-      Raised after :cpp:member:`selected_index <gui_forms::ComboBox::selected_index>` changes, by input, by the setter, or by
-      an edit of :cpp:member:`items <gui_forms::ComboBox::items>` moving or clearing it. It carries the new
-      index, or no value. Setting the current index again raises nothing.
-
    .. cpp:function:: Event<bool>& drop_down_changed() noexcept
 
       Raised with ``true`` after the overlay list opens and with ``false`` after
@@ -459,14 +450,14 @@ gui_forms::ComboBox
 
    .. cpp:function:: Event<>& items_changed() noexcept
 
-      Raised after each edit of :cpp:member:`items <gui_forms::ComboBox::items>`, after any :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>`
+      Raised after each edit of :cpp:member:`items <gui_forms::ComboBox::items>`, after any ``selected_index_changed``
       and :cpp:func:`text_changed <gui_forms::ComboBox::text_changed>` the edit caused.
 
    .. cpp:function:: Event<const std::string&>& text_changed() noexcept
 
       Raised after :cpp:member:`text <gui_forms::ComboBox::text>` changes, with the new text: in the drop_down style
       for every change of the editor's text, before any selection change it
-      causes; in the drop_down_list style after :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>`.
+      causes; in the drop_down_list style after ``selected_index_changed``.
 
 
    .. rubric:: Methods
@@ -563,7 +554,7 @@ gui_forms::ComboBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ComboBox``. Members declared here and by the counterpart: 12 supported, 0 deferred, 1 excluded, 54 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ComboBox``. Members declared here and by the counterpart: 11 supported, 0 deferred, 1 excluded, 54 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -798,10 +789,6 @@ Counterpart: ``ComboBox``. Members declared here and by the counterpart: 12 supp
      - GUI.Forms-only
      - ``placeholder_text``
      - unclassified (untested)
-   * - property
-     - ``ListControl.SelectedIndex``
-     - ``selected_index``
-     - supported
    * - property
      - ``Control.Text``
      - ``text``

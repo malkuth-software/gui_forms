@@ -305,6 +305,12 @@ gui_forms::NumericUpDown
 
    .. rubric:: Extension points
 
+   .. cpp:function:: void up_button() override
+
+      Adds (up) or subtracts (down) the increment, within the range, raising value_changed when the value moves.
+
+   .. cpp:function:: void down_button() override
+
    .. cpp:function:: void arrange(Rect final_bounds) override
 
    .. cpp:function:: void on_paint_overlay(Painter& painter, Rect local_damage) override

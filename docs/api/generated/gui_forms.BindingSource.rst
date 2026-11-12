@@ -421,7 +421,7 @@ gui_forms::BindingSource
 
       The bindings currently connected to the source.
 
-   .. cpp:function:: const std::vector<BindingSortKey>& sort() const noexcept
+   .. cpp:function:: const std::vector<BindingSortKey>& sort() const& noexcept
 
       The sort keys, each a column name and a :cpp:enum:`BindingSortDirection <gui_forms::BindingSortDirection>`.
       ``set_sort(keys)`` sorts the shown rows and :cpp:func:`remove_sort <gui_forms::BindingSource::remove_sort>` restores the
@@ -502,7 +502,7 @@ gui_forms::BindingSource
 
       Sets :cpp:func:`raise_list_changed_events <gui_forms::BindingSource::raise_list_changed_events>`; see the property's description above.
 
-   .. cpp:function:: const std::string& data_member() const noexcept
+   .. cpp:function:: const std::string& data_member() const& noexcept
 
       A name stored for consumers of the source. Changing it raises
       :cpp:func:`data_member_changed <gui_forms::BindingSource::data_member_changed>` and refreshes the bindings; the source itself

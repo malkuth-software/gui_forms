@@ -208,6 +208,8 @@ Related types
      - The whole window's opacity (Form.Opacity), from 0 (invisible) to 1 (opaque); outside that range or not finite is std::invalid_argument.
    * - :cpp:class:`WindowOverrides <gui_forms::WindowOverrides>`
      - What one window overrides of what it would otherwise read from its owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or floating window the window that opened it, which shares its table.
+   * - :cpp:class:`WindowRef <gui_forms::WindowRef>`
+     - The root of one retained control tree and the thread that owns it (the threaded sub-surfaces design, stage S1): the control table, the dirty structure, update scopes and flushes, layout, paint, focus, input routing, the motion clock, the dispatcher queue its thread drains, and the counters its work reports into.
    * - :cpp:class:`WindowShowInTaskbarCapability <gui_forms::WindowShowInTaskbarCapability>`
      - Whether the window has a taskbar button (Form.ShowInTaskbar).
    * - :cpp:class:`WindowStartPositionCapability <gui_forms::WindowStartPositionCapability>`
@@ -2268,6 +2270,35 @@ Related types
    .. cpp:member:: std::shared_ptr<KeyBindings> key_bindings
 
       The window's own keyboard-command table, or one it was given to share (set_key_bindings); null reads the owner's.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: WindowRef final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   The root of one retained control tree and the thread that owns it (the threaded sub-surfaces design, stage S1): the control table, the dirty structure, update scopes and flushes, layout, paint, focus, input routing, the motion clock, the dispatcher queue its thread drains, and the counters its work reports into. A Window is a SurfaceRoot with a native host (the host cluster: cursor, presentation declaration, live-surface composition, host key-map seeding, resize and scale); a sub-surface (stage S2) is one whose output is a LiveSurface. The root is bound to the thread that constructs it and never changes thread. A weak handle on a Window, for a holder that keeps it across callbacks (borrow sanitizer study, section 2.5: retention is not a borrow). Built on the root's lifetime record (detail::WindowLifetime), which the Window clears in its destructor and releases with itself, so a holder never reads a freed window. Made by SurfaceRoot::window_ref(); UI thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: WindowRef() noexcept
+
+   .. cpp:function:: explicit WindowRef(std::weak_ptr<detail::WindowLifetime> lifetime) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Window* get() const noexcept
+
+      The window while it lives, else null. A borrow for the current call: read it again after any callback rather than keeping the pointer.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reset() noexcept
+
+      Forgets the window.
 
 .. cpp:namespace:: gui_forms
 

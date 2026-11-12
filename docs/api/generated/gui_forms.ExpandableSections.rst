@@ -37,7 +37,7 @@ gui_forms::ExpandableSections
          every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
          replacement the first open section wins.
 
-      **items** : ``std::span<const SectionItem>``
+      **items** : ``BorrowedSpan<SectionItem>``
          The sections as :cpp:class:`SectionItem <gui_forms::SectionItem>` records: a section ID, a label, the
          content control, and an optional borrowed :cpp:class:`Value <gui_forms::Value>` holding the expanded
          state. :cpp:func:`set_items <gui_forms::ExpandableSections::set_items>` replaces the whole list. It throws
@@ -177,7 +177,7 @@ gui_forms::ExpandableSections
       every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
       replacement the first open section wins.
 
-   .. cpp:function:: std::span<const SectionItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<SectionItem> items() const noexcept
 
       The sections as :cpp:class:`SectionItem <gui_forms::SectionItem>` records: a section ID, a label, the
       content control, and an optional borrowed :cpp:class:`Value <gui_forms::Value>` holding the expanded

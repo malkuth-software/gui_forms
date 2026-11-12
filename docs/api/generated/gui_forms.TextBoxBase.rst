@@ -16,11 +16,28 @@ gui_forms::TextBoxBase
    :cpp:class:`TextBoxBase <gui_forms::TextBoxBase>` is the base of :cpp:class:`TextBox <gui_forms::TextBox>`, :cpp:class:`MaskedTextBox <gui_forms::MaskedTextBox>` and :cpp:class:`RichTextBox <gui_forms::RichTextBox>`, as
    Windows Forms names it. It cannot be created on its own; create one of those
    controls instead, and use this type when code should work with any of them.
-   It adds nothing to :cpp:class:`Panel <gui_forms::Panel>` yet: each derived control declares its own text,
-   read-only state and events, and only :cpp:class:`TextBox <gui_forms::TextBox>` and :cpp:class:`RichTextBox <gui_forms::RichTextBox>` edit through
-   a selection with undo and the clipboard.
+   It carries the editing surface the three share: the selection, :cpp:func:`select <gui_forms::TextBoxBase::select>` and
+   :cpp:func:`select_all <gui_forms::TextBoxBase::select_all>`, the selected text, undo, and the clipboard. Each works on the
+   derived control's own text: a :cpp:class:`TextBox <gui_forms::TextBox>`'s text, a :cpp:class:`RichTextBox <gui_forms::RichTextBox>`'s markdown
+   source, and for a :cpp:class:`MaskedTextBox <gui_forms::MaskedTextBox>` the text of the field it edits through.
+   The text itself, ``read_only``, ``redo``, ``replace_selection``,
+   ``delete_selection`` and the change events stay on each derived control.
 
    *Status:* provisional. *Windows Forms counterpart:* ``TextBoxBase``.
+
+   :Properties:
+
+      **selection** : ``TextSelection``, read-only
+         The selection as ``anchor`` and ``caret`` UTF-8 byte offsets into the text,
+         on grapheme boundaries; they are equal when nothing is selected. Change
+         it with :cpp:func:`select <gui_forms::TextBoxBase::select>` or :cpp:func:`select_all <gui_forms::TextBoxBase::select_all>`.
+
+      **selected_text** : ``std::string``, read-only
+         A copy of the selected text, which is empty when nothing is selected.
+
+      **can_undo** : ``bool``, read-only
+         Whether :cpp:func:`undo <gui_forms::TextBoxBase::undo>` would restore an earlier state. Always false for a
+         :cpp:class:`MaskedTextBox <gui_forms::MaskedTextBox>`, which keeps no undo history, as in Windows Forms.
 
    :Inherited:
 
@@ -29,6 +46,27 @@ gui_forms::TextBoxBase
       From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:member:`wheel_scrolls <gui_forms::ScrollableControl::wheel_scrolls>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
+
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`select <gui_forms::TextBoxBase::select>`
+        - Sets the selection from an anchor and a caret offset.
+      * - :cpp:func:`select_all <gui_forms::TextBoxBase::select_all>`
+        - Selects the whole text.
+      * - :cpp:func:`undo <gui_forms::TextBoxBase::undo>`
+        - Restores the text and selection before the last edit (in a :cpp:class:`RichTextBox <gui_forms::RichTextBox>`, the last edit or formatting command), and returns false when there is nothing to undo or the control is read-only.
+      * - :cpp:func:`clear_undo_history <gui_forms::TextBoxBase::clear_undo_history>`
+        - Forgets all undo and redo steps without changing the text or the selection or raising events, for example after saving.
+      * - :cpp:func:`copy <gui_forms::TextBoxBase::copy>`
+        - Copies the selection to the clipboard.
+      * - :cpp:func:`cut <gui_forms::TextBoxBase::cut>`
+        - Copies the selection and then deletes it.
+      * - :cpp:func:`paste <gui_forms::TextBoxBase::paste>`
+        - Replaces the selection with clipboard text (in a :cpp:class:`RichTextBox <gui_forms::RichTextBox>`, as markdown source).
 
    .. seealso::
 
@@ -41,9 +79,90 @@ gui_forms::TextBoxBase
       :cpp:class:`RichTextBox <gui_forms::RichTextBox>`
          A field for styled text, kept as markdown.
 
+
+   .. rubric:: Properties
+
+   .. cpp:function:: TextSelection selection() const noexcept
+
+      The selection as ``anchor`` and ``caret`` UTF-8 byte offsets into the text,
+      on grapheme boundaries; they are equal when nothing is selected. Change
+      it with :cpp:func:`select <gui_forms::TextBoxBase::select>` or :cpp:func:`select_all <gui_forms::TextBoxBase::select_all>`.
+
+   .. cpp:function:: std::string selected_text() const
+
+      A copy of the selected text, which is empty when nothing is selected.
+
+   .. cpp:function:: bool can_undo() const noexcept
+
+      Whether :cpp:func:`undo <gui_forms::TextBoxBase::undo>` would restore an earlier state. Always false for a
+      :cpp:class:`MaskedTextBox <gui_forms::MaskedTextBox>`, which keeps no undo history, as in Windows Forms.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void select(Utf8Offset anchor, Utf8Offset caret)
+
+      Sets the selection from an anchor and a caret offset. Both must lie on
+      grapheme boundaries of the text, or it throws ``std::out_of_range``.
+
+   .. cpp:function:: void select_all()
+
+      Selects the whole text.
+
+   .. cpp:function:: bool undo()
+
+      Restores the text and selection before the last edit (in a
+      :cpp:class:`RichTextBox <gui_forms::RichTextBox>`, the last edit or formatting command), and returns false
+      when there is nothing to undo or the control is read-only. Does nothing
+      in a :cpp:class:`MaskedTextBox <gui_forms::MaskedTextBox>`.
+
+   .. cpp:function:: void clear_undo_history()
+
+      Forgets all undo and redo steps without changing the text or the
+      selection or raising events, for example after saving. Does nothing in
+      a :cpp:class:`MaskedTextBox <gui_forms::MaskedTextBox>`.
+
+   .. cpp:function:: bool copy()
+
+      Copies the selection to the clipboard. It returns false when nothing is
+      selected, the text is masked, or the window has no host clipboard.
+
+   .. cpp:function:: bool cut()
+
+      Copies the selection and then deletes it. It returns false when nothing
+      is selected, the control is read-only or masked, or the copy fails.
+
+   .. cpp:function:: bool paste()
+
+      Replaces the selection with clipboard text (in a :cpp:class:`RichTextBox <gui_forms::RichTextBox>`, as
+      markdown source). It returns false when the control is read-only, the
+      window has no host clipboard, the clipboard holds no text, or the edit
+      is refused.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual detail::TextEditingEngine* editing_engine() const noexcept = 0
+
+      *Protected.*
+
+      The engine the surface edits, or null before the leaf made it. The leaf owns it (MaskedTextBox: its field does).
+
+   .. cpp:function:: virtual void apply_selection(TextSelection selection) = 0
+
+      *Protected.*
+
+      Shows :cpp:func:`selection <gui_forms::TextBoxBase::selection>`, already checked against the text, the leaf's way (its caret, scrolling and selection_changed).
+
+   .. cpp:function:: static detail::TextEditingEngine* engine_of(const TextBoxBase& other) noexcept
+
+      *Protected.*
+
+      The engine of another editing control, for a leaf that edits through one it owns.
+
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TextBoxBase``. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 46 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TextBoxBase``. Members declared here and by the counterpart: 11 supported, 0 deferred, 0 excluded, 40 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -64,8 +183,8 @@ Counterpart: ``TextBoxBase``. Members declared here and by the counterpart: 1 su
      - unclassified (untested)
    * - property
      - ``CanUndo``
-     - on ``TextBox``, ``RichTextBox``
-     - unclassified (carried)
+     - ``can_undo``
+     - supported
    * - property
      - ``HideSelection``
      - none
@@ -100,8 +219,8 @@ Counterpart: ``TextBoxBase``. Members declared here and by the counterpart: 1 su
      - unclassified (carried)
    * - property
      - ``SelectedText``
-     - on ``TextBox``, ``RichTextBox``
-     - unclassified (carried)
+     - ``selected_text``
+     - supported
    * - property
      - ``SelectionLength``
      - none
@@ -188,12 +307,12 @@ Counterpart: ``TextBoxBase``. Members declared here and by the counterpart: 1 su
      - unclassified (unmatched)
    * - method
      - ``Copy``
-     - on ``TextBox``, ``RichTextBox``
-     - unclassified (carried)
+     - ``copy``
+     - supported
    * - method
      - ``Cut``
-     - on ``TextBox``, ``RichTextBox``
-     - unclassified (carried)
+     - ``cut``
+     - unclassified (untested)
    * - method
      - ``DeselectAll``
      - none
@@ -224,21 +343,37 @@ Counterpart: ``TextBoxBase``. Members declared here and by the counterpart: 1 su
      - unclassified (unmatched)
    * - method
      - ``Paste``
-     - on ``TextBox``, ``RichTextBox``
-     - unclassified (carried)
+     - ``paste``
+     - unclassified (untested)
    * - method
      - ``ScrollToCaret``
      - none
      - unclassified (unmatched)
    * - method
      - ``Select``
-     - on ``TextBox``, ``RichTextBox``
-     - unclassified (carried)
+     - ``select``
+     - supported
    * - method
      - ``SelectAll``
-     - on ``TextBox``, ``RichTextBox``
-     - unclassified (carried)
+     - ``select_all``
+     - supported
    * - method
      - ``Undo``
-     - on ``TextBox``, ``RichTextBox``
-     - unclassified (carried)
+     - ``undo``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``apply_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_undo_history``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``editing_engine``
+     - supported

@@ -30,9 +30,9 @@ gui_forms::LookupComboBox
       **max_drop_down_rows** : ``std::uint32_t``
          The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).
 
-      **columns** : ``std::vector<LookupColumn>``
+      **columns** : ``BorrowedSpan<LookupColumn>``
 
-      **rows** : ``std::vector<LookupRow>``
+      **rows** : ``BorrowedSpan<LookupRow>``
 
       **shown_text** : ``std::string``, read-only
          The text the field shows: the filter while open and typed into, else the chosen row's display cell.
@@ -42,7 +42,7 @@ gui_forms::LookupComboBox
       **filter** : ``std::string``, read-only
          The typed filter while open (empty when closed).
 
-      **filtered_rows** : ``std::vector<std::size_t>``, read-only
+      **filtered_rows** : ``BorrowedSpan<std::size_t>``, read-only
          The rows the open list shows, as indices into rows(), in order.
 
       **highlighted** : ``std::optional<std::size_t>``, read-only
@@ -95,13 +95,13 @@ gui_forms::LookupComboBox
 
       The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).
 
-   .. cpp:function:: const std::vector<LookupColumn>& columns() const noexcept
+   .. cpp:function:: BorrowedSpan<LookupColumn> columns() const& noexcept
 
    .. cpp:function:: void set_columns(std::vector<LookupColumn> columns)
 
       The columns; a header must be valid UTF-8 and a width finite and positive (std::invalid_argument, changing nothing).
 
-   .. cpp:function:: const std::vector<LookupRow>& rows() const noexcept
+   .. cpp:function:: BorrowedSpan<LookupRow> rows() const& noexcept
 
    .. cpp:function:: void set_rows(std::vector<LookupRow> rows)
 
@@ -113,11 +113,11 @@ gui_forms::LookupComboBox
 
    .. cpp:function:: bool is_dropped_down() const noexcept
 
-   .. cpp:function:: const std::string& filter() const noexcept
+   .. cpp:function:: const std::string& filter() const& noexcept
 
       The typed filter while open (empty when closed).
 
-   .. cpp:function:: const std::vector<std::size_t>& filtered_rows() const noexcept
+   .. cpp:function:: BorrowedSpan<std::size_t> filtered_rows() const& noexcept
 
       The rows the open list shows, as indices into rows(), in order.
 

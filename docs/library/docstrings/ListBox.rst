@@ -43,9 +43,6 @@ selection_mode : default ``ListSelectionMode::one``
     the first selected row), and raises `selection_changed`.
 selected_indices
     The indices of all selected rows, in ascending order.
-selected_index
-    The lowest selected index, or no value when nothing is selected. In
-    `one` mode this is the selected row.
 top_index : default ``0``
     The index of the first row shown at the top of the list. The mouse
     wheel moves it by three rows, and selecting a row scrolls it into view.

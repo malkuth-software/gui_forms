@@ -191,7 +191,7 @@ gui_forms::RibbonToolTip
 
       The control whose tooltip is showing, or null.
 
-   .. cpp:function:: const std::string& active_item_id() const noexcept
+   .. cpp:function:: const std::string& active_item_id() const& noexcept
 
       The strip item whose tooltip is showing, or empty for a whole control or
       no tooltip.

@@ -133,7 +133,7 @@ gui_forms::Ribbon
          :cpp:class:`RibbonScalingCounters <gui_forms::RibbonScalingCounters>`: ladders built, the last ladder's entries and
          folded steps, ladder lookups and the ribbon's own text measurements.
 
-      **application_menu** : ``std::vector<MenuItemSpec>``
+      **application_menu** : ``BorrowedSpan<MenuItemSpec>``
          The File tab's menu. :cpp:func:`set_application_menu <gui_forms::Ribbon::set_application_menu>` throws
          ``std::invalid_argument`` for an invalid menu, or for items other than
          commands and separators beside recent items.
@@ -549,7 +549,7 @@ gui_forms::Ribbon
       :cpp:class:`RibbonScalingCounters <gui_forms::RibbonScalingCounters>`: ladders built, the last ladder's entries and
       folded steps, ladder lookups and the ribbon's own text measurements.
 
-   .. cpp:function:: const std::vector<MenuItemSpec>& application_menu() const noexcept
+   .. cpp:function:: BorrowedSpan<MenuItemSpec> application_menu() const& noexcept
 
       The File tab's menu. :cpp:func:`set_application_menu <gui_forms::Ribbon::set_application_menu>` throws
       ``std::invalid_argument`` for an invalid menu, or for items other than

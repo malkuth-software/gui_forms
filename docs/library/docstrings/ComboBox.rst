@@ -108,10 +108,6 @@ font : default ``FontSpec{FontRole::content, 12.0, 400, false}``
 
 Events
 ------
-selected_index_changed
-    Raised after `selected_index` changes, by input, by the setter, or by
-    an edit of `items` moving or clearing it. It carries the new
-    index, or no value. Setting the current index again raises nothing.
 drop_down_changed
     Raised with `true` after the overlay list opens and with `false` after
     it closes, whichever way it closed.

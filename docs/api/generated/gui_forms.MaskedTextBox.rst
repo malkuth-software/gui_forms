@@ -131,6 +131,8 @@ gui_forms::MaskedTextBox
 
    :Inherited:
 
+      From :cpp:class:`TextBoxBase <gui_forms::TextBoxBase>`: properties :cpp:func:`selection <gui_forms::TextBoxBase::selection>`, :cpp:func:`selected_text <gui_forms::TextBoxBase::selected_text>`, :cpp:func:`can_undo <gui_forms::TextBoxBase::can_undo>`; methods :cpp:func:`clear_undo_history <gui_forms::TextBoxBase::clear_undo_history>`, :cpp:func:`copy <gui_forms::TextBoxBase::copy>`, :cpp:func:`cut <gui_forms::TextBoxBase::cut>`, :cpp:func:`paste <gui_forms::TextBoxBase::paste>`, :cpp:func:`select <gui_forms::TextBoxBase::select>`, :cpp:func:`select_all <gui_forms::TextBoxBase::select_all>`, :cpp:func:`undo <gui_forms::TextBoxBase::undo>`.
+
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
       From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:member:`wheel_scrolls <gui_forms::ScrollableControl::wheel_scrolls>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
@@ -389,6 +391,16 @@ gui_forms::MaskedTextBox
 
       *Protected.*
 
+   .. cpp:function:: detail::TextEditingEngine* editing_engine() const noexcept override
+
+      *Protected.*
+
+      TextBoxBase's hooks: the field's engine (null before initialize_control_tree), and the field's own select.
+
+   .. cpp:function:: void apply_selection(TextSelection selection) override
+
+      *Protected.*
+
    .. cpp:function:: virtual void on_mask_changed()
 
       *Protected.*
@@ -405,7 +417,7 @@ gui_forms::MaskedTextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 14 supported, 0 deferred, 0 excluded, 40 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 38 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -438,8 +450,8 @@ Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 14
      - unclassified (unmatched)
    * - property
      - ``CanUndo``
-     - none
-     - unclassified (unmatched)
+     - ``can_undo``
+     - supported
    * - property
      - ``Culture``
      - none
@@ -590,8 +602,8 @@ Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 14
      - unclassified (unmatched)
    * - method
      - ``Undo``
-     - none
-     - unclassified (unmatched)
+     - ``undo``
+     - supported
    * - method
      - ``ValidateText``
      - ``validate_text``

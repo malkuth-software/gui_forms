@@ -32,7 +32,7 @@ gui_forms::CommandBar
 
    :Properties:
 
-      **items** : ``std::span<const CommandItem>``
+      **items** : ``BorrowedSpan<CommandItem>``
          The item records, in display order; empty until the first :cpp:func:`set_items <gui_forms::CommandBar::set_items>`.
          The returned view stays valid until the next :cpp:func:`set_items <gui_forms::CommandBar::set_items>`. :cpp:func:`set_items <gui_forms::CommandBar::set_items>`
          replaces the whole list. Each record's ``label`` becomes its button's
@@ -162,7 +162,7 @@ gui_forms::CommandBar
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const CommandItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<CommandItem> items() const noexcept
 
       The item records, in display order; empty until the first :cpp:func:`set_items <gui_forms::CommandBar::set_items>`.
       The returned view stays valid until the next :cpp:func:`set_items <gui_forms::CommandBar::set_items>`. :cpp:func:`set_items <gui_forms::CommandBar::set_items>`
