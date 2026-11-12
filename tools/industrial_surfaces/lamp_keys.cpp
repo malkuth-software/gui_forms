@@ -165,10 +165,6 @@ struct LegendMask final {
     double pitch{};
     std::vector<float> coverage;
 };
-    double ay{};
-    double bx{};
-    double by{};
-};
 
 struct Scene final {
     Family family{Family::keycap};

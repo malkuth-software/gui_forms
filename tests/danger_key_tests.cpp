@@ -168,7 +168,7 @@ void test_pulse_runs_and_rests() {
             "a danger key taken out of its window stops pulsing");
 }
 
-std::optional<WindowCapture> capture_button(const OffscreenAttachment& attached, const ButtonWindow& made) {
+std::optional<WindowCapture> capture_button(OffscreenAttachment& attached, const ButtonWindow& made) {
     OffscreenCaptureOptions options{};
     options.scale = 1.0;
     options.margin = 6.0;
@@ -195,7 +195,7 @@ void test_no_spill() {
     ButtonWindow made = button_window();
     // The steady glow: the comparison is of the full lit face.
     set_reduced_motion(*made.window, true);
-    const OffscreenAttachment attached(*raster, *made.window);
+    OffscreenAttachment attached(*raster, *made.window);
     const std::optional<WindowCapture> plain = capture_button(attached, made);
     (*made.button).danger = true;
     const std::optional<WindowCapture> danger = capture_button(attached, made);

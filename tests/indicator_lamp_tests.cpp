@@ -198,7 +198,7 @@ void test_parts() {
             "a lens alone fills the shorter side and publishes no legend");
 }
 
-std::optional<WindowCapture> capture_lamp(const OffscreenAttachment& attached, const LampWindow& made) {
+std::optional<WindowCapture> capture_lamp(OffscreenAttachment& attached, const LampWindow& made) {
     OffscreenCaptureOptions options{};
     options.scale = 1.0;
     options.margin = 4.0;
@@ -248,7 +248,7 @@ void write_preview(const WindowCapture& picture, const std::string& name) {
 
 // In `theme` (none: the default theme), the lit lens differs from the dark
 // one and nothing outside the lens changes, for on and for error.
-void check_lights_only_the_lens(const OffscreenAttachment& attached, LampWindow& made,
+void check_lights_only_the_lens(OffscreenAttachment& attached, LampWindow& made,
                                 const std::shared_ptr<const Theme>& theme, const std::string& name) {
     (*made.window).set_theme_override(theme);
     (*made.lamp).state = IndicatorLampState::off;
@@ -282,7 +282,7 @@ void test_lights_only_the_lens() {
     LampWindow made = lamp_window(Size{24.0, 24.0}, {});
     // Settled lamps only: the comparison is of end states.
     set_reduced_motion(*made.window, true);
-    const OffscreenAttachment attached(*raster, *made.window);
+    OffscreenAttachment attached(*raster, *made.window);
     check_lights_only_the_lens(attached, made, nullptr, "gui_forms");
     for (std::size_t index = 0U; index < familiar_theme_count; ++index) {
         const FamiliarTheme theme = static_cast<FamiliarTheme>(index);
