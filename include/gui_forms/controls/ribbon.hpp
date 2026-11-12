@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
@@ -419,8 +420,8 @@ public:
     [[nodiscard]] RibbonScalingCounters scaling_counters() const noexcept { return counters_; }
 
     // The File tab's menu (its text is application_text).
-    [[nodiscard]] const std::vector<MenuItemSpec>& application_menu() const& noexcept { return application_menu_; }
-    const std::vector<MenuItemSpec>& application_menu() const&& = delete;
+    [[nodiscard]] BorrowedSpan<MenuItemSpec> application_menu() const& noexcept { return detail::lend_view(application_menu_); }
+    BorrowedSpan<MenuItemSpec> application_menu() const&& = delete;
     // Throws std::invalid_argument for an invalid menu.
     void set_application_menu(std::vector<MenuItemSpec> items);
     // Opens the File tab's file area: Backstage when the ribbon has one;
@@ -1021,7 +1022,7 @@ private:
     std::vector<TabSetState> set_states_{};
     std::vector<std::optional<std::size_t>> tab_set_of_{};
     std::optional<std::size_t> last_core_tab_{};
-    std::vector<MenuItemSpec> application_menu_{};
+    detail::LendingVector<MenuItemSpec> application_menu_{};
     std::unique_ptr<ContextMenu> overlay_{};
     SubscriptionToken overlay_invoked_{};
     SubscriptionToken overlay_changed_{};

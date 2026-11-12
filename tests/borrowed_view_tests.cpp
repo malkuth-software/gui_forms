@@ -27,6 +27,7 @@
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/list_view.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/layout/block_flow_solver/block_flow_solver.hpp"
@@ -215,6 +216,17 @@ int plain_mode() {
     read_on_other_thread(lease_pixels);
     static_cast<void>(lease.publish());
 
+    // The const vector& siblings now lend views (study section 2.5, row 4).
+    std::shared_ptr<ToolStrip> strip = make_control<ToolStrip>(StableId("borrow.strip"));
+    std::vector<ToolStripItemSpec> specs;
+    specs.push_back({.stable_id = "borrow.strip.new", .text = "New"});
+    specs.push_back({.stable_id = "borrow.strip.open", .text = "Open"});
+    (*strip).set_items(std::move(specs));
+    const BorrowedSpan<ToolStripItemSpec> strip_items = (*strip).items();
+    if (strip_items.size() != 2U || strip_items[1].stable_id != "borrow.strip.open") return fail("strip items differ");
+    const std::vector<ToolStripItemSpec> copied(strip_items.begin(), strip_items.end());
+    if (copied.size() != 2U) return fail("strip items copy differs");
+
     std::printf("borrowed views: ok\n");
     return EXIT_SUCCESS;
 }
@@ -378,6 +390,19 @@ void text_store_mode() {
     std::printf("read %zu bytes\n", text.size());
 }
 
+// A tool strip's item view, then set_items, then a read.
+void tool_strip_items_mode() {
+    std::shared_ptr<ToolStrip> strip = make_control<ToolStrip>(StableId("borrow.strip"));
+    std::vector<ToolStripItemSpec> first;
+    first.push_back({.stable_id = "borrow.strip.new", .text = "New"});
+    (*strip).set_items(std::move(first));
+    const BorrowedSpan<ToolStripItemSpec> items = (*strip).items();
+    std::vector<ToolStripItemSpec> second;
+    second.push_back({.stable_id = "borrow.strip.open", .text = "Open"});
+    (*strip).set_items(std::move(second));
+    std::printf("read %zu items\n", items.size());
+}
+
 // A layout workspace's view, then the next solve's storage, then a read.
 void layout_workspace_mode() {
     BlockFlowLayoutWorkspace workspace;
@@ -448,6 +473,7 @@ int main(int argc, char** argv) {
     else if (mode == "payload_range") payload_range_mode();
     else if (mode == "text_store") text_store_mode();
     else if (mode == "layout_workspace") layout_workspace_mode();
+    else if (mode == "tool_strip_items") tool_strip_items_mode();
     else if (mode == "write_lease") write_lease_mode();
     else if (mode == "raster_death") raster_death_mode();
     else {
