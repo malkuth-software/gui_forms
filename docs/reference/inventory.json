@@ -341054,11 +341054,11 @@
           "kind": "CXXDestructorDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "~Window()",
+          "declaration": "virtual ~Window()",
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 54,
+          "line": 60,
           "page": "gui-forms-window-window-void-911ce9ac5a.html"
         },
         {
@@ -341079,7 +341079,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 55,
+          "line": 61,
           "page": "gui-forms-window-window-void-const-window-30396c0dd0.html"
         },
         {
@@ -341100,7 +341100,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 56,
+          "line": 62,
           "page": "gui-forms-window-operator-window-const-window-a95bdc4def.html"
         },
         {
@@ -341115,7 +341115,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 58,
+          "line": 64,
           "page": "gui-forms-window-cursor-metrics-cursormetrics-const-noexcept-6ceea8a6f1.html"
         },
         {
@@ -341130,7 +341130,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 59,
+          "line": 65,
           "page": "gui-forms-window-cursor-capabilities-cursorcapabilities-const-noexcept-ab66e95183.html"
         },
         {
@@ -341145,7 +341145,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 60,
+          "line": 66,
           "page": "gui-forms-window-begin-cursor-hidden-cursorleaseresult-301b41310b.html"
         },
         {
@@ -341171,7 +341171,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 63,
+          "line": 69,
           "page": "gui-forms-window-warp-cursor-cursorstatus-cursormetrics-point-2a0a133923.html"
         },
         {
@@ -341192,7 +341192,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 67,
+          "line": 73,
           "page": "gui-forms-window-resize-void-size-041c47e0b7.html"
         },
         {
@@ -341213,7 +341213,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 68,
+          "line": 74,
           "page": "gui-forms-window-set-scale-void-double-c9bae6ab7f.html"
         },
         {
@@ -341234,7 +341234,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 77,
+          "line": 83,
           "page": "gui-forms-window-declare-band-void-const-windowbandoptions-eab32579c2.html"
         },
         {
@@ -341249,7 +341249,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 80,
+          "line": 86,
           "page": "gui-forms-window-undeclare-band-void-3cea1c54e0.html"
         },
         {
@@ -341270,7 +341270,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 85,
+          "line": 91,
           "page": "gui-forms-window-set-band-appearance-void-const-windowbandappearance-ed88db9864.html"
         },
         {
@@ -341285,7 +341285,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 86,
+          "line": 92,
           "page": "gui-forms-window-band-snapshot-windowbandsnapshot-const-noexcept-2effe3cab9.html"
         },
         {
@@ -341306,7 +341306,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 90,
+          "line": 96,
           "page": "gui-forms-window-report-full-screen-void-bool-adacc0fa48.html"
         },
         {
@@ -341327,7 +341327,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 97,
+          "line": 103,
           "page": "gui-forms-window-set-corner-preference-void-windowcornerpreference-2fdc1800cd.html"
         },
         {
@@ -341342,7 +341342,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 98,
+          "line": 104,
           "page": "gui-forms-window-corner-preference-windowcornerpreference-const-noexcept-5fd1ee703e.html"
         },
         {
@@ -341368,7 +341368,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 104,
+          "line": 110,
           "page": "gui-forms-window-notify-live-presented-void-std-uint64-t-presentedarea-160cabacab.html"
         },
         {
@@ -341389,7 +341389,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 110,
+          "line": 116,
           "page": "gui-forms-window-declare-presentation-void-presentationdeclaration-5c0f0419fb.html"
         },
         {
@@ -341404,7 +341404,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 112,
+          "line": 118,
           "page": "gui-forms-window-presentation-availability-presentationavailability-const-noexcept-e569518348.html"
         },
         {
@@ -341430,7 +341430,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 114,
+          "line": 120,
           "page": "gui-forms-window-queue-live-surface-presentation-bool-const-control-ptr-std-shared-ptr-livesurface-0f94c5a346.html"
         },
         {
@@ -341456,7 +341456,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 121,
+          "line": 127,
           "page": "gui-forms-window-note-live-surface-presented-void-const-livesurfacepresentation-rect-36878306a1.html"
         },
         {
@@ -341482,7 +341482,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 128,
+          "line": 134,
           "page": "gui-forms-window-require-live-surface-content-bool-const-control-ptr-std-uint64-t-5271fbeabe.html"
         },
         {
@@ -341508,7 +341508,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 134,
+          "line": 140,
           "page": "gui-forms-window-set-live-surface-pairing-listener-bool-const-control-ptr-std-weak-ptr-livesurfacepairingliste-d8b916ac53.html"
         },
         {
@@ -341534,7 +341534,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 143,
+          "line": 149,
           "page": "gui-forms-window-take-live-surface-presentations-std-vector-livesurfacepresentation-bool-bool-16b4942824.html"
         },
         {
@@ -341549,7 +341549,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 148,
+          "line": 154,
           "page": "gui-forms-window-has-live-surface-presentations-bool-const-noexcept-47fea521db.html"
         },
         {
@@ -341570,7 +341570,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 156,
+          "line": 162,
           "page": "gui-forms-window-set-live-surface-idle-wake-handler-void-std-function-void-9d52bfb9cf.html"
         },
         {
@@ -341591,7 +341591,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 157,
+          "line": 163,
           "page": "gui-forms-window-set-live-surface-idle-waiting-void-bool-00052274bb.html"
         },
         {
@@ -341627,7 +341627,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 171,
+          "line": 177,
           "page": "gui-forms-window-open-native-popup-nativepopuptoken-const-control-ptr-const-control-ptr-rect-const-nativepopup-20b7a87412.html"
         },
         {
@@ -341642,7 +341642,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 189,
+          "line": 195,
           "page": "gui-forms-window-maximum-popup-windows-const-std-size-t-7425b2f9c8.html"
         },
         {
@@ -341657,7 +341657,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 190,
+          "line": 196,
           "page": "gui-forms-window-popup-windows-available-bool-const-96e5b049fa.html"
         },
         {
@@ -341672,7 +341672,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 197,
+          "line": 203,
           "page": "gui-forms-window-popup-windows-translucent-bool-const-bad84c5faf.html"
         },
         {
@@ -341693,7 +341693,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 201,
+          "line": 207,
           "page": "gui-forms-window-prepare-popup-window-bool-std-size-t-5f29cded44.html"
         },
         {
@@ -341724,7 +341724,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 202,
+          "line": 208,
           "page": "gui-forms-window-show-popup-window-bool-std-size-t-const-control-ptr-rect-70201489d3.html"
         },
         {
@@ -341750,7 +341750,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 203,
+          "line": 209,
           "page": "gui-forms-window-move-popup-window-bool-std-size-t-rect-cff2548a2a.html"
         },
         {
@@ -341771,7 +341771,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 204,
+          "line": 210,
           "page": "gui-forms-window-hide-popup-window-void-std-size-t-noexcept-03a6fc0e3c.html"
         },
         {
@@ -341792,7 +341792,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 205,
+          "line": 211,
           "page": "gui-forms-window-popup-window-model-window-std-size-t-const-noexcept-7b436caa91.html"
         },
         {
@@ -341807,7 +341807,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 206,
+          "line": 212,
           "page": "gui-forms-window-popup-window-closed-event-std-size-t-87f4b84e63.html"
         },
         {
@@ -341822,7 +341822,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 211,
+          "line": 217,
           "page": "gui-forms-window-host-close-reason-std-optional-hostclosereason-const-noexcept-ffc6a4bafc.html"
         },
         {
@@ -341837,7 +341837,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 215,
+          "line": 221,
           "page": "gui-forms-window-picker-popup-window-slot-const-std-size-t-746b95db01.html"
         },
         {
@@ -341858,7 +341858,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 221,
+          "line": 227,
           "page": "gui-forms-window-forward-input-to-popup-window-void-std-optional-std-size-t-554c58676e.html"
         },
         {
@@ -341879,7 +341879,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 227,
+          "line": 233,
           "page": "gui-forms-window-popup-work-area-std-optional-rect-point-58c9fdbd66.html"
         },
         {
@@ -341894,7 +341894,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 231,
+          "line": 237,
           "page": "gui-forms-window-application-application-const-noexcept-665815a24c.html"
         },
         {
@@ -341925,7 +341925,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 249,
+          "line": 255,
           "page": "gui-forms-window-show-toast-std-uint64-t-const-control-ptr-const-control-ptr-std-chrono-milliseconds-034a79b6a0.html"
         },
         {
@@ -341951,7 +341951,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 254,
+          "line": 260,
           "page": "gui-forms-window-dismiss-toast-bool-const-control-toastdismissreason-d5d5107672.html"
         },
         {
@@ -341966,7 +341966,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 256,
+          "line": 262,
           "page": "gui-forms-window-hide-toast-void-81579206bd.html"
         },
         {
@@ -341981,7 +341981,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 257,
+          "line": 263,
           "page": "gui-forms-window-toast-visible-bool-const-noexcept-0d7cf667fe.html"
         },
         {
@@ -341996,7 +341996,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 259,
+          "line": 265,
           "page": "gui-forms-window-toast-content-control-ptr-const-noexcept-33c0f3503e.html"
         },
         {
@@ -342011,7 +342011,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 261,
+          "line": 267,
           "page": "gui-forms-window-toast-id-std-uint64-t-const-noexcept-22c2ba15ad.html"
         },
         {
@@ -342026,7 +342026,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 263,
+          "line": 269,
           "page": "gui-forms-window-toast-dismissed-event-const-toastdismissal-noexcept-cdf705c3c4.html"
         },
         {
@@ -342041,7 +342041,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 268,
+          "line": 274,
           "page": "gui-forms-window-written-chrome-windowchromefields-const-noexcept-2bd0b2a177.html"
         },
         {
@@ -342056,7 +342056,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 271,
+          "line": 277,
           "page": "gui-forms-window-supported-chrome-windowchromefields-const-noexcept-3bae0d70c5.html"
         },
         {
@@ -342071,7 +342071,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 275,
+          "line": 281,
           "page": "gui-forms-window-applied-chrome-windowchromefields-const-noexcept-7e1f4dd967.html"
         },
         {
@@ -342086,7 +342086,7 @@
           "comment": "",
           "header": "gui_forms/window/window.hpp",
           "source": "include/gui_forms/window/window.hpp",
-          "line": 279,
+          "line": 285,
           "page": "gui-forms-window-chrome-windowchrome-const-ca0325be4b.html"
         }
       ],
