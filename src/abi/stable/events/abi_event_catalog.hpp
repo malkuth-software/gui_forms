@@ -5066,6 +5066,15 @@ inline SubscriptionToken connect_property_list_reset_requested(Component& source
     return token;
 }
 
+inline SubscriptionToken connect_control_right_to_left_changed(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).right_to_left_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_error_provider_right_to_left_changed(Component& source, const EventSink& sink) {
     ErrorProvider* typed = dynamic_cast<ErrorProvider*>(&source);
     if (typed == nullptr) {
@@ -5890,7 +5899,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 328> event_connectors{{
+inline constexpr std::array<EventConnector, 329> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6128,6 +6137,7 @@ inline constexpr std::array<EventConnector, 328> event_connectors{{
     {"range_changed", "RangeControl", &connect_range_control_range_changed},
     {"recent_item_invoked", "Ribbon", &connect_ribbon_recent_item_invoked},
     {"reset_requested", "PropertyList", &connect_property_list_reset_requested},
+    {"right_to_left_changed", "Control", &connect_control_right_to_left_changed},
     {"right_to_left_changed", "ErrorProvider", &connect_error_provider_right_to_left_changed},
     {"row_edit_cancelled", "DataGridView", &connect_data_grid_view_row_edit_cancelled},
     {"row_enter", "DataGridView", &connect_data_grid_view_row_enter},

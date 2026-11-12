@@ -101,6 +101,9 @@ FontSpec ToggleSwitch::label_font() const noexcept {
 
 // The track at the start, centred down the control; the label after it and
 // the state text after the label, each one line centred down the control.
+// Laid out left to right and mirrored in `size` when the switch resolves
+// right to left: the track at the right and the thumb's on position at its
+// left end (Windows Forms' check box under RightToLeft).
 ToggleSwitch::Placement ToggleSwitch::placement(Size size) const {
     Placement placed;
     const double centre = size.height * 0.5;
@@ -127,6 +130,13 @@ ToggleSwitch::Placement ToggleSwitch::placement(Size size) const {
         const double width = std::min(std::ceil(measured.width), std::max(0.0, size.width - x));
         const double height = std::ceil(measured.height);
         placed.state = Rect{x, std::floor(centre - height * 0.5), width, height};
+    }
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        const Rect frame{0.0, 0.0, size.width, size.height};
+        placed.track = horizontally_mirrored(placed.track, frame);
+        placed.thumb = horizontally_mirrored(placed.thumb, frame);
+        placed.label = horizontally_mirrored(placed.label, frame);
+        placed.state = horizontally_mirrored(placed.state, frame);
     }
     return placed;
 }

@@ -974,9 +974,13 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
     // Text narrower than the box sits per text_alignment: a negative offset
     // moves it right, and position_at, the caret and the semantic layout
     // all read the same offset.
+    // Near is the right edge under RightToLeft (Windows Forms mirrors
+    // TextAlign).
     const double slack = viewport - layout_positions_.back();
-    if (slack > 0.0 && text_alignment.read() != HorizontalAlignment::near) {
-        horizontal_offset_ = text_alignment.read() == HorizontalAlignment::center ? -slack * 0.5 : -slack;
+    const HorizontalAlignment placed_alignment =
+        directed_alignment(text_alignment.read(), effective_layout_direction());
+    if (slack > 0.0 && placed_alignment != HorizontalAlignment::near) {
+        horizontal_offset_ = placed_alignment == HorizontalAlignment::center ? -slack * 0.5 : -slack;
     }
 
     const double origin_x = text_left_ - horizontal_offset_;

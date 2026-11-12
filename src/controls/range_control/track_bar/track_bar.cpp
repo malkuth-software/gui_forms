@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -123,7 +124,10 @@ Rect TrackBar::fill_bounds() const noexcept {
     }
     Rect filled = track_bounds();
     if (orientation.read() == Orientation::horizontal) {
-        filled.width *= normalized_value();
+        // From the minimum's end: the right of a mirrored bar.
+        const double width = filled.width * normalized_value();
+        if (mirrored_axis()) filled.x += filled.width - width;
+        filled.width = width;
     } else {
         const double height = filled.height * normalized_value();
         filled.y += filled.height - height;
@@ -144,7 +148,8 @@ Rect TrackBar::thumb_bounds() const noexcept {
     }
     if (thumb_extent.read() > 0.0) thumb_side = thumb_extent.read();
     if (orientation.read() == Orientation::horizontal) {
-        const Rect thumb{span.x + ratio * span.width - thumb_side * 0.5,
+        const double along = mirrored_axis() ? 1.0 - ratio : ratio;
+        const Rect thumb{span.x + along * span.width - thumb_side * 0.5,
                          std::max(2.0, (bounds.height - thumb_side) * 0.5),
                          thumb_side, thumb_side};
         return thumb;
@@ -290,7 +295,8 @@ double TrackBar::value_from_window_point(Point point) const noexcept {
     double ratio = 0.0;
     if (orientation.read() == Orientation::horizontal) {
         const double span = std::max(1.0, absolute.width - track_inset * 2.0);
-        ratio = (point.x - absolute.x - track_inset) / span;
+        const double from_left = (point.x - absolute.x - track_inset) / span;
+        ratio = mirrored_axis() ? 1.0 - from_left : from_left;
     } else {
         const double span = std::max(1.0, absolute.height - track_inset * 2.0);
         ratio = 1.0 - (point.y - absolute.y - track_inset) / span;
@@ -336,7 +342,12 @@ void TrackBar::on_key(KeyEvent& event) {
     double next = value.read();
     RangeAction action = RangeAction::thumb_position;
     bool recognized = true;
-    switch (event.physical_key) {
+    // Left and Right move the thumb that way: on a mirrored bar Left
+    // increments.
+    std::uint32_t key = event.physical_key;
+    if (mirrored_axis() && key == PhysicalKey::left) key = PhysicalKey::right;
+    else if (mirrored_axis() && key == PhysicalKey::right) key = PhysicalKey::left;
+    switch (key) {
     case PhysicalKey::left:
     case PhysicalKey::down:
         next -= small_change.read();

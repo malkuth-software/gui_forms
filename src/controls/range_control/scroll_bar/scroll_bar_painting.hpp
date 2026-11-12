@@ -28,6 +28,10 @@ struct ScrollBarPaintParts final {
     ScrollBarPart pressed{ScrollBarPart::none};
     ScrollBarPart hot{ScrollBarPart::none};
     bool thumb_captured{};
+    // Whether a horizontal bar runs right to left (RangeControl::
+    // mirrored_axis): its decrement button is on the right, so each
+    // button's arrow points toward its own end.
+    bool mirrored{};
     // The control type whose rules style the parts (PartPaint::control_type):
     // empty for the standalone bar, "v_scroll_bar" or "h_scroll_bar" for a
     // built-in one. Borrowed for the call.

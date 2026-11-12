@@ -44,15 +44,22 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
-    // Where each part lies in a control of `size`; `ticks` is the band the
-    // marks are drawn in, `trace` the filled part of `plot`.
+    // Where each part lies in a control of `size`, laid out left to right;
+    // `ticks` is the band the marks are drawn in, `trace` the filled part of
+    // `plot`. `mirrored` (a horizontal gauge resolving right to left) places
+    // every part mirrored in `frame` at output (placed_rect): the minimum at
+    // the right and the caption at the left.
     struct Placement final {
         Rect plot{};
         Rect trace{};
         Rect ticks{};
         Rect caption{};
+        Rect frame{};
         bool horizontal{true};
+        bool mirrored{};
     };
+    // `laid` as drawn: mirrored in placed.frame when placed.mirrored.
+    [[nodiscard]] static Rect placed_rect(const Placement& placed, Rect laid) noexcept;
     [[nodiscard]] Placement placement(Size size) const;
     // The rectangle of a scale mark across the tick band at `ratio`.
     [[nodiscard]] Rect mark_at(const Placement& placed, double ratio) const noexcept;

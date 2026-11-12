@@ -168,7 +168,9 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
     if (index >= check_states_.size()) return;
     const double size = std::min(indicator_size.read(),
                                  std::max(8.0, row.height - 8.0));
-    const double x = row.x + 5.0;
+    // At the row's right edge right to left (WinForms' CheckedListBox).
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const double x = mirrored ? row.x + row.width - 5.0 - size : row.x + 5.0;
     const double y = row.y + (row.height - size) * 0.5;
     // The row's check box: a choice well and its mark, as parts the theme's
     // engine draws; a style override supplies the well's ground and the
@@ -310,7 +312,8 @@ void CheckedListBox::publish_realized_item_geometry(std::size_t item,
         // The check box paint_row_adornment draws, centred in the row.
         const Rect row = base.row.bounds;
         const double size = std::min(indicator_size.read(), std::max(8.0, row.height - 8.0));
-        const double x = row.x + 5.0;
+        const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+        const double x = mirrored ? row.x + row.width - 5.0 - size : row.x + 5.0;
         const double y = row.y + (row.height - size) * 0.5;
         record.check_well = PartGeometry::from_bounds({x, y, size, size});
         if (check_states_[index] == CheckState::checked) {

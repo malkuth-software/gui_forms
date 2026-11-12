@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -58,6 +59,8 @@ Rect ScrollBar::decrement_button_bounds() const noexcept {
     const double axis = orientation.read() == Orientation::horizontal
         ? bounds.width : bounds.height;
     const double extent = arrow_extent(axis);
+    // The minimum's end: the left, or the right of a mirrored bar.
+    if (mirrored_axis()) return Rect{std::max(0.0, bounds.width - extent), 0.0, extent, bounds.height};
     return orientation.read() == Orientation::horizontal
         ? Rect{0.0, 0.0, extent, bounds.height}
         : Rect{0.0, 0.0, bounds.width, extent};
@@ -68,6 +71,7 @@ Rect ScrollBar::increment_button_bounds() const noexcept {
     const double axis = orientation.read() == Orientation::horizontal
         ? bounds.width : bounds.height;
     const double extent = arrow_extent(axis);
+    if (mirrored_axis()) return Rect{0.0, 0.0, extent, bounds.height};
     return orientation.read() == Orientation::horizontal
         ? Rect{std::max(0.0, bounds.width - extent), 0.0, extent, bounds.height}
         : Rect{0.0, std::max(0.0, bounds.height - extent), bounds.width, extent};
@@ -77,6 +81,11 @@ Rect ScrollBar::track_bounds() const noexcept {
     const Rect bounds = local_bounds();
     const Rect decrement = decrement_button_bounds();
     const Rect increment = increment_button_bounds();
+    if (mirrored_axis()) {
+        // Between the increment button (left) and the decrement (right).
+        const Rect between{increment.width, 0.0, std::max(0.0, decrement.x - increment.width), bounds.height};
+        return between;
+    }
     return orientation.read() == Orientation::horizontal
         ? Rect{decrement.width, 0.0,
                std::max(0.0, increment.x - decrement.width), bounds.height}
@@ -93,6 +102,11 @@ Rect ScrollBar::thumb_bounds() const noexcept {
     const double proportion = large_change.read() / (range + large_change.read());
     const scroll_bar_detail::ThumbPlacement placed = scroll_bar_detail::place_thumb(
         track_extent, proportion, normalized_value(), minimum_thumb_extent.read());
+    if (mirrored_axis()) {
+        // The offset runs from the right end.
+        const Rect thumb{track.x + track.width - placed.offset - placed.extent, track.y, placed.extent, track.height};
+        return thumb;
+    }
     return orientation.read() == Orientation::horizontal
         ? Rect{track.x + placed.offset, track.y, placed.extent, track.height}
         : Rect{track.x, track.y + placed.offset, track.width, placed.extent};
@@ -115,8 +129,10 @@ ScrollBarPart ScrollBar::part_at(Point local_point) const noexcept {
     const double coordinate = axis_coordinate(local_point);
     const double thumb_start = orientation.read() == Orientation::horizontal
         ? thumb.x : thumb.y;
-    return coordinate < thumb_start ? ScrollBarPart::decrement_track
-                                    : ScrollBarPart::increment_track;
+    // Before the thumb is toward the minimum, unless the bar is mirrored.
+    const bool before = coordinate < thumb_start;
+    const bool decrementing = before != mirrored_axis();
+    return decrementing ? ScrollBarPart::decrement_track : ScrollBarPart::increment_track;
 }
 
 namespace {
@@ -216,7 +232,9 @@ double ScrollBar::value_from_thumb_coordinate(double coordinate) const noexcept 
         ? thumb.width : thumb.height;
     const double movable = std::max(0.0, track_extent - thumb_extent);
     if (movable <= 0.0) return minimum.read();
-    const double ratio = std::clamp((coordinate - track_start) / movable, 0.0, 1.0);
+    const double from_left = std::clamp((coordinate - track_start) / movable, 0.0, 1.0);
+    // A mirrored bar's thumb at the left edge is at its maximum.
+    const double ratio = mirrored_axis() ? 1.0 - from_left : from_left;
     return minimum.read() + ratio * (maximum.read() - minimum.read());
 }
 
@@ -293,6 +311,7 @@ void ScrollBar::on_paint(Painter& painter, Rect) {
     parts.pressed = pressed_part_;
     parts.hot = hot_part_;
     parts.thumb_captured = tracking_thumb_;
+    parts.mirrored = mirrored_axis();
     scroll_bar_detail::paint_scroll_bar_parts(painter, *this, parts);
     if (focused_ || tracking_thumb_) {
         PartPaint focus;
@@ -380,7 +399,12 @@ void ScrollBar::on_key(KeyEvent& event) {
     double next = value.read();
     RangeAction action = RangeAction::thumb_position;
     bool recognized = true;
-    switch (event.physical_key) {
+    // Left and Right move the thumb that way: on a mirrored bar Left
+    // increments.
+    std::uint32_t key = event.physical_key;
+    if (mirrored_axis() && key == PhysicalKey::left) key = PhysicalKey::right;
+    else if (mirrored_axis() && key == PhysicalKey::right) key = PhysicalKey::left;
+    switch (key) {
     case PhysicalKey::left:
     case PhysicalKey::up:
         next -= small_change.read(); action = RangeAction::small_decrement; break;
@@ -587,7 +611,9 @@ void paint_arrow_button(Painter& painter, const Control& control, const ScrollBa
     arrow.family = ControlVisualRole::button;
     arrow.role = PartRole::glyph;
     if (horizontal) {
-        arrow.mark = incrementing ? PartMark::arrow_right : PartMark::arrow_left;
+        // The button at the right end points right, in either direction.
+        const bool points_right = incrementing != drawn.mirrored;
+        arrow.mark = points_right ? PartMark::arrow_right : PartMark::arrow_left;
     } else {
         arrow.mark = incrementing ? PartMark::arrow_down : PartMark::arrow_up;
     }

@@ -234,6 +234,10 @@ enum class DiagnosticCode : std::uint16_t {
     // source of that name, a source of another kind than the property's, or
     // a field source refusing the binding. Nothing loaded is kept.
     form_binding_source_refused = 819,
+    // A property a form spells another way (owner ruling of 2026-11-11:
+    // layout_direction is written right-to-left): the detail names the
+    // spelling to write and how its values map.
+    form_property_renamed = 820,
     // E999 is temporary: a form a later phase gives its meaning, refused
     // until then so that no interim meaning ships (PLAN.md P4: a custom
     // property with several definitions, until P12; P5: `!important`, the

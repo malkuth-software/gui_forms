@@ -911,6 +911,52 @@ std::unique_ptr<ThemeDefinition> colour_role_theme() {
     return held;
 }
 
+// The barber pole follows Control::right_to_left (owner ruling of
+// 2026-11-11). Left to right, a marching-stripes bar fills from the left
+// and its bands are laid from the left edge; under a right-to-left parent
+// the fill grows from the right and the bands are laid, leaning and
+// travelling, from the right edge (the effect's own mirrored travel is
+// stripes_pulse_laser's). Each band's first point is on its near side, so
+// their mean lies in the filled half.
+double mean_polygon_start(const RecordingPainter& painter) {
+    double total = 0.0;
+    for (const Point& start : painter.polygon_starts) total += start.x;
+    const double count = static_cast<double>(painter.polygon_starts.size());
+    const double mean = count > 0.0 ? total / count : 0.0;
+    return mean;
+}
+
+void progress_bar_follows_right_to_left() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("effects.direction.root"));
+    std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.direction.bar"));
+    (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
+    (*bar).margin = Insets{0.0, 0.0, 0.0, 0.0};
+    (*bar).value = 50.0;
+    (*bar).visual_style = ProgressBarVisualStyle::marching_stripes;
+    (*root).add_child(bar);
+    Window window(root, {200.0, 40.0});
+    window.perform_layout();
+    RecordingPainter forward;
+    (*bar).on_paint(forward, {0.0, 0.0, 200.0, 20.0});
+    const Rect forward_fill = (*bar).parts().fill.bounds;
+    require(forward_fill.x == 2.0 && forward.polygons > 0 && mean_polygon_start(forward) < 100.0,
+            "left to right, the barber pole fills and lays its bands from the left");
+
+    (*root).layout_direction = LayoutDirection::right_to_left;
+    window.perform_layout();
+    RecordingPainter mirrored;
+    (*bar).on_paint(mirrored, {0.0, 0.0, 200.0, 20.0});
+    const Rect mirrored_fill = (*bar).parts().fill.bounds;
+    require(mirrored_fill.right() == 198.0 && mirrored_fill.width == forward_fill.width,
+            "right to left, the barber pole's fill grows from the right edge");
+    require(mirrored.polygons > 0 && mean_polygon_start(mirrored) > 100.0,
+            "right to left, the barber pole's bands are laid from the right edge");
+
+    (*bar).visual_style = ProgressBarVisualStyle::blocks;
+    const Rect blocks_fill = (*bar).parts().fill.bounds;
+    require(blocks_fill.right() == 198.0, "right to left, the blocks fill from the right edge too");
+}
+
 // Effects take colour roles (EP-4): the theme's primary and secondary roles
 // for the effect's part reach the frame (EffectFrame::colours), follow the
 // colour scheme, are remapped by the forced high-contrast pass, and give
@@ -1421,13 +1467,15 @@ int main() {
     effect_properties_and_input();
     themes_select_effects();
     effects_take_colour_roles();
+    progress_bar_follows_right_to_left();
     pointer_record();
     part_shape_clip();
     backdrop_sampling();
     vocabulary_version_two();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
-                 "properties and input, themes selecting effects, colour roles, pointer record, part shape clip, "
+                 "properties and input, themes selecting effects, colour roles, right to left, pointer record, "
+                 "part shape clip, "
                  "backdrop, vocabulary version 2\n";
     return 0;
 }

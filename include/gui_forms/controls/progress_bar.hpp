@@ -106,8 +106,12 @@ private:
     [[nodiscard]] FrameInterval animation_interval() const noexcept;
     void on_presentation_changed(const PresentationSettings& settings);
     [[nodiscard]] bool animated_style() const noexcept;
-    // The fill (determinate styles) or the moving activity band (marquee).
+    // The fill (determinate styles) or the moving activity band (marquee),
+    // mirrored in a horizontal bar that resolves right to left.
     [[nodiscard]] Rect indicator_bounds() const noexcept;
+    // The same before that mirroring: the fill from the left edge, the band
+    // travelling rightward, within `interior`.
+    [[nodiscard]] Rect left_to_right_indicator_bounds(Rect interior) const noexcept;
     // The fill part's stripe properties (the barber pole's theme knobs) and
     // the fill's corner radius, from the theme's rules for the part; unset
     // and 0 for a bar in no window.

@@ -305,6 +305,12 @@ gui_forms::RangeControl
 
       *Protected.*
 
+   .. cpp:function:: bool mirrored_axis() const noexcept
+
+      *Protected.*
+
+      Whether the value axis runs right to left: a horizontal bar whose resolved direction is right to left (Control::right_to_left), which puts its minimum at the right edge.
+
    .. cpp:function:: bool set_value_from_input(double requested, RangeAction action)
 
       *Protected.*

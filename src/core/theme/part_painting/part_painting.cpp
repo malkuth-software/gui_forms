@@ -473,6 +473,13 @@ void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualReci
         painter.draw_line(middle, {middle.x - side * 0.5, middle.y + side * 0.5}, ink, 1.5);
         return;
     }
+    case PartMark::chevron_left: {
+        const double side = std::min(box.width, box.height) * 0.5;
+        const Point middle{box.x + box.width * 0.5 - side * 0.25, box.y + box.height * 0.5};
+        painter.draw_line({middle.x + side * 0.5, middle.y - side * 0.5}, middle, ink, 1.5);
+        painter.draw_line(middle, {middle.x + side * 0.5, middle.y + side * 0.5}, ink, 1.5);
+        return;
+    }
     case PartMark::close: {
         const double side = std::min(box.width, box.height) * 0.6;
         const Point centre{box.x + box.width * 0.5, box.y + box.height * 0.5};
@@ -982,6 +989,7 @@ std::string_view part_mark_name(PartMark mark) noexcept {
     case PartMark::arrow_right: return "arrow_right";
     case PartMark::chevron_down: return "chevron_down";
     case PartMark::chevron_right: return "chevron_right";
+    case PartMark::chevron_left: return "chevron_left";
     case PartMark::close: return "close";
     case PartMark::grip_dots: return "grip_dots";
     case PartMark::dialog_launcher: return "dialog_launcher";

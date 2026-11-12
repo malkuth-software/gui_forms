@@ -84,10 +84,12 @@ double stripe_pitch(const ControlStripePattern& pattern, const StripeSpan& span,
 }
 
 // The stripes' view for a fill in `interior`, from the fill part's pattern
-// and corner radius. `colour` is the pale band's colour where the theme
+// and corner radius. `right_to_left` is the bar's resolved direction (a
+// horizontal bar only); `colour` is the pale band's colour where the theme
 // sets none; `speed_scale` is the motion policy's.
 ProgressStripeView stripe_view(const ControlStripePattern& pattern, double corner_radius, const Rect& interior,
-                               const Rect& fill, bool vertical, Color colour, double speed_scale) noexcept {
+                               const Rect& fill, bool vertical, bool right_to_left, Color colour,
+                               double speed_scale) noexcept {
     ProgressStripeView view{};
     // Inside the fill's one-unit rim, with its rounded ends.
     view.clip = Rect{fill.x + 1.0, fill.y + 1.0, std::max(0.0, fill.width - 2.0), std::max(0.0, fill.height - 2.0)};
@@ -98,9 +100,15 @@ ProgressStripeView stripe_view(const ControlStripePattern& pattern, double corne
     view.pitch = stripe_pitch(pattern, span, view.slant);
     view.band = view.pitch * pattern.ratio.value_or(default_stripe_ratio);
     view.forward = pattern.direction.value_or(StripeSense::forward) == StripeSense::forward;
-    // No control-level right-to-left flow exists yet: a horizontal bar
-    // grows left to right, a vertical one bottom to top.
-    view.direction = vertical ? ProgressFillDirection::bottom_to_top : ProgressFillDirection::left_to_right;
+    // A horizontal bar grows, and its stripes lean and travel, toward its
+    // leading edge: the right in left to right, the left in right to left
+    // (owner ruling of 2026-11-11, Control::right_to_left). A vertical bar
+    // grows bottom to top in either direction.
+    if (vertical) {
+        view.direction = ProgressFillDirection::bottom_to_top;
+    } else {
+        view.direction = right_to_left ? ProgressFillDirection::right_to_left : ProgressFillDirection::left_to_right;
+    }
     view.colour = pattern.colour.value_or(colour);
     view.ground = pattern.ground.value_or(Color::rgba(0, 0, 0, 0));
     view.gloss = pattern.gloss.value_or(StripeGloss::automatic) == StripeGloss::automatic;
@@ -642,10 +650,22 @@ constexpr ControlAnatomy progress_bar_anatomy{
 
 } // namespace
 
+// Laid out left to right and, for a horizontal bar that resolves right to
+// left, mirrored in the interior: the fill grows from the right edge and
+// the marquee's band travels leftward.
 Rect ProgressBar::indicator_bounds() const noexcept {
     const Rect bounds = local_bounds();
     const Rect interior{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                         std::max(0.0, bounds.height - 4.0)};
+    const Rect fill = left_to_right_indicator_bounds(interior);
+    const bool mirrored = orientation.read() == Orientation::horizontal &&
+                          effective_layout_direction() == LayoutDirection::right_to_left;
+    if (!mirrored) return fill;
+    const Rect placed = horizontally_mirrored(fill, interior);
+    return placed;
+}
+
+Rect ProgressBar::left_to_right_indicator_bounds(Rect interior) const noexcept {
     Rect fill = interior;
     if (visual_style.read() == ProgressBarVisualStyle::marquee) {
         const MotionPolicy policy = effective_motion_policy();
@@ -785,8 +805,15 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
         constexpr double block = 9.0;
         std::size_t block_index = 0U;
         if (orientation.read() == Orientation::horizontal) {
-            for (double x = fill.x; x + block <= fill.x + fill.width; x += block + gap) {
-                fill_part.bounds = {x, fill.y, block, fill.height};
+            // The blocks are laid from the start edge, so a right-to-left
+            // bar lays them on the unmirrored fill and mirrors each: the
+            // first block sits at the right edge, the partial gap at the
+            // leading (left) end.
+            const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+            const Rect laid = mirrored ? horizontally_mirrored(fill, interior) : fill;
+            for (double x = laid.x; x + block <= laid.x + laid.width; x += block + gap) {
+                const Rect laid_block{x, laid.y, block, laid.height};
+                fill_part.bounds = mirrored ? horizontally_mirrored(laid_block, interior) : laid_block;
                 fill_part.key = PartKey{"fill", {}, block_index};
                 paint_part(painter, *this, fill_part);
                 block_index = block_index + 1U;
@@ -835,7 +862,9 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     view.stripe_width = stripe_width.read();
     view.period_seconds = speed > 0.0 ? period / speed : period;
     const FillStripes stripes = fill_stripes();
-    view.stripes = stripe_view(stripes.pattern, stripes.corner_radius, interior, fill, view.vertical,
+    const bool right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
+    view.right_to_left = right_to_left && !view.vertical;
+    view.stripes = stripe_view(stripes.pattern, stripes.corner_radius, interior, fill, view.vertical, right_to_left,
                                view.appearance.stripe_color, speed);
     const bool suppressed = window() != nullptr && (*window()).motion_clock().ambient_suppressed();
     const bool still = !animation_enabled.read() || policy.reduced || suppressed;

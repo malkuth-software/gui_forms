@@ -424,6 +424,8 @@ private:
         // The pinned tab expanded by hover, or `page_count` for none.
         std::size_t expanded{};
         bool bound{};
+        // A top or bottom strip laid out right to left (see mirrored()).
+        bool mirrored{};
 
         friend bool operator==(const LayoutKey& left, const LayoutKey& right) noexcept {
             const bool equal = left.surface == right.surface && left.scale == right.scale &&
@@ -431,7 +433,7 @@ private:
                                left.settings_revision == right.settings_revision &&
                                left.scroll_revision == right.scroll_revision &&
                                left.page_count == right.page_count && left.expanded == right.expanded &&
-                               left.bound == right.bound;
+                               left.bound == right.bound && left.mirrored == right.mirrored;
             return equal;
         }
     };
@@ -491,6 +493,9 @@ private:
     // `start` (see placement).
     [[nodiscard]] Rect band_rect(double start, double length) const;
     [[nodiscard]] bool horizontal() const noexcept;
+    [[nodiscard]] bool mirrored() const noexcept;
+    [[nodiscard]] Rect drawn_band(double start, double length) const;
+    void mirror_layout() const;
     // The strip's extent along its row and across it, from the cached key.
     [[nodiscard]] double main_extent() const noexcept;
     [[nodiscard]] double cross_extent() const noexcept;

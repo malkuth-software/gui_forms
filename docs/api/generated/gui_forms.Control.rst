@@ -398,7 +398,7 @@ gui_forms::Control
          Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
 
       **effective_layout_direction** : ``LayoutDirection``, read-only
-         layout_direction is the authored inline direction, ``inherit`` by default (stage L, PLAN section 4); writing it invalidates this subtree's arrangement. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root.
+         layout_direction stores the authored inline direction, ``inherit`` by default (stage L, PLAN section 4): Windows Forms' RightToLeft. The registry, the property grid and forms spell it ``right_to_left`` (No, Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of 2026-11-11); the :cpp:member:`layout_direction <gui_forms::Control::layout_direction>` name is hidden there and refused in forms. Writing it re-arranges and repaints every control whose resolved direction changes. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root (the top-level window's default, No). Kept resolved: a read walks nothing; a write or a reparenting refreshes the affected subtree once. Directional controls (progress and scroll bars, track bars, up-downs, combo boxes, check boxes) mirror when it is right_to_left.
 
       **parts** : ``Parts``, read-only
 
@@ -415,6 +415,9 @@ gui_forms::Control
 
       **enabled_changed** : ``Event<bool>``
          Raised after :cpp:member:`enabled <gui_forms::Control::enabled>` changes, with the new value.
+
+      **right_to_left_changed** : ``Event<bool>``
+         Windows Forms' RightToLeftChanged: raised on every control whose resolved direction (effective_layout_direction) changes, by a write of its own or an ancestor's layout_direction (right_to_left) or by a reparenting; the payload is true when it now resolves right to left. Every affected control's resolved value is updated first; then the events run an ancestor before its descendants and siblings in painter order, each after that control is marked arrange, paint and hit-test dirty. A handler may write directions or move controls: the nested change announces its own controls, and a control it already announced is not announced again.
 
       **auto_size_changed** : ``Event<bool>``
          Raised after :cpp:member:`auto_size <gui_forms::Control::auto_size>` changes, with the new value.
@@ -1243,7 +1246,7 @@ gui_forms::Control
 
    .. cpp:function:: LayoutDirection effective_layout_direction() const noexcept
 
-      layout_direction is the authored inline direction, ``inherit`` by default (stage L, PLAN section 4); writing it invalidates this subtree's arrangement. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root.
+      layout_direction stores the authored inline direction, ``inherit`` by default (stage L, PLAN section 4): Windows Forms' RightToLeft. The registry, the property grid and forms spell it ``right_to_left`` (No, Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of 2026-11-11); the :cpp:member:`layout_direction <gui_forms::Control::layout_direction>` name is hidden there and refused in forms. Writing it re-arranges and repaints every control whose resolved direction changes. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root (the top-level window's default, No). Kept resolved: a read walks nothing; a write or a reparenting refreshes the affected subtree once. Directional controls (progress and scroll bars, track bars, up-downs, combo boxes, check boxes) mirror when it is right_to_left.
 
    .. cpp:function:: Parts parts() const
 
@@ -1264,6 +1267,10 @@ gui_forms::Control
    .. cpp:function:: Event<bool>& enabled_changed() noexcept
 
       Raised after :cpp:member:`enabled <gui_forms::Control::enabled>` changes, with the new value.
+
+   .. cpp:function:: Event<bool>& right_to_left_changed() noexcept
+
+      Windows Forms' RightToLeftChanged: raised on every control whose resolved direction (effective_layout_direction) changes, by a write of its own or an ancestor's layout_direction (right_to_left) or by a reparenting; the payload is true when it now resolves right to left. Every affected control's resolved value is updated first; then the events run an ancestor before its descendants and siblings in painter order, each after that control is marked arrange, paint and hit-test dirty. A handler may write directions or move controls: the nested change announces its own controls, and a control it already announced is not announced again.
 
    .. cpp:function:: Event<bool>& auto_size_changed() noexcept
 
@@ -1909,6 +1916,12 @@ gui_forms::Control
 
       *Protected.*
 
+   .. cpp:function:: virtual void on_right_to_left_changed()
+
+      *Protected.*
+
+      Called on each control whose resolved direction changed, in the order right_to_left_changed() states, after its invalidation; the base raises right_to_left_changed. An override that keeps direction-dependent state drops it and calls the base.
+
    .. cpp:function:: virtual void on_tab_index_changed()
 
       *Protected.*
@@ -2179,4 +2192,4 @@ gui_forms::Control
 
    .. cpp:member:: constexpr std::size_t control_property_count
 
-      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``32U``.
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``33U``.

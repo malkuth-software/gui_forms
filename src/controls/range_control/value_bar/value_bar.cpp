@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <utility>
 
@@ -352,7 +353,10 @@ Rect ValueBar::track_bounds() const noexcept {
 Rect ValueBar::fill_bounds() const noexcept {
     if (presentation.read() == ValueBarStyle::field) return {};
     Rect filled = track_bounds();
-    filled.width *= soft_proportion();
+    const double width = filled.width * soft_proportion();
+    // From the right edge under RightToLeft, as a progress bar fills.
+    if (effective_layout_direction() == LayoutDirection::right_to_left) filled.x += filled.width - width;
+    filled.width = width;
     return filled;
 }
 
@@ -368,7 +372,8 @@ Rect ValueBar::decrement_bounds() const noexcept {
     if (presentation.read() != ValueBarStyle::field) return {};
     const Rect track = track_bounds();
     const Rect arrow{track.x, track.y, std::min(value_bar_arrow_width, track.width * 0.5), track.height};
-    return arrow;
+    // The decrement arrow is at the minimum's end: the right under RightToLeft.
+    return directed_rect(arrow, track, effective_layout_direction());
 }
 
 Rect ValueBar::increment_bounds() const noexcept {
@@ -376,7 +381,7 @@ Rect ValueBar::increment_bounds() const noexcept {
     const Rect track = track_bounds();
     const double width = std::min(value_bar_arrow_width, track.width * 0.5);
     const Rect arrow{track.right() - width, track.y, width, track.height};
-    return arrow;
+    return directed_rect(arrow, track, effective_layout_direction());
 }
 
 Rect ValueBar::overrange_bounds() const noexcept {
@@ -385,7 +390,7 @@ Rect ValueBar::overrange_bounds() const noexcept {
     const double width = std::min(value_bar_overrange_width, track.width);
     const bool above = value.read() > effective_soft_maximum();
     const Rect marker{above ? track.right() - width : track.x, track.y, width, track.height};
-    return marker;
+    return directed_rect(marker, track, effective_layout_direction());
 }
 
 namespace {
@@ -726,7 +731,13 @@ void ValueBar::on_key(KeyEvent& event) {
     const Modifier modifiers = event.modifiers;
     const bool control = has_modifier(modifiers, Modifier::control);
     bool recognized = true;
-    switch (event.physical_key) {
+    // Left and Right move the fill's edge that way: under RightToLeft Left
+    // steps up.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    std::uint32_t key = event.physical_key;
+    if (mirrored && key == PhysicalKey::left) key = PhysicalKey::right;
+    else if (mirrored && key == PhysicalKey::right) key = PhysicalKey::left;
+    switch (key) {
     case PhysicalKey::enter:
     case PhysicalKey::f2:
         static_cast<void>(begin_edit());

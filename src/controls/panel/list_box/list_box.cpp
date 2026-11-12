@@ -413,9 +413,16 @@ void ListBox::on_paint(Painter& painter, Rect) {
         text.font = row_font;
         if (overridden) text.authored_foreground = selected && focused_ ? style().highlight : style().text;
         const double left = row_text_left();
-        paint_text_part_at(painter, *this, text,
-                           {left, y + std::max(row_font.size, row_height * 0.5 + baseline_below_middle)},
-                           std::max(0.0, row.x + row.width - left));
+        const double baseline = y + std::max(row_font.size, row_height * 0.5 + baseline_below_middle);
+        const double room = std::max(0.0, row.x + row.width - left);
+        if (effective_layout_direction() == LayoutDirection::right_to_left) {
+            // Right-aligned, the text inset (and any adornment) at the right
+            // (WinForms' ListBox under RightToLeft).
+            const double text_width = std::min(room, measure_text_extent_utf8(text.text, row_font).logical_size.width);
+            paint_text_part_at(painter, *this, text, {bounds.width - left - text_width, baseline}, text_width);
+        } else {
+            paint_text_part_at(painter, *this, text, {left, baseline}, room);
+        }
         if (focused_ && active_index_ == index) {
             PartPaint ring;
             ring.family = ControlVisualRole::selection;
@@ -705,7 +712,10 @@ ListBox::ItemParts ListBox::list_item_parts(std::size_t item) const {
     const double label_left = row_text_left();
     const double label_width = std::min(text.logical_size.width,
                                         std::max(0.0, row.right() - label_left));
-    const Rect label{label_left, y, label_width, row_height};
+    Rect label{label_left, y, label_width, row_height};
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        label = horizontally_mirrored(label, Rect{0.0, 0.0, bounds.width, bounds.height});
+    }
     ItemParts record;
     record.row = PartGeometry::from_bounds(Rect::intersection(row, content));
     record.label = PartGeometry::from_bounds(Rect::intersection(label, content));
