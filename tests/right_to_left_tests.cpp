@@ -80,7 +80,7 @@ void test_resolution_through_the_parent_chain() {
     std::shared_ptr<Panel> middle = make_panel("rtl.resolve.middle");
     std::shared_ptr<Panel> leaf = make_panel("rtl.resolve.leaf");
     std::shared_ptr<Panel> blocked = make_panel("rtl.resolve.blocked");
-    std::shared_ptr<Panel> blocked_leaf = make_panel("rtl.resolve.blocked_leaf");
+    std::shared_ptr<Panel> blocked_leaf = make_panel("rtl.resolve.blocked-leaf");
     (*root).add_child(middle);
     (*middle).add_child(leaf);
     (*middle).add_child(blocked);
@@ -132,9 +132,9 @@ void test_resolution_through_the_parent_chain() {
 void test_change_event_scope_and_order() {
     std::shared_ptr<Panel> root = make_panel("rtl.event.root");
     std::shared_ptr<Panel> first = make_panel("rtl.event.first");
-    std::shared_ptr<Panel> first_leaf = make_panel("rtl.event.first_leaf");
+    std::shared_ptr<Panel> first_leaf = make_panel("rtl.event.first-leaf");
     std::shared_ptr<Panel> second = make_panel("rtl.event.second");
-    std::shared_ptr<Panel> second_leaf = make_panel("rtl.event.second_leaf");
+    std::shared_ptr<Panel> second_leaf = make_panel("rtl.event.second-leaf");
     std::shared_ptr<Panel> third = make_panel("rtl.event.third");
     // add_child puts each new child on top, the end of painter order: first,
     // second, third in painter order.
@@ -311,18 +311,18 @@ void test_toggle_switch_follows() {
 void test_group_box_follows() {
     std::shared_ptr<GroupBox> group = make_control<GroupBox>(StableId("rtl.group"), "Options");
     Hosted hosted = host(group, {0.0, 0.0, 200.0, 80.0}, "rtl.group.root");
-    const Rect forward = (*group).caption_bounds();
+    const Rect forward = (*group).parts().caption.bounds;
     set_root_direction(hosted, LayoutDirection::right_to_left);
-    const Rect mirrored = (*group).caption_bounds();
+    const Rect mirrored = (*group).parts().caption.bounds;
     require(forward.x == 9.0 && near(mirrored.right(), 191.0) && mirrored.width == forward.width,
             "right to left, the group box's caption sits at the right of the frame");
 }
 
 void test_value_bar_follows() {
-    std::shared_ptr<ValueBar> bar = make_control<ValueBar>(StableId("rtl.value_bar"));
+    std::shared_ptr<ValueBar> bar = make_control<ValueBar>(StableId("rtl.value-bar"));
     (*bar).set_range(0.0, 100.0);
     (*bar).value = 25.0;
-    Hosted hosted = host(bar, {0.0, 0.0, 200.0, 24.0}, "rtl.value_bar.root");
+    Hosted hosted = host(bar, {0.0, 0.0, 200.0, 24.0}, "rtl.value-bar.root");
     require((*bar).fill_bounds().x == (*bar).track_bounds().x, "left to right, the fill grows from the left");
     set_root_direction(hosted, LayoutDirection::right_to_left);
     const Rect fill = (*bar).fill_bounds();
@@ -406,7 +406,7 @@ void test_list_view_follows() {
 }
 
 void test_tree_list_view_follows() {
-    std::shared_ptr<TreeListView> tree = make_control<TreeListView>(StableId("rtl.tree_list"));
+    std::shared_ptr<TreeListView> tree = make_control<TreeListView>(StableId("rtl.tree-list"));
     std::vector<TreeListColumn> columns(2U);
     columns[0].stable_id = "name";
     columns[0].text = "Name";
@@ -415,7 +415,7 @@ void test_tree_list_view_follows() {
     columns[1].text = "Kind";
     columns[1].width = 80.0;
     (*tree).set_columns(std::move(columns));
-    Hosted hosted = host(tree, {0.0, 0.0, 280.0, 90.0}, "rtl.tree_list.root");
+    Hosted hosted = host(tree, {0.0, 0.0, 280.0, 90.0}, "rtl.tree-list.root");
     require_reading_order_flips(hosted, *tree, SemanticRole::column_header,
                                 "right to left, the tree list view's first column is at the right");
 }
@@ -443,7 +443,7 @@ void test_breadcrumb_follows() {
     segments[1].stable_id = "rtl.crumbs.leaf";
     segments[1].text = "Leaf";
     (*trail).set_segments(std::move(segments));
-    Hosted hosted = host(trail, {0.0, 0.0, 280.0, 28.0}, "rtl.crumbs.root_panel");
+    Hosted hosted = host(trail, {0.0, 0.0, 280.0, 28.0}, "rtl.crumbs.root-panel");
     require_reading_order_flips(hosted, *trail, SemanticRole::button,
                                 "right to left, the trail's root segment is at the right");
 }
