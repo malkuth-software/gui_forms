@@ -122,6 +122,7 @@
 #include "gui_forms/controls/tree_view.hpp"
 #include "gui_forms/controls/user_control.hpp"
 #include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/controls/virtual_rows_view.hpp"
 #include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
@@ -1126,6 +1127,8 @@ void append_field(EventFields& fields, std::string_view name, const TreeListExpa
 void append_field(EventFields& fields, std::string_view name, const TreeListSelectionChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListSortChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeSelectionChange& value);
+void append_field(EventFields& fields, std::string_view name, const VirtualRowIndex& value);
+void append_field(EventFields& fields, std::string_view name, const VirtualRowSelection& value);
 void append_field(EventFields& fields, std::string_view name, const WindowBackdropGrant& value);
 void append_field(EventFields& fields, std::string_view name, const WizardPageChangingEvent& value);
 void read_field(EventFields& fields, std::string_view name, WizardPageChangingEvent& value);
@@ -2865,6 +2868,18 @@ inline void append_field(EventFields& fields, std::string_view name, const TreeS
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "previous_id", value.previous_id);
     append_field(fields, "current_id", value.current_id);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const VirtualRowIndex& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const VirtualRowSelection& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "previous", value.previous);
+    append_field(fields, "current", value.current);
     fields.leave(prefix);
 }
 
@@ -5085,6 +5100,15 @@ inline SubscriptionToken connect_error_provider_right_to_left_changed(Component&
     return token;
 }
 
+inline SubscriptionToken connect_virtual_rows_view_row_activated(Component& source, const EventSink& sink) {
+    VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).row_activated(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_data_grid_view_row_edit_cancelled(Component& source, const EventSink& sink) {
     DataGridView* typed = dynamic_cast<DataGridView*>(&source);
     if (typed == nullptr) {
@@ -5420,6 +5444,15 @@ inline SubscriptionToken connect_ribbon_gallery_selection_changed(Component& sou
 
 inline SubscriptionToken connect_tree_list_view_selection_changed(Component& source, const EventSink& sink) {
     TreeListView* typed = dynamic_cast<TreeListView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_virtual_rows_view_selection_changed(Component& source, const EventSink& sink) {
+    VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5909,7 +5942,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 330> event_connectors{{
+inline constexpr std::array<EventConnector, 332> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6149,6 +6182,7 @@ inline constexpr std::array<EventConnector, 330> event_connectors{{
     {"reset_requested", "PropertyList", &connect_property_list_reset_requested},
     {"right_to_left_changed", "Control", &connect_control_right_to_left_changed},
     {"right_to_left_changed", "ErrorProvider", &connect_error_provider_right_to_left_changed},
+    {"row_activated", "VirtualRowsView", &connect_virtual_rows_view_row_activated},
     {"row_edit_cancelled", "DataGridView", &connect_data_grid_view_row_edit_cancelled},
     {"row_enter", "DataGridView", &connect_data_grid_view_row_enter},
     {"row_error_text_changed", "DataGridView", &connect_data_grid_view_row_error_text_changed},
@@ -6187,6 +6221,7 @@ inline constexpr std::array<EventConnector, 330> event_connectors{{
     {"selection_changed", "PlotView", &connect_plot_view_selection_changed},
     {"selection_changed", "RibbonGallery", &connect_ribbon_gallery_selection_changed},
     {"selection_changed", "TreeListView", &connect_tree_list_view_selection_changed},
+    {"selection_changed", "VirtualRowsView", &connect_virtual_rows_view_selection_changed},
     {"sort_changed", "TreeListView", &connect_tree_list_view_sort_changed},
     {"sort_compare", "DataGridView", &connect_data_grid_view_sort_compare},
     {"sort_requested", "ObjectView", &connect_object_view_sort_requested},

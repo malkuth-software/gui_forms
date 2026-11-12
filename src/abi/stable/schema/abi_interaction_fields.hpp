@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 164> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 166> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -160,6 +160,8 @@ inline constexpr std::array<InteractionFieldsEntry, 164> interaction_fields{{
     {"TreeListSelectionChange", "previous_id: text optional, current_id: text optional"},
     {"TreeListSortChange", "column: unsigned_integer optional, order: enumeration"},
     {"TreeSelectionChange", "previous_id: text, current_id: text"},
+    {"VirtualRowIndex", "value: unsigned_integer"},
+    {"VirtualRowSelection", "previous.value: unsigned_integer optional, current.value: unsigned_integer optional"},
     {"WindowBackdropGrant", "requested: enumeration, granted: enumeration, reason: enumeration, generation.value: unsigned_integer"},
     {"WizardPageChangingEvent", "from: unsigned_integer, to: unsigned_integer, cancel: boolean"},
     {"bool", "value: boolean"},
