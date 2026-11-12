@@ -49219,11 +49219,11 @@
       "header": "gui_forms/controls/combo_box.hpp",
       "source": "include/gui_forms/controls/combo_box.hpp",
       "line": 23,
-      "declaration": "class ComboBox final : public Panel, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox>",
+      "declaration": "class ComboBox final : public ListControl, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox>",
       "comment": "",
       "access": "public",
       "bases": [
-        "Panel",
+        "ListControl",
         "gui_forms::TextItemsCapability<gui_forms::ComboBox>",
         "gui_forms::ComboBoxCapabilities<gui_forms::ComboBox>"
       ],
@@ -101007,11 +101007,11 @@
       "header": "gui_forms/controls/domain_up_down.hpp",
       "source": "include/gui_forms/controls/domain_up_down.hpp",
       "line": 28,
-      "declaration": "class DomainUpDown final : public Panel, public TextItemsCapability<DomainUpDown>, public DomainUpDownCapabilities<DomainUpDown>",
+      "declaration": "class DomainUpDown final : public UpDownBase, public TextItemsCapability<DomainUpDown>, public DomainUpDownCapabilities<DomainUpDown>",
       "comment": "",
       "access": "public",
       "bases": [
-        "Panel",
+        "UpDownBase",
         "gui_forms::TextItemsCapability<gui_forms::DomainUpDown>",
         "gui_forms::DomainUpDownCapabilities<gui_forms::DomainUpDown>"
       ],
@@ -101170,36 +101170,6 @@
           "page": "gui-forms-domainupdown-down-button-void-013929b9be.html"
         },
         {
-          "id": "gui_forms::DomainUpDown::editor|std::shared_ptr<TextBox> () const noexcept",
-          "name": "editor",
-          "type": "std::shared_ptr<TextBox> () const noexcept",
-          "namespace": "gui_forms::DomainUpDown",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "[[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept",
-          "comment": "",
-          "header": "gui_forms/controls/domain_up_down.hpp",
-          "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 53,
-          "page": "gui-forms-domainupdown-editor-std-shared-ptr-textbox-const-noexcept-8df773ccfc.html"
-        },
-        {
-          "id": "gui_forms::DomainUpDown::focus_target|Ptr () const",
-          "name": "focus_target",
-          "type": "Ptr () const",
-          "namespace": "gui_forms::DomainUpDown",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "[[nodiscard]] Ptr focus_target() const override",
-          "comment": "",
-          "header": "gui_forms/controls/domain_up_down.hpp",
-          "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 55,
-          "page": "gui-forms-domainupdown-focus-target-ptr-const-3fe0a82fac.html"
-        },
-        {
           "id": "gui_forms::DomainUpDown::selected_index_changed|Event<std::optional<std::size_t>> &() noexcept",
           "name": "selected_index_changed",
           "type": "Event<std::optional<std::size_t>> &() noexcept",
@@ -101211,7 +101181,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 57,
+          "line": 54,
           "page": "gui-forms-domainupdown-selected-index-changed-event-std-optional-std-size-t-noexcept-5ad24419aa.html"
         },
         {
@@ -101232,7 +101202,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 61,
+          "line": 58,
           "page": "gui-forms-domainupdown-arrange-void-rect-ecbded4065.html"
         },
         {
@@ -101258,7 +101228,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 64,
+          "line": 61,
           "page": "gui-forms-domainupdown-on-paint-overlay-void-painter-rect-becc61b8c4.html"
         },
         {
@@ -101279,7 +101249,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 65,
+          "line": 62,
           "page": "gui-forms-domainupdown-on-key-preview-void-keyevent-255761b01e.html"
         },
         {
@@ -101300,7 +101270,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 66,
+          "line": 63,
           "page": "gui-forms-domainupdown-on-pointer-preview-void-pointerevent-364403b701.html"
         },
         {
@@ -101315,7 +101285,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 67,
+          "line": 64,
           "page": "gui-forms-domainupdown-semantic-descriptor-semanticdescriptor-const-37a8c209c0.html"
         },
         {
@@ -101341,7 +101311,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 68,
+          "line": 65,
           "page": "gui-forms-domainupdown-on-semantic-action-bool-semanticaction-std-string-view-2c593f370b.html"
         },
         {
@@ -101356,7 +101326,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 69,
+          "line": 66,
           "page": "gui-forms-domainupdown-anatomy-const-controlanatomy-const-noexcept-f8a5d1cfc5.html"
         },
         {
@@ -101371,7 +101341,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 70,
+          "line": 67,
           "page": "gui-forms-domainupdown-anatomy-states-anatomystateset-const-3c1471ddd9.html"
         },
         {
@@ -101386,7 +101356,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 94,
+          "line": 91,
           "page": "gui-forms-domainupdown-parts-parts-const-963537714c.html"
         },
         {
@@ -101401,7 +101371,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 95,
+          "line": 92,
           "page": "gui-forms-domainupdown-states-states-const-92498ff518.html"
         },
         {
@@ -101422,7 +101392,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 98,
+          "line": 95,
           "page": "gui-forms-domainupdown-append-interactions-void-std-vector-interactiondeclaration-const-265c55510e.html"
         },
         {
@@ -101443,7 +101413,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 99,
+          "line": 96,
           "page": "gui-forms-domainupdown-publish-part-geometry-void-std-span-partgeometry-const-4b52a464c8.html"
         },
         {
@@ -101458,7 +101428,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 139,
+          "line": 132,
           "page": "gui-forms-domainupdown-domain-up-down-property-count-const-std-size-t-7cabe715b3.html"
         },
         {
@@ -101473,7 +101443,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 140,
+          "line": 133,
           "page": "gui-forms-domainupdown-domain-up-down-property-entries-const-std-array-propertyentry-domain-up-down-property-c-f4cd7b1038.html"
         },
         {
@@ -101488,7 +101458,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 141,
+          "line": 134,
           "page": "gui-forms-domainupdown-property-table-std-span-const-propertyentry-const-noexcept-f765981366.html"
         },
         {
@@ -101503,7 +101473,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 147,
+          "line": 140,
           "page": "gui-forms-domainupdown-on-text-changed-void-611377c0d8.html"
         }
       ],
@@ -101517,7 +101487,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/domain_up_down.hpp",
       "source": "include/gui_forms/controls/domain_up_down.hpp",
-      "line": 72,
+      "line": 69,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -101535,7 +101505,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 73,
+          "line": 70,
           "page": "gui-forms-domainupdown-parts-scrollable-scrollablecontrol-parts-46e438b4af.html"
         },
         {
@@ -101550,7 +101520,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 74,
+          "line": 71,
           "page": "gui-forms-domainupdown-parts-face-partgeometry-32871a8546.html"
         },
         {
@@ -101565,7 +101535,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 75,
+          "line": 72,
           "page": "gui-forms-domainupdown-parts-edge-partgeometry-fba4cb94ee.html"
         },
         {
@@ -101580,7 +101550,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 76,
+          "line": 73,
           "page": "gui-forms-domainupdown-parts-field-partgeometry-9cab15e503.html"
         },
         {
@@ -101595,7 +101565,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 77,
+          "line": 74,
           "page": "gui-forms-domainupdown-parts-up-arrow-partgeometry-0d20b49fd7.html"
         },
         {
@@ -101610,7 +101580,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 78,
+          "line": 75,
           "page": "gui-forms-domainupdown-parts-down-arrow-partgeometry-07cefe671a.html"
         },
         {
@@ -101625,7 +101595,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 79,
+          "line": 76,
           "page": "gui-forms-domainupdown-parts-up-glyph-partgeometry-93f249ae60.html"
         },
         {
@@ -101640,7 +101610,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 80,
+          "line": 77,
           "page": "gui-forms-domainupdown-parts-down-glyph-partgeometry-fe3a1268b3.html"
         }
       ],
@@ -101654,7 +101624,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/domain_up_down.hpp",
       "source": "include/gui_forms/controls/domain_up_down.hpp",
-      "line": 82,
+      "line": 79,
       "declaration": "struct States final",
       "comment": "",
       "access": "public",
@@ -101672,7 +101642,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 83,
+          "line": 80,
           "page": "gui-forms-domainupdown-states-normal-bool-3b5a4aff25.html"
         },
         {
@@ -101687,7 +101657,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 84,
+          "line": 81,
           "page": "gui-forms-domainupdown-states-pressed-bool-cd3744cddd.html"
         },
         {
@@ -101702,7 +101672,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 85,
+          "line": 82,
           "page": "gui-forms-domainupdown-states-captured-bool-32c5bc89b1.html"
         },
         {
@@ -101717,7 +101687,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 86,
+          "line": 83,
           "page": "gui-forms-domainupdown-states-enabled-bool-39f018819f.html"
         },
         {
@@ -101732,7 +101702,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 87,
+          "line": 84,
           "page": "gui-forms-domainupdown-states-disabled-bool-23d63667bd.html"
         },
         {
@@ -101747,7 +101717,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 88,
+          "line": 85,
           "page": "gui-forms-domainupdown-states-focused-bool-74f988f405.html"
         },
         {
@@ -101762,7 +101732,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 89,
+          "line": 86,
           "page": "gui-forms-domainupdown-states-focus-visible-bool-4b0b9dc260.html"
         },
         {
@@ -101777,7 +101747,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 90,
+          "line": 87,
           "page": "gui-forms-domainupdown-states-read-only-bool-ff8b35c3d5.html"
         },
         {
@@ -101792,7 +101762,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 91,
+          "line": 88,
           "page": "gui-forms-domainupdown-states-invalid-bool-76a58333ca.html"
         },
         {
@@ -101807,7 +101777,7 @@
           "comment": "",
           "header": "gui_forms/controls/domain_up_down.hpp",
           "source": "include/gui_forms/controls/domain_up_down.hpp",
-          "line": 92,
+          "line": 89,
           "page": "gui-forms-domainupdown-states-pending-bool-a6edafe8e8.html"
         }
       ],
@@ -161705,11 +161675,11 @@
       "header": "gui_forms/controls/list_box.hpp",
       "source": "include/gui_forms/controls/list_box.hpp",
       "line": 25,
-      "declaration": "class ListBox : public Panel, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox>",
+      "declaration": "class ListBox : public ListControl, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox>",
       "comment": "",
       "access": "public",
       "bases": [
-        "Panel",
+        "ListControl",
         "gui_forms::TextItemsCapability<gui_forms::ListBox>",
         "gui_forms::ListBoxCapabilities<gui_forms::ListBox>"
       ],
@@ -163038,6 +163008,61 @@
         }
       ],
       "page": "gui-forms-listboxtopindexcapability-0eb134e633.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::ListControl",
+      "name": "ListControl",
+      "namespace": "gui_forms",
+      "kind": "class",
+      "header": "gui_forms/controls/list_control.hpp",
+      "source": "include/gui_forms/controls/list_control.hpp",
+      "line": 20,
+      "declaration": "class ListControl : public Panel",
+      "comment": "",
+      "access": "public",
+      "bases": [
+        "Panel"
+      ],
+      "members": [
+        {
+          "id": "gui_forms::ListControl::~ListControl|void () noexcept",
+          "name": "~ListControl",
+          "type": "void () noexcept",
+          "namespace": "gui_forms::ListControl",
+          "kind": "CXXDestructorDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "~ListControl() override",
+          "comment": "",
+          "header": "gui_forms/controls/list_control.hpp",
+          "source": "include/gui_forms/controls/list_control.hpp",
+          "line": 22,
+          "page": "gui-forms-listcontrol-listcontrol-void-noexcept-a93bb60da3.html"
+        },
+        {
+          "id": "gui_forms::ListControl::ListControl|void (StableId)",
+          "name": "ListControl",
+          "type": "void (StableId)",
+          "namespace": "gui_forms::ListControl",
+          "kind": "CXXConstructorDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "stable_id",
+              "type": "StableId",
+              "declaration": "StableId stable_id"
+            }
+          ],
+          "declaration": "explicit ListControl(StableId stable_id)",
+          "comment": "",
+          "header": "gui_forms/controls/list_control.hpp",
+          "source": "include/gui_forms/controls/list_control.hpp",
+          "line": 25,
+          "page": "gui-forms-listcontrol-listcontrol-void-stableid-34ad1efd38.html"
+        }
+      ],
+      "page": "gui-forms-listcontrol-9b25460b1d.html",
       "enclosing_type": null
     },
     {
@@ -174379,7 +174404,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/masked_text_box.hpp",
       "source": "include/gui_forms/controls/masked_text_box.hpp",
-      "line": 19,
+      "line": 20,
       "declaration": "struct MaskInputRejection final",
       "comment": "",
       "access": "public",
@@ -174397,7 +174422,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 20,
+          "line": 21,
           "page": "gui-forms-maskinputrejection-position-maskposition-ef655effc5.html"
         },
         {
@@ -174412,7 +174437,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 21,
+          "line": 22,
           "page": "gui-forms-maskinputrejection-hint-maskresulthint-242cec1fdc.html"
         },
         {
@@ -174427,7 +174452,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 22,
+          "line": 23,
           "page": "gui-forms-maskinputrejection-text-std-string-f491bdc025.html"
         }
       ],
@@ -174715,7 +174740,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/masked_text_box.hpp",
       "source": "include/gui_forms/controls/masked_text_box.hpp",
-      "line": 29,
+      "line": 30,
       "declaration": "struct MaskValidation final",
       "comment": "",
       "access": "public",
@@ -174733,7 +174758,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 30,
+          "line": 31,
           "page": "gui-forms-maskvalidation-text-std-string-b1b0caead2.html"
         },
         {
@@ -174748,7 +174773,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 31,
+          "line": 32,
           "page": "gui-forms-maskvalidation-mask-completed-bool-f5081fe382.html"
         },
         {
@@ -174763,7 +174788,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 32,
+          "line": 33,
           "page": "gui-forms-maskvalidation-valid-bool-e4dd21632d.html"
         },
         {
@@ -174778,7 +174803,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 33,
+          "line": 34,
           "page": "gui-forms-maskvalidation-message-std-string-ce07bcad8e.html"
         },
         {
@@ -174793,7 +174818,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 34,
+          "line": 35,
           "page": "gui-forms-maskvalidation-cancel-bool-0d561459a2.html"
         }
       ],
@@ -174807,12 +174832,12 @@
       "kind": "class",
       "header": "gui_forms/controls/masked_text_box.hpp",
       "source": "include/gui_forms/controls/masked_text_box.hpp",
-      "line": 45,
-      "declaration": "class MaskedTextBox final : public Panel, public MaskedTextBoxCapabilities<MaskedTextBox>",
+      "line": 46,
+      "declaration": "class MaskedTextBox final : public TextBoxBase, public MaskedTextBoxCapabilities<MaskedTextBox>",
       "comment": "",
       "access": "public",
       "bases": [
-        "Panel",
+        "TextBoxBase",
         "gui_forms::MaskedTextBoxCapabilities<gui_forms::MaskedTextBox>"
       ],
       "members": [
@@ -174828,7 +174853,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 47,
+          "line": 48,
           "page": "gui-forms-maskedtextbox-initialize-tree-after-construction-const-bool-314b49747d.html"
         },
         {
@@ -174854,7 +174879,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 48,
+          "line": 49,
           "page": "gui-forms-maskedtextbox-maskedtextbox-void-stableid-std-string-10eb5f0652.html"
         },
         {
@@ -174869,7 +174894,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 49,
+          "line": 50,
           "page": "gui-forms-maskedtextbox-maskedtextbox-void-noexcept-0aeb7dfd10.html"
         },
         {
@@ -174884,7 +174909,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 50,
+          "line": 51,
           "page": "gui-forms-maskedtextbox-initialize-control-tree-void-b9d0641edf.html"
         },
         {
@@ -174899,7 +174924,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 54,
+          "line": 55,
           "page": "gui-forms-maskedtextbox-provider-const-maskedtextprovider-const-noexcept-a43d7de6a0.html"
         },
         {
@@ -174920,7 +174945,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 60,
+          "line": 61,
           "page": "gui-forms-maskedtextbox-place-text-maskeditresult-std-string-view-0d02c3e306.html"
         },
         {
@@ -174935,7 +174960,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 61,
+          "line": 62,
           "page": "gui-forms-maskedtextbox-clear-void-0064dbe12b.html"
         },
         {
@@ -174950,7 +174975,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 63,
+          "line": 64,
           "page": "gui-forms-maskedtextbox-mask-completed-bool-const-noexcept-2114b1b2e7.html"
         },
         {
@@ -174965,7 +174990,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 65,
+          "line": 66,
           "page": "gui-forms-maskedtextbox-mask-full-bool-const-noexcept-eb7bb5c004.html"
         },
         {
@@ -174986,7 +175011,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 71,
+          "line": 72,
           "page": "gui-forms-maskedtextbox-set-validator-void-delegate-maskvalidation-noexcept-71234e0de9.html"
         },
         {
@@ -175001,7 +175026,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 74,
+          "line": 75,
           "page": "gui-forms-maskedtextbox-validate-text-bool-fa8fc3b4b6.html"
         },
         {
@@ -175016,7 +175041,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 76,
+          "line": 77,
           "page": "gui-forms-maskedtextbox-editor-std-shared-ptr-textbox-const-noexcept-bdf8edb5b6.html"
         },
         {
@@ -175031,7 +175056,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 78,
+          "line": 79,
           "page": "gui-forms-maskedtextbox-focus-target-ptr-const-975e91eaf2.html"
         },
         {
@@ -175046,7 +175071,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 81,
+          "line": 82,
           "page": "gui-forms-maskedtextbox-mask-input-rejected-event-const-maskinputrejection-noexcept-4fc22007ee.html"
         },
         {
@@ -175061,7 +175086,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 85,
+          "line": 86,
           "page": "gui-forms-maskedtextbox-text-changed-event-const-std-string-noexcept-1074394e50.html"
         },
         {
@@ -175076,7 +175101,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 86,
+          "line": 87,
           "page": "gui-forms-maskedtextbox-mask-changed-event-const-std-string-noexcept-d2509b4c65.html"
         },
         {
@@ -175091,7 +175116,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 87,
+          "line": 88,
           "page": "gui-forms-maskedtextbox-overwrite-mode-changed-event-bool-noexcept-8a33700a62.html"
         },
         {
@@ -175106,7 +175131,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 88,
+          "line": 89,
           "page": "gui-forms-maskedtextbox-type-validation-completed-event-const-maskvalidation-noexcept-ac4a4d914c.html"
         },
         {
@@ -175127,7 +175152,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 92,
+          "line": 93,
           "page": "gui-forms-maskedtextbox-arrange-void-rect-b42eabc5f5.html"
         },
         {
@@ -175148,7 +175173,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 93,
+          "line": 94,
           "page": "gui-forms-maskedtextbox-on-key-preview-void-keyevent-a38b0cbdbe.html"
         },
         {
@@ -175163,7 +175188,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 94,
+          "line": 95,
           "page": "gui-forms-maskedtextbox-semantic-descriptor-semanticdescriptor-const-3762ca0fbc.html"
         },
         {
@@ -175189,7 +175214,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 95,
+          "line": 96,
           "page": "gui-forms-maskedtextbox-on-semantic-action-bool-semanticaction-std-string-view-86897a3739.html"
         },
         {
@@ -175210,7 +175235,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 98,
+          "line": 99,
           "page": "gui-forms-maskedtextbox-on-semantic-text-layout-semantictextresult-semantictextlayout-c3ca522163.html"
         },
         {
@@ -175231,7 +175256,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 99,
+          "line": 100,
           "page": "gui-forms-maskedtextbox-on-set-semantic-text-selection-semantictextresult-semantictextselection-7342d634d8.html"
         },
         {
@@ -175246,7 +175271,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 100,
+          "line": 101,
           "page": "gui-forms-maskedtextbox-anatomy-const-controlanatomy-const-noexcept-7c297e8ab1.html"
         },
         {
@@ -175261,7 +175286,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 101,
+          "line": 102,
           "page": "gui-forms-maskedtextbox-anatomy-states-anatomystateset-const-facae075c8.html"
         },
         {
@@ -175276,7 +175301,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 121,
+          "line": 122,
           "page": "gui-forms-maskedtextbox-parts-parts-const-ac84116346.html"
         },
         {
@@ -175291,7 +175316,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 122,
+          "line": 123,
           "page": "gui-forms-maskedtextbox-states-states-const-dd66b0b064.html"
         },
         {
@@ -175312,7 +175337,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 125,
+          "line": 126,
           "page": "gui-forms-maskedtextbox-append-interactions-void-std-vector-interactiondeclaration-const-e641695fb9.html"
         },
         {
@@ -175333,7 +175358,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 126,
+          "line": 127,
           "page": "gui-forms-maskedtextbox-publish-part-geometry-void-std-span-partgeometry-const-9e1805287a.html"
         },
         {
@@ -175348,7 +175373,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 185,
+          "line": 186,
           "page": "gui-forms-maskedtextbox-on-mask-changed-void-ee05ffeb4b.html"
         },
         {
@@ -175363,7 +175388,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 186,
+          "line": 187,
           "page": "gui-forms-maskedtextbox-on-read-only-changed-void-378c5675af.html"
         }
       ],
@@ -175377,7 +175402,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/masked_text_box.hpp",
       "source": "include/gui_forms/controls/masked_text_box.hpp",
-      "line": 103,
+      "line": 104,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -175395,7 +175420,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 104,
+          "line": 105,
           "page": "gui-forms-maskedtextbox-parts-scrollable-scrollablecontrol-parts-60b9ac78d3.html"
         },
         {
@@ -175410,7 +175435,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 105,
+          "line": 106,
           "page": "gui-forms-maskedtextbox-parts-face-partgeometry-8e2f9a6dc6.html"
         },
         {
@@ -175425,7 +175450,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 106,
+          "line": 107,
           "page": "gui-forms-maskedtextbox-parts-edge-partgeometry-5a8d416aff.html"
         },
         {
@@ -175440,7 +175465,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 107,
+          "line": 108,
           "page": "gui-forms-maskedtextbox-parts-field-partgeometry-e0eb0d1b85.html"
         }
       ],
@@ -175454,7 +175479,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/masked_text_box.hpp",
       "source": "include/gui_forms/controls/masked_text_box.hpp",
-      "line": 109,
+      "line": 110,
       "declaration": "struct States final",
       "comment": "",
       "access": "public",
@@ -175472,7 +175497,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 110,
+          "line": 111,
           "page": "gui-forms-maskedtextbox-states-normal-bool-e04233cfbe.html"
         },
         {
@@ -175487,7 +175512,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 111,
+          "line": 112,
           "page": "gui-forms-maskedtextbox-states-pressed-bool-3f5f43a075.html"
         },
         {
@@ -175502,7 +175527,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 112,
+          "line": 113,
           "page": "gui-forms-maskedtextbox-states-captured-bool-00169e9c15.html"
         },
         {
@@ -175517,7 +175542,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 113,
+          "line": 114,
           "page": "gui-forms-maskedtextbox-states-enabled-bool-36f7a548b4.html"
         },
         {
@@ -175532,7 +175557,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 114,
+          "line": 115,
           "page": "gui-forms-maskedtextbox-states-disabled-bool-4f42cef2d4.html"
         },
         {
@@ -175547,7 +175572,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 115,
+          "line": 116,
           "page": "gui-forms-maskedtextbox-states-focused-bool-08f46b3f16.html"
         },
         {
@@ -175562,7 +175587,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 116,
+          "line": 117,
           "page": "gui-forms-maskedtextbox-states-focus-visible-bool-0fb3cac9f4.html"
         },
         {
@@ -175577,7 +175602,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 117,
+          "line": 118,
           "page": "gui-forms-maskedtextbox-states-read-only-bool-80fdaa9a63.html"
         },
         {
@@ -175592,7 +175617,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 118,
+          "line": 119,
           "page": "gui-forms-maskedtextbox-states-invalid-bool-49f022dc07.html"
         },
         {
@@ -175607,7 +175632,7 @@
           "comment": "",
           "header": "gui_forms/controls/masked_text_box.hpp",
           "source": "include/gui_forms/controls/masked_text_box.hpp",
-          "line": 119,
+          "line": 120,
           "page": "gui-forms-maskedtextbox-states-pending-bool-995b95b440.html"
         }
       ],
@@ -197033,11 +197058,11 @@
       "header": "gui_forms/controls/numeric_up_down.hpp",
       "source": "include/gui_forms/controls/numeric_up_down.hpp",
       "line": 26,
-      "declaration": "class NumericUpDown final : public Panel, public NumericUpDownCapabilities<NumericUpDown>",
+      "declaration": "class NumericUpDown final : public UpDownBase, public NumericUpDownCapabilities<NumericUpDown>",
       "comment": "",
       "access": "public",
       "bases": [
-        "Panel",
+        "UpDownBase",
         "gui_forms::NumericUpDownCapabilities<gui_forms::NumericUpDown>"
       ],
       "members": [
@@ -197134,36 +197159,6 @@
           "page": "gui-forms-numericupdown-set-range-void-double-double-49d5f22d52.html"
         },
         {
-          "id": "gui_forms::NumericUpDown::editor|std::shared_ptr<TextBox> () const noexcept",
-          "name": "editor",
-          "type": "std::shared_ptr<TextBox> () const noexcept",
-          "namespace": "gui_forms::NumericUpDown",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "[[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept",
-          "comment": "",
-          "header": "gui_forms/controls/numeric_up_down.hpp",
-          "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 35,
-          "page": "gui-forms-numericupdown-editor-std-shared-ptr-textbox-const-noexcept-4eee323be7.html"
-        },
-        {
-          "id": "gui_forms::NumericUpDown::focus_target|Ptr () const",
-          "name": "focus_target",
-          "type": "Ptr () const",
-          "namespace": "gui_forms::NumericUpDown",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "[[nodiscard]] Ptr focus_target() const override",
-          "comment": "",
-          "header": "gui_forms/controls/numeric_up_down.hpp",
-          "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 37,
-          "page": "gui-forms-numericupdown-focus-target-ptr-const-e8b6d86cb8.html"
-        },
-        {
           "id": "gui_forms::NumericUpDown::value_changed|Event<double> &() noexcept",
           "name": "value_changed",
           "type": "Event<double> &() noexcept",
@@ -197175,7 +197170,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 38,
+          "line": 35,
           "page": "gui-forms-numericupdown-value-changed-event-double-noexcept-bb702444c9.html"
         },
         {
@@ -197196,7 +197191,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 40,
+          "line": 37,
           "page": "gui-forms-numericupdown-arrange-void-rect-6e453f9d14.html"
         },
         {
@@ -197222,7 +197217,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 43,
+          "line": 40,
           "page": "gui-forms-numericupdown-on-paint-overlay-void-painter-rect-09dd2bdaf1.html"
         },
         {
@@ -197243,7 +197238,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 44,
+          "line": 41,
           "page": "gui-forms-numericupdown-on-key-preview-void-keyevent-e2e8a5f3af.html"
         },
         {
@@ -197264,7 +197259,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 45,
+          "line": 42,
           "page": "gui-forms-numericupdown-on-pointer-preview-void-pointerevent-34c55ee526.html"
         },
         {
@@ -197279,7 +197274,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 46,
+          "line": 43,
           "page": "gui-forms-numericupdown-begin-keyboard-drag-bool-e737a3b69f.html"
         },
         {
@@ -197294,7 +197289,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 49,
+          "line": 46,
           "page": "gui-forms-numericupdown-scrubbing-bool-const-noexcept-f0784495fd.html"
         },
         {
@@ -197309,7 +197304,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 50,
+          "line": 47,
           "page": "gui-forms-numericupdown-semantic-descriptor-semanticdescriptor-const-7b3e2266f7.html"
         },
         {
@@ -197335,7 +197330,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 51,
+          "line": 48,
           "page": "gui-forms-numericupdown-on-semantic-action-bool-semanticaction-std-string-view-5fc5987c5f.html"
         },
         {
@@ -197350,7 +197345,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 53,
+          "line": 50,
           "page": "gui-forms-numericupdown-anatomy-const-controlanatomy-const-noexcept-e69f994321.html"
         },
         {
@@ -197365,7 +197360,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 54,
+          "line": 51,
           "page": "gui-forms-numericupdown-anatomy-states-anatomystateset-const-7f5ce8ad94.html"
         },
         {
@@ -197380,7 +197375,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 77,
+          "line": 74,
           "page": "gui-forms-numericupdown-parts-parts-const-938f4afa79.html"
         },
         {
@@ -197395,7 +197390,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 78,
+          "line": 75,
           "page": "gui-forms-numericupdown-states-states-const-25d0880e7a.html"
         },
         {
@@ -197416,7 +197411,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 81,
+          "line": 78,
           "page": "gui-forms-numericupdown-append-interactions-void-std-vector-interactiondeclaration-const-c5ecf38cae.html"
         },
         {
@@ -197437,7 +197432,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 82,
+          "line": 79,
           "page": "gui-forms-numericupdown-publish-part-geometry-void-std-span-partgeometry-const-a36defae55.html"
         },
         {
@@ -197452,7 +197447,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 118,
+          "line": 111,
           "page": "gui-forms-numericupdown-numeric-up-down-property-count-const-std-size-t-d215c98684.html"
         },
         {
@@ -197467,7 +197462,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 119,
+          "line": 112,
           "page": "gui-forms-numericupdown-numeric-up-down-property-entries-const-std-array-propertyentry-numeric-up-down-propert-57396bc8a2.html"
         },
         {
@@ -197482,7 +197477,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 120,
+          "line": 113,
           "page": "gui-forms-numericupdown-property-table-std-span-const-propertyentry-const-noexcept-2e03806164.html"
         },
         {
@@ -197497,7 +197492,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 126,
+          "line": 119,
           "page": "gui-forms-numericupdown-on-value-changed-void-43c5616f64.html"
         }
       ],
@@ -197511,7 +197506,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/numeric_up_down.hpp",
       "source": "include/gui_forms/controls/numeric_up_down.hpp",
-      "line": 56,
+      "line": 53,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -197529,7 +197524,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 57,
+          "line": 54,
           "page": "gui-forms-numericupdown-parts-scrollable-scrollablecontrol-parts-a87afb5b20.html"
         },
         {
@@ -197544,7 +197539,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 58,
+          "line": 55,
           "page": "gui-forms-numericupdown-parts-face-partgeometry-eba06b7b98.html"
         },
         {
@@ -197559,7 +197554,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 59,
+          "line": 56,
           "page": "gui-forms-numericupdown-parts-edge-partgeometry-9f54419b4e.html"
         },
         {
@@ -197574,7 +197569,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 60,
+          "line": 57,
           "page": "gui-forms-numericupdown-parts-field-partgeometry-988a5fcf78.html"
         },
         {
@@ -197589,7 +197584,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 61,
+          "line": 58,
           "page": "gui-forms-numericupdown-parts-increment-arrow-partgeometry-55ca78c678.html"
         },
         {
@@ -197604,7 +197599,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 62,
+          "line": 59,
           "page": "gui-forms-numericupdown-parts-decrement-arrow-partgeometry-6c11552b26.html"
         },
         {
@@ -197619,7 +197614,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 63,
+          "line": 60,
           "page": "gui-forms-numericupdown-parts-increment-glyph-partgeometry-cf4d9e7655.html"
         },
         {
@@ -197634,7 +197629,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 64,
+          "line": 61,
           "page": "gui-forms-numericupdown-parts-decrement-glyph-partgeometry-4b785ae87e.html"
         }
       ],
@@ -197648,7 +197643,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/numeric_up_down.hpp",
       "source": "include/gui_forms/controls/numeric_up_down.hpp",
-      "line": 66,
+      "line": 63,
       "declaration": "struct States final",
       "comment": "",
       "access": "public",
@@ -197666,7 +197661,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 67,
+          "line": 64,
           "page": "gui-forms-numericupdown-states-normal-bool-432c3d7ea9.html"
         },
         {
@@ -197681,7 +197676,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 68,
+          "line": 65,
           "page": "gui-forms-numericupdown-states-pressed-bool-c06a66f9f8.html"
         },
         {
@@ -197696,7 +197691,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 69,
+          "line": 66,
           "page": "gui-forms-numericupdown-states-captured-bool-3cd4f543b3.html"
         },
         {
@@ -197711,7 +197706,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 70,
+          "line": 67,
           "page": "gui-forms-numericupdown-states-enabled-bool-9cd28a2e59.html"
         },
         {
@@ -197726,7 +197721,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 71,
+          "line": 68,
           "page": "gui-forms-numericupdown-states-disabled-bool-fb96c7695c.html"
         },
         {
@@ -197741,7 +197736,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 72,
+          "line": 69,
           "page": "gui-forms-numericupdown-states-focused-bool-3ed462f08d.html"
         },
         {
@@ -197756,7 +197751,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 73,
+          "line": 70,
           "page": "gui-forms-numericupdown-states-focus-visible-bool-05563e3b9f.html"
         },
         {
@@ -197771,7 +197766,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 74,
+          "line": 71,
           "page": "gui-forms-numericupdown-states-invalid-bool-792d488d47.html"
         },
         {
@@ -197786,7 +197781,7 @@
           "comment": "",
           "header": "gui_forms/controls/numeric_up_down.hpp",
           "source": "include/gui_forms/controls/numeric_up_down.hpp",
-          "line": 75,
+          "line": 72,
           "page": "gui-forms-numericupdown-states-pending-bool-f299a6a20a.html"
         }
       ],
@@ -257509,11 +257504,11 @@
       "header": "gui_forms/controls/rich_text_box.hpp",
       "source": "include/gui_forms/controls/rich_text_box.hpp",
       "line": 86,
-      "declaration": "class RichTextBox final : public Panel, public RichTextBoxCapabilities<RichTextBox>",
+      "declaration": "class RichTextBox final : public TextBoxBase, public RichTextBoxCapabilities<RichTextBox>",
       "comment": "",
       "access": "public",
       "bases": [
-        "Panel",
+        "TextBoxBase",
         "gui_forms::RichTextBoxCapabilities<gui_forms::RichTextBox>"
       ],
       "members": [
@@ -299737,11 +299732,11 @@
       "header": "gui_forms/controls/text_box.hpp",
       "source": "include/gui_forms/controls/text_box.hpp",
       "line": 100,
-      "declaration": "class TextBox final : public Panel, public TextBoxCapabilities<TextBox>",
+      "declaration": "class TextBox final : public TextBoxBase, public TextBoxCapabilities<TextBox>",
       "comment": "",
       "access": "public",
       "bases": [
-        "Panel",
+        "TextBoxBase",
         "gui_forms::TextBoxCapabilities<gui_forms::TextBox>"
       ],
       "members": [
@@ -301768,6 +301763,61 @@
         }
       ],
       "page": "gui-forms-textboxautocompletesourcecapability-a826d53d47.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::TextBoxBase",
+      "name": "TextBoxBase",
+      "namespace": "gui_forms",
+      "kind": "class",
+      "header": "gui_forms/controls/text_box_base.hpp",
+      "source": "include/gui_forms/controls/text_box_base.hpp",
+      "line": 20,
+      "declaration": "class TextBoxBase : public Panel",
+      "comment": "",
+      "access": "public",
+      "bases": [
+        "Panel"
+      ],
+      "members": [
+        {
+          "id": "gui_forms::TextBoxBase::~TextBoxBase|void () noexcept",
+          "name": "~TextBoxBase",
+          "type": "void () noexcept",
+          "namespace": "gui_forms::TextBoxBase",
+          "kind": "CXXDestructorDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "~TextBoxBase() override",
+          "comment": "",
+          "header": "gui_forms/controls/text_box_base.hpp",
+          "source": "include/gui_forms/controls/text_box_base.hpp",
+          "line": 22,
+          "page": "gui-forms-textboxbase-textboxbase-void-noexcept-fcd81beda4.html"
+        },
+        {
+          "id": "gui_forms::TextBoxBase::TextBoxBase|void (StableId)",
+          "name": "TextBoxBase",
+          "type": "void (StableId)",
+          "namespace": "gui_forms::TextBoxBase",
+          "kind": "CXXConstructorDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "stable_id",
+              "type": "StableId",
+              "declaration": "StableId stable_id"
+            }
+          ],
+          "declaration": "explicit TextBoxBase(StableId stable_id)",
+          "comment": "",
+          "header": "gui_forms/controls/text_box_base.hpp",
+          "source": "include/gui_forms/controls/text_box_base.hpp",
+          "line": 25,
+          "page": "gui-forms-textboxbase-textboxbase-void-stableid-ed2ca5398a.html"
+        }
+      ],
+      "page": "gui-forms-textboxbase-9b017420c7.html",
       "enclosing_type": null
     },
     {
@@ -328484,6 +328534,151 @@
         }
       ],
       "page": "gui-forms-unkeptpartassembly-06d133a21d.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::UpDownBase",
+      "name": "UpDownBase",
+      "namespace": "gui_forms",
+      "kind": "class",
+      "header": "gui_forms/controls/up_down_base.hpp",
+      "source": "include/gui_forms/controls/up_down_base.hpp",
+      "line": 22,
+      "declaration": "class UpDownBase : public Panel",
+      "comment": "",
+      "access": "public",
+      "bases": [
+        "Panel"
+      ],
+      "members": [
+        {
+          "id": "gui_forms::UpDownBase::~UpDownBase|void () noexcept",
+          "name": "~UpDownBase",
+          "type": "void () noexcept",
+          "namespace": "gui_forms::UpDownBase",
+          "kind": "CXXDestructorDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "~UpDownBase() override",
+          "comment": "",
+          "header": "gui_forms/controls/up_down_base.hpp",
+          "source": "include/gui_forms/controls/up_down_base.hpp",
+          "line": 24,
+          "page": "gui-forms-updownbase-updownbase-void-noexcept-fe5a49f669.html"
+        },
+        {
+          "id": "gui_forms::UpDownBase::editor|std::shared_ptr<TextBox> () const noexcept",
+          "name": "editor",
+          "type": "std::shared_ptr<TextBox> () const noexcept",
+          "namespace": "gui_forms::UpDownBase",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept",
+          "comment": "",
+          "header": "gui_forms/controls/up_down_base.hpp",
+          "source": "include/gui_forms/controls/up_down_base.hpp",
+          "line": 27,
+          "page": "gui-forms-updownbase-editor-std-shared-ptr-textbox-const-noexcept-2db26ae0cf.html"
+        },
+        {
+          "id": "gui_forms::UpDownBase::focus_target|Ptr () const",
+          "name": "focus_target",
+          "type": "Ptr () const",
+          "namespace": "gui_forms::UpDownBase",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] Ptr focus_target() const override",
+          "comment": "",
+          "header": "gui_forms/controls/up_down_base.hpp",
+          "source": "include/gui_forms/controls/up_down_base.hpp",
+          "line": 29,
+          "page": "gui-forms-updownbase-focus-target-ptr-const-5b91bd70c2.html"
+        },
+        {
+          "id": "gui_forms::UpDownBase::UpDownBase|void (StableId)",
+          "name": "UpDownBase",
+          "type": "void (StableId)",
+          "namespace": "gui_forms::UpDownBase",
+          "kind": "CXXConstructorDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "stable_id",
+              "type": "StableId",
+              "declaration": "StableId stable_id"
+            }
+          ],
+          "declaration": "explicit UpDownBase(StableId stable_id)",
+          "comment": "",
+          "header": "gui_forms/controls/up_down_base.hpp",
+          "source": "include/gui_forms/controls/up_down_base.hpp",
+          "line": 32,
+          "page": "gui-forms-updownbase-updownbase-void-stableid-522a07f3f5.html"
+        },
+        {
+          "id": "gui_forms::UpDownBase::editor_|std::shared_ptr<TextBox>",
+          "name": "editor_",
+          "type": "std::shared_ptr<TextBox>",
+          "namespace": "gui_forms::UpDownBase",
+          "kind": "FieldDecl",
+          "access": "protected",
+          "parameters": [],
+          "declaration": "std::shared_ptr<TextBox> editor_",
+          "comment": "",
+          "header": "gui_forms/controls/up_down_base.hpp",
+          "source": "include/gui_forms/controls/up_down_base.hpp",
+          "line": 37,
+          "page": "gui-forms-updownbase-editor-std-shared-ptr-textbox-a67a8d0b65.html"
+        },
+        {
+          "id": "gui_forms::UpDownBase::spinner_|Control::Ptr",
+          "name": "spinner_",
+          "type": "Control::Ptr",
+          "namespace": "gui_forms::UpDownBase",
+          "kind": "FieldDecl",
+          "access": "protected",
+          "parameters": [],
+          "declaration": "Control::Ptr spinner_",
+          "comment": "",
+          "header": "gui_forms/controls/up_down_base.hpp",
+          "source": "include/gui_forms/controls/up_down_base.hpp",
+          "line": 38,
+          "page": "gui-forms-updownbase-spinner-control-ptr-c15af792c8.html"
+        },
+        {
+          "id": "gui_forms::UpDownBase::editor_change_|SubscriptionToken",
+          "name": "editor_change_",
+          "type": "SubscriptionToken",
+          "namespace": "gui_forms::UpDownBase",
+          "kind": "FieldDecl",
+          "access": "protected",
+          "parameters": [],
+          "declaration": "SubscriptionToken editor_change_",
+          "comment": "",
+          "header": "gui_forms/controls/up_down_base.hpp",
+          "source": "include/gui_forms/controls/up_down_base.hpp",
+          "line": 42,
+          "page": "gui-forms-updownbase-editor-change-subscriptiontoken-15508eff47.html"
+        },
+        {
+          "id": "gui_forms::UpDownBase::spinner_step_|SubscriptionToken",
+          "name": "spinner_step_",
+          "type": "SubscriptionToken",
+          "namespace": "gui_forms::UpDownBase",
+          "kind": "FieldDecl",
+          "access": "protected",
+          "parameters": [],
+          "declaration": "SubscriptionToken spinner_step_",
+          "comment": "",
+          "header": "gui_forms/controls/up_down_base.hpp",
+          "source": "include/gui_forms/controls/up_down_base.hpp",
+          "line": 43,
+          "page": "gui-forms-updownbase-spinner-step-subscriptiontoken-897f4cac17.html"
+        }
+      ],
+      "page": "gui-forms-updownbase-b35aae9551.html",
       "enclosing_type": null
     },
     {
