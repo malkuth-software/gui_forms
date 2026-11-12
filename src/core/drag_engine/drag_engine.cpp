@@ -471,12 +471,17 @@ DragNodeIndex DragPlanBuilder::fallback(DragNodeIndex primary, DragNodeIndex sec
 }
 
 DragNodeIndex DragPlanBuilder::snap(DragNodeIndex child, double radius, DragChain chain) {
+    const DragNodeIndex made = snap(child, radius, chain, radius);
+    return made;
+}
+
+DragNodeIndex DragPlanBuilder::snap(DragNodeIndex child, double radius, DragChain chain, double release_radius) {
     if (!admit_operator()) return no_drag_node;
     if (!valid_child(child)) {
         refuse(DragPlanRefusal::bad_child);
         return no_drag_node;
     }
-    if (!(radius >= 0.0)) {
+    if (!(radius >= 0.0) || !(release_radius >= radius) || !std::isfinite(release_radius)) {
         refuse(DragPlanRefusal::bad_value);
         return no_drag_node;
     }
@@ -484,6 +489,7 @@ DragNodeIndex DragPlanBuilder::snap(DragNodeIndex child, double radius, DragChai
     record.kind = DragOperatorKind::snap;
     record.primary = child;
     record.distance = radius;
+    record.release = release_radius;
     record.chain = chain;
     const DragNodeIndex made = append(record);
     return made;
@@ -801,7 +807,36 @@ DragEngine::Evaluation DragEngine::evaluate(DragNodeIndex node, Point pointer, M
         return result;
     }
     case DragOperatorKind::snap: {
-        const Evaluation child = evaluate(record.primary, pointer, modifiers, sticky);
+        Evaluation child = evaluate(record.primary, pointer, modifiers, sticky);
+        // Hysteresis: the candidate this snap holds stays within the release
+        // radius, even where the child now prefers another one.
+        const bool holding = sticky && record.release > record.distance &&
+                             selection_.kind == DragSelectionKind::candidate &&
+                             selection_.landing < landings_.size() && selection_.decided_by == record.primary;
+        if (holding) {
+            const bool same = child.selection.kind == DragSelectionKind::candidate &&
+                              child.selection.landing == selection_.landing;
+            const DragOperator& inner = operators_[record.primary.value];
+            if (!same && inner.kind == DragOperatorKind::nearest) {
+                const DragLanding& held = landings_[selection_.landing];
+                const double distance = distance_to(held, adjusted(pointer), inner.metric);
+                const bool closer = child.selection.kind == DragSelectionKind::candidate &&
+                                    child.selection.distance <= record.distance;
+                if (!closer && distance <= record.release) {
+                    child = Evaluation{};
+                    child.selection = selection_;
+                    child.selection.distance = distance;
+                }
+            }
+            const bool held = child.selection.kind == DragSelectionKind::candidate &&
+                              child.selection.landing == selection_.landing &&
+                              child.selection.distance <= record.release;
+            if (held) {
+                result = child;
+                result.chain = record.chain == DragChain::on && !landings_[child.selection.landing].home;
+                return result;
+            }
+        }
         if (child.selection.kind != DragSelectionKind::candidate || child.selection.distance > record.distance) {
             return result;
         }
@@ -1566,6 +1601,28 @@ bool DragEngine::replan(const DragClient& client, Point moved) {
     note_growth(landings_capacity, flags_capacity, trace_capacity);
     const bool running = still(serial) && phase_ == DragPhase::dragging;
     return running;
+}
+
+bool DragEngine::withdraw_keyboard_stop(const DragClient& client, DragCandidateToken token) noexcept {
+    if (phase_ != DragPhase::dragging || mode_ != DragInputMode::keyboard || client_ != &client) return false;
+    bool removed = false;
+    const std::size_t count = std::min(landings_.size(), reachable_.size());
+    for (std::size_t index = 0U; index < count; ++index) {
+        if (!(landings_[index].token == token) || reachable_[index] == 0U) continue;
+        reachable_[index] = 0U;
+        removed = true;
+    }
+    return removed;
+}
+
+bool DragEngine::set_announcement(const DragClient& client, std::string_view text) {
+    if (phase_ == DragPhase::idle || client_ != &client) return false;
+    const DragAnnouncement before = announcement_;
+    announcement_.assign(text);
+    if (announcement_.view() == before.view()) return true;
+    const Control::Ptr root = (*root_).root();
+    if (root) (*root).invalidate(Dirty::semantics);
+    return true;
 }
 
 void DragEngine::note_capture_lost(const Control& control) {

@@ -8,10 +8,12 @@
 // off every target with and without free_drop); reorder and value plans;
 // auto-scroll's velocity bounds and its frame timer stopping at the
 // content's end, with the plan redone against the scrolled content;
-// reentrancy: a target withdrawn during the drag (outside a callback, inside
-// one, and in a keyboard session, where the release is rewritten to
-// rejected), cancel and press from inside a callback, the owner detached
-// mid-drag and the tracker destroyed mid-drag. Only public headers: the
+// the magnet's hysteresis (capture, hold within the release radius,
+// release); reentrancy: a target withdrawn during the drag (outside a
+// callback, inside one, and in a keyboard session, where it is announced,
+// stepped past, and a release on it is rewritten to rejected), cancel and
+// press from inside a callback, the owner detached mid-drag and the tracker
+// destroyed mid-drag. Only public headers: the
 // window's drag engine is reached through the tracker.
 // Headless: a window that is never shown.
 
@@ -20,7 +22,7 @@
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/event/delegate/delegate.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
-#include "gui_forms/events/drag_tracker/drag_tracker.hpp"
+#include "gui_forms/drag/drag_tracker/drag_tracker.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
@@ -117,6 +119,8 @@ public:
     std::vector<DragTrackerFrame> previews{};
     std::vector<DragTrackerFrame> ends{};
     std::vector<DragTrackerFrame> announced{};
+    std::vector<DragAnnouncementReason> reasons{};
+    std::vector<std::uint32_t> withdrawn_ids{};
     std::vector<DragAutoScrollStep> steps{};
 
     DragTracker tracker;
@@ -169,7 +173,10 @@ private:
 
     void announce_drag(DragAnnouncementRequest& request) {
         announced.push_back(request.frame);
-        request.text = "moving";
+        reasons.push_back(request.reason);
+        withdrawn_ids.push_back(request.withdrawn);
+        const bool gone = request.reason == DragAnnouncementReason::target_withdrawn;
+        request.text = gone ? std::string_view("target no longer available") : std::string_view("moving");
     }
 
     void scroll_by(DragAutoScrollStep& step) {
@@ -479,6 +486,34 @@ void drop_targets() {
     pointer(window, PointerAction::move, {240.0, 210.0});
     require(canvas.previews.back().hit == DragHit::point, "past the radius the placement shows");
     key(window, PhysicalKey::escape);
+
+    // Hysteresis: captured within 16, held within 24, released past it, and
+    // not captured again until within 16.
+    canvas.terms.placement.release_radius = 24.0;
+    pointer(window, PointerAction::down, press_at);
+    pointer(window, PointerAction::move, {240.0, 210.0});
+    require(canvas.previews.back().hit == DragHit::point, "20 from the target is outside the capture radius");
+    pointer(window, PointerAction::move, {230.0, 210.0});
+    require(canvas.previews.back().hit == DragHit::target && canvas.previews.back().target == 11U,
+            "10 from the target captures it");
+    pointer(window, PointerAction::move, {240.0, 210.0});
+    require(canvas.previews.back().hit == DragHit::target && canvas.previews.back().target == 11U,
+            "20 from it, within the release radius, holds it");
+    pointer(window, PointerAction::up, {243.0, 210.0});
+    require(canvas.ends.back().end == DragEnd::dropped && canvas.ends.back().target == 11U,
+            "a release in the release band drops on the held target");
+    pointer(window, PointerAction::down, press_at);
+    pointer(window, PointerAction::move, {230.0, 210.0});
+    pointer(window, PointerAction::move, {250.0, 210.0});
+    require(canvas.previews.back().hit == DragHit::point, "30 from it, past the release radius, releases it");
+    pointer(window, PointerAction::move, {240.0, 210.0});
+    require(canvas.previews.back().hit == DragHit::point, "back at 20 it is not captured again");
+    key(window, PhysicalKey::escape);
+    canvas.terms.placement.release_radius = 10.0;
+    pointer(window, PointerAction::down, press_at);
+    require(canvas.last_start == DragStartResult::refused && canvas.tracker.last_fault() == DragPlanFault::bad_value,
+            "a release radius below the snap radius is refused");
+    canvas.terms.placement.release_radius = 0.0;
     canvas.terms.placement.snap_radius = 0.0;
 
     canvas.terms.placement.targets_suppressed_by = Modifier::control;
@@ -665,18 +700,29 @@ void withdrawn_targets() {
             "the next event redoes the plan before the release is evaluated");
     canvas.withdraw_in_preview = no_target;
 
-    // A keyboard session only hides it; Enter on it is rewritten to rejected.
+    // A keyboard session keeps its stops: a withdrawn target is announced
+    // and stepped past; Enter on a withdrawn selection is rejected.
     canvas.terms.placement.free_drop = false;
+    canvas.targets.push_back(DragTarget{Rect{300.0, 150.0, 40.0, 40.0}, 13U, 0U});
     const DragStart keyboard{};
     require(tracker.begin_keyboard(keyboard) == DragStartResult::started, "a keyboard drag starts");
     require(!canvas.announced.empty() && canvas.announced.back().hit == DragHit::target &&
                 canvas.announced.back().target == 7U,
             "the keyboard starts on the first reachable target");
     const std::size_t plans = canvas.plans.size();
-    require(tracker.withdraw_target(7U) && canvas.plans.size() == plans, "a keyboard session is not planned again");
+    require(tracker.withdraw_target(11U) && canvas.plans.size() == plans, "a keyboard session is not planned again");
+    require(canvas.reasons.back() == DragAnnouncementReason::target_withdrawn && canvas.withdrawn_ids.back() == 11U,
+            "the owner is asked to announce the withdrawn target");
+    key(window, PhysicalKey::right);
+    require(canvas.previews.back().hit == DragHit::target && canvas.previews.back().target == 13U,
+            "Right steps past the withdrawn target to the next stop");
+    key(window, PhysicalKey::left);
+    require(canvas.previews.back().target == 7U, "and Left steps back past it");
+    require(tracker.withdraw_target(7U), "the selected target is withdrawn");
     key(window, PhysicalKey::enter);
     require(canvas.ends.back().end == DragEnd::rejected && canvas.ends.back().hit == DragHit::none,
             "Enter on a withdrawn target is rejected, with nothing selected");
+    canvas.targets.pop_back();
 
     // Without free_drop, withdrawing the last target refuses the redone plan.
     pointer(window, PointerAction::down, press_at);

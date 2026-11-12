@@ -65,7 +65,7 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
-#include "gui_forms/events/drag_tracker/drag_tracker.hpp"
+#include "gui_forms/drag/drag_tracker/drag_tracker.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -146,7 +146,7 @@ struct DragCandidateRange final {
 
 // -- vocabulary -----------------------------------------------------------------
 
-// DragPhase is public (gui_forms/events/drag_tracker), as the public drag
+// DragPhase is public (gui_forms/drag/drag_tracker), as the public drag
 // client reports it; DragEnd and DragInputMode are public
 // (gui_forms/events/drag_events), as the typed drag interactions carry them.
 inline constexpr std::size_t drag_end_count = 9U;
@@ -258,6 +258,8 @@ struct DragListGeometry final {
 //   range: nearest's and target's landings.
 //   primary, secondary: fallback's children; snap's and suppress' child.
 //   distance: nearest's stickiness, fallback's gap, snap's radius.
+//   release: snap's release radius (at least its radius): the candidate it
+//     holds stays selected until it is farther than this (hysteresis).
 //   metric: nearest's metric.
 //   chain: snap's chaining.
 //   suppressed_by: suppress' modifiers.
@@ -269,6 +271,7 @@ struct DragOperator final {
     DragNodeIndex primary{};
     DragNodeIndex secondary{};
     double distance{};
+    double release{};
     DragMetric metric{DragMetric::euclidean};
     DragChain chain{DragChain::off};
     Modifier suppressed_by{Modifier::none};
@@ -466,7 +469,15 @@ public:
     DragNodeIndex project(const DragProjection& projection);
     DragNodeIndex free(const DragFreeArea& area);
     DragNodeIndex fallback(DragNodeIndex primary, DragNodeIndex secondary, double gap);
+    // A candidate is captured within `radius` and, once held, released
+    // only past `release_radius` (at least radius; refused otherwise). The
+    // three-argument form releases at the capture radius. Hysteresis needs
+    // the held candidate to stay reachable: when `child` selects another
+    // candidate, the held one is kept while it is within the release radius
+    // under `child`'s metric (a nearest child; any other child selects one
+    // candidate only).
     DragNodeIndex snap(DragNodeIndex child, double radius, DragChain chain);
+    DragNodeIndex snap(DragNodeIndex child, double radius, DragChain chain, double release_radius);
     DragNodeIndex suppress(DragNodeIndex child, Modifier suppressed_by);
     // Names the container of a group, for the drop_candidate rule condition.
     void group_container(DragGroup group, Control& container);
@@ -538,6 +549,16 @@ public:
     // dragging, or for a non-finite `moved`. Never called from inside one of
     // the client's own calls (it would plan within a plan or a preview).
     bool replan(const DragClient& client, Point moved);
+    // Keyboard sessions of `client` only: the landings of `token` are no
+    // longer keyboard stops, so the arrows and Tab step past them (a
+    // withdrawn target; the selection stays where it is). True when a stop
+    // was removed.
+    bool withdraw_keyboard_stop(const DragClient& client, DragCandidateToken token) noexcept;
+    // Replaces the running session's announcement for `client` (outside a
+    // frame: a withdrawn target), cut as DragAnnouncement::assign cuts it,
+    // and invalidates the root's semantics when it changed. False, changing
+    // nothing, unless `client` runs the session.
+    bool set_announcement(const DragClient& client, std::string_view text);
     // The window's capture moved away from `control` (SurfaceRoot's hook).
     void note_capture_lost(const Control& control);
     // The client is going away: the session ends subject_gone without

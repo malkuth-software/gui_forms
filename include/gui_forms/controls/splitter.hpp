@@ -4,7 +4,7 @@
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
-#include "gui_forms/events/drag_tracker/drag_tracker.hpp"
+#include "gui_forms/drag/drag_tracker/drag_tracker.hpp"
 #include "gui_forms/controls/splitter_capabilities.hpp"
 
 #include <array>

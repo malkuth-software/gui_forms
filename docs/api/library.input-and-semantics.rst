@@ -5,7 +5,7 @@
 Input and semantics
 ===================
 
-Pointer, keyboard, text and drag event records, and the semantic tree published to accessibility and automation.
+Pointer, keyboard, text and drag event records, the public drag client, and the semantic tree published to accessibility and automation.
 
 Types
 -----
@@ -121,9 +121,15 @@ Types
 
 .. cpp:struct:: DragAnnouncementRequest final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
-   The announce callback's record: the owner points ``text`` at storage that stays valid until the callback returns (the tracker copies it, cut to the engine's 256 bytes at a character boundary). Empty text keeps the last announcement.
+   The announce callback's record: the owner points ``text`` at storage that stays valid until the callback returns (the tracker copies it, cut to the engine's 256 bytes at a character boundary). Empty text keeps the last announcement. A target withdrawn from inside a callback is announced with the next frame: that request's reason is target_withdrawn, ``withdrawn`` names it and ``frame`` is the new frame, so the text covers both.
+
+   .. cpp:member:: DragAnnouncementReason reason
+
+      Default: ``{DragAnnouncementReason::frame}``.
+
+   .. cpp:member:: std::uint32_t withdrawn
 
    .. cpp:member:: DragTrackerFrame frame
 
@@ -133,7 +139,7 @@ Types
 
 .. cpp:struct:: DragAutoScroll final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    Auto-scroll while dragging: within ``band`` of an edge of ``viewport`` (the window's coordinates; empty: off) the tracker asks the owner to scroll, faster the deeper the pointer is, ``speed`` at and beyond the edge (drag_auto_scroll_velocity). Pointer sessions only.
 
@@ -151,7 +157,7 @@ Types
 
 .. cpp:struct:: DragAutoScrollStep final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    The scroll callback's record: the owner scrolls its content by ``requested`` (logical units; positive moves the view right and down, so the content moves left and up) and writes in ``applied`` how far it did (less at the content's end; zero there). An applied step plans again with the content moved; a step applying nothing on both axes stops auto-scroll until the pointer moves.
 
@@ -315,9 +321,9 @@ Types
 
 .. cpp:struct:: DragPlacement final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
-   A placement: the subject's top-left kept inside ``bounds`` (with the subject's size; empty bounds use the window's client area), moved only on the axes ``axis_lock`` leaves, on ``grid`` from bounds' origin when the grid is on. The grid is on when ``grid_by_default`` is true, and the reverse while the modifiers ``grid_toggle`` are held (none: no toggle); a grid with a zero side is off on that axis. Targets: the owner writes them into ``targets`` (borrowed for the plan call). With ``snap_radius`` zero a target is hit when it contains the pointer; above zero the nearest target within that distance of the subject's centre (zero inside, the grab kept) attracts it, a magnet. Of overlapping or equidistant targets the earlier one wins. While the modifiers ``targets_suppressed_by`` are held (none: never) no target is hit. A release off every target places the subject (free) when ``free_drop``, and is rejected otherwise; without targets ``free_drop`` must be true.
+   A placement: the subject's top-left kept inside ``bounds`` (with the subject's size; empty bounds use the window's client area), moved only on the axes ``axis_lock`` leaves, on ``grid`` from bounds' origin when the grid is on. The grid is on when ``grid_by_default`` is true, and the reverse while the modifiers ``grid_toggle`` are held (none: no toggle); a grid with a zero side is off on that axis. Targets: the owner writes them into ``targets`` (borrowed for the plan call). With ``snap_radius`` zero a target is hit when it contains the pointer; above zero the nearest target within that distance of the subject's centre (zero inside, the grab kept) attracts it, a magnet, and holds it until the centre is farther than ``release_radius`` (hysteresis against flicker; zero: the snap radius; otherwise at least the snap radius). A nearer target within the snap radius takes over at once. Of overlapping or equidistant targets the earlier one wins. While the modifiers ``targets_suppressed_by`` are held (none: never) no target is hit. A release off every target places the subject (free) when ``free_drop``, and is rejected otherwise; without targets ``free_drop`` must be true.
 
    .. cpp:member:: Rect bounds
 
@@ -339,6 +345,8 @@ Types
 
    .. cpp:member:: double snap_radius
 
+   .. cpp:member:: double release_radius
+
    .. cpp:member:: Modifier targets_suppressed_by
 
       Default: ``{Modifier::none}``.
@@ -351,7 +359,7 @@ Types
 
 .. cpp:struct:: DragPlan final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    The plan callback's record: the tracker fills the inputs, the owner the rest. Only the terms of ``kind`` are read (placement, value or reorder); the others keep their initial values. key, press, source, mode, epoch: the drag (inputs). press is where the pointer was pressed, or the subject's centre for the keyboard; source the subject's rectangle; both move with the content when an auto-scroll step plans again. epoch is 1 at the first plan and one more at each later one. travel: the pointer's travel from the press when the plan is made (input; zero for the keyboard). auto_scroll: read for pointer sessions; replanned each step. container: borrowed for the call; the rules' drop_candidate condition names it while a session runs (null: none). settles: asks for a settling phase after the end (the owner animates and calls finish_settling). refused: the owner has nothing to drag now; the session ends rejected.
 
@@ -391,7 +399,7 @@ Types
 
 .. cpp:struct:: DragReorder final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    A reorder: the items' rectangles in display order along ``axis`` (borrowed for the plan call) and the dragged item's index. The frame's ``target`` is the slot the subject would take (DragHit::slot); moving it later shifts the items between by its extent, the engine's list rule.
 
@@ -407,7 +415,7 @@ Types
 
 .. cpp:struct:: DragStart final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    What starts a drag. ``subject``: the control dragged (borrowed for the call; null: the owner); it holds the pointer capture, so its pointer events must reach pointer(). ``key``: the owner's name for what is dragged. ``source``: the subject's rectangle in the window's coordinates (none: the subject's bounds; the keyboard always uses them). ``threshold``: the press travel before the drag starts, zero or more (pointer only).
 
@@ -425,7 +433,7 @@ Types
 
 .. cpp:struct:: DragTarget final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    One drop target, in the window's coordinates. ``id`` is the owner's name for it (reported in DragTrackerFrame::target, and what withdraw_target takes); ``group`` is its keyboard group, below maximum_drag_target_groups.
 
@@ -449,7 +457,7 @@ Types
 
 .. cpp:class:: DragTracker final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
 
    .. rubric:: Construction
@@ -496,7 +504,7 @@ Types
 
    .. cpp:function:: bool withdraw_target(std::uint32_t id)
 
-      Hides the target ``id`` for the rest of the session: it is no longer hit, and a pointer session's plan is redone without it (at once, or at the next pointer event or auto-scroll frame when called from a callback; a keyboard session only hides it). Once every target of a plan without free_drop is withdrawn, the redone plan selects nothing and the session ends rejected. False, changing nothing, outside a dragging session or for an id already withdrawn; past maximum_withdrawn_drag_targets the session is cancelled (model_changed) and the result is false.
+      Hides the target ``id`` for the rest of the session: it is no longer hit, and a pointer session's plan is redone without it (at once, or at the next pointer event or auto-scroll frame when called from a callback). A keyboard session keeps its stops where they are: the target is no longer a stop (the arrows and Tab step past it; while it is selected it is no hit and Enter there is rejected), and the owner is asked to announce it (DragAnnouncementReason::target_withdrawn). Once every target of a plan without free_drop is withdrawn, the redone plan selects nothing and the session ends rejected. False, changing nothing, outside a dragging session or for an id already withdrawn; past maximum_withdrawn_drag_targets the session is cancelled (model_changed) and the result is false.
 
    .. cpp:function:: void finish_settling()
 
@@ -512,7 +520,7 @@ Types
 
 .. cpp:struct:: DragTrackerCallbacks final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    The named callbacks. plan and finished are required; the rest are optional (auto-scroll is off without scroll). Each is read when it is called, so a change takes effect at the next call.
 
@@ -530,7 +538,7 @@ Types
 
 .. cpp:struct:: DragTrackerFrame final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    One frame of a session, for preview and finished. key, epoch, mode, pointer, modifiers: the drag now (pointer is where a pointer would be in a keyboard session). hit: what the plan selects. target: the target's id (target) or the slot's index (slot). landing: the target's bounds or the slot's landing rectangle. point: the placement's top-left. value: the value. end: none while running; how it ended in finished. animate: finished only; the session settles until finish_settling.
 
@@ -574,7 +582,7 @@ Types
 
 .. cpp:struct:: DragTrackerStatistics final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    The tracker's counters (AGENTS.md: structured instrumentation). withdrawn: targets withdrawn while dragging; deferred_replans: those whose replan waited for the next event (withdrawn inside a callback). scroll_ticks: auto-scroll frames; scroll_steps: frames that scrolled; scroll_stops: frames that applied nothing (the content's end).
 
@@ -608,7 +616,7 @@ Types
 
 .. cpp:struct:: DragValue final
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    A value: clamp(origin_value + scale * travel along ``axis``, minimum, maximum), rounded to ``step`` above minimum when step is positive. ``scale`` is value units per logical unit, negative when the value grows as the pointer moves left or up. The keyboard's arrows step by keyboard_step (Ctrl ten times, Shift a tenth).
 
@@ -1463,9 +1471,19 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DragAnnouncementReason
+
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+
+   .. cpp:enumerator:: frame
+
+   .. cpp:enumerator:: target_withdrawn
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: DragAxis
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    .. cpp:enumerator:: x
 
@@ -1475,7 +1493,7 @@ Enumerations
 
 .. cpp:enum-class:: DragAxisLock
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1527,7 +1545,7 @@ Enumerations
 
 .. cpp:enum-class:: DragHit
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1553,7 +1571,7 @@ Enumerations
 
 .. cpp:enum-class:: DragKind
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    .. cpp:enumerator:: placement
 
@@ -1565,7 +1583,7 @@ Enumerations
 
 .. cpp:enum-class:: DragPhase
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    .. cpp:enumerator:: idle
 
@@ -1581,7 +1599,7 @@ Enumerations
 
 .. cpp:enum-class:: DragPlanFault
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1595,7 +1613,7 @@ Enumerations
 
 .. cpp:enum-class:: DragStartResult
 
-   ``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
    .. cpp:enumerator:: armed
 
@@ -1956,7 +1974,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/events/drag_tracker/drag_tracker.hpp>``
+``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
 .. cpp:function:: bool drag_end_commits(DragEnd end) noexcept
 

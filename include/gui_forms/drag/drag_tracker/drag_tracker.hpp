@@ -164,7 +164,10 @@ struct GUI_FORMS_API DragTarget final {
 // Targets: the owner writes them into `targets` (borrowed for the plan
 // call). With `snap_radius` zero a target is hit when it contains the
 // pointer; above zero the nearest target within that distance of the
-// subject's centre (zero inside, the grab kept) attracts it, a magnet. Of
+// subject's centre (zero inside, the grab kept) attracts it, a magnet, and
+// holds it until the centre is farther than `release_radius` (hysteresis
+// against flicker; zero: the snap radius; otherwise at least the snap
+// radius). A nearer target within the snap radius takes over at once. Of
 // overlapping or equidistant targets the earlier one wins. While the
 // modifiers `targets_suppressed_by` are held (none: never) no target is hit.
 // A release off every target places the subject (free) when `free_drop`,
@@ -177,6 +180,7 @@ struct GUI_FORMS_API DragPlacement final {
     Modifier grid_toggle{Modifier::none};
     std::span<const DragTarget> targets{};
     double snap_radius{};
+    double release_radius{};
     Modifier targets_suppressed_by{Modifier::none};
     bool free_drop{true};
 };
@@ -282,11 +286,24 @@ struct GUI_FORMS_API DragTrackerFrame final {
     bool animate{};
 };
 
+// Why the tracker asks for an announcement.
+enum class DragAnnouncementReason : std::uint8_t {
+    // A frame whose hit changed, or the end (frame.end).
+    frame,
+    // A keyboard session's target was withdrawn: the owner says it is no
+    // longer available. `withdrawn` is its id; `frame` is the session now.
+    target_withdrawn,
+};
+
 // The announce callback's record: the owner points `text` at storage that
 // stays valid until the callback returns (the tracker copies it, cut to the
 // engine's 256 bytes at a character boundary). Empty text keeps the last
-// announcement.
+// announcement. A target withdrawn from inside a callback is announced with
+// the next frame: that request's reason is target_withdrawn, `withdrawn`
+// names it and `frame` is the new frame, so the text covers both.
 struct GUI_FORMS_API DragAnnouncementRequest final {
+    DragAnnouncementReason reason{DragAnnouncementReason::frame};
+    std::uint32_t withdrawn{};
     DragTrackerFrame frame{};
     std::string_view text{};
 };
@@ -350,7 +367,7 @@ enum class DragPlanFault : std::uint8_t {
     declined,
     too_many_targets,
     // A target group out of range, a non-finite or inverted value, a
-    // negative radius, a reorder subject past its slots, no targets
+    // negative radius, a release radius below the snap radius, a reorder subject past its slots, no targets
     // without free_drop, or an unknown kind.
     bad_value,
 };
@@ -414,9 +431,12 @@ public:
     // Hides the target `id` for the rest of the session: it is no longer
     // hit, and a pointer session's plan is redone without it (at once, or at
     // the next pointer event or auto-scroll frame when called from a
-    // callback; a keyboard session only hides it). Once every target of a
-    // plan without free_drop is withdrawn, the redone plan selects nothing
-    // and the session ends rejected.
+    // callback). A keyboard session keeps its stops where they are: the
+    // target is no longer a stop (the arrows and Tab step past it; while it
+    // is selected it is no hit and Enter there is rejected), and the owner
+    // is asked to announce it (DragAnnouncementReason::target_withdrawn). Once
+    // every target of a plan without free_drop is withdrawn, the redone plan
+    // selects nothing and the session ends rejected.
     // False, changing nothing, outside a dragging session or for an id
     // already withdrawn; past maximum_withdrawn_drag_targets the session is
     // cancelled (model_changed) and the result is false.

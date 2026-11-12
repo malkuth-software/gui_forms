@@ -1,4 +1,4 @@
-#include "gui_forms/events/drag_tracker/drag_tracker.hpp"
+#include "gui_forms/drag/drag_tracker/drag_tracker.hpp"
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
@@ -211,6 +211,9 @@ private:
     [[nodiscard]] DragNodeIndex build_value(DragPlanBuilder& builder, const DragPlan& plan, DragPlanFault& found);
     [[nodiscard]] DragNodeIndex build_reorder(DragPlanBuilder& builder, const DragPlan& plan, DragPlanFault& found);
     void replan_now(DragEngine& engine, Point moved);
+    // Asks the owner to announce the withdrawn target `id` of a keyboard
+    // session: at once outside callbacks, else with the next frame's request.
+    void announce_withdrawn(DragEngine& engine, std::uint32_t id);
     void update_scroll(Point pointer);
     void stop_scroll() noexcept;
 
@@ -234,6 +237,9 @@ private:
     bool planned_{};
     // A withdrawal inside a callback waits for the next event to plan again.
     bool replan_pending_{};
+    // A keyboard withdrawal inside a callback, announced with the next frame.
+    bool announce_withdrawal_{};
+    std::uint32_t announced_id_{};
     int depth_{};
     // The landings of the placement's targets: capacity
     // maximum_drag_targets, reserved at the first start, never grown.
@@ -381,8 +387,11 @@ DragNodeIndex DragTrackerSession::build_placement(DragPlanBuilder& builder, cons
         return no_drag_node;
     }
     const bool radius = std::isfinite(terms.snap_radius) && terms.snap_radius >= 0.0;
+    // Zero releases at the snap radius; otherwise the release is at least it.
+    const double release = terms.release_radius > 0.0 ? terms.release_radius : terms.snap_radius;
+    const bool released = std::isfinite(terms.release_radius) && release >= terms.snap_radius;
     const bool accepts_something = !terms.targets.empty() || terms.free_drop;
-    if (!radius || !finite_rect(terms.bounds) || !finite_size(terms.grid) || !accepts_something) {
+    if (!radius || !released || !finite_rect(terms.bounds) || !finite_size(terms.grid) || !accepts_something) {
         found = DragPlanFault::bad_value;
         return no_drag_node;
     }
@@ -452,7 +461,7 @@ DragNodeIndex DragTrackerSession::build_placement(DragPlanBuilder& builder, cons
         const DragCandidateRange range = builder.add_landings(declared);
         if (terms.snap_radius > 0.0) {
             const DragNodeIndex nearest = builder.nearest(range, DragMetric::edge, 0.0);
-            hit = builder.snap(nearest, terms.snap_radius, DragChain::off);
+            hit = builder.snap(nearest, terms.snap_radius, DragChain::off, release);
         } else {
             hit = builder.target(range);
         }
@@ -462,7 +471,8 @@ DragNodeIndex DragTrackerSession::build_placement(DragPlanBuilder& builder, cons
     // withdrawn the plan selects nothing and is refused.
     if (!terms.free_drop) return hit;
     if (hit == no_drag_node) return area;
-    const DragNodeIndex root = builder.fallback(hit, area, terms.snap_radius);
+    // A held target lies within the release radius, so the gap is that.
+    const DragNodeIndex root = builder.fallback(hit, area, release);
     return root;
 }
 
@@ -517,6 +527,11 @@ void DragTrackerSession::announce_drag(const DragFrame& frame, DragAnnouncement&
     const Delegate<DragAnnouncementRequest&> callback = (*tracker_).callbacks.announce;
     if (!callback) return;
     DragAnnouncementRequest request{};
+    if (announce_withdrawal_) {
+        request.reason = DragAnnouncementReason::target_withdrawn;
+        request.withdrawn = announced_id_;
+        announce_withdrawal_ = false;
+    }
     request.frame = frame_of(frame.phase, frame.mode, frame.epoch.value, frame.pointer, frame.selection,
                              frame.landing);
     request.frame.end = frame.end;
@@ -598,6 +613,7 @@ DragStartResult DragTrackerSession::start(const DragStart& start, DragInputMode 
     scroll_ = DragAutoScroll{};
     planned_ = false;
     replan_pending_ = false;
+    announce_withdrawal_ = false;
     withdrawn_count_ = 0U;
     fault = DragPlanFault::none;
     ++statistics.sessions;
@@ -657,9 +673,15 @@ bool DragTrackerSession::withdraw(std::uint32_t id) {
     withdrawn_[withdrawn_count_] = id;
     ++withdrawn_count_;
     ++statistics.withdrawn;
-    // A keyboard session is never planned again (its stops would move); the
-    // target is only hidden there.
-    if ((*engine).mode() != DragInputMode::pointer) return true;
+    // A keyboard session is never planned again (its stops would move): the
+    // target stops being a stop, and the owner announces it.
+    if ((*engine).mode() != DragInputMode::pointer) {
+        DragCandidateToken token{};
+        token.value = id;
+        static_cast<void>((*engine).withdraw_keyboard_stop(*this, token));
+        announce_withdrawn(*engine, id);
+        return true;
+    }
     if (depth_ > 0) {
         replan_pending_ = true;
         ++statistics.deferred_replans;
@@ -701,6 +723,35 @@ DragPhase DragTrackerSession::phase() const {
     if (engine == nullptr) return DragPhase::idle;
     const DragPhase current = (*engine).phase();
     return current;
+}
+
+void DragTrackerSession::announce_withdrawn(DragEngine& engine, std::uint32_t id) {
+    const Delegate<DragAnnouncementRequest&> callback = (*tracker_).callbacks.announce;
+    if (!callback) return;
+    if (depth_ > 0) {
+        announce_withdrawal_ = true;
+        announced_id_ = id;
+        return;
+    }
+    // The session as it stands: the selected landing, the virtual pointer
+    // at its anchor (where the keyboard's pointer is for a candidate).
+    const DragSelection& selection = engine.selection();
+    Rect landing{};
+    Point pointer{};
+    const std::span<const DragLanding> landings = engine.landings();
+    if (selection.kind == DragSelectionKind::candidate && selection.landing < landings.size()) {
+        landing = landings[selection.landing].rect;
+        pointer = landings[selection.landing].anchor;
+    }
+    DragAnnouncementRequest request{};
+    request.reason = DragAnnouncementReason::target_withdrawn;
+    request.withdrawn = id;
+    request.frame = frame_of(engine.phase(), engine.mode(), engine.epoch().value, pointer, selection, landing);
+    {
+        const CallbackScope scope(depth_);
+        callback(request);
+    }
+    if (!request.text.empty()) static_cast<void>(engine.set_announcement(*this, request.text));
 }
 
 void DragTrackerSession::replan_now(DragEngine& engine, Point moved) {
