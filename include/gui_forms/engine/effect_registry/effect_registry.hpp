@@ -81,12 +81,15 @@ void run(void* state, const void* view, const EffectFrame& frame, EffectCanvas& 
     effect.run(*static_cast<const View*>(view), frame, canvas);
 }
 
-// Releases an EffectInstance's state storage, allocated at `alignment`.
+// Releases an EffectInstance's state storage, `size` bytes allocated at
+// `alignment`; the release is counted under AllocationSubsystem::effects
+// (allocation_statistics.hpp), as the allocation was.
 // Declared at namespace scope, complete before EffectInstance uses it: a
 // nested class with a default member initializer is not default
 // constructible until its enclosing class is complete, which libstdc++'s
 // unique_ptr default constructor requires.
 struct GUI_FORMS_API StorageRelease final {
+    std::size_t size{};
     std::size_t alignment{};
     void operator()(std::byte* storage) const noexcept;
 };

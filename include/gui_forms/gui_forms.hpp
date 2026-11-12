@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/allocation.hpp"
 #include "gui_forms/animation.hpp"
 #include "gui_forms/background_worker/background_worker.hpp"
 #include "gui_forms/binding.hpp"

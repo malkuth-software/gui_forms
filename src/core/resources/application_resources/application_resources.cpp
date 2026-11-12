@@ -42,6 +42,13 @@ void ApplicationResources::require_access(const char* operation) const {
     throw std::logic_error(message);
 }
 
+bool ApplicationResources::painting() const noexcept {
+    for (std::size_t index = 0U; index < windows_.size(); ++index) {
+        if (detail::SurfaceResourceAccess::painting(*windows_[index])) return true;
+    }
+    return false;
+}
+
 void ApplicationResources::attach(SurfaceRoot& window) {
     require_access("window attach");
     windows_.push_back(&window);

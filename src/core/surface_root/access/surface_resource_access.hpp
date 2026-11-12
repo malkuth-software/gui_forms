@@ -2,8 +2,9 @@
 
 // The authority of shared application resources over the windows that use
 // them (B10): the theme change in two phases (inline restyles collected,
-// then committed and the theme applied), the colour scheme switch, and the
-// repaint after an image is replaced or removed.
+// then committed and the theme applied), the colour scheme switch, the
+// repaint after an image is replaced or removed, and whether a window is
+// painting.
 //
 // Holder: ApplicationResources.
 //
@@ -40,6 +41,9 @@ public:
     }
     static void repaint_for_image_replacement(SurfaceRoot& root) { root.repaint_for_image_replacement(); }
     static void repaint_for_image_removal(SurfaceRoot& root) { root.repaint_for_image_removal(); }
+    // Whether `root` is inside a paint pass (an image atlas refuses to write
+    // its image then).
+    [[nodiscard]] static bool painting(const SurfaceRoot& root) noexcept { return root.in_paint_; }
 };
 
 } // namespace gui_forms::detail

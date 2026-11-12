@@ -5,12 +5,14 @@
 Window, scheduling and dispatch
 ===============================
 
-The retained window model, update scopes, damage, frame scheduling, the UI-thread dispatcher, per-window instrumentation and each thread's shadow frames.
+The retained window model, update scopes, damage, frame scheduling, the UI-thread dispatcher, per-window instrumentation, the counters of GUI.Forms' own allocations and each thread's shadow frames.
 
 .. list-table::
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`AllocationScope <gui_forms::AllocationScope>`
+     - Counts what GUI.Forms' own counted paths allocate on one thread around a workload.
    * - :cpp:class:`SurfaceRoot <gui_forms::SurfaceRoot>`
      - The root of one retained control tree and the thread that owns it.
    * - :cpp:class:`UpdateScope <gui_forms::UpdateScope>`
@@ -21,6 +23,7 @@ The retained window model, update scopes, damage, frame scheduling, the UI-threa
 .. toctree::
    :hidden:
 
+   generated/gui_forms.AllocationScope
    generated/gui_forms.SurfaceRoot
    generated/gui_forms.UpdateScope
    generated/gui_forms.Window
@@ -38,6 +41,10 @@ Related types
      - AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.
    * - :cpp:class:`AlertRequest <gui_forms::AlertRequest>`
      - One alert: a message the user acknowledges by choosing one of its buttons, its content as data.
+   * - :cpp:class:`AllocationCounts <gui_forms::AllocationCounts>`
+     - One subsystem's counts.
+   * - :cpp:class:`AllocationStatistics <gui_forms::AllocationStatistics>`
+     -  
    * - :cpp:class:`BackdropChain <gui_forms::BackdropChain>`
      - The chain: ``length`` live operations, applied in order, in a fixed array.
    * - :cpp:class:`BackdropChainResolution <gui_forms::BackdropChainResolution>`
@@ -293,6 +300,50 @@ Related types
    .. cpp:member:: HostDialogChoice default_choice
 
       The button Enter chooses, one of ``buttons``; none for the first. Default: ``{HostDialogChoice::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AllocationCounts final
+
+   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+
+   One subsystem's counts. allocated_bytes - released_bytes is the bytes the subsystem holds now, when the counts are process-wide and read from a quiet process; over a scope it is the net change on one thread.
+
+   .. cpp:member:: std::uint64_t allocations
+
+   .. cpp:member:: std::uint64_t releases
+
+   .. cpp:member:: std::uint64_t allocated_bytes
+
+   .. cpp:member:: std::uint64_t released_bytes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AllocationStatistics final
+
+   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: AllocationCounts total() const noexcept
+
+      The sum over every subsystem: still only GUI.Forms' counted paths.
+
+   .. cpp:function:: std::string to_json() const
+
+      {"scope":"gui_forms_counted_paths","total":{...},"image_resources":{...},...} with allocations, releases, allocated_bytes and released_bytes in each object. The "scope" member names what is counted, so that a record carrying it is not read as a process figure.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: AllocationCounts of(AllocationSubsystem subsystem) const noexcept
+
+      The counts of ``subsystem``; zero counts for a value outside the enumeration.
+
+   .. cpp:member:: std::array<AllocationCounts, allocation_subsystem_count> subsystems
+
+      Indexed by AllocationSubsystem.
 
 .. cpp:namespace:: gui_forms
 
@@ -2388,6 +2439,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: AllocationSubsystem
+
+   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+
+   .. cpp:enumerator:: image_resources
+
+   .. cpp:enumerator:: image_atlas
+
+   .. cpp:enumerator:: effects
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: BackdropOperationKind
 
    ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
@@ -2820,6 +2883,26 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+
+.. cpp:function:: std::string_view allocation_subsystem_name(AllocationSubsystem subsystem) noexcept
+
+   The name of ``subsystem`` as the JSON form spells it; "unknown" for a value outside the enumeration.
+
+.. cpp:function:: AllocationStatistics allocation_statistics() noexcept
+
+   The process-wide counters: every thread's counted allocations since the process started. Never reset.
+
+.. cpp:function:: AllocationStatistics thread_allocation_statistics() noexcept
+
+   The calling thread's counters since the thread started. Never reset.
+
+.. cpp:var:: constexpr std::size_t allocation_subsystem_count
+
+   The number of AllocationSubsystem values. Value: ``3U``.
 
 .. cpp:namespace:: gui_forms
 

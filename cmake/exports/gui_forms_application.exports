@@ -81,6 +81,7 @@ __ZGVZN9gui_forms10FontFaceId*
 __ZGVZN9gui_forms10GridMargin*
 __ZGVZN9gui_forms10HScrollBar*
 __ZGVZN9gui_forms10HelpTarget*
+__ZGVZN9gui_forms10ImageAtlas*
 __ZGVZN9gui_forms10InfoBanner*
 __ZGVZN9gui_forms10KeyBinding*
 __ZGVZN9gui_forms10KeyGesture*
@@ -397,6 +398,7 @@ __ZGVZN9gui_forms14HelpSearchTerm*
 __ZGVZN9gui_forms14HostHoverEvent*
 __ZGVZN9gui_forms14HostScaleEvent*
 __ZGVZN9gui_forms14HostTrayIconId*
+__ZGVZN9gui_forms14ImageAtlasSlot*
 __ZGVZN9gui_forms14ItemCheckEvent*
 __ZGVZN9gui_forms14KeyStateChange*
 __ZGVZN9gui_forms14LineBoxMetrics*
@@ -449,6 +451,7 @@ __ZGVZN9gui_forms14ToolTipRequest*
 __ZGVZN9gui_forms14TreeListColumn*
 __ZGVZN9gui_forms14UserThemeFiles*
 __ZGVZN9gui_forms14XmlWriteResult*
+__ZGVZN9gui_forms15AllocationScope*
 __ZGVZN9gui_forms15AnatomyStateSet*
 __ZGVZN9gui_forms15AnimationSample*
 __ZGVZN9gui_forms15AvailableExtent*
@@ -544,6 +547,7 @@ __ZGVZN9gui_forms15WindowFrameDrag*
 __ZGVZN9gui_forms15WindowOverrides*
 __ZGVZN9gui_forms15XmlWriteOptions*
 __ZGVZN9gui_forms16AcceleratorToken*
+__ZGVZN9gui_forms16AllocationCounts*
 __ZGVZN9gui_forms16AuthoredGradient*
 __ZGVZN9gui_forms16BackgroundWorker*
 __ZGVZN9gui_forms16BindingNavigator*
@@ -590,6 +594,7 @@ __ZGVZN9gui_forms16HostCloseRequest*
 __ZGVZN9gui_forms16HostDialogResult*
 __ZGVZN9gui_forms16HostDisplayEvent*
 __ZGVZN9gui_forms16HostTrayMenuItem*
+__ZGVZN9gui_forms16ImageAtlasLayout*
 __ZGVZN9gui_forms16ImagePatchRegion*
 __ZGVZN9gui_forms16ItemContentPaint*
 __ZGVZN9gui_forms16LayoutConstraint*
@@ -680,6 +685,7 @@ __ZGVZN9gui_forms17HostMonitorResult*
 __ZGVZN9gui_forms17HostServiceStatus*
 __ZGVZN9gui_forms17HostShutdownEvent*
 __ZGVZN9gui_forms17HostTrayIconEvent*
+__ZGVZN9gui_forms17ImageAtlasAcquire*
 __ZGVZN9gui_forms17ImageResourceView*
 __ZGVZN9gui_forms17InlineStyleResult*
 __ZGVZN9gui_forms17KeyPressEventArgs*
@@ -919,6 +925,7 @@ __ZGVZN9gui_forms19TreeExpansionChange*
 __ZGVZN9gui_forms19TreeSelectionChange*
 __ZGVZN9gui_forms19VirtualRowSelection*
 __ZGVZN9gui_forms19WindowBackdropGrant*
+__ZGVZN9gui_forms20AllocationStatistics*
 __ZGVZN9gui_forms20AnchoredOverlayLayer*
 __ZGVZN9gui_forms20ApplicationResources*
 __ZGVZN9gui_forms20AuthoredGradientStop*
@@ -955,6 +962,7 @@ __ZGVZN9gui_forms20HostServicesSnapshot*
 __ZGVZN9gui_forms20HostWindowFrameEvent*
 __ZGVZN9gui_forms20HostWindowKindTraits*
 __ZGVZN9gui_forms20HostWindowStateEvent*
+__ZGVZN9gui_forms20ImageAtlasStatistics*
 __ZGVZN9gui_forms20InstrumentModuleSpec*
 __ZGVZN9gui_forms20MaterialColourFilter*
 __ZGVZN9gui_forms20MaterialColourMatrix*
@@ -1519,6 +1527,7 @@ __ZGVZNK9gui_forms10FontFaceId*
 __ZGVZNK9gui_forms10GridMargin*
 __ZGVZNK9gui_forms10HScrollBar*
 __ZGVZNK9gui_forms10HelpTarget*
+__ZGVZNK9gui_forms10ImageAtlas*
 __ZGVZNK9gui_forms10InfoBanner*
 __ZGVZNK9gui_forms10KeyBinding*
 __ZGVZNK9gui_forms10KeyGesture*
@@ -1835,6 +1844,7 @@ __ZGVZNK9gui_forms14HelpSearchTerm*
 __ZGVZNK9gui_forms14HostHoverEvent*
 __ZGVZNK9gui_forms14HostScaleEvent*
 __ZGVZNK9gui_forms14HostTrayIconId*
+__ZGVZNK9gui_forms14ImageAtlasSlot*
 __ZGVZNK9gui_forms14ItemCheckEvent*
 __ZGVZNK9gui_forms14KeyStateChange*
 __ZGVZNK9gui_forms14LineBoxMetrics*
@@ -1887,6 +1897,7 @@ __ZGVZNK9gui_forms14ToolTipRequest*
 __ZGVZNK9gui_forms14TreeListColumn*
 __ZGVZNK9gui_forms14UserThemeFiles*
 __ZGVZNK9gui_forms14XmlWriteResult*
+__ZGVZNK9gui_forms15AllocationScope*
 __ZGVZNK9gui_forms15AnatomyStateSet*
 __ZGVZNK9gui_forms15AnimationSample*
 __ZGVZNK9gui_forms15AvailableExtent*
@@ -1982,6 +1993,7 @@ __ZGVZNK9gui_forms15WindowFrameDrag*
 __ZGVZNK9gui_forms15WindowOverrides*
 __ZGVZNK9gui_forms15XmlWriteOptions*
 __ZGVZNK9gui_forms16AcceleratorToken*
+__ZGVZNK9gui_forms16AllocationCounts*
 __ZGVZNK9gui_forms16AuthoredGradient*
 __ZGVZNK9gui_forms16BackgroundWorker*
 __ZGVZNK9gui_forms16BindingNavigator*
@@ -2028,6 +2040,7 @@ __ZGVZNK9gui_forms16HostCloseRequest*
 __ZGVZNK9gui_forms16HostDialogResult*
 __ZGVZNK9gui_forms16HostDisplayEvent*
 __ZGVZNK9gui_forms16HostTrayMenuItem*
+__ZGVZNK9gui_forms16ImageAtlasLayout*
 __ZGVZNK9gui_forms16ImagePatchRegion*
 __ZGVZNK9gui_forms16ItemContentPaint*
 __ZGVZNK9gui_forms16LayoutConstraint*
@@ -2118,6 +2131,7 @@ __ZGVZNK9gui_forms17HostMonitorResult*
 __ZGVZNK9gui_forms17HostServiceStatus*
 __ZGVZNK9gui_forms17HostShutdownEvent*
 __ZGVZNK9gui_forms17HostTrayIconEvent*
+__ZGVZNK9gui_forms17ImageAtlasAcquire*
 __ZGVZNK9gui_forms17ImageResourceView*
 __ZGVZNK9gui_forms17InlineStyleResult*
 __ZGVZNK9gui_forms17KeyPressEventArgs*
@@ -2357,6 +2371,7 @@ __ZGVZNK9gui_forms19TreeExpansionChange*
 __ZGVZNK9gui_forms19TreeSelectionChange*
 __ZGVZNK9gui_forms19VirtualRowSelection*
 __ZGVZNK9gui_forms19WindowBackdropGrant*
+__ZGVZNK9gui_forms20AllocationStatistics*
 __ZGVZNK9gui_forms20AnchoredOverlayLayer*
 __ZGVZNK9gui_forms20ApplicationResources*
 __ZGVZNK9gui_forms20AuthoredGradientStop*
@@ -2393,6 +2408,7 @@ __ZGVZNK9gui_forms20HostServicesSnapshot*
 __ZGVZNK9gui_forms20HostWindowFrameEvent*
 __ZGVZNK9gui_forms20HostWindowKindTraits*
 __ZGVZNK9gui_forms20HostWindowStateEvent*
+__ZGVZNK9gui_forms20ImageAtlasStatistics*
 __ZGVZNK9gui_forms20InstrumentModuleSpec*
 __ZGVZNK9gui_forms20MaterialColourFilter*
 __ZGVZNK9gui_forms20MaterialColourMatrix*
@@ -3009,6 +3025,7 @@ __ZN9gui_forms10FontFaceId*
 __ZN9gui_forms10GridMargin*
 __ZN9gui_forms10HScrollBar*
 __ZN9gui_forms10HelpTarget*
+__ZN9gui_forms10ImageAtlas*
 __ZN9gui_forms10InfoBanner*
 __ZN9gui_forms10KeyBinding*
 __ZN9gui_forms10KeyGesture*
@@ -3385,6 +3402,7 @@ __ZN9gui_forms14HelpSearchTerm*
 __ZN9gui_forms14HostHoverEvent*
 __ZN9gui_forms14HostScaleEvent*
 __ZN9gui_forms14HostTrayIconId*
+__ZN9gui_forms14ImageAtlasSlot*
 __ZN9gui_forms14ItemCheckEvent*
 __ZN9gui_forms14KeyStateChange*
 __ZN9gui_forms14LineBoxMetrics*
@@ -3483,6 +3501,7 @@ __ZN9gui_forms14theme_language18package_sha256_hexB*
 __ZN9gui_forms14theme_language18package_sha256_hexE*
 __ZN9gui_forms14xml_error_nameB*
 __ZN9gui_forms14xml_error_nameE*
+__ZN9gui_forms15AllocationScope*
 __ZN9gui_forms15AnatomyStateSet*
 __ZN9gui_forms15AnimationSample*
 __ZN9gui_forms15AvailableExtent*
@@ -3614,6 +3633,7 @@ __ZN9gui_forms15stock_specimensE*
 __ZN9gui_forms15valid_date_timeB*
 __ZN9gui_forms15valid_date_timeE*
 __ZN9gui_forms16AcceleratorToken*
+__ZN9gui_forms16AllocationCounts*
 __ZN9gui_forms16AuthoredGradient*
 __ZN9gui_forms16BackgroundWorker*
 __ZN9gui_forms16BindingNavigator*
@@ -3660,6 +3680,7 @@ __ZN9gui_forms16HostCloseRequest*
 __ZN9gui_forms16HostDialogResult*
 __ZN9gui_forms16HostDisplayEvent*
 __ZN9gui_forms16HostTrayMenuItem*
+__ZN9gui_forms16ImageAtlasLayout*
 __ZN9gui_forms16ImagePatchRegion*
 __ZN9gui_forms16ItemContentPaint*
 __ZN9gui_forms16LayoutConstraint*
@@ -3810,6 +3831,7 @@ __ZN9gui_forms17HostMonitorResult*
 __ZN9gui_forms17HostServiceStatus*
 __ZN9gui_forms17HostShutdownEvent*
 __ZN9gui_forms17HostTrayIconEvent*
+__ZN9gui_forms17ImageAtlasAcquire*
 __ZN9gui_forms17ImageResourceView*
 __ZN9gui_forms17InlineStyleResult*
 __ZN9gui_forms17KeyPressEventArgs*
@@ -4265,6 +4287,7 @@ __ZN9gui_forms19validate_parametersB*
 __ZN9gui_forms19validate_parametersE*
 __ZN9gui_forms19wcag_contrast_ratioB*
 __ZN9gui_forms19wcag_contrast_ratioE*
+__ZN9gui_forms20AllocationStatistics*
 __ZN9gui_forms20AnchoredOverlayLayer*
 __ZN9gui_forms20ApplicationResources*
 __ZN9gui_forms20AuthoredGradientStop*
@@ -4301,6 +4324,7 @@ __ZN9gui_forms20HostServicesSnapshot*
 __ZN9gui_forms20HostWindowFrameEvent*
 __ZN9gui_forms20HostWindowKindTraits*
 __ZN9gui_forms20HostWindowStateEvent*
+__ZN9gui_forms20ImageAtlasStatistics*
 __ZN9gui_forms20InstrumentModuleSpec*
 __ZN9gui_forms20MaterialColourFilter*
 __ZN9gui_forms20MaterialColourMatrix*
@@ -4463,6 +4487,8 @@ __ZN9gui_forms21ThreadExceptionReport*
 __ZN9gui_forms21VirtualRowDescription*
 __ZN9gui_forms21VirtualRowsStatistics*
 __ZN9gui_forms21WindowBackdropRequest*
+__ZN9gui_forms21allocation_statisticsB*
+__ZN9gui_forms21allocation_statisticsE*
 __ZN9gui_forms21binding_value_to_boolB*
 __ZN9gui_forms21binding_value_to_boolE*
 __ZN9gui_forms21colour_role_from_nameB*
@@ -4854,6 +4880,8 @@ __ZN9gui_forms25QuickAccessToolbarCommand*
 __ZN9gui_forms25ResponsiveTrackResolution*
 __ZN9gui_forms25TreeListColumnWidthChange*
 __ZN9gui_forms25WindowFrameDragStatistics*
+__ZN9gui_forms25allocation_subsystem_nameB*
+__ZN9gui_forms25allocation_subsystem_nameE*
 __ZN9gui_forms25binding_value_to_unsignedB*
 __ZN9gui_forms25binding_value_to_unsignedE*
 __ZN9gui_forms25box_shadow_visual_outsetsB*
@@ -5028,6 +5056,8 @@ __ZN9gui_forms28register_sweep_scope_effectsB*
 __ZN9gui_forms28register_sweep_scope_effectsE*
 __ZN9gui_forms28surface_material_resize_bandB*
 __ZN9gui_forms28surface_material_resize_bandE*
+__ZN9gui_forms28thread_allocation_statisticsB*
+__ZN9gui_forms28thread_allocation_statisticsE*
 __ZN9gui_forms28window_backdrop_support_nameB*
 __ZN9gui_forms28window_backdrop_support_nameE*
 __ZN9gui_forms28window_band_appearance_validB*
@@ -5317,6 +5347,8 @@ __ZN9gui_forms6detail12BorrowLender*
 __ZN9gui_forms6detail12ControlTable*
 __ZN9gui_forms6detail12PendingTouch*
 __ZN9gui_forms6detail13AscendingLess*
+__ZN9gui_forms6detail13count_releaseB*
+__ZN9gui_forms6detail13count_releaseE*
 __ZN9gui_forms6detail13dirty_reachesB*
 __ZN9gui_forms6detail13dirty_reachesE*
 __ZN9gui_forms6detail13fire_rule_tapB*
@@ -5325,6 +5357,8 @@ __ZN9gui_forms6detail14WindowLifetime*
 __ZN9gui_forms6detail15FailureBoundary*
 __ZN9gui_forms6detail15FailureSnapshot*
 __ZN9gui_forms6detail16BorrowOwnerState*
+__ZN9gui_forms6detail16count_allocationB*
+__ZN9gui_forms6detail16count_allocationE*
 __ZN9gui_forms6detail16straight_channelB*
 __ZN9gui_forms6detail16straight_channelE*
 __ZN9gui_forms6detail17BundledFamilyFace*
@@ -5649,6 +5683,7 @@ __ZNK[RO]9gui_forms10FontFaceId*
 __ZNK[RO]9gui_forms10GridMargin*
 __ZNK[RO]9gui_forms10HScrollBar*
 __ZNK[RO]9gui_forms10HelpTarget*
+__ZNK[RO]9gui_forms10ImageAtlas*
 __ZNK[RO]9gui_forms10InfoBanner*
 __ZNK[RO]9gui_forms10KeyBinding*
 __ZNK[RO]9gui_forms10KeyGesture*
@@ -5965,6 +6000,7 @@ __ZNK[RO]9gui_forms14HelpSearchTerm*
 __ZNK[RO]9gui_forms14HostHoverEvent*
 __ZNK[RO]9gui_forms14HostScaleEvent*
 __ZNK[RO]9gui_forms14HostTrayIconId*
+__ZNK[RO]9gui_forms14ImageAtlasSlot*
 __ZNK[RO]9gui_forms14ItemCheckEvent*
 __ZNK[RO]9gui_forms14KeyStateChange*
 __ZNK[RO]9gui_forms14LineBoxMetrics*
@@ -6017,6 +6053,7 @@ __ZNK[RO]9gui_forms14ToolTipRequest*
 __ZNK[RO]9gui_forms14TreeListColumn*
 __ZNK[RO]9gui_forms14UserThemeFiles*
 __ZNK[RO]9gui_forms14XmlWriteResult*
+__ZNK[RO]9gui_forms15AllocationScope*
 __ZNK[RO]9gui_forms15AnatomyStateSet*
 __ZNK[RO]9gui_forms15AnimationSample*
 __ZNK[RO]9gui_forms15AvailableExtent*
@@ -6112,6 +6149,7 @@ __ZNK[RO]9gui_forms15WindowFrameDrag*
 __ZNK[RO]9gui_forms15WindowOverrides*
 __ZNK[RO]9gui_forms15XmlWriteOptions*
 __ZNK[RO]9gui_forms16AcceleratorToken*
+__ZNK[RO]9gui_forms16AllocationCounts*
 __ZNK[RO]9gui_forms16AuthoredGradient*
 __ZNK[RO]9gui_forms16BackgroundWorker*
 __ZNK[RO]9gui_forms16BindingNavigator*
@@ -6158,6 +6196,7 @@ __ZNK[RO]9gui_forms16HostCloseRequest*
 __ZNK[RO]9gui_forms16HostDialogResult*
 __ZNK[RO]9gui_forms16HostDisplayEvent*
 __ZNK[RO]9gui_forms16HostTrayMenuItem*
+__ZNK[RO]9gui_forms16ImageAtlasLayout*
 __ZNK[RO]9gui_forms16ImagePatchRegion*
 __ZNK[RO]9gui_forms16ItemContentPaint*
 __ZNK[RO]9gui_forms16LayoutConstraint*
@@ -6248,6 +6287,7 @@ __ZNK[RO]9gui_forms17HostMonitorResult*
 __ZNK[RO]9gui_forms17HostServiceStatus*
 __ZNK[RO]9gui_forms17HostShutdownEvent*
 __ZNK[RO]9gui_forms17HostTrayIconEvent*
+__ZNK[RO]9gui_forms17ImageAtlasAcquire*
 __ZNK[RO]9gui_forms17ImageResourceView*
 __ZNK[RO]9gui_forms17InlineStyleResult*
 __ZNK[RO]9gui_forms17KeyPressEventArgs*
@@ -6487,6 +6527,7 @@ __ZNK[RO]9gui_forms19TreeExpansionChange*
 __ZNK[RO]9gui_forms19TreeSelectionChange*
 __ZNK[RO]9gui_forms19VirtualRowSelection*
 __ZNK[RO]9gui_forms19WindowBackdropGrant*
+__ZNK[RO]9gui_forms20AllocationStatistics*
 __ZNK[RO]9gui_forms20AnchoredOverlayLayer*
 __ZNK[RO]9gui_forms20ApplicationResources*
 __ZNK[RO]9gui_forms20AuthoredGradientStop*
@@ -6523,6 +6564,7 @@ __ZNK[RO]9gui_forms20HostServicesSnapshot*
 __ZNK[RO]9gui_forms20HostWindowFrameEvent*
 __ZNK[RO]9gui_forms20HostWindowKindTraits*
 __ZNK[RO]9gui_forms20HostWindowStateEvent*
+__ZNK[RO]9gui_forms20ImageAtlasStatistics*
 __ZNK[RO]9gui_forms20InstrumentModuleSpec*
 __ZNK[RO]9gui_forms20MaterialColourFilter*
 __ZNK[RO]9gui_forms20MaterialColourMatrix*
@@ -7087,6 +7129,7 @@ __ZN[KRO]9gui_forms10FontFaceId*
 __ZN[KRO]9gui_forms10GridMargin*
 __ZN[KRO]9gui_forms10HScrollBar*
 __ZN[KRO]9gui_forms10HelpTarget*
+__ZN[KRO]9gui_forms10ImageAtlas*
 __ZN[KRO]9gui_forms10InfoBanner*
 __ZN[KRO]9gui_forms10KeyBinding*
 __ZN[KRO]9gui_forms10KeyGesture*
@@ -7403,6 +7446,7 @@ __ZN[KRO]9gui_forms14HelpSearchTerm*
 __ZN[KRO]9gui_forms14HostHoverEvent*
 __ZN[KRO]9gui_forms14HostScaleEvent*
 __ZN[KRO]9gui_forms14HostTrayIconId*
+__ZN[KRO]9gui_forms14ImageAtlasSlot*
 __ZN[KRO]9gui_forms14ItemCheckEvent*
 __ZN[KRO]9gui_forms14KeyStateChange*
 __ZN[KRO]9gui_forms14LineBoxMetrics*
@@ -7455,6 +7499,7 @@ __ZN[KRO]9gui_forms14ToolTipRequest*
 __ZN[KRO]9gui_forms14TreeListColumn*
 __ZN[KRO]9gui_forms14UserThemeFiles*
 __ZN[KRO]9gui_forms14XmlWriteResult*
+__ZN[KRO]9gui_forms15AllocationScope*
 __ZN[KRO]9gui_forms15AnatomyStateSet*
 __ZN[KRO]9gui_forms15AnimationSample*
 __ZN[KRO]9gui_forms15AvailableExtent*
@@ -7550,6 +7595,7 @@ __ZN[KRO]9gui_forms15WindowFrameDrag*
 __ZN[KRO]9gui_forms15WindowOverrides*
 __ZN[KRO]9gui_forms15XmlWriteOptions*
 __ZN[KRO]9gui_forms16AcceleratorToken*
+__ZN[KRO]9gui_forms16AllocationCounts*
 __ZN[KRO]9gui_forms16AuthoredGradient*
 __ZN[KRO]9gui_forms16BackgroundWorker*
 __ZN[KRO]9gui_forms16BindingNavigator*
@@ -7596,6 +7642,7 @@ __ZN[KRO]9gui_forms16HostCloseRequest*
 __ZN[KRO]9gui_forms16HostDialogResult*
 __ZN[KRO]9gui_forms16HostDisplayEvent*
 __ZN[KRO]9gui_forms16HostTrayMenuItem*
+__ZN[KRO]9gui_forms16ImageAtlasLayout*
 __ZN[KRO]9gui_forms16ImagePatchRegion*
 __ZN[KRO]9gui_forms16ItemContentPaint*
 __ZN[KRO]9gui_forms16LayoutConstraint*
@@ -7686,6 +7733,7 @@ __ZN[KRO]9gui_forms17HostMonitorResult*
 __ZN[KRO]9gui_forms17HostServiceStatus*
 __ZN[KRO]9gui_forms17HostShutdownEvent*
 __ZN[KRO]9gui_forms17HostTrayIconEvent*
+__ZN[KRO]9gui_forms17ImageAtlasAcquire*
 __ZN[KRO]9gui_forms17ImageResourceView*
 __ZN[KRO]9gui_forms17InlineStyleResult*
 __ZN[KRO]9gui_forms17KeyPressEventArgs*
@@ -7925,6 +7973,7 @@ __ZN[KRO]9gui_forms19TreeExpansionChange*
 __ZN[KRO]9gui_forms19TreeSelectionChange*
 __ZN[KRO]9gui_forms19VirtualRowSelection*
 __ZN[KRO]9gui_forms19WindowBackdropGrant*
+__ZN[KRO]9gui_forms20AllocationStatistics*
 __ZN[KRO]9gui_forms20AnchoredOverlayLayer*
 __ZN[KRO]9gui_forms20ApplicationResources*
 __ZN[KRO]9gui_forms20AuthoredGradientStop*
@@ -7961,6 +8010,7 @@ __ZN[KRO]9gui_forms20HostServicesSnapshot*
 __ZN[KRO]9gui_forms20HostWindowFrameEvent*
 __ZN[KRO]9gui_forms20HostWindowKindTraits*
 __ZN[KRO]9gui_forms20HostWindowStateEvent*
+__ZN[KRO]9gui_forms20ImageAtlasStatistics*
 __ZN[KRO]9gui_forms20InstrumentModuleSpec*
 __ZN[KRO]9gui_forms20MaterialColourFilter*
 __ZN[KRO]9gui_forms20MaterialColourMatrix*
@@ -8525,6 +8575,7 @@ __ZT[VIST]N9gui_forms10FontFaceId*E
 __ZT[VIST]N9gui_forms10GridMargin*E
 __ZT[VIST]N9gui_forms10HScrollBar*E
 __ZT[VIST]N9gui_forms10HelpTarget*E
+__ZT[VIST]N9gui_forms10ImageAtlas*E
 __ZT[VIST]N9gui_forms10InfoBanner*E
 __ZT[VIST]N9gui_forms10KeyBinding*E
 __ZT[VIST]N9gui_forms10KeyGesture*E
@@ -8841,6 +8892,7 @@ __ZT[VIST]N9gui_forms14HelpSearchTerm*E
 __ZT[VIST]N9gui_forms14HostHoverEvent*E
 __ZT[VIST]N9gui_forms14HostScaleEvent*E
 __ZT[VIST]N9gui_forms14HostTrayIconId*E
+__ZT[VIST]N9gui_forms14ImageAtlasSlot*E
 __ZT[VIST]N9gui_forms14ItemCheckEvent*E
 __ZT[VIST]N9gui_forms14KeyStateChange*E
 __ZT[VIST]N9gui_forms14LineBoxMetrics*E
@@ -8893,6 +8945,7 @@ __ZT[VIST]N9gui_forms14ToolTipRequest*E
 __ZT[VIST]N9gui_forms14TreeListColumn*E
 __ZT[VIST]N9gui_forms14UserThemeFiles*E
 __ZT[VIST]N9gui_forms14XmlWriteResult*E
+__ZT[VIST]N9gui_forms15AllocationScope*E
 __ZT[VIST]N9gui_forms15AnatomyStateSet*E
 __ZT[VIST]N9gui_forms15AnimationSample*E
 __ZT[VIST]N9gui_forms15AvailableExtent*E
@@ -8988,6 +9041,7 @@ __ZT[VIST]N9gui_forms15WindowFrameDrag*E
 __ZT[VIST]N9gui_forms15WindowOverrides*E
 __ZT[VIST]N9gui_forms15XmlWriteOptions*E
 __ZT[VIST]N9gui_forms16AcceleratorToken*E
+__ZT[VIST]N9gui_forms16AllocationCounts*E
 __ZT[VIST]N9gui_forms16AuthoredGradient*E
 __ZT[VIST]N9gui_forms16BackgroundWorker*E
 __ZT[VIST]N9gui_forms16BindingNavigator*E
@@ -9034,6 +9088,7 @@ __ZT[VIST]N9gui_forms16HostCloseRequest*E
 __ZT[VIST]N9gui_forms16HostDialogResult*E
 __ZT[VIST]N9gui_forms16HostDisplayEvent*E
 __ZT[VIST]N9gui_forms16HostTrayMenuItem*E
+__ZT[VIST]N9gui_forms16ImageAtlasLayout*E
 __ZT[VIST]N9gui_forms16ImagePatchRegion*E
 __ZT[VIST]N9gui_forms16ItemContentPaint*E
 __ZT[VIST]N9gui_forms16LayoutConstraint*E
@@ -9124,6 +9179,7 @@ __ZT[VIST]N9gui_forms17HostMonitorResult*E
 __ZT[VIST]N9gui_forms17HostServiceStatus*E
 __ZT[VIST]N9gui_forms17HostShutdownEvent*E
 __ZT[VIST]N9gui_forms17HostTrayIconEvent*E
+__ZT[VIST]N9gui_forms17ImageAtlasAcquire*E
 __ZT[VIST]N9gui_forms17ImageResourceView*E
 __ZT[VIST]N9gui_forms17InlineStyleResult*E
 __ZT[VIST]N9gui_forms17KeyPressEventArgs*E
@@ -9363,6 +9419,7 @@ __ZT[VIST]N9gui_forms19TreeExpansionChange*E
 __ZT[VIST]N9gui_forms19TreeSelectionChange*E
 __ZT[VIST]N9gui_forms19VirtualRowSelection*E
 __ZT[VIST]N9gui_forms19WindowBackdropGrant*E
+__ZT[VIST]N9gui_forms20AllocationStatistics*E
 __ZT[VIST]N9gui_forms20AnchoredOverlayLayer*E
 __ZT[VIST]N9gui_forms20ApplicationResources*E
 __ZT[VIST]N9gui_forms20AuthoredGradientStop*E
@@ -9399,6 +9456,7 @@ __ZT[VIST]N9gui_forms20HostServicesSnapshot*E
 __ZT[VIST]N9gui_forms20HostWindowFrameEvent*E
 __ZT[VIST]N9gui_forms20HostWindowKindTraits*E
 __ZT[VIST]N9gui_forms20HostWindowStateEvent*E
+__ZT[VIST]N9gui_forms20ImageAtlasStatistics*E
 __ZT[VIST]N9gui_forms20InstrumentModuleSpec*E
 __ZT[VIST]N9gui_forms20MaterialColourFilter*E
 __ZT[VIST]N9gui_forms20MaterialColourMatrix*E
@@ -9963,6 +10021,7 @@ __ZT[hvc]*9gui_forms10FontFaceId*
 __ZT[hvc]*9gui_forms10GridMargin*
 __ZT[hvc]*9gui_forms10HScrollBar*
 __ZT[hvc]*9gui_forms10HelpTarget*
+__ZT[hvc]*9gui_forms10ImageAtlas*
 __ZT[hvc]*9gui_forms10InfoBanner*
 __ZT[hvc]*9gui_forms10KeyBinding*
 __ZT[hvc]*9gui_forms10KeyGesture*
@@ -10279,6 +10338,7 @@ __ZT[hvc]*9gui_forms14HelpSearchTerm*
 __ZT[hvc]*9gui_forms14HostHoverEvent*
 __ZT[hvc]*9gui_forms14HostScaleEvent*
 __ZT[hvc]*9gui_forms14HostTrayIconId*
+__ZT[hvc]*9gui_forms14ImageAtlasSlot*
 __ZT[hvc]*9gui_forms14ItemCheckEvent*
 __ZT[hvc]*9gui_forms14KeyStateChange*
 __ZT[hvc]*9gui_forms14LineBoxMetrics*
@@ -10331,6 +10391,7 @@ __ZT[hvc]*9gui_forms14ToolTipRequest*
 __ZT[hvc]*9gui_forms14TreeListColumn*
 __ZT[hvc]*9gui_forms14UserThemeFiles*
 __ZT[hvc]*9gui_forms14XmlWriteResult*
+__ZT[hvc]*9gui_forms15AllocationScope*
 __ZT[hvc]*9gui_forms15AnatomyStateSet*
 __ZT[hvc]*9gui_forms15AnimationSample*
 __ZT[hvc]*9gui_forms15AvailableExtent*
@@ -10426,6 +10487,7 @@ __ZT[hvc]*9gui_forms15WindowFrameDrag*
 __ZT[hvc]*9gui_forms15WindowOverrides*
 __ZT[hvc]*9gui_forms15XmlWriteOptions*
 __ZT[hvc]*9gui_forms16AcceleratorToken*
+__ZT[hvc]*9gui_forms16AllocationCounts*
 __ZT[hvc]*9gui_forms16AuthoredGradient*
 __ZT[hvc]*9gui_forms16BackgroundWorker*
 __ZT[hvc]*9gui_forms16BindingNavigator*
@@ -10472,6 +10534,7 @@ __ZT[hvc]*9gui_forms16HostCloseRequest*
 __ZT[hvc]*9gui_forms16HostDialogResult*
 __ZT[hvc]*9gui_forms16HostDisplayEvent*
 __ZT[hvc]*9gui_forms16HostTrayMenuItem*
+__ZT[hvc]*9gui_forms16ImageAtlasLayout*
 __ZT[hvc]*9gui_forms16ImagePatchRegion*
 __ZT[hvc]*9gui_forms16ItemContentPaint*
 __ZT[hvc]*9gui_forms16LayoutConstraint*
@@ -10562,6 +10625,7 @@ __ZT[hvc]*9gui_forms17HostMonitorResult*
 __ZT[hvc]*9gui_forms17HostServiceStatus*
 __ZT[hvc]*9gui_forms17HostShutdownEvent*
 __ZT[hvc]*9gui_forms17HostTrayIconEvent*
+__ZT[hvc]*9gui_forms17ImageAtlasAcquire*
 __ZT[hvc]*9gui_forms17ImageResourceView*
 __ZT[hvc]*9gui_forms17InlineStyleResult*
 __ZT[hvc]*9gui_forms17KeyPressEventArgs*
@@ -10801,6 +10865,7 @@ __ZT[hvc]*9gui_forms19TreeExpansionChange*
 __ZT[hvc]*9gui_forms19TreeSelectionChange*
 __ZT[hvc]*9gui_forms19VirtualRowSelection*
 __ZT[hvc]*9gui_forms19WindowBackdropGrant*
+__ZT[hvc]*9gui_forms20AllocationStatistics*
 __ZT[hvc]*9gui_forms20AnchoredOverlayLayer*
 __ZT[hvc]*9gui_forms20ApplicationResources*
 __ZT[hvc]*9gui_forms20AuthoredGradientStop*
@@ -10837,6 +10902,7 @@ __ZT[hvc]*9gui_forms20HostServicesSnapshot*
 __ZT[hvc]*9gui_forms20HostWindowFrameEvent*
 __ZT[hvc]*9gui_forms20HostWindowKindTraits*
 __ZT[hvc]*9gui_forms20HostWindowStateEvent*
+__ZT[hvc]*9gui_forms20ImageAtlasStatistics*
 __ZT[hvc]*9gui_forms20InstrumentModuleSpec*
 __ZT[hvc]*9gui_forms20MaterialColourFilter*
 __ZT[hvc]*9gui_forms20MaterialColourMatrix*
@@ -11401,6 +11467,7 @@ __ZZN9gui_forms10FontFaceId*
 __ZZN9gui_forms10GridMargin*
 __ZZN9gui_forms10HScrollBar*
 __ZZN9gui_forms10HelpTarget*
+__ZZN9gui_forms10ImageAtlas*
 __ZZN9gui_forms10InfoBanner*
 __ZZN9gui_forms10KeyBinding*
 __ZZN9gui_forms10KeyGesture*
@@ -11717,6 +11784,7 @@ __ZZN9gui_forms14HelpSearchTerm*
 __ZZN9gui_forms14HostHoverEvent*
 __ZZN9gui_forms14HostScaleEvent*
 __ZZN9gui_forms14HostTrayIconId*
+__ZZN9gui_forms14ImageAtlasSlot*
 __ZZN9gui_forms14ItemCheckEvent*
 __ZZN9gui_forms14KeyStateChange*
 __ZZN9gui_forms14LineBoxMetrics*
@@ -11769,6 +11837,7 @@ __ZZN9gui_forms14ToolTipRequest*
 __ZZN9gui_forms14TreeListColumn*
 __ZZN9gui_forms14UserThemeFiles*
 __ZZN9gui_forms14XmlWriteResult*
+__ZZN9gui_forms15AllocationScope*
 __ZZN9gui_forms15AnatomyStateSet*
 __ZZN9gui_forms15AnimationSample*
 __ZZN9gui_forms15AvailableExtent*
@@ -11864,6 +11933,7 @@ __ZZN9gui_forms15WindowFrameDrag*
 __ZZN9gui_forms15WindowOverrides*
 __ZZN9gui_forms15XmlWriteOptions*
 __ZZN9gui_forms16AcceleratorToken*
+__ZZN9gui_forms16AllocationCounts*
 __ZZN9gui_forms16AuthoredGradient*
 __ZZN9gui_forms16BackgroundWorker*
 __ZZN9gui_forms16BindingNavigator*
@@ -11910,6 +11980,7 @@ __ZZN9gui_forms16HostCloseRequest*
 __ZZN9gui_forms16HostDialogResult*
 __ZZN9gui_forms16HostDisplayEvent*
 __ZZN9gui_forms16HostTrayMenuItem*
+__ZZN9gui_forms16ImageAtlasLayout*
 __ZZN9gui_forms16ImagePatchRegion*
 __ZZN9gui_forms16ItemContentPaint*
 __ZZN9gui_forms16LayoutConstraint*
@@ -12000,6 +12071,7 @@ __ZZN9gui_forms17HostMonitorResult*
 __ZZN9gui_forms17HostServiceStatus*
 __ZZN9gui_forms17HostShutdownEvent*
 __ZZN9gui_forms17HostTrayIconEvent*
+__ZZN9gui_forms17ImageAtlasAcquire*
 __ZZN9gui_forms17ImageResourceView*
 __ZZN9gui_forms17InlineStyleResult*
 __ZZN9gui_forms17KeyPressEventArgs*
@@ -12239,6 +12311,7 @@ __ZZN9gui_forms19TreeExpansionChange*
 __ZZN9gui_forms19TreeSelectionChange*
 __ZZN9gui_forms19VirtualRowSelection*
 __ZZN9gui_forms19WindowBackdropGrant*
+__ZZN9gui_forms20AllocationStatistics*
 __ZZN9gui_forms20AnchoredOverlayLayer*
 __ZZN9gui_forms20ApplicationResources*
 __ZZN9gui_forms20AuthoredGradientStop*
@@ -12275,6 +12348,7 @@ __ZZN9gui_forms20HostServicesSnapshot*
 __ZZN9gui_forms20HostWindowFrameEvent*
 __ZZN9gui_forms20HostWindowKindTraits*
 __ZZN9gui_forms20HostWindowStateEvent*
+__ZZN9gui_forms20ImageAtlasStatistics*
 __ZZN9gui_forms20InstrumentModuleSpec*
 __ZZN9gui_forms20MaterialColourFilter*
 __ZZN9gui_forms20MaterialColourMatrix*
@@ -12839,6 +12913,7 @@ __ZZNK9gui_forms10FontFaceId*
 __ZZNK9gui_forms10GridMargin*
 __ZZNK9gui_forms10HScrollBar*
 __ZZNK9gui_forms10HelpTarget*
+__ZZNK9gui_forms10ImageAtlas*
 __ZZNK9gui_forms10InfoBanner*
 __ZZNK9gui_forms10KeyBinding*
 __ZZNK9gui_forms10KeyGesture*
@@ -13155,6 +13230,7 @@ __ZZNK9gui_forms14HelpSearchTerm*
 __ZZNK9gui_forms14HostHoverEvent*
 __ZZNK9gui_forms14HostScaleEvent*
 __ZZNK9gui_forms14HostTrayIconId*
+__ZZNK9gui_forms14ImageAtlasSlot*
 __ZZNK9gui_forms14ItemCheckEvent*
 __ZZNK9gui_forms14KeyStateChange*
 __ZZNK9gui_forms14LineBoxMetrics*
@@ -13207,6 +13283,7 @@ __ZZNK9gui_forms14ToolTipRequest*
 __ZZNK9gui_forms14TreeListColumn*
 __ZZNK9gui_forms14UserThemeFiles*
 __ZZNK9gui_forms14XmlWriteResult*
+__ZZNK9gui_forms15AllocationScope*
 __ZZNK9gui_forms15AnatomyStateSet*
 __ZZNK9gui_forms15AnimationSample*
 __ZZNK9gui_forms15AvailableExtent*
@@ -13302,6 +13379,7 @@ __ZZNK9gui_forms15WindowFrameDrag*
 __ZZNK9gui_forms15WindowOverrides*
 __ZZNK9gui_forms15XmlWriteOptions*
 __ZZNK9gui_forms16AcceleratorToken*
+__ZZNK9gui_forms16AllocationCounts*
 __ZZNK9gui_forms16AuthoredGradient*
 __ZZNK9gui_forms16BackgroundWorker*
 __ZZNK9gui_forms16BindingNavigator*
@@ -13348,6 +13426,7 @@ __ZZNK9gui_forms16HostCloseRequest*
 __ZZNK9gui_forms16HostDialogResult*
 __ZZNK9gui_forms16HostDisplayEvent*
 __ZZNK9gui_forms16HostTrayMenuItem*
+__ZZNK9gui_forms16ImageAtlasLayout*
 __ZZNK9gui_forms16ImagePatchRegion*
 __ZZNK9gui_forms16ItemContentPaint*
 __ZZNK9gui_forms16LayoutConstraint*
@@ -13438,6 +13517,7 @@ __ZZNK9gui_forms17HostMonitorResult*
 __ZZNK9gui_forms17HostServiceStatus*
 __ZZNK9gui_forms17HostShutdownEvent*
 __ZZNK9gui_forms17HostTrayIconEvent*
+__ZZNK9gui_forms17ImageAtlasAcquire*
 __ZZNK9gui_forms17ImageResourceView*
 __ZZNK9gui_forms17InlineStyleResult*
 __ZZNK9gui_forms17KeyPressEventArgs*
@@ -13677,6 +13757,7 @@ __ZZNK9gui_forms19TreeExpansionChange*
 __ZZNK9gui_forms19TreeSelectionChange*
 __ZZNK9gui_forms19VirtualRowSelection*
 __ZZNK9gui_forms19WindowBackdropGrant*
+__ZZNK9gui_forms20AllocationStatistics*
 __ZZNK9gui_forms20AnchoredOverlayLayer*
 __ZZNK9gui_forms20ApplicationResources*
 __ZZNK9gui_forms20AuthoredGradientStop*
@@ -13713,6 +13794,7 @@ __ZZNK9gui_forms20HostServicesSnapshot*
 __ZZNK9gui_forms20HostWindowFrameEvent*
 __ZZNK9gui_forms20HostWindowKindTraits*
 __ZZNK9gui_forms20HostWindowStateEvent*
+__ZZNK9gui_forms20ImageAtlasStatistics*
 __ZZNK9gui_forms20InstrumentModuleSpec*
 __ZZNK9gui_forms20MaterialColourFilter*
 __ZZNK9gui_forms20MaterialColourMatrix*

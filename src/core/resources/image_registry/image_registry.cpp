@@ -378,7 +378,7 @@ struct ImageRegistry::Slot final {
     bool occupied{};
     ImageResourceEncoding encoding{ImageResourceEncoding::png};
     ImageMetadata metadata{};
-    std::vector<std::byte> encoded;
+    ImageBytes encoded;
     std::uint64_t row_bytes{};
     std::uint64_t content_hash{};
     // The open patch run (ImagePatchRegion); closed by every other change.
@@ -490,7 +490,7 @@ ImageLoadResult ImageRegistry::load_encoded(std::span<const std::byte> encoded, 
     }
     try {
         return store_new(validated.encoding,
-                         std::vector<std::byte>(encoded.begin(), encoded.end()),
+                         ImageBytes(encoded.begin(), encoded.end()),
                          validated.metadata, validated.row_bytes,
                          hash_bytes(encoded));
     } catch (const std::bad_alloc&) {
@@ -499,7 +499,7 @@ ImageLoadResult ImageRegistry::load_encoded(std::span<const std::byte> encoded, 
 }
 
 ImageLoadResult ImageRegistry::store_new(ImageResourceEncoding encoding,
-                                         std::vector<std::byte> encoded,
+                                         ImageBytes encoded,
                                          ImageMetadata metadata,
                                          std::uint64_t row_bytes,
                                          std::uint64_t content_hash) {
@@ -557,7 +557,7 @@ ImageLoadResult ImageRegistry::load_bgra32_premultiplied(
         return ImageLoadResult::failure(quota);
     }
     try {
-        std::vector<std::byte> tight(static_cast<std::size_t>(decoded_bytes));
+        ImageBytes tight(static_cast<std::size_t>(decoded_bytes));
         for (std::uint32_t row = 0; row < height; ++row) {
             std::copy_n(pixels.data() + static_cast<std::size_t>(row_bytes) * row,
                         static_cast<std::size_t>(tight_row_bytes),
@@ -606,7 +606,7 @@ ImageLoadResult ImageRegistry::replace_encoded(ImageId image,
         return ImageLoadResult::failure(quota);
     }
 
-    std::vector<std::byte> replacement;
+    ImageBytes replacement;
     try {
         replacement.assign(encoded.begin(), encoded.end());
     } catch (const std::bad_alloc&) {
@@ -660,7 +660,7 @@ ImageLoadResult ImageRegistry::replace_bgra32_premultiplied(
         return ImageLoadResult::failure(quota);
     }
     try {
-        std::vector<std::byte> tight(static_cast<std::size_t>(decoded_bytes));
+        ImageBytes tight(static_cast<std::size_t>(decoded_bytes));
         for (std::uint32_t row = 0; row < height; ++row) {
             std::copy_n(pixels.data() + static_cast<std::size_t>(row_bytes) * row,
                         static_cast<std::size_t>(tight_row_bytes),
@@ -727,6 +727,23 @@ ImageLoadResult ImageRegistry::patch_bgra32_premultiplied(
     ImageId image, std::uint32_t x, std::uint32_t y,
     std::uint32_t width, std::uint32_t height,
     std::uint64_t source_row_bytes, std::span<const std::byte> pixels) {
+    const ImageLoadResult result = patch_pixels(image, x, y, width, height, source_row_bytes, pixels, true);
+    return result;
+}
+
+ImageLoadResult ImageRegistry::patch_bgra32_premultiplied_in_place(
+    ImageId image, std::uint32_t x, std::uint32_t y,
+    std::uint32_t width, std::uint32_t height,
+    std::uint64_t source_row_bytes, std::span<const std::byte> pixels) {
+    const ImageLoadResult result = patch_pixels(image, x, y, width, height, source_row_bytes, pixels, false);
+    return result;
+}
+
+ImageLoadResult ImageRegistry::patch_pixels(
+    ImageId image, std::uint32_t x, std::uint32_t y,
+    std::uint32_t width, std::uint32_t height,
+    std::uint64_t source_row_bytes, std::span<const std::byte> pixels,
+    bool advance_generation) {
     std::size_t slot_index = 0;
     std::uint64_t generation = 0;
     if (!split_image_id(image, slot_index, generation) ||
@@ -788,7 +805,7 @@ ImageLoadResult ImageRegistry::patch_bgra32_premultiplied(
         slot.patched.width = static_cast<std::uint32_t>(run_right - left);
         slot.patched.height = static_cast<std::uint32_t>(run_bottom - top);
     }
-    slot.generation = next_generation(slot.generation);
+    if (advance_generation) slot.generation = next_generation(slot.generation);
     // This is an opaque cache revision, as in the full-surface update path.
     // A bounded patch must not scan the rest of a potentially large canvas.
     slot.content_hash = slot.content_hash ==
@@ -814,7 +831,7 @@ bool ImageRegistry::remove(ImageId image) noexcept {
     slot.occupied = false;
     slot.encoding = ImageResourceEncoding::png;
     slot.metadata = {};
-    std::vector<std::byte>{}.swap(slot.encoded);
+    ImageBytes{}.swap(slot.encoded);
     slot.row_bytes = 0;
     slot.content_hash = 0;
     slot.patched = {};
@@ -831,7 +848,7 @@ void ImageRegistry::clear() noexcept {
             slot.occupied = false;
             slot.encoding = ImageResourceEncoding::png;
             slot.metadata = {};
-            std::vector<std::byte>{}.swap(slot.encoded);
+            ImageBytes{}.swap(slot.encoded);
             slot.row_bytes = 0;
             slot.content_hash = 0;
             slot.patched = {};

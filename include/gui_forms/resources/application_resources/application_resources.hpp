@@ -224,7 +224,12 @@ private:
     friend class Window;
     friend class SubSurface;
     friend class SurfaceRoot;
+    // Writes its backing image in place (registry) and refuses fills during
+    // a paint (painting).
+    friend class ImageAtlas;
     void require_access(const char* operation) const;
+    // Whether any window sharing these resources is painting now.
+    [[nodiscard]] bool painting() const noexcept;
     // Every surface root showing these resources: a Window, or a
     // SubSurface with resources of its own on its own thread.
     void attach(SurfaceRoot& root);

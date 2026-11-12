@@ -5,10 +5,22 @@
 Images and resources
 ====================
 
-The window-owned image registry, its PNG resource records, and SHA-256 (one-shot and streaming) for resource and theme package integrity.
+The window-owned image registry, its PNG resource records, the image atlas of fixed-size slots, and SHA-256 (one-shot and streaming) for resource and theme package integrity.
 
-Types
------
+.. list-table::
+   :class: autosummary longtable
+   :widths: 35 65
+
+   * - :cpp:class:`ImageAtlas <gui_forms::ImageAtlas>`
+     - Many small images of one size kept in the slots of one backing image.
+
+.. toctree::
+   :hidden:
+
+   generated/gui_forms.ImageAtlas
+
+Related types
+-------------
 
 .. list-table::
    :class: autosummary longtable
@@ -18,6 +30,14 @@ Types
      - The image registry and the theme of an application (stage DK decision 8), shared by every Window constructed with it.
    * - :cpp:class:`IconDeclaration <gui_forms::IconDeclaration>`
      - One program icon a user theme may name, by its identifier.
+   * - :cpp:class:`ImageAtlasAcquire <gui_forms::ImageAtlasAcquire>`
+     -  
+   * - :cpp:class:`ImageAtlasLayout <gui_forms::ImageAtlasLayout>`
+     -  
+   * - :cpp:class:`ImageAtlasSlot <gui_forms::ImageAtlasSlot>`
+     - A slot's handle: its index and the generation the slot had when the handle was given.
+   * - :cpp:class:`ImageAtlasStatistics <gui_forms::ImageAtlasStatistics>`
+     -  
    * - :cpp:class:`ImageLoadResult <gui_forms::ImageLoadResult>`
      - ImageLoadResult couples a stable nonzero image identity to a closed registry error.
    * - :cpp:class:`ImageMetadata <gui_forms::ImageMetadata>`
@@ -190,6 +210,108 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ImageAtlasAcquire final
+
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+
+   .. cpp:member:: ImageAtlasSlot slot
+
+   .. cpp:member:: ImageAtlasAcquireOutcome outcome
+
+      Default: ``{ImageAtlasAcquireOutcome::full}``.
+
+   .. cpp:member:: std::uint64_t replaced_key
+
+      For replaced: the key whose slot was taken.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ImageAtlasLayout final
+
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+
+   .. cpp:member:: std::uint32_t slot_width
+
+      A slot's size in image pixels, each 1 to 1024.
+
+   .. cpp:member:: std::uint32_t slot_height
+
+   .. cpp:member:: std::uint32_t slot_count
+
+      Slots in the atlas, 1 to 65536; the grid must fit the registry's image limits.
+
+   .. cpp:member:: std::uint32_t gutter
+
+      Pixels of edge repeated around each slot, 0 to 8. Default: ``{1U}``.
+
+   .. cpp:member:: std::uint32_t users_per_slot
+
+      Controls remembered per slot for damage, 1 to 64. A further control drawing the slot is refused (draw returns false and counts user_overflows), so a later change never leaves its pixels stale. Default: ``{4U}``.
+
+   .. cpp:member:: ImageAtlasReplacement replacement
+
+      Default: ``{ImageAtlasReplacement::least_recently_used}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ImageAtlasSlot final
+
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+
+   A slot's handle: its index and the generation the slot had when the handle was given. The slot's generation advances when it is released or replaced, so an older handle is stale and every call rejects it. Generation 0 is no slot. A generation is 32 bits: a handle kept across 2^32 reuses of its slot would be taken for current.
+
+   .. cpp:member:: std::uint32_t index
+
+   .. cpp:member:: std::uint32_t generation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ImageAtlasStatistics final
+
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+
+   .. cpp:member:: std::uint64_t hits
+
+      acquire: keys found, keys given a free slot, keys given a replaced slot, and refusals when full under the caller policy.
+
+   .. cpp:member:: std::uint64_t assignments
+
+   .. cpp:member:: std::uint64_t replacements
+
+   .. cpp:member:: std::uint64_t full_refusals
+
+   .. cpp:member:: std::uint64_t releases
+
+   .. cpp:member:: std::uint64_t fills
+
+   .. cpp:member:: std::uint64_t fill_refusals
+
+   .. cpp:member:: std::uint64_t stale_rejections
+
+      Calls refused for a stale handle (fill, release, draw).
+
+   .. cpp:member:: std::uint64_t draws
+
+   .. cpp:member:: std::uint64_t draw_refusals
+
+      Draws refused: a stale or unfilled slot, gone resources, or a user over users_per_slot (also counted in user_overflows).
+
+   .. cpp:member:: std::uint64_t user_overflows
+
+   .. cpp:member:: std::uint64_t users_damaged
+
+      Controls asked to repaint because a slot they drew changed.
+
+   .. cpp:member:: std::uint32_t slots_in_use
+
+   .. cpp:member:: std::uint64_t image_bytes
+
+      The backing image's pixel bytes (held by the registry) and the atlas's own tables and staging cell.
+
+   .. cpp:member:: std::uint64_t table_bytes
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ImageLoadResult final
 
    ``#include <gui_forms/resources/types/image_resource_types.hpp>``
@@ -317,6 +439,10 @@ Types
    .. cpp:function:: ImageLoadResult patch_bgra32_premultiplied(ImageId image, std::uint32_t x, std::uint32_t y, std::uint32_t width, std::uint32_t height, std::uint64_t source_row_bytes, std::span<const std::byte> pixels)
 
       Validates and copies one bounded rectangle into an existing raw image while preserving identity and exact stride rules.
+
+   .. cpp:function:: ImageLoadResult patch_bgra32_premultiplied_in_place(ImageId image, std::uint32_t x, std::uint32_t y, std::uint32_t width, std::uint32_t height, std::uint64_t source_row_bytes, std::span<const std::byte> pixels)
+
+      As patch_bgra32_premultiplied, but ``image`` stays valid: its generation does not advance, so a display list that recorded it draws the new pixels at its next replay. The content revision advances and the patch run is recorded as patch_bgra32_premultiplied records it, with base_image the unchanged ImageId, so a renderer copies only the run's rectangle. The caller damages whatever shows the patched rectangle (ImageAtlas damages its slot's users); nothing else need repaint, as every other pixel is unchanged. Returns ``image``, or the refusal patch_bgra32_premultiplied would give, changing nothing.
 
    .. cpp:function:: bool remove(ImageId image) noexcept
 
@@ -540,6 +666,46 @@ Enumerations
    .. cpp:enumerator:: straight
 
    .. cpp:enumerator:: premultiplied
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ImageAtlasAcquireOutcome
+
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+
+   .. cpp:enumerator:: hit
+
+   .. cpp:enumerator:: assigned
+
+   .. cpp:enumerator:: replaced
+
+   .. cpp:enumerator:: full
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ImageAtlasError
+
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: stale_slot
+
+   .. cpp:enumerator:: painting
+
+   .. cpp:enumerator:: invalid_pixels
+
+   .. cpp:enumerator:: registry_refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ImageAtlasReplacement
+
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+
+   .. cpp:enumerator:: least_recently_used
+
+   .. cpp:enumerator:: caller
 
 .. cpp:namespace:: gui_forms
 

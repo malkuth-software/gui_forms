@@ -4,6 +4,7 @@
 #include "../primitives/kernel/box_blur.hpp"
 #include "../../surface_root/access/surface_engine_access.hpp"
 
+#include "gui_forms/allocation/statistics/allocation_statistics.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
@@ -299,7 +300,9 @@ std::size_t EffectRegistry::unverified_count() const noexcept {
 }
 
 void effect_detail::StorageRelease::operator()(std::byte* storage) const noexcept {
-    ::operator delete(storage, std::align_val_t(alignment));
+    if (storage == nullptr) return;
+    ::operator delete(storage, size, std::align_val_t(alignment));
+    detail::count_release(AllocationSubsystem::effects, size);
 }
 
 void effect_detail::BlurWorkRelease::operator()(engine_primitives::BoxBlurWork* work) const noexcept {
@@ -321,10 +324,13 @@ void EffectInstance::attach(const EffectEntry& entry, std::uint64_t seed, FrameT
     detach();
     // Effects are trivially destructible (EffectProgram), so releasing the
     // storage ends the state's lifetime.
+    // Counted under AllocationSubsystem::effects; StorageRelease counts the
+    // release with the same size.
     std::byte* const storage =
         static_cast<std::byte*>(::operator new(entry.size, std::align_val_t(entry.alignment)));
+    detail::count_allocation(AllocationSubsystem::effects, entry.size);
     storage_ = std::unique_ptr<std::byte, effect_detail::StorageRelease>(
-        storage, effect_detail::StorageRelease{entry.alignment});
+        storage, effect_detail::StorageRelease{entry.size, entry.alignment});
     state_ = (*entry.construct)(storage);
     entry_ = &entry;
     seed_ = seed;
