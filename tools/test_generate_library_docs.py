@@ -86,6 +86,33 @@ class ReferenceTests(unittest.TestCase):
         self.assertEqual(generator.check(), 0)
 
 
+class BuildModeBranchTests(unittest.TestCase):
+    """Both branches of a build-mode #if are parsed; each name is declared once."""
+
+    def test_a_function_differing_only_in_specifiers_is_declared_once(self) -> None:
+        checked = generator.rst.Method("lend", "BorrowedText lend(std::string_view text);")
+        ordinary = generator.rst.Method("lend", "inline BorrowedText lend(std::string_view text) noexcept")
+        other = generator.rst.Method("lend", "inline BorrowedText lend(const char* text) noexcept")
+        self.assertEqual(generator.rst.function_identity("gui_forms", checked),
+                         generator.rst.function_identity("gui_forms", ordinary))
+        self.assertNotEqual(generator.rst.function_identity("gui_forms", checked),
+                            generator.rst.function_identity("gui_forms", other))
+
+    def test_an_alias_of_a_documented_class_is_not_declared_again(self) -> None:
+        linker = generator.rst.Linker({"BorrowedText": "gui_forms::BorrowedText"}, {})
+        alias = generator.rst.Declaration("using BorrowedText = std::string_view;")
+        unrelated = generator.rst.Declaration("using PlainText = std::string_view;")
+        self.assertTrue(generator.rst.documented_as_type("gui_forms", alias, linker))
+        self.assertFalse(generator.rst.documented_as_type("gui_forms", unrelated, linker))
+        self.assertFalse(generator.rst.documented_as_type("gui_forms::other", alias, linker))
+
+    def test_the_committed_reference_declares_each_build_mode_name_once(self) -> None:
+        page = (generator.API / "library.control-and-component.rst").read_text(encoding="utf-8")
+        self.assertNotIn(".. cpp:type:: BorrowedText =", page)
+        appearance = (generator.API / "library.geometry-and-appearance.rst").read_text(encoding="utf-8")
+        self.assertEqual(appearance.count("lend_paint_text(std::string_view text)"), 1)
+
+
 class DocstringTests(unittest.TestCase):
     def write(self, text: str) -> Path:
         directory = Path(tempfile.mkdtemp(prefix="gui-forms-docstring-"))

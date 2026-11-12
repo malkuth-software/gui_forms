@@ -21,6 +21,7 @@
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/static_tree.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -36,7 +37,9 @@
 #include <vector>
 
 #if !defined(_WIN32)
+#include <climits>
 #include <pthread.h>
+#include <unistd.h>
 #endif
 
 namespace {
@@ -313,6 +316,37 @@ constexpr std::size_t small_stack_bytes = 64U * 1024U;
 constexpr std::size_t small_stack_bytes = 64U * 1024U;
 #endif
 
+// The stack the run asks for: small_stack_bytes, or the runtime's minimum
+// thread stack when that is larger, rounded up to whole pages.
+// pthread_attr_setstacksize refuses a size below the minimum, and the
+// minimum differs by target: arm64 glibc's is 128 KiB, far above x86's.
+// The runtime value (sysconf) is preferred to the compile-time
+// PTHREAD_STACK_MIN. Where the minimum exceeds the intent, this run shows
+// only that a tree at the limit is made and torn down on the smallest
+// stack the platform allows; the spread test above is what shows that
+// teardown does not nest a destructor per level.
+[[nodiscard]] std::size_t small_stack_size() noexcept {
+    std::size_t minimum = 0U;
+#if defined(PTHREAD_STACK_MIN)
+    minimum = static_cast<std::size_t>(PTHREAD_STACK_MIN);
+#endif
+#if defined(_SC_THREAD_STACK_MIN)
+    const long runtime_minimum = sysconf(_SC_THREAD_STACK_MIN);
+    if (runtime_minimum > 0) minimum = static_cast<std::size_t>(runtime_minimum);
+#endif
+    std::size_t bytes = std::max(small_stack_bytes, minimum);
+    const long page = sysconf(_SC_PAGESIZE);
+    if (page <= 0) return bytes;
+    const std::size_t page_bytes = static_cast<std::size_t>(page);
+    const std::size_t partial = bytes % page_bytes;
+    // A minimum near SIZE_MAX cannot be rounded; it is returned as it is
+    // and pthread_attr_setstacksize decides.
+    if (partial != 0U && bytes <= std::numeric_limits<std::size_t>::max() - (page_bytes - partial)) {
+        bytes = bytes + (page_bytes - partial);
+    }
+    return bytes;
+}
+
 struct SmallStackRun final {
     std::size_t built_levels{0U};
     bool destroyed{false};
@@ -340,7 +374,7 @@ void test_destruction_at_the_limit_on_a_small_stack() {
     SmallStackRun run{};
     pthread_attr_t attributes{};
     require(pthread_attr_init(&attributes) == 0, "thread attributes initialise");
-    const int sized = pthread_attr_setstacksize(&attributes, small_stack_bytes);
+    const int sized = pthread_attr_setstacksize(&attributes, small_stack_size());
     pthread_t thread{};
     const int started = sized == 0 ? pthread_create(&thread, &attributes, &build_and_destroy_at_the_limit, &run) : sized;
     static_cast<void>(pthread_attr_destroy(&attributes));

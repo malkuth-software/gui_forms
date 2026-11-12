@@ -301,7 +301,10 @@ std::size_t EffectRegistry::unverified_count() const noexcept {
 
 void effect_detail::StorageRelease::operator()(std::byte* storage) const noexcept {
     if (storage == nullptr) return;
-    ::operator delete(storage, size, std::align_val_t(alignment));
+    // The unsized aligned delete matches the aligned new in instantiate();
+    // libraries built without sized deallocation (MinGW clang64's libc++)
+    // do not declare the sized form.
+    ::operator delete(storage, std::align_val_t(alignment));
     detail::count_release(AllocationSubsystem::effects, size);
 }
 

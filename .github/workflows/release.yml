@@ -380,7 +380,9 @@ jobs:
           echo "A pull request: building $(wc -l < "$RUNNER_TEMP/targets.txt") outputs the tests run, not every program"
           if [ -s "$RUNNER_TEMP/targets.txt" ]; then
             # Windows' Python may end each line with CR; ninja would take it as part of the name.
-            tr -d '\r' < "$RUNNER_TEMP/targets.txt" | xargs cmake --build "$BUILD_DIR" --parallel 4 --target
+            # One target per line, split only at newlines: an output name may hold a space
+            # ("GUI.Forms Gallery"), which plain xargs would split. -0 works on BSD and GNU xargs.
+            tr -d '\r' < "$RUNNER_TEMP/targets.txt" | tr '\n' '\0' | xargs -0 cmake --build "$BUILD_DIR" --parallel 4 --target
           fi
       - name: Report cache statistics
         if: always()

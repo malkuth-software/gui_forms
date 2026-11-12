@@ -79,7 +79,7 @@ struct GUI_FORMS_API VirtualRowMeasure final {
 // and the row's reading start is bounds' right edge. `view` (never null in a
 // call) and `states` (the row item's anatomy states: selected, hot,
 // current, disabled) let the handler draw its content as theme parts with
-// paint_part(*painter, *view, part), so the row follows the theme.
+// `paint_part(*painter, *view, part)`, so the row follows the theme.
 struct GUI_FORMS_API VirtualRowPaint final {
     Painter* painter{};
     const Control* view{};

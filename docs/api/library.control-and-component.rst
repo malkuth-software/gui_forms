@@ -63,7 +63,7 @@ Related types
    * - :cpp:class:`BackColorCapability <gui_forms::BackColorCapability>`
      - The own background colour; empty takes the parent's.
    * - :cpp:class:`BasicBorrowedSpan <gui_forms::BasicBorrowedSpan>`
-     - A checked view of ``Element`` (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp.
+     - A checked view of Element values (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp.
    * - :cpp:class:`BlockFlowContainerInput <gui_forms::BlockFlowContainerInput>`
      -  
    * - :cpp:class:`BlockFlowItemInput <gui_forms::BlockFlowItemInput>`
@@ -585,7 +585,7 @@ Related types
 
    ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
 
-   A checked view of :cpp:func:`Element <gui_forms::BasicBorrowedSpan::Element>` (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp. Made only by detail::lend_view and the subviews.
+   A checked view of Element values (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp. Made only by detail::lend_view and the subviews.
 
 
    .. rubric:: Construction
@@ -4021,8 +4021,6 @@ Functions, constants and aliases
 .. cpp:function:: inline std::string_view unchecked_view(std::string_view view) noexcept
 
 .. cpp:function:: template <typename Target> inline Target* unchecked_view(Target* pointer) noexcept
-
-.. cpp:type:: BorrowedText = std::string_view
 
 .. cpp:namespace:: gui_forms
 

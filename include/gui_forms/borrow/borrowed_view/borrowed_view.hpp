@@ -315,7 +315,7 @@ private:
 
 } // namespace detail
 
-// A checked view of `Element` (const-qualified for BorrowedSpan): the
+// A checked view of Element values (const-qualified for BorrowedSpan): the
 // pointer and live length of the lender's storage and the stamp. Made only
 // by detail::lend_view and the subviews.
 template <typename Element>

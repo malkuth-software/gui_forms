@@ -8853,8 +8853,6 @@ Functions, constants and aliases
 
    PartPaint::text is lent for one paint call (borrow sanitizer study, section 2.5, row 7). lend_paint_text stamps ``text`` from the innermost paint scope on the calling thread; the window opens one around each control's on_paint, so in the checked build a record (or a view taken from it) kept past that call fails at its next read, and so does one whose owner's text was replaced during the call by a nested scope's end. Outside any paint scope (a test or a bake painting a part directly) the text is not tracked. The ordinary build returns ``text`` unchanged.
 
-.. cpp:function:: inline BorrowedText lend_paint_text(std::string_view text) noexcept
-
 .. cpp:function:: ControlVisualContext part_visual_context(const Control& control, AnatomyStateSet states) noexcept
 
    The theme context a part's states select: hot, pressed or captured, selection (selected, checked, current, open, active_tool), the visible focus cue and preselect. The control supplies what the part does not carry: its enabled, invalid and pending status, window activity and high contrast. A part that is itself disabled or unavailable is drawn disabled.

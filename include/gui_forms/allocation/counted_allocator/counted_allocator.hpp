@@ -63,13 +63,17 @@ public:
         return values;
     }
 
-    // Releases storage allocate(count) returned.
+    // Releases storage allocate(count) returned, through the delete that
+    // matches its new: the aligned form for an over-aligned Value, the plain
+    // one otherwise. The unsized forms are used because a library built
+    // without sized deallocation (MinGW clang64's libc++) does not declare
+    // the sized ones; the byte count is still what the release counts.
     void deallocate(Value* values, std::size_t count) noexcept {
         const std::size_t bytes = count * sizeof(Value);
         if constexpr (alignof(Value) > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-            ::operator delete(static_cast<void*>(values), bytes, std::align_val_t(alignof(Value)));
+            ::operator delete(static_cast<void*>(values), std::align_val_t(alignof(Value)));
         } else {
-            ::operator delete(static_cast<void*>(values), bytes);
+            ::operator delete(static_cast<void*>(values));
         }
         count_release(Subsystem, bytes);
     }
