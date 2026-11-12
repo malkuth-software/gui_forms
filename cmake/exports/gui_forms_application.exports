@@ -1304,7 +1304,9 @@ __ZGVZN9gui_forms6PageId*
 __ZGVZN9gui_forms6Ribbon*
 __ZGVZN9gui_forms6Window*
 __ZGVZN9gui_forms6Wizard*
+__ZGVZN9gui_forms6detail10PaintScope*
 __ZGVZN9gui_forms6detail10RuleSource*
+__ZGVZN9gui_forms6detail11BorrowScope*
 __ZGVZN9gui_forms6detail11BorrowStamp*
 __ZGVZN9gui_forms6detail11ControlSlot*
 __ZGVZN9gui_forms6detail11DirtyBitset*
@@ -1406,6 +1408,7 @@ __ZGVZN9gui_forms9TextBlock*
 __ZGVZN9gui_forms9TextStore*
 __ZGVZN9gui_forms9ThemeRule*
 __ZGVZN9gui_forms9ToolStrip*
+__ZGVZN9gui_forms9WindowRef*
 __ZGVZN9gui_forms9WorldRect*
 __ZGVZN9gui_forms9XmlLimits*
 __ZGVZNK11gui_drawing10ColorBlend*
@@ -2713,7 +2716,9 @@ __ZGVZNK9gui_forms6PageId*
 __ZGVZNK9gui_forms6Ribbon*
 __ZGVZNK9gui_forms6Window*
 __ZGVZNK9gui_forms6Wizard*
+__ZGVZNK9gui_forms6detail10PaintScope*
 __ZGVZNK9gui_forms6detail10RuleSource*
+__ZGVZNK9gui_forms6detail11BorrowScope*
 __ZGVZNK9gui_forms6detail11BorrowStamp*
 __ZGVZNK9gui_forms6detail11ControlSlot*
 __ZGVZNK9gui_forms6detail11DirtyBitset*
@@ -2815,6 +2820,7 @@ __ZGVZNK9gui_forms9TextBlock*
 __ZGVZNK9gui_forms9TextStore*
 __ZGVZNK9gui_forms9ThemeRule*
 __ZGVZNK9gui_forms9ToolStrip*
+__ZGVZNK9gui_forms9WindowRef*
 __ZGVZNK9gui_forms9WorldRect*
 __ZGVZNK9gui_forms9XmlLimits*
 __ZN11gui_drawing10ColorBlend*
@@ -3526,6 +3532,8 @@ __ZN9gui_forms15help_field_nameB*
 __ZN9gui_forms15help_field_nameE*
 __ZN9gui_forms15host_event_nameB*
 __ZN9gui_forms15host_event_nameE*
+__ZN9gui_forms15lend_paint_textB*
+__ZN9gui_forms15lend_paint_textE*
 __ZN9gui_forms15logical_monitorB*
 __ZN9gui_forms15logical_monitorE*
 __ZN9gui_forms15plan_help_printB*
@@ -5216,7 +5224,9 @@ __ZN9gui_forms6PageId*
 __ZN9gui_forms6Ribbon*
 __ZN9gui_forms6Window*
 __ZN9gui_forms6Wizard*
+__ZN9gui_forms6detail10PaintScope*
 __ZN9gui_forms6detail10RuleSource*
+__ZN9gui_forms6detail11BorrowScope*
 __ZN9gui_forms6detail11BorrowStamp*
 __ZN9gui_forms6detail11ControlSlot*
 __ZN9gui_forms6detail11DirtyBitset*
@@ -5412,6 +5422,7 @@ __ZN9gui_forms9TextBlock*
 __ZN9gui_forms9TextStore*
 __ZN9gui_forms9ThemeRule*
 __ZN9gui_forms9ToolStrip*
+__ZN9gui_forms9WindowRef*
 __ZN9gui_forms9WorldRect*
 __ZN9gui_forms9XmlLimits*
 __ZN9gui_forms9condition10not_equalsB*
@@ -6777,7 +6788,9 @@ __ZNK[RO]9gui_forms6PageId*
 __ZNK[RO]9gui_forms6Ribbon*
 __ZNK[RO]9gui_forms6Window*
 __ZNK[RO]9gui_forms6Wizard*
+__ZNK[RO]9gui_forms6detail10PaintScope*
 __ZNK[RO]9gui_forms6detail10RuleSource*
+__ZNK[RO]9gui_forms6detail11BorrowScope*
 __ZNK[RO]9gui_forms6detail11BorrowStamp*
 __ZNK[RO]9gui_forms6detail11ControlSlot*
 __ZNK[RO]9gui_forms6detail11DirtyBitset*
@@ -6879,6 +6892,7 @@ __ZNK[RO]9gui_forms9TextBlock*
 __ZNK[RO]9gui_forms9TextStore*
 __ZNK[RO]9gui_forms9ThemeRule*
 __ZNK[RO]9gui_forms9ToolStrip*
+__ZNK[RO]9gui_forms9WindowRef*
 __ZNK[RO]9gui_forms9WorldRect*
 __ZNK[RO]9gui_forms9XmlLimits*
 __ZN[KRO]11gui_drawing10ColorBlend*
@@ -8186,7 +8200,9 @@ __ZN[KRO]9gui_forms6PageId*
 __ZN[KRO]9gui_forms6Ribbon*
 __ZN[KRO]9gui_forms6Window*
 __ZN[KRO]9gui_forms6Wizard*
+__ZN[KRO]9gui_forms6detail10PaintScope*
 __ZN[KRO]9gui_forms6detail10RuleSource*
+__ZN[KRO]9gui_forms6detail11BorrowScope*
 __ZN[KRO]9gui_forms6detail11BorrowStamp*
 __ZN[KRO]9gui_forms6detail11ControlSlot*
 __ZN[KRO]9gui_forms6detail11DirtyBitset*
@@ -8288,6 +8304,7 @@ __ZN[KRO]9gui_forms9TextBlock*
 __ZN[KRO]9gui_forms9TextStore*
 __ZN[KRO]9gui_forms9ThemeRule*
 __ZN[KRO]9gui_forms9ToolStrip*
+__ZN[KRO]9gui_forms9WindowRef*
 __ZN[KRO]9gui_forms9WorldRect*
 __ZN[KRO]9gui_forms9XmlLimits*
 __ZT[VIST]N11gui_drawing10ColorBlend*E
@@ -9595,7 +9612,9 @@ __ZT[VIST]N9gui_forms6PageId*E
 __ZT[VIST]N9gui_forms6Ribbon*E
 __ZT[VIST]N9gui_forms6Window*E
 __ZT[VIST]N9gui_forms6Wizard*E
+__ZT[VIST]N9gui_forms6detail10PaintScope*E
 __ZT[VIST]N9gui_forms6detail10RuleSource*E
+__ZT[VIST]N9gui_forms6detail11BorrowScope*E
 __ZT[VIST]N9gui_forms6detail11BorrowStamp*E
 __ZT[VIST]N9gui_forms6detail11ControlSlot*E
 __ZT[VIST]N9gui_forms6detail11DirtyBitset*E
@@ -9697,6 +9716,7 @@ __ZT[VIST]N9gui_forms9TextBlock*E
 __ZT[VIST]N9gui_forms9TextStore*E
 __ZT[VIST]N9gui_forms9ThemeRule*E
 __ZT[VIST]N9gui_forms9ToolStrip*E
+__ZT[VIST]N9gui_forms9WindowRef*E
 __ZT[VIST]N9gui_forms9WorldRect*E
 __ZT[VIST]N9gui_forms9XmlLimits*E
 __ZT[hvc]*11gui_drawing10ColorBlend*
@@ -11004,7 +11024,9 @@ __ZT[hvc]*9gui_forms6PageId*
 __ZT[hvc]*9gui_forms6Ribbon*
 __ZT[hvc]*9gui_forms6Window*
 __ZT[hvc]*9gui_forms6Wizard*
+__ZT[hvc]*9gui_forms6detail10PaintScope*
 __ZT[hvc]*9gui_forms6detail10RuleSource*
+__ZT[hvc]*9gui_forms6detail11BorrowScope*
 __ZT[hvc]*9gui_forms6detail11BorrowStamp*
 __ZT[hvc]*9gui_forms6detail11ControlSlot*
 __ZT[hvc]*9gui_forms6detail11DirtyBitset*
@@ -11106,6 +11128,7 @@ __ZT[hvc]*9gui_forms9TextBlock*
 __ZT[hvc]*9gui_forms9TextStore*
 __ZT[hvc]*9gui_forms9ThemeRule*
 __ZT[hvc]*9gui_forms9ToolStrip*
+__ZT[hvc]*9gui_forms9WindowRef*
 __ZT[hvc]*9gui_forms9WorldRect*
 __ZT[hvc]*9gui_forms9XmlLimits*
 __ZZN11gui_drawing10ColorBlend*
@@ -12413,7 +12436,9 @@ __ZZN9gui_forms6PageId*
 __ZZN9gui_forms6Ribbon*
 __ZZN9gui_forms6Window*
 __ZZN9gui_forms6Wizard*
+__ZZN9gui_forms6detail10PaintScope*
 __ZZN9gui_forms6detail10RuleSource*
+__ZZN9gui_forms6detail11BorrowScope*
 __ZZN9gui_forms6detail11BorrowStamp*
 __ZZN9gui_forms6detail11ControlSlot*
 __ZZN9gui_forms6detail11DirtyBitset*
@@ -12515,6 +12540,7 @@ __ZZN9gui_forms9TextBlock*
 __ZZN9gui_forms9TextStore*
 __ZZN9gui_forms9ThemeRule*
 __ZZN9gui_forms9ToolStrip*
+__ZZN9gui_forms9WindowRef*
 __ZZN9gui_forms9WorldRect*
 __ZZN9gui_forms9XmlLimits*
 __ZZNK11gui_drawing10ColorBlend*
@@ -13822,7 +13848,9 @@ __ZZNK9gui_forms6PageId*
 __ZZNK9gui_forms6Ribbon*
 __ZZNK9gui_forms6Window*
 __ZZNK9gui_forms6Wizard*
+__ZZNK9gui_forms6detail10PaintScope*
 __ZZNK9gui_forms6detail10RuleSource*
+__ZZNK9gui_forms6detail11BorrowScope*
 __ZZNK9gui_forms6detail11BorrowStamp*
 __ZZNK9gui_forms6detail11ControlSlot*
 __ZZNK9gui_forms6detail11DirtyBitset*
@@ -13924,5 +13952,6 @@ __ZZNK9gui_forms9TextBlock*
 __ZZNK9gui_forms9TextStore*
 __ZZNK9gui_forms9ThemeRule*
 __ZZNK9gui_forms9ToolStrip*
+__ZZNK9gui_forms9WindowRef*
 __ZZNK9gui_forms9WorldRect*
 __ZZNK9gui_forms9XmlLimits*

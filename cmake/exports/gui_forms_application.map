@@ -1306,7 +1306,9 @@
     _ZGVZN9gui_forms6Ribbon*;
     _ZGVZN9gui_forms6Window*;
     _ZGVZN9gui_forms6Wizard*;
+    _ZGVZN9gui_forms6detail10PaintScope*;
     _ZGVZN9gui_forms6detail10RuleSource*;
+    _ZGVZN9gui_forms6detail11BorrowScope*;
     _ZGVZN9gui_forms6detail11BorrowStamp*;
     _ZGVZN9gui_forms6detail11ControlSlot*;
     _ZGVZN9gui_forms6detail11DirtyBitset*;
@@ -1408,6 +1410,7 @@
     _ZGVZN9gui_forms9TextStore*;
     _ZGVZN9gui_forms9ThemeRule*;
     _ZGVZN9gui_forms9ToolStrip*;
+    _ZGVZN9gui_forms9WindowRef*;
     _ZGVZN9gui_forms9WorldRect*;
     _ZGVZN9gui_forms9XmlLimits*;
     _ZGVZNK11gui_drawing10ColorBlend*;
@@ -2715,7 +2718,9 @@
     _ZGVZNK9gui_forms6Ribbon*;
     _ZGVZNK9gui_forms6Window*;
     _ZGVZNK9gui_forms6Wizard*;
+    _ZGVZNK9gui_forms6detail10PaintScope*;
     _ZGVZNK9gui_forms6detail10RuleSource*;
+    _ZGVZNK9gui_forms6detail11BorrowScope*;
     _ZGVZNK9gui_forms6detail11BorrowStamp*;
     _ZGVZNK9gui_forms6detail11ControlSlot*;
     _ZGVZNK9gui_forms6detail11DirtyBitset*;
@@ -2817,6 +2822,7 @@
     _ZGVZNK9gui_forms9TextStore*;
     _ZGVZNK9gui_forms9ThemeRule*;
     _ZGVZNK9gui_forms9ToolStrip*;
+    _ZGVZNK9gui_forms9WindowRef*;
     _ZGVZNK9gui_forms9WorldRect*;
     _ZGVZNK9gui_forms9XmlLimits*;
     _ZN11gui_drawing10ColorBlend*;
@@ -3528,6 +3534,8 @@
     _ZN9gui_forms15help_field_nameE*;
     _ZN9gui_forms15host_event_nameB*;
     _ZN9gui_forms15host_event_nameE*;
+    _ZN9gui_forms15lend_paint_textB*;
+    _ZN9gui_forms15lend_paint_textE*;
     _ZN9gui_forms15logical_monitorB*;
     _ZN9gui_forms15logical_monitorE*;
     _ZN9gui_forms15plan_help_printB*;
@@ -5218,7 +5226,9 @@
     _ZN9gui_forms6Ribbon*;
     _ZN9gui_forms6Window*;
     _ZN9gui_forms6Wizard*;
+    _ZN9gui_forms6detail10PaintScope*;
     _ZN9gui_forms6detail10RuleSource*;
+    _ZN9gui_forms6detail11BorrowScope*;
     _ZN9gui_forms6detail11BorrowStamp*;
     _ZN9gui_forms6detail11ControlSlot*;
     _ZN9gui_forms6detail11DirtyBitset*;
@@ -5414,6 +5424,7 @@
     _ZN9gui_forms9TextStore*;
     _ZN9gui_forms9ThemeRule*;
     _ZN9gui_forms9ToolStrip*;
+    _ZN9gui_forms9WindowRef*;
     _ZN9gui_forms9WorldRect*;
     _ZN9gui_forms9XmlLimits*;
     _ZN9gui_forms9condition10not_equalsB*;
@@ -6779,7 +6790,9 @@
     _ZNK[RO]9gui_forms6Ribbon*;
     _ZNK[RO]9gui_forms6Window*;
     _ZNK[RO]9gui_forms6Wizard*;
+    _ZNK[RO]9gui_forms6detail10PaintScope*;
     _ZNK[RO]9gui_forms6detail10RuleSource*;
+    _ZNK[RO]9gui_forms6detail11BorrowScope*;
     _ZNK[RO]9gui_forms6detail11BorrowStamp*;
     _ZNK[RO]9gui_forms6detail11ControlSlot*;
     _ZNK[RO]9gui_forms6detail11DirtyBitset*;
@@ -6881,6 +6894,7 @@
     _ZNK[RO]9gui_forms9TextStore*;
     _ZNK[RO]9gui_forms9ThemeRule*;
     _ZNK[RO]9gui_forms9ToolStrip*;
+    _ZNK[RO]9gui_forms9WindowRef*;
     _ZNK[RO]9gui_forms9WorldRect*;
     _ZNK[RO]9gui_forms9XmlLimits*;
     _ZN[KRO]11gui_drawing10ColorBlend*;
@@ -8188,7 +8202,9 @@
     _ZN[KRO]9gui_forms6Ribbon*;
     _ZN[KRO]9gui_forms6Window*;
     _ZN[KRO]9gui_forms6Wizard*;
+    _ZN[KRO]9gui_forms6detail10PaintScope*;
     _ZN[KRO]9gui_forms6detail10RuleSource*;
+    _ZN[KRO]9gui_forms6detail11BorrowScope*;
     _ZN[KRO]9gui_forms6detail11BorrowStamp*;
     _ZN[KRO]9gui_forms6detail11ControlSlot*;
     _ZN[KRO]9gui_forms6detail11DirtyBitset*;
@@ -8290,6 +8306,7 @@
     _ZN[KRO]9gui_forms9TextStore*;
     _ZN[KRO]9gui_forms9ThemeRule*;
     _ZN[KRO]9gui_forms9ToolStrip*;
+    _ZN[KRO]9gui_forms9WindowRef*;
     _ZN[KRO]9gui_forms9WorldRect*;
     _ZN[KRO]9gui_forms9XmlLimits*;
     _ZT[VIST]N11gui_drawing10ColorBlend*E;
@@ -9597,7 +9614,9 @@
     _ZT[VIST]N9gui_forms6Ribbon*E;
     _ZT[VIST]N9gui_forms6Window*E;
     _ZT[VIST]N9gui_forms6Wizard*E;
+    _ZT[VIST]N9gui_forms6detail10PaintScope*E;
     _ZT[VIST]N9gui_forms6detail10RuleSource*E;
+    _ZT[VIST]N9gui_forms6detail11BorrowScope*E;
     _ZT[VIST]N9gui_forms6detail11BorrowStamp*E;
     _ZT[VIST]N9gui_forms6detail11ControlSlot*E;
     _ZT[VIST]N9gui_forms6detail11DirtyBitset*E;
@@ -9699,6 +9718,7 @@
     _ZT[VIST]N9gui_forms9TextStore*E;
     _ZT[VIST]N9gui_forms9ThemeRule*E;
     _ZT[VIST]N9gui_forms9ToolStrip*E;
+    _ZT[VIST]N9gui_forms9WindowRef*E;
     _ZT[VIST]N9gui_forms9WorldRect*E;
     _ZT[VIST]N9gui_forms9XmlLimits*E;
     _ZT[hvc]*11gui_drawing10ColorBlend*;
@@ -11006,7 +11026,9 @@
     _ZT[hvc]*9gui_forms6Ribbon*;
     _ZT[hvc]*9gui_forms6Window*;
     _ZT[hvc]*9gui_forms6Wizard*;
+    _ZT[hvc]*9gui_forms6detail10PaintScope*;
     _ZT[hvc]*9gui_forms6detail10RuleSource*;
+    _ZT[hvc]*9gui_forms6detail11BorrowScope*;
     _ZT[hvc]*9gui_forms6detail11BorrowStamp*;
     _ZT[hvc]*9gui_forms6detail11ControlSlot*;
     _ZT[hvc]*9gui_forms6detail11DirtyBitset*;
@@ -11108,6 +11130,7 @@
     _ZT[hvc]*9gui_forms9TextStore*;
     _ZT[hvc]*9gui_forms9ThemeRule*;
     _ZT[hvc]*9gui_forms9ToolStrip*;
+    _ZT[hvc]*9gui_forms9WindowRef*;
     _ZT[hvc]*9gui_forms9WorldRect*;
     _ZT[hvc]*9gui_forms9XmlLimits*;
     _ZZN11gui_drawing10ColorBlend*;
@@ -12415,7 +12438,9 @@
     _ZZN9gui_forms6Ribbon*;
     _ZZN9gui_forms6Window*;
     _ZZN9gui_forms6Wizard*;
+    _ZZN9gui_forms6detail10PaintScope*;
     _ZZN9gui_forms6detail10RuleSource*;
+    _ZZN9gui_forms6detail11BorrowScope*;
     _ZZN9gui_forms6detail11BorrowStamp*;
     _ZZN9gui_forms6detail11ControlSlot*;
     _ZZN9gui_forms6detail11DirtyBitset*;
@@ -12517,6 +12542,7 @@
     _ZZN9gui_forms9TextStore*;
     _ZZN9gui_forms9ThemeRule*;
     _ZZN9gui_forms9ToolStrip*;
+    _ZZN9gui_forms9WindowRef*;
     _ZZN9gui_forms9WorldRect*;
     _ZZN9gui_forms9XmlLimits*;
     _ZZNK11gui_drawing10ColorBlend*;
@@ -13824,7 +13850,9 @@
     _ZZNK9gui_forms6Ribbon*;
     _ZZNK9gui_forms6Window*;
     _ZZNK9gui_forms6Wizard*;
+    _ZZNK9gui_forms6detail10PaintScope*;
     _ZZNK9gui_forms6detail10RuleSource*;
+    _ZZNK9gui_forms6detail11BorrowScope*;
     _ZZNK9gui_forms6detail11BorrowStamp*;
     _ZZNK9gui_forms6detail11ControlSlot*;
     _ZZNK9gui_forms6detail11DirtyBitset*;
@@ -13926,6 +13954,7 @@
     _ZZNK9gui_forms9TextStore*;
     _ZZNK9gui_forms9ThemeRule*;
     _ZZNK9gui_forms9ToolStrip*;
+    _ZZNK9gui_forms9WindowRef*;
     _ZZNK9gui_forms9WorldRect*;
     _ZZNK9gui_forms9XmlLimits*;
   local:
