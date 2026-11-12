@@ -63,6 +63,17 @@
       "doc": "api/generated/gui_forms.CommandBar.rst"
     },
     {
+      "id": "text_box_base",
+      "type": "TextBoxBase",
+      "header": "gui_forms/controls/text_box_base.hpp",
+      "category": "Text editing",
+      "purpose": "Abstract base of the text-editing controls (TextBox, MaskedTextBox, RichTextBox), as Windows Forms names it; it adds nothing to Panel until a member is common to all three.",
+      "winforms": "TextBoxBase",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.TextBoxBase.rst"
+    },
+    {
       "id": "text_box",
       "type": "TextBox",
       "header": "gui_forms/controls/text_box.hpp",
@@ -294,6 +305,17 @@
       "doc": "api/generated/gui_forms.PlotAnnotationItem.rst"
     },
     {
+      "id": "list_control",
+      "type": "ListControl",
+      "header": "gui_forms/controls/list_control.hpp",
+      "category": "Selection from a list",
+      "purpose": "Abstract base of the list controls (ListBox, CheckedListBox, ComboBox), as Windows Forms names it; it adds nothing to Panel until a member is common to them.",
+      "winforms": "ListControl",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.ListControl.rst"
+    },
+    {
       "id": "list_box",
       "type": "ListBox",
       "header": "gui_forms/controls/list_box.hpp",
@@ -468,6 +490,17 @@
       "status": "provisional",
       "gallery_page": null,
       "doc": "api/generated/gui_forms.ValueBar.rst"
+    },
+    {
+      "id": "up_down_base",
+      "type": "UpDownBase",
+      "header": "gui_forms/controls/up_down_base.hpp",
+      "category": "Value setting",
+      "purpose": "Abstract base of the up-down controls (NumericUpDown, DomainUpDown), as Windows Forms names it: the edit field and spin column both own.",
+      "winforms": "UpDownBase",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.UpDownBase.rst"
     },
     {
       "id": "numeric_up_down",

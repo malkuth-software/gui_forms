@@ -599,7 +599,6 @@
         "NumericUpDown": "Constructs owned editor and spin controls while deferring child attachment until shared ownership exists.",
         "initialize_control_tree": "Attaches owned children and subscriptions exactly once, then synchronizes presentation.",
         "set_range": "Validates finite ordered bounds, constrains the current value, and refreshes editor and semantics atomically.",
-        "editor": "Returns the owned TextBox for composition-aware inspection and focus routing.",
         "value_changed": "Returns the event published after authoritative value commits.",
         "arrange": "Allocates the editor and trailing button column from current button-width policy.",
         "on_key_preview": "Handles Up/Down stepping before the focused TextBox consumes the key.",

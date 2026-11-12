@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace {
@@ -1032,6 +1033,77 @@ void test_list_box_long_list_damage_and_window() {
             "the stable ID lookup follows new IDs");
 }
 
+// The control-level bases (TextBoxBase, ListControl, UpDownBase, as
+// Windows Forms names them) hold their leaves: each leaf converts to its
+// base and back, a base cannot be made on its own, and a call through the
+// base reaches the leaf's own overrides (its property table, its focus
+// target). UpDownBase owns the parts both up-down controls share: the edit
+// field and spin column their initialize_control_tree made.
+static_assert(std::is_base_of_v<Panel, TextBoxBase> && std::is_base_of_v<Panel, ListControl> &&
+              std::is_base_of_v<Panel, UpDownBase>);
+static_assert(std::is_base_of_v<TextBoxBase, TextBox> && std::is_base_of_v<TextBoxBase, MaskedTextBox> &&
+              std::is_base_of_v<TextBoxBase, RichTextBox>);
+static_assert(std::is_base_of_v<ListControl, ListBox> && std::is_base_of_v<ListControl, CheckedListBox> &&
+              std::is_base_of_v<ListControl, ComboBox>);
+static_assert(std::is_base_of_v<UpDownBase, NumericUpDown> && std::is_base_of_v<UpDownBase, DomainUpDown>);
+static_assert(!std::is_constructible_v<TextBoxBase, StableId> && !std::is_constructible_v<ListControl, StableId> &&
+              !std::is_constructible_v<UpDownBase, StableId>);
+
+void test_control_bases_hold_their_leaves() {
+    const std::shared_ptr<TextBox> text = make_control<TextBox>(StableId("input.bases.text"));
+    const std::shared_ptr<TextBoxBase> text_base = text;
+    require((*text_base).property_table().size() == TextBox::text_box_property_count &&
+                std::dynamic_pointer_cast<TextBox>(text_base) == text,
+            "TextBoxBase must hold a TextBox and reach its property table");
+    const std::shared_ptr<RichTextBox> rich = make_control<RichTextBox>(StableId("input.bases.rich"));
+    const std::shared_ptr<TextBoxBase> rich_base = rich;
+    require((*rich_base).property_table().size() == RichTextBox::rich_text_box_property_count &&
+                std::dynamic_pointer_cast<TextBox>(rich_base) == nullptr,
+            "TextBoxBase must hold a RichTextBox apart from a TextBox");
+    const std::shared_ptr<MaskedTextBox> masked = make_control<MaskedTextBox>(StableId("input.bases.masked"));
+    const std::shared_ptr<TextBoxBase> masked_base = masked;
+    require(std::dynamic_pointer_cast<MaskedTextBox>(masked_base) == masked &&
+                (*masked_base).focus_target() == (*masked).editor(),
+            "TextBoxBase must hold a MaskedTextBox whose focus goes to its editor");
+
+    const std::shared_ptr<ListBox> list = make_control<ListBox>(StableId("input.bases.list"));
+    const std::shared_ptr<CheckedListBox> checks = make_control<CheckedListBox>(StableId("input.bases.checks"));
+    const std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("input.bases.combo"));
+    const std::shared_ptr<ListControl> list_base = list;
+    const std::shared_ptr<ListControl> checks_base = checks;
+    const std::shared_ptr<ListControl> combo_base = combo;
+    require((*list_base).property_table().size() == ListBox::list_box_property_count &&
+                (*combo_base).property_table().size() == ComboBox::combo_box_property_count &&
+                std::dynamic_pointer_cast<ListBox>(checks_base) == checks &&
+                std::dynamic_pointer_cast<ListBox>(combo_base) == nullptr,
+            "ListControl must hold ListBox, CheckedListBox and ComboBox and reach their tables");
+
+    const std::shared_ptr<NumericUpDown> numeric = make_control<NumericUpDown>(StableId("input.bases.numeric"));
+    const std::shared_ptr<DomainUpDown> domain = make_control<DomainUpDown>(StableId("input.bases.domain"));
+    const std::shared_ptr<UpDownBase> numeric_base = numeric;
+    const std::shared_ptr<UpDownBase> domain_base = domain;
+    require((*numeric_base).property_table().size() == NumericUpDown::numeric_up_down_property_count &&
+                (*domain_base).property_table().size() == DomainUpDown::domain_up_down_property_count,
+            "UpDownBase must reach each up-down control's property table");
+    // The field the base holds is the derived class's child, and focus on
+    // the control goes to it.
+    const std::shared_ptr<TextBox> numeric_field = (*numeric_base).editor();
+    const std::shared_ptr<TextBox> domain_field = (*domain_base).editor();
+    require(numeric_field != nullptr && numeric_field == (*numeric).editor() &&
+                (*numeric_base).focus_target() == numeric_field &&
+                (*numeric_field).parent() == numeric,
+            "UpDownBase must hold NumericUpDown's edit field as its child and focus target");
+    require(domain_field != nullptr && domain_field == (*domain).editor() &&
+                (*domain_base).focus_target() == domain_field &&
+                (*domain_field).parent() == domain,
+            "UpDownBase must hold DomainUpDown's edit field as its child and focus target");
+    Window window(domain, {180.0, 32.0});
+    window.perform_layout();
+    require(window.find("input.bases.domain.spinner") != nullptr &&
+                window.request_focus(domain) && window.focused_control() == domain_field,
+            "UpDownBase's spin column must be a child and focus must reach the field");
+}
+
 int main() {
     try {
         test_unicode_editing_selection_and_history();
@@ -1053,6 +1125,7 @@ int main() {
         test_numeric_up_down_schema_properties();
         test_list_box_property_capabilities();
         test_combo_box_property_capabilities();
+        test_control_bases_hold_their_leaves();
         std::cout << "gui_forms_input_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

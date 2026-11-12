@@ -72,6 +72,7 @@
 #include "gui_forms/controls/linear_gauge.hpp"
 #include "gui_forms/controls/link_label.hpp"
 #include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/list_control.hpp"
 #include "gui_forms/controls/list_view.hpp"
 #include "gui_forms/controls/lookup_combo_box.hpp"
 #include "gui_forms/controls/masked_text_box.hpp"
@@ -127,6 +128,7 @@
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/controls/text_block.hpp"
 #include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
 #include "gui_forms/controls/toast.hpp"
 #include "gui_forms/controls/toggle_switch.hpp"
 #include "gui_forms/controls/token_box.hpp"
@@ -136,6 +138,7 @@
 #include "gui_forms/controls/track_bar.hpp"
 #include "gui_forms/controls/tree_list_view.hpp"
 #include "gui_forms/controls/tree_view.hpp"
+#include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/user_control.hpp"
 #include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/controls/value_bar.hpp"
@@ -151,12 +154,13 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 139> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 142> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
     {"link_label", "LinkLabel", &describe_type<LinkLabel>, &create_type<LinkLabel>, &is_exact_type<LinkLabel>},
     {"command_bar", "CommandBar", &describe_type<CommandBar>, &create_type<CommandBar>, &is_exact_type<CommandBar>},
+    {"text_box_base", "TextBoxBase", &describe_type<TextBoxBase>, &create_type<TextBoxBase>, &is_exact_type<TextBoxBase>},
     {"text_box", "TextBox", &describe_type<TextBox>, &create_type<TextBox>, &is_exact_type<TextBox>},
     {"token_box", "TokenBox", &describe_type<TokenBox>, &create_type<TokenBox>, &is_exact_type<TokenBox>},
     {"search_field", "SearchField", &describe_type<SearchField>, &create_type<SearchField>, &is_exact_type<SearchField>},
@@ -178,6 +182,7 @@ inline constexpr std::array<SchemaCatalogEntry, 139> schema_catalog{{
     {"plot_axis_item", "PlotAxisItem", &describe_type<PlotAxisItem>, &create_type<PlotAxisItem>, &is_exact_type<PlotAxisItem>},
     {"plot_series_item", "PlotSeriesItem", &describe_type<PlotSeriesItem>, &create_type<PlotSeriesItem>, &is_exact_type<PlotSeriesItem>},
     {"plot_annotation_item", "PlotAnnotationItem", &describe_type<PlotAnnotationItem>, &create_type<PlotAnnotationItem>, &is_exact_type<PlotAnnotationItem>},
+    {"list_control", "ListControl", &describe_type<ListControl>, &create_type<ListControl>, &is_exact_type<ListControl>},
     {"list_box", "ListBox", &describe_type<ListBox>, &create_type<ListBox>, &is_exact_type<ListBox>},
     {"checked_list_box", "CheckedListBox", &describe_type<CheckedListBox>, &create_type<CheckedListBox>, &is_exact_type<CheckedListBox>},
     {"combo_box", "ComboBox", &describe_type<ComboBox>, &create_type<ComboBox>, &is_exact_type<ComboBox>},
@@ -194,6 +199,7 @@ inline constexpr std::array<SchemaCatalogEntry, 139> schema_catalog{{
     {"range_control", "RangeControl", &describe_type<RangeControl>, &create_type<RangeControl>, &is_exact_type<RangeControl>},
     {"track_bar", "TrackBar", &describe_type<TrackBar>, &create_type<TrackBar>, &is_exact_type<TrackBar>},
     {"value_bar", "ValueBar", &describe_type<ValueBar>, &create_type<ValueBar>, &is_exact_type<ValueBar>},
+    {"up_down_base", "UpDownBase", &describe_type<UpDownBase>, &create_type<UpDownBase>, &is_exact_type<UpDownBase>},
     {"numeric_up_down", "NumericUpDown", &describe_type<NumericUpDown>, &create_type<NumericUpDown>, &is_exact_type<NumericUpDown>},
     {"domain_up_down", "DomainUpDown", &describe_type<DomainUpDown>, &create_type<DomainUpDown>, &is_exact_type<DomainUpDown>},
     {"color_value_editor", "ColorValueEditor", &describe_type<ColorValueEditor>, &create_type<ColorValueEditor>, &is_exact_type<ColorValueEditor>},

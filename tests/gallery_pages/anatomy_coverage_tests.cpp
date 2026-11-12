@@ -32,7 +32,7 @@ constexpr std::array<std::string_view, 2> anatomy_pending{
 // Registry entries that are not controls: nonvisual components and the
 // LiveSurface service type. They have no parts; a component that shows
 // something (a context menu, a tool tip) does so through an internal control.
-constexpr std::array<std::string_view, 30> nonvisual_entries{
+constexpr std::array<std::string_view, 33> nonvisual_entries{
     "command",
     "gallery_command",
     "font_command",
@@ -69,6 +69,11 @@ constexpr std::array<std::string_view, 30> nonvisual_entries{
     // The gauges' shared base: LinearGauge and RadialGauge declare the
     // anatomies of what it draws.
     "gauge_base",
+    // The text, list and up-down controls' abstract bases: their derived
+    // controls declare their anatomies.
+    "text_box_base",
+    "list_control",
+    "up_down_base",
 };
 
 // True when every state a part publishes is one its declaration lists.

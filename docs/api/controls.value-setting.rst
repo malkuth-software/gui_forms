@@ -23,6 +23,8 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
      - A slider the user drags, clicks or steps with the keyboard to pick a value in a range.
    * - :cpp:class:`ValueBar <gui_forms::ValueBar>`
      - Blender-style value bar over RangeControl: a fill or field style, drag-to-scrub within a soft range, click-to-type bounded arithmetic with units within the hard range, snapping and step arrows.
+   * - :cpp:class:`UpDownBase <gui_forms::UpDownBase>`
+     - The shared base of the up-down controls: a text field with up and down buttons.
    * - :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>`
      - A text field for a number, with up and down buttons that step it.
    * - :cpp:class:`DomainUpDown <gui_forms::DomainUpDown>`
@@ -47,6 +49,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
    generated/gui_forms.RangeControl
    generated/gui_forms.TrackBar
    generated/gui_forms.ValueBar
+   generated/gui_forms.UpDownBase
    generated/gui_forms.NumericUpDown
    generated/gui_forms.DomainUpDown
    generated/gui_forms.ColorValueEditor

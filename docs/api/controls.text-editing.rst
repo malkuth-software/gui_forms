@@ -11,6 +11,8 @@ Text entry.
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`TextBoxBase <gui_forms::TextBoxBase>`
+     - The shared base of the text-editing controls.
    * - :cpp:class:`TextBox <gui_forms::TextBox>`
      - An editable text field: one line by default, or a plain-text document with ``multiline``.
    * - :cpp:class:`TokenBox <gui_forms::TokenBox>`
@@ -29,6 +31,7 @@ Text entry.
 .. toctree::
    :hidden:
 
+   generated/gui_forms.TextBoxBase
    generated/gui_forms.TextBox
    generated/gui_forms.TokenBox
    generated/gui_forms.SearchField

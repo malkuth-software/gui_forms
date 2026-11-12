@@ -7,7 +7,7 @@ gui_forms::ListBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ListBox : public Panel, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox>
+.. cpp:class:: ListBox : public ListControl, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox>
 
    ``#include <gui_forms/controls/list_box.hpp>``
 

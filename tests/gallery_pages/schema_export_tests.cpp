@@ -6,6 +6,9 @@
 #include "gui_forms/controls/help_book_system.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/controls/gauge_base.hpp"
+#include "gui_forms/controls/list_control.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
+#include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/controls/sparkline.hpp"
@@ -676,6 +679,22 @@ public:
     explicit SchemaGauge(StableId stable_id) : GaugeBase(std::move(stable_id)) {}
 };
 
+// The text, list and up-down controls' bases, likewise.
+class SchemaTextBoxBase final : public TextBoxBase {
+public:
+    explicit SchemaTextBoxBase(StableId stable_id) : TextBoxBase(std::move(stable_id)) {}
+};
+
+class SchemaListControl final : public ListControl {
+public:
+    explicit SchemaListControl(StableId stable_id) : ListControl(std::move(stable_id)) {}
+};
+
+class SchemaUpDownBase final : public UpDownBase {
+public:
+    explicit SchemaUpDownBase(StableId stable_id) : UpDownBase(std::move(stable_id)) {}
+};
+
 void record_control(const Control& control, std::vector<TypeRecord>& records) {
     const ControlAnatomy& anatomy = control.anatomy();
     const std::size_t position = catalog_position(anatomy.control_id);
@@ -893,8 +912,15 @@ void test_schema_export() {
     record_control(*value_bar, records);
     // The final controls and the help system shown only inside another or
     // on demand. WizardPage and HelpBookViewer have no anatomy of their own
-    // yet and GaugeBase is a base: they are recorded by their ids.
+    // yet and GaugeBase, TextBoxBase, ListControl and UpDownBase are bases:
+    // they are recorded by their ids.
     const std::shared_ptr<SchemaGauge> gauge_base = make_control<SchemaGauge>(StableId("schema.gauge-base"));
+    const std::shared_ptr<SchemaTextBoxBase> text_box_base =
+        make_control<SchemaTextBoxBase>(StableId("schema.text-box-base"));
+    const std::shared_ptr<SchemaListControl> list_control =
+        make_control<SchemaListControl>(StableId("schema.list-control"));
+    const std::shared_ptr<SchemaUpDownBase> up_down_base =
+        make_control<SchemaUpDownBase>(StableId("schema.up-down-base"));
     const std::shared_ptr<WizardPage> wizard_page = make_control<WizardPage>(StableId("schema.wizard-page"));
     const std::shared_ptr<Callout> callout = make_control<Callout>(StableId("schema.callout"));
     const std::shared_ptr<ModalLayer> modal_layer = make_control<ModalLayer>(StableId("schema.modal-layer"));
@@ -902,6 +928,9 @@ void test_schema_export() {
         make_control<HelpBookViewer>(StableId("schema.help-viewer"));
     const std::shared_ptr<HelpBook> help_book = make_control<HelpBook>(StableId("schema.help-book"));
     record_control_as("gauge_base", *gauge_base, records);
+    record_control_as("text_box_base", *text_box_base, records);
+    record_control_as("list_control", *list_control, records);
+    record_control_as("up_down_base", *up_down_base, records);
     record_control_as("wizard_page", *wizard_page, records);
     record_control(*callout, records);
     record_control(*modal_layer, records);

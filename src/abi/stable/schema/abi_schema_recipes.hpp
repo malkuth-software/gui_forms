@@ -20,6 +20,9 @@
 #include "gui_forms/background_worker/background_worker.hpp"
 #include "gui_forms/components/about_dialog/about_dialog.hpp"
 #include "gui_forms/controls/gauge_base.hpp"
+#include "gui_forms/controls/list_control.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
+#include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_context/binding_context.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
@@ -132,8 +135,12 @@ void describe_type(SchemaSample& sample) {
     record_control(*control, sample);
 }
 
-// Controls that need another object.
+// Controls that need another object, and the abstract bases (each recorded
+// through a subclass that adds nothing).
 template <> void describe_type<GaugeBase>(SchemaSample& sample);
+template <> void describe_type<TextBoxBase>(SchemaSample& sample);
+template <> void describe_type<ListControl>(SchemaSample& sample);
+template <> void describe_type<UpDownBase>(SchemaSample& sample);
 template <> void describe_type<AnchoredOverlayLayer>(SchemaSample& sample);
 template <> void describe_type<DockSite>(SchemaSample& sample);
 template <> void describe_type<PageStrip>(SchemaSample& sample);

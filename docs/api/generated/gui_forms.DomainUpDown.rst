@@ -7,13 +7,13 @@ gui_forms::DomainUpDown
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DomainUpDown final : public Panel, public TextItemsCapability<DomainUpDown>, public DomainUpDownCapabilities<DomainUpDown>
+.. cpp:class:: DomainUpDown final : public UpDownBase, public TextItemsCapability<DomainUpDown>, public DomainUpDownCapabilities<DomainUpDown>
 
    ``#include <gui_forms/controls/domain_up_down.hpp>``
 
    A text field with up and down buttons that steps through a list of strings.
 
-   A domain up-down shows one of its :cpp:member:`items <gui_forms::DomainUpDown::items>` in an :cpp:func:`editor <gui_forms::DomainUpDown::editor>` text box beside a
+   A domain up-down shows one of its :cpp:member:`items <gui_forms::DomainUpDown::items>` in an ``editor`` text box beside a
    pair of spin buttons. The items are a list read top to bottom: the upper
    button, the Up key and the wheel turned up move to the previous item, and the
    lower button, the Down key and the wheel turned down move to the next. Use it
@@ -67,9 +67,6 @@ gui_forms::DomainUpDown
          The width of the spin buttons, from 12 to 64; a width outside that range
          throws ``std::out_of_range``.
 
-      **editor** : ``std::shared_ptr<TextBox>``, read-only
-         The :cpp:class:`TextBox <gui_forms::TextBox>` that shows the text.
-
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -81,6 +78,8 @@ gui_forms::DomainUpDown
          typing, a setter or a change to the items. It carries the new selection.
 
    :Inherited:
+
+      From :cpp:class:`UpDownBase <gui_forms::UpDownBase>`: properties :cpp:func:`editor <gui_forms::UpDownBase::editor>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
@@ -206,10 +205,6 @@ gui_forms::DomainUpDown
       The width of the spin buttons, from 12 to 64; a width outside that range
       throws ``std::out_of_range``.
 
-   .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
-
-      The :cpp:class:`TextBox <gui_forms::TextBox>` that shows the text.
-
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -248,10 +243,6 @@ gui_forms::DomainUpDown
 
 
    .. rubric:: Extension points
-
-   .. cpp:function:: Ptr focus_target() const override
-
-      Focus on the field goes to its edit part (null without one).
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 

@@ -7,7 +7,7 @@ gui_forms::TextBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TextBox final : public Panel, public TextBoxCapabilities<TextBox>
+.. cpp:class:: TextBox final : public TextBoxBase, public TextBoxCapabilities<TextBox>
 
    ``#include <gui_forms/controls/text_box.hpp>``
 

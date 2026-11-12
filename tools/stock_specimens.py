@@ -120,6 +120,9 @@ MAKERS: Mapping[str, str] = {
     "anchored_overlay_layer": "make_anchored_overlay_layer",
     "task_dialog": "make_task_dialog",
     "gauge_base": "make_gauge_base",
+    "text_box_base": "make_text_box_base",
+    "list_control": "make_list_control",
+    "up_down_base": "make_up_down_base",
     "responsive_track_panel": "make_responsive_track_panel",
     "progress_bar": "make_ranged<ProgressBar>",
     "track_bar": "make_ranged<TrackBar>",
@@ -148,6 +151,9 @@ PRESENTERS: Mapping[str, str] = {
 # Rows whose near-uniform look at rest is the real look; keep this short.
 BLANK_REASONS: Mapping[str, str] = {
     "gauge_base": "the gauges' base paints no face of its own",
+    "text_box_base": "the text controls' base paints only its panel face",
+    "list_control": "the list controls' base paints only its panel face",
+    "up_down_base": "the up-down controls' base paints only its panel face",
     "range_control": "the ranged controls' base paints no face of its own",
     "ribbon_color_picker": "a small split button: with no icon image in the catalogue only its colour bar shows",
     "sub_surface_host": "hosts a program's own surface and is empty until one is attached",
