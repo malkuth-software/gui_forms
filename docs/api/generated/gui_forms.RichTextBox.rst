@@ -7,7 +7,7 @@ gui_forms::RichTextBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: RichTextBox final : public Panel, public RichTextBoxCapabilities<RichTextBox>
+.. cpp:class:: RichTextBox final : public TextBoxBase, public RichTextBoxCapabilities<RichTextBox>
 
    ``#include <gui_forms/controls/rich_text_box.hpp>``
 

@@ -114,3 +114,6 @@
 #include "gui_forms/controls/metrics_view.hpp"
 #include "gui_forms/controls/help_book.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
+#include "gui_forms/controls/list_control.hpp"
+#include "gui_forms/controls/up_down_base.hpp"

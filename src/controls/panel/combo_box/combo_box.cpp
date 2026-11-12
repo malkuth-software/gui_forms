@@ -41,7 +41,7 @@ std::shared_ptr<const PropertyEnumDescriptor> combo_box_filter_enum() {
 
 } // namespace
 
-ComboBox::ComboBox(StableId stable_id) : Panel(std::move(stable_id)) {
+ComboBox::ComboBox(StableId stable_id) : ListControl(std::move(stable_id)) {
     list_items_source_ = std::make_shared<AutoCompleteStringCollection>();
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;

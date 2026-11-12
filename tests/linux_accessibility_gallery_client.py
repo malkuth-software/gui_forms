@@ -97,9 +97,12 @@ NONVISUAL: tuple[str, ...] = (
     'color_dialog',
     # A PlotView's item children, which it paints as its own parts; the
     # About box and the help system, components shown through their dialog
-    # and viewer; and GaugeBase, the gauges' abstract base.
+    # and viewer; and the abstract bases: GaugeBase, the gauges', and
+    # TextBoxBase, ListControl and UpDownBase, the text, list and up-down
+    # controls'.
     'plot_axis_item', 'plot_series_item', 'plot_annotation_item',
     'about_dialog', 'help_book_system', 'gauge_base',
+    'text_box_base', 'list_control', 'up_down_base',
 )
 
 # Registry types whose controls still publish their base class's anatomy

@@ -72,6 +72,7 @@
 #include "gui_forms/controls/linear_gauge.hpp"
 #include "gui_forms/controls/link_label.hpp"
 #include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/list_control.hpp"
 #include "gui_forms/controls/list_view.hpp"
 #include "gui_forms/controls/lookup_combo_box.hpp"
 #include "gui_forms/controls/masked_text_box.hpp"
@@ -127,6 +128,7 @@
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/controls/text_block.hpp"
 #include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
 #include "gui_forms/controls/toast.hpp"
 #include "gui_forms/controls/toggle_switch.hpp"
 #include "gui_forms/controls/token_box.hpp"
@@ -136,6 +138,7 @@
 #include "gui_forms/controls/track_bar.hpp"
 #include "gui_forms/controls/tree_list_view.hpp"
 #include "gui_forms/controls/tree_view.hpp"
+#include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/user_control.hpp"
 #include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/controls/value_bar.hpp"
@@ -151,7 +154,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 139> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 142> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -291,6 +294,9 @@ inline constexpr std::array<SchemaCatalogEntry, 139> schema_catalog{{
     {"binding", "Binding", &describe_type<Binding>, &create_type<Binding>, &is_exact_type<Binding>},
     {"binding_source", "BindingSource", &describe_type<BindingSource>, &create_type<BindingSource>, &is_exact_type<BindingSource>},
     {"binding_context", "BindingContext", &describe_type<BindingContext>, &create_type<BindingContext>, &is_exact_type<BindingContext>},
+    {"text_box_base", "TextBoxBase", &describe_type<TextBoxBase>, &create_type<TextBoxBase>, &is_exact_type<TextBoxBase>},
+    {"list_control", "ListControl", &describe_type<ListControl>, &create_type<ListControl>, &is_exact_type<ListControl>},
+    {"up_down_base", "UpDownBase", &describe_type<UpDownBase>, &create_type<UpDownBase>, &is_exact_type<UpDownBase>},
 }};
 
 } // namespace gui_forms::abi1

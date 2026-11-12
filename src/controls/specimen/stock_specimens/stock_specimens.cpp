@@ -131,6 +131,43 @@ public:
     }
 };
 
+// TextBoxBase, ListControl and UpDownBase, the abstract bases of the text,
+// list and up-down controls, paint as the Panel they add nothing to; each
+// specimen stands for its registered row, as SpecimenGauge does.
+class SpecimenTextBoxBase final : public TextBoxBase {
+public:
+    explicit SpecimenTextBoxBase(StableId stable_id) : TextBoxBase(std::move(stable_id)) {}
+
+    [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override {
+        static const ControlAnatomy* const registered = stock_anatomy_named("text_box_base");
+        if (registered == nullptr) return TextBoxBase::anatomy();
+        return *registered;
+    }
+};
+
+class SpecimenListControl final : public ListControl {
+public:
+    explicit SpecimenListControl(StableId stable_id) : ListControl(std::move(stable_id)) {}
+
+    [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override {
+        static const ControlAnatomy* const registered = stock_anatomy_named("list_control");
+        if (registered == nullptr) return ListControl::anatomy();
+        return *registered;
+    }
+};
+
+// Made without its parts (no initialize_control_tree): an empty panel.
+class SpecimenUpDownBase final : public UpDownBase {
+public:
+    explicit SpecimenUpDownBase(StableId stable_id) : UpDownBase(std::move(stable_id)) {}
+
+    [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override {
+        static const ControlAnatomy* const registered = stock_anatomy_named("up_down_base");
+        if (registered == nullptr) return UpDownBase::anatomy();
+        return *registered;
+    }
+};
+
 // Writes `value` to the property `name` where the instance has it and it
 // is writable; a value of the wrong kind is the write's own exception. A
 // property the type lacks is left alone (a near-uniform capture then
@@ -499,6 +536,24 @@ StockSpecimenInstance make_help_book(const StockSpecimen&, StableId id) {
 StockSpecimenInstance make_gauge_base(const StockSpecimen&, StableId id) {
     const std::shared_ptr<SpecimenGauge> control = make_control<SpecimenGauge>(std::move(id));
     show_two_fifths(*control);
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
+StockSpecimenInstance make_text_box_base(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<SpecimenTextBoxBase> control = make_control<SpecimenTextBoxBase>(std::move(id));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
+StockSpecimenInstance make_list_control(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<SpecimenListControl> control = make_control<SpecimenListControl>(std::move(id));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
+StockSpecimenInstance make_up_down_base(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<SpecimenUpDownBase> control = make_control<SpecimenUpDownBase>(std::move(id));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }

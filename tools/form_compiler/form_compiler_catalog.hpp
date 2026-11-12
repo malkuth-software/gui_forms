@@ -72,6 +72,7 @@
 #include "gui_forms/controls/linear_gauge.hpp"
 #include "gui_forms/controls/link_label.hpp"
 #include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/list_control.hpp"
 #include "gui_forms/controls/list_view.hpp"
 #include "gui_forms/controls/lookup_combo_box.hpp"
 #include "gui_forms/controls/masked_text_box.hpp"
@@ -127,6 +128,7 @@
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/controls/text_block.hpp"
 #include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
 #include "gui_forms/controls/toast.hpp"
 #include "gui_forms/controls/toggle_switch.hpp"
 #include "gui_forms/controls/token_box.hpp"
@@ -136,6 +138,7 @@
 #include "gui_forms/controls/track_bar.hpp"
 #include "gui_forms/controls/tree_list_view.hpp"
 #include "gui_forms/controls/tree_view.hpp"
+#include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/user_control.hpp"
 #include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/controls/value_bar.hpp"
@@ -151,7 +154,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 139> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 142> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -291,6 +294,9 @@ inline constexpr std::array<FormCatalogEntry, 139> form_catalog{{
     {"binding", "Binding", "gui_forms/binding/binding/binding.hpp", &add_catalog_type<Binding>},
     {"binding_source", "BindingSource", "gui_forms/binding/binding_source/binding_source.hpp", &add_catalog_type<BindingSource>},
     {"binding_context", "BindingContext", "gui_forms/binding/binding_context/binding_context.hpp", &add_catalog_type<BindingContext>},
+    {"text_box_base", "TextBoxBase", "gui_forms/controls/text_box_base.hpp", &add_catalog_type<TextBoxBase>},
+    {"list_control", "ListControl", "gui_forms/controls/list_control.hpp", &add_catalog_type<ListControl>},
+    {"up_down_base", "UpDownBase", "gui_forms/controls/up_down_base.hpp", &add_catalog_type<UpDownBase>},
 }};
 
 } // namespace gui_forms::form_compiler

@@ -21,7 +21,7 @@ inline constexpr std::array<std::string_view, 14> catalog_categories {{
     "Components",
 }};
 
-inline constexpr std::array<CatalogEntry, 139> control_catalog {{
+inline constexpr std::array<CatalogEntry, 142> control_catalog {{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", "Commands", "Shared retained command state machine for pointer, keyboard, mnemonic, semantic, and dialog activation that Button, CheckBox, RadioButton, and LinkLabel specialize.", "ButtonBase", "stable", "control-spectrum"},
     {"button", "Button", "gui_forms/controls/button.hpp", "Commands", "Push button with accept/cancel dialog results, default-button state, and four visual policies.", "Button", "stable", "control-spectrum"},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", "Commands", "Command button with an explicit disclosure actuator that either routes the whole button to an owned overlay menu or keeps a primary click region beside a trailing split region.", "ToolStripSplitButton", "provisional", "commands-and-menus"},
@@ -161,4 +161,7 @@ inline constexpr std::array<CatalogEntry, 139> control_catalog {{
     {"binding", "Binding", "gui_forms/binding/binding/binding.hpp", "Components", "Connects one Control property to one BindingSource field with validated conversion, update timing, and error routing.", "Binding", "stable", "values-and-spinners"},
     {"binding_source", "BindingSource", "gui_forms/binding/binding_source/binding_source.hpp", "Components", "Owns stable rows, currency, edit snapshots, list and error events, and the active Bindings for one Window.", "BindingSource", "stable", "values-and-spinners"},
     {"binding_context", "BindingContext", "gui_forms/binding/binding_context/binding_context.hpp", "Components", "Window-scoped weak membership and disposal subscriptions for BindingSources.", "BindingContext", "stable", "value-editors"},
+    {"text_box_base", "TextBoxBase", "gui_forms/controls/text_box_base.hpp", "Text editing", "Abstract base of the text-editing controls (TextBox, MaskedTextBox, RichTextBox), as Windows Forms names it; it adds nothing to Panel until a member is common to all three.", "TextBoxBase", "provisional", ""},
+    {"list_control", "ListControl", "gui_forms/controls/list_control.hpp", "Selection from a list", "Abstract base of the list controls (ListBox, CheckedListBox, ComboBox), as Windows Forms names it; it adds nothing to Panel until a member is common to them.", "ListControl", "provisional", ""},
+    {"up_down_base", "UpDownBase", "gui_forms/controls/up_down_base.hpp", "Value setting", "Abstract base of the up-down controls (NumericUpDown, DomainUpDown), as Windows Forms names it: the edit field and spin column both own.", "UpDownBase", "provisional", ""},
 }};

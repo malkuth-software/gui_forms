@@ -992,6 +992,7 @@ add_library(gui_forms_controls STATIC
     src/controls/drawing_surface/drawing_surface.cpp
     src/controls/metrics_view/metrics_view.cpp
     src/controls/specimen/stock_specimens/stock_specimens.cpp
+    src/controls/panel/text_box_base/text_box_base.cpp
     src/controls/panel/text_box/text_box.cpp
     src/controls/panel/text_editing/text_editing_engine.cpp
     src/controls/panel/rich_text_box/rich_text_box.cpp
@@ -1003,11 +1004,13 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/text_box/text_box_decorations.cpp
     src/controls/panel/text_box/text_decorations/text_decorations.cpp
     src/controls/panel/text_box/auto_complete/auto_complete.cpp
+    src/controls/panel/list_control/list_control.cpp
     src/controls/panel/list_box/list_box.cpp
     src/controls/panel/list_box/checked_list_box/checked_list_box.cpp
     src/controls/panel/combo_box/drop_down_layer.cpp
     src/controls/panel/combo_box/combo_box.cpp
     src/controls/panel/up_down/spin_buttons.cpp
+    src/controls/panel/up_down/up_down_base.cpp
     src/controls/panel/domain_up_down/domain_up_down.cpp
     src/controls/panel/token_box/token_box.cpp
     src/controls/search_field/search_field.cpp
@@ -1471,6 +1474,22 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     find_library(GUI_FORMS_UNIFORMTYPEIDENTIFIERS UniformTypeIdentifiers REQUIRED)
     add_library(gui_forms_host_macos STATIC
         src/host/macos/application/macos_host.mm
+        src/host/macos/application/macos_application_run.mm
+        src/host/macos/application/macos_window_delegates.mm
+        src/host/macos/application/macos_window_requests.mm
+        src/host/macos/application/macos_main_work.mm
+        src/host/macos/application/macos_values.mm
+        src/host/macos/application/macos_bundled_fonts.mm
+        src/host/macos/application/macos_splashscreen.mm
+        src/host/macos/application/live_surface_damage.cpp
+        src/host/macos/view/macos_view.mm
+        src/host/macos/view/macos_view_scheduling.mm
+        src/host/macos/view/macos_view_drawing.mm
+        src/host/macos/view/macos_view_input.mm
+        src/host/macos/view/macos_view_accessibility.mm
+        src/host/macos/view/macos_view_diagnostics.mm
+        src/host/macos/accessibility/macos_accessibility_element.mm
+        src/host/macos/accessibility/macos_accessibility_text.mm
         src/host/macos/application/application_menu.mm
         src/host/macos/services/appkit_host_services.mm
         src/host/macos/services/appkit_clipboard_image.mm
@@ -3557,7 +3576,8 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_live_surface_tests tests/live_surface_tests.cpp)
     target_link_libraries(gui_forms_live_surface_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_live_surface_tests COMMAND gui_forms_live_surface_tests)
-    add_executable(gui_forms_opaque_live_surface_tests tests/opaque_live_surface_tests.cpp)
+    add_executable(gui_forms_opaque_live_surface_tests tests/opaque_live_surface_tests.cpp
+        src/host/macos/application/live_surface_damage.cpp)
     target_link_libraries(gui_forms_opaque_live_surface_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_opaque_live_surface_tests COMMAND gui_forms_opaque_live_surface_tests)
 

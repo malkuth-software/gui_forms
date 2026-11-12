@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text.hpp"
@@ -83,7 +83,7 @@ struct RichTextFormat final {
 //
 // Positions are byte offsets into the source, on grapheme boundaries.
 // text() is the plain text (the markup removed); markdown() is the source.
-class RichTextBox final : public Panel, public RichTextBoxCapabilities<RichTextBox> {
+class RichTextBox final : public TextBoxBase, public RichTextBoxCapabilities<RichTextBox> {
 public:
     explicit RichTextBox(StableId stable_id, std::string_view markdown = {});
     ~RichTextBox() override;

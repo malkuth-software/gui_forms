@@ -46,7 +46,7 @@ constexpr double focus_ring_inset = 1.0;
 } // namespace
 using namespace input_control_detail;
 
-ListBox::ListBox(StableId stable_id) : Panel(std::move(stable_id)) {
+ListBox::ListBox(StableId stable_id) : ListControl(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;

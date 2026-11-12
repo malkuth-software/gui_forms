@@ -37,6 +37,8 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
      - A scrolling list of named settings in collapsible groups, each with a value and an optional editor.
    * - :cpp:class:`Dial <gui_forms::Dial>`
      - Rotary knob from the instruments package: a RangeControl value set by turning, dragging or the TrackBar keys over a 270-degree scale, a slider to assistive technology.
+   * - :cpp:class:`UpDownBase <gui_forms::UpDownBase>`
+     - The shared base of the up-down controls: a text field with up and down buttons.
 
 .. toctree::
    :hidden:
@@ -54,6 +56,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
    generated/gui_forms.PropertyGrid
    generated/gui_forms.PropertyList
    generated/gui_forms.Dial
+   generated/gui_forms.UpDownBase
 
 Related types
 -------------
