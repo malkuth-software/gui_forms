@@ -1,6 +1,8 @@
 // The theme language's selectors (stage T3, phase P3). Gate: one
 // conformance fixture per selector form of PLAN.md section 1.4 and per
-// refused form; the specificity and the level of each.
+// refused form; the specificity and the level of each. Custom states
+// (R2-13): resolved against the selector's control type or item system,
+// a standard name first, and W106 where nothing declares them.
 
 #include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../src/core/theme_language/selector/theme_selector.hpp"
@@ -22,7 +24,10 @@ namespace {
 using gui_forms::AnatomyState;
 using gui_forms::AncestorCombinator;
 using gui_forms::CascadeLevel;
+using gui_forms::AnatomyDefect;
 using gui_forms::ControlAnatomy;
+using gui_forms::CustomStateDeclaration;
+using gui_forms::CustomStateIndex;
 using gui_forms::ItemSystemDeclaration;
 using gui_forms::PartDeclaration;
 using gui_forms::PartRole;
@@ -54,6 +59,7 @@ using gui_forms::theme_language::maximum_rules;
 using gui_forms::theme_language::maximum_simple_selectors;
 using gui_forms::theme_language::parse_theme_sheet;
 using gui_forms::theme_language::tokenize_theme_sheet;
+using gui_forms::validate_control_anatomy;
 
 int failures = 0;
 
@@ -65,6 +71,8 @@ void require(bool condition, std::string_view message) {
 }
 
 // -- the vocabulary: four control types ---------------------------------------
+// The button declares the custom state danger, and the list view's items
+// modified and pinned (R2-13); the check box declares none.
 
 constexpr std::array<PartDeclaration, 3> button_parts{{
     {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
@@ -82,11 +90,17 @@ constexpr std::array<PartDeclaration, 2> track_bar_parts{{
 constexpr std::array<PartDeclaration, 1> list_item_parts{{
     {.name = "row", .role = PartRole::selection, .composed_from = {}, .states = {}},
 }};
+constexpr std::array<CustomStateDeclaration, 1> button_custom_states{{{.name = "danger"}}};
+constexpr std::array<CustomStateDeclaration, 2> list_item_custom_states{{{.name = "modified"}, {.name = "pinned"}}};
 constexpr std::array<ItemSystemDeclaration, 1> list_items{{
-    {.name = "item", .parts = list_item_parts, .states = {}, .custom_states = {}},
+    {.name = "item", .parts = list_item_parts, .states = {}, .custom_states = list_item_custom_states},
 }};
 const std::array<ControlAnatomy, 4> controls{{
-    {.control_id = "button", .parts = button_parts, .states = {}, .custom_states = {}, .item_systems = {}},
+    {.control_id = "button",
+     .parts = button_parts,
+     .states = {},
+     .custom_states = button_custom_states,
+     .item_systems = {}},
     {.control_id = "check_box", .parts = check_box_parts, .states = {}, .custom_states = {}, .item_systems = {}},
     {.control_id = "track_bar", .parts = track_bar_parts, .states = {}, .custom_states = {}, .item_systems = {}},
     {.control_id = "list_view", .parts = {}, .states = {}, .custom_states = {}, .item_systems = list_items},
@@ -102,8 +116,10 @@ struct Lowering final {
     std::size_t bytes_left{};
 };
 
-// Lowers the selectors of the sheet `<selectors> {}`.
-Lowering lower(std::string_view selectors, std::size_t budget = maximum_rules) {
+// Lowers the selectors of the sheet `<selectors> {}` against `vocabulary`
+// (by default the four control types above).
+Lowering lower(std::string_view selectors, std::size_t budget = maximum_rules,
+               std::span<const ControlAnatomy> named = controls) {
     const std::string sheet = std::string(selectors) + " {}";
     ThemeSource source{};
     source.file = "test.theme.css";
@@ -126,7 +142,7 @@ Lowering lower(std::string_view selectors, std::size_t budget = maximum_rules) {
                               .rule_label = selectors,
                               .cursor = cursor};
     SelectorVocabulary vocabulary{};
-    vocabulary.controls = controls;
+    vocabulary.controls = named;
     SelectorLowering lowering{};
     LoweringBudget budget_left{};
     budget_left.rules = budget;
@@ -509,6 +525,94 @@ void test_dropped() {
             "an error after an unknown name still refuses");
 }
 
+// -- custom states (R2-13) ------------------------------------------------------
+
+// Whether `result` dropped its rule with one W106 whose detail contains
+// `checked`.
+bool dropped_naming(const Lowering& result, std::string_view checked) {
+    const bool dropped = result.outcome == SelectorOutcome::dropped && result.selectors.empty() &&
+                         result.diagnostics.size() == 1U &&
+                         result.diagnostics[0].code == DiagnosticCode::unknown_selector_name &&
+                         result.diagnostics[0].detail.find(checked) != std::string::npos &&
+                         result.budget_left == maximum_rules;
+    return dropped;
+}
+
+void test_custom_states() {
+    const std::vector<CustomStateIndex> first{CustomStateIndex{0U}};
+    const std::vector<CustomStateIndex> second{CustomStateIndex{1U}};
+
+    const LoweredSelector danger = lower_one("button:state(danger)");
+    require(danger.selector.custom_states == first && danger.selector.states.empty() &&
+                danger.specificity == specificity(0U, 1U, 1U),
+            "a custom state of the type, at its position, counting as a pseudo-class");
+    const LoweredSelector face = lower_one("button::part(face):state(danger):hover");
+    require(face.selector.part == "face" && face.selector.custom_states == first &&
+                face.selector.states == std::vector<AnatomyState>{AnatomyState::hot} &&
+                face.specificity == specificity(0U, 2U, 2U),
+            "a part shares its control's custom states, beside a standard state");
+    const LoweredSelector pinned = lower_one("list-view::part(row):state(pinned)");
+    require(pinned.selector.custom_states == second, "an item part reads its item system's custom states");
+    const LoweredSelector negated = lower_one("button:not(:state(danger))");
+    require(negated.selector.excluded.size() == 1U && negated.selector.excluded[0].custom_states == first &&
+                negated.selector.custom_states.empty(),
+            "a custom state in :not() is read against the selector's type");
+    const LoweredSelector repeated = lower_one("button:state(danger):state(danger)");
+    require(repeated.selector.custom_states == first, "a custom state written twice is held once");
+
+    // Not declared by the type checked: W106 naming it.
+    require(dropped_naming(lower("check-box:state(danger)"), "check-box"),
+            "a custom state the type does not declare is W106 naming the type");
+    require(dropped_naming(lower("list-view:state(pinned)"), "list-view"),
+            "an item system's custom state is not the control's own");
+    require(dropped_naming(lower("button:not(:state(pinned))"), "button"),
+            "an undeclared custom state in :not() is W106 too");
+    require(dropped_naming(lower("track-bar::part(thumb):not(button:state(nothing))"), "button"),
+            "a :not() argument with its own type reads that type's custom states");
+
+    // No element: nothing to declare it.
+    require(dropped_naming(lower("::part(face):state(danger)"), "no control type"),
+            "a selector naming no type cannot name a custom state");
+    require(dropped_naming(lower(".primary:state(danger)"), "no control type"),
+            "a class alone names no type");
+    require(dropped_naming(lower(":family(button):state(danger)"), "no control type"),
+            "a family names no type");
+
+    // As an unknown part, an undeclared custom state leaves out only its
+    // own selector.
+    const Lowering in_list = lower("button:state(danger), check-box:state(danger)");
+    require(in_list.outcome == SelectorOutcome::lowered && in_list.selectors.size() == 1U &&
+                in_list.selectors[0].selector.control_type == "button" && in_list.diagnostics.size() == 1U &&
+                in_list.diagnostics[0].detail.find("check-box") != std::string::npos,
+            "the type declaring it keeps its selector; the other is left out with W106");
+    const Lowering in_group = lower(":is(button, check-box):state(danger)");
+    require(in_group.outcome == SelectorOutcome::lowered && in_group.selectors.size() == 1U &&
+                in_group.selectors[0].selector.custom_states == first && in_group.diagnostics.size() == 1U,
+            "each expansion reads its own type's custom states");
+    const Lowering in_ancestor = lower("button:state(danger) check-box");
+    require(in_ancestor.outcome == SelectorOutcome::refused,
+            "an ancestor compound takes no custom state, as it takes no state");
+
+    // Precedence and collision: a standard name is read first, so a custom
+    // state named as a standard one never shadows it; the anatomy carrying
+    // it is refused by validate_control_anatomy.
+    constexpr std::array<CustomStateDeclaration, 2> gauge_custom_states{{{.name = "hot"}, {.name = "lit"}}};
+    const std::array<ControlAnatomy, 1> gauge{{
+        {.control_id = "gauge", .parts = {}, .states = {}, .custom_states = gauge_custom_states, .item_systems = {}},
+    }};
+    require(validate_control_anatomy(gauge[0]).defect == AnatomyDefect::custom_state_shadows_standard_state,
+            "a custom state named as a standard one is refused with the anatomy");
+    const Lowering standard = lower("gauge:state(hot)", maximum_rules, gauge);
+    require(standard.outcome == SelectorOutcome::lowered && standard.selectors.size() == 1U &&
+                standard.selectors[0].selector.states == std::vector<AnatomyState>{AnatomyState::hot} &&
+                standard.selectors[0].selector.custom_states.empty(),
+            "the standard state wins a colliding name");
+    const Lowering lit = lower("gauge:state(lit)", maximum_rules, gauge);
+    require(lit.outcome == SelectorOutcome::lowered && lit.selectors.size() == 1U &&
+                lit.selectors[0].selector.custom_states == second,
+            "a custom state's position is its declaration's, whatever precedes it");
+}
+
 // The output and budget are the caller's, appended to and kept.
 void test_appending() {
     ThemeSource source{};
@@ -556,6 +660,7 @@ int main() {
     test_combinators();
     test_refused();
     test_dropped();
+    test_custom_states();
     test_appending();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";

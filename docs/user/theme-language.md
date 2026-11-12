@@ -121,6 +121,7 @@ more than 256 levels up are not matched.
 | part | `::part(scroll-thumb)` |
 | part role | `::role(face)` |
 | state | `:hover` `:active` `:focus` `:focus-visible` `:checked` `:indeterminate` `:disabled` `:enabled` `:read-only` `:invalid` `:open` `:default`, and every other published state as `:state(drag-proximate)` |
+| custom state | `button::part(face):state(danger)`, `indicator-lamp::part(lens):state(on)`: a state the control type declares for itself (below) |
 | either of | `button:is(:hover, :focus-visible)::part(face)` (at most 32 arguments) |
 | either of, counting nothing | `button:where(.primary, #save)` |
 | none of | `button:not(.primary, :hover)`: compounds of types, stable IDs, classes, states and families, not nested |
@@ -141,6 +142,26 @@ pseudo-class, `:is()` and `:not()` as their most specific argument and
 `:where()` as nothing. So `button:hover` beats `.primary`, as in CSS.
 A control's fonts are resolved for no family, so a font property in a
 `:family()` rule is a warning that drops it.
+
+`:state(name)` reads a standard state first: every published state has a
+registered name (`drag-proximate`, `pending`), and that state wins. A name
+that is not a standard state is a custom state of the selector's control
+type: one the type's anatomy declares in its `custom_states` (a button's
+`danger`, an indicator lamp's `on` and `error`), or, when the selector's
+part is an item part, one the item system declaring that part declares (a
+document tab's `modified` and `pinned`). A custom state counts as a
+pseudo-class. Because a custom state belongs to its control type, a
+selector that names no control type (`::part(face):state(danger)`,
+`:family(button):state(danger)`) cannot name one, and a custom state its
+type does not declare (`check-box:state(danger)`) is a warning (W106)
+naming the type checked; either leaves out only its own selector, as an
+unknown part does. Inside `:not()` a custom state is read against the
+argument's own control type, or the selector's when it names none. A
+control type may not declare a custom state named as a standard one:
+`validate_control_anatomy` refuses it
+(`custom_state_shadows_standard_state`), and two custom states of one
+type may not share a name. A control's inline style cannot name custom
+states yet, since its selectors name no control type.
 
 A package compiled onto the GUI.Forms base (`ThemeBase::gui_forms`) sits
 above the base sheet as CSS's author origin sits above the user-agent

@@ -78,6 +78,14 @@ RuleDiagnostic diagnostic(RuleDiagnosticKind kind, std::size_t rule, const Theme
     return result;
 }
 
+// Whether every custom state position fits an AnatomyStateSet.
+bool custom_states_valid(const std::vector<CustomStateIndex>& states) noexcept {
+    for (const CustomStateIndex state : states) {
+        if (static_cast<std::size_t>(state.value) >= maximum_custom_states) return false;
+    }
+    return true;
+}
+
 // The diagnostic for a selector that cannot be used at its level, or none.
 // A control's own inline style (`owned`) needs no stable ID.
 std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool owned) noexcept {
@@ -87,6 +95,13 @@ std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool ow
     }
     for (const AnatomyState state : selector.states) {
         if (static_cast<std::size_t>(state) >= anatomy_state_count) return RuleDiagnosticKind::selector_invalid;
+    }
+    // A custom state's position belongs to one control type (R2-13): a
+    // selector naming none has nothing to read it against, except in a
+    // control's own inline style.
+    if (!custom_states_valid(selector.custom_states)) return RuleDiagnosticKind::selector_invalid;
+    if (!selector.custom_states.empty() && selector.control_type.empty() && !owned) {
+        return RuleDiagnosticKind::selector_invalid;
     }
     if (selector.ancestors.size() > maximum_rule_ancestors) return RuleDiagnosticKind::selector_invalid;
     for (const RuleAncestor& ancestor : selector.ancestors) {
@@ -101,6 +116,9 @@ std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool ow
         for (const AnatomyState state : exclusion.states) {
             if (static_cast<std::size_t>(state) >= anatomy_state_count) return RuleDiagnosticKind::selector_invalid;
         }
+        if (!custom_states_valid(exclusion.custom_states)) return RuleDiagnosticKind::selector_invalid;
+        const bool typed = !exclusion.control_type.empty() || !selector.control_type.empty();
+        if (!exclusion.custom_states.empty() && !typed && !owned) return RuleDiagnosticKind::selector_invalid;
     }
     if (selector.role && static_cast<std::size_t>(*selector.role) >= part_role_count) {
         return RuleDiagnosticKind::selector_invalid;
@@ -239,7 +257,8 @@ RuleSpecificity exclusion_specificity(const RuleExclusion& exclusion) noexcept {
     RuleSpecificity result{};
     result.ids = exclusion.stable_id.empty() ? 0U : 1U;
     const std::size_t family = exclusion.family.empty() ? 0U : 1U;
-    result.classes = static_cast<std::uint32_t>(exclusion.classes.size() + exclusion.states.size() + family);
+    const std::size_t states = exclusion.states.size() + exclusion.custom_states.size();
+    result.classes = static_cast<std::uint32_t>(exclusion.classes.size() + states + family);
     result.types = exclusion.control_type.empty() ? 0U : 1U;
     return result;
 }
@@ -252,7 +271,8 @@ RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept {
     // Each class, each state and the family, as CSS counts classes and
     // pseudo-classes.
     const std::size_t family = selector.family.empty() ? 0U : 1U;
-    result.classes = static_cast<std::uint32_t>(selector.classes.size() + selector.states.size() + family);
+    const std::size_t states = selector.states.size() + selector.custom_states.size();
+    result.classes = static_cast<std::uint32_t>(selector.classes.size() + states + family);
     // A surface selector counts as a type selector, as CSS's `window` would;
     // the part's name and role each as a pseudo-element.
     const bool typed = !selector.control_type.empty() || selector.surface != SurfaceKind::none;
@@ -1535,6 +1555,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         if (engine_table) compiled.provenance.layer = ThemeLayer::built_in;
         compiled.selector = rule.selector;
         for (const AnatomyState state : rule.selector.states) compiled.states.insert(state);
+        for (const CustomStateIndex state : rule.selector.custom_states) compiled.states.insert(state);
         for (const RuleAncestor& ancestor : rule.selector.ancestors) {
             if (!ancestor.control_type.empty()) compiled.ancestor_keys.add({}, ancestor.control_type);
             if (!ancestor.stable_id.empty()) compiled.ancestor_keys.add("#", ancestor.stable_id);
@@ -2434,8 +2455,12 @@ bool CompiledThemeRules::matches(const CompiledRule& rule, const PartFacts& fact
     if (!selector.stable_id.empty() && selector.stable_id != facts.stable_id) return false;
     if (!selector.part.empty() && selector.part != facts.part) return false;
     if (selector.role && *selector.role != facts.role) return false;
+    // The control type was compared above, so a custom bit means the
+    // same state in the rule and the facts (R2-13).
     const std::uint64_t needed = rule.states.standard_bits();
     if ((facts.states.standard_bits() & needed) != needed) return false;
+    const std::uint16_t needed_custom = rule.states.custom_bits();
+    if ((facts.states.custom_bits() & needed_custom) != needed_custom) return false;
     for (const std::string& name : selector.classes) {
         bool present = false;
         for (const std::string& held : facts.classes) {
@@ -2525,6 +2550,9 @@ bool CompiledThemeRules::exclusion_matches(const RuleExclusion& exclusion, const
     if (!exclusion.stable_id.empty() && exclusion.stable_id != facts.stable_id) return false;
     if (!exclusion.family.empty() && exclusion.family != facts.family) return false;
     for (const AnatomyState state : exclusion.states) {
+        if (!facts.states.contains(state)) return false;
+    }
+    for (const CustomStateIndex state : exclusion.custom_states) {
         if (!facts.states.contains(state)) return false;
     }
     for (const std::string& name : exclusion.classes) {

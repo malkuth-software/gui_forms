@@ -64,11 +64,16 @@ struct GUI_FORMS_API RuleExclusion final {
     std::string stable_id{};
     std::vector<std::string> classes{};
     std::vector<AnatomyState> states{};
+    // Custom states (RuleSelector::custom_states), positions in the
+    // custom states of the exclusion's control type, or of its selector's
+    // when it names none.
+    std::vector<CustomStateIndex> custom_states{};
     std::string family{};
 
     friend bool operator==(const RuleExclusion& left, const RuleExclusion& right) noexcept {
         return left.control_type == right.control_type && left.stable_id == right.stable_id &&
-               left.classes == right.classes && left.states == right.states && left.family == right.family;
+               left.classes == right.classes && left.states == right.states &&
+               left.custom_states == right.custom_states && left.family == right.family;
     }
 };
 
@@ -125,7 +130,14 @@ struct GUI_FORMS_API AncestorBloom final {
 // theme's ControlVisualRole, such as `accent_button`): the selector matches
 // only parts resolved for that family (PartFacts::family). `excluded`
 // holds the arguments of its `:not()` selectors: it matches no part any of them
-// matches.
+// matches. `custom_states` (R2-13) are the custom states its `:state()`
+// names: each a position in its control type's
+// ControlAnatomy::custom_states, or, when its part is an item part, in the
+// custom states of the item system declaring that part. A position means
+// something only for one control type, so a selector with custom states
+// names its control type (an inline style's rules, which apply to their
+// own control alone, need not). They match the part's AnatomyStateSet
+// custom bits.
 struct GUI_FORMS_API RuleSelector final {
     std::string control_type{};
     std::string stable_id{};
@@ -133,6 +145,7 @@ struct GUI_FORMS_API RuleSelector final {
     std::string part{};
     std::optional<PartRole> role{};
     std::vector<AnatomyState> states{};
+    std::vector<CustomStateIndex> custom_states{};
     SurfaceKind surface{SurfaceKind::none};
     std::string family{};
     std::vector<RuleExclusion> excluded{};
@@ -142,13 +155,15 @@ struct GUI_FORMS_API RuleSelector final {
     friend bool operator==(const RuleSelector& left, const RuleSelector& right) noexcept {
         return left.control_type == right.control_type && left.stable_id == right.stable_id &&
                left.classes == right.classes && left.part == right.part && left.role == right.role &&
-               left.states == right.states && left.surface == right.surface && left.family == right.family &&
+               left.states == right.states && left.custom_states == right.custom_states &&
+               left.surface == right.surface && left.family == right.family &&
                left.excluded == right.excluded && left.ancestors == right.ancestors;
     }
 };
 
 // A selector's specificity, CSS's three columns compared in order: the
-// stable ID; the classes, the states and the family (pseudo-classes); the
+// stable ID; the classes, the states (standard and custom) and the family
+// (pseudo-classes); the
 // control type or surface and the part (its name or role, one each, as
 // pseudo-elements). A `:not()` adds its most specific argument's, and each
 // ancestor compound its own.
@@ -1935,6 +1950,8 @@ private:
         // Position in the authored sheet; later wins among equals.
         std::size_t order{};
         RuleSelector selector{};
+        // The selector's standard and custom states as bits, set when the
+        // rule is compiled so that matching compares two masks.
         AnatomyStateSet states{};
         // The keys the selector's ancestor compounds name (selector step 4).
         AncestorBloom ancestor_keys{};
