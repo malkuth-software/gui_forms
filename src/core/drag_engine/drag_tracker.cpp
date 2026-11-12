@@ -1,8 +1,7 @@
 #include "gui_forms/drag/drag_tracker/drag_tracker.hpp"
 
 #include "gui_forms/control/control/control.hpp"
-#include "gui_forms/engine/motion_clock/motion_clock.hpp"
-#include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "drag_engine.hpp"
@@ -11,7 +10,6 @@
 #include <array>
 #include <chrono>
 #include <cmath>
-#include <exception>
 #include <span>
 #include <vector>
 
@@ -148,7 +146,8 @@ class DragTrackerSession final : public DragClient {
 public:
     DragTrackerSession(DragTracker& tracker, Control& owner, DragInteractionEvents* interactions) noexcept
         : tracker_(&tracker), owner_(&owner), interactions_(interactions) {}
-    ~DragTrackerSession() override { scroll_timer_.disconnect(); }
+    // The scroll timer, a member, stops as it is destroyed.
+    ~DragTrackerSession() override = default;
     DragTrackerSession(const DragTrackerSession&) = delete;
     DragTrackerSession& operator=(const DragTrackerSession&) = delete;
 
@@ -177,12 +176,18 @@ public:
     Point velocity{};
 
 private:
-    // The scroll timer's target. The session disconnects the timer before
-    // it is destroyed, on the same thread, so `session` is valid whenever
-    // the timer calls.
+    // The scroll timer's target. The timer is the session's member and
+    // skips the ticks of a destroyed timer, all on the window's thread, so
+    // `session` is valid whenever it calls. A tick reports unchanged: the
+    // tracker cannot see the owner's paints (the timer's paint gate needs
+    // note_painted from on_paint), so it paces at the display interval and
+    // the owner's scroll invalidates what moved.
     struct ScrollTick final {
         DragTrackerSession* session;
-        void operator()(FrameTime now) const { (*session).scroll_tick(now); }
+        AnimationTickResult operator()(FrameTime now) const {
+            (*session).scroll_tick(now);
+            return AnimationTickResult::unchanged;
+        }
     };
 
     // Counts the owner's callbacks in progress (depth_), for the reentrancy
@@ -248,7 +253,11 @@ private:
     // maximum_withdrawn_drag_targets, live count withdrawn_count_.
     std::array<std::uint32_t, maximum_withdrawn_drag_targets> withdrawn_{};
     std::size_t withdrawn_count_{};
-    FrameRequestToken scroll_timer_{};
+    // Auto-scroll's frames: started when the pointer enters a band, stopped
+    // when it leaves, at the content's end, at every session end, on detach
+    // and destruction. A window that cancels its frame requests stops it
+    // too; the next pointer move in a band starts it again.
+    AnimationTimer scroll_timer_{};
     FrameTime last_tick_{};
 };
 
@@ -775,24 +784,17 @@ void DragTrackerSession::update_scroll(Point pointer) {
         stop_scroll();
         return;
     }
-    if (scroll_timer_.connected()) return;
+    if (scroll_timer_.started()) return;
     const Control::Ptr owner = observed_.lock();
     if (!owner) return;
-    SurfaceRoot* const root = (*owner).attached_surface_root();
-    if (root == nullptr) return;
-    const FrameTime now = FrameClock::now();
-    last_tick_ = now;
-    try {
-        scroll_timer_ = (*root).schedule_resting_ui_timer(*owner, motion_frame_interval, now + motion_frame_interval,
-                                                          ScrollTick{this});
-    } catch (const std::exception&) {
-        // The window's request limit: the drag goes on without auto-scroll.
-        velocity = Point{};
-    }
+    last_tick_ = FrameClock::now();
+    // The interval is the display's and the target is set, so start does
+    // not refuse them.
+    scroll_timer_.start(*owner, display_frame_interval, ScrollTick{this});
 }
 
 void DragTrackerSession::stop_scroll() noexcept {
-    scroll_timer_.disconnect();
+    scroll_timer_.stop();
     velocity = Point{};
 }
 
@@ -814,9 +816,11 @@ void DragTrackerSession::scroll_tick(FrameTime now) {
             return;
         }
     }
-    const double frame_seconds = std::chrono::duration<double>(motion_frame_interval).count();
+    const double frame_seconds = std::chrono::duration<double>(display_frame_interval).count();
     const double elapsed = std::chrono::duration<double>(now - last_tick_).count();
     const double seconds = std::clamp(elapsed, 0.0, frame_seconds * maximum_scroll_frames);
+    // A tick on the clock's phase may fall at the start time: no time, no step.
+    if (!(seconds > 0.0)) return;
     last_tick_ = now;
     velocity = drag_auto_scroll_velocity(scroll_, pointer_);
     if (velocity.x == 0.0 && velocity.y == 0.0) {

@@ -60,9 +60,9 @@
 //
 // Memory: the first press reserves the tracker's target storage at
 // maximum_drag_targets and the engine's at its caps; neither grows. Entering
-// an auto-scroll band schedules one frame timer (one allocation in the
-// window's scheduler); a pointer move or frame inside a dragging session
-// allocates nothing else.
+// an auto-scroll band starts one AnimationTimer the tracker owns (its frame
+// request is an allocation in the window's scheduler); a pointer move or
+// frame inside a dragging session allocates nothing else.
 //
 // Threads: every member runs on the owner's window's thread (a call from
 // another thread throws WrongThreadError, as the window does), one session
