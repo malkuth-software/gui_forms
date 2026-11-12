@@ -1,26 +1,42 @@
 #!/usr/bin/env python3
 """Export annotations of the public headers (CP29 handoff section 2.2).
 
-The shared libraries are built with hidden visibility (ELF, Mach-O) and with
-dllexport/dllimport (MinGW), so a symbol leaves its library only when its
-declaration carries the library's export macro:
+A shipped shared library exports only the declarations that carry its export
+macro (coordinator, 2026-11-12: controlled at the link, not by compile-time
+visibility):
 
 - GUI_FORMS_API (gui_forms/export/application_export.hpp): the Application
-  library and the shared test runtime, which hold the same archives;
+  library;
 - GUI_FORMS_THREADING_API (gui_forms/export/threading_export.hpp): the
   Threading library, whose one header (threading.hpp) is annotated by hand.
 
+On Windows the macro is dllexport. On ELF and Mach-O the archives are
+compiled with default visibility (the shared test runtime holds the same
+archives and exports everything to the tests), and each library links with
+an export list generated here from the marks: cmake/exports/<library>.map
+(a version script) and cmake/exports/<library>.exports (an
+-exported_symbols_list). The macro stays the one source of what is exported.
+
 This tool places GUI_FORMS_API in every public header under
-include/gui_forms/ that belongs to those archives:
+include/gui_forms/ that belongs to those archives, and writes the lists:
 
     python3 -B tools/export_annotations.py apply [HEADER...]
         Inserts the macro and the export header's include, and reports what
         it changed. Rerunning changes nothing.
     python3 -B tools/export_annotations.py check [HEADER...]
-        Lists every declaration that needs the macro and lacks it; exits 1
-        when there is one.
+        Lists every declaration that needs the macro and lacks it, and,
+        without HEADER arguments, every export list that differs from the
+        marks; exits 1 when there is one.
+    python3 -B tools/export_annotations.py exports
+        Rewrites the export lists that differ from the marks.
     python3 -B tools/export_annotations.py count [HEADER...]
-        Prints the number of annotated classes and functions.
+        Prints the number of annotated classes and functions, and of each
+        library's export patterns.
+
+The lists also cover the private headers under src/ that mark a declaration
+GUI_FORMS_API (what the C ABI library, gui_drawing_raster0 and the ABI tests
+call); `check` does not require marks there. What a mark exports, as
+mangled-name globs, is described at patterns_of.
 
 What it marks, outside templates:
 - every class, struct or union definition at namespace scope, and each one
@@ -53,6 +69,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 INCLUDE = ROOT / 'include'
 PUBLIC = INCLUDE / 'gui_forms'
 MACRO = 'GUI_FORMS_API'
+THREADING_MACRO = 'GUI_FORMS_THREADING_API'
+# Either library's macro marks a declaration exported.
+MACROS = (MACRO, THREADING_MACRO)
 EXPORT_INCLUDE = '#include "gui_forms/export/application_export.hpp"'
 
 EXCLUDED_DIRECTORIES = ('c', 'audio', 'export')
@@ -167,11 +186,14 @@ def tokenize(source):
 class Scope:
     """One open brace: what opened it and, for a class, its access."""
 
-    def __init__(self, kind, marked=False, access='public', template=False):
+    def __init__(self, kind, marked=False, access='public', template=False, names=(),
+                 anonymous=False):
         self.kind = kind          # 'namespace', 'linkage', 'class', 'enum' or 'opaque'
         self.marked = marked      # a class that carries (or receives) the macro
         self.access = access
         self.template = template  # a class template, or anything inside one
+        self.names = list(names)  # a namespace's components, or a class's name
+        self.anonymous = anonymous  # an unnamed namespace, or anything inside one
 
 
 def skip_attributes(statement, index):
@@ -225,11 +247,18 @@ def strip_template(statement):
 class Finding:
     """A place that needs the macro: the offset to insert at and a description."""
 
-    def __init__(self, offset, kind, name, annotated):
+    def __init__(self, offset, kind, name, annotated, components=(), nested=False,
+                 anonymous=False):
         self.offset = offset
         self.kind = kind          # 'class' or 'function'
         self.name = name
-        self.annotated = annotated
+        self.annotated = annotated  # the macro the declaration carries, or ''
+        # The qualified name's components (namespaces, enclosing classes and
+        # the name; for a friend, its namespaces and its name), which the
+        # export lists mangle.
+        self.components = list(components)
+        self.nested = nested      # a class nested in a class
+        self.anonymous = anonymous  # inside an unnamed namespace: never exported
 
 
 def class_head(statement):
@@ -241,7 +270,7 @@ def class_head(statement):
         return None
     key_index = index
     index += 1
-    if index < len(statement) and statement[index].text == MACRO:
+    if index < len(statement) and statement[index].text in MACROS:
         index += 1
     index = skip_attributes(statement, index)
     if index >= len(statement) or not IDENTIFIER.fullmatch(statement[index].text):
@@ -271,19 +300,22 @@ def function_declaration(statement):
             return None  # extern "C"
         if index + 1 < len(statement) and statement[index + 1].text == 'template':
             return None
-        annotated = index + 1 < len(statement) and statement[index + 1].text == MACRO
+        annotated = statement[index + 1].text \
+            if index + 1 < len(statement) and statement[index + 1].text in MACROS else ''
         name = last_identifier_before(statement, len(statement))
         return index + 1, name, annotated
     if first in NO_EXPORT_SPECIFIERS or first in CLASS_KEYS or first in ACCESS_KEYS:
         return None
-    annotated = first == MACRO
+    annotated = first if first in MACROS else ''
     # The first '(' must come before any '=' or '{': a declarator, not an
     # initialised variable.
     parenthesis = None
+    operator_position = None
     position = index
     while position < len(statement):
         text = statement[position].text
         if text == 'operator':
+            operator_position = position
             # operator(), or a symbol spelled with '=' or '<': the parameters
             # follow the symbol.
             position += 1
@@ -324,8 +356,10 @@ def function_declaration(statement):
                 and statement[position + 1].text in ('default', 'delete', '0'):
             return None
     name = name_token
-    if not IDENTIFIER.fullmatch(name_token):
-        name = 'operator' + name_token
+    if operator_position is not None:
+        # The symbol may be spelled in several tokens (`=` `=`).
+        name = 'operator' + ''.join(entry.text for entry in
+                                    statement[operator_position + 1:parenthesis])
     return index, name, annotated
 
 
@@ -385,6 +419,30 @@ def last_identifier_before(statement, end):
     return '?'
 
 
+def namespace_components(statement):
+    """The names a `namespace a::b {` or `inline namespace v {` head opens
+    (an inline namespace's name is part of the mangled name); empty for an
+    unnamed namespace."""
+    names = []
+    seen = False
+    for entry in statement:
+        if entry.text == 'namespace':
+            seen = True
+        elif seen and IDENTIFIER.fullmatch(entry.text):
+            names.append(entry.text)
+    return names
+
+
+def qualified(scopes, with_classes):
+    """The components of the open namespaces and, when `with_classes`, the
+    open classes, outermost first."""
+    components = []
+    for scope in scopes:
+        if scope.kind == 'namespace' or (with_classes and scope.kind == 'class'):
+            components.extend(scope.names)
+    return components
+
+
 def scan(source):
     """Returns the findings of one header."""
     tokens = tokenize(source)
@@ -427,11 +485,14 @@ def scan(source):
                 statement.append(token)
                 continue
             if any(entry.text == 'namespace' for entry in statement[:3]):
-                scopes.append(Scope('namespace', template=scope.template))
+                names = namespace_components(statement)
+                scopes.append(Scope('namespace', template=scope.template, names=names,
+                                    anonymous=scope.anonymous or not names))
                 statement = []
                 continue
             if first == 'extern' and len(statement) == 2 and statement[1].text == '""':
-                scopes.append(Scope('linkage', template=scope.template))
+                scopes.append(Scope('linkage', template=scope.template,
+                                    anonymous=scope.anonymous))
                 statement = []
                 continue
             if head is not None:
@@ -443,13 +504,16 @@ def scan(source):
                     at_namespace_scope()
                     or (scope.kind == 'class' and scope.marked and scope.access != 'private'))
                 if wants_mark:
-                    annotated = key_index + 1 < len(statement) \
-                        and statement[key_index + 1].text == MACRO
+                    annotated = statement[key_index + 1].text \
+                        if key_index + 1 < len(statement) \
+                        and statement[key_index + 1].text in MACROS else ''
                     key_token = statement[key_index]
                     findings.append(Finding(key_token.offset + len(key_token.text), 'class',
-                                            name, annotated))
+                                            name, annotated, qualified(scopes, True) + [name],
+                                            scope.kind == 'class', scope.anonymous))
                 scopes.append(Scope('class', marked=wants_mark, access=default_access,
-                                    template=inside_template))
+                                    template=inside_template, names=[name],
+                                    anonymous=scope.anonymous))
                 statement = []
                 continue
             if first == 'enum' or (len(statement) > 1 and statement[0].text == 'enum'):
@@ -490,7 +554,9 @@ def scan(source):
                         findings.append(Finding(statement[insert_index].offset
                                                 if insert_index < len(statement)
                                                 else token.offset,
-                                                'function', name, annotated))
+                                                'function', name, annotated,
+                                                qualified(scopes, False) + [name], False,
+                                                scope.anonymous))
                 elif scope.kind == 'class' and scope.marked and statement[0].text == 'friend' \
                         and not scope.template:
                     rest = statement[1:]
@@ -506,7 +572,9 @@ def scan(source):
                         if result is not None:
                             insert_index, name, annotated = result
                             findings.append(Finding(rest[insert_index].offset, 'function',
-                                                    name, annotated))
+                                                    name, annotated,
+                                                    qualified(scopes, False) + [name], False,
+                                                    scope.anonymous))
             statement = []
             continue
         statement.append(token)
@@ -568,11 +636,149 @@ def add_include(source):
     return EXPORT_INCLUDE + '\n' + source
 
 
+# Export lists ---------------------------------------------------------------
+
+EXPORTS = ROOT / 'cmake' / 'exports'
+SOURCE = ROOT / 'src'
+
+# The Itanium ABI's codes of the operators a namespace-scope declaration may
+# name.
+OPERATOR_CODES = {
+    '==': 'eq', '!=': 'ne', '<': 'lt', '>': 'gt', '<=': 'le', '>=': 'ge', '<=>': 'ss',
+    '<<': 'ls', '>>': 'rs', '+': 'pl', '-': 'mi', '*': 'ml', '/': 'dv', '%': 'rm',
+    '&': 'an', '|': 'or', '^': 'eo', '!': 'nt', '~': 'co', '+=': 'pL', '-=': 'mI',
+    '*=': 'mL', '/=': 'dV', '%=': 'rM', '&=': 'aN', '|=': 'oR', '^=': 'eO', '<<=': 'lS',
+    '>>=': 'rS', '&&': 'aa', '||': 'oo', '++': 'pp', '--': 'mm',
+}
+
+
+class ExportLibrary:
+    """One shared library's export list: its macro and the headers that
+    carry it."""
+
+    def __init__(self, name, macro, sources):
+        self.name = name
+        self.macro = macro
+        self.sources = sources    # a function returning the headers to read
+
+
+def application_headers():
+    """The public headers, and the private headers under src/ that mark a
+    declaration GUI_FORMS_API (what the C ABI library, gui_drawing_raster0
+    and the ABI tests call in the Application library)."""
+    selected = headers([])
+    for path in sorted(SOURCE.rglob('*')):
+        if path.suffix in ('.hpp', '.h') and path.is_file() and MACRO in path.read_text():
+            selected.append(path)
+    return selected
+
+
+def threading_headers():
+    return [PUBLIC / 'threading.hpp']
+
+
+LIBRARIES = (
+    ExportLibrary('gui_forms_application', MACRO, application_headers),
+    ExportLibrary('gui_forms_threading', THREADING_MACRO, threading_headers),
+)
+
+
+def mangled_name(component):
+    """A source name's Itanium encoding: its length and spelling, or an
+    operator's code."""
+    if component.startswith('operator'):
+        symbol = component[len('operator'):]
+        if symbol not in OPERATOR_CODES:
+            raise ValueError(f'no mangling known for {component}')
+        return OPERATOR_CODES[symbol]
+    return f'{len(component)}{component}'
+
+
+def patterns_of(finding):
+    """The mangled-name globs (ELF spelling, without Mach-O's extra
+    underscore) of what one marked declaration exports.
+
+    A class at namespace scope exports every symbol of its scope: members
+    (also const-, & and &&-qualified), static data members and nested
+    classes (_ZN, _ZNK...), its and its nested classes' vtables, typeinfo,
+    typeinfo names and VTTs (_ZTV, _ZTI, _ZTS, _ZTT), the thunks of its
+    virtual members (_ZTh, _ZTv, _ZTc), and the static locals of its inline
+    members with their guard variables (_ZZN, _ZGVZN), which must be one
+    object in every image. Anchoring each glob at the encoding's start keeps
+    out the symbols that merely mention the class (a std::vector<Class>
+    instantiation spells it inside its template arguments). A function or
+    variable at namespace scope exports every declaration of its name in
+    its namespace: the mangled parameter types are not derived here, so an
+    overload that is not marked but is defined in the library is exported
+    with it. Each glob holds a wildcard, so a glob that matches nothing
+    (a declaration compiled into another library) is no error for ld64 or
+    a version script."""
+    components = finding.components
+    prefix = ''.join(mangled_name(component) for component in components)
+    if finding.kind == 'function':
+        if len(components) == 1:
+            return [f'_Z{prefix}*']
+        return [f'_ZN{prefix}E*']
+    if len(components) == 1:
+        # A class in the global namespace: its type is encoded unnested.
+        return [f'_ZN{prefix}*', f'_ZN[KRO]{prefix}*', f'_ZNK[RO]{prefix}*',
+                f'_ZT[VIST]{prefix}', f'_ZT[VIST]N{prefix}*E', f'_ZT[hvc]*{prefix}*',
+                f'_ZZN{prefix}*', f'_ZZNK{prefix}*', f'_ZGVZN{prefix}*', f'_ZGVZNK{prefix}*']
+    return [f'_ZN{prefix}*', f'_ZN[KRO]{prefix}*', f'_ZNK[RO]{prefix}*',
+            f'_ZT[VIST]N{prefix}*E', f'_ZT[hvc]*{prefix}*',
+            f'_ZZN{prefix}*', f'_ZZNK{prefix}*', f'_ZGVZN{prefix}*', f'_ZGVZNK{prefix}*']
+
+
+def library_patterns(library):
+    """The sorted globs of every declaration that carries the library's
+    macro, outside unnamed namespaces; a nested class is covered by its
+    enclosing class's globs."""
+    patterns = set()
+    for path in library.sources():
+        for finding in scan(path.read_text()):
+            if finding.annotated != library.macro or finding.anonymous or finding.nested:
+                continue
+            patterns.update(patterns_of(finding))
+    return sorted(patterns)
+
+
+def export_files(library):
+    """{path: text} of the library's two lists: the Mach-O
+    -exported_symbols_list file and the ELF version script."""
+    patterns = library_patterns(library)
+    origin = ('generated by tools/export_annotations.py exports from the '
+              f'{library.macro} marks; do not edit')
+    macho = [f'# {library.name}: {origin}.'] + ['_' + pattern for pattern in patterns]
+    elf = [f'/* {library.name}: {origin}. */', '{', '  global:']
+    elf += [f'    {pattern};' for pattern in patterns]
+    elf += ['  local:', '    *;', '};']
+    return {
+        EXPORTS / f'{library.name}.exports': '\n'.join(macho) + '\n',
+        EXPORTS / f'{library.name}.map': '\n'.join(elf) + '\n',
+    }
+
+
+def stale_exports():
+    """The export lists that differ from the marks, as (path, text)."""
+    stale = []
+    for library in LIBRARIES:
+        for path, text in export_files(library).items():
+            if not path.is_file() or path.read_text() != text:
+                stale.append((path, text))
+    return stale
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    parser.add_argument('mode', choices=('apply', 'check', 'count'))
+    parser.add_argument('mode', choices=('apply', 'check', 'count', 'exports'))
     parser.add_argument('headers', nargs='*')
     arguments = parser.parse_args()
+    if arguments.mode == 'exports':
+        EXPORTS.mkdir(parents=True, exist_ok=True)
+        for path, text in stale_exports():
+            path.write_text(text)
+            print(f'{path.relative_to(ROOT)}: written')
+        return 0
     paths = headers(arguments.headers)
     if arguments.mode == 'apply':
         changed = 0
@@ -601,8 +807,16 @@ def main():
                           f'lacks {MACRO}')
     if arguments.mode == 'count':
         print(f'classes {classes} functions {functions} missing {missing}')
+        for library in LIBRARIES:
+            print(f'{library.name}: {len(library_patterns(library))} export patterns')
         return 0
-    return 1 if missing else 0
+    stale = []
+    if not arguments.headers:
+        stale = stale_exports()
+        for path, _ in stale:
+            print(f'{path.relative_to(ROOT)}: differs from the {MACRO} marks; run '
+                  'python3 -B tools/export_annotations.py exports')
+    return 1 if missing or stale else 0
 
 
 if __name__ == '__main__':

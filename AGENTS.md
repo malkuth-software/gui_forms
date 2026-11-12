@@ -80,8 +80,10 @@ python3 -B tools/export_annotations.py check
 ```
 
 The third fails on a public declaration under `include/gui_forms/` that lacks
-its library's export macro (`GUI_FORMS_API`); `python3 -B
-tools/export_annotations.py apply` adds the missing ones.
+its library's export macro (`GUI_FORMS_API`), or when the shipped libraries'
+export lists (`cmake/exports/`) differ from the marks; `python3 -B
+tools/export_annotations.py apply` adds the missing marks and `exports`
+rewrites the lists. Commit both.
 
 `stx_skia/` and every third-party source (FreeType, HarfBuzz, libunibreak,
 md4c, SheenBidi, the Unicode data) live in the stx repository since

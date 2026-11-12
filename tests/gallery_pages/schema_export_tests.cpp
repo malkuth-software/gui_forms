@@ -21,6 +21,7 @@
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_context/binding_context.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp"
 #include "gui_forms/commands/color_command/color_command.hpp"
 #include "gui_forms/commands/font_command/font_command.hpp"
 #include "gui_forms/commands/gallery_command/gallery_command.hpp"

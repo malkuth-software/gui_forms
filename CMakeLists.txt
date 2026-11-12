@@ -222,52 +222,73 @@ target_include_directories(gui_forms_threading PUBLIC
 target_compile_features(gui_forms_threading PUBLIC cxx_std_20)
 target_link_libraries(gui_forms_threading PRIVATE Threads::Threads)
 # Exports only what gui_forms/threading.hpp marks GUI_FORMS_THREADING_API
-# (gui_forms/export/threading_export.hpp; CP29 handoff section 2.2): hidden
-# visibility on ELF and Mach-O, dllexport on Windows. Inline functions are
-# hidden too: the exceptions crossing the boundary (a worker entry's failure,
-# rethrown by join, and std::logic_error) carry the typeinfo of their own
-# image or of the C++ runtime, never of an inline function here.
+# (gui_forms/export/threading_export.hpp; CP29 handoff section 2.2): through
+# the generated export list at the link on ELF and Mach-O
+# (gui_forms_export_list below), dllexport on Windows. Inline functions are
+# hidden: each consumer compiles its own copy, and the exceptions crossing
+# the boundary (a worker entry's failure, rethrown by join, and
+# std::logic_error) carry the typeinfo of their own image or of the C++
+# runtime, never of an inline function here.
 target_compile_definitions(gui_forms_threading PRIVATE GUI_FORMS_THREADING_BUILD=1)
-set_target_properties(gui_forms_threading PROPERTIES
-    C_VISIBILITY_PRESET hidden
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN YES)
+set_target_properties(gui_forms_threading PROPERTIES VISIBILITY_INLINES_HIDDEN YES)
 if(WIN32)
     target_compile_definitions(gui_forms_threading PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(gui_forms_threading PRIVATE winpthread)
 endif()
 
-# The archives the Application library (and the shared test runtime,
-# cmake/TestRuntime.cmake) holds whole: compiled with hidden visibility on
-# ELF and Mach-O and with GUI_FORMS_API_BUILD, so the libraries export only
-# the declarations marked GUI_FORMS_API (gui_forms/export/application_export.hpp,
-# placed and checked by tools/export_annotations.py; CP29 handoff section
-# 2.2). Inline functions are hidden as well: no first-party code compares the
-# address of an inline function across images, and a static local of an
-# inline function keeps default visibility (Clang's
-# -fvisibility-inlines-hidden-static-local-var is not used). On ELF each
-# function and datum gets its own section, so the Application library's
-# --gc-sections drops what no export reaches (Mach-O's -dead_strip needs no
-# flag; MinGW Release has the sections already, above).
+# A shipped shared library exports only the declarations its macro marks
+# (CP29 handoff section 2.2; coordinator, 2026-11-12): on ELF and Mach-O
+# through the export list tools/export_annotations.py generates from the
+# marks (cmake/exports/<library>.map, a version script, and
+# cmake/exports/<library>.exports, an -exported_symbols_list; `check`
+# fails when a list and the marks differ), on Windows through the macro's
+# dllexport. The archives are compiled with default visibility, because the
+# shared test runtime (cmake/TestRuntime.cmake) holds the same archives and
+# exports everything to the tests, which call private functions; hidden
+# visibility is fixed per object at compile time and would hide them from
+# it as well. The list leaves everything else local, so -dead_strip and
+# --gc-sections still drop what no export reaches.
+function(gui_forms_export_list target)
+    set(list_stem ${CMAKE_CURRENT_SOURCE_DIR}/cmake/exports/${target})
+    if(APPLE)
+        target_link_options(${target} PRIVATE "LINKER:-exported_symbols_list,${list_stem}.exports")
+        set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS ${list_stem}.exports)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_options(${target} PRIVATE "LINKER:--version-script=${list_stem}.map")
+        set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS ${list_stem}.map)
+    endif()
+endfunction()
+gui_forms_export_list(gui_forms_threading)
+
+# The archives the Application library (and the shared test runtime) holds
+# whole, compiled with GUI_FORMS_API_BUILD (dllexport on Windows). Inline
+# functions are hidden: each consumer compiles its own copy, no first-party
+# code compares the address of an inline function across images, and a
+# static local of an inline function keeps default visibility (Clang's
+# -fvisibility-inlines-hidden-static-local-var is not used). Hiding them
+# keeps the many inline definitions out of the test runtime's dynamic
+# symbol table and spares dyld their weak-definition coalescing at load; on
+# ELF the compiler also calls them directly instead of through the PLT. On
+# ELF each function and datum gets its own section, so the Application
+# library's --gc-sections drops what no export reaches (Mach-O's -dead_strip
+# needs no flag; MinGW Release has the sections already, above).
 function(gui_forms_application_archive target)
     target_compile_definitions(${target} PRIVATE GUI_FORMS_API_BUILD=1)
-    set_target_properties(${target} PROPERTIES
-        C_VISIBILITY_PRESET hidden
-        CXX_VISIBILITY_PRESET hidden
-        OBJCXX_VISIBILITY_PRESET hidden
-        VISIBILITY_INLINES_HIDDEN YES)
+    set_target_properties(${target} PROPERTIES VISIBILITY_INLINES_HIDDEN YES)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         target_compile_options(${target} PRIVATE
             $<$<CONFIG:Release>:-ffunction-sections> $<$<CONFIG:Release>:-fdata-sections>)
     endif()
 endfunction()
 
-# The usage requirement of a shared library holding those archives: its
-# consumers import the marked declarations (dllimport on Windows), and on
-# ELF and Mach-O the linker drops the sections no export reaches.
+# The usage requirement of a shipped shared library holding those archives:
+# its consumers import the marked declarations (dllimport on Windows), it
+# exports only them (its export list on ELF and Mach-O), and the linker drops
+# the sections no export reaches.
 function(gui_forms_application_library target)
     gui_forms_application_archive(${target})
     target_compile_definitions(${target} INTERFACE GUI_FORMS_API_IMPORT=1)
+    gui_forms_export_list(${target})
     if(APPLE)
         target_link_options(${target} PRIVATE $<$<CONFIG:Release>:LINKER:-dead_strip>)
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")

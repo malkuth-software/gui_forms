@@ -1,9 +1,11 @@
 #pragma once
 
 // The export macro of the Threading library (libgui_forms_threading, CP29
-// handoff section 2.2). The library is built with hidden visibility on ELF
-// and Mach-O and without --export-all-symbols on MinGW; the classes of
-// gui_forms/threading.hpp carry GUI_FORMS_THREADING_API. The library is
+// handoff section 2.2). It exports only the classes of
+// gui_forms/threading.hpp, which carry GUI_FORMS_THREADING_API: on ELF and
+// Mach-O through the export list generated from the marks
+// (cmake/exports/gui_forms_threading.*, tools/export_annotations.py), on
+// MinGW through dllexport, without --export-all-symbols. The library is
 // always shared, so every other unit imports it: GUI_FORMS_THREADING_BUILD,
 // defined only while compiling the library, selects dllexport on Windows.
 // On ELF and Mach-O the macro is default visibility in every case.
