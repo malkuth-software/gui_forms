@@ -24,7 +24,7 @@
       "reviewed": false,
       "summary": "Returns selected option text or an empty view when nothing is selected."
     },
-    "gui_forms::ComboBox::selected_index_changed|Event<std::optional<std::size_t>> &() noexcept": {
+    "gui_forms::ListControl::selected_index_changed|Event<std::optional<std::size_t>> &() noexcept": {
       "reviewed": false,
       "summary": "Returns the event published after selected option commits."
     },

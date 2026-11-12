@@ -75,7 +75,7 @@
       "reviewed": false,
       "summary": "Returns the weakly held parent, or null when detached from any parent."
     },
-    "gui_forms::Control::children|BorrowedSpan<Ptr> () const & noexcept": {
+    "gui_forms::Control::children|ChildView () const & noexcept": {
       "reviewed": false,
       "summary": "Returns the strongly held direct children in z-order (index zero topmost)."
     },

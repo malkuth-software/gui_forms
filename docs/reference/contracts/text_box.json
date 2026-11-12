@@ -25,23 +25,23 @@
       "reviewed": false,
       "summary": "Reports whether either explicit or system masking policy is active."
     },
-    "gui_forms::TextBox::selection|TextSelection () const noexcept": {
+    "gui_forms::TextBoxBase::selection|TextSelection () const noexcept": {
       "reviewed": false,
       "summary": "Returns directional anchor and active UTF-8 byte boundaries."
     },
-    "gui_forms::TextBox::select|void (Utf8Offset, Utf8Offset)": {
+    "gui_forms::TextBoxBase::select|void (Utf8Offset, Utf8Offset)": {
       "reviewed": false,
       "summary": "Validates and normalizes requested byte boundaries against Unicode scalar edges."
     },
-    "gui_forms::TextBox::select_all|void ()": {
+    "gui_forms::TextBoxBase::select_all|void ()": {
       "reviewed": false,
       "summary": "Selects the complete authoritative byte range."
     },
-    "gui_forms::TextBox::selected_text|std::string () const": {
+    "gui_forms::TextBoxBase::selected_text|std::string () const": {
       "reviewed": false,
       "summary": "Returns the authoritative unmasked substring within the normalized selection."
     },
-    "gui_forms::TextBox::can_undo|bool () const noexcept": {
+    "gui_forms::TextBoxBase::can_undo|bool () const noexcept": {
       "reviewed": false,
       "summary": "Reports whether an earlier text-and-selection snapshot is available."
     },
@@ -49,7 +49,7 @@
       "reviewed": false,
       "summary": "Reports whether a reverted snapshot remains available."
     },
-    "gui_forms::TextBox::undo|bool ()": {
+    "gui_forms::TextBoxBase::undo|bool ()": {
       "reviewed": false,
       "summary": "Restores the previous snapshot, records the current snapshot for redo, and publishes coherent changes."
     },
@@ -65,15 +65,15 @@
       "reviewed": false,
       "summary": "Removes the selected range as one undoable user edit when mutation is allowed."
     },
-    "gui_forms::TextBox::copy|bool ()": {
+    "gui_forms::TextBoxBase::copy|bool ()": {
       "reviewed": false,
       "summary": "Publishes selected unmasked text to the attached Window clipboard unless password policy forbids disclosure."
     },
-    "gui_forms::TextBox::cut|bool ()": {
+    "gui_forms::TextBoxBase::cut|bool ()": {
       "reviewed": false,
       "summary": "Copies then removes selection through the normal mutation path when editing is allowed."
     },
-    "gui_forms::TextBox::paste|bool ()": {
+    "gui_forms::TextBoxBase::paste|bool ()": {
       "reviewed": false,
       "summary": "Reads attached Window clipboard text and applies it through validation and maximum-length enforcement."
     },

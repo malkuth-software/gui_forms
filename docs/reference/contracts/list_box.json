@@ -32,7 +32,7 @@
       "reviewed": false,
       "summary": "Returns selected row indexes in ascending order."
     },
-    "gui_forms::ListBox::selected_index|std::optional<std::size_t> () const noexcept": {
+    "gui_forms::ListControl::selected_index|std::optional<std::size_t> () const noexcept": {
       "reviewed": false,
       "summary": "Returns the active selected row or no value when selection is empty."
     },

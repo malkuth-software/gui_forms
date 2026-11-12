@@ -25,7 +25,7 @@
       "reviewed": false,
       "summary": "Closes transient state and disconnects owned menu subscriptions before destruction."
     },
-    "gui_forms::MenuStrip::items|const std::vector<MenuStripItemSpec> &() const noexcept": {
+    "gui_forms::MenuStrip::items|const std::vector<MenuStripItemSpec> &() const & noexcept": {
       "reviewed": false,
       "summary": "Returns the authored top-level menu records and submenu trees."
     },
