@@ -26,6 +26,10 @@ if __name__ == '__main__':
         harness_status = stopped.code if isinstance(stopped.code, int) else 1
     if harness_status == 2:
         raise SystemExit(2)
+    # The harness tool has already printed its usage for -h or --help; the
+    # member-view pass below would read the option as a path.
+    if '-h' in sys.argv[1:] or '--help' in sys.argv[1:]:
+        raise SystemExit(harness_status)
     import check_lifetime_rules as harness_rules
     selected: list[Path] = harness_rules.collect(sys.argv[1:])
     findings: list[check_member_views.Finding] = []
