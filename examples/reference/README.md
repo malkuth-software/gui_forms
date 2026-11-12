@@ -39,7 +39,8 @@ private static-adapter and interface-adapter combinations of Core and Applicatio
 See `docs/COMPILER_CACHE.md` for the consumer linking and runtime packaging rule.
 
 `mouse_events` drives the WinForms mouse events headless: an owning component
-hears a button's MouseDown, Click, MouseClick, activation and MouseUp in order,
+hears a button's MouseDown, MouseUp, Click, MouseClick and activation in order
+(`manifests/abi/interaction_order.json`),
 a panel's DoubleClick on the second release and a keyboard context request,
 and a consuming rule withholds the button's Click
 (`docs/user/mouse-events.md`).

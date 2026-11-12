@@ -56,13 +56,13 @@
       "reviewed": false,
       "summary": "Returns the event published after a check-state transition commits."
     },
-    "gui_forms::CheckedListBox::on_pointer|void (PointerEvent &)": {
+    "gui_forms::CheckedListBox::on_mouse_down|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Coordinates inherited row selection with indicator-aware check toggling."
+      "summary": "The press's target phase: coordinates inherited row selection with indicator-aware check toggling, then raises the event."
     },
-    "gui_forms::CheckedListBox::on_key|void (KeyEvent &)": {
+    "gui_forms::CheckedListBox::on_key_down|void (KeyEventArgs &)": {
       "reviewed": false,
-      "summary": "Lets Space toggle the active row and delegates navigation/activation to ListBox."
+      "summary": "Raises the event, then for an unhandled key: lets Space toggle the active row and delegates navigation/activation to ListBox."
     },
     "gui_forms::CheckedListBox::semantic_virtual_children|std::vector<SemanticNode> () const": {
       "reviewed": false,

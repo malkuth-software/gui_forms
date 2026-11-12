@@ -97,13 +97,25 @@
       "reviewed": false,
       "summary": "Records background, border, clipped placeholder or projected text, selection highlight, and blinking caret."
     },
-    "gui_forms::TextBox::on_pointer|void (PointerEvent &)": {
+    "gui_forms::TextBox::on_mouse_down|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Owns click/drag selection with capture, scalar-safe hit testing, and focus acquisition."
+      "summary": "The press's target phase: owns click/drag selection with capture, scalar-safe hit testing, and focus acquisition, then raises the event."
     },
-    "gui_forms::TextBox::on_key|void (KeyEvent &)": {
+    "gui_forms::TextBox::on_mouse_up|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Implements scalar/word navigation, extension, deletion, clipboard commands, history, commit, and cancel."
+      "summary": "The release's target phase: owns click/drag selection with capture, scalar-safe hit testing, and focus acquisition, then raises the event."
+    },
+    "gui_forms::TextBox::on_mouse_move|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The move's target phase: owns click/drag selection with capture, scalar-safe hit testing, and focus acquisition, then raises the event."
+    },
+    "gui_forms::TextBox::on_mouse_wheel|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The wheel turn's target phase: owns click/drag selection with capture, scalar-safe hit testing, and focus acquisition, then raises the event."
+    },
+    "gui_forms::TextBox::on_key_down|void (KeyEventArgs &)": {
+      "reviewed": false,
+      "summary": "Raises the event, then for an unhandled key: implements scalar/word navigation, extension, deletion, clipboard commands, history, commit, and cancel."
     },
     "gui_forms::TextBox::on_text_input|void (TextInputEvent &)": {
       "reviewed": false,

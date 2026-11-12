@@ -56,15 +56,19 @@ caused it. Subscribe to `click()` when you mean the mouse gesture.
 
 ## Order
 
-The window raises the events in Forms' order. The tables show what one
-control sees for each gesture, with a subscriber on every event.
+The window raises the events in the owner's input order (ADR-003 amendment,
+2026-11-12), recorded per sequence in `manifests/abi/interaction_order.json`:
+physical events first, then the derived events on the same control, then
+the activation. Windows Forms raises `MouseUp` after the clicks. The tables
+show what one control sees for each gesture, with a subscriber on every
+event.
 
 A single click with the primary button:
 
 | Step | Events |
 |---|---|
 | press | `MouseDown` (clicks 1) |
-| release over the same control | `Click`, `MouseClick`, the activation (`on_activate`, a button's `clicked`), `MouseUp`, `MouseCaptureChanged` |
+| release over the same control | `MouseUp`, `Click`, `MouseClick`, the activation (`on_activate`, a button's `clicked`), `MouseCaptureChanged` |
 
 A double-click on a control with `ControlStyles::standard_double_click`:
 
@@ -72,11 +76,18 @@ A double-click on a control with `ControlStyles::standard_double_click`:
 |---|---|
 | first press and release | as a single click |
 | second press (clicks 2) | `MouseDown` only |
-| second release | `DoubleClick`, `MouseDoubleClick`, `MouseUp`, `MouseCaptureChanged` |
+| second release | `MouseUp`, `DoubleClick`, `MouseDoubleClick`, `MouseCaptureChanged` |
 
 `DoubleClick` arrives on the second release, never on the press, and a
 double-click is not an activation. A press whose count is higher than 2 (a
 triple click on macOS or Linux) is also a double-click's press.
+
+At `MouseUp` the button is already up and the capture released. A
+`MouseUp` override that sets `suppress_click` (C# `OnMouseUp` setting
+`e.suppress_click`) cancels the clicks and the activation; `handled` only
+ends the route. When a handler disposes the control, opens a modal window,
+layer or menu, or the capture is lost before the release, the rest of the
+sequence is dropped.
 
 Other gestures:
 
@@ -85,7 +96,7 @@ Other gestures:
   holds for the second press of a double-click. A press that wanders and comes
   back still clicks.
 - **The secondary or middle button.** These buttons click as in Forms:
-  `MouseDown`, `Click`, `MouseClick`, `MouseUp`. No capture is taken and no
+  `MouseDown`, `MouseUp`, `Click`, `MouseClick`. No capture is taken and no
   activation follows.
 - **A button.** `ButtonBase` raises `Click` for the primary button only
   (`clicks_primary_button_only`). It clears `standard_double_click`, so a fast
@@ -180,7 +191,7 @@ Rules on `MouseDown`, `MouseUp`, `Click`, `MouseClick`, `DoubleClick` and
 `MouseDoubleClick` run before the control's own subscribers, whenever the
 rules were added. A consuming rule keeps the event from those subscribers. A
 consumed `Click` also keeps a button from activating. The other events
-(`MouseUp` after a consumed `Click`, for example) are still raised. A
+(`MouseUp` before a consumed `Click`, for example) are still raised. A
 consuming `ContextMenuRequested` rule marks the request handled, so the
 request reaches no ancestor.
 

@@ -25,6 +25,7 @@
 #include "gui_forms/window/window.hpp"
 #include "support/routed_input_probe.hpp"
 
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -684,15 +685,22 @@ void mouse_rules_run_before_subscribers() {
     require(journal.subscriber_calls == 5U && journal.activations == 1U,
             "a consumed Click reaches neither its subscribers nor the activation; MouseDown and MouseUp do");
 
-    // A consuming MouseUp rule keeps MouseUp from its subscriber.
+    // A consuming MouseUp rule keeps MouseUp from its subscriber. Consuming
+    // is not suppress_click: the clicks still follow (input order rule 3),
+    // after the MouseUp (rules 1 and 2), so the click rule fires last.
     Rule up{};
     up.trigger = trigger::mouse_up(ok);
     up.actions.push_back(action(journal, &record_b));
     up.consume = true;
     require(rules.add(up).refusal == RuleRefusal::none, "a consuming mouse_up rule is armed");
     click_at(window, {50.0, 65.0});
-    require(journal.triggers.back() == RuleTriggerKind::mouse_up && journal.subscriber_calls == 6U,
-            "a consumed MouseUp reaches no subscriber");
+    const std::size_t fired = journal.triggers.size();
+    require(fired >= 3U && journal.triggers[fired - 3U] == RuleTriggerKind::mouse_down &&
+                journal.triggers[fired - 2U] == RuleTriggerKind::mouse_up &&
+                journal.triggers[fired - 1U] == RuleTriggerKind::click,
+            "rules 1 and 2: the mouse_up rule fires after mouse_down and before the click rule");
+    require(journal.subscriber_calls == 6U,
+            "a consumed MouseUp reaches no subscriber; only MouseDown's subscriber runs (Click stays consumed)");
     require(rules.statistics().consumed == 3U, "each consumption is counted (Click twice, MouseUp once)");
 }
 

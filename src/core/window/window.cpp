@@ -1736,8 +1736,15 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
             deferred_capture_changed_ = previous;
         } else {
             // A capture lost before the release ends the sequence: the
-            // press's click is forgotten (input order rule 5).
-            break_pointer_sequences();
+            // press's click is forgotten (input order rule 5). A revocation
+            // (the subtree turned ineligible) forgets and counts the press
+            // itself after this, so it only marks the break here; resetting
+            // the press here would hide it from press_revocations.
+            if (revoked) {
+                ++input_sequence_breaks_;
+            } else {
+                break_pointer_sequences();
+            }
             (*previous).on_mouse_capture_changed();
         }
     }

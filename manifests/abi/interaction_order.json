@@ -10,11 +10,12 @@
         {"event": "Control.mouse_up", "kind": "physical"},
         {"event": "Control.click", "kind": "derived"},
         {"event": "Control.mouse_click", "kind": "derived"},
+        {"event": "ButtonBase.clicked", "kind": "activation"},
         {"event": "Control.mouse_capture_changed", "kind": "deferred"}
       ],
       "cancelled_by": {"event": "Control.mouse_up", "field": "suppress_click"},
       "dropped_when": ["control disposed", "modal opened", "capture lost"],
-      "note": "a primary click then runs on_activate; mouse_capture_changed ends a primary press"
+      "note": "the activation follows a primary click only; mouse_capture_changed ends a primary press"
     },
     "double_click": {
       "steps": [
@@ -48,11 +49,12 @@
       "steps": [
         {"event": "Control.preview_key_down", "kind": "physical"},
         {"event": "Control.key_down", "kind": "physical"},
-        {"event": "Control.key_up", "kind": "physical"}
+        {"event": "Control.key_up", "kind": "physical"},
+        {"event": "ButtonBase.clicked", "kind": "activation"}
       ],
       "cancelled_by": {"event": "Control.key_down", "field": "suppress_key_press"},
       "dropped_when": ["control disposed", "modal opened", "capture lost"],
-      "note": "Space or Enter on a button: the activation (its Click) follows key_up, with no mouse events"
+      "note": "Space or Enter on a button: the activation follows key_up, with no mouse events"
     }
   }
 }

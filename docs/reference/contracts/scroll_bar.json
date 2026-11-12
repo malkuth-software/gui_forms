@@ -48,13 +48,29 @@
       "reviewed": false,
       "summary": "Records buttons, chevrons, track, pages, thumb, interaction, focus, and disabled states."
     },
-    "gui_forms::ScrollBar::on_pointer|void (PointerEvent &)": {
+    "gui_forms::ScrollBar::on_mouse_down|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Owns part qualification, capture, thumb dragging, page/line changes, cancellation, and repeat scheduling."
+      "summary": "The press's target phase: owns part qualification, capture, thumb dragging, page/line changes, cancellation, and repeat scheduling, then raises the event."
     },
-    "gui_forms::ScrollBar::on_key|void (KeyEvent &)": {
+    "gui_forms::ScrollBar::on_mouse_up|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Handles arrows, page movement, home, and end through reasoned RangeControl transitions."
+      "summary": "The release's target phase: owns part qualification, capture, thumb dragging, page/line changes, cancellation, and repeat scheduling, then raises the event."
+    },
+    "gui_forms::ScrollBar::on_mouse_move|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The move's target phase: owns part qualification, capture, thumb dragging, page/line changes, cancellation, and repeat scheduling, then raises the event."
+    },
+    "gui_forms::ScrollBar::on_mouse_wheel|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The wheel turn's target phase: owns part qualification, capture, thumb dragging, page/line changes, cancellation, and repeat scheduling, then raises the event."
+    },
+    "gui_forms::ScrollBar::on_mouse_leave|void ()": {
+      "reviewed": false,
+      "summary": "Clears the hover state the pointer left, then raises MouseLeave."
+    },
+    "gui_forms::ScrollBar::on_key_down|void (KeyEventArgs &)": {
+      "reviewed": false,
+      "summary": "Raises the event, then for an unhandled key: handles arrows, page movement, home, and end through reasoned RangeControl transitions."
     },
     "gui_forms::ScrollBar::on_focus_changed|void (bool)": {
       "reviewed": false,

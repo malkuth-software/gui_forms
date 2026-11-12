@@ -519,9 +519,29 @@
       "reviewed": false,
       "summary": "Override: tunneling pointer hook, parent first."
     },
-    "gui_forms::Control::on_pointer|void (PointerEvent &)": {
+    "gui_forms::Control::on_mouse_down|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Override: consumes normalized routed pointer input."
+      "summary": "Override: the target phase of a routed press; the base offers the window's rules, then raises the event. Set handled to end the route."
+    },
+    "gui_forms::Control::on_mouse_up|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "Override: the target phase of a routed release; the base offers the window's rules, then raises the event. Set handled to end the route; set suppress_click to cancel the clicks and activation."
+    },
+    "gui_forms::Control::on_mouse_move|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "Override: the target phase of a routed move; the base raises the event. Set handled to end the route."
+    },
+    "gui_forms::Control::on_mouse_wheel|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "Override: the target phase of a routed wheel turn; the base raises the event. Set handled to end the route."
+    },
+    "gui_forms::Control::on_key_down|void (KeyEventArgs &)": {
+      "reviewed": false,
+      "summary": "Override: the target phase of a routed key down; the base raises the event. Handled ends the route; suppress_key_press also cancels the key's KeyPress and text."
+    },
+    "gui_forms::Control::on_key_up|void (KeyEventArgs &)": {
+      "reviewed": false,
+      "summary": "Override: the target phase of a routed key up; the base raises the event. Handled ends the route."
     },
     "gui_forms::Control::on_pointer_bubble|void (PointerEvent &)": {
       "reviewed": false,
@@ -530,10 +550,6 @@
     "gui_forms::Control::on_key_preview|void (KeyEvent &)": {
       "reviewed": false,
       "summary": "Override: tunneling keyboard hook, parent first."
-    },
-    "gui_forms::Control::on_key|void (KeyEvent &)": {
-      "reviewed": false,
-      "summary": "Override: consumes normalized keyboard input."
     },
     "gui_forms::Control::on_key_bubble|void (KeyEvent &)": {
       "reviewed": false,

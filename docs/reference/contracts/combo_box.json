@@ -40,13 +40,17 @@
       "reviewed": false,
       "summary": "Records framed field, selected/placeholder text, focus cue, and disclosure arrow."
     },
-    "gui_forms::ComboBox::on_pointer|void (PointerEvent &)": {
+    "gui_forms::ComboBox::on_key_down|void (KeyEventArgs &)": {
       "reviewed": false,
-      "summary": "Acquires focus and toggles overlay ownership for a qualified primary click."
+      "summary": "Raises the event, then for an unhandled key: handles open/close, option cycling, commit, and cancellation keys."
     },
-    "gui_forms::ComboBox::on_key|void (KeyEvent &)": {
+    "gui_forms::ComboBox::on_mouse_down|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Handles open/close, option cycling, commit, and cancellation keys."
+      "summary": "The press's target phase: acquires focus and toggles overlay ownership for a qualified primary click, then raises the event."
+    },
+    "gui_forms::ComboBox::on_mouse_up|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The release's target phase: acquires focus and toggles overlay ownership for a qualified primary click, then raises the event."
     },
     "gui_forms::ComboBox::on_focus_changed|void (bool)": {
       "reviewed": false,

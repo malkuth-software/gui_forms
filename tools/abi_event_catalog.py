@@ -591,7 +591,10 @@ def render_manifest(mapped: dict[str, str]) -> str:
 # Owner.name and its kind: physical (rule 1, causal order), repeated
 # (physical, zero or more times) or derived (rule 2: after the completing
 # physical event, on the same target only) or deferred (the capture's end,
-# raised last whatever happened to the sequence). cancelled_by names the event
+# raised last whatever happened to the sequence) or activation (on_activate,
+# after the derived events of a primary click or an activation key's release,
+# cancelled and dropped with them; a button's raises ButtonBase.clicked).
+# cancelled_by names the event
 # and the field that cancels the derived steps when set (rule 3: suppress_click
 # or suppress_key_press; handled only ends the route); every sequence's derived
 # steps are dropped when a handler disposes the control, opens a modal or
@@ -601,9 +604,9 @@ ORDER_SEQUENCES: list[tuple[str, list[tuple[str, str]], str, str]] = [
     ('click', [('Control.pointer_preview_observed', 'physical'), ('Control.mouse_down', 'physical'),
                ('Control.mouse_move', 'repeated'), ('Control.mouse_up', 'physical'),
                ('Control.click', 'derived'), ('Control.mouse_click', 'derived'),
-               ('Control.mouse_capture_changed', 'deferred')],
+               ('ButtonBase.clicked', 'activation'), ('Control.mouse_capture_changed', 'deferred')],
      'Control.mouse_up:suppress_click',
-     'a primary click then runs on_activate; mouse_capture_changed ends a primary press'),
+     'the activation follows a primary click only; mouse_capture_changed ends a primary press'),
     ('double_click', [('Control.pointer_preview_observed', 'physical'), ('Control.mouse_down', 'physical'),
                       ('Control.mouse_move', 'repeated'), ('Control.mouse_up', 'physical'),
                       ('Control.double_click', 'derived'), ('Control.mouse_double_click', 'derived'),
@@ -616,9 +619,9 @@ ORDER_SEQUENCES: list[tuple[str, list[tuple[str, str]], str, str]] = [
      'Control.key_down:suppress_key_press',
      'suppress_key_press on the window\'s or the control\'s key_down cancels key_press and the text, except an IME commit'),
     ('keyboard_activation', [('Control.preview_key_down', 'physical'), ('Control.key_down', 'physical'),
-                             ('Control.key_up', 'physical')],
+                             ('Control.key_up', 'physical'), ('ButtonBase.clicked', 'activation')],
      'Control.key_down:suppress_key_press',
-     'Space or Enter on a button: the activation (its Click) follows key_up, with no mouse events'),
+     'Space or Enter on a button: the activation follows key_up, with no mouse events'),
 ]
 
 
