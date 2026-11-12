@@ -936,6 +936,10 @@ Types
 
    .. cpp:member:: std::optional<ControlCanvasTexture> texture
 
+   .. cpp:member:: CanvasTextureBlend texture_blend
+
+      Default: ``{CanvasTextureBlend::multiply}``.
+
    .. cpp:member:: std::array<CanvasArea, canvas_node_state_count> nodes
 
    .. cpp:member:: std::array<CanvasArea, canvas_node_state_count> headers
@@ -6669,6 +6673,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: CanvasTextureBlend
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: multiply
+
+   .. cpp:enumerator:: screen
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: CascadeLevel
 
    ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
@@ -9620,7 +9634,7 @@ Functions, constants and aliases
 
 .. cpp:function:: CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, ControlVisualContext context)
 
-   Resolves every canvas part of ``canvas`` from ``theme`` (Theme::resolve with the part's name and node_canvas_control_id as the control type, so the rules match the canvas's classes and stable ID: the grid variants ``paper``, ``blue``, ``green`` and ``grey`` are classes). ``context`` carries the canvas's colour scheme and contrast (Control::visual_context); each part is resolved in its own states over it. - A field no rule sets takes the stock value the part table states, coloured from the theme's basic style. - Dark: where the theme derives its dark variant (ThemeDarkVariant:: derived), every colour is mapped by the dark colour rule by what it paints (the canvas as a well, nodes and ports as stock faces, headers and lamps as chrome, lines as lines, selection cues as cues, titles as ink); a theme with an authored dark variant keeps its rules' colours and maps only the stock values. - Forced high contrast: no rule applies (the engine's pass); areas take the plate, lines the state's edge, a selected link a two-unit halo in the focus colour; minor grid lines and the marquee's fill are clear and there is no texture. Reads the theme only; the result owns everything it holds.
+   Resolves every canvas part of ``canvas`` from ``theme`` (Theme::resolve with the part's name and node_canvas_control_id as the control type, so the rules match the canvas's classes and stable ID: the grid variants ``paper``, ``blue``, ``green`` and ``grey`` are classes). ``context`` carries the canvas's colour scheme and contrast (Control::visual_context); each part is resolved in its own states over it. - A field no rule sets takes the stock value the part table states, coloured from the theme's basic style. - Dark: where the theme derives its dark variant (ThemeDarkVariant:: derived), every colour is mapped by the dark colour rule by what it paints (the canvas as a well, nodes and ports as stock faces, headers as chrome, lines as lines, selection cues as cues, titles as ink, and the colours that carry state as signals, which keep their hue: a lamp on stays green, in error red, off neutral; an accepted drop green, a rejected one red; an invalid link red); a theme with an authored dark variant keeps its rules' colours and maps only the stock values. The texture screens instead of multiplying (CanvasTextureBlend). - Forced high contrast: no rule applies (the engine's pass); areas take the plate, lines the state's edge, a selected link a two-unit halo in the focus colour; minor grid lines and the marquee's fill are clear and there is no texture. Reads the theme only; the result owns everything it holds.
 
 .. cpp:function:: double clamp_canvas_texture_contrast(double contrast) noexcept
 
@@ -9628,7 +9642,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void paint_canvas_background(Painter& painter, const CanvasLook& look, Rect area, CanvasView view)
 
-   The canvas background over ``area``: the region's colour, then the texture (one multiply group at the clamped contrast holding one tiled pattern, its tiles anchored at world (0, 0) and drawn at the image's own size at every zoom, so the grain stays sharp), then the grid (the level select_grid_level chooses for ``view.zoom``, one fill_grid_pattern pass with the level's fade). Draws a bounded number of commands whatever the area: three at most, besides the group.
+   The canvas background over ``area``: the region's colour, then the texture (one multiply or screen group, as the look's texture_blend says, at the clamped contrast holding one tiled pattern, its tiles anchored at world (0, 0) and drawn at the image's own size at every zoom, so the grain stays sharp), then the grid (the level select_grid_level chooses for ``view.zoom``, one fill_grid_pattern pass with the level's fade). Draws a bounded number of commands whatever the area: three at most, besides the group.
 
 .. cpp:function:: void paint_canvas_node(Painter& painter, const CanvasLook& look, Rect body, double header_height, CanvasNodeState state)
 

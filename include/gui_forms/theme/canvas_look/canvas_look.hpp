@@ -133,6 +133,12 @@ struct GUI_FORMS_API CanvasFlow final {
     }
 };
 
+// How the texture meets the canvas: multiplied (darkening, on a light
+// canvas) or screened (lightening, on a dark one, where a multiplied grain
+// would change a near-black well by less than one level). Either way at the
+// texture's clamped contrast.
+enum class CanvasTextureBlend : std::uint8_t { multiply, screen };
+
 // Every canvas part in every state, as one theme draws them in one colour
 // scheme and contrast. `texture` is none where the theme sets none, and
 // always in forced high contrast. `titles` are the header's title ink by
@@ -143,6 +149,7 @@ struct GUI_FORMS_API CanvasLook final {
     CanvasArea background{};
     CanvasGrid grid{};
     std::optional<ControlCanvasTexture> texture{};
+    CanvasTextureBlend texture_blend{CanvasTextureBlend::multiply};
     std::array<CanvasArea, canvas_node_state_count> nodes{};
     std::array<CanvasArea, canvas_node_state_count> headers{};
     std::array<Color, canvas_node_state_count> titles{};
@@ -156,6 +163,7 @@ struct GUI_FORMS_API CanvasLook final {
     CanvasFlow flow{};
     friend bool operator==(const CanvasLook& left, const CanvasLook& right) noexcept {
         return left.background == right.background && left.grid == right.grid && left.texture == right.texture &&
+               left.texture_blend == right.texture_blend &&
                left.nodes == right.nodes && left.headers == right.headers && left.titles == right.titles &&
                left.selection == right.selection && left.ports == right.ports && left.links == right.links &&
                left.dashed_links == right.dashed_links && left.lamps == right.lamps &&
@@ -175,9 +183,12 @@ struct GUI_FORMS_API CanvasLook final {
 // - Dark: where the theme derives its dark variant (ThemeDarkVariant::
 //   derived), every colour is mapped by the dark colour rule by what it
 //   paints (the canvas as a well, nodes and ports as stock faces, headers
-//   and lamps as chrome, lines as lines, selection cues as cues, titles as
-//   ink); a theme with an authored dark variant keeps its rules' colours
-//   and maps only the stock values.
+//   as chrome, lines as lines, selection cues as cues, titles as ink, and
+//   the colours that carry state as signals, which keep their hue: a lamp
+//   on stays green, in error red, off neutral; an accepted drop green, a
+//   rejected one red; an invalid link red); a theme with an authored dark
+//   variant keeps its rules' colours and maps only the stock values. The
+//   texture screens instead of multiplying (CanvasTextureBlend).
 // - Forced high contrast: no rule applies (the engine's pass); areas take
 //   the plate, lines the state's edge, a selected link a two-unit halo in
 //   the focus colour; minor grid lines and the marquee's fill are clear and
@@ -203,7 +214,8 @@ struct GUI_FORMS_API CanvasView final {
 };
 
 // The canvas background over `area`: the region's colour, then the texture
-// (one multiply group at the clamped contrast holding one tiled pattern,
+// (one multiply or screen group, as the look's texture_blend says, at the
+// clamped contrast holding one tiled pattern,
 // its tiles anchored at world (0, 0) and drawn at the image's own size at
 // every zoom, so the grain stays sharp), then the grid (the level
 // select_grid_level chooses for `view.zoom`, one fill_grid_pattern pass

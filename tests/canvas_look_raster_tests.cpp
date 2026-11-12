@@ -13,8 +13,9 @@
 // Preview mode: `gui_forms_canvas_look_raster_tests --preview <directory>`
 // writes the review set as PNGs into an existing <directory> and checks
 // nothing: light and dark; each grid variant; forced high contrast; zoom
-// out, normal and in; close-ups of the links and the lamps; four flow
-// frames; the texture on and off. It never opens a window.
+// out, normal and in; close-ups of the links (and on blue) and the lamps
+// (and in dark); four flow frames; the texture off, on, and on in dark:
+// 22 files. It never opens a window.
 
 #include "../src/core/image/png_writer.hpp"
 #include "../src/core/theme_language/package/theme_manifest.hpp"
@@ -291,7 +292,10 @@ std::string hex_of(std::string_view bytes) {
 // The default theme with the grain under its canvas at 3 %, compiled into
 // `resources` (so its image is the windows' image) and selected there.
 void select_grain_theme(ApplicationResources& resources) {
-    const std::string sheet = "node-canvas::part(region) { background-texture: url(\"resource:canvas.grain\") "
+    // The theme declares both schemes, or a dark window would show
+    // GUI.Forms' own theme instead (and no texture).
+    const std::string sheet = ":root { color-scheme: light dark; }\n"
+                              "node-canvas::part(region) { background-texture: url(\"resource:canvas.grain\") "
                               "multiply 3% }";
     const std::string grain = grain_png();
     ThemePackage package{};
@@ -391,15 +395,20 @@ void texture_pixels() {
     select_grain_theme(*resources);
     const SampleWindow textured = made_sample(resources);
     (*textured.graph).settings.flow = false;
+    const CaptureRequest dark{ColourScheme::dark, false};
     WindowCapture off{};
     WindowCapture on{};
+    WindowCapture dark_off{};
+    WindowCapture dark_on{};
     {
         OffscreenAttachment attached(*raster, *plain.window);
         off = captured(attached, plain, CaptureRequest{});
+        dark_off = captured(attached, plain, dark);
     }
     {
         OffscreenAttachment attached(*raster, *textured.window);
         on = captured(attached, textured, CaptureRequest{});
+        dark_on = captured(attached, textured, dark);
     }
     int largest = 0;
     int changed = 0;
@@ -412,6 +421,18 @@ void texture_pixels() {
     }
     require(largest <= 9, "a 3 % texture changes a channel by at most 3 % (and rounding)");
     require(changed > 0, "the texture shows");
+    // In dark the texture screens over the well: within the same bound,
+    // and visible.
+    int dark_largest = 0;
+    int dark_changed = 0;
+    for (std::uint32_t y = 0U; y < 16U; ++y) {
+        for (std::uint32_t x = 1U; x < 16U; ++x) {
+            const int distance = channel_distance(pixel_at(dark_on, x, y), pixel_at(dark_off, x, y));
+            dark_largest = std::max(dark_largest, distance);
+            if (distance > 0) dark_changed = dark_changed + 1;
+        }
+    }
+    require(dark_largest <= 9 && dark_changed > 0, "the texture shows in dark, within 3 %");
 }
 
 void flow_pixels() {
@@ -456,7 +477,7 @@ void write_preview(const std::string& directory) {
     const CaptureRequest light{};
     const CaptureRequest dark{ColourScheme::dark, false};
     const CaptureRequest contrast{ColourScheme::light, true};
-    const std::array<PreviewShot, 13> shots{{
+    const std::array<PreviewShot, 15> shots{{
         {"light", "", light, normal},
         {"dark", "", dark, normal},
         {"grid-paper", "paper", light, normal},
@@ -467,9 +488,13 @@ void write_preview(const std::string& directory) {
         {"high-contrast", "", contrast, normal},
         {"zoom-out", "", light, CanvasView{Point{160.5, 100.5}, 0.35}},
         {"zoom-normal", "", light, normal},
-        {"zoom-in", "", light, CanvasView{Point{-1100.5, -260.5}, 4.0}},
+        // Zoom 4 on the Source node's output port, its lamp and the
+        // links leaving it (world (175, 68) at the shot's centre).
+        {"zoom-in", "", light, CanvasView{Point{-440.5, -107.5}, 4.0}},
         {"links", "", light, CanvasView{Point{-220.5, -60.5}, 1.5}},
         {"lamps", "", light, CanvasView{Point{-200.5, -40.5}, 1.6}},
+        {"lamps-dark", "", dark, CanvasView{Point{-200.5, -40.5}, 1.6}},
+        {"links-blue", "blue", light, CanvasView{Point{-220.5, -60.5}, 1.5}},
     }};
     {
         const SampleWindow sample = made_sample(nullptr);

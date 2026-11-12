@@ -316,9 +316,13 @@ struct CanvasLineStock final {
     stock.stroke_width = 1.5;
     if (state == CanvasPortState::hot) stock.fill = basic.accent_light;
     if (state == CanvasPortState::drop_accepted) stock.fill = stock_success;
-    if (state == CanvasPortState::drop_accepted) stock.fill_class = detail::DarkColourClass::accent_surface;
-    if (state == CanvasPortState::drop_rejected) stock.fill = stock_signal_red_pale;
-    if (state == CanvasPortState::drop_rejected) stock.stroke = stock_signal_red_deep;
+    if (state == CanvasPortState::drop_accepted) stock.fill_class = detail::DarkColourClass::signal;
+    if (state == CanvasPortState::drop_rejected) {
+        stock.fill = stock_signal_red_pale;
+        stock.stroke = stock_signal_red_deep;
+        stock.fill_class = detail::DarkColourClass::signal_tint;
+        stock.stroke_class = detail::DarkColourClass::signal;
+    }
     return stock;
 }
 
@@ -342,6 +346,7 @@ struct CanvasLineStock final {
     }
     if (state == CanvasLinkState::invalid) {
         stock.colour = stock_signal_red;
+        stock.colour_class = detail::DarkColourClass::signal;
         stock.dash = 2.0;
         stock.gap = 3.0;
     }
@@ -353,13 +358,14 @@ struct CanvasLineStock final {
     stock.fill = basic.face;
     stock.stroke = basic.dark_border;
     stock.stroke_width = 1.0;
-    stock.fill_class = detail::DarkColourClass::chrome_surface;
+    // A lamp's colours are its state: they darken as signals, keeping
+    // their hue (an unlit lamp's grey fill darkens as an unlit face).
+    stock.fill_class = detail::DarkColourClass::signal;
     if (state == CanvasLampState::on) stock.fill = stock_success_light;
     if (state == CanvasLampState::on) stock.stroke = stock_success;
-    if (state == CanvasLampState::on) stock.fill_class = detail::DarkColourClass::accent_surface;
     if (state == CanvasLampState::error) stock.fill = stock_lamp_error;
     if (state == CanvasLampState::error) stock.stroke = stock_signal_red_deep;
-    if (state == CanvasLampState::error) stock.fill_class = detail::DarkColourClass::accent_surface;
+    if (state != CanvasLampState::off) stock.stroke_class = detail::DarkColourClass::signal;
     return stock;
 }
 
@@ -449,7 +455,7 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
     look.background.stroke_width = 0.0;
     look.grid.spacing = canvas_length(region.canvas.grid_spacing, 16.0);
     look.grid.spacing = std::clamp(look.grid.spacing, minimum_canvas_grid_spacing, maximum_canvas_grid_spacing);
-    double band = canvas_length(region.canvas.grid_band, 12.0);
+    double band = canvas_length(region.canvas.grid_band, 6.0);
     band = std::clamp(band, minimum_canvas_grid_band, maximum_canvas_grid_band);
     look.grid.band.minimum_spacing = band;
     look.grid.band.maximum_spacing = band * grid_level_ratio;
@@ -461,6 +467,7 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
                            std::isfinite(texture.density) && texture.density > 0.0;
         if (sized && texture.contrast > 0.0) look.texture = texture;
     }
+    if (dark) look.texture_blend = CanvasTextureBlend::screen;
 
     // The grid levels: the minor line's colour and width (both levels'),
     // the major line's colour.
@@ -587,7 +594,8 @@ void paint_canvas_background(Painter& painter, const CanvasLook& look, Rect area
             PaintGroup group{};
             group.bounds = area;
             group.opacity = contrast;
-            group.composite = PaintGroupComposite::multiply;
+            const bool screened = look.texture_blend == CanvasTextureBlend::screen;
+            group.composite = screened ? PaintGroupComposite::screen : PaintGroupComposite::multiply;
             group.isolated = true;
             painter.begin_group(group);
             painter.fill_image_pattern(texture.image, texture.pixel_size, destination, tile, ImagePatternWrap::tile,

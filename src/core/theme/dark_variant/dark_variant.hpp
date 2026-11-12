@@ -58,6 +58,15 @@ enum class DarkColourClass : std::uint8_t {
     highlight,
     // A dark relief line or a shadow.
     shade,
+    // A state signal whose hue is its meaning (a lamp on or in error, a
+    // success or error mark; cp31): its hue and chroma are kept and its
+    // lightness moved into the band signals read in on the dark stock. A
+    // colour too grey to carry a state (an unlit lamp) darkens as an unlit
+    // chrome face, grey.
+    signal,
+    // A pale state tint (a rejected drop's ground; cp31): its hue kept at
+    // low chroma, darkened as the stock.
+    signal_tint,
 };
 
 // The Phosphor pair (design language 5.2 pair B) and its complement.

@@ -676,7 +676,7 @@ button::part(label):state(danger) {
 node-canvas::part(region) {
   fill-color: #fbfcfd;
   grid-spacing: 16px;
-  grid-band: 12px;
+  grid-band: 6px;
 }
 node-canvas::part(grid-minor) {
   stroke-color: rgb(99 132 178 / 22%);
@@ -711,6 +711,57 @@ node-canvas.grey::part(grid-minor) {
 }
 node-canvas.grey::part(grid-major) {
   stroke-color: rgb(27 39 51 / 36%);
+}
+/* The links, ports, selection and marquee on the two deep variants: on
+   the royale blue, pale links, gold for the selection and a coral for an
+   invalid link; on the mid grey, ink links and white for the selection.
+   Each reads at 3:1 or more on its canvas. The green variant is pale
+   and keeps the paper's. */
+node-canvas.blue::part(link), node-canvas.blue::part(dashed-link) {
+  stroke-color: #e8f2ff;
+}
+node-canvas.blue::part(link):hover, node-canvas.blue::part(dashed-link):hover {
+  stroke-color: #ffffff;
+}
+node-canvas.blue::part(link):state(selected), node-canvas.blue::part(dashed-link):state(selected) {
+  stroke-color: #ffcf66;
+  halo: 4px rgb(255 207 102 / 35%);
+}
+node-canvas.blue::part(link):invalid, node-canvas.blue::part(dashed-link):invalid {
+  stroke-color: #ffb4a8;
+}
+node-canvas.blue::part(port) {
+  stroke-color: #173f79;
+}
+node-canvas.blue::part(node-selection) {
+  stroke-color: #ffcf66;
+}
+node-canvas.blue::part(marquee) {
+  fill-color: rgb(255 255 255 / 14%);
+  stroke-color: #ffffff;
+}
+node-canvas.grey::part(link), node-canvas.grey::part(dashed-link) {
+  stroke-color: #1b2733;
+}
+node-canvas.grey::part(link):hover, node-canvas.grey::part(dashed-link):hover {
+  stroke-color: #000000;
+}
+node-canvas.grey::part(link):state(selected), node-canvas.grey::part(dashed-link):state(selected) {
+  stroke-color: #ffffff;
+  halo: 4px rgb(255 255 255 / 35%);
+}
+node-canvas.grey::part(link):invalid, node-canvas.grey::part(dashed-link):invalid {
+  stroke-color: #6e0f0f;
+}
+node-canvas.grey::part(port) {
+  stroke-color: #1b2733;
+}
+node-canvas.grey::part(node-selection) {
+  stroke-color: #ffffff;
+}
+node-canvas.grey::part(marquee) {
+  fill-color: rgb(255 255 255 / 18%);
+  stroke-color: #ffffff;
 }
 node-canvas::part(node) {
   fill-color: #ffffff;

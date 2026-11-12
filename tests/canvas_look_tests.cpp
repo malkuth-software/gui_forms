@@ -16,6 +16,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
@@ -182,9 +183,14 @@ void light_recipes() {
             "the minor grid is the ordinary line at 22 %");
     require(same_rgb(look.grid.major, 99, 132, 178) && near_alpha(look.grid.major, 115),
             "the major grid is the ordinary line at 45 %");
-    require(look.grid.spacing == 16.0 && look.grid.band.minimum_spacing == 12.0 &&
-                look.grid.band.maximum_spacing == 48.0 && look.grid.line_width == 1.0 && look.grid.minor_shown,
-            "the grid spaces 16 world units with a 12-to-48 band");
+    require(look.grid.spacing == 16.0 && look.grid.band.minimum_spacing == 6.0 &&
+                look.grid.band.maximum_spacing == 24.0 && look.grid.line_width == 1.0 && look.grid.minor_shown,
+            "the grid spaces 16 world units with a 6-to-24 band");
+    // At zoom 1 the minor lines are past the band's first half, so they
+    // show at their full colour.
+    const GridLevel rest = select_grid_level(look.grid.spacing, 1.0, look.grid.band);
+    require(rest.minor_spacing == 16.0 && rest.fade >= 0.5, "minor lines show fully at zoom 1");
+    require(look.texture_blend == CanvasTextureBlend::multiply, "a light texture multiplies");
     require(!look.texture.has_value(), "the default theme sets no texture");
     const CanvasArea& node = look.nodes[index_of(CanvasNodeState::normal)];
     require(same_rgb(node.fill, 255, 255, 255) && same_rgb(node.stroke, 0x63, 0x84, 0xb2) &&
@@ -251,6 +257,22 @@ void dark_recipes() {
                 dark.dashed_links[0].dash == light.dashed_links[0].dash,
             "geometry and flow do not change with the scheme");
     require(!(dark == light), "the dark look differs from the light");
+    require(dark.texture_blend == CanvasTextureBlend::screen, "a dark texture screens");
+    // Lamp and drop colours are state: dark keeps their hue.
+    const Color on = dark.lamps[index_of(CanvasLampState::on)].fill;
+    const Color error = dark.lamps[index_of(CanvasLampState::error)].fill;
+    const Color off = dark.lamps[index_of(CanvasLampState::off)].fill;
+    require(on.green > on.red + 40U && on.green > on.blue, "a lamp on stays green in dark");
+    require(error.red > error.green + 60U && error.red > error.blue + 40U, "a lamp in error stays red in dark");
+    const int off_spread = std::max({static_cast<int>(off.red), static_cast<int>(off.green), static_cast<int>(off.blue)}) -
+                           std::min({static_cast<int>(off.red), static_cast<int>(off.green), static_cast<int>(off.blue)});
+    require(off_spread <= 4 && channel_sum(off) < channel_sum(on), "an unlit lamp is a dim neutral in dark");
+    const Color accepted = dark.ports[index_of(CanvasPortState::drop_accepted)].fill;
+    require(accepted.green > accepted.red + 30U, "an accepted drop stays green in dark");
+    const Color rejected = dark.ports[index_of(CanvasPortState::drop_rejected)].stroke;
+    require(rejected.red > rejected.green + 40U, "a rejected drop's rim stays red in dark");
+    const Color invalid = dark.links[index_of(CanvasLinkState::invalid)].colour;
+    require(invalid.red > invalid.green + 40U, "an invalid link stays red in dark");
 }
 
 void high_contrast_recipes() {
@@ -281,7 +303,13 @@ void grid_variants() {
     require(same_rgb(blue.background.fill, 0x1f, 0x4f, 0x8f) && same_rgb(blue.grid.minor, 255, 255, 255) &&
                 near_alpha(blue.grid.minor, 41),
             "blue: white lines on the royale blue");
-    require(blue.nodes == paper.nodes && blue.links == paper.links, "a variant changes the grid alone");
+    require(blue.nodes == paper.nodes, "a variant keeps the nodes");
+    require(same_rgb(blue.links[index_of(CanvasLinkState::normal)].colour, 0xe8, 0xf2, 0xff) &&
+                same_rgb(blue.dashed_links[index_of(CanvasLinkState::normal)].colour, 0xe8, 0xf2, 0xff) &&
+                same_rgb(blue.links[index_of(CanvasLinkState::selected)].colour, 0xff, 0xcf, 0x66) &&
+                same_rgb(blue.selection.stroke, 0xff, 0xcf, 0x66) && same_rgb(blue.marquee.stroke, 255, 255, 255),
+            "blue: pale links, a gold selection and a white marquee");
+    require(blue.links[index_of(CanvasLinkState::invalid)].dash == 2.0, "the variant keeps the invalid dashes");
     require((*canvas).remove_class("blue") && (*canvas).add_class("green"), "switched to green");
     const CanvasLook green = resolve_canvas_look(*theme, *canvas, light_context());
     require(same_rgb(green.background.fill, 0xe9, 0xf2, 0xe4) && same_rgb(green.grid.major, 46, 125, 79),
@@ -290,6 +318,10 @@ void grid_variants() {
     const CanvasLook grey = resolve_canvas_look(*theme, *canvas, light_context());
     require(same_rgb(grey.background.fill, 0x8a, 0x8f, 0x96) && same_rgb(grey.grid.minor, 27, 39, 51),
             "grey: a mid grey canvas with ink lines");
+    require(same_rgb(grey.links[index_of(CanvasLinkState::normal)].colour, 0x1b, 0x27, 0x33) &&
+                same_rgb(grey.links[index_of(CanvasLinkState::selected)].colour, 255, 255, 255),
+            "grey: ink links and a white selection");
+    require(green.links == paper.links, "green keeps the paper's links");
     require((*canvas).remove_class("grey") && (*canvas).add_class("paper"), "switched to paper");
     const CanvasLook named_paper = resolve_canvas_look(*theme, *canvas, light_context());
     require(named_paper == paper, "the paper class is the default look");
@@ -328,7 +360,7 @@ void background_commands() {
         require(painter.fills.size() == 1U && painter.groups.empty() && painter.grids.size() == 1U,
                 "an untextured background is one fill and one grid pass");
         const GridPattern& grid = painter.grids[0];
-        require(grid.spacing >= 12.0 && grid.spacing < 48.0 && grid.origin == view.origin && grid.major_every == 4U,
+        require(grid.spacing >= 6.0 && grid.spacing < 24.0 && grid.origin == view.origin && grid.major_every == 4U,
                 "the grid level keeps the band at every zoom, anchored at world (0, 0)");
     }
     look.texture = ControlCanvasTexture{ImageId{7U}, Size{64.0, 64.0}, 2.0, 0.08};

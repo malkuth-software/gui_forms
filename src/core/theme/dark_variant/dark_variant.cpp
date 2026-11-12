@@ -57,6 +57,16 @@ constexpr double chrome_hue_high = 300.0;
 // A colour this grey has no hue to keep, and takes this much of its new
 // hue, as the studies' greys do.
 constexpr double neutral_chroma = 0.012;
+// Signals (cp31): a state colour keeps its hue and chroma, its lightness
+// held to this band (OKLab), so green stays green and red red against the
+// dark stock; below `signal_neutral_chroma` a colour carries no state and
+// darkens as an unlit chrome face with no chroma. A tint keeps its hue at a
+// chroma between the tint bounds.
+constexpr double signal_lightness_low = 0.55;
+constexpr double signal_lightness_high = 0.75;
+constexpr double signal_neutral_chroma = 0.04;
+constexpr double signal_tint_chroma_low = 0.03;
+constexpr double signal_tint_chroma_high = 0.06;
 // Highlights keep their colour with alpha times this; shades become black
 // with alpha raised by `shade_alpha_gain`, at most `shade_alpha_maximum`.
 constexpr double highlight_alpha_scale = 0.16;
@@ -186,6 +196,26 @@ Color remapped(const Lch& source, double lightness, double hue, bool every_hue, 
     return result;
 }
 
+// `source` as a dark signal (DarkColourClass::signal).
+Color signal_colour(const Lch& source, std::uint8_t alpha) noexcept {
+    Lch target = source;
+    if (source.chroma < signal_neutral_chroma) {
+        target.lightness = mapped(chrome_surface_map, source.lightness);
+        target.chroma = 0.0;
+        return srgb_of(target, alpha);
+    }
+    target.lightness = std::clamp(source.lightness, signal_lightness_low, signal_lightness_high);
+    return srgb_of(target, alpha);
+}
+
+// `source` as a dark tint (DarkColourClass::signal_tint).
+Color signal_tint_colour(const Lch& source, std::uint8_t alpha) noexcept {
+    Lch target = source;
+    target.lightness = mapped(stock_surface_map, source.lightness);
+    target.chroma = std::clamp(source.chroma, signal_tint_chroma_low, signal_tint_chroma_high);
+    return srgb_of(target, alpha);
+}
+
 Lch lch_of(Color colour) noexcept {
     const OklabColour lab = oklab_of(colour);
     Lch result{};
@@ -247,6 +277,8 @@ Color dark_colour(Color light, DarkColourClass kind) noexcept {
                            scaled_alpha(light.alpha, highlight_alpha_scale, 0.0, 1.0));
     case DarkColourClass::shade:
         return Color::rgba(0, 0, 0, scaled_alpha(light.alpha, 1.0, shade_alpha_gain, shade_alpha_maximum));
+    case DarkColourClass::signal: return signal_colour(source, light.alpha);
+    case DarkColourClass::signal_tint: return signal_tint_colour(source, light.alpha);
     }
     // A class outside the enumeration keeps its colour.
     return light;
