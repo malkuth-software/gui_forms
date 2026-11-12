@@ -45,6 +45,10 @@ def definitions(command: list[str]) -> dict[str, str]:
     return result
 
 
+# The options ci_build adds for the installed reference examples (audit F9).
+CI_EXAMPLE_OPTIONS: tuple[str, ...] = ("GUI_FORMS_INSTALL_LAB", "GUI_FORMS_INSTALL_GALLERY_MODEL")
+
+
 def ci_configure(host: str, build: Path) -> list[str]:
     """The configure command ci_build.build_toolkit runs for host, without running anything.
 
@@ -72,6 +76,13 @@ class ConfigureOptionTests(unittest.TestCase):
                 ci: dict[str, str] = definitions(ci_configure(build_sdk.TARGET_HOSTS[target], build))
                 sdk: dict[str, str] = definitions(build_sdk.configure_command(
                     target, build_sdk.ROOT, build / "sdk-tree", build / "prefix"))
+                # CI's SDK also installs the lab library and the Gallery
+                # model, which its installed reference examples generate the
+                # Gallery pages against (audit F9); the default SDK leaves
+                # them to --features all.
+                name: str
+                for name in CI_EXAMPLE_OPTIONS:
+                    self.assertEqual(ci.pop(name, None), "ON")
                 self.assertEqual(sorted(ci), sorted(sdk))
                 name: str
                 for name in ci:
@@ -98,7 +109,7 @@ class ConfigureOptionTests(unittest.TestCase):
         self.assertEqual(definitions(every[len(default):]), {
             "GUI_FORMS_BUILD_TEXT_MASKS": "ON", "GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT": "ON",
             "GUI_FORMS_INSTALL_TEXT_STACK": "ON", "GUI_FORMS_BUILD_GALLERY_MODEL": "ON",
-            "GUI_FORMS_INSTALL_GALLERY_MODEL": "ON"})
+            "GUI_FORMS_INSTALL_GALLERY_MODEL": "ON", "GUI_FORMS_INSTALL_LAB": "ON"})
         self.assertNotIn("-DGUI_FORMS_BUILD_PREPARED_TEXT=ON", every)
 
     def test_the_default_features_add_nothing(self) -> None:

@@ -2012,6 +2012,14 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
                 ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT demo_controls)
         install(DIRECTORY demo/lab_controls/include/gui_forms_demo
                 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT demo_controls)
+        # The Gallery's form compiler (GUIForms::form_compiler_lab), which
+        # knows the lab and demonstration controls the pages name: an SDK
+        # consumer that generates the page documents passes it as
+        # gui_forms_add_form's COMPILER (examples/reference).
+        set_target_properties(gui_forms_form_compiler_lab PROPERTIES EXPORT_NAME form_compiler_lab)
+        install(TARGETS gui_forms_form_compiler_lab
+                EXPORT GUIFormsGalleryModelTargets
+                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT demo_controls)
         install(EXPORT GUIFormsGalleryModelTargets
                 FILE GUIFormsGalleryModelTargets.cmake
                 NAMESPACE GUIForms::
@@ -5628,6 +5636,11 @@ endif()
 if(TARGET gui_forms_form_compiler AND NOT GUI_FORMS_INSTALLED_LIBRARY_RPATH STREQUAL "")
     file(RELATIVE_PATH GUI_FORMS_BIN_TO_LIB "/${CMAKE_INSTALL_BINDIR}" "/${CMAKE_INSTALL_LIBDIR}")
     set_target_properties(gui_forms_form_compiler PROPERTIES
+        INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}/${GUI_FORMS_BIN_TO_LIB}")
+endif()
+if(TARGET gui_forms_form_compiler_lab AND NOT GUI_FORMS_INSTALLED_LIBRARY_RPATH STREQUAL "")
+    file(RELATIVE_PATH GUI_FORMS_BIN_TO_LIB "/${CMAKE_INSTALL_BINDIR}" "/${CMAKE_INSTALL_LIBDIR}")
+    set_target_properties(gui_forms_form_compiler_lab PROPERTIES
         INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}/${GUI_FORMS_BIN_TO_LIB}")
 endif()
 

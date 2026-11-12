@@ -130,7 +130,7 @@ set(GUIForms_FALLBACK_FONTS @GUI_FORMS_INSTALL_FALLBACK_FONTS@)
 
 # Components describe installed targets, not the producer's build options.
 # Set these explicitly so REQUIRED COMPONENTS works and missing hosts fail here.
-foreach(_gui_forms_component IN ITEMS Core Controls Drawing Threading Application Audio TextMasks AudioLoopTransport FreeType HarfBuzz CAbi CAbiConformance GalleryModel)
+foreach(_gui_forms_component IN ITEMS Core Controls Drawing Threading Application Audio TextMasks AudioLoopTransport FreeType HarfBuzz CAbi CAbiConformance GalleryModel Lab DemoControls)
     if(TARGET GUIForms::${_gui_forms_component})
         set(GUIForms_${_gui_forms_component}_FOUND TRUE)
     else()
@@ -140,7 +140,7 @@ endforeach()
 foreach(_gui_forms_component IN LISTS GUIForms_FIND_COMPONENTS)
     if(NOT GUIForms_${_gui_forms_component}_FOUND)
         set(GUIForms_NOT_FOUND_MESSAGE
-            "Requested GUIForms component '${_gui_forms_component}' is not installed. Core, Controls, Drawing and Threading are portable components. Application, CAbi and CAbiConformance require a supported native host build; Audio requires an audio-enabled build; TextMasks requires a native host build with GUI_FORMS_BUILD_TEXT_MASKS; AudioLoopTransport requires an audio build with GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT; FreeType and HarfBuzz require a build with GUI_FORMS_INSTALL_TEXT_STACK; GalleryModel requires GUI_FORMS_INSTALL_GALLERY_MODEL (tools/build_sdk.py --features all builds all five).")
+            "Requested GUIForms component '${_gui_forms_component}' is not installed. Core, Controls, Drawing and Threading are portable components. Application, CAbi and CAbiConformance require a supported native host build; Audio requires an audio-enabled build; TextMasks requires a native host build with GUI_FORMS_BUILD_TEXT_MASKS; AudioLoopTransport requires an audio build with GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT; FreeType and HarfBuzz require a build with GUI_FORMS_INSTALL_TEXT_STACK; GalleryModel requires GUI_FORMS_INSTALL_GALLERY_MODEL, with Lab (GUI_FORMS_INSTALL_LAB) and DemoControls beside it (tools/build_sdk.py --features all builds them all).")
     endif()
 endforeach()
 unset(_gui_forms_component)
