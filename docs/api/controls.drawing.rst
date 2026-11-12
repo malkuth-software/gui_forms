@@ -464,7 +464,11 @@ Related types
 
    .. cpp:function:: std::uint64_t revision() const noexcept
 
-      Advances on every successful operation; never zero.
+      Advances on every successful operation except set_port_lamp (and on undo, redo, load and a rollback that reverted something); never zero.
+
+   .. cpp:function:: std::uint64_t lamp_revision() const noexcept
+
+      Advances on every set_port_lamp that changes a lamp; never zero. Lamps also change with the structure (load turns every lamp off; an undo can bring back a node with its lamps), so a painter of lamps watches both counters.
 
 
    .. rubric:: Methods
@@ -506,6 +510,10 @@ Related types
       Groups nest; the operations between the outermost begin and its end form one step (an empty group forms none). undo, redo, clear_undo and load are refused while a group is open.
 
    .. cpp:function:: GraphResult end_undo_group() noexcept
+
+   .. cpp:function:: GraphResult rollback_undo_group() noexcept
+
+      Cancels the open group: reverts every operation recorded since the outermost begin_undo_group, newest first and exactly as undo does (same slots, generations, free lists, IDs and bytes), removes the group's step so neither undo nor redo sees it, and closes every open level, inner ones included (a later end_undo_group returns no_group). Advances the revision once when it reverted anything. The redo steps that existed before the group were discarded by its first operation, as by any new operation, and stay discarded. Lamps are not recorded, so lamp writes inside the group stay. no_group when no group is open; nothing_to_undo when recording is off (maximum_steps 0): the group is closed and its operations stay. Never allocates.
 
    .. cpp:function:: GraphResult clear_undo() noexcept
 
@@ -555,7 +563,7 @@ Related types
 
    .. cpp:function:: GraphResult set_port_lamp(PortRef port, PortLamp lamp)
 
-      Not recorded for undo and not saved (evaluation state).
+      Not recorded for undo and not saved (evaluation state). A change advances lamp_revision, not revision; writing the lamp a port already shows changes neither.
 
 .. cpp:namespace:: gui_forms
 

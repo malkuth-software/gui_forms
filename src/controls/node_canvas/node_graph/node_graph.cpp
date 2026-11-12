@@ -362,6 +362,33 @@ GraphResult NodeGraph::end_undo_group() noexcept {
     return result;
 }
 
+GraphResult NodeGraph::rollback_undo_group() noexcept {
+    GraphResult result{};
+    if (group_depth_ == 0U) {
+        result.status = GraphStatus::no_group;
+        return result;
+    }
+    const bool made_step = group_step_open();
+    group_depth_ = 0U;
+    group_step_open_ = false;
+    if (!made_step) {
+        if (!recording()) result.status = GraphStatus::nothing_to_undo;
+        return result;
+    }
+    // The group's step is the newest: its first record discarded the redo
+    // steps, and trim_steps never drops the newest step while recording.
+    const UndoStep& step = steps_[applied_steps_ - 1U];
+    for (std::size_t offset = step.record_count; offset > 0U; --offset) {
+        revert(records_[step.first_record + offset - 1U]);
+    }
+    --applied_steps_;
+    // The reverted step is now the only redo step; erasing it (and its
+    // records and payloads) only shrinks the arrays, so nothing allocates.
+    discard_redo_steps();
+    advance();
+    return result;
+}
+
 GraphResult NodeGraph::clear_undo() noexcept {
     GraphResult result{};
     if (group_depth_ > 0U) {
@@ -1005,8 +1032,11 @@ GraphResult NodeGraph::set_port_lamp(PortRef port, PortLamp lamp) {
         result.status = GraphStatus::invalid_argument;
         return result;
     }
-    record.ports[port.port.value].lamp = lamp;
-    advance();
+    PortLamp& shown = record.ports[port.port.value].lamp;
+    if (shown == lamp) return result;
+    shown = lamp;
+    ++lamp_revision_;
+    if (lamp_revision_ == 0U) lamp_revision_ = 1U;
     return result;
 }
 
