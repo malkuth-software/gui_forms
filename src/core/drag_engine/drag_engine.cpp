@@ -1503,15 +1503,30 @@ void DragEngine::end(DragEnd ending) {
     release_capture();
     record(DragTraceEvent::end, ending);
     if (alive) {
-        if (commits) (*client_).rewrite_drag_outcome(outcome);
+        DragEnd reported = ending;
+        if (commits) {
+            (*client_).rewrite_drag_outcome(outcome);
+            // A rewrite keeps a committing end or turns it into rejected (the
+            // candidate went away); any other end it writes is rejected too.
+            const bool still_commits = outcome.end == DragEnd::dropped || outcome.end == DragEnd::free;
+            if (!still_commits) {
+                outcome.end = DragEnd::rejected;
+                outcome.selection = DragSelection{};
+                selection_ = DragSelection{};
+                --statistics_.ends[end_index];
+                ++statistics_.ends[static_cast<std::size_t>(DragEnd::rejected)];
+            }
+            reported = outcome.end;
+        }
+        const bool reported_commits = reported == DragEnd::dropped || reported == DragEnd::free;
         if (serial == serial_) (*client_).end_drag(outcome);
         if (serial == serial_ && client_alive()) {
             DragFrame frame = frame_now();
-            frame.end = ending;
+            frame.end = reported;
             announce(frame);
         }
-        if (serial == serial_ && commits) raise(&DragInteractionEvents::dropped, ending);
-        if (serial == serial_) raise(&DragInteractionEvents::ended, ending);
+        if (serial == serial_ && reported_commits) raise(&DragInteractionEvents::dropped, reported);
+        if (serial == serial_) raise(&DragInteractionEvents::ended, reported);
     }
     if (serial == serial_ && phase_ == DragPhase::idle) reset_session();
     ending_ = false;
@@ -1525,6 +1540,32 @@ void DragEngine::cancel(DragEnd ending) {
     }
     if (phase_ != DragPhase::dragging && phase_ != DragPhase::planning) return;
     end(ending);
+}
+
+bool DragEngine::replan(const DragClient& client, Point moved) {
+    if (phase_ != DragPhase::dragging || mode_ != DragInputMode::pointer || client_ != &client) return false;
+    if (!finite_point(moved)) return false;
+    const std::size_t landings_capacity = landings_.capacity();
+    const std::size_t flags_capacity = reachable_.capacity();
+    const std::size_t trace_capacity = trace_.capacity();
+    const std::uint64_t serial = serial_;
+    press_ = Point{press_.x + moved.x, press_.y + moved.y};
+    source_ = Rect{source_.x + moved.x, source_.y + moved.y, source_.width, source_.height};
+    // plan() sets the selection to the new plan's; the one shown before is
+    // put back so that select() previews a change against what the client
+    // last saw.
+    const DragSelection shown = selection_;
+    ++statistics_.replans;
+    if (!plan()) return false;
+    if (!still(serial)) return false;
+    selection_ = shown;
+    const Evaluation evaluation = evaluate(root_node_, pointer_, modifiers_, false);
+    ++statistics_.evaluations;
+    if (evaluation.tied) ++statistics_.ties;
+    select(evaluation.selection, DragTraceEvent::move);
+    note_growth(landings_capacity, flags_capacity, trace_capacity);
+    const bool running = still(serial) && phase_ == DragPhase::dragging;
+    return running;
 }
 
 void DragEngine::note_capture_lost(const Control& control) {

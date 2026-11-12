@@ -65,6 +65,7 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
+#include "gui_forms/events/drag_tracker/drag_tracker.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -131,9 +132,9 @@ inline constexpr DragNodeIndex no_drag_node{};
 
 // A contiguous run of the plan's landings, as add_landings or add_list
 // stored it. `uniform` marks a list run whose anchors lie at a constant
-// pitch along `axis` from `origin`: a nearest operator over it with that
-// axis' metric finds its candidate in O(1).
-enum class DragAxis : std::uint8_t { x, y };
+// pitch along `axis` (DragAxis, public in drag_tracker.hpp) from `origin`:
+// a nearest operator over it with that axis' metric finds its candidate in
+// O(1).
 struct DragCandidateRange final {
     std::uint32_t first{};
     std::uint32_t count{};
@@ -145,10 +146,9 @@ struct DragCandidateRange final {
 
 // -- vocabulary -----------------------------------------------------------------
 
-enum class DragPhase : std::uint8_t { idle, armed, planning, dragging, settling };
-
-// DragEnd and DragInputMode are public (gui_forms/events/drag_events), as
-// the typed drag interactions carry them.
+// DragPhase is public (gui_forms/events/drag_tracker), as the public drag
+// client reports it; DragEnd and DragInputMode are public
+// (gui_forms/events/drag_events), as the typed drag interactions carry them.
 inline constexpr std::size_t drag_end_count = 9U;
 
 // The distance a nearest operator compares: from the grab-adjusted pointer
@@ -372,6 +372,8 @@ struct DragStatistics final {
     std::uint64_t evaluations{};
     std::uint64_t ties{};
     std::uint64_t chains{};
+    // Plans redone for the client's moved geometry (replan).
+    std::uint64_t replans{};
     std::uint64_t storage_growths{};
     std::array<std::uint64_t, drag_end_count> ends{};
 };
@@ -425,7 +427,11 @@ public:
     // Writes the announcement for a frame whose selection changed, and for
     // the end. Nothing by default.
     virtual void announce_drag(const DragFrame& frame, DragAnnouncement& announcement);
-    // Maps a committing outcome before end_drag (the study's rewrite).
+    // Maps a committing outcome before end_drag (the study's rewrite). It
+    // may change the selection, or turn the end into rejected (the selected
+    // candidate went away); the engine then clears the selection, and the
+    // announcement and the typed interactions report rejected. Any other
+    // end it writes is taken as rejected.
     virtual void rewrite_drag_outcome(DragOutcome& outcome);
     // Commits a chained candidate; planning follows at once.
     virtual void commit_drag_chain(const DragOutcome& outcome);
@@ -519,6 +525,19 @@ public:
     // model_changed (the client's own edit during the drag). Other ends are
     // ignored.
     void cancel(DragEnd end);
+    // Plans the running pointer session of `client` again at the same
+    // pointer, because its geometry moved under the drag: an auto-scroll
+    // step moved its content by `moved` (the root's coordinates; zero when
+    // only the candidates changed, a withdrawn target). The press and the
+    // source move by `moved`, so the grab is kept; the epoch advances
+    // (tokens of the older epoch are stale), the new plan is evaluated
+    // without stickiness at the current pointer and modifiers, and the
+    // client previews a changed selection. A refused plan ends the session
+    // rejected. True while the session still drags afterwards; false,
+    // changing nothing, unless `client` runs a pointer session that is
+    // dragging, or for a non-finite `moved`. Never called from inside one of
+    // the client's own calls (it would plan within a plan or a preview).
+    bool replan(const DragClient& client, Point moved);
     // The window's capture moved away from `control` (SurfaceRoot's hook).
     void note_capture_lost(const Control& control);
     // The client is going away: the session ends subject_gone without
