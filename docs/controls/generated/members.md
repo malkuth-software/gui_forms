@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 1994 | 13 | 367 | 4130 | 2113 |
+| 1998 | 13 | 367 | 4130 | 2117 |
 
 ## GUI.Forms types
 
@@ -49,7 +49,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ObjectView` | `ListView` | 20 | 0 | 2 | 107 | 18 |
 | `ListView` | `ListView` | 49 | 0 | 2 | 98 | 38 |
 | `TreeListView` | GUI.Forms-only | 31 | 0 | 0 | 5 | 36 |
-| `VirtualRowsView` | GUI.Forms-only | 20 | 0 | 0 | 2 | 22 |
+| `VirtualRowsView` | GUI.Forms-only | 24 | 0 | 0 | 2 | 26 |
 | `DataGridView` | `DataGridView` | 130 | 0 | 0 | 330 | 79 |
 | `ChoiceGroup` | GUI.Forms-only | 6 | 0 | 0 | 3 | 9 |
 | `BreadcrumbTrail` | GUI.Forms-only | 12 | 0 | 0 | 3 | 15 |

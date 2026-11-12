@@ -147,8 +147,17 @@ struct GUI_FORMS_API VirtualRowsStatistics final {
 // rows change height, are inserted or are erased above the anchor, the
 // scroll offset moves by the same amount, so the anchor row stays where it
 // is on screen and the content does not jump; the scroll bar's thumb may
-// move. At the end of the content the anchor is the end: the view stays at
-// the bottom as rows are appended or measured.
+// move.
+//
+// Follow tail (follow_tail, off by default; ScrollableControl has no such
+// property, so the name is this view's). While it is on and the viewport
+// is at the end of the content, the anchor is the end: the view stays at
+// the bottom as rows are appended or measured (following_tail() is true).
+// Scrolling away from the end, by the user or the program, stops following
+// until the viewport returns to the end; following is derived from the
+// position at each settle, never latched. With it off, a view at the end
+// keeps its bottom row anchored like any other, so appended rows arrive
+// below the viewport.
 //
 // Bounded work. A settle measures at most maximum_measured_per_settle rows
 // and repeats its measure-and-place step at most maximum_settle_passes
@@ -172,7 +181,13 @@ struct GUI_FORMS_API VirtualRowsStatistics final {
 //
 // Accessibility: a list whose size is row_count() and whose children are the
 // realized rows only, each a list item named by describe, with its position
-// in the set, its selection and the focus, select, and press actions.
+// in the set, its selection and the focus, select, and press actions. After
+// the rows comes one live region, "<id>.announcements", always present and
+// named by the latest announcement: rows appended at the end (insert_rows
+// at row_count()) are counted and announced once per settle as "<n> new
+// rows, <total> in all", never one announcement per row; hosts announce it
+// politely when its name changes. announces_appends (on by default) turns
+// this off; reset_rows and insertions before the end are not announced.
 //
 // Right to left (layout_direction or right_to_left), the scroll bar is at
 // the left edge and the paint context reports mirrored rows.
@@ -253,6 +268,25 @@ public:
     [[nodiscard]] Rect row_bounds(VirtualRowIndex row) const;
     // The row under a local point inside the viewport, or none.
     [[nodiscard]] std::optional<VirtualRowIndex> row_at(Point local_point) const noexcept;
+
+    // Whether a view at the end of its content stays there as rows are
+    // appended (see the class comment). Turning it on while at the end
+    // starts following at once.
+    void set_follow_tail(bool follow);
+    [[nodiscard]] bool follow_tail() const noexcept { return follow_tail_; }
+    // Whether the view is following now: follow_tail() and the viewport at
+    // the end at the last settle or scroll.
+    [[nodiscard]] bool following_tail() const noexcept { return anchored_at_end_; }
+
+    // -- announcements ------------------------------------------------------
+    // Whether appended rows are announced through the live region. Turning
+    // it off drops a pending count; the last announcement stays.
+    void set_announces_appends(bool announce);
+    [[nodiscard]] bool announces_appends() const noexcept { return announces_appends_; }
+    // The live region's current text; empty before the first announcement.
+    // Valid until the next layout.
+    [[nodiscard]] std::string_view announcement() const& noexcept { return announcement_; }
+    std::string_view announcement() const&& = delete;
 
     // -- selection ----------------------------------------------------------
     [[nodiscard]] std::optional<VirtualRowIndex> selected_row() const noexcept;
@@ -374,6 +408,7 @@ private:
     [[nodiscard]] std::optional<std::size_t> row_of_child_id(std::string_view stable_id) const noexcept;
     // Writes "<view id>.row-<row>" into `identity`, reusing its storage.
     void row_identity(std::size_t row, std::string& identity) const;
+    void compose_announcement();
 
     std::unique_ptr<RowHeightIndex> heights_;
     std::shared_ptr<VScrollBar> vertical_bar_{};
@@ -393,7 +428,10 @@ private:
     double offset_{};
     std::size_t anchor_row_{};
     double anchor_top_{};
+    // Following the tail: set by capture_anchor only when follow_tail_ is on
+    // and the viewport is at the end.
     bool anchored_at_end_{};
+    bool follow_tail_{};
     // The content width the stored heights were measured at; below zero
     // before the first settle.
     double measured_width_{-1.0};
@@ -417,6 +455,12 @@ private:
     // Reused by describe calls (semantics are read from const members).
     mutable VirtualRowDescription description_{};
     mutable VirtualRowsStatistics statistics_{};
+
+    // Rows appended at the end since the last announcement, and the live
+    // region's text (its storage is reused across announcements).
+    bool announces_appends_{true};
+    std::size_t pending_appended_{};
+    std::string announcement_{};
 
     Event<const VirtualRowSelection&> selection_changed_{};
     Event<VirtualRowIndex> row_activated_{};

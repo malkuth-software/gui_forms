@@ -29,7 +29,8 @@ gui_forms::VirtualRowsView
       **stable_id** : ``StableId``
          Identity of the view, unique within its window. Its scroll bar is a
          child control named ``<stable_id>.vertical-scroll-bar``; its rows are
-         published to accessibility as ``<stable_id>.row-<n>``.
+         published to accessibility as ``<stable_id>.row-<n>``, followed by a live
+         region named ``<stable_id>.announcements``.
 
    :Properties:
 
@@ -57,6 +58,22 @@ gui_forms::VirtualRowsView
 
       **first_visible_row** : ``VirtualRowIndex``, read-only
          The rows meeting the viewport, [first, end); empty without rows or before the first layout.
+
+      **follow_tail** : ``bool``
+         Whether a view at the end of its content stays at the end as rows are
+         appended. Off by default. Scrolling away from the end stops following
+         until the view returns to the end.
+
+      **following_tail** : ``bool``, read-only
+         Whether the view is following now: follow_tail is on and the viewport is
+         at the end.
+
+      **announces_appends** : ``bool``
+         Whether rows appended at the end are announced through the live region.
+         On by default.
+
+      **announcement** : ``std::string_view``, read-only
+         The live region's current text, such as "6 new rows, 106 in all".
 
       **selected_row** : ``std::optional<VirtualRowIndex>``
          -- selection ----------------------------------------------------------
@@ -121,6 +138,11 @@ gui_forms::VirtualRowsView
    it. Scrolling by whole device pixels moves the painted pixels instead of
    repainting them when ``back_color`` is an opaque colour.
 
+   Rows appended between two layouts are announced once, at the next layout,
+   with their count and the new total; screen readers speak the live region
+   politely when its text changes. Rows inserted before the end and a reset
+   are not announced.
+
 
    .. rubric:: Construction
 
@@ -167,6 +189,34 @@ gui_forms::VirtualRowsView
    .. cpp:function:: VirtualRowIndex first_visible_row() const noexcept
 
       The rows meeting the viewport, [first, end); empty without rows or before the first layout.
+
+   .. cpp:function:: bool follow_tail() const noexcept
+
+      Whether a view at the end of its content stays at the end as rows are
+      appended. Off by default. Scrolling away from the end stops following
+      until the view returns to the end.
+
+   .. cpp:function:: void set_follow_tail(bool follow)
+
+      Sets :cpp:func:`follow_tail <gui_forms::VirtualRowsView::follow_tail>`; see the property's description above.
+
+   .. cpp:function:: bool following_tail() const noexcept
+
+      Whether the view is following now: follow_tail is on and the viewport is
+      at the end.
+
+   .. cpp:function:: bool announces_appends() const noexcept
+
+      Whether rows appended at the end are announced through the live region.
+      On by default.
+
+   .. cpp:function:: void set_announces_appends(bool announce)
+
+      Sets :cpp:func:`announces_appends <gui_forms::VirtualRowsView::announces_appends>`; see the property's description above.
+
+   .. cpp:function:: std::string_view announcement() const& noexcept
+
+      The live region's current text, such as "6 new rows, 106 in all".
 
    .. cpp:function:: std::optional<VirtualRowIndex> selected_row() const noexcept
 

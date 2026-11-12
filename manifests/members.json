@@ -1872,9 +1872,13 @@
       {"kind": "method", "winforms": null, "gui_forms": "splice_rows", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"}
     ]},
     {"type": "VirtualRowsView", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/schema_export_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "announcement", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "announces_appends", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "content_height", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "estimated_row_height", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "first_visible_row", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "follow_tail", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "following_tail", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "row_callbacks", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "row_count", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "scroll_offset", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},

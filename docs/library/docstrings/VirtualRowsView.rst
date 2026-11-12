@@ -14,7 +14,8 @@ Parameters
 stable_id
     Identity of the view, unique within its window. Its scroll bar is a
     child control named ``<stable_id>.vertical-scroll-bar``; its rows are
-    published to accessibility as ``<stable_id>.row-<n>``.
+    published to accessibility as ``<stable_id>.row-<n>``, followed by a live
+    region named ``<stable_id>.announcements``.
 
 Properties
 ----------
@@ -31,6 +32,18 @@ scroll_offset
     The viewport's top in content coordinates, in logical units.
 content_height
     Every row's height, measured or estimated.
+follow_tail
+    Whether a view at the end of its content stays at the end as rows are
+    appended. Off by default. Scrolling away from the end stops following
+    until the view returns to the end.
+following_tail
+    Whether the view is following now: follow_tail is on and the viewport is
+    at the end.
+announces_appends
+    Whether rows appended at the end are announced through the live region.
+    On by default.
+announcement
+    The live region's current text, such as "6 new rows, 106 in all".
 statistics
     Work counters: rows measured, painted and described, scroll copies and
     repaints, and the height index's runs, nodes and depth.
@@ -69,3 +82,8 @@ those within half a viewport of it are measured. A change of the content
 width forgets the measured heights, since wrapped rows change height with
 it. Scrolling by whole device pixels moves the painted pixels instead of
 repainting them when ``back_color`` is an opaque colour.
+
+Rows appended between two layouts are announced once, at the next layout,
+with their count and the new total; screen readers speak the live region
+politely when its text changes. Rows inserted before the end and a reset
+are not announced.

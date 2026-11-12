@@ -5,7 +5,8 @@
 // refinement, edits, insertions, erasures and a width change, scrolling to
 // an index in every alignment, a million rows with bounded work per settle
 // and per paint (counted, not timed), the keyboard, accessibility, right to
-// left, and refusals. Heights are whole numbers so every sum is exact.
+// left, refusals, following the tail and the coalesced announcement of
+// appended rows. Heights are whole numbers so every sum is exact.
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
@@ -275,8 +276,9 @@ void anchor_stability() {
             "the anchor keeps its place across a width change, at its new height");
     require(!(*view).row_measured(VirtualRowIndex{10'000U}), "heights measured at the old width are forgotten");
 
-    // At the end the anchor is the end: appended rows keep the view at the
-    // bottom.
+    // Following the tail, at the end the anchor is the end: appended rows
+    // keep the view at the bottom.
+    (*view).set_follow_tail(true);
     const std::size_t last = (*view).row_count() - 1U;
     (*view).scroll_to_row(VirtualRowIndex{last}, VirtualRowAlignment::end);
     require((*view).scroll_offset() == (*view).content_height() - 300.0, "the last row's bottom is at the bottom");
@@ -438,8 +440,11 @@ void accessibility() {
             "the view is a named list sized by every row, its value the selected row's name");
     std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     const std::size_t realized = (*view).end_visible_row().value - (*view).first_visible_row().value;
-    require(!children.empty() && children.size() == realized && children.size() <= 300U / 14U + 2U,
-            "only the realized rows are children");
+    require(children.size() == realized + 1U && realized > 0U && realized <= 300U / 14U + 2U,
+            "only the realized rows are children, with the live region after them");
+    require(children.back().role == SemanticRole::live_region && children.back().stable_id == "rows.announcements" &&
+                children.back().name.empty(),
+            "the live region is present, silent before any announcement");
     require(children[0].role == SemanticRole::list_item && children[0].stable_id == "rows.row-0" &&
                 children[0].name == "Row 0" && children[0].value == "Message text of row 0" &&
                 children[0].position_in_set == 1U && children[0].set_size == 1'000'000U,
@@ -537,6 +542,117 @@ void refusals_and_reentrancy() {
     require(!children.empty() && children[0].name == "1", "without a describe target rows are named by position");
 }
 
+// Follow tail: at the end, appended rows keep the view at the end; a scroll
+// away stops following, so appended rows leave the content still, and a
+// return to the end resumes. Without follow_tail a view at the end keeps
+// its bottom row anchored.
+void follow_tail() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    Window window(view, {400.0, 300.0});
+    window.perform_layout();
+
+    (*view).scroll_to_offset((*view).content_height());
+    const double still = (*view).scroll_offset();
+    require(!(*view).follow_tail() && !(*view).following_tail(), "follow_tail is off by default");
+    (*view).insert_rows(VirtualRowIndex{(*view).row_count()}, 5U);
+    window.perform_layout();
+    require((*view).scroll_offset() == still && (*view).scroll_offset() < (*view).content_height() - 300.0,
+            "without follow_tail appended rows arrive below the viewport");
+
+    (*view).set_follow_tail(true);
+    require(!(*view).following_tail(), "turning it on away from the end does not follow");
+    (*view).scroll_to_offset((*view).content_height());
+    require((*view).following_tail(), "reaching the end follows");
+    for (std::size_t burst = 0; burst < 3U; ++burst) {
+        (*view).insert_rows(VirtualRowIndex{(*view).row_count()}, 4U);
+        window.perform_layout();
+        require((*view).following_tail() && (*view).scroll_offset() == (*view).content_height() - 300.0,
+                "appended rows keep a following view at the end, measured");
+    }
+
+    // A user scroll away (one wheel notch up) stops following.
+    require(wheel(window, 1.0), "the wheel scrolls up");
+    require(!(*view).following_tail(), "a scroll away from the end stops following");
+    const double away = (*view).scroll_offset();
+    const VirtualRowIndex top_row = (*view).first_visible_row();
+    const double top_y = (*view).row_bounds(top_row).y;
+    (*view).insert_rows(VirtualRowIndex{(*view).row_count()}, 20U);
+    window.perform_layout();
+    require((*view).scroll_offset() == away && (*view).row_bounds(top_row).y == top_y && !(*view).following_tail(),
+            "while not following appended rows leave the content still");
+
+    // The program's scroll to the last row returns to the end and resumes.
+    (*view).scroll_to_row(VirtualRowIndex{(*view).row_count() - 1U}, VirtualRowAlignment::end);
+    require((*view).following_tail(), "returning to the end resumes following");
+    (*view).insert_rows(VirtualRowIndex{(*view).row_count()}, 2U);
+    window.perform_layout();
+    require((*view).scroll_offset() == (*view).content_height() - 300.0, "following again after the return");
+
+    // Erasing rows at the end while following keeps the view at the end.
+    (*view).erase_rows(VirtualRowIndex{(*view).row_count() - 3U}, 3U);
+    window.perform_layout();
+    require((*view).following_tail() && (*view).scroll_offset() == (*view).content_height() - 300.0,
+            "erasing the last rows keeps a following view at the end");
+
+    (*view).set_follow_tail(false);
+    require(!(*view).following_tail(), "turning it off stops following at once");
+}
+
+// Appended rows are announced once per layout through the live region,
+// coalesced, with the new total; insertions before the end and resets are
+// not announced, and announces_appends turns it off.
+void append_announcements() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 100U);
+    Window window(view, {400.0, 300.0});
+    window.perform_layout();
+    require((*view).announces_appends() && (*view).announcement().empty(), "nothing is announced at first");
+
+    std::vector<SemanticNode> before = (*view).semantic_virtual_children();
+    (*view).insert_rows(VirtualRowIndex{100U}, 3U);
+    (*view).insert_rows(VirtualRowIndex{103U}, 1U);
+    (*view).insert_rows(VirtualRowIndex{104U}, 2U);
+    require((*view).announcement().empty(), "appends wait for the layout");
+    window.perform_layout();
+    require((*view).announcement() == "6 new rows, 106 in all", "three appends make one announcement");
+    std::vector<SemanticNode> after = (*view).semantic_virtual_children();
+    require(after.back().role == SemanticRole::live_region && after.back().name == "6 new rows, 106 in all" &&
+                semantic_announcement_due(&before.back(), after.back()),
+            "the live region is renamed, so hosts announce it politely");
+
+    // A layout with nothing appended leaves the region alone.
+    window.perform_layout();
+    std::vector<SemanticNode> again = (*view).semantic_virtual_children();
+    require(!semantic_announcement_due(&after.back(), again.back()), "no append, no announcement");
+
+    // One row is singular; an equal count still renames by its total.
+    (*view).insert_rows(VirtualRowIndex{106U}, 1U);
+    window.perform_layout();
+    require((*view).announcement() == "1 new row, 107 in all", "one appended row");
+
+    // Insertions before the end are not announced.
+    (*view).insert_rows(VirtualRowIndex{10U}, 5U);
+    window.perform_layout();
+    require((*view).announcement() == "1 new row, 107 in all", "an insertion before the end is not announced");
+
+    // A reset drops a pending count.
+    (*view).insert_rows(VirtualRowIndex{(*view).row_count()}, 9U);
+    (*view).reset_rows(50U);
+    window.perform_layout();
+    require((*view).announcement() == "1 new row, 107 in all", "a reset is not announced");
+
+    // Turned off, appends are not counted.
+    (*view).set_announces_appends(false);
+    (*view).insert_rows(VirtualRowIndex{50U}, 4U);
+    window.perform_layout();
+    require((*view).announcement() == "1 new row, 107 in all", "announces_appends off is silent");
+    (*view).set_announces_appends(true);
+    (*view).insert_rows(VirtualRowIndex{54U}, 2U);
+    window.perform_layout();
+    require((*view).announcement() == "2 new rows, 56 in all", "announcing again once turned back on");
+}
+
 } // namespace
 
 int main() {
@@ -548,7 +664,9 @@ int main() {
     accessibility();
     right_to_left();
     refusals_and_reentrancy();
+    follow_tail();
+    append_announcements();
     std::cout << "VirtualRowsView: refinement invariants, anchor stability, scrolling to an index, a million rows "
-                 "with bounded work, keyboard, accessibility, right to left and refusals passed\n";
+                 "with bounded work, keyboard, accessibility, right to left, refusals, follow tail and append announcements passed\n";
     return 0;
 }

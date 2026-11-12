@@ -12,6 +12,7 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -34,6 +35,11 @@ constexpr double wheel_rows_per_line = 3.0;
 constexpr std::size_t row_digits_capacity = 24U;
 constexpr std::string_view row_segment = ".row-";
 constexpr double preferred_extent = 240.0;
+// The live region's identity suffix and the announcement's wording.
+constexpr std::string_view announcements_segment = ".announcements";
+constexpr std::string_view announcement_one_row = " new row, ";
+constexpr std::string_view announcement_rows = " new rows, ";
+constexpr std::string_view announcement_total = " in all";
 
 [[nodiscard]] std::optional<VirtualRowIndex> as_row_index(std::optional<std::size_t> row) noexcept {
     if (!row.has_value()) return std::nullopt;
@@ -170,6 +176,7 @@ void VirtualRowsView::reset_rows(std::size_t count) {
     anchor_row_ = 0U;
     anchor_top_ = 0.0;
     anchored_at_end_ = false;
+    pending_appended_ = 0U;
     selected_.reset();
     hot_.reset();
     rows_changed();
@@ -188,6 +195,12 @@ void VirtualRowsView::insert_rows(VirtualRowIndex at, std::size_t count) {
     if (count > maximum_rows - rows) throw std::length_error("VirtualRowsView holds at most maximum_rows rows");
     if (count == 0U) return;
     (*heights_).insert(at.value, count);
+    // Rows appended at the end are counted for the next announcement,
+    // saturating rather than wrapping.
+    if (announces_appends_ && at.value == rows) {
+        const std::size_t room = SIZE_MAX - pending_appended_;
+        pending_appended_ = count > room ? SIZE_MAX : pending_appended_ + count;
+    }
     if (selected_.has_value() && *selected_ >= at.value) selected_ = *selected_ + count;
     if (hot_.has_value() && *hot_ >= at.value) hot_ = *hot_ + count;
     // Rows inserted at or before the anchor push it down with its content;
@@ -302,7 +315,9 @@ double VirtualRowsView::anchored_offset() const noexcept {
 void VirtualRowsView::capture_anchor() noexcept {
     const std::size_t count = row_count();
     const double maximum = maximum_offset();
-    anchored_at_end_ = maximum > 0.0 && offset_ >= maximum;
+    // Following the tail is derived from the position each time: on at the
+    // end while follow_tail_ is set, off as soon as the offset leaves it.
+    anchored_at_end_ = follow_tail_ && offset_ >= maximum;
     if (anchored_at_end_) {
         anchor_row_ = count;
         anchor_top_ = (*heights_).total_height() - offset_;
@@ -450,6 +465,35 @@ void VirtualRowsView::finish_scroll() {
     } else {
         ++statistics_.scroll_repaints;
     }
+}
+
+void VirtualRowsView::set_follow_tail(bool follow) {
+    require_outside_callback();
+    follow_tail_ = follow;
+    capture_anchor();
+}
+
+// -- announcements ----------------------------------------------------------------------
+
+void VirtualRowsView::set_announces_appends(bool announce) {
+    require_outside_callback();
+    announces_appends_ = announce;
+    if (!announce) pending_appended_ = 0U;
+}
+
+// Writes "<n> new row(s), <total> in all" into announcement_, reusing its
+// storage, and clears the pending count. The total makes two equal counts in
+// a row still rename the live region, so each is announced.
+void VirtualRowsView::compose_announcement() {
+    std::array<char, row_digits_capacity> digits{};
+    const std::to_chars_result appended =
+        std::to_chars(digits.data(), digits.data() + digits.size(), pending_appended_);
+    announcement_.assign(digits.data(), static_cast<std::size_t>(appended.ptr - digits.data()));
+    announcement_.append(pending_appended_ == 1U ? announcement_one_row : announcement_rows);
+    const std::to_chars_result total = std::to_chars(digits.data(), digits.data() + digits.size(), row_count());
+    announcement_.append(digits.data(), static_cast<std::size_t>(total.ptr - digits.data()));
+    announcement_.append(announcement_total);
+    pending_appended_ = 0U;
 }
 
 void VirtualRowsView::scroll_to_offset(double offset) {
@@ -621,6 +665,9 @@ void VirtualRowsView::arrange(Rect final_bounds) {
     place_parts({0.0, 0.0, final_bounds.width, final_bounds.height});
     static_cast<void>(settle());
     update_realized();
+    // One announcement per layout for every row appended since the last
+    // (insert_rows already asked for new semantics).
+    if (pending_appended_ > 0U) compose_announcement();
     bar_shown_ = maximum_offset() > 0.0 && !bar_.empty();
     if (vertical_bar_) {
         set_child_layout_collapsed(vertical_bar_, !bar_shown_);
@@ -850,11 +897,14 @@ SemanticDescriptor VirtualRowsView::semantic_descriptor() const {
 std::vector<SemanticNode> VirtualRowsView::semantic_virtual_children() const {
     std::vector<SemanticNode> children{};
     const std::size_t count = row_count();
-    if (first_realized_ >= end_realized_ || end_realized_ > count) return children;
-    children.reserve(end_realized_ - first_realized_);
+    const bool realized = first_realized_ < end_realized_ && end_realized_ <= count;
+    const std::size_t first = realized ? first_realized_ : 0U;
+    const std::size_t end = realized ? end_realized_ : 0U;
+    // The realized rows, then the live region.
+    children.reserve(end - first + 1U);
     const Rect absolute = absolute_bounds();
     const bool enabled = effectively_enabled();
-    for (std::size_t row = first_realized_; row < end_realized_; ++row) {
+    for (std::size_t row = first; row < end; ++row) {
         description_.row = VirtualRowIndex{row};
         description_.name.clear();
         description_.value.clear();
@@ -889,6 +939,18 @@ std::vector<SemanticNode> VirtualRowsView::semantic_virtual_children() const {
         node.actions = {SemanticAction::focus, SemanticAction::select, SemanticAction::press};
         children.push_back(std::move(node));
     }
+    // Always present, so a host sees the name change rather than a new
+    // node (semantic_announcement_due).
+    SemanticNode announcements{};
+    announcements.stable_id.assign(stable_id().value());
+    announcements.stable_id.append(announcements_segment);
+    announcements.runtime_id = virtual_semantic_runtime_id(announcements.stable_id);
+    announcements.role = SemanticRole::live_region;
+    announcements.name = announcement_;
+    announcements.bounds = {absolute.x + viewport_.x, absolute.y + viewport_.y, viewport_.width, viewport_.height};
+    announcements.states = SemanticState::visible;
+    if (enabled) announcements.states |= SemanticState::enabled;
+    children.push_back(std::move(announcements));
     return children;
 }
 
