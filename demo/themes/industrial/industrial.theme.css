@@ -1,0 +1,31 @@
+/* The industrial theme (skeudoindustrial surfaces, phase 5): stock
+   controls in the GOST machine-tool paints, pale mint keys in a satin
+   powder coat over a grey-green body, the documented "Soviet machine" look
+   of ГОСТ 22133-86 Appendix 4 (demo/themes/gost_paints/SOURCES.md).
+
+   These are visual choices, not rulings: each is one property in the
+   block below, naming a card of the imported palette. Finishes go on
+   small parts only; a large face (a group's) takes a plain paint, since
+   a finish over it would be past the bake budget and draw the built-in
+   look. The manifest pins the palette's manifest by its hash and is
+   written by tools/industrial_surfaces/gost_palette.py; run it after
+   changing this sheet. */
+@import "gost-paints";
+
+:root {
+  --industrial-body: var(--gost-a-365);   /* grey-green */
+  --industrial-key: var(--gost-a-319);    /* pale mint */
+  --industrial-key-shade: var(--gost-a-365);
+  --industrial-well: var(--gost-a-397);   /* blue-green */
+  --industrial-flake: var(--gost-a-810);  /* grey-silver */
+  --industrial-key-seed: 7;
+  --industrial-well-seed: 3;
+}
+
+group-box::part(face), scaled-group-box::part(face) { background: var(--industrial-body); }
+button::part(face) {
+  background: finish(orange-peel, var(--industrial-key), var(--industrial-key-shade), var(--industrial-key-seed));
+}
+check-box::part(well), radio-button::part(well) {
+  background: finish(hammertone, var(--industrial-well), var(--industrial-flake), var(--industrial-well-seed));
+}

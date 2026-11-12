@@ -3,7 +3,10 @@
 // tools/industrial_surfaces/gost_palette.py, compiles alone without a
 // finding, installs, and a package importing it reads its colours by card
 // number and evidence class (var(--gost-a-397), the machine tools'
-// blue-green; var(--gost-b-491), the tropical panels' grey-blue).
+// blue-green; var(--gost-b-491), the tropical panels' grey-blue). The
+// industrial theme (phase 5, demo/themes/industrial), which imports it by
+// its pin, compiles over the stock anatomies without a finding and reads
+// its key paint, GOST 319, through its own custom properties.
 
 #include "../../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
@@ -11,6 +14,7 @@
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
@@ -74,6 +78,18 @@ std::optional<ThemePackage> palette_package() {
     return package;
 }
 
+// The industrial theme package as the build embeds it.
+std::optional<ThemePackage> industrial_package() {
+    const std::string directory = GUI_FORMS_INDUSTRIAL_THEME_DIR;
+    const std::optional<std::string> manifest = read_file(directory + "/theme.json");
+    const std::optional<std::string> sheet = read_file(directory + "/industrial.theme.css");
+    if (!manifest || !sheet) return std::nullopt;
+    ThemePackage package{};
+    package.manifest = *manifest;
+    package.files.push_back(ThemePackageFile{"industrial.theme.css", *sheet});
+    return package;
+}
+
 // A package importing the palette, its sheet `sheet`.
 ThemePackage importer(const ThemePackage& palette, std::string_view sheet) {
     ThemePackage made{};
@@ -129,10 +145,45 @@ void test_palette() {
     require(!unknown.succeeded(), "a class c card has no value to read");
 }
 
+void test_industrial_theme() {
+    const std::optional<ThemePackage> palette = palette_package();
+    const std::optional<ThemePackage> industrial = industrial_package();
+    require(palette.has_value() && industrial.has_value(), "the industrial package is read");
+    if (!palette || !industrial) return;
+    ThemeLibrary library{};
+    require(library.install(*palette).empty(), "the palette installs for the industrial theme");
+    ImageRegistry images{};
+    ThemeCompileOptions stock{};
+    stock.controls = stock_control_anatomies();
+    const ThemeCompileResult result = compile_theme_package(*industrial, library, images, stock);
+    for (const ThemeCompileDiagnostic& diagnostic : result.diagnostics()) {
+        std::cerr << "  finding: " << diagnostic.code << " " << diagnostic.name << " line " << diagnostic.line << '\n';
+    }
+    require(result.succeeded() && result.diagnostics().empty(),
+            "the industrial theme compiles over the palette without a finding");
+
+    // Its key paint reaches a rule of an importer through the theme's own
+    // property chain, as the theme's button rule reads it.
+    const ThemeCompileResult chained = compile_theme_package(
+        importer(*palette, "@import \"gost-paints\";\n:root { --industrial-key: var(--gost-a-319) }\n"
+                           "#pad { color: var(--industrial-key) }\n"),
+        library, images, options());
+    require(chained.succeeded(), "a custom property chained to a palette colour compiles");
+    if (chained.succeeded()) {
+        const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
+        require(text_of(*chained.theme(), *pad) == Color::rgba(0xb4, 0xc4, 0xb2), "--gost-a-319 is #b4c4b2");
+    }
+
+    const ThemeLibrary empty{};
+    require(!compile_theme_package(*industrial, empty, images, stock).succeeded(),
+            "without the palette the industrial theme is refused");
+}
+
 } // namespace
 
 int main() {
     test_palette();
+    test_industrial_theme();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

@@ -1,0 +1,8 @@
+{
+  "format": "gui-forms-theme/1",
+  "name": "industrial",
+  "version": "1.0.0",
+  "engine": ">=0.3",
+  "sheet": {"path": "industrial.theme.css", "sha256": "b4132aa5899b9739d15d37ea6eff02d25a694a0a4910caab97474ad012c34534"},
+  "imports": {"gost-paints": "790434d6c447b882447a4858ee53b123336bc513b181bb46214870777db5c6ba"}
+}

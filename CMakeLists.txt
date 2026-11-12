@@ -1967,6 +1967,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/instruments.cpp
         src/controls/gallery/pages/guided-tasks.cpp
         src/controls/gallery/pages/help-book.cpp
+        src/controls/gallery/pages/industrial-surfaces.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -1982,8 +1983,11 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/controls>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/gui_forms_gallery>
     )
+    # The industrial-surfaces page reads the lamps' light-plane bakes from
+    # the source tree (or GUI_FORMS_LIGHT_PLANES); none are shipped yet.
     target_compile_definitions(gui_forms_gallery_model PRIVATE
-        GUI_FORMS_VERSION_STRING="${PROJECT_VERSION}")
+        GUI_FORMS_VERSION_STRING="${PROJECT_VERSION}"
+        GUI_FORMS_LIGHT_PLANE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/light_planes")
     # Installed, the model names no GUI.Forms library: a program links it with
     # GUIForms::Application and a headless test with GUIForms::Controls, so a
     # process holds one engine (the SDK's linking rule).
@@ -2057,6 +2061,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS InstrumentsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/guided-tasks.form
         CLASS GuidedTasksDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/industrial-surfaces.form
+        CLASS IndustrialSurfacesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/help-book.form
         CLASS HelpBookPageDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
@@ -2103,7 +2109,15 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/dock-and-anchor.form demo/pages/docking-workspace.form
             demo/pages/containers-and-focus.form demo/pages/tabs-and-pages.form
             demo/pages/anchored-overlays.form demo/pages/commands-and-menus.form
-            demo/pages/live-surfaces.form)
+            demo/pages/live-surfaces.form demo/pages/industrial-surfaces.form)
+    # The industrial-surfaces page's theme and the GOST palette it imports
+    # (skeudoindustrial surfaces, phases 4 and 5). Unchecked here: the
+    # industrial package needs the palette in its library, which
+    # gui_forms_theme_gost_palette_tests supplies and checks.
+    gui_forms_add_theme(gui_forms_gallery_model demo/themes/gost_paints
+        FUNCTION gost_paints_theme_package NAMESPACE gui_forms::gallery)
+    gui_forms_add_theme(gui_forms_gallery_model demo/themes/industrial
+        FUNCTION industrial_theme_package NAMESPACE gui_forms::gallery)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own
@@ -3910,7 +3924,8 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_gost_palette_tests tests/theme_language/theme_gost_palette_tests.cpp)
     target_link_libraries(gui_forms_theme_gost_palette_tests PRIVATE gui_forms_controls)
     target_compile_definitions(gui_forms_theme_gost_palette_tests PRIVATE
-        GUI_FORMS_GOST_PALETTE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/gost_paints")
+        GUI_FORMS_GOST_PALETTE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/gost_paints"
+        GUI_FORMS_INDUSTRIAL_THEME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/industrial")
     add_test(NAME gui_forms_theme_gost_palette_tests COMMAND gui_forms_theme_gost_palette_tests)
     add_executable(gui_forms_theme_user_theme_tests tests/theme_language/theme_user_theme_tests.cpp)
     target_link_libraries(gui_forms_theme_user_theme_tests PRIVATE gui_forms_controls)
@@ -5099,6 +5114,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/instruments_tests.cpp
             tests/gallery_pages/guided-tasks_tests.cpp
             tests/gallery_pages/help-book_tests.cpp
+            tests/gallery_pages/industrial-surfaces_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )

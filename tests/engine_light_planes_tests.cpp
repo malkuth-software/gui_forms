@@ -26,7 +26,7 @@
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 
-#include "../src/core/engine/light_planes/light_planes.hpp"
+#include "gui_forms/engine/light_planes/light_planes.hpp"
 #include "../src/core/engine/primitives/finish/finish_kernel.hpp"
 
 #include <algorithm>
@@ -241,6 +241,13 @@ void composites_as_panel_lamps() {
     require(composite(uncovered, uncovered, lit, LightComposite{}, native, *raster) == 12U, "an empty bake is written");
     const std::array<std::uint8_t, 4> clear{0U, 0U, 0U, 0U};
     require(pixel_of(*raster, 1U, 1U) == clear, "no coverage is transparent");
+
+    // Light is never local (owner, 2026-11-12): a bake whose lamp spills
+    // onto the panel round the key, where its coverage is 0, shows none of
+    // that spill.
+    const LightPlanes spill = uniform_planes(4U, 3U, 1U, 0.3F, 2.0F, 0.0F);
+    require(composite(spill, spill, lit, LightComposite{}, native, *raster) == 12U, "a spilling bake is written");
+    require(pixel_of(*raster, 2U, 2U) == clear, "a lamp's spill past the key's coverage never shows");
 }
 
 void press_mixes_the_bakes() {
@@ -326,15 +333,15 @@ void envelopes_hold() {
     require(!engine_light::key_press_settled(0.069) && engine_light::key_press_settled(0.07),
             "the press settles at 70 ms");
 
-    require(near(engine_light::lit_key_lean_degrees(engine_light::lit_key_defaults.height_share),
+    require(near(engine_light::lit_key_lean_degrees(engine_light::dialog_key_study_bake.height_share),
                  3.0 + 17.0 * ((0.57 - 0.25) / 0.75)),
-            "the owner's 0.57 share leans its sides about 10.25 degrees");
+            "the study's 0.57 share leans its sides about 10.25 degrees");
     require(engine_light::lit_key_lean_degrees(0.1) == 3.0 && engine_light::lit_key_lean_degrees(2.0) == 20.0,
             "the lean runs from 3 to 20 degrees");
-    require(engine_light::lit_key_defaults.camera_tilt_degrees == 16.0 &&
-                engine_light::lit_key_defaults.bake_width == 240U &&
-                engine_light::lit_key_defaults.display_width == 180.0 && engine_light::lit_key_defaults.room == 1.0,
-            "the owner's bake and display defaults");
+    require(engine_light::dialog_key_study_bake.camera_tilt_degrees == 16.0 &&
+                engine_light::dialog_key_study_bake.bake_width == 240U &&
+                engine_light::dialog_key_study_bake.display_width == 180.0 && engine_light::dialog_key_study_bake.room == 1.0,
+            "the study's dialog bake and display values");
     require(engine_light::lamp_red.red == 1.0 && engine_light::lamp_red.green == 0.12 &&
                 engine_light::lamp_red.blue == 0.04,
             "the owner's red");
@@ -427,7 +434,7 @@ int preview(const std::filesystem::path& output, const std::filesystem::path& ba
         std::vector<LampDrive> drives((*up).lamp_count, LampDrive{key.colour, 1.0});
         std::vector<LampDrive> dark((*up).lamp_count, LampDrive{key.colour, 0.0});
         for (const double scale : scales) {
-            const double width = engine_light::lit_key_defaults.display_width * scale;
+            const double width = engine_light::dialog_key_study_bake.display_width * scale;
             const double height = width * static_cast<double>((*up).height) / static_cast<double>((*up).width);
             const std::uint32_t pixel_width = static_cast<std::uint32_t>(std::floor(width + 0.5));
             const std::uint32_t pixel_height = static_cast<std::uint32_t>(std::floor(height + 0.5));

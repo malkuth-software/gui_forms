@@ -19,6 +19,9 @@ sheet.
     python3 -B tools/industrial_surfaces/gost_palette.py           # write
     python3 -B tools/industrial_surfaces/gost_palette.py --check   # verify
 
+It also writes the industrial theme's manifest (demo/themes/industrial),
+whose sheet is hand-written: the sheet's hash and the palette's pin.
+
 Conversion (the research's section 6): XYZ from x, y and Y = reflectance /
 100; Bradford adaptation from illuminant C (x .31006, y .31616) to D65
 (x .31271, y .32902); the IEC 61966-2-1 sRGB matrix and transfer curve;
@@ -33,6 +36,10 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 PACKAGE = ROOT / "demo" / "themes" / "gost_paints"
 SHEET_NAME = "gost-paints.theme.css"
+# The industrial theme (phase 5) imports the palette: its sheet is written by
+# hand and its manifest here, pinning the palette's manifest by its hash.
+INDUSTRIAL = ROOT / "demo" / "themes" / "industrial"
+INDUSTRIAL_SHEET_NAME = "industrial.theme.css"
 
 # card, English gloss, x, y, reflectance %, the research's hex, sources
 CLASS_A = [
@@ -142,6 +149,20 @@ def manifest_text(sheet):
             "}\n" % (SHEET_NAME, digest))
 
 
+def industrial_manifest_text(palette_manifest):
+    sheet = (INDUSTRIAL / INDUSTRIAL_SHEET_NAME).read_bytes()
+    digest = hashlib.sha256(sheet).hexdigest()
+    pin = hashlib.sha256(palette_manifest.encode("utf-8")).hexdigest()
+    return ("{\n"
+            "  \"format\": \"gui-forms-theme/1\",\n"
+            "  \"name\": \"industrial\",\n"
+            "  \"version\": \"1.0.0\",\n"
+            "  \"engine\": \">=0.3\",\n"
+            "  \"sheet\": {\"path\": \"%s\", \"sha256\": \"%s\"},\n"
+            "  \"imports\": {\"gost-paints\": \"%s\"}\n"
+            "}\n" % (INDUSTRIAL_SHEET_NAME, digest, pin))
+
+
 def conversions_hold():
     held = True
     for card, _gloss, x, y, reflectance, hex_value, _sources in CLASS_A:
@@ -161,7 +182,8 @@ def main():
         return 1
     sheet = sheet_text()
     manifest = manifest_text(sheet)
-    outputs = [(PACKAGE / SHEET_NAME, sheet), (PACKAGE / "theme.json", manifest)]
+    outputs = [(PACKAGE / SHEET_NAME, sheet), (PACKAGE / "theme.json", manifest),
+               (INDUSTRIAL / "theme.json", industrial_manifest_text(manifest))]
     if arguments.check:
         stale = [path for path, text in outputs if not path.exists() or path.read_text(encoding="utf-8") != text]
         for path in stale:
