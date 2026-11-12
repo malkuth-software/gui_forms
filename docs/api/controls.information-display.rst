@@ -17,6 +17,8 @@ Labels, images, progress and review cards.
      - Read-only text laid out as CSS lays out the text of a block, for use inside the layout panels.
    * - :cpp:class:`Badge <gui_forms::Badge>`
      - A small count or dot, such as the number of unread messages beside a mailbox.
+   * - :cpp:class:`IndicatorLamp <gui_forms::IndicatorLamp>`
+     - An indicator lamp: a round lens in a bezel that shows off, on or error, with an optional legend beside it, such as a coolant or fault lamp on a machine panel.
    * - :cpp:class:`InfoBanner <gui_forms::InfoBanner>`
      - A message strip across a form or a page, such as "Changes saved" or "Connection lost; retrying".
    * - :cpp:class:`EmptyState <gui_forms::EmptyState>`
@@ -64,6 +66,7 @@ Labels, images, progress and review cards.
    generated/gui_forms.Label
    generated/gui_forms.TextBlock
    generated/gui_forms.Badge
+   generated/gui_forms.IndicatorLamp
    generated/gui_forms.InfoBanner
    generated/gui_forms.EmptyState
    generated/gui_forms.Toast
@@ -226,6 +229,14 @@ Related types
      - A stand-alone topic ("Make your first picture"): an ordinary help record that no control holds, declared like a message, inline const gui_forms::HelpTopic first_picture{ gui_forms::StableId("help.first-picture"), "Make your first picture", first_picture_body, gui_forms::HelpPlace::after("main")}; Its title is the record's ``text``, its body the record's ``help``.
    * - :cpp:class:`HelpTopicPlacement <gui_forms::HelpTopicPlacement>`
      - A topic's place in the contents, as the contents generator reads it: from a HelpTopic or from a run-time declaration (HelpBookSystem::declare_topic).
+   * - :cpp:class:`IndicatorLamp::Parts <gui_forms::IndicatorLamp::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`IndicatorLampCapabilities <gui_forms::IndicatorLampCapabilities>`
+     - Every IndicatorLamp capability, in the order the declaring class takes them.
+   * - :cpp:class:`IndicatorLampStateChoiceCapability <gui_forms::IndicatorLampStateChoiceCapability>`
+     - Whether the lamp is off, on or showing an error.
+   * - :cpp:class:`IndicatorLampTextCapability <gui_forms::IndicatorLampTextCapability>`
+     - The legend beside the lens, which also names the lamp to assistive technology; empty for a lens alone.
    * - :cpp:class:`InfoBanner::Parts <gui_forms::InfoBanner::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`InfoBannerCapabilities <gui_forms::InfoBannerCapabilities>`
@@ -1855,6 +1866,73 @@ Related types
       Default: ``{HelpPlaceKind::top}``.
 
    .. cpp:member:: std::string anchor
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: IndicatorLamp::Parts final
+
+   ``#include <gui_forms/controls/indicator_lamp.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``bezel`` is the ring the lens sits in, ``lens`` the glass that lights, and ``label`` the legend, absent while the text is empty.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry bezel
+
+   .. cpp:member:: PartGeometry lens
+
+   .. cpp:member:: PartGeometry label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Declaring>, public IndicatorLampTextCapability<Declaring>
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   Every IndicatorLamp capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: IndicatorLampState state
+
+      Whether the lamp is off, on or showing an error. The lens warms up on a change to on or error and cools down on a change to off, at once under reduced motion.
+
+   .. cpp:member:: std::string text
+
+      The legend beside the lens, which also names the lamp to assistive technology; empty for a lens alone. Must be valid UTF-8 (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampStateChoiceCapability
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   Whether the lamp is off, on or showing an error. The lens warms up on a change to on or error and cools down on a change to off, at once under reduced motion.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(IndicatorLampStateChoiceCapability& capability, IndicatorLampState incoming)
+
+   .. cpp:member:: PropertyCell<IndicatorLampState, IndicatorLampStateChoiceCapability<Declaring>> state
+
+      Default: ``{IndicatorLampState::off}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampTextCapability
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   The legend beside the lens, which also names the lamp to assistive technology; empty for a lens alone. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(IndicatorLampTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, IndicatorLampTextCapability<Declaring>> text
 
 .. cpp:namespace:: gui_forms
 
@@ -4181,6 +4259,18 @@ Enumerations
    .. cpp:enumerator:: center
 
    .. cpp:enumerator:: far
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: IndicatorLampState
+
+   ``#include <gui_forms/controls/indicator_lamp_values.hpp>``
+
+   .. cpp:enumerator:: off
+
+   .. cpp:enumerator:: on
+
+   .. cpp:enumerator:: error
 
 .. cpp:namespace:: gui_forms
 

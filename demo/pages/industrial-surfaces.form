@@ -198,6 +198,25 @@ scaled-panel gallery.industrial-surfaces.document {
       text: "Stop";
       bounds: 150 84 120 32;
     }
+    button gallery.industrial.preview.erase {
+      text: "Erase program";
+      danger: true;
+      bounds: 284 84 166 32;
+    }
+    indicator-lamp gallery.industrial.preview.running {
+      text: "Running";
+      bounds: 284 132 166 24;
+    }
+    indicator-lamp gallery.industrial.preview.fault {
+      text: "Fault";
+      state: error;
+      bounds: 284 166 166 24;
+    }
+    indicator-lamp gallery.industrial.preview.coolant-lamp {
+      text: "Coolant flow";
+      state: on;
+      bounds: 284 196 166 24;
+    }
     check-box gallery.industrial.preview.coolant {
       text: "Coolant";
       checked: true;

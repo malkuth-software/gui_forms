@@ -96,9 +96,9 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 | `preselect` | preselect |  |  |
 | `focus` | focus |  |  |
 
-States: `normal`, `hot`, `pressed`, `preselect`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
+States: `normal`, `hot`, `pressed`, `preselect`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`. Application-defined: `danger`.
 
-Properties beyond every control's: `content_padding` (insets), `flat_border_width` (number), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration), `visual_style` (enumeration).
+Properties beyond every control's: `content_padding` (insets), `danger` (boolean), `flat_border_width` (number), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -121,9 +121,9 @@ Properties beyond every control's: `content_padding` (insets), `flat_border_widt
 | `preselect` | preselect |  |  |
 | `focus` | focus |  |  |
 
-States: `normal`, `hot`, `pressed`, `preselect`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
+States: `normal`, `hot`, `pressed`, `preselect`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`. Application-defined: `danger`.
 
-Properties beyond every control's: `content_padding` (insets), `flat_border_width` (number), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration), `visual_style` (enumeration).
+Properties beyond every control's: `content_padding` (insets), `danger` (boolean), `flat_border_width` (number), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -391,6 +391,21 @@ Properties beyond every control's: `font` (font), `line_height` (number), `text`
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`. Application-defined: `dot`.
 
 Properties beyond every control's: `count` (unsigned_integer), `maximum` (unsigned_integer), `mode` (enumeration), `show_zero` (boolean).
+
+Interactions beyond every control's: none.
+
+## `indicator_lamp` (IndicatorLamp, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `bezel` | well |  |  |
+| `lens` | indicator |  |  |
+| `label` | label |  |  |
+
+States: `normal`, `enabled`, `disabled`. Application-defined: `on`, `error`.
+
+Properties beyond every control's: `state` (enumeration), `text` (text).
 
 Interactions beyond every control's: none.
 

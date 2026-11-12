@@ -1,5 +1,7 @@
 #include "support.hpp"
+#include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/indicator_lamp.hpp"
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/scaled_group_box.hpp"
@@ -9,7 +11,9 @@ namespace gallery_pages_tests {
 // The industrial-surfaces page (skeudoindustrial surfaces, phase 5): its
 // finish and glint swatches, the lamps' status line (no bakes are shipped,
 // so it says where they are made), the Lamps check box, and the industrial
-// theme over the GOST paints, put on the preview group and taken off.
+// theme over the GOST paints, put on the preview group and taken off; the
+// preview's indicator lamps (Start and Stop switch Running, the Coolant
+// check box its flow lamp, and none is hit) and its danger key.
 // Compositing the lamps is covered by gui_forms_engine_light_planes_tests,
 // and the industrial package's compile by gui_forms_theme_gost_palette_tests.
 void test_industrial_surfaces(gui_forms::Window& window) {
@@ -48,6 +52,31 @@ void test_industrial_surfaces(gui_forms::Window& window) {
     click(window, window.find("gallery.industrial.theme"));
     window.perform_layout();
     require((*preview).theme_override() == nullptr, "clearing it restores the Gallery's theme");
+
+    // The preview's lamps and danger key, in the default theme here.
+    const std::shared_ptr<IndicatorLamp> running =
+        std::dynamic_pointer_cast<IndicatorLamp>(window.find("gallery.industrial.preview.running"));
+    const std::shared_ptr<IndicatorLamp> fault =
+        std::dynamic_pointer_cast<IndicatorLamp>(window.find("gallery.industrial.preview.fault"));
+    const std::shared_ptr<IndicatorLamp> flow =
+        std::dynamic_pointer_cast<IndicatorLamp>(window.find("gallery.industrial.preview.coolant-lamp"));
+    require(running != nullptr && fault != nullptr && flow != nullptr, "the preview holds three indicator lamps");
+    if (running == nullptr || fault == nullptr || flow == nullptr) return;
+    require((*running).state.read() == IndicatorLampState::off && (*fault).state.read() == IndicatorLampState::error &&
+                (*flow).state.read() == IndicatorLampState::on,
+            "Running starts off, Fault shows an error and Coolant flow is on");
+    require(!(*running).hit_test_local(Point{4.0, 4.0}), "a lamp is never hit");
+    click(window, window.find("gallery.industrial.preview.start"));
+    require((*running).state.read() == IndicatorLampState::on, "Start lights Running");
+    click(window, window.find("gallery.industrial.preview.stop"));
+    require((*running).state.read() == IndicatorLampState::off, "Stop puts Running out");
+    click(window, window.find("gallery.industrial.preview.coolant"));
+    require((*flow).state.read() == IndicatorLampState::off, "clearing Coolant puts its flow lamp out");
+    click(window, window.find("gallery.industrial.preview.coolant"));
+    require((*flow).state.read() == IndicatorLampState::on, "and setting it lights it again");
+    const std::shared_ptr<Button> erase =
+        std::dynamic_pointer_cast<Button>(window.find("gallery.industrial.preview.erase"));
+    require(erase != nullptr && (*erase).danger.read(), "Erase program is a danger key");
 }
 
 }  // namespace gallery_pages_tests

@@ -89,6 +89,19 @@ struct ButtonSelectedCapability {
     }
 };
 
+// Whether the button marks a dangerous or irreversible action (skeudoindustrial surfaces, follow-up 5): its parts take the custom state danger, a warning mark leads its content, and a theme that styles the state lights its face from inside with a slow, low glow, steady under reduced motion.
+template <typename Declaring>
+struct ButtonDangerCapability {
+    PropertyCell<bool, ButtonDangerCapability<Declaring>> danger{};
+
+    static void assign(ButtonDangerCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.danger), incoming);
+        if (!capability.danger.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.danger));
+    }
+};
+
 // ButtonVisualStyle as a property value; defined beside Button's table.
 template <>
 struct PropertyValueTraits<ButtonVisualStyle> {
@@ -103,6 +116,7 @@ struct ButtonCapabilities : public ButtonVisualStyleChoiceCapability<Declaring>,
                             public ButtonFlatBorderWidthCapability<Declaring>,
                             public ButtonDefaultButtonCapability<Declaring>,
                             public ButtonDialogResultCapability<Declaring>,
-                            public ButtonSelectedCapability<Declaring> {};
+                            public ButtonSelectedCapability<Declaring>,
+                            public ButtonDangerCapability<Declaring> {};
 
 } // namespace gui_forms

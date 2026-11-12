@@ -379,6 +379,15 @@ StockSpecimenInstance make_badge(const StockSpecimen&, StableId id) {
     return instance;
 }
 
+// A lit lamp with its legend: the lens in the theme's on colour.
+StockSpecimenInstance make_indicator_lamp(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<IndicatorLamp> control = make_control<IndicatorLamp>(std::move(id));
+    write_text(*control, "text", "Coolant");
+    write_sample(*control, "state", BindingValue(PropertyEnumValue{"indicator_lamp_state", "on", 1}));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
 StockSpecimenInstance make_info_banner(const StockSpecimen&, StableId id) {
     const std::shared_ptr<InfoBanner> control = make_control<InfoBanner>(id);
     write_text(*control, "title", "Update available");

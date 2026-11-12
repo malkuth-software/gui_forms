@@ -192,6 +192,8 @@ void LampIndicator::composite(DeviceExtent extent, double scale) {
 
 void LampIndicator::on_paint(Painter& painter, Rect local_damage) {
     static_cast<void>(local_damage);
+    // The timer ticks only as fast as the lamp is painted.
+    strike_timer_.note_painted();
     if (!planes_) return;
     const SurfaceRoot* const owner = surface_root();
     const double scale = owner != nullptr ? (*owner).scale() : 1.0;
@@ -223,6 +225,11 @@ private:
     void place_lamps();
     void on_lamps_changed(bool on);
     void on_theme_changed(bool on);
+    // Start and Stop switch the Running lamp; the Coolant check box its
+    // flow lamp. The lamps are never clicked themselves.
+    void on_start(ButtonBase& button);
+    void on_stop(ButtonBase& button);
+    void on_coolant_changed(bool on);
     [[nodiscard]] std::shared_ptr<const Theme> build_industrial_theme(Window& window);
 
     // Owns the document's controls; the shell's page body holds them too
@@ -241,6 +248,22 @@ IndustrialSurfacesPage::IndustrialSurfacesPage(const std::shared_ptr<Surface>& b
     place_lamps();
     on((*document_.gallery_industrial_lamps).checked_changed(), *this, &IndustrialSurfacesPage::on_lamps_changed);
     on((*document_.gallery_industrial_theme).checked_changed(), *this, &IndustrialSurfacesPage::on_theme_changed);
+    on((*document_.gallery_industrial_preview_start).clicked(), *this, &IndustrialSurfacesPage::on_start);
+    on((*document_.gallery_industrial_preview_stop).clicked(), *this, &IndustrialSurfacesPage::on_stop);
+    on((*document_.gallery_industrial_preview_coolant).checked_changed(), *this,
+       &IndustrialSurfacesPage::on_coolant_changed);
+}
+
+void IndustrialSurfacesPage::on_start(ButtonBase&) {
+    (*document_.gallery_industrial_preview_running).state = IndicatorLampState::on;
+}
+
+void IndustrialSurfacesPage::on_stop(ButtonBase&) {
+    (*document_.gallery_industrial_preview_running).state = IndicatorLampState::off;
+}
+
+void IndustrialSurfacesPage::on_coolant_changed(bool on) {
+    (*document_.gallery_industrial_preview_coolant_lamp).state = on ? IndicatorLampState::on : IndicatorLampState::off;
 }
 
 void IndustrialSurfacesPage::mount_document(const std::shared_ptr<Surface>& body) {

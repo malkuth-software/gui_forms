@@ -44,6 +44,20 @@ selected : default ``false``
 flat_border_width : default ``1.0``
     Border width for the `flat` style after `set_style`; zero draws no
     border. A negative or non-finite width throws `std::invalid_argument`.
+danger : default ``false``
+    Marks a dangerous or irreversible action. The button's parts take the
+    custom state ``danger``, and a warning mark leads its content, widening
+    it by `leading_mark_column`, so the mark is a cue that does not rest on
+    colour. A theme that styles ``button::part(face):state(danger)`` lights
+    the face from inside (the default theme glows it red); the button fades
+    the lit face slowly between `danger_glow_floor` and full over
+    `danger_glow_period`, some twelve frames a second, only inside the
+    face, and holds it full and steady under reduced motion, while
+    disabled and outside a window.
+danger_glow
+    The lit face's current share of the danger glow, 1 while steady.
+danger_glowing
+    Whether the danger glow is pulsing.
 
 Events
 ------

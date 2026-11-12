@@ -28,6 +28,11 @@
   --industrial-key-seat: 6%;
   --industrial-well-seat: -10%;
   --industrial-panel-seat: 1px;
+  /* The danger key (follow-up 5): signal red, a choice outside the palette
+     (GOST 22133-86 gives no red card), lit from inside. */
+  --industrial-danger: #9c3128;
+  --industrial-danger-heart: #d4553f;
+  --industrial-danger-legend: #fff0e6;
 }
 
 group-box::part(face), scaled-group-box::part(face) {
@@ -41,4 +46,27 @@ button::part(face) {
 check-box::part(well), radio-button::part(well) {
   background: finish(hammertone, var(--industrial-well), var(--industrial-flake), var(--industrial-well-seed));
   seat: var(--industrial-well-seat);
+}
+
+/* An indicator lamp's bezel is a hammered ring sunk into the panel; the
+   lens keeps the default theme's dark glass and lit colours, the only
+   saturated light on the panel. */
+indicator-lamp::part(bezel) {
+  background: finish(hammertone, var(--industrial-well), var(--industrial-flake), var(--industrial-well-seed));
+  seat: var(--industrial-well-seat);
+}
+
+/* The danger key (follow-up 5): a red key lit from a lamp inside it, its
+   heart brighter than its rim. The glow is placed over the face, inside
+   its edge, so no light reaches the panel or a neighbour; the button
+   pulses it slowly and holds it steady under reduced motion. Its warning
+   mark leads the legend. */
+button::part(face):state(danger) {
+  background: radial-gradient(circle at 50% 60%, var(--industrial-danger-heart), var(--industrial-danger) 80%);
+  glow: #ff6a4a 6px;
+  glow-placement: over;
+  seat: var(--industrial-key-seat);
+}
+button::part(label):state(danger) {
+  color: var(--industrial-danger-legend);
 }

@@ -52,6 +52,8 @@ Related types
      - A direct generational image resource for the button's content (Image); a view onto the image slot: a write clears image_index and image_key.
    * - :cpp:class:`ButtonCapabilities <gui_forms::ButtonCapabilities>`
      - Every Button capability, in the order the declaring class takes them.
+   * - :cpp:class:`ButtonDangerCapability <gui_forms::ButtonDangerCapability>`
+     - Whether the button marks a dangerous or irreversible action (skeudoindustrial surfaces, follow-up 5): its parts take the custom state danger, a warning mark leads its content, and a theme that styles the state lights its face from inside with a slow, low glow, steady under reduced motion.
    * - :cpp:class:`ButtonDefaultButtonCapability <gui_forms::ButtonDefaultButtonCapability>`
      - Whether the button draws and announces itself as the default button; the window's accept_button writes it through notify_default.
    * - :cpp:class:`ButtonDialogResultCapability <gui_forms::ButtonDialogResultCapability>`
@@ -270,7 +272,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ButtonCapabilities : public ButtonVisualStyleChoiceCapability<Declaring>, public ButtonFlatBorderWidthCapability<Declaring>, public ButtonDefaultButtonCapability<Declaring>, public ButtonDialogResultCapability<Declaring>, public ButtonSelectedCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ButtonCapabilities : public ButtonVisualStyleChoiceCapability<Declaring>, public ButtonFlatBorderWidthCapability<Declaring>, public ButtonDefaultButtonCapability<Declaring>, public ButtonDialogResultCapability<Declaring>, public ButtonSelectedCapability<Declaring>, public ButtonDangerCapability<Declaring>
 
    ``#include <gui_forms/controls/button_capabilities.hpp>``
 
@@ -298,6 +300,25 @@ Related types
    .. cpp:member:: bool selected
 
       Whether the button shows as selected (a checked command's push button); a change raises selected_changed.
+
+   .. cpp:member:: bool danger
+
+      Whether the button marks a dangerous or irreversible action (skeudoindustrial surfaces, follow-up 5): its parts take the custom state danger, a warning mark leads its content, and a theme that styles the state lights its face from inside with a slow, low glow, steady under reduced motion.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonDangerCapability
+
+   ``#include <gui_forms/controls/button_capabilities.hpp>``
+
+   Whether the button marks a dangerous or irreversible action (skeudoindustrial surfaces, follow-up 5): its parts take the custom state danger, a warning mark leads its content, and a theme that styles the state lights its face from inside with a slow, low glow, steady under reduced motion.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonDangerCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ButtonDangerCapability<Declaring>> danger
 
 .. cpp:namespace:: gui_forms
 

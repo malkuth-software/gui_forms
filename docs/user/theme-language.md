@@ -292,6 +292,17 @@ so a share of a long part's side stays a seat. A theme gives each role its
 own height: `button::part(face) { seat: 6% }`,
 `check-box::part(well) { seat: -10% }`.
 
+Two stock hooks carry the skeudoindustrial lights into every theme. An
+indicator lamp's lens is `indicator-lamp::part(lens)`, lit in
+`:state(on)` and `:state(error)`; the lamp draws the lit lens over the
+dark one at its warm-up's power, clipped to the lens, so whatever a theme
+gives the lit lens (a radial heart, an inset glow) lights only the lens.
+A button marked `danger` takes `:state(danger)` on its parts; the button
+draws its face in that state over the plain face, bounded by the face,
+and fades it slowly between 72% and full, steady under reduced motion, so
+a theme lights a danger key with a glow placed over its face:
+`button::part(face):state(danger) { glow: #e2412c 5px; glow-placement: over }`.
+
 `reflection` mirrors the part's finished face (its fills, borders, glows,
 filters and mask; not its text), or with `backplane` the window's backplane
 under the part (as glass samples it), about one edge into the space past it:

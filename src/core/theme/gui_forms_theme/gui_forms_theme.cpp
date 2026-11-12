@@ -620,6 +620,50 @@ dial::part(needle) {
   needle-shape: line;
   stroke-width: 3px;
 }
+
+/* Indicator lamps (skeudoindustrial surfaces, follow-up 4): restrained
+   chrome, so that a lit lens is the only saturated light on the form. The
+   bezel is a quiet grey ring seated into the panel; the lens is dark glass
+   with a faint highlight. Lit, a hot centre falls to the lamp's colour at
+   the rim with a soft glow inside the lens only: green for on, red for
+   error. */
+indicator-lamp::part(bezel) {
+  background: linear-gradient(to bottom, #b4bac1, #eef0f2);
+  border: 1px solid #8d949c;
+  seat: -10%;
+}
+indicator-lamp::part(lens) {
+  background: radial-gradient(circle at 40% 35%, #7a8088, #2c3035 70%);
+  border: 1px solid #24282c;
+  box-shadow: inset 0 1px 1px #ffffff30;
+}
+indicator-lamp::part(lens):state(on) {
+  background: radial-gradient(circle at 40% 35%, #eaffdc, #46c14a 45%, #1d7424);
+  border: 1px solid #17591c;
+  box-shadow: inset 0 0 3px #eaffdcb0;
+}
+indicator-lamp::part(lens):state(error) {
+  background: radial-gradient(circle at 40% 35%, #ffe4da, #e5432e 45%, #8c1a0f);
+  border: 1px solid #6b130a;
+  box-shadow: inset 0 0 3px #ffe4dab0;
+}
+
+/* The danger key (skeudoindustrial surfaces, follow-up 5): a button that
+   marks a dangerous or irreversible action (Button::danger) is lit red from
+   inside its face, standing out from the quiet chrome around it. The glow
+   is placed over the face's fills, inside its edge, so nothing reaches a
+   neighbour; the button pulses the lit face slowly over the plain one and
+   holds it steady under reduced motion. The warning mark that leads the
+   label is the cue that does not rest on colour. */
+button::part(face):state(danger) {
+  background: radial-gradient(circle at 50% 65%, #f3bdb3, #f8e7e4 80%);
+  border-color: #a5463b;
+  glow: #e2412c 5px;
+  glow-placement: over;
+}
+button::part(label):state(danger) {
+  color: #7a1a10;
+}
 )css";
 
 constexpr std::string_view light_sheet_file = "gui-forms/light.css";

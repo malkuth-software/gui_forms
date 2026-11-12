@@ -132,11 +132,17 @@ constexpr std::array<PartDeclaration, 8> drop_down_button_parts =
 constexpr std::array<AnatomyState, 11> drop_down_button_states =
     state_declarations(drop_down_button_state_fields);
 
+// Button's custom state, at Button's index (Button::anatomy_states inserts
+// it): a drop-down button may mark a dangerous action too.
+constexpr std::array<CustomStateDeclaration, 1> drop_down_button_custom_states{{
+    {.name = "danger"},
+}};
+
 constexpr ControlAnatomy drop_down_button_anatomy{
     .control_id = "drop_down_button",
     .parts = drop_down_button_parts,
     .states = drop_down_button_states,
-    .custom_states = {},
+    .custom_states = drop_down_button_custom_states,
 };
 
 } // namespace

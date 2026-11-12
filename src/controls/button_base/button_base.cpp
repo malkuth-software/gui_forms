@@ -423,9 +423,10 @@ Size ButtonBase::measure(Size available) {
         content = combined_content_size(text_image_relation.read(), {text_width, text_height},
                                         image_size, gap);
     }
+    const double mark_column = face_layer().leading_mark != PartMark::none ? leading_mark_column : 0.0;
     const double preferred_width = requested.width > 0.0
         ? requested.width
-        : content.width + content_padding.read().left + content_padding.read().right + 10.0;
+        : content.width + mark_column + content_padding.read().left + content_padding.read().right + 10.0;
     const double preferred_height = requested.height > 0.0
         ? requested.height
         : std::max(24.0, content.height + content_padding.read().top +
@@ -480,14 +481,46 @@ ImageListResolution ButtonBase::resolved_button_image(bool selected) const noexc
 
 Rect ButtonBase::content_box(Rect face, bool command_alignment) const noexcept {
     const double command_leading = command_alignment ? 6.0 : 0.0;
+    // A leading mark's column comes off the inline start: the left, or the
+    // right under RightToLeft.
+    const double mark_column = face_layer().leading_mark != PartMark::none ? leading_mark_column : 0.0;
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const double left_column = mirrored ? 0.0 : mark_column;
     const Rect content{
-        face.x + content_padding.read().left + command_leading,
+        face.x + content_padding.read().left + command_leading + left_column,
         face.y + content_padding.read().top,
         std::max(0.0, face.width - content_padding.read().left -
-                          content_padding.read().right - command_leading),
+                          content_padding.read().right - command_leading - mark_column),
         std::max(0.0, face.height - content_padding.read().top -
                           content_padding.read().bottom)};
     return content;
+}
+
+ButtonBase::FaceLayer ButtonBase::face_layer() const noexcept {
+    const FaceLayer none{};
+    return none;
+}
+
+// The mark sits centred in its column, beside the content box, which
+// content_box has already narrowed past it.
+void ButtonBase::paint_leading_mark(Painter& painter, Rect face, PartMark mark, bool command_alignment,
+                                    ControlVisualRole family, AnatomyStateSet states, Point offset) const {
+    if (mark == PartMark::none) return;
+    const Rect content = content_box(face, command_alignment);
+    if (content.height <= 0.0) return;
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const double column_left = mirrored ? content.x + content.width : content.x - leading_mark_column;
+    const double side = std::min(leading_mark_side, content.height);
+    const double gap = leading_mark_column - leading_mark_side;
+    const double mark_left = mirrored ? column_left + gap : column_left;
+    const double mark_top = content.y + std::floor((content.height - side) * 0.5);
+    PartPaint glyph;
+    glyph.family = family;
+    glyph.role = PartRole::glyph;
+    glyph.mark = mark;
+    glyph.states = states;
+    glyph.bounds = Rect{mark_left + offset.x, mark_top + offset.y, side, side};
+    paint_part(painter, *this, glyph);
 }
 
 ButtonBase::ContentLayout ButtonBase::layout_content(
@@ -797,6 +830,10 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     if (focus_cue_visible()) states.insert(AnatomyState::focus_visible);
     if (default_cue) states.insert(AnatomyState::preselect);
     if (!effectively_enabled()) states.insert(AnatomyState::disabled);
+    const FaceLayer layer = face_layer();
+    // Drawn by the program's own recipes or joined, the face takes no
+    // layer, but the cues and content still take its state.
+    if (!engine_drawn && layer.state) states.insert(*layer.state);
     if (engine_drawn) {
         PartPaint face;
         face.family = role;
@@ -809,6 +846,19 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
             face.authored_foreground = (*authored).text;
         }
         paint_part(painter, *this, face);
+        if (layer.state) {
+            // The face in the layer's state over the plain face, at the
+            // layer's level, bounded by the face; it keeps its own record
+            // so that the plain face's transitions stay.
+            states.insert(*layer.state);
+            PartPaint lit = face;
+            lit.states = states;
+            lit.key = PartKey{"face", "layer", {}};
+            const double level = std::clamp(layer.level, 0.0, 1.0);
+            painter.begin_group(PaintGroup{.bounds = visual_bounds, .opacity = level});
+            paint_part(painter, *this, lit);
+            painter.end_group();
+        }
         // The default ring first, then the focus ring over it, in the
         // theme's own cue colours.
         PartPaint cue;
@@ -857,6 +907,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     } else if (!engine_drawn) {
         ink.authored = recipe.text;
     }
+    paint_leading_mark(painter, visual_bounds, layer.leading_mark, command_alignment, role, states, offset);
     const std::string display = display_text();
     paint_button_content(painter, visual_bounds, display, ink, offset, selected,
                          command_alignment);
@@ -907,6 +958,12 @@ void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_
     content_ink.family = ControlVisualRole::button;
     content_ink.states = states;
     if (own_ink || authored) content_ink.authored = ink;
+    // A flat button draws no face to light; its content and mark still
+    // take the layer's state.
+    const FaceLayer layer = face_layer();
+    if (layer.state) content_ink.states.insert(*layer.state);
+    paint_leading_mark(painter, bounds, layer.leading_mark, false, ControlVisualRole::button, content_ink.states,
+                       Point{});
     const std::string display = display_text();
     paint_button_content(painter, bounds, display, content_ink, Point{}, false, false);
 }
