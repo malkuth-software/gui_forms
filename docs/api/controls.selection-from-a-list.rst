@@ -5365,7 +5365,7 @@ Related types
 
    ``#include <gui_forms/controls/virtual_rows_view.hpp>``
 
-   Work counters, for bounded-work checks and workload records. The totals only grow; the "last" figures describe the most recent settle (a layout or a scroll) and paint. index_runs walks the height index's leaves (O(runs)) and index_bytes its nodes (O(nodes)); the other fields are O(1). index_bytes is the heap the height index holds (nodes and their arrays at capacity); index_measured the rows holding a measured height. rows_forgotten counts measured rows the budget returned to the estimate in budget_compactions compactions (set_measured_row_budget); partial_repaints counts invalidate_rows calls that repainted only the rows' rectangles.
+   Work counters, for bounded-work checks and workload records. The totals only grow; the "last" figures describe the most recent settle (a layout or a scroll) and paint. Every field is O(1) to read. index_runs is the height index's packed entries plus its dense rows, index_bytes the heap it holds (its pages and its fixed edit scratch), index_measured the rows holding a measured height. rows_forgotten counts measured rows the budget coarsened in budget_compactions compactions (set_measured_row_budget); partial_repaints counts invalidate_rows calls that repainted only the rows' rectangles.
 
    .. cpp:member:: std::uint64_t rows_measured
 
