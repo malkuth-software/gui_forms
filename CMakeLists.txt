@@ -4269,6 +4269,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_linux_input_rules_tests
         tests/linux_input_rules_tests.cpp src/host/linux/application/linux_input_rules.cpp)
     target_include_directories(gui_forms_linux_input_rules_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    # The public headers it includes refer to the checked-borrows link
+    # marker in a checked build, which only the core library defines.
+    target_link_libraries(gui_forms_linux_input_rules_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_linux_input_rules_tests COMMAND gui_forms_linux_input_rules_tests)
     add_executable(gui_forms_page_view_document_tests tests/page_view_document_tests.cpp)
     target_link_libraries(gui_forms_page_view_document_tests PRIVATE gui_forms_controls)
