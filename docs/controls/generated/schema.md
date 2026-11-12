@@ -3671,6 +3671,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
+| `selected_index_changed` | `std::optional<std::size_t>` |
 
 ## `up_down_base` (UpDownBase, control)
 

@@ -774,10 +774,8 @@ std::vector<ListBox::Item> ListBox::realized_items() const {
 
 namespace {
 
-// The events ListBox adds to those of Panel, in declaration order:
-// ListControl's, then its own.
-constexpr std::array<InteractionDeclaration, 3> list_box_interactions{{
-    {.name = "selected_index_changed", .payload = "std::optional<std::size_t>", .mutable_payload = false},
+// The events ListBox adds to those of ListControl, in declaration order.
+constexpr std::array<InteractionDeclaration, 2> list_box_interactions{{
     {.name = "selection_changed", .payload = "ListSelectionChange", .mutable_payload = false},
     {.name = "item_activated", .payload = "std::size_t", .mutable_payload = false},
 }};
@@ -785,7 +783,7 @@ constexpr std::array<InteractionDeclaration, 3> list_box_interactions{{
 } // namespace
 
 void ListBox::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
-    Panel::append_interactions(interactions);
+    ListControl::append_interactions(interactions);
     interactions.insert(interactions.end(), list_box_interactions.begin(), list_box_interactions.end());
 }
 

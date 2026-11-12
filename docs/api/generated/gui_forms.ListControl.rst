@@ -81,6 +81,12 @@ gui_forms::ListControl
 
    .. rubric:: Extension points
 
+   .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
+
+      *Protected.*
+
+      Panel's interactions, then selected_index_changed; ListBox and ComboBox append their own after these.
+
    .. cpp:function:: bool record_selected_index(std::optional<std::size_t> index) noexcept
 
       *Protected.*
