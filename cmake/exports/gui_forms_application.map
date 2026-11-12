@@ -101,6 +101,7 @@
     _ZGVZN9gui_forms10ModalLayer*;
     _ZGVZN9gui_forms10MotionStep*;
     _ZGVZN9gui_forms10MotionStop*;
+    _ZGVZN9gui_forms10NodeCanvas*;
     _ZGVZN9gui_forms10NodeRecord*;
     _ZGVZN9gui_forms10NotifyIcon*;
     _ZGVZN9gui_forms10ObjectView*;
@@ -116,6 +117,7 @@
     _ZGVZN9gui_forms10RoutedLink*;
     _ZGVZN9gui_forms10RuleAction*;
     _ZGVZN9gui_forms10RuleFiring*;
+    _ZGVZN9gui_forms10SceneCubic*;
     _ZGVZN9gui_forms10ScopeSweep*;
     _ZGVZN9gui_forms10ScrollCopy*;
     _ZGVZN9gui_forms10StaticNode*;
@@ -269,6 +271,8 @@
     _ZGVZN9gui_forms12SemanticNode*;
     _ZGVZN9gui_forms12Sha256Digest*;
     _ZGVZN9gui_forms12Sha256Hasher*;
+    _ZGVZN9gui_forms12SpatialEntry*;
+    _ZGVZN9gui_forms12SpatialIndex*;
     _ZGVZN9gui_forms12Splashscreen*;
     _ZGVZN9gui_forms12TextMaskLine*;
     _ZGVZN9gui_forms12ThemeLibrary*;
@@ -349,6 +353,10 @@
     _ZGVZN9gui_forms13MaskedTextBox*;
     _ZGVZN9gui_forms13MaterialPanel*;
     _ZGVZN9gui_forms13MonthCalendar*;
+    _ZGVZN9gui_forms13NodeBodyPaint*;
+    _ZGVZN9gui_forms13NodeCanvasHit*;
+    _ZGVZN9gui_forms13NodeEditEnded*;
+    _ZGVZN9gui_forms13NodeLinkCheck*;
     _ZGVZN9gui_forms13NumericUpDown*;
     _ZGVZN9gui_forms13PageDragStart*;
     _ZGVZN9gui_forms13PagePlacement*;
@@ -368,6 +376,7 @@
     _ZGVZN9gui_forms13RuleAddResult*;
     _ZGVZN9gui_forms13RuleCondition*;
     _ZGVZN9gui_forms13RuleExclusion*;
+    _ZGVZN9gui_forms13SoftLinkShape*;
     _ZGVZN9gui_forms13SplitterPanel*;
     _ZGVZN9gui_forms13StepIndicator*;
     _ZGVZN9gui_forms13StockSpecimen*;
@@ -461,6 +470,7 @@
     _ZGVZN9gui_forms14RuleProvenance*;
     _ZGVZN9gui_forms14SaveFileDialog*;
     _ZGVZN9gui_forms14ScaledGroupBox*;
+    _ZGVZN9gui_forms14SceneZoomRange*;
     _ZGVZN9gui_forms14ScrollSnapshot*;
     _ZGVZN9gui_forms14ShapingFeature*;
     _ZGVZN9gui_forms14ShapingRequest*;
@@ -534,6 +544,8 @@
     _ZGVZN9gui_forms15LocaleRejection*;
     _ZGVZN9gui_forms15MaterialKeyline*;
     _ZGVZN9gui_forms15MetricsSnapshot*;
+    _ZGVZN9gui_forms15NodeEditRequest*;
+    _ZGVZN9gui_forms15NodeGraphEdited*;
     _ZGVZN9gui_forms15NotifyIconClick*;
     _ZGVZN9gui_forms15OffscreenRaster*;
     _ZGVZN9gui_forms15PageDoubleClick*;
@@ -736,6 +748,7 @@
     _ZGVZN9gui_forms17MenuStripItemSpec*;
     _ZGVZN9gui_forms17MessageBoxRefused*;
     _ZGVZN9gui_forms17MessageBoxRequest*;
+    _ZGVZN9gui_forms17NodeLinkConnected*;
     _ZGVZN9gui_forms17ObjectDetailsCell*;
     _ZGVZN9gui_forms17ObjectDetailsSort*;
     _ZGVZN9gui_forms17PartRasterRequest*;
@@ -833,6 +846,7 @@
     _ZGVZN9gui_forms18MenuItemInvocation*;
     _ZGVZN9gui_forms18MotionRecordHandle*;
     _ZGVZN9gui_forms18NativePopupOptions*;
+    _ZGVZN9gui_forms18NodePaletteRequest*;
     _ZGVZN9gui_forms18PageContentRequest*;
     _ZGVZN9gui_forms18PageControlContent*;
     _ZGVZN9gui_forms18PageSelectingEvent*;
@@ -856,9 +870,11 @@
     _ZGVZN9gui_forms18RibbonDialogLaunch*;
     _ZGVZN9gui_forms18RibbonToolTipEvent*;
     _ZGVZN9gui_forms18RuleActionArgument*;
+    _ZGVZN9gui_forms18SceneViewTransform*;
     _ZGVZN9gui_forms18ScrollAxisSnapshot*;
     _ZGVZN9gui_forms18SemanticDescriptor*;
     _ZGVZN9gui_forms18SemanticTextLayout*;
+    _ZGVZN9gui_forms18SpatialQueryResult*;
     _ZGVZN9gui_forms18SplashscreenResult*;
     _ZGVZN9gui_forms18TabSelectionChange*;
     _ZGVZN9gui_forms18TaskDialogExpander*;
@@ -934,6 +950,8 @@
     _ZGVZN9gui_forms19MaterialDeclaration*;
     _ZGVZN9gui_forms19MenuStripInvocation*;
     _ZGVZN9gui_forms19NavigationPaneState*;
+    _ZGVZN9gui_forms19NodeCanvasCallbacks*;
+    _ZGVZN9gui_forms19NodeCanvasSelection*;
     _ZGVZN9gui_forms19ObjectDetailsColumn*;
     _ZGVZN9gui_forms19OffscreenAttachment*;
     _ZGVZN9gui_forms19PageSelectionChange*;
@@ -951,6 +969,7 @@
     _ZGVZN9gui_forms19RtfConversionResult*;
     _ZGVZN9gui_forms19SevenSegmentDisplay*;
     _ZGVZN9gui_forms19SourceMappingResult*;
+    _ZGVZN9gui_forms19SpatialIndexOptions*;
     _ZGVZN9gui_forms19SpecimenStateResult*;
     _ZGVZN9gui_forms19SplashscreenOptions*;
     _ZGVZN9gui_forms19SubSurfaceKeyReturn*;
@@ -1007,6 +1026,7 @@
     _ZGVZN9gui_forms20InstrumentModuleSpec*;
     _ZGVZN9gui_forms20MaterialColourFilter*;
     _ZGVZN9gui_forms20MaterialColourMatrix*;
+    _ZGVZN9gui_forms20NodeCanvasStatistics*;
     _ZGVZN9gui_forms20ObjectContextRequest*;
     _ZGVZN9gui_forms20PointerCaptureChange*;
     _ZGVZN9gui_forms20PresentationSettings*;
@@ -1087,6 +1107,7 @@
     _ZGVZN9gui_forms21RibbonGalleryCategory*;
     _ZGVZN9gui_forms21RibbonScalingCounters*;
     _ZGVZN9gui_forms21RibbonStateDiagnostic*;
+    _ZGVZN9gui_forms21SceneDetailThresholds*;
     _ZGVZN9gui_forms21SemanticTextSelection*;
     _ZGVZN9gui_forms21StockSpecimenInstance*;
     _ZGVZN9gui_forms21SubSurfaceEndListener*;
@@ -1142,6 +1163,7 @@
     _ZGVZN9gui_forms22RibbonLadderGroupState*;
     _ZGVZN9gui_forms22RibbonStateParseResult*;
     _ZGVZN9gui_forms22SemanticFeedbackRecord*;
+    _ZGVZN9gui_forms22SpatialIndexStatistics*;
     _ZGVZN9gui_forms22TableLayoutPanelCompat*;
     _ZGVZN9gui_forms22TextMaskBudgetSnapshot*;
     _ZGVZN9gui_forms22ThemeCompileDiagnostic*;
@@ -1591,6 +1613,7 @@
     _ZGVZNK9gui_forms10ModalLayer*;
     _ZGVZNK9gui_forms10MotionStep*;
     _ZGVZNK9gui_forms10MotionStop*;
+    _ZGVZNK9gui_forms10NodeCanvas*;
     _ZGVZNK9gui_forms10NodeRecord*;
     _ZGVZNK9gui_forms10NotifyIcon*;
     _ZGVZNK9gui_forms10ObjectView*;
@@ -1606,6 +1629,7 @@
     _ZGVZNK9gui_forms10RoutedLink*;
     _ZGVZNK9gui_forms10RuleAction*;
     _ZGVZNK9gui_forms10RuleFiring*;
+    _ZGVZNK9gui_forms10SceneCubic*;
     _ZGVZNK9gui_forms10ScopeSweep*;
     _ZGVZNK9gui_forms10ScrollCopy*;
     _ZGVZNK9gui_forms10StaticNode*;
@@ -1759,6 +1783,8 @@
     _ZGVZNK9gui_forms12SemanticNode*;
     _ZGVZNK9gui_forms12Sha256Digest*;
     _ZGVZNK9gui_forms12Sha256Hasher*;
+    _ZGVZNK9gui_forms12SpatialEntry*;
+    _ZGVZNK9gui_forms12SpatialIndex*;
     _ZGVZNK9gui_forms12Splashscreen*;
     _ZGVZNK9gui_forms12TextMaskLine*;
     _ZGVZNK9gui_forms12ThemeLibrary*;
@@ -1839,6 +1865,10 @@
     _ZGVZNK9gui_forms13MaskedTextBox*;
     _ZGVZNK9gui_forms13MaterialPanel*;
     _ZGVZNK9gui_forms13MonthCalendar*;
+    _ZGVZNK9gui_forms13NodeBodyPaint*;
+    _ZGVZNK9gui_forms13NodeCanvasHit*;
+    _ZGVZNK9gui_forms13NodeEditEnded*;
+    _ZGVZNK9gui_forms13NodeLinkCheck*;
     _ZGVZNK9gui_forms13NumericUpDown*;
     _ZGVZNK9gui_forms13PageDragStart*;
     _ZGVZNK9gui_forms13PagePlacement*;
@@ -1858,6 +1888,7 @@
     _ZGVZNK9gui_forms13RuleAddResult*;
     _ZGVZNK9gui_forms13RuleCondition*;
     _ZGVZNK9gui_forms13RuleExclusion*;
+    _ZGVZNK9gui_forms13SoftLinkShape*;
     _ZGVZNK9gui_forms13SplitterPanel*;
     _ZGVZNK9gui_forms13StepIndicator*;
     _ZGVZNK9gui_forms13StockSpecimen*;
@@ -1951,6 +1982,7 @@
     _ZGVZNK9gui_forms14RuleProvenance*;
     _ZGVZNK9gui_forms14SaveFileDialog*;
     _ZGVZNK9gui_forms14ScaledGroupBox*;
+    _ZGVZNK9gui_forms14SceneZoomRange*;
     _ZGVZNK9gui_forms14ScrollSnapshot*;
     _ZGVZNK9gui_forms14ShapingFeature*;
     _ZGVZNK9gui_forms14ShapingRequest*;
@@ -2024,6 +2056,8 @@
     _ZGVZNK9gui_forms15LocaleRejection*;
     _ZGVZNK9gui_forms15MaterialKeyline*;
     _ZGVZNK9gui_forms15MetricsSnapshot*;
+    _ZGVZNK9gui_forms15NodeEditRequest*;
+    _ZGVZNK9gui_forms15NodeGraphEdited*;
     _ZGVZNK9gui_forms15NotifyIconClick*;
     _ZGVZNK9gui_forms15OffscreenRaster*;
     _ZGVZNK9gui_forms15PageDoubleClick*;
@@ -2226,6 +2260,7 @@
     _ZGVZNK9gui_forms17MenuStripItemSpec*;
     _ZGVZNK9gui_forms17MessageBoxRefused*;
     _ZGVZNK9gui_forms17MessageBoxRequest*;
+    _ZGVZNK9gui_forms17NodeLinkConnected*;
     _ZGVZNK9gui_forms17ObjectDetailsCell*;
     _ZGVZNK9gui_forms17ObjectDetailsSort*;
     _ZGVZNK9gui_forms17PartRasterRequest*;
@@ -2323,6 +2358,7 @@
     _ZGVZNK9gui_forms18MenuItemInvocation*;
     _ZGVZNK9gui_forms18MotionRecordHandle*;
     _ZGVZNK9gui_forms18NativePopupOptions*;
+    _ZGVZNK9gui_forms18NodePaletteRequest*;
     _ZGVZNK9gui_forms18PageContentRequest*;
     _ZGVZNK9gui_forms18PageControlContent*;
     _ZGVZNK9gui_forms18PageSelectingEvent*;
@@ -2346,9 +2382,11 @@
     _ZGVZNK9gui_forms18RibbonDialogLaunch*;
     _ZGVZNK9gui_forms18RibbonToolTipEvent*;
     _ZGVZNK9gui_forms18RuleActionArgument*;
+    _ZGVZNK9gui_forms18SceneViewTransform*;
     _ZGVZNK9gui_forms18ScrollAxisSnapshot*;
     _ZGVZNK9gui_forms18SemanticDescriptor*;
     _ZGVZNK9gui_forms18SemanticTextLayout*;
+    _ZGVZNK9gui_forms18SpatialQueryResult*;
     _ZGVZNK9gui_forms18SplashscreenResult*;
     _ZGVZNK9gui_forms18TabSelectionChange*;
     _ZGVZNK9gui_forms18TaskDialogExpander*;
@@ -2424,6 +2462,8 @@
     _ZGVZNK9gui_forms19MaterialDeclaration*;
     _ZGVZNK9gui_forms19MenuStripInvocation*;
     _ZGVZNK9gui_forms19NavigationPaneState*;
+    _ZGVZNK9gui_forms19NodeCanvasCallbacks*;
+    _ZGVZNK9gui_forms19NodeCanvasSelection*;
     _ZGVZNK9gui_forms19ObjectDetailsColumn*;
     _ZGVZNK9gui_forms19OffscreenAttachment*;
     _ZGVZNK9gui_forms19PageSelectionChange*;
@@ -2441,6 +2481,7 @@
     _ZGVZNK9gui_forms19RtfConversionResult*;
     _ZGVZNK9gui_forms19SevenSegmentDisplay*;
     _ZGVZNK9gui_forms19SourceMappingResult*;
+    _ZGVZNK9gui_forms19SpatialIndexOptions*;
     _ZGVZNK9gui_forms19SpecimenStateResult*;
     _ZGVZNK9gui_forms19SplashscreenOptions*;
     _ZGVZNK9gui_forms19SubSurfaceKeyReturn*;
@@ -2497,6 +2538,7 @@
     _ZGVZNK9gui_forms20InstrumentModuleSpec*;
     _ZGVZNK9gui_forms20MaterialColourFilter*;
     _ZGVZNK9gui_forms20MaterialColourMatrix*;
+    _ZGVZNK9gui_forms20NodeCanvasStatistics*;
     _ZGVZNK9gui_forms20ObjectContextRequest*;
     _ZGVZNK9gui_forms20PointerCaptureChange*;
     _ZGVZNK9gui_forms20PresentationSettings*;
@@ -2577,6 +2619,7 @@
     _ZGVZNK9gui_forms21RibbonGalleryCategory*;
     _ZGVZNK9gui_forms21RibbonScalingCounters*;
     _ZGVZNK9gui_forms21RibbonStateDiagnostic*;
+    _ZGVZNK9gui_forms21SceneDetailThresholds*;
     _ZGVZNK9gui_forms21SemanticTextSelection*;
     _ZGVZNK9gui_forms21StockSpecimenInstance*;
     _ZGVZNK9gui_forms21SubSurfaceEndListener*;
@@ -2632,6 +2675,7 @@
     _ZGVZNK9gui_forms22RibbonLadderGroupState*;
     _ZGVZNK9gui_forms22RibbonStateParseResult*;
     _ZGVZNK9gui_forms22SemanticFeedbackRecord*;
+    _ZGVZNK9gui_forms22SpatialIndexStatistics*;
     _ZGVZNK9gui_forms22TableLayoutPanelCompat*;
     _ZGVZNK9gui_forms22TextMaskBudgetSnapshot*;
     _ZGVZNK9gui_forms22ThemeCompileDiagnostic*;
@@ -3133,6 +3177,7 @@
     _ZN9gui_forms10ModalLayer*;
     _ZN9gui_forms10MotionStep*;
     _ZN9gui_forms10MotionStop*;
+    _ZN9gui_forms10NodeCanvas*;
     _ZN9gui_forms10NodeRecord*;
     _ZN9gui_forms10NotifyIcon*;
     _ZN9gui_forms10ObjectView*;
@@ -3148,6 +3193,7 @@
     _ZN9gui_forms10RoutedLink*;
     _ZN9gui_forms10RuleAction*;
     _ZN9gui_forms10RuleFiring*;
+    _ZN9gui_forms10SceneCubic*;
     _ZN9gui_forms10ScopeSweep*;
     _ZN9gui_forms10ScrollCopy*;
     _ZN9gui_forms10StaticNode*;
@@ -3325,6 +3371,8 @@
     _ZN9gui_forms12SemanticNode*;
     _ZN9gui_forms12Sha256Digest*;
     _ZN9gui_forms12Sha256Hasher*;
+    _ZN9gui_forms12SpatialEntry*;
+    _ZN9gui_forms12SpatialIndex*;
     _ZN9gui_forms12Splashscreen*;
     _ZN9gui_forms12TextMaskLine*;
     _ZN9gui_forms12ThemeLibrary*;
@@ -3383,6 +3431,10 @@
     _ZN9gui_forms12merge_stripsE*;
     _ZN9gui_forms12revert_mergeB*;
     _ZN9gui_forms12revert_mergeE*;
+    _ZN9gui_forms12scene_framedB*;
+    _ZN9gui_forms12scene_framedE*;
+    _ZN9gui_forms12scene_pannedB*;
+    _ZN9gui_forms12scene_pannedE*;
     _ZN9gui_forms12seat_shadowsB*;
     _ZN9gui_forms12seat_shadowsE*;
     _ZN9gui_forms12text_role_emB*;
@@ -3449,6 +3501,10 @@
     _ZN9gui_forms13MaskedTextBox*;
     _ZN9gui_forms13MaterialPanel*;
     _ZN9gui_forms13MonthCalendar*;
+    _ZN9gui_forms13NodeBodyPaint*;
+    _ZN9gui_forms13NodeCanvasHit*;
+    _ZN9gui_forms13NodeEditEnded*;
+    _ZN9gui_forms13NodeLinkCheck*;
     _ZN9gui_forms13NumericUpDown*;
     _ZN9gui_forms13PageDragStart*;
     _ZN9gui_forms13PagePlacement*;
@@ -3468,6 +3524,7 @@
     _ZN9gui_forms13RuleAddResult*;
     _ZN9gui_forms13RuleCondition*;
     _ZN9gui_forms13RuleExclusion*;
+    _ZN9gui_forms13SoftLinkShape*;
     _ZN9gui_forms13SplitterPanel*;
     _ZN9gui_forms13StepIndicator*;
     _ZN9gui_forms13StockSpecimen*;
@@ -3577,6 +3634,7 @@
     _ZN9gui_forms14RuleProvenance*;
     _ZN9gui_forms14SaveFileDialog*;
     _ZN9gui_forms14ScaledGroupBox*;
+    _ZN9gui_forms14SceneZoomRange*;
     _ZN9gui_forms14ScrollSnapshot*;
     _ZN9gui_forms14ShapingFeature*;
     _ZN9gui_forms14ShapingRequest*;
@@ -3696,6 +3754,8 @@
     _ZN9gui_forms15LocaleRejection*;
     _ZN9gui_forms15MaterialKeyline*;
     _ZN9gui_forms15MetricsSnapshot*;
+    _ZN9gui_forms15NodeEditRequest*;
+    _ZN9gui_forms15NodeGraphEdited*;
     _ZN9gui_forms15NotifyIconClick*;
     _ZN9gui_forms15OffscreenRaster*;
     _ZN9gui_forms15PageDoubleClick*;
@@ -3773,6 +3833,8 @@
     _ZN9gui_forms15registered_nameE*;
     _ZN9gui_forms15single_key_charB*;
     _ZN9gui_forms15single_key_charE*;
+    _ZN9gui_forms15soft_link_cubicB*;
+    _ZN9gui_forms15soft_link_cubicE*;
     _ZN9gui_forms15stock_specimensB*;
     _ZN9gui_forms15stock_specimensE*;
     _ZN9gui_forms15valid_date_timeB*;
@@ -3878,6 +3940,8 @@
     _ZN9gui_forms16VirtualRowScroll*;
     _ZN9gui_forms16WindowDispatcher*;
     _ZN9gui_forms16WrongThreadError*;
+    _ZN9gui_forms16clamp_scene_zoomB*;
+    _ZN9gui_forms16clamp_scene_zoomE*;
     _ZN9gui_forms16colour_role_nameB*;
     _ZN9gui_forms16colour_role_nameE*;
     _ZN9gui_forms16cursor_kind_nameB*;
@@ -3938,6 +4002,8 @@
     _ZN9gui_forms16split_help_wordsE*;
     _ZN9gui_forms16theme_layer_nameB*;
     _ZN9gui_forms16theme_layer_nameE*;
+    _ZN9gui_forms16valid_scene_viewB*;
+    _ZN9gui_forms16valid_scene_viewE*;
     _ZN9gui_forms17AbsoluteAxisInput*;
     _ZN9gui_forms17AnatomyValidation*;
     _ZN9gui_forms17AnimationTimeline*;
@@ -3996,6 +4062,7 @@
     _ZN9gui_forms17MenuStripItemSpec*;
     _ZN9gui_forms17MessageBoxRefused*;
     _ZN9gui_forms17MessageBoxRequest*;
+    _ZN9gui_forms17NodeLinkConnected*;
     _ZN9gui_forms17ObjectDetailsCell*;
     _ZN9gui_forms17ObjectDetailsSort*;
     _ZN9gui_forms17PartRasterRequest*;
@@ -4153,6 +4220,7 @@
     _ZN9gui_forms18MenuItemInvocation*;
     _ZN9gui_forms18MotionRecordHandle*;
     _ZN9gui_forms18NativePopupOptions*;
+    _ZN9gui_forms18NodePaletteRequest*;
     _ZN9gui_forms18PageContentRequest*;
     _ZN9gui_forms18PageControlContent*;
     _ZN9gui_forms18PageSelectingEvent*;
@@ -4176,9 +4244,11 @@
     _ZN9gui_forms18RibbonDialogLaunch*;
     _ZN9gui_forms18RibbonToolTipEvent*;
     _ZN9gui_forms18RuleActionArgument*;
+    _ZN9gui_forms18SceneViewTransform*;
     _ZN9gui_forms18ScrollAxisSnapshot*;
     _ZN9gui_forms18SemanticDescriptor*;
     _ZN9gui_forms18SemanticTextLayout*;
+    _ZN9gui_forms18SpatialQueryResult*;
     _ZN9gui_forms18SplashscreenResult*;
     _ZN9gui_forms18TabSelectionChange*;
     _ZN9gui_forms18TaskDialogExpander*;
@@ -4265,6 +4335,10 @@
     _ZN9gui_forms18read_theme_requestE*;
     _ZN9gui_forms18resolved_text_roleB*;
     _ZN9gui_forms18resolved_text_roleE*;
+    _ZN9gui_forms18scene_cubic_boundsB*;
+    _ZN9gui_forms18scene_cubic_boundsE*;
+    _ZN9gui_forms18scene_zoomed_aboutB*;
+    _ZN9gui_forms18scene_zoomed_aboutE*;
     _ZN9gui_forms18semantic_role_nameB*;
     _ZN9gui_forms18semantic_role_nameE*;
     _ZN9gui_forms18snap_text_baselineB*;
@@ -4340,6 +4414,8 @@
     _ZN9gui_forms19MaterialDeclaration*;
     _ZN9gui_forms19MenuStripInvocation*;
     _ZN9gui_forms19NavigationPaneState*;
+    _ZN9gui_forms19NodeCanvasCallbacks*;
+    _ZN9gui_forms19NodeCanvasSelection*;
     _ZN9gui_forms19ObjectDetailsColumn*;
     _ZN9gui_forms19OffscreenAttachment*;
     _ZN9gui_forms19PageSelectionChange*;
@@ -4357,6 +4433,7 @@
     _ZN9gui_forms19RtfConversionResult*;
     _ZN9gui_forms19SevenSegmentDisplay*;
     _ZN9gui_forms19SourceMappingResult*;
+    _ZN9gui_forms19SpatialIndexOptions*;
     _ZN9gui_forms19SpecimenStateResult*;
     _ZN9gui_forms19SplashscreenOptions*;
     _ZN9gui_forms19SubSurfaceKeyReturn*;
@@ -4398,6 +4475,8 @@
     _ZN9gui_forms19find_property_entryE*;
     _ZN9gui_forms19find_stock_specimenB*;
     _ZN9gui_forms19find_stock_specimenE*;
+    _ZN9gui_forms19flatten_scene_cubicB*;
+    _ZN9gui_forms19flatten_scene_cubicE*;
     _ZN9gui_forms19help_heading_anchorB*;
     _ZN9gui_forms19help_heading_anchorE*;
     _ZN9gui_forms19help_link_kind_nameB*;
@@ -4507,6 +4586,7 @@
     _ZN9gui_forms20InstrumentModuleSpec*;
     _ZN9gui_forms20MaterialColourFilter*;
     _ZN9gui_forms20MaterialColourMatrix*;
+    _ZN9gui_forms20NodeCanvasStatistics*;
     _ZN9gui_forms20ObjectContextRequest*;
     _ZN9gui_forms20PointerCaptureChange*;
     _ZN9gui_forms20PresentationSettings*;
@@ -4576,6 +4656,8 @@
     _ZN9gui_forms20reset_property_entryE*;
     _ZN9gui_forms20rule_diagnostic_nameB*;
     _ZN9gui_forms20rule_diagnostic_nameE*;
+    _ZN9gui_forms20scene_segments_crossB*;
+    _ZN9gui_forms20scene_segments_crossE*;
     _ZN9gui_forms20semantic_action_nameB*;
     _ZN9gui_forms20semantic_action_nameE*;
     _ZN9gui_forms20semantic_field_namesB*;
@@ -4655,6 +4737,7 @@
     _ZN9gui_forms21RibbonGalleryCategory*;
     _ZN9gui_forms21RibbonScalingCounters*;
     _ZN9gui_forms21RibbonStateDiagnostic*;
+    _ZN9gui_forms21SceneDetailThresholds*;
     _ZN9gui_forms21SemanticTextSelection*;
     _ZN9gui_forms21StockSpecimenInstance*;
     _ZN9gui_forms21SubSurfaceEndListener*;
@@ -4782,6 +4865,7 @@
     _ZN9gui_forms22RibbonLadderGroupState*;
     _ZN9gui_forms22RibbonStateParseResult*;
     _ZN9gui_forms22SemanticFeedbackRecord*;
+    _ZN9gui_forms22SpatialIndexStatistics*;
     _ZN9gui_forms22TableLayoutPanelCompat*;
     _ZN9gui_forms22TextMaskBudgetSnapshot*;
     _ZN9gui_forms22ThemeCompileDiagnostic*;
@@ -4843,6 +4927,8 @@
     _ZN9gui_forms22rule_trigger_kind_nameE*;
     _ZN9gui_forms22same_prepared_text_keyB*;
     _ZN9gui_forms22same_prepared_text_keyE*;
+    _ZN9gui_forms22scene_detail_level_forB*;
+    _ZN9gui_forms22scene_detail_level_forE*;
     _ZN9gui_forms22select_tray_icon_imageB*;
     _ZN9gui_forms22select_tray_icon_imageE*;
     _ZN9gui_forms22serialize_ribbon_stateB*;
@@ -4949,6 +5035,8 @@
     _ZN9gui_forms23material_fields_read_emE*;
     _ZN9gui_forms23nearest_logical_monitorB*;
     _ZN9gui_forms23nearest_logical_monitorE*;
+    _ZN9gui_forms23next_scene_detail_levelB*;
+    _ZN9gui_forms23next_scene_detail_levelE*;
     _ZN9gui_forms23overridden_presentationB*;
     _ZN9gui_forms23overridden_presentationE*;
     _ZN9gui_forms23paint_canvas_backgroundB*;
@@ -4967,6 +5055,8 @@
     _ZN9gui_forms23resolve_flex_main_sizesE*;
     _ZN9gui_forms23resolve_window_backdropB*;
     _ZN9gui_forms23resolve_window_backdropE*;
+    _ZN9gui_forms23scene_detail_level_nameB*;
+    _ZN9gui_forms23scene_detail_level_nameE*;
     _ZN9gui_forms23semantic_text_unit_nameB*;
     _ZN9gui_forms23semantic_text_unit_nameE*;
     _ZN9gui_forms23stock_control_anatomiesB*;
@@ -5182,6 +5272,8 @@
     _ZN9gui_forms26register_link_flow_effectsE*;
     _ZN9gui_forms26reset_child_property_entryB*;
     _ZN9gui_forms26reset_child_property_entryE*;
+    _ZN9gui_forms26scene_distance_to_polylineB*;
+    _ZN9gui_forms26scene_distance_to_polylineE*;
     _ZN9gui_forms26show_specimen_custom_stateB*;
     _ZN9gui_forms26show_specimen_custom_stateE*;
     _ZN9gui_forms26write_child_property_entryB*;
@@ -5280,6 +5372,8 @@
     _ZN9gui_forms29register_progress_bar_effectsE*;
     _ZN9gui_forms29stock_specimen_dominant_shareB*;
     _ZN9gui_forms29stock_specimen_dominant_shareE*;
+    _ZN9gui_forms29valid_scene_detail_thresholdsB*;
+    _ZN9gui_forms29valid_scene_detail_thresholdsE*;
     _ZN9gui_forms29window_backdrop_request_validB*;
     _ZN9gui_forms29window_backdrop_request_validE*;
     _ZN9gui_forms29window_corner_preference_nameB*;
@@ -5300,6 +5394,8 @@
     _ZN9gui_forms30is_virtual_semantic_runtime_idE*;
     _ZN9gui_forms30material_field_colour_positionB*;
     _ZN9gui_forms30material_field_colour_positionE*;
+    _ZN9gui_forms30scene_polyline_crosses_segmentB*;
+    _ZN9gui_forms30scene_polyline_crosses_segmentE*;
     _ZN9gui_forms30set_recipe_declaration_lengthsB*;
     _ZN9gui_forms30set_recipe_declaration_lengthsE*;
     _ZN9gui_forms30valid_property_enum_descriptorB*;
@@ -5907,6 +6003,7 @@
     _ZNK[RO]9gui_forms10ModalLayer*;
     _ZNK[RO]9gui_forms10MotionStep*;
     _ZNK[RO]9gui_forms10MotionStop*;
+    _ZNK[RO]9gui_forms10NodeCanvas*;
     _ZNK[RO]9gui_forms10NodeRecord*;
     _ZNK[RO]9gui_forms10NotifyIcon*;
     _ZNK[RO]9gui_forms10ObjectView*;
@@ -5922,6 +6019,7 @@
     _ZNK[RO]9gui_forms10RoutedLink*;
     _ZNK[RO]9gui_forms10RuleAction*;
     _ZNK[RO]9gui_forms10RuleFiring*;
+    _ZNK[RO]9gui_forms10SceneCubic*;
     _ZNK[RO]9gui_forms10ScopeSweep*;
     _ZNK[RO]9gui_forms10ScrollCopy*;
     _ZNK[RO]9gui_forms10StaticNode*;
@@ -6075,6 +6173,8 @@
     _ZNK[RO]9gui_forms12SemanticNode*;
     _ZNK[RO]9gui_forms12Sha256Digest*;
     _ZNK[RO]9gui_forms12Sha256Hasher*;
+    _ZNK[RO]9gui_forms12SpatialEntry*;
+    _ZNK[RO]9gui_forms12SpatialIndex*;
     _ZNK[RO]9gui_forms12Splashscreen*;
     _ZNK[RO]9gui_forms12TextMaskLine*;
     _ZNK[RO]9gui_forms12ThemeLibrary*;
@@ -6155,6 +6255,10 @@
     _ZNK[RO]9gui_forms13MaskedTextBox*;
     _ZNK[RO]9gui_forms13MaterialPanel*;
     _ZNK[RO]9gui_forms13MonthCalendar*;
+    _ZNK[RO]9gui_forms13NodeBodyPaint*;
+    _ZNK[RO]9gui_forms13NodeCanvasHit*;
+    _ZNK[RO]9gui_forms13NodeEditEnded*;
+    _ZNK[RO]9gui_forms13NodeLinkCheck*;
     _ZNK[RO]9gui_forms13NumericUpDown*;
     _ZNK[RO]9gui_forms13PageDragStart*;
     _ZNK[RO]9gui_forms13PagePlacement*;
@@ -6174,6 +6278,7 @@
     _ZNK[RO]9gui_forms13RuleAddResult*;
     _ZNK[RO]9gui_forms13RuleCondition*;
     _ZNK[RO]9gui_forms13RuleExclusion*;
+    _ZNK[RO]9gui_forms13SoftLinkShape*;
     _ZNK[RO]9gui_forms13SplitterPanel*;
     _ZNK[RO]9gui_forms13StepIndicator*;
     _ZNK[RO]9gui_forms13StockSpecimen*;
@@ -6267,6 +6372,7 @@
     _ZNK[RO]9gui_forms14RuleProvenance*;
     _ZNK[RO]9gui_forms14SaveFileDialog*;
     _ZNK[RO]9gui_forms14ScaledGroupBox*;
+    _ZNK[RO]9gui_forms14SceneZoomRange*;
     _ZNK[RO]9gui_forms14ScrollSnapshot*;
     _ZNK[RO]9gui_forms14ShapingFeature*;
     _ZNK[RO]9gui_forms14ShapingRequest*;
@@ -6340,6 +6446,8 @@
     _ZNK[RO]9gui_forms15LocaleRejection*;
     _ZNK[RO]9gui_forms15MaterialKeyline*;
     _ZNK[RO]9gui_forms15MetricsSnapshot*;
+    _ZNK[RO]9gui_forms15NodeEditRequest*;
+    _ZNK[RO]9gui_forms15NodeGraphEdited*;
     _ZNK[RO]9gui_forms15NotifyIconClick*;
     _ZNK[RO]9gui_forms15OffscreenRaster*;
     _ZNK[RO]9gui_forms15PageDoubleClick*;
@@ -6542,6 +6650,7 @@
     _ZNK[RO]9gui_forms17MenuStripItemSpec*;
     _ZNK[RO]9gui_forms17MessageBoxRefused*;
     _ZNK[RO]9gui_forms17MessageBoxRequest*;
+    _ZNK[RO]9gui_forms17NodeLinkConnected*;
     _ZNK[RO]9gui_forms17ObjectDetailsCell*;
     _ZNK[RO]9gui_forms17ObjectDetailsSort*;
     _ZNK[RO]9gui_forms17PartRasterRequest*;
@@ -6639,6 +6748,7 @@
     _ZNK[RO]9gui_forms18MenuItemInvocation*;
     _ZNK[RO]9gui_forms18MotionRecordHandle*;
     _ZNK[RO]9gui_forms18NativePopupOptions*;
+    _ZNK[RO]9gui_forms18NodePaletteRequest*;
     _ZNK[RO]9gui_forms18PageContentRequest*;
     _ZNK[RO]9gui_forms18PageControlContent*;
     _ZNK[RO]9gui_forms18PageSelectingEvent*;
@@ -6662,9 +6772,11 @@
     _ZNK[RO]9gui_forms18RibbonDialogLaunch*;
     _ZNK[RO]9gui_forms18RibbonToolTipEvent*;
     _ZNK[RO]9gui_forms18RuleActionArgument*;
+    _ZNK[RO]9gui_forms18SceneViewTransform*;
     _ZNK[RO]9gui_forms18ScrollAxisSnapshot*;
     _ZNK[RO]9gui_forms18SemanticDescriptor*;
     _ZNK[RO]9gui_forms18SemanticTextLayout*;
+    _ZNK[RO]9gui_forms18SpatialQueryResult*;
     _ZNK[RO]9gui_forms18SplashscreenResult*;
     _ZNK[RO]9gui_forms18TabSelectionChange*;
     _ZNK[RO]9gui_forms18TaskDialogExpander*;
@@ -6740,6 +6852,8 @@
     _ZNK[RO]9gui_forms19MaterialDeclaration*;
     _ZNK[RO]9gui_forms19MenuStripInvocation*;
     _ZNK[RO]9gui_forms19NavigationPaneState*;
+    _ZNK[RO]9gui_forms19NodeCanvasCallbacks*;
+    _ZNK[RO]9gui_forms19NodeCanvasSelection*;
     _ZNK[RO]9gui_forms19ObjectDetailsColumn*;
     _ZNK[RO]9gui_forms19OffscreenAttachment*;
     _ZNK[RO]9gui_forms19PageSelectionChange*;
@@ -6757,6 +6871,7 @@
     _ZNK[RO]9gui_forms19RtfConversionResult*;
     _ZNK[RO]9gui_forms19SevenSegmentDisplay*;
     _ZNK[RO]9gui_forms19SourceMappingResult*;
+    _ZNK[RO]9gui_forms19SpatialIndexOptions*;
     _ZNK[RO]9gui_forms19SpecimenStateResult*;
     _ZNK[RO]9gui_forms19SplashscreenOptions*;
     _ZNK[RO]9gui_forms19SubSurfaceKeyReturn*;
@@ -6813,6 +6928,7 @@
     _ZNK[RO]9gui_forms20InstrumentModuleSpec*;
     _ZNK[RO]9gui_forms20MaterialColourFilter*;
     _ZNK[RO]9gui_forms20MaterialColourMatrix*;
+    _ZNK[RO]9gui_forms20NodeCanvasStatistics*;
     _ZNK[RO]9gui_forms20ObjectContextRequest*;
     _ZNK[RO]9gui_forms20PointerCaptureChange*;
     _ZNK[RO]9gui_forms20PresentationSettings*;
@@ -6893,6 +7009,7 @@
     _ZNK[RO]9gui_forms21RibbonGalleryCategory*;
     _ZNK[RO]9gui_forms21RibbonScalingCounters*;
     _ZNK[RO]9gui_forms21RibbonStateDiagnostic*;
+    _ZNK[RO]9gui_forms21SceneDetailThresholds*;
     _ZNK[RO]9gui_forms21SemanticTextSelection*;
     _ZNK[RO]9gui_forms21StockSpecimenInstance*;
     _ZNK[RO]9gui_forms21SubSurfaceEndListener*;
@@ -6948,6 +7065,7 @@
     _ZNK[RO]9gui_forms22RibbonLadderGroupState*;
     _ZNK[RO]9gui_forms22RibbonStateParseResult*;
     _ZNK[RO]9gui_forms22SemanticFeedbackRecord*;
+    _ZNK[RO]9gui_forms22SpatialIndexStatistics*;
     _ZNK[RO]9gui_forms22TableLayoutPanelCompat*;
     _ZNK[RO]9gui_forms22TextMaskBudgetSnapshot*;
     _ZNK[RO]9gui_forms22ThemeCompileDiagnostic*;
@@ -7397,6 +7515,7 @@
     _ZN[KRO]9gui_forms10ModalLayer*;
     _ZN[KRO]9gui_forms10MotionStep*;
     _ZN[KRO]9gui_forms10MotionStop*;
+    _ZN[KRO]9gui_forms10NodeCanvas*;
     _ZN[KRO]9gui_forms10NodeRecord*;
     _ZN[KRO]9gui_forms10NotifyIcon*;
     _ZN[KRO]9gui_forms10ObjectView*;
@@ -7412,6 +7531,7 @@
     _ZN[KRO]9gui_forms10RoutedLink*;
     _ZN[KRO]9gui_forms10RuleAction*;
     _ZN[KRO]9gui_forms10RuleFiring*;
+    _ZN[KRO]9gui_forms10SceneCubic*;
     _ZN[KRO]9gui_forms10ScopeSweep*;
     _ZN[KRO]9gui_forms10ScrollCopy*;
     _ZN[KRO]9gui_forms10StaticNode*;
@@ -7565,6 +7685,8 @@
     _ZN[KRO]9gui_forms12SemanticNode*;
     _ZN[KRO]9gui_forms12Sha256Digest*;
     _ZN[KRO]9gui_forms12Sha256Hasher*;
+    _ZN[KRO]9gui_forms12SpatialEntry*;
+    _ZN[KRO]9gui_forms12SpatialIndex*;
     _ZN[KRO]9gui_forms12Splashscreen*;
     _ZN[KRO]9gui_forms12TextMaskLine*;
     _ZN[KRO]9gui_forms12ThemeLibrary*;
@@ -7645,6 +7767,10 @@
     _ZN[KRO]9gui_forms13MaskedTextBox*;
     _ZN[KRO]9gui_forms13MaterialPanel*;
     _ZN[KRO]9gui_forms13MonthCalendar*;
+    _ZN[KRO]9gui_forms13NodeBodyPaint*;
+    _ZN[KRO]9gui_forms13NodeCanvasHit*;
+    _ZN[KRO]9gui_forms13NodeEditEnded*;
+    _ZN[KRO]9gui_forms13NodeLinkCheck*;
     _ZN[KRO]9gui_forms13NumericUpDown*;
     _ZN[KRO]9gui_forms13PageDragStart*;
     _ZN[KRO]9gui_forms13PagePlacement*;
@@ -7664,6 +7790,7 @@
     _ZN[KRO]9gui_forms13RuleAddResult*;
     _ZN[KRO]9gui_forms13RuleCondition*;
     _ZN[KRO]9gui_forms13RuleExclusion*;
+    _ZN[KRO]9gui_forms13SoftLinkShape*;
     _ZN[KRO]9gui_forms13SplitterPanel*;
     _ZN[KRO]9gui_forms13StepIndicator*;
     _ZN[KRO]9gui_forms13StockSpecimen*;
@@ -7757,6 +7884,7 @@
     _ZN[KRO]9gui_forms14RuleProvenance*;
     _ZN[KRO]9gui_forms14SaveFileDialog*;
     _ZN[KRO]9gui_forms14ScaledGroupBox*;
+    _ZN[KRO]9gui_forms14SceneZoomRange*;
     _ZN[KRO]9gui_forms14ScrollSnapshot*;
     _ZN[KRO]9gui_forms14ShapingFeature*;
     _ZN[KRO]9gui_forms14ShapingRequest*;
@@ -7830,6 +7958,8 @@
     _ZN[KRO]9gui_forms15LocaleRejection*;
     _ZN[KRO]9gui_forms15MaterialKeyline*;
     _ZN[KRO]9gui_forms15MetricsSnapshot*;
+    _ZN[KRO]9gui_forms15NodeEditRequest*;
+    _ZN[KRO]9gui_forms15NodeGraphEdited*;
     _ZN[KRO]9gui_forms15NotifyIconClick*;
     _ZN[KRO]9gui_forms15OffscreenRaster*;
     _ZN[KRO]9gui_forms15PageDoubleClick*;
@@ -8032,6 +8162,7 @@
     _ZN[KRO]9gui_forms17MenuStripItemSpec*;
     _ZN[KRO]9gui_forms17MessageBoxRefused*;
     _ZN[KRO]9gui_forms17MessageBoxRequest*;
+    _ZN[KRO]9gui_forms17NodeLinkConnected*;
     _ZN[KRO]9gui_forms17ObjectDetailsCell*;
     _ZN[KRO]9gui_forms17ObjectDetailsSort*;
     _ZN[KRO]9gui_forms17PartRasterRequest*;
@@ -8129,6 +8260,7 @@
     _ZN[KRO]9gui_forms18MenuItemInvocation*;
     _ZN[KRO]9gui_forms18MotionRecordHandle*;
     _ZN[KRO]9gui_forms18NativePopupOptions*;
+    _ZN[KRO]9gui_forms18NodePaletteRequest*;
     _ZN[KRO]9gui_forms18PageContentRequest*;
     _ZN[KRO]9gui_forms18PageControlContent*;
     _ZN[KRO]9gui_forms18PageSelectingEvent*;
@@ -8152,9 +8284,11 @@
     _ZN[KRO]9gui_forms18RibbonDialogLaunch*;
     _ZN[KRO]9gui_forms18RibbonToolTipEvent*;
     _ZN[KRO]9gui_forms18RuleActionArgument*;
+    _ZN[KRO]9gui_forms18SceneViewTransform*;
     _ZN[KRO]9gui_forms18ScrollAxisSnapshot*;
     _ZN[KRO]9gui_forms18SemanticDescriptor*;
     _ZN[KRO]9gui_forms18SemanticTextLayout*;
+    _ZN[KRO]9gui_forms18SpatialQueryResult*;
     _ZN[KRO]9gui_forms18SplashscreenResult*;
     _ZN[KRO]9gui_forms18TabSelectionChange*;
     _ZN[KRO]9gui_forms18TaskDialogExpander*;
@@ -8230,6 +8364,8 @@
     _ZN[KRO]9gui_forms19MaterialDeclaration*;
     _ZN[KRO]9gui_forms19MenuStripInvocation*;
     _ZN[KRO]9gui_forms19NavigationPaneState*;
+    _ZN[KRO]9gui_forms19NodeCanvasCallbacks*;
+    _ZN[KRO]9gui_forms19NodeCanvasSelection*;
     _ZN[KRO]9gui_forms19ObjectDetailsColumn*;
     _ZN[KRO]9gui_forms19OffscreenAttachment*;
     _ZN[KRO]9gui_forms19PageSelectionChange*;
@@ -8247,6 +8383,7 @@
     _ZN[KRO]9gui_forms19RtfConversionResult*;
     _ZN[KRO]9gui_forms19SevenSegmentDisplay*;
     _ZN[KRO]9gui_forms19SourceMappingResult*;
+    _ZN[KRO]9gui_forms19SpatialIndexOptions*;
     _ZN[KRO]9gui_forms19SpecimenStateResult*;
     _ZN[KRO]9gui_forms19SplashscreenOptions*;
     _ZN[KRO]9gui_forms19SubSurfaceKeyReturn*;
@@ -8303,6 +8440,7 @@
     _ZN[KRO]9gui_forms20InstrumentModuleSpec*;
     _ZN[KRO]9gui_forms20MaterialColourFilter*;
     _ZN[KRO]9gui_forms20MaterialColourMatrix*;
+    _ZN[KRO]9gui_forms20NodeCanvasStatistics*;
     _ZN[KRO]9gui_forms20ObjectContextRequest*;
     _ZN[KRO]9gui_forms20PointerCaptureChange*;
     _ZN[KRO]9gui_forms20PresentationSettings*;
@@ -8383,6 +8521,7 @@
     _ZN[KRO]9gui_forms21RibbonGalleryCategory*;
     _ZN[KRO]9gui_forms21RibbonScalingCounters*;
     _ZN[KRO]9gui_forms21RibbonStateDiagnostic*;
+    _ZN[KRO]9gui_forms21SceneDetailThresholds*;
     _ZN[KRO]9gui_forms21SemanticTextSelection*;
     _ZN[KRO]9gui_forms21StockSpecimenInstance*;
     _ZN[KRO]9gui_forms21SubSurfaceEndListener*;
@@ -8438,6 +8577,7 @@
     _ZN[KRO]9gui_forms22RibbonLadderGroupState*;
     _ZN[KRO]9gui_forms22RibbonStateParseResult*;
     _ZN[KRO]9gui_forms22SemanticFeedbackRecord*;
+    _ZN[KRO]9gui_forms22SpatialIndexStatistics*;
     _ZN[KRO]9gui_forms22TableLayoutPanelCompat*;
     _ZN[KRO]9gui_forms22TextMaskBudgetSnapshot*;
     _ZN[KRO]9gui_forms22ThemeCompileDiagnostic*;
@@ -8887,6 +9027,7 @@
     _ZT[VIST]N9gui_forms10ModalLayer*E;
     _ZT[VIST]N9gui_forms10MotionStep*E;
     _ZT[VIST]N9gui_forms10MotionStop*E;
+    _ZT[VIST]N9gui_forms10NodeCanvas*E;
     _ZT[VIST]N9gui_forms10NodeRecord*E;
     _ZT[VIST]N9gui_forms10NotifyIcon*E;
     _ZT[VIST]N9gui_forms10ObjectView*E;
@@ -8902,6 +9043,7 @@
     _ZT[VIST]N9gui_forms10RoutedLink*E;
     _ZT[VIST]N9gui_forms10RuleAction*E;
     _ZT[VIST]N9gui_forms10RuleFiring*E;
+    _ZT[VIST]N9gui_forms10SceneCubic*E;
     _ZT[VIST]N9gui_forms10ScopeSweep*E;
     _ZT[VIST]N9gui_forms10ScrollCopy*E;
     _ZT[VIST]N9gui_forms10StaticNode*E;
@@ -9055,6 +9197,8 @@
     _ZT[VIST]N9gui_forms12SemanticNode*E;
     _ZT[VIST]N9gui_forms12Sha256Digest*E;
     _ZT[VIST]N9gui_forms12Sha256Hasher*E;
+    _ZT[VIST]N9gui_forms12SpatialEntry*E;
+    _ZT[VIST]N9gui_forms12SpatialIndex*E;
     _ZT[VIST]N9gui_forms12Splashscreen*E;
     _ZT[VIST]N9gui_forms12TextMaskLine*E;
     _ZT[VIST]N9gui_forms12ThemeLibrary*E;
@@ -9135,6 +9279,10 @@
     _ZT[VIST]N9gui_forms13MaskedTextBox*E;
     _ZT[VIST]N9gui_forms13MaterialPanel*E;
     _ZT[VIST]N9gui_forms13MonthCalendar*E;
+    _ZT[VIST]N9gui_forms13NodeBodyPaint*E;
+    _ZT[VIST]N9gui_forms13NodeCanvasHit*E;
+    _ZT[VIST]N9gui_forms13NodeEditEnded*E;
+    _ZT[VIST]N9gui_forms13NodeLinkCheck*E;
     _ZT[VIST]N9gui_forms13NumericUpDown*E;
     _ZT[VIST]N9gui_forms13PageDragStart*E;
     _ZT[VIST]N9gui_forms13PagePlacement*E;
@@ -9154,6 +9302,7 @@
     _ZT[VIST]N9gui_forms13RuleAddResult*E;
     _ZT[VIST]N9gui_forms13RuleCondition*E;
     _ZT[VIST]N9gui_forms13RuleExclusion*E;
+    _ZT[VIST]N9gui_forms13SoftLinkShape*E;
     _ZT[VIST]N9gui_forms13SplitterPanel*E;
     _ZT[VIST]N9gui_forms13StepIndicator*E;
     _ZT[VIST]N9gui_forms13StockSpecimen*E;
@@ -9247,6 +9396,7 @@
     _ZT[VIST]N9gui_forms14RuleProvenance*E;
     _ZT[VIST]N9gui_forms14SaveFileDialog*E;
     _ZT[VIST]N9gui_forms14ScaledGroupBox*E;
+    _ZT[VIST]N9gui_forms14SceneZoomRange*E;
     _ZT[VIST]N9gui_forms14ScrollSnapshot*E;
     _ZT[VIST]N9gui_forms14ShapingFeature*E;
     _ZT[VIST]N9gui_forms14ShapingRequest*E;
@@ -9320,6 +9470,8 @@
     _ZT[VIST]N9gui_forms15LocaleRejection*E;
     _ZT[VIST]N9gui_forms15MaterialKeyline*E;
     _ZT[VIST]N9gui_forms15MetricsSnapshot*E;
+    _ZT[VIST]N9gui_forms15NodeEditRequest*E;
+    _ZT[VIST]N9gui_forms15NodeGraphEdited*E;
     _ZT[VIST]N9gui_forms15NotifyIconClick*E;
     _ZT[VIST]N9gui_forms15OffscreenRaster*E;
     _ZT[VIST]N9gui_forms15PageDoubleClick*E;
@@ -9522,6 +9674,7 @@
     _ZT[VIST]N9gui_forms17MenuStripItemSpec*E;
     _ZT[VIST]N9gui_forms17MessageBoxRefused*E;
     _ZT[VIST]N9gui_forms17MessageBoxRequest*E;
+    _ZT[VIST]N9gui_forms17NodeLinkConnected*E;
     _ZT[VIST]N9gui_forms17ObjectDetailsCell*E;
     _ZT[VIST]N9gui_forms17ObjectDetailsSort*E;
     _ZT[VIST]N9gui_forms17PartRasterRequest*E;
@@ -9619,6 +9772,7 @@
     _ZT[VIST]N9gui_forms18MenuItemInvocation*E;
     _ZT[VIST]N9gui_forms18MotionRecordHandle*E;
     _ZT[VIST]N9gui_forms18NativePopupOptions*E;
+    _ZT[VIST]N9gui_forms18NodePaletteRequest*E;
     _ZT[VIST]N9gui_forms18PageContentRequest*E;
     _ZT[VIST]N9gui_forms18PageControlContent*E;
     _ZT[VIST]N9gui_forms18PageSelectingEvent*E;
@@ -9642,9 +9796,11 @@
     _ZT[VIST]N9gui_forms18RibbonDialogLaunch*E;
     _ZT[VIST]N9gui_forms18RibbonToolTipEvent*E;
     _ZT[VIST]N9gui_forms18RuleActionArgument*E;
+    _ZT[VIST]N9gui_forms18SceneViewTransform*E;
     _ZT[VIST]N9gui_forms18ScrollAxisSnapshot*E;
     _ZT[VIST]N9gui_forms18SemanticDescriptor*E;
     _ZT[VIST]N9gui_forms18SemanticTextLayout*E;
+    _ZT[VIST]N9gui_forms18SpatialQueryResult*E;
     _ZT[VIST]N9gui_forms18SplashscreenResult*E;
     _ZT[VIST]N9gui_forms18TabSelectionChange*E;
     _ZT[VIST]N9gui_forms18TaskDialogExpander*E;
@@ -9720,6 +9876,8 @@
     _ZT[VIST]N9gui_forms19MaterialDeclaration*E;
     _ZT[VIST]N9gui_forms19MenuStripInvocation*E;
     _ZT[VIST]N9gui_forms19NavigationPaneState*E;
+    _ZT[VIST]N9gui_forms19NodeCanvasCallbacks*E;
+    _ZT[VIST]N9gui_forms19NodeCanvasSelection*E;
     _ZT[VIST]N9gui_forms19ObjectDetailsColumn*E;
     _ZT[VIST]N9gui_forms19OffscreenAttachment*E;
     _ZT[VIST]N9gui_forms19PageSelectionChange*E;
@@ -9737,6 +9895,7 @@
     _ZT[VIST]N9gui_forms19RtfConversionResult*E;
     _ZT[VIST]N9gui_forms19SevenSegmentDisplay*E;
     _ZT[VIST]N9gui_forms19SourceMappingResult*E;
+    _ZT[VIST]N9gui_forms19SpatialIndexOptions*E;
     _ZT[VIST]N9gui_forms19SpecimenStateResult*E;
     _ZT[VIST]N9gui_forms19SplashscreenOptions*E;
     _ZT[VIST]N9gui_forms19SubSurfaceKeyReturn*E;
@@ -9793,6 +9952,7 @@
     _ZT[VIST]N9gui_forms20InstrumentModuleSpec*E;
     _ZT[VIST]N9gui_forms20MaterialColourFilter*E;
     _ZT[VIST]N9gui_forms20MaterialColourMatrix*E;
+    _ZT[VIST]N9gui_forms20NodeCanvasStatistics*E;
     _ZT[VIST]N9gui_forms20ObjectContextRequest*E;
     _ZT[VIST]N9gui_forms20PointerCaptureChange*E;
     _ZT[VIST]N9gui_forms20PresentationSettings*E;
@@ -9873,6 +10033,7 @@
     _ZT[VIST]N9gui_forms21RibbonGalleryCategory*E;
     _ZT[VIST]N9gui_forms21RibbonScalingCounters*E;
     _ZT[VIST]N9gui_forms21RibbonStateDiagnostic*E;
+    _ZT[VIST]N9gui_forms21SceneDetailThresholds*E;
     _ZT[VIST]N9gui_forms21SemanticTextSelection*E;
     _ZT[VIST]N9gui_forms21StockSpecimenInstance*E;
     _ZT[VIST]N9gui_forms21SubSurfaceEndListener*E;
@@ -9928,6 +10089,7 @@
     _ZT[VIST]N9gui_forms22RibbonLadderGroupState*E;
     _ZT[VIST]N9gui_forms22RibbonStateParseResult*E;
     _ZT[VIST]N9gui_forms22SemanticFeedbackRecord*E;
+    _ZT[VIST]N9gui_forms22SpatialIndexStatistics*E;
     _ZT[VIST]N9gui_forms22TableLayoutPanelCompat*E;
     _ZT[VIST]N9gui_forms22TextMaskBudgetSnapshot*E;
     _ZT[VIST]N9gui_forms22ThemeCompileDiagnostic*E;
@@ -10377,6 +10539,7 @@
     _ZT[hvc]*9gui_forms10ModalLayer*;
     _ZT[hvc]*9gui_forms10MotionStep*;
     _ZT[hvc]*9gui_forms10MotionStop*;
+    _ZT[hvc]*9gui_forms10NodeCanvas*;
     _ZT[hvc]*9gui_forms10NodeRecord*;
     _ZT[hvc]*9gui_forms10NotifyIcon*;
     _ZT[hvc]*9gui_forms10ObjectView*;
@@ -10392,6 +10555,7 @@
     _ZT[hvc]*9gui_forms10RoutedLink*;
     _ZT[hvc]*9gui_forms10RuleAction*;
     _ZT[hvc]*9gui_forms10RuleFiring*;
+    _ZT[hvc]*9gui_forms10SceneCubic*;
     _ZT[hvc]*9gui_forms10ScopeSweep*;
     _ZT[hvc]*9gui_forms10ScrollCopy*;
     _ZT[hvc]*9gui_forms10StaticNode*;
@@ -10545,6 +10709,8 @@
     _ZT[hvc]*9gui_forms12SemanticNode*;
     _ZT[hvc]*9gui_forms12Sha256Digest*;
     _ZT[hvc]*9gui_forms12Sha256Hasher*;
+    _ZT[hvc]*9gui_forms12SpatialEntry*;
+    _ZT[hvc]*9gui_forms12SpatialIndex*;
     _ZT[hvc]*9gui_forms12Splashscreen*;
     _ZT[hvc]*9gui_forms12TextMaskLine*;
     _ZT[hvc]*9gui_forms12ThemeLibrary*;
@@ -10625,6 +10791,10 @@
     _ZT[hvc]*9gui_forms13MaskedTextBox*;
     _ZT[hvc]*9gui_forms13MaterialPanel*;
     _ZT[hvc]*9gui_forms13MonthCalendar*;
+    _ZT[hvc]*9gui_forms13NodeBodyPaint*;
+    _ZT[hvc]*9gui_forms13NodeCanvasHit*;
+    _ZT[hvc]*9gui_forms13NodeEditEnded*;
+    _ZT[hvc]*9gui_forms13NodeLinkCheck*;
     _ZT[hvc]*9gui_forms13NumericUpDown*;
     _ZT[hvc]*9gui_forms13PageDragStart*;
     _ZT[hvc]*9gui_forms13PagePlacement*;
@@ -10644,6 +10814,7 @@
     _ZT[hvc]*9gui_forms13RuleAddResult*;
     _ZT[hvc]*9gui_forms13RuleCondition*;
     _ZT[hvc]*9gui_forms13RuleExclusion*;
+    _ZT[hvc]*9gui_forms13SoftLinkShape*;
     _ZT[hvc]*9gui_forms13SplitterPanel*;
     _ZT[hvc]*9gui_forms13StepIndicator*;
     _ZT[hvc]*9gui_forms13StockSpecimen*;
@@ -10737,6 +10908,7 @@
     _ZT[hvc]*9gui_forms14RuleProvenance*;
     _ZT[hvc]*9gui_forms14SaveFileDialog*;
     _ZT[hvc]*9gui_forms14ScaledGroupBox*;
+    _ZT[hvc]*9gui_forms14SceneZoomRange*;
     _ZT[hvc]*9gui_forms14ScrollSnapshot*;
     _ZT[hvc]*9gui_forms14ShapingFeature*;
     _ZT[hvc]*9gui_forms14ShapingRequest*;
@@ -10810,6 +10982,8 @@
     _ZT[hvc]*9gui_forms15LocaleRejection*;
     _ZT[hvc]*9gui_forms15MaterialKeyline*;
     _ZT[hvc]*9gui_forms15MetricsSnapshot*;
+    _ZT[hvc]*9gui_forms15NodeEditRequest*;
+    _ZT[hvc]*9gui_forms15NodeGraphEdited*;
     _ZT[hvc]*9gui_forms15NotifyIconClick*;
     _ZT[hvc]*9gui_forms15OffscreenRaster*;
     _ZT[hvc]*9gui_forms15PageDoubleClick*;
@@ -11012,6 +11186,7 @@
     _ZT[hvc]*9gui_forms17MenuStripItemSpec*;
     _ZT[hvc]*9gui_forms17MessageBoxRefused*;
     _ZT[hvc]*9gui_forms17MessageBoxRequest*;
+    _ZT[hvc]*9gui_forms17NodeLinkConnected*;
     _ZT[hvc]*9gui_forms17ObjectDetailsCell*;
     _ZT[hvc]*9gui_forms17ObjectDetailsSort*;
     _ZT[hvc]*9gui_forms17PartRasterRequest*;
@@ -11109,6 +11284,7 @@
     _ZT[hvc]*9gui_forms18MenuItemInvocation*;
     _ZT[hvc]*9gui_forms18MotionRecordHandle*;
     _ZT[hvc]*9gui_forms18NativePopupOptions*;
+    _ZT[hvc]*9gui_forms18NodePaletteRequest*;
     _ZT[hvc]*9gui_forms18PageContentRequest*;
     _ZT[hvc]*9gui_forms18PageControlContent*;
     _ZT[hvc]*9gui_forms18PageSelectingEvent*;
@@ -11132,9 +11308,11 @@
     _ZT[hvc]*9gui_forms18RibbonDialogLaunch*;
     _ZT[hvc]*9gui_forms18RibbonToolTipEvent*;
     _ZT[hvc]*9gui_forms18RuleActionArgument*;
+    _ZT[hvc]*9gui_forms18SceneViewTransform*;
     _ZT[hvc]*9gui_forms18ScrollAxisSnapshot*;
     _ZT[hvc]*9gui_forms18SemanticDescriptor*;
     _ZT[hvc]*9gui_forms18SemanticTextLayout*;
+    _ZT[hvc]*9gui_forms18SpatialQueryResult*;
     _ZT[hvc]*9gui_forms18SplashscreenResult*;
     _ZT[hvc]*9gui_forms18TabSelectionChange*;
     _ZT[hvc]*9gui_forms18TaskDialogExpander*;
@@ -11210,6 +11388,8 @@
     _ZT[hvc]*9gui_forms19MaterialDeclaration*;
     _ZT[hvc]*9gui_forms19MenuStripInvocation*;
     _ZT[hvc]*9gui_forms19NavigationPaneState*;
+    _ZT[hvc]*9gui_forms19NodeCanvasCallbacks*;
+    _ZT[hvc]*9gui_forms19NodeCanvasSelection*;
     _ZT[hvc]*9gui_forms19ObjectDetailsColumn*;
     _ZT[hvc]*9gui_forms19OffscreenAttachment*;
     _ZT[hvc]*9gui_forms19PageSelectionChange*;
@@ -11227,6 +11407,7 @@
     _ZT[hvc]*9gui_forms19RtfConversionResult*;
     _ZT[hvc]*9gui_forms19SevenSegmentDisplay*;
     _ZT[hvc]*9gui_forms19SourceMappingResult*;
+    _ZT[hvc]*9gui_forms19SpatialIndexOptions*;
     _ZT[hvc]*9gui_forms19SpecimenStateResult*;
     _ZT[hvc]*9gui_forms19SplashscreenOptions*;
     _ZT[hvc]*9gui_forms19SubSurfaceKeyReturn*;
@@ -11283,6 +11464,7 @@
     _ZT[hvc]*9gui_forms20InstrumentModuleSpec*;
     _ZT[hvc]*9gui_forms20MaterialColourFilter*;
     _ZT[hvc]*9gui_forms20MaterialColourMatrix*;
+    _ZT[hvc]*9gui_forms20NodeCanvasStatistics*;
     _ZT[hvc]*9gui_forms20ObjectContextRequest*;
     _ZT[hvc]*9gui_forms20PointerCaptureChange*;
     _ZT[hvc]*9gui_forms20PresentationSettings*;
@@ -11363,6 +11545,7 @@
     _ZT[hvc]*9gui_forms21RibbonGalleryCategory*;
     _ZT[hvc]*9gui_forms21RibbonScalingCounters*;
     _ZT[hvc]*9gui_forms21RibbonStateDiagnostic*;
+    _ZT[hvc]*9gui_forms21SceneDetailThresholds*;
     _ZT[hvc]*9gui_forms21SemanticTextSelection*;
     _ZT[hvc]*9gui_forms21StockSpecimenInstance*;
     _ZT[hvc]*9gui_forms21SubSurfaceEndListener*;
@@ -11418,6 +11601,7 @@
     _ZT[hvc]*9gui_forms22RibbonLadderGroupState*;
     _ZT[hvc]*9gui_forms22RibbonStateParseResult*;
     _ZT[hvc]*9gui_forms22SemanticFeedbackRecord*;
+    _ZT[hvc]*9gui_forms22SpatialIndexStatistics*;
     _ZT[hvc]*9gui_forms22TableLayoutPanelCompat*;
     _ZT[hvc]*9gui_forms22TextMaskBudgetSnapshot*;
     _ZT[hvc]*9gui_forms22ThemeCompileDiagnostic*;
@@ -11867,6 +12051,7 @@
     _ZZN9gui_forms10ModalLayer*;
     _ZZN9gui_forms10MotionStep*;
     _ZZN9gui_forms10MotionStop*;
+    _ZZN9gui_forms10NodeCanvas*;
     _ZZN9gui_forms10NodeRecord*;
     _ZZN9gui_forms10NotifyIcon*;
     _ZZN9gui_forms10ObjectView*;
@@ -11882,6 +12067,7 @@
     _ZZN9gui_forms10RoutedLink*;
     _ZZN9gui_forms10RuleAction*;
     _ZZN9gui_forms10RuleFiring*;
+    _ZZN9gui_forms10SceneCubic*;
     _ZZN9gui_forms10ScopeSweep*;
     _ZZN9gui_forms10ScrollCopy*;
     _ZZN9gui_forms10StaticNode*;
@@ -12035,6 +12221,8 @@
     _ZZN9gui_forms12SemanticNode*;
     _ZZN9gui_forms12Sha256Digest*;
     _ZZN9gui_forms12Sha256Hasher*;
+    _ZZN9gui_forms12SpatialEntry*;
+    _ZZN9gui_forms12SpatialIndex*;
     _ZZN9gui_forms12Splashscreen*;
     _ZZN9gui_forms12TextMaskLine*;
     _ZZN9gui_forms12ThemeLibrary*;
@@ -12115,6 +12303,10 @@
     _ZZN9gui_forms13MaskedTextBox*;
     _ZZN9gui_forms13MaterialPanel*;
     _ZZN9gui_forms13MonthCalendar*;
+    _ZZN9gui_forms13NodeBodyPaint*;
+    _ZZN9gui_forms13NodeCanvasHit*;
+    _ZZN9gui_forms13NodeEditEnded*;
+    _ZZN9gui_forms13NodeLinkCheck*;
     _ZZN9gui_forms13NumericUpDown*;
     _ZZN9gui_forms13PageDragStart*;
     _ZZN9gui_forms13PagePlacement*;
@@ -12134,6 +12326,7 @@
     _ZZN9gui_forms13RuleAddResult*;
     _ZZN9gui_forms13RuleCondition*;
     _ZZN9gui_forms13RuleExclusion*;
+    _ZZN9gui_forms13SoftLinkShape*;
     _ZZN9gui_forms13SplitterPanel*;
     _ZZN9gui_forms13StepIndicator*;
     _ZZN9gui_forms13StockSpecimen*;
@@ -12227,6 +12420,7 @@
     _ZZN9gui_forms14RuleProvenance*;
     _ZZN9gui_forms14SaveFileDialog*;
     _ZZN9gui_forms14ScaledGroupBox*;
+    _ZZN9gui_forms14SceneZoomRange*;
     _ZZN9gui_forms14ScrollSnapshot*;
     _ZZN9gui_forms14ShapingFeature*;
     _ZZN9gui_forms14ShapingRequest*;
@@ -12300,6 +12494,8 @@
     _ZZN9gui_forms15LocaleRejection*;
     _ZZN9gui_forms15MaterialKeyline*;
     _ZZN9gui_forms15MetricsSnapshot*;
+    _ZZN9gui_forms15NodeEditRequest*;
+    _ZZN9gui_forms15NodeGraphEdited*;
     _ZZN9gui_forms15NotifyIconClick*;
     _ZZN9gui_forms15OffscreenRaster*;
     _ZZN9gui_forms15PageDoubleClick*;
@@ -12502,6 +12698,7 @@
     _ZZN9gui_forms17MenuStripItemSpec*;
     _ZZN9gui_forms17MessageBoxRefused*;
     _ZZN9gui_forms17MessageBoxRequest*;
+    _ZZN9gui_forms17NodeLinkConnected*;
     _ZZN9gui_forms17ObjectDetailsCell*;
     _ZZN9gui_forms17ObjectDetailsSort*;
     _ZZN9gui_forms17PartRasterRequest*;
@@ -12599,6 +12796,7 @@
     _ZZN9gui_forms18MenuItemInvocation*;
     _ZZN9gui_forms18MotionRecordHandle*;
     _ZZN9gui_forms18NativePopupOptions*;
+    _ZZN9gui_forms18NodePaletteRequest*;
     _ZZN9gui_forms18PageContentRequest*;
     _ZZN9gui_forms18PageControlContent*;
     _ZZN9gui_forms18PageSelectingEvent*;
@@ -12622,9 +12820,11 @@
     _ZZN9gui_forms18RibbonDialogLaunch*;
     _ZZN9gui_forms18RibbonToolTipEvent*;
     _ZZN9gui_forms18RuleActionArgument*;
+    _ZZN9gui_forms18SceneViewTransform*;
     _ZZN9gui_forms18ScrollAxisSnapshot*;
     _ZZN9gui_forms18SemanticDescriptor*;
     _ZZN9gui_forms18SemanticTextLayout*;
+    _ZZN9gui_forms18SpatialQueryResult*;
     _ZZN9gui_forms18SplashscreenResult*;
     _ZZN9gui_forms18TabSelectionChange*;
     _ZZN9gui_forms18TaskDialogExpander*;
@@ -12700,6 +12900,8 @@
     _ZZN9gui_forms19MaterialDeclaration*;
     _ZZN9gui_forms19MenuStripInvocation*;
     _ZZN9gui_forms19NavigationPaneState*;
+    _ZZN9gui_forms19NodeCanvasCallbacks*;
+    _ZZN9gui_forms19NodeCanvasSelection*;
     _ZZN9gui_forms19ObjectDetailsColumn*;
     _ZZN9gui_forms19OffscreenAttachment*;
     _ZZN9gui_forms19PageSelectionChange*;
@@ -12717,6 +12919,7 @@
     _ZZN9gui_forms19RtfConversionResult*;
     _ZZN9gui_forms19SevenSegmentDisplay*;
     _ZZN9gui_forms19SourceMappingResult*;
+    _ZZN9gui_forms19SpatialIndexOptions*;
     _ZZN9gui_forms19SpecimenStateResult*;
     _ZZN9gui_forms19SplashscreenOptions*;
     _ZZN9gui_forms19SubSurfaceKeyReturn*;
@@ -12773,6 +12976,7 @@
     _ZZN9gui_forms20InstrumentModuleSpec*;
     _ZZN9gui_forms20MaterialColourFilter*;
     _ZZN9gui_forms20MaterialColourMatrix*;
+    _ZZN9gui_forms20NodeCanvasStatistics*;
     _ZZN9gui_forms20ObjectContextRequest*;
     _ZZN9gui_forms20PointerCaptureChange*;
     _ZZN9gui_forms20PresentationSettings*;
@@ -12853,6 +13057,7 @@
     _ZZN9gui_forms21RibbonGalleryCategory*;
     _ZZN9gui_forms21RibbonScalingCounters*;
     _ZZN9gui_forms21RibbonStateDiagnostic*;
+    _ZZN9gui_forms21SceneDetailThresholds*;
     _ZZN9gui_forms21SemanticTextSelection*;
     _ZZN9gui_forms21StockSpecimenInstance*;
     _ZZN9gui_forms21SubSurfaceEndListener*;
@@ -12908,6 +13113,7 @@
     _ZZN9gui_forms22RibbonLadderGroupState*;
     _ZZN9gui_forms22RibbonStateParseResult*;
     _ZZN9gui_forms22SemanticFeedbackRecord*;
+    _ZZN9gui_forms22SpatialIndexStatistics*;
     _ZZN9gui_forms22TableLayoutPanelCompat*;
     _ZZN9gui_forms22TextMaskBudgetSnapshot*;
     _ZZN9gui_forms22ThemeCompileDiagnostic*;
@@ -13357,6 +13563,7 @@
     _ZZNK9gui_forms10ModalLayer*;
     _ZZNK9gui_forms10MotionStep*;
     _ZZNK9gui_forms10MotionStop*;
+    _ZZNK9gui_forms10NodeCanvas*;
     _ZZNK9gui_forms10NodeRecord*;
     _ZZNK9gui_forms10NotifyIcon*;
     _ZZNK9gui_forms10ObjectView*;
@@ -13372,6 +13579,7 @@
     _ZZNK9gui_forms10RoutedLink*;
     _ZZNK9gui_forms10RuleAction*;
     _ZZNK9gui_forms10RuleFiring*;
+    _ZZNK9gui_forms10SceneCubic*;
     _ZZNK9gui_forms10ScopeSweep*;
     _ZZNK9gui_forms10ScrollCopy*;
     _ZZNK9gui_forms10StaticNode*;
@@ -13525,6 +13733,8 @@
     _ZZNK9gui_forms12SemanticNode*;
     _ZZNK9gui_forms12Sha256Digest*;
     _ZZNK9gui_forms12Sha256Hasher*;
+    _ZZNK9gui_forms12SpatialEntry*;
+    _ZZNK9gui_forms12SpatialIndex*;
     _ZZNK9gui_forms12Splashscreen*;
     _ZZNK9gui_forms12TextMaskLine*;
     _ZZNK9gui_forms12ThemeLibrary*;
@@ -13605,6 +13815,10 @@
     _ZZNK9gui_forms13MaskedTextBox*;
     _ZZNK9gui_forms13MaterialPanel*;
     _ZZNK9gui_forms13MonthCalendar*;
+    _ZZNK9gui_forms13NodeBodyPaint*;
+    _ZZNK9gui_forms13NodeCanvasHit*;
+    _ZZNK9gui_forms13NodeEditEnded*;
+    _ZZNK9gui_forms13NodeLinkCheck*;
     _ZZNK9gui_forms13NumericUpDown*;
     _ZZNK9gui_forms13PageDragStart*;
     _ZZNK9gui_forms13PagePlacement*;
@@ -13624,6 +13838,7 @@
     _ZZNK9gui_forms13RuleAddResult*;
     _ZZNK9gui_forms13RuleCondition*;
     _ZZNK9gui_forms13RuleExclusion*;
+    _ZZNK9gui_forms13SoftLinkShape*;
     _ZZNK9gui_forms13SplitterPanel*;
     _ZZNK9gui_forms13StepIndicator*;
     _ZZNK9gui_forms13StockSpecimen*;
@@ -13717,6 +13932,7 @@
     _ZZNK9gui_forms14RuleProvenance*;
     _ZZNK9gui_forms14SaveFileDialog*;
     _ZZNK9gui_forms14ScaledGroupBox*;
+    _ZZNK9gui_forms14SceneZoomRange*;
     _ZZNK9gui_forms14ScrollSnapshot*;
     _ZZNK9gui_forms14ShapingFeature*;
     _ZZNK9gui_forms14ShapingRequest*;
@@ -13790,6 +14006,8 @@
     _ZZNK9gui_forms15LocaleRejection*;
     _ZZNK9gui_forms15MaterialKeyline*;
     _ZZNK9gui_forms15MetricsSnapshot*;
+    _ZZNK9gui_forms15NodeEditRequest*;
+    _ZZNK9gui_forms15NodeGraphEdited*;
     _ZZNK9gui_forms15NotifyIconClick*;
     _ZZNK9gui_forms15OffscreenRaster*;
     _ZZNK9gui_forms15PageDoubleClick*;
@@ -13992,6 +14210,7 @@
     _ZZNK9gui_forms17MenuStripItemSpec*;
     _ZZNK9gui_forms17MessageBoxRefused*;
     _ZZNK9gui_forms17MessageBoxRequest*;
+    _ZZNK9gui_forms17NodeLinkConnected*;
     _ZZNK9gui_forms17ObjectDetailsCell*;
     _ZZNK9gui_forms17ObjectDetailsSort*;
     _ZZNK9gui_forms17PartRasterRequest*;
@@ -14089,6 +14308,7 @@
     _ZZNK9gui_forms18MenuItemInvocation*;
     _ZZNK9gui_forms18MotionRecordHandle*;
     _ZZNK9gui_forms18NativePopupOptions*;
+    _ZZNK9gui_forms18NodePaletteRequest*;
     _ZZNK9gui_forms18PageContentRequest*;
     _ZZNK9gui_forms18PageControlContent*;
     _ZZNK9gui_forms18PageSelectingEvent*;
@@ -14112,9 +14332,11 @@
     _ZZNK9gui_forms18RibbonDialogLaunch*;
     _ZZNK9gui_forms18RibbonToolTipEvent*;
     _ZZNK9gui_forms18RuleActionArgument*;
+    _ZZNK9gui_forms18SceneViewTransform*;
     _ZZNK9gui_forms18ScrollAxisSnapshot*;
     _ZZNK9gui_forms18SemanticDescriptor*;
     _ZZNK9gui_forms18SemanticTextLayout*;
+    _ZZNK9gui_forms18SpatialQueryResult*;
     _ZZNK9gui_forms18SplashscreenResult*;
     _ZZNK9gui_forms18TabSelectionChange*;
     _ZZNK9gui_forms18TaskDialogExpander*;
@@ -14190,6 +14412,8 @@
     _ZZNK9gui_forms19MaterialDeclaration*;
     _ZZNK9gui_forms19MenuStripInvocation*;
     _ZZNK9gui_forms19NavigationPaneState*;
+    _ZZNK9gui_forms19NodeCanvasCallbacks*;
+    _ZZNK9gui_forms19NodeCanvasSelection*;
     _ZZNK9gui_forms19ObjectDetailsColumn*;
     _ZZNK9gui_forms19OffscreenAttachment*;
     _ZZNK9gui_forms19PageSelectionChange*;
@@ -14207,6 +14431,7 @@
     _ZZNK9gui_forms19RtfConversionResult*;
     _ZZNK9gui_forms19SevenSegmentDisplay*;
     _ZZNK9gui_forms19SourceMappingResult*;
+    _ZZNK9gui_forms19SpatialIndexOptions*;
     _ZZNK9gui_forms19SpecimenStateResult*;
     _ZZNK9gui_forms19SplashscreenOptions*;
     _ZZNK9gui_forms19SubSurfaceKeyReturn*;
@@ -14263,6 +14488,7 @@
     _ZZNK9gui_forms20InstrumentModuleSpec*;
     _ZZNK9gui_forms20MaterialColourFilter*;
     _ZZNK9gui_forms20MaterialColourMatrix*;
+    _ZZNK9gui_forms20NodeCanvasStatistics*;
     _ZZNK9gui_forms20ObjectContextRequest*;
     _ZZNK9gui_forms20PointerCaptureChange*;
     _ZZNK9gui_forms20PresentationSettings*;
@@ -14343,6 +14569,7 @@
     _ZZNK9gui_forms21RibbonGalleryCategory*;
     _ZZNK9gui_forms21RibbonScalingCounters*;
     _ZZNK9gui_forms21RibbonStateDiagnostic*;
+    _ZZNK9gui_forms21SceneDetailThresholds*;
     _ZZNK9gui_forms21SemanticTextSelection*;
     _ZZNK9gui_forms21StockSpecimenInstance*;
     _ZZNK9gui_forms21SubSurfaceEndListener*;
@@ -14398,6 +14625,7 @@
     _ZZNK9gui_forms22RibbonLadderGroupState*;
     _ZZNK9gui_forms22RibbonStateParseResult*;
     _ZZNK9gui_forms22SemanticFeedbackRecord*;
+    _ZZNK9gui_forms22SpatialIndexStatistics*;
     _ZZNK9gui_forms22TableLayoutPanelCompat*;
     _ZZNK9gui_forms22TextMaskBudgetSnapshot*;
     _ZZNK9gui_forms22ThemeCompileDiagnostic*;

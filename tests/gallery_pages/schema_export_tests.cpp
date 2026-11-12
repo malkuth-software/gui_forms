@@ -11,6 +11,7 @@
 #include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/virtual_rows_view.hpp"
+#include "gui_forms/controls/node_canvas.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/plot_annotation_item.hpp"
@@ -927,8 +928,8 @@ void test_schema_export() {
     const std::shared_ptr<Toast> toast = make_control<Toast>(StableId("schema.toast"), std::move(toast_content));
     record_control(*toast, records);
     // Types no Gallery page shows yet: the plots and instruments packages'
-    // PlotView with its item children and Sparkline, the ValueBar and the
-    // VirtualRowsView. The
+    // PlotView with its item children and Sparkline, the ValueBar, the
+    // VirtualRowsView and the NodeCanvas. The
     // items have no anatomy of their own: they are recorded by their ids
     // with the base anatomy, as the C ABI describes them.
     const std::shared_ptr<PlotView> plot_view = make_control<PlotView>(StableId("schema.plot-view"));
@@ -941,6 +942,7 @@ void test_schema_export() {
     const std::shared_ptr<ValueBar> value_bar = make_control<ValueBar>(StableId("schema.value-bar"));
     const std::shared_ptr<VirtualRowsView> virtual_rows =
         make_control<VirtualRowsView>(StableId("schema.virtual-rows"));
+    const std::shared_ptr<NodeCanvas> node_canvas = make_control<NodeCanvas>(StableId("schema.node-canvas"));
     record_control(*plot_view, records);
     record_control_as("plot_axis_item", *plot_axis, records);
     record_control_as("plot_series_item", *plot_series, records);
@@ -948,6 +950,7 @@ void test_schema_export() {
     record_control(*sparkline, records);
     record_control(*value_bar, records);
     record_control(*virtual_rows, records);
+    record_control(*node_canvas, records);
     // The final controls and the help system shown only inside another or
     // on demand. WizardPage and HelpBookViewer have no anatomy of their own
     // yet and GaugeBase, TextBoxBase, ListControl and UpDownBase are bases:

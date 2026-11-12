@@ -84,6 +84,7 @@
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/month_calendar.hpp"
 #include "gui_forms/controls/navigation_pane.hpp"
+#include "gui_forms/controls/node_canvas.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/controls/object_view.hpp"
 #include "gui_forms/controls/page_strip.hpp"
@@ -280,6 +281,7 @@ inline constexpr std::array<SchemaCatalogEntry, 144> schema_catalog{{
     {"ribbon_tool_tip", "RibbonToolTip", &describe_type<RibbonToolTip>, &create_type<RibbonToolTip>, &is_exact_type<RibbonToolTip>},
     {"drawing_surface", "DrawingSurface", &describe_type<DrawingSurface>, &create_type<DrawingSurface>, &is_exact_type<DrawingSurface>},
     {"raster_canvas", "RasterCanvas", &describe_type<RasterCanvas>, &create_type<RasterCanvas>, &is_exact_type<RasterCanvas>},
+    {"node_canvas", "NodeCanvas", &describe_type<NodeCanvas>, &create_type<NodeCanvas>, &is_exact_type<NodeCanvas>},
     {"live_surface", "LiveSurface", &describe_type<LiveSurface>, &create_type<LiveSurface>, &is_exact_type<LiveSurface>},
     {"sub_surface_host", "SubSurfaceHost", &describe_type<SubSurfaceHost>, &create_type<SubSurfaceHost>, &is_exact_type<SubSurfaceHost>},
     {"metrics_view", "MetricsView", &describe_type<MetricsView>, &create_type<MetricsView>, &is_exact_type<MetricsView>},

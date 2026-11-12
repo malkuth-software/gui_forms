@@ -391,6 +391,8 @@ add_library(gui_forms_core STATIC
     src/core/types/painter/painter.cpp
     src/core/types/painter/painter_marks.cpp
     src/core/types/paint_marks/paint_marks.cpp
+    src/core/scene/spatial_index/spatial_index.cpp
+    src/core/scene/scene_view/scene_view.cpp
     src/core/types/paint_recipes/paint_recipes.cpp
     src/core/types/rect/rect.cpp
     src/core/theme/theme/theme.cpp
@@ -1066,6 +1068,9 @@ add_library(gui_forms_controls STATIC
     src/controls/node_canvas/node_graph/node_graph.cpp
     src/controls/node_canvas/node_graph/node_graph_document.cpp
     src/controls/node_canvas/link_router/link_router.cpp
+    src/controls/node_canvas/node_canvas.cpp
+    src/controls/node_canvas/node_canvas_input.cpp
+    src/controls/node_canvas/node_canvas_paint.cpp
     src/controls/panel/date_time_picker/date_time_utilities.cpp
     src/controls/panel/date_time_picker/calendar_grid/calendar_grid.cpp
     src/controls/panel/date_time_picker/date_time_value/date_time_value.cpp
@@ -4535,6 +4540,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_link_router_tests tests/link_router_tests.cpp)
     target_link_libraries(gui_forms_link_router_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_link_router_tests COMMAND gui_forms_link_router_tests)
+    # The graph-space scene pieces (gap G8) and the public NodeCanvas (N1).
+    add_executable(gui_forms_scene_tests tests/scene_tests.cpp)
+    target_link_libraries(gui_forms_scene_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_scene_tests COMMAND gui_forms_scene_tests)
+    add_executable(gui_forms_node_canvas_tests tests/node_canvas_tests.cpp)
+    target_link_libraries(gui_forms_node_canvas_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_node_canvas_tests COMMAND gui_forms_node_canvas_tests)
     add_executable(gui_forms_drag_engine_tests tests/drag_engine_tests.cpp)
     target_link_libraries(gui_forms_drag_engine_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_drag_engine_tests COMMAND gui_forms_drag_engine_tests)
@@ -5718,6 +5730,14 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         target_link_libraries(gui_forms_canvas_look_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_canvas_look_raster_tests COMMAND gui_forms_canvas_look_raster_tests)
+
+        add_executable(gui_forms_node_canvas_raster_tests tests/node_canvas_raster_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_node_canvas_raster_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_node_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_node_canvas_raster_tests COMMAND gui_forms_node_canvas_raster_tests)
 
         add_executable(gui_forms_canvas_raster_tests tests/canvas_raster_tests.cpp)
         target_link_libraries(gui_forms_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)

@@ -112,6 +112,7 @@
     {"lookup_combo_box", "Selection from a list", Size{224.0, 30.0}, "Lookup combo box", &make_lookup_combo_box, nullptr, ""},
     {"drawing_surface", "Drawing", Size{240.0, 144.0}, "Drawing surface", &make_drawing_surface, nullptr, ""},
     {"raster_canvas", "Drawing", Size{240.0, 144.0}, "Raster canvas", &make_raster_canvas, nullptr, ""},
+    {"node_canvas", "Drawing", Size{368.0, 152.0}, "Node canvas", &make_node_canvas, nullptr, ""},
     {"sub_surface_host", "Drawing", Size{240.0, 144.0}, "Sub surface host", &make_plain<SubSurfaceHost>, nullptr, "hosts a program's own surface and is empty until one is attached"},
     {"metrics_view", "Diagnostics", Size{340.0, 210.0}, "Metrics view", &make_plain<MetricsView>, nullptr, ""},
     {"help_book", "Information display", Size{340.0, 220.0}, "Help book", &make_help_book, nullptr, ""},

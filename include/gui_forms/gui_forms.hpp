@@ -51,6 +51,7 @@
 #include "gui_forms/metrics.hpp"
 #include "gui_forms/pages.hpp"
 #include "gui_forms/resources.hpp"
+#include "gui_forms/scene.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/scrolling.hpp"
 #include "gui_forms/semantics.hpp"

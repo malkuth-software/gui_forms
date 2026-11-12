@@ -177,6 +177,9 @@ AREA_TO_CATEGORY: dict[str, str] = {
     "inspection": "Value setting",
     "instrument": "Value setting",
     "metrics": "Diagnostics",
+    # The graph-space scene (world geometry, the spatial index, the view
+    # transform and level of detail) sits beside NodeCanvas.
+    "scene": "Drawing",
     "visual_inspection": "Diagnostics",
 }
 

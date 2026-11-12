@@ -1363,6 +1363,17 @@
       "doc": "api/generated/gui_forms.RasterCanvas.rst"
     },
     {
+      "id": "node_canvas",
+      "type": "NodeCanvas",
+      "header": "gui_forms/controls/node_canvas.hpp",
+      "category": "Drawing",
+      "purpose": "Pannable, deeply zoomable editor over a node graph: level of detail, the grid, nodes with ports and lamps, magnetic soft or routed links, marquee and keyboard selection, grid-snapped moves as single undo steps, and an application-hosted editor.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.NodeCanvas.rst"
+    },
+    {
       "id": "live_surface",
       "type": "LiveSurface",
       "header": "gui_forms/live_surface/surface/live_surface.hpp",

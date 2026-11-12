@@ -15,6 +15,8 @@ Owner-drawn, live and raster surfaces.
      - A control that draws whatever its paint callback draws.
    * - :cpp:class:`RasterCanvas <gui_forms::RasterCanvas>`
      - A zoomable, pannable view of a bitmap that the application owns and edits.
+   * - :cpp:class:`NodeCanvas <gui_forms::NodeCanvas>`
+     - An editor over a node graph: nodes with ports and lamps, joined by links, on an unbounded canvas that pans and zooms deeply.
    * - :cpp:class:`LiveSurface <gui_forms::LiveSurface>`
      - A thread-safe exchange that hands the newest frame from a pixel producer to the window.
    * - :cpp:class:`SubSurfaceHost <gui_forms::SubSurfaceHost>`
@@ -25,6 +27,7 @@ Owner-drawn, live and raster surfaces.
 
    generated/gui_forms.DrawingSurface
    generated/gui_forms.RasterCanvas
+   generated/gui_forms.NodeCanvas
    generated/gui_forms.LiveSurface
    generated/gui_forms.SubSurfaceHost
 
@@ -65,10 +68,40 @@ Related types
      -  
    * - :cpp:class:`LinkRouteStatistics <gui_forms::LinkRouteStatistics>`
      -  
+   * - :cpp:class:`NodeBodyPaint <gui_forms::NodeBodyPaint>`
+     - The application's drawing of a node's body at full detail: ``body`` is the area below the caption in local units, at ``zoom`` view units per world unit.
+   * - :cpp:class:`NodeCanvas::NodeParts <gui_forms::NodeCanvas::NodeParts>`
+     - One visible node's parts and states (the "node" item system).
+   * - :cpp:class:`NodeCanvas::NodeStates <gui_forms::NodeCanvas::NodeStates>`
+     -  
+   * - :cpp:class:`NodeCanvas::Parts <gui_forms::NodeCanvas::Parts>`
+     - The anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`NodeCanvas::States <gui_forms::NodeCanvas::States>`
+     -  
+   * - :cpp:class:`NodeCanvasCallbacks <gui_forms::NodeCanvasCallbacks>`
+     - Named targets (Delegates: a function, or a member of an object the application keeps alive while the canvas holds the target).
+   * - :cpp:class:`NodeCanvasHit <gui_forms::NodeCanvasHit>`
+     -  
+   * - :cpp:class:`NodeCanvasSelection <gui_forms::NodeCanvasSelection>`
+     -  
+   * - :cpp:class:`NodeCanvasStatistics <gui_forms::NodeCanvasStatistics>`
+     - Plain-data counters; they only grow, except the ``last_`` fields and ``level``.
+   * - :cpp:class:`NodeEditEnded <gui_forms::NodeEditEnded>`
+     - Raised after an edit ended, the editor already removed.
+   * - :cpp:class:`NodeEditRequest <gui_forms::NodeEditRequest>`
+     - The canvas's request to edit a node (double-click, F2, or begin_edit).
    * - :cpp:class:`NodeGraph <gui_forms::NodeGraph>`
      - Owned by its consumer and borrowed by the canvases that draw it, on one thread (the consumer's UI thread).
+   * - :cpp:class:`NodeGraphEdited <gui_forms::NodeGraphEdited>`
+     -  
    * - :cpp:class:`NodeId <gui_forms::NodeId>`
      - A node's identity: its slot and the slot's generation when it was added.
+   * - :cpp:class:`NodeLinkCheck <gui_forms::NodeLinkCheck>`
+     - The compatibility question for one prospective link (node graph gap N6: the graph has no conversion table yet, so the application answers).
+   * - :cpp:class:`NodeLinkConnected <gui_forms::NodeLinkConnected>`
+     -  
+   * - :cpp:class:`NodePaletteRequest <gui_forms::NodePaletteRequest>`
+     - The add-node palette's request: after a double-click on empty canvas, Shift+F10 or the context menu key, or a link drag released off every port (then ``from`` is the dragged output, so the palette can offer kinds with a compatible input).
    * - :cpp:class:`NodeProperty <gui_forms::NodeProperty>`
      - A node's named value: a parameter its consumer gives meaning to (a kind's "scale" = "5.0").
    * - :cpp:class:`NodeRecord <gui_forms::NodeRecord>`
@@ -103,6 +136,26 @@ Related types
      - Client units per bitmap pixel, 1/64 to 256 (default 1).
    * - :cpp:class:`RoutedLink <gui_forms::RoutedLink>`
      - One routed link.
+   * - :cpp:class:`SceneCubic <gui_forms::SceneCubic>`
+     - A cubic Bezier in world units: ends p0 and p3, control points p1 and p2.
+   * - :cpp:class:`SceneDetailThresholds <gui_forms::SceneDetailThresholds>`
+     - The zooms at which the level changes, and the hysteresis factor: a level is entered upward only at threshold * hysteresis or above, and left downward only below threshold / hysteresis, so a zoom resting near a threshold does not flicker between levels.
+   * - :cpp:class:`SceneViewTransform <gui_forms::SceneViewTransform>`
+     -  
+   * - :cpp:class:`SceneZoomRange <gui_forms::SceneZoomRange>`
+     - The zooms a view is held to (spec 3: 1/64 to 8).
+   * - :cpp:class:`SoftLinkShape <gui_forms::SoftLinkShape>`
+     - The soft link curve's tangent lengths (world units): half the distance along each end's normal, held to [shortest, longest], plus ``back_link`` times the sideways distance when the far end lies behind the edge (a back-link loops round instead of cutting through the record).
+   * - :cpp:class:`SpatialEntry <gui_forms::SpatialEntry>`
+     - One entry given to build: its bounds, and whether it is present (an absent entry, such as a free graph slot, is skipped and never matches).
+   * - :cpp:class:`SpatialIndex <gui_forms::SpatialIndex>`
+     -  
+   * - :cpp:class:`SpatialIndexOptions <gui_forms::SpatialIndexOptions>`
+     - The grid's terms.
+   * - :cpp:class:`SpatialIndexStatistics <gui_forms::SpatialIndexStatistics>`
+     - Counters, plain data.
+   * - :cpp:class:`SpatialQueryResult <gui_forms::SpatialQueryResult>`
+     - What one query found: ``written`` identities stored at the front of the caller's storage, and ``matched`` matches in all.
    * - :cpp:class:`SubSurface <gui_forms::SubSurface>`
      - A SurfaceRoot whose output is a LiveSurface and whose host is a control of its parent window (design note section 2).
    * - :cpp:class:`SubSurfaceConfiguration <gui_forms::SubSurfaceConfiguration>`
@@ -445,6 +498,266 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: NodeBodyPaint final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   The application's drawing of a node's body at full detail: ``body`` is the area below the caption in local units, at ``zoom`` view units per world unit. The painter is borrowed for the call; the target may draw only inside ``body`` (the canvas clips to it).
+
+   .. cpp:member:: Painter* painter
+
+   .. cpp:member:: NodeId node
+
+   .. cpp:member:: Rect body
+
+   .. cpp:member:: double zoom
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: AnatomyStateSet states
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeCanvas::NodeParts final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   One visible node's parts and states (the "node" item system). A node has many ports and lamps; ``port``, ``port_label`` and ``lamp`` give the first one's geometry.
+
+   .. cpp:member:: PartGeometry node
+
+   .. cpp:member:: PartGeometry node_face
+
+   .. cpp:member:: PartGeometry node_selection
+
+   .. cpp:member:: PartGeometry node_caption
+
+   .. cpp:member:: PartGeometry port
+
+   .. cpp:member:: PartGeometry port_label
+
+   .. cpp:member:: PartGeometry lamp
+
+   .. cpp:member:: PartGeometry node_focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeCanvas::NodeStates final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:member:: bool selected
+
+   .. cpp:member:: bool hot
+
+   .. cpp:member:: bool current
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeCanvas::Parts final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   The anatomy, as dot members (see Control::Parts). The marquee, knife and drop parts are present only during their gestures.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry well
+
+   .. cpp:member:: PartGeometry grid_minor
+
+   .. cpp:member:: PartGeometry grid_major
+
+   .. cpp:member:: PartGeometry connector
+
+   .. cpp:member:: PartGeometry marquee
+
+   .. cpp:member:: PartGeometry knife
+
+   .. cpp:member:: PartGeometry drop
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeCanvas::States final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeCanvasCallbacks final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   Named targets (Delegates: a function, or a member of an object the application keeps alive while the canvas holds the target).
+
+   .. cpp:member:: Delegate<NodeLinkCheck&> check_link
+
+   .. cpp:member:: Delegate<NodeEditRequest&> edit
+
+   .. cpp:member:: Delegate<NodeBodyPaint&> paint_body
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeCanvasHit final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:member:: NodeCanvasHitKind kind
+
+      Default: ``{NodeCanvasHitKind::none}``.
+
+   .. cpp:member:: NodeId node
+
+   .. cpp:member:: PortIndex port
+
+   .. cpp:member:: LinkId link
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeCanvasSelection final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:member:: std::size_t nodes
+
+   .. cpp:member:: std::optional<LinkId> link
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeCanvasStatistics final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   Plain-data counters; they only grow, except the ``last_`` fields and ``level``.
+
+   .. cpp:member:: std::uint64_t frames_painted
+
+   .. cpp:member:: std::uint64_t nodes_painted
+
+   .. cpp:member:: std::uint64_t links_painted
+
+   .. cpp:member:: std::uint64_t link_points_flattened
+
+   .. cpp:member:: std::uint64_t captions_drawn
+
+   .. cpp:member:: std::uint64_t text_skipped_small
+
+   .. cpp:member:: std::uint64_t ports_painted
+
+   .. cpp:member:: std::uint64_t lamps_painted
+
+   .. cpp:member:: std::uint64_t hit_tests
+
+   .. cpp:member:: std::uint64_t node_index_builds
+
+   .. cpp:member:: std::uint64_t link_index_builds
+
+   .. cpp:member:: std::uint64_t index_moves_in_place
+
+   .. cpp:member:: std::uint64_t index_moves_refused
+
+   .. cpp:member:: std::uint64_t router_runs
+
+   .. cpp:member:: std::uint64_t lamp_repaints
+
+   .. cpp:member:: std::uint64_t gestures_started
+
+   .. cpp:member:: std::uint64_t gestures_committed
+
+   .. cpp:member:: std::uint64_t gestures_cancelled
+
+   .. cpp:member:: std::uint64_t link_drags
+
+   .. cpp:member:: std::uint64_t magnet_candidates
+
+   .. cpp:member:: std::uint64_t magnet_captures
+
+   .. cpp:member:: std::uint64_t connections_made
+
+   .. cpp:member:: std::uint64_t connections_refused
+
+   .. cpp:member:: std::uint64_t links_detached
+
+   .. cpp:member:: std::uint64_t marquee_selections
+
+   .. cpp:member:: std::uint64_t knife_cuts
+
+   .. cpp:member:: std::uint64_t palette_requests
+
+   .. cpp:member:: std::uint64_t edit_requests
+
+   .. cpp:member:: std::uint64_t edits_committed
+
+   .. cpp:member:: std::uint64_t edits_cancelled
+
+   .. cpp:member:: std::uint64_t clicks_suppressed
+
+   .. cpp:member:: std::uint64_t key_presses_suppressed
+
+   .. cpp:member:: std::uint64_t level_transitions
+
+   .. cpp:member:: std::size_t last_frame_nodes
+
+   .. cpp:member:: std::size_t last_frame_links
+
+   .. cpp:member:: SceneDetailLevel level
+
+      Default: ``{SceneDetailLevel::full}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeEditEnded final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   Raised after an edit ended, the editor already removed.
+
+   .. cpp:member:: NodeId node
+
+   .. cpp:member:: NodeEditPart part
+
+      Default: ``{NodeEditPart::body}``.
+
+   .. cpp:member:: NodeEditEnd end
+
+      Default: ``{NodeEditEnd::commit}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeEditRequest final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   The canvas's request to edit a node (double-click, F2, or begin_edit). ``bounds`` is the part's rectangle in the canvas's local units. The edit target may set ``editor`` to a control the canvas then hosts as its child over ``bounds`` (kept there through pans and zooms) until end_edit; the canvas opens an undo group first, so every graph change the editor makes before end_edit(commit) is one undo step, and end_edit(cancel) rolls them back. Leaving ``editor`` empty declines the edit.
+
+   .. cpp:member:: NodeId node
+
+   .. cpp:member:: NodeEditPart part
+
+      Default: ``{NodeEditPart::body}``.
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: Control::Ptr editor
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: NodeGraph final
 
    ``#include <gui_forms/controls/node_graph.hpp>``
@@ -586,6 +899,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: NodeGraphEdited final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:member:: NodeGraphEditKind kind
+
+      Default: ``{NodeGraphEditKind::moved}``.
+
+   .. cpp:member:: std::uint64_t revision
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: NodeId final
 
    ``#include <gui_forms/controls/node_graph.hpp>``
@@ -595,6 +920,50 @@ Related types
    .. cpp:member:: std::uint32_t index
 
    .. cpp:member:: std::uint32_t generation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeLinkCheck final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   The compatibility question for one prospective link (node graph gap N6: the graph has no conversion table yet, so the application answers). The canvas fills the ports and their socket types and ``accepted`` with its default, equal socket types; the check_link target may change ``accepted``. Asked for every magnet candidate and before every connect.
+
+   .. cpp:member:: PortRef from
+
+   .. cpp:member:: PortRef to
+
+   .. cpp:member:: std::uint16_t from_type
+
+   .. cpp:member:: std::uint16_t to_type
+
+   .. cpp:member:: bool accepted
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeLinkConnected final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:member:: LinkId link
+
+   .. cpp:member:: PortRef from
+
+   .. cpp:member:: PortRef to
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodePaletteRequest final
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   The add-node palette's request: after a double-click on empty canvas, Shift+F10 or the context menu key, or a link drag released off every port (then ``from`` is the dragged output, so the palette can offer kinds with a compatible input). ``world`` is where a new node would go and ``local`` the same point in the canvas's local units.
+
+   .. cpp:member:: WorldPoint world
+
+   .. cpp:member:: Point local
+
+   .. cpp:member:: std::optional<PortRef> from
 
 .. cpp:namespace:: gui_forms
 
@@ -925,6 +1294,238 @@ Related types
    .. cpp:member:: std::uint32_t bends
 
    .. cpp:member:: bool fallback
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SceneCubic final
+
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+
+   A cubic Bezier in world units: ends p0 and p3, control points p1 and p2.
+
+   .. cpp:member:: WorldPoint p0
+
+   .. cpp:member:: WorldPoint p1
+
+   .. cpp:member:: WorldPoint p2
+
+   .. cpp:member:: WorldPoint p3
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SceneDetailThresholds final
+
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+
+   The zooms at which the level changes, and the hysteresis factor: a level is entered upward only at threshold * hysteresis or above, and left downward only below threshold / hysteresis, so a zoom resting near a threshold does not flicker between levels. The thresholds must ascend and the hysteresis be at least 1 (valid_scene_detail_thresholds).
+
+   .. cpp:member:: double silhouette
+
+      Default: ``{0.1}``.
+
+   .. cpp:member:: double compact
+
+      Default: ``{0.3}``.
+
+   .. cpp:member:: double full
+
+      Default: ``{0.6}``.
+
+   .. cpp:member:: double hysteresis
+
+      Default: ``{1.1}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SceneViewTransform final
+
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: Point to_view(WorldPoint world) const noexcept
+
+   .. cpp:function:: WorldPoint to_world(Point view) const noexcept
+
+   .. cpp:function:: Rect rect_to_view(const WorldRect& world) const noexcept
+
+   .. cpp:function:: WorldRect rect_to_world(const Rect& view) const noexcept
+
+   .. cpp:member:: WorldPoint origin
+
+   .. cpp:member:: double zoom
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SceneZoomRange final
+
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+
+   The zooms a view is held to (spec 3: 1/64 to 8).
+
+   .. cpp:member:: double minimum
+
+      Default: ``{1.0 / 64.0}``.
+
+   .. cpp:member:: double maximum
+
+      Default: ``{8.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SoftLinkShape final
+
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+
+   The soft link curve's tangent lengths (world units): half the distance along each end's normal, held to [shortest, longest], plus ``back_link`` times the sideways distance when the far end lies behind the edge (a back-link loops round instead of cutting through the record).
+
+   .. cpp:member:: double shortest
+
+      Default: ``{24.0}``.
+
+   .. cpp:member:: double longest
+
+      Default: ``{160.0}``.
+
+   .. cpp:member:: double back_link
+
+      Default: ``{0.25}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SpatialEntry final
+
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+
+   One entry given to build: its bounds, and whether it is present (an absent entry, such as a free graph slot, is skipped and never matches).
+
+   .. cpp:member:: WorldRect bounds
+
+   .. cpp:member:: bool present
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: SpatialIndex final
+
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: SpatialIndex() = default
+
+   .. cpp:function:: SpatialIndex(SpatialIndex&&) noexcept = default
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t entry_count() const noexcept
+
+      The identities the latest build covered (present or not).
+
+   .. cpp:function:: const SpatialIndexStatistics& statistics() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void build(std::span<const SpatialEntry> entries, const SpatialIndexOptions& options)
+
+      Replaces the whole index with ``entries`` (entry i is identity i). Validates first: throws std::invalid_argument for options outside their stated ranges (a non-finite or non-positive cell size, a cell cap outside 4 to maximum_spatial_cells, no cell per entry, too long a displaced list) or a present entry whose bounds are not valid_world_rect, and std::length_error for more than maximum_spatial_entries entries or a grid whose cell lists would not fit 32-bit offsets; the index is then unchanged. Storage is grown, never shrunk, so rebuilding a graph of the same size allocates nothing. If an allocation fails the index is left empty.
+
+   .. cpp:function:: bool move_entry(std::uint32_t id, const WorldRect& bounds) noexcept
+
+      Gives entry ``id`` new bounds. False, and nothing changes, when ``id`` is past the entries, the entry is absent, :cpp:func:`bounds <gui_forms::SpatialIndex::bounds>` is not valid_world_rect, or the entry would leave its cells while the displaced list is full (rebuild then). Never allocates.
+
+   .. cpp:function:: bool remove_entry(std::uint32_t id) noexcept
+
+      Makes entry ``id`` absent: no query matches it until a build. False when it is past the entries or already absent. Never allocates.
+
+   .. cpp:function:: SpatialQueryResult query(const WorldRect& area, SpatialQueryMode mode, std::span<std::uint32_t> out) noexcept
+
+      Writes into ``out`` the present entries matching ``area`` under ``mode``. An area that is not valid_world_rect matches nothing. Never allocates.
+
+   .. cpp:function:: void clear() noexcept
+
+      Empties the index (keeping its storage).
+
+   .. cpp:function:: bool present(std::uint32_t id) const noexcept
+
+      Whether entry ``id`` is present, and its current bounds (an empty rectangle at the origin for an absent or unknown entry).
+
+   .. cpp:function:: WorldRect bounds(std::uint32_t id) const noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SpatialIndexOptions final
+
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+
+   The grid's terms. ``cell_size`` is the smallest cell side in world units; ``maximum_cells`` caps the grid (4 to maximum_spatial_cells); ``maximum_cells_per_entry`` sends a larger entry to the oversize list (at least 1); ``maximum_displaced`` is how many moved entries may leave their cells before move_entry asks for a rebuild (at most maximum_spatial_entries, reserved at build).
+
+   .. cpp:member:: double cell_size
+
+      Default: ``{256.0}``.
+
+   .. cpp:member:: std::size_t maximum_cells
+
+      Default: ``{std::size_t{1U} << 20U}``.
+
+   .. cpp:member:: std::size_t maximum_cells_per_entry
+
+      Default: ``{64U}``.
+
+   .. cpp:member:: std::size_t maximum_displaced
+
+      Default: ``{1024U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SpatialIndexStatistics final
+
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+
+   Counters, plain data. The build fields describe the latest build; the rest only grow until the next build resets them with the grid.
+
+   .. cpp:member:: std::uint64_t builds
+
+   .. cpp:member:: std::uint64_t queries
+
+   .. cpp:member:: std::uint64_t cells_visited
+
+   .. cpp:member:: std::uint64_t entries_visited
+
+   .. cpp:member:: std::uint64_t moved_in_place
+
+   .. cpp:member:: std::uint64_t moved_out_of_cells
+
+   .. cpp:member:: std::uint64_t moves_refused
+
+   .. cpp:member:: std::size_t columns
+
+   .. cpp:member:: std::size_t rows
+
+   .. cpp:member:: double cell_size
+
+   .. cpp:member:: std::size_t cell_entries
+
+   .. cpp:member:: std::size_t oversize
+
+   .. cpp:member:: std::size_t displaced
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SpatialQueryResult final
+
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+
+   What one query found: ``written`` identities stored at the front of the caller's storage, and ``matched`` matches in all. ``matched > written`` means the storage was too small; the identities written are then some of the matches, which ones unspecified.
+
+   .. cpp:member:: std::size_t written
+
+   .. cpp:member:: std::size_t matched
 
 .. cpp:namespace:: gui_forms
 
@@ -1436,7 +2037,7 @@ Related types
 
 .. cpp:struct:: WorldPoint final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/scene/world_geometry/world_geometry.hpp>``
 
    A point in graph space (world units, float64).
 
@@ -1448,7 +2049,7 @@ Related types
 
 .. cpp:struct:: WorldRect final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/scene/world_geometry/world_geometry.hpp>``
 
    An axis-aligned rectangle in graph space: its top-left corner and size.
 
@@ -1579,6 +2180,90 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: NodeCanvasGesture
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: move
+
+   .. cpp:enumerator:: link
+
+   .. cpp:enumerator:: marquee
+
+   .. cpp:enumerator:: knife
+
+   .. cpp:enumerator:: pan
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NodeCanvasHitKind
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: node_body
+
+   .. cpp:enumerator:: node_caption
+
+   .. cpp:enumerator:: port
+
+   .. cpp:enumerator:: link
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NodeEditEnd
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:enumerator:: commit
+
+   .. cpp:enumerator:: cancel
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NodeEditPart
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:enumerator:: body
+
+   .. cpp:enumerator:: caption
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NodeGraphEditKind
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:enumerator:: moved
+
+   .. cpp:enumerator:: connected
+
+   .. cpp:enumerator:: disconnected
+
+   .. cpp:enumerator:: removed
+
+   .. cpp:enumerator:: undone
+
+   .. cpp:enumerator:: redone
+
+   .. cpp:enumerator:: edited
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NodeLinkStyle
+
+   ``#include <gui_forms/controls/node_canvas.hpp>``
+
+   .. cpp:enumerator:: soft
+
+   .. cpp:enumerator:: routed
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PortDirection
 
    ``#include <gui_forms/controls/node_graph.hpp>``
@@ -1614,6 +2299,44 @@ Enumerations
    .. cpp:enumerator:: bottom
 
    .. cpp:enumerator:: automatic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SceneDetailLevel
+
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+
+   .. cpp:enumerator:: overview
+
+   .. cpp:enumerator:: silhouette
+
+   .. cpp:enumerator:: compact
+
+   .. cpp:enumerator:: full
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SceneEdge
+
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+
+   .. cpp:enumerator:: left
+
+   .. cpp:enumerator:: right
+
+   .. cpp:enumerator:: top
+
+   .. cpp:enumerator:: bottom
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SpatialQueryMode
+
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+
+   .. cpp:enumerator:: intersecting
+
+   .. cpp:enumerator:: contained
 
 .. cpp:namespace:: gui_forms
 
@@ -1757,3 +2480,101 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_document_links
 
    Value: ``4194304U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+
+.. cpp:function:: bool valid_scene_view(const SceneViewTransform& view) noexcept
+
+   Whether the origin is finite and the zoom finite and positive.
+
+.. cpp:function:: double clamp_scene_zoom(double zoom, SceneZoomRange range) noexcept
+
+   ``zoom`` held to ``range`` (a NaN zoom becomes the minimum).
+
+.. cpp:function:: SceneViewTransform scene_zoomed_about(const SceneViewTransform& view, Point anchor, double factor, SceneZoomRange range) noexcept
+
+   ``view`` zoomed by ``factor``, keeping the world point under ``anchor`` (view units) where it is; the zoom is held to ``range``. A non-finite or non-positive factor returns ``view`` unchanged.
+
+.. cpp:function:: SceneViewTransform scene_panned(const SceneViewTransform& view, Point delta) noexcept
+
+   ``view`` with the content moved by ``delta`` view units (the content follows the pointer: a positive x moves it right).
+
+.. cpp:function:: SceneViewTransform scene_framed(const SceneViewTransform& view, const WorldRect& world, Size size, double margin, SceneZoomRange range) noexcept
+
+   The view showing ``world`` centred in a viewport of ``size``, with ``margin`` view units around it, at the largest zoom in ``range`` that fits. An empty world rectangle keeps the view's zoom and centres the rectangle; a viewport smaller than twice the margin, or a world rectangle that is not valid_world_rect, returns ``view`` unchanged.
+
+.. cpp:function:: bool valid_scene_detail_thresholds(const SceneDetailThresholds& thresholds) noexcept
+
+.. cpp:function:: SceneDetailLevel scene_detail_level_for(double zoom, const SceneDetailThresholds& thresholds) noexcept
+
+   The level for ``zoom`` without hysteresis (the level a fresh view starts at). Invalid thresholds or a non-finite zoom give ``full``.
+
+.. cpp:function:: SceneDetailLevel next_scene_detail_level(SceneDetailLevel current, double zoom, const SceneDetailThresholds& thresholds) noexcept
+
+   The level after ``current`` for ``zoom``, with hysteresis: it may move several levels at once (a frame-all from deep zoom), each crossing judged against its own threshold. Invalid thresholds or a non-finite zoom keep ``current``.
+
+.. cpp:function:: std::string_view scene_detail_level_name(SceneDetailLevel level) noexcept
+
+   The level's registered (snake_case) name.
+
+.. cpp:function:: SceneCubic soft_link_cubic(WorldPoint from, SceneEdge from_edge, WorldPoint to, SceneEdge to_edge, const SoftLinkShape& shape) noexcept
+
+   The soft link from ``from`` (leaving by ``from_edge``) to ``to`` (entering by ``to_edge``): each control point lies along its end's outward normal.
+
+.. cpp:function:: WorldRect scene_cubic_bounds(const SceneCubic& cubic) noexcept
+
+   The control points' bounding box, which holds the whole curve.
+
+.. cpp:function:: std::size_t flatten_scene_cubic(const SceneCubic& cubic, std::size_t segments, const SceneViewTransform& view, std::span<Point> out) noexcept
+
+   Writes ``segments + 1`` points of ``cubic`` (uniform in its parameter, ends included), converted to view units by ``view``, into ``out``, and returns how many it wrote: fewer when ``out`` is shorter. Zero segments count as one.
+
+.. cpp:function:: double scene_distance_to_polyline(std::span<const Point> points, Point point) noexcept
+
+   The shortest distance from ``point`` to the polyline (infinity for no points; the distance to the point for one).
+
+.. cpp:function:: bool scene_segments_cross(Point a, Point b, Point c, Point d) noexcept
+
+   Whether segment a-b and segment c-d share a point (touching and collinear overlap count).
+
+.. cpp:function:: bool scene_polyline_crosses_segment(std::span<const Point> points, Point c, Point d) noexcept
+
+   Whether any segment of the polyline shares a point with segment c-d.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+
+.. cpp:var:: constexpr std::size_t maximum_spatial_entries
+
+   The most entries one index holds (identities are 32-bit; this bound keeps the per-entry tables and every cell list countable in 32 bits). Value: ``std::size_t{1U} << 24U``.
+
+.. cpp:var:: constexpr std::size_t maximum_spatial_cells
+
+   The largest maximum_cells an index accepts (its grid sides are 32-bit). Value: ``std::size_t{1U} << 26U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/scene/world_geometry/world_geometry.hpp>``
+
+.. cpp:function:: inline bool valid_world_rect(const WorldRect& rect) noexcept
+
+   Whether every field is finite and the size is not negative: the rectangles the spatial index and the scene view accept.
+
+.. cpp:function:: inline bool world_rects_intersect(const WorldRect& left, const WorldRect& right) noexcept
+
+   Whether the two closed rectangles share a point (touching edges count).
+
+.. cpp:function:: inline bool world_rect_contains(const WorldRect& outer, const WorldRect& inner) noexcept
+
+   Whether ``inner`` lies wholly inside ``outer`` (edges included).
+
+.. cpp:function:: inline WorldRect world_rect_union(const WorldRect& left, const WorldRect& right) noexcept
+
+   The smallest rectangle holding both.
+
+.. cpp:function:: inline WorldRect world_rect_inflated(const WorldRect& rect, double margin) noexcept
+
+   ``rect`` grown by ``margin`` on every side (a negative margin shrinks it, never below an empty rectangle at its centre).

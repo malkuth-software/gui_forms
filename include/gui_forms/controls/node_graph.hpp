@@ -11,8 +11,9 @@
 // is stale and every operation refuses it with GraphStatus::stale_identity;
 // nothing dereferences a stale identity.
 //
-// Geometry is in world units (WorldPoint, WorldRect), float64, so deep zoom
-// keeps placement; the canvas converts to view units once per frame.
+// Geometry is in world units (WorldPoint, WorldRect, declared in
+// gui_forms/scene/world_geometry), float64, so deep zoom keeps placement;
+// the canvas converts to view units once per frame.
 //
 // Mutation is through the named operations only. Each validates every
 // argument before changing anything, so a refused operation leaves the
@@ -47,6 +48,7 @@
 // the rest of phase N0.
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/scene/world_geometry/world_geometry.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -55,35 +57,6 @@
 #include <vector>
 
 namespace gui_forms {
-
-// -- world geometry ---------------------------------------------------------------
-
-// A point in graph space (world units, float64).
-struct GUI_FORMS_API WorldPoint final {
-    double x{};
-    double y{};
-    friend bool operator==(WorldPoint left, WorldPoint right) noexcept {
-        return left.x == right.x && left.y == right.y;
-    }
-};
-
-// An axis-aligned rectangle in graph space: its top-left corner and size.
-struct GUI_FORMS_API WorldRect final {
-    double x{};
-    double y{};
-    double width{};
-    double height{};
-    [[nodiscard]] double right() const noexcept { return x + width; }
-    [[nodiscard]] double bottom() const noexcept { return y + height; }
-    // Whether `point` lies inside or on the edge.
-    [[nodiscard]] bool contains(WorldPoint point) const noexcept {
-        const bool inside = point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height;
-        return inside;
-    }
-    friend bool operator==(const WorldRect& left, const WorldRect& right) noexcept {
-        return left.x == right.x && left.y == right.y && left.width == right.width && left.height == right.height;
-    }
-};
 
 // -- identities -------------------------------------------------------------------
 

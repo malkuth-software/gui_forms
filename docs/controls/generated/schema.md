@@ -3430,6 +3430,48 @@ Properties beyond every control's: none.
 
 Interactions beyond every control's: none.
 
+## `node_canvas` (NodeCanvas, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `grid_minor` | grid_minor |  |  |
+| `grid_major` | grid_major |  |  |
+| `connector` | series |  |  |
+| `marquee` | focus |  |  |
+| `knife` | trace |  |  |
+| `drop` | drop |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Item system `node`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `node` | region |  |  |
+| `node_face` | face |  |  |
+| `node_selection` | selection |  |  |
+| `node_caption` | caption |  |  |
+| `port` | marker |  |  |
+| `port_label` | label |  |  |
+| `lamp` | indicator |  |  |
+| `node_focus` | focus |  |  |
+
+Item states: `selected`, `hot`, `current`, `disabled`, `focus_visible`.
+
+Properties beyond every control's: none.
+
+| Interaction | Payload |
+|---|---|
+| `selection_changed` | `NodeCanvasSelection` |
+| `link_connected` | `NodeLinkConnected` |
+| `graph_edited` | `NodeGraphEdited` |
+| `view_changed` | `SceneViewTransform` |
+| `palette_requested` | `NodePaletteRequest` |
+| `edit_ended` | `NodeEditEnded` |
+
 ## `live_surface` (LiveSurface, service)
 
 Interactions: none.

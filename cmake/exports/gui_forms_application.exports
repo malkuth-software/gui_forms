@@ -99,6 +99,7 @@ __ZGVZN9gui_forms10MediaFacts*
 __ZGVZN9gui_forms10ModalLayer*
 __ZGVZN9gui_forms10MotionStep*
 __ZGVZN9gui_forms10MotionStop*
+__ZGVZN9gui_forms10NodeCanvas*
 __ZGVZN9gui_forms10NodeRecord*
 __ZGVZN9gui_forms10NotifyIcon*
 __ZGVZN9gui_forms10ObjectView*
@@ -114,6 +115,7 @@ __ZGVZN9gui_forms10RisingBody*
 __ZGVZN9gui_forms10RoutedLink*
 __ZGVZN9gui_forms10RuleAction*
 __ZGVZN9gui_forms10RuleFiring*
+__ZGVZN9gui_forms10SceneCubic*
 __ZGVZN9gui_forms10ScopeSweep*
 __ZGVZN9gui_forms10ScrollCopy*
 __ZGVZN9gui_forms10StaticNode*
@@ -267,6 +269,8 @@ __ZGVZN9gui_forms12RuleSelector*
 __ZGVZN9gui_forms12SemanticNode*
 __ZGVZN9gui_forms12Sha256Digest*
 __ZGVZN9gui_forms12Sha256Hasher*
+__ZGVZN9gui_forms12SpatialEntry*
+__ZGVZN9gui_forms12SpatialIndex*
 __ZGVZN9gui_forms12Splashscreen*
 __ZGVZN9gui_forms12TextMaskLine*
 __ZGVZN9gui_forms12ThemeLibrary*
@@ -347,6 +351,10 @@ __ZGVZN9gui_forms13MarkdownImage*
 __ZGVZN9gui_forms13MaskedTextBox*
 __ZGVZN9gui_forms13MaterialPanel*
 __ZGVZN9gui_forms13MonthCalendar*
+__ZGVZN9gui_forms13NodeBodyPaint*
+__ZGVZN9gui_forms13NodeCanvasHit*
+__ZGVZN9gui_forms13NodeEditEnded*
+__ZGVZN9gui_forms13NodeLinkCheck*
 __ZGVZN9gui_forms13NumericUpDown*
 __ZGVZN9gui_forms13PageDragStart*
 __ZGVZN9gui_forms13PagePlacement*
@@ -366,6 +374,7 @@ __ZGVZN9gui_forms13RibbonToolTip*
 __ZGVZN9gui_forms13RuleAddResult*
 __ZGVZN9gui_forms13RuleCondition*
 __ZGVZN9gui_forms13RuleExclusion*
+__ZGVZN9gui_forms13SoftLinkShape*
 __ZGVZN9gui_forms13SplitterPanel*
 __ZGVZN9gui_forms13StepIndicator*
 __ZGVZN9gui_forms13StockSpecimen*
@@ -459,6 +468,7 @@ __ZGVZN9gui_forms14RuleDiagnostic*
 __ZGVZN9gui_forms14RuleProvenance*
 __ZGVZN9gui_forms14SaveFileDialog*
 __ZGVZN9gui_forms14ScaledGroupBox*
+__ZGVZN9gui_forms14SceneZoomRange*
 __ZGVZN9gui_forms14ScrollSnapshot*
 __ZGVZN9gui_forms14ShapingFeature*
 __ZGVZN9gui_forms14ShapingRequest*
@@ -532,6 +542,8 @@ __ZGVZN9gui_forms15LayoutAuthority*
 __ZGVZN9gui_forms15LocaleRejection*
 __ZGVZN9gui_forms15MaterialKeyline*
 __ZGVZN9gui_forms15MetricsSnapshot*
+__ZGVZN9gui_forms15NodeEditRequest*
+__ZGVZN9gui_forms15NodeGraphEdited*
 __ZGVZN9gui_forms15NotifyIconClick*
 __ZGVZN9gui_forms15OffscreenRaster*
 __ZGVZN9gui_forms15PageDoubleClick*
@@ -734,6 +746,7 @@ __ZGVZN9gui_forms17MaterialImageSize*
 __ZGVZN9gui_forms17MenuStripItemSpec*
 __ZGVZN9gui_forms17MessageBoxRefused*
 __ZGVZN9gui_forms17MessageBoxRequest*
+__ZGVZN9gui_forms17NodeLinkConnected*
 __ZGVZN9gui_forms17ObjectDetailsCell*
 __ZGVZN9gui_forms17ObjectDetailsSort*
 __ZGVZN9gui_forms17PartRasterRequest*
@@ -831,6 +844,7 @@ __ZGVZN9gui_forms18MaterialReflection*
 __ZGVZN9gui_forms18MenuItemInvocation*
 __ZGVZN9gui_forms18MotionRecordHandle*
 __ZGVZN9gui_forms18NativePopupOptions*
+__ZGVZN9gui_forms18NodePaletteRequest*
 __ZGVZN9gui_forms18PageContentRequest*
 __ZGVZN9gui_forms18PageControlContent*
 __ZGVZN9gui_forms18PageSelectingEvent*
@@ -854,9 +868,11 @@ __ZGVZN9gui_forms18RibbonCommandClick*
 __ZGVZN9gui_forms18RibbonDialogLaunch*
 __ZGVZN9gui_forms18RibbonToolTipEvent*
 __ZGVZN9gui_forms18RuleActionArgument*
+__ZGVZN9gui_forms18SceneViewTransform*
 __ZGVZN9gui_forms18ScrollAxisSnapshot*
 __ZGVZN9gui_forms18SemanticDescriptor*
 __ZGVZN9gui_forms18SemanticTextLayout*
+__ZGVZN9gui_forms18SpatialQueryResult*
 __ZGVZN9gui_forms18SplashscreenResult*
 __ZGVZN9gui_forms18TabSelectionChange*
 __ZGVZN9gui_forms18TaskDialogExpander*
@@ -932,6 +948,8 @@ __ZGVZN9gui_forms19MaterialCornerRadii*
 __ZGVZN9gui_forms19MaterialDeclaration*
 __ZGVZN9gui_forms19MenuStripInvocation*
 __ZGVZN9gui_forms19NavigationPaneState*
+__ZGVZN9gui_forms19NodeCanvasCallbacks*
+__ZGVZN9gui_forms19NodeCanvasSelection*
 __ZGVZN9gui_forms19ObjectDetailsColumn*
 __ZGVZN9gui_forms19OffscreenAttachment*
 __ZGVZN9gui_forms19PageSelectionChange*
@@ -949,6 +967,7 @@ __ZGVZN9gui_forms19RibbonReductionStep*
 __ZGVZN9gui_forms19RtfConversionResult*
 __ZGVZN9gui_forms19SevenSegmentDisplay*
 __ZGVZN9gui_forms19SourceMappingResult*
+__ZGVZN9gui_forms19SpatialIndexOptions*
 __ZGVZN9gui_forms19SpecimenStateResult*
 __ZGVZN9gui_forms19SplashscreenOptions*
 __ZGVZN9gui_forms19SubSurfaceKeyReturn*
@@ -1005,6 +1024,7 @@ __ZGVZN9gui_forms20ImageAtlasStatistics*
 __ZGVZN9gui_forms20InstrumentModuleSpec*
 __ZGVZN9gui_forms20MaterialColourFilter*
 __ZGVZN9gui_forms20MaterialColourMatrix*
+__ZGVZN9gui_forms20NodeCanvasStatistics*
 __ZGVZN9gui_forms20ObjectContextRequest*
 __ZGVZN9gui_forms20PointerCaptureChange*
 __ZGVZN9gui_forms20PresentationSettings*
@@ -1085,6 +1105,7 @@ __ZGVZN9gui_forms21ResponsiveTrackResult*
 __ZGVZN9gui_forms21RibbonGalleryCategory*
 __ZGVZN9gui_forms21RibbonScalingCounters*
 __ZGVZN9gui_forms21RibbonStateDiagnostic*
+__ZGVZN9gui_forms21SceneDetailThresholds*
 __ZGVZN9gui_forms21SemanticTextSelection*
 __ZGVZN9gui_forms21StockSpecimenInstance*
 __ZGVZN9gui_forms21SubSurfaceEndListener*
@@ -1140,6 +1161,7 @@ __ZGVZN9gui_forms22PropertyValueConverter*
 __ZGVZN9gui_forms22RibbonLadderGroupState*
 __ZGVZN9gui_forms22RibbonStateParseResult*
 __ZGVZN9gui_forms22SemanticFeedbackRecord*
+__ZGVZN9gui_forms22SpatialIndexStatistics*
 __ZGVZN9gui_forms22TableLayoutPanelCompat*
 __ZGVZN9gui_forms22TextMaskBudgetSnapshot*
 __ZGVZN9gui_forms22ThemeCompileDiagnostic*
@@ -1589,6 +1611,7 @@ __ZGVZNK9gui_forms10MediaFacts*
 __ZGVZNK9gui_forms10ModalLayer*
 __ZGVZNK9gui_forms10MotionStep*
 __ZGVZNK9gui_forms10MotionStop*
+__ZGVZNK9gui_forms10NodeCanvas*
 __ZGVZNK9gui_forms10NodeRecord*
 __ZGVZNK9gui_forms10NotifyIcon*
 __ZGVZNK9gui_forms10ObjectView*
@@ -1604,6 +1627,7 @@ __ZGVZNK9gui_forms10RisingBody*
 __ZGVZNK9gui_forms10RoutedLink*
 __ZGVZNK9gui_forms10RuleAction*
 __ZGVZNK9gui_forms10RuleFiring*
+__ZGVZNK9gui_forms10SceneCubic*
 __ZGVZNK9gui_forms10ScopeSweep*
 __ZGVZNK9gui_forms10ScrollCopy*
 __ZGVZNK9gui_forms10StaticNode*
@@ -1757,6 +1781,8 @@ __ZGVZNK9gui_forms12RuleSelector*
 __ZGVZNK9gui_forms12SemanticNode*
 __ZGVZNK9gui_forms12Sha256Digest*
 __ZGVZNK9gui_forms12Sha256Hasher*
+__ZGVZNK9gui_forms12SpatialEntry*
+__ZGVZNK9gui_forms12SpatialIndex*
 __ZGVZNK9gui_forms12Splashscreen*
 __ZGVZNK9gui_forms12TextMaskLine*
 __ZGVZNK9gui_forms12ThemeLibrary*
@@ -1837,6 +1863,10 @@ __ZGVZNK9gui_forms13MarkdownImage*
 __ZGVZNK9gui_forms13MaskedTextBox*
 __ZGVZNK9gui_forms13MaterialPanel*
 __ZGVZNK9gui_forms13MonthCalendar*
+__ZGVZNK9gui_forms13NodeBodyPaint*
+__ZGVZNK9gui_forms13NodeCanvasHit*
+__ZGVZNK9gui_forms13NodeEditEnded*
+__ZGVZNK9gui_forms13NodeLinkCheck*
 __ZGVZNK9gui_forms13NumericUpDown*
 __ZGVZNK9gui_forms13PageDragStart*
 __ZGVZNK9gui_forms13PagePlacement*
@@ -1856,6 +1886,7 @@ __ZGVZNK9gui_forms13RibbonToolTip*
 __ZGVZNK9gui_forms13RuleAddResult*
 __ZGVZNK9gui_forms13RuleCondition*
 __ZGVZNK9gui_forms13RuleExclusion*
+__ZGVZNK9gui_forms13SoftLinkShape*
 __ZGVZNK9gui_forms13SplitterPanel*
 __ZGVZNK9gui_forms13StepIndicator*
 __ZGVZNK9gui_forms13StockSpecimen*
@@ -1949,6 +1980,7 @@ __ZGVZNK9gui_forms14RuleDiagnostic*
 __ZGVZNK9gui_forms14RuleProvenance*
 __ZGVZNK9gui_forms14SaveFileDialog*
 __ZGVZNK9gui_forms14ScaledGroupBox*
+__ZGVZNK9gui_forms14SceneZoomRange*
 __ZGVZNK9gui_forms14ScrollSnapshot*
 __ZGVZNK9gui_forms14ShapingFeature*
 __ZGVZNK9gui_forms14ShapingRequest*
@@ -2022,6 +2054,8 @@ __ZGVZNK9gui_forms15LayoutAuthority*
 __ZGVZNK9gui_forms15LocaleRejection*
 __ZGVZNK9gui_forms15MaterialKeyline*
 __ZGVZNK9gui_forms15MetricsSnapshot*
+__ZGVZNK9gui_forms15NodeEditRequest*
+__ZGVZNK9gui_forms15NodeGraphEdited*
 __ZGVZNK9gui_forms15NotifyIconClick*
 __ZGVZNK9gui_forms15OffscreenRaster*
 __ZGVZNK9gui_forms15PageDoubleClick*
@@ -2224,6 +2258,7 @@ __ZGVZNK9gui_forms17MaterialImageSize*
 __ZGVZNK9gui_forms17MenuStripItemSpec*
 __ZGVZNK9gui_forms17MessageBoxRefused*
 __ZGVZNK9gui_forms17MessageBoxRequest*
+__ZGVZNK9gui_forms17NodeLinkConnected*
 __ZGVZNK9gui_forms17ObjectDetailsCell*
 __ZGVZNK9gui_forms17ObjectDetailsSort*
 __ZGVZNK9gui_forms17PartRasterRequest*
@@ -2321,6 +2356,7 @@ __ZGVZNK9gui_forms18MaterialReflection*
 __ZGVZNK9gui_forms18MenuItemInvocation*
 __ZGVZNK9gui_forms18MotionRecordHandle*
 __ZGVZNK9gui_forms18NativePopupOptions*
+__ZGVZNK9gui_forms18NodePaletteRequest*
 __ZGVZNK9gui_forms18PageContentRequest*
 __ZGVZNK9gui_forms18PageControlContent*
 __ZGVZNK9gui_forms18PageSelectingEvent*
@@ -2344,9 +2380,11 @@ __ZGVZNK9gui_forms18RibbonCommandClick*
 __ZGVZNK9gui_forms18RibbonDialogLaunch*
 __ZGVZNK9gui_forms18RibbonToolTipEvent*
 __ZGVZNK9gui_forms18RuleActionArgument*
+__ZGVZNK9gui_forms18SceneViewTransform*
 __ZGVZNK9gui_forms18ScrollAxisSnapshot*
 __ZGVZNK9gui_forms18SemanticDescriptor*
 __ZGVZNK9gui_forms18SemanticTextLayout*
+__ZGVZNK9gui_forms18SpatialQueryResult*
 __ZGVZNK9gui_forms18SplashscreenResult*
 __ZGVZNK9gui_forms18TabSelectionChange*
 __ZGVZNK9gui_forms18TaskDialogExpander*
@@ -2422,6 +2460,8 @@ __ZGVZNK9gui_forms19MaterialCornerRadii*
 __ZGVZNK9gui_forms19MaterialDeclaration*
 __ZGVZNK9gui_forms19MenuStripInvocation*
 __ZGVZNK9gui_forms19NavigationPaneState*
+__ZGVZNK9gui_forms19NodeCanvasCallbacks*
+__ZGVZNK9gui_forms19NodeCanvasSelection*
 __ZGVZNK9gui_forms19ObjectDetailsColumn*
 __ZGVZNK9gui_forms19OffscreenAttachment*
 __ZGVZNK9gui_forms19PageSelectionChange*
@@ -2439,6 +2479,7 @@ __ZGVZNK9gui_forms19RibbonReductionStep*
 __ZGVZNK9gui_forms19RtfConversionResult*
 __ZGVZNK9gui_forms19SevenSegmentDisplay*
 __ZGVZNK9gui_forms19SourceMappingResult*
+__ZGVZNK9gui_forms19SpatialIndexOptions*
 __ZGVZNK9gui_forms19SpecimenStateResult*
 __ZGVZNK9gui_forms19SplashscreenOptions*
 __ZGVZNK9gui_forms19SubSurfaceKeyReturn*
@@ -2495,6 +2536,7 @@ __ZGVZNK9gui_forms20ImageAtlasStatistics*
 __ZGVZNK9gui_forms20InstrumentModuleSpec*
 __ZGVZNK9gui_forms20MaterialColourFilter*
 __ZGVZNK9gui_forms20MaterialColourMatrix*
+__ZGVZNK9gui_forms20NodeCanvasStatistics*
 __ZGVZNK9gui_forms20ObjectContextRequest*
 __ZGVZNK9gui_forms20PointerCaptureChange*
 __ZGVZNK9gui_forms20PresentationSettings*
@@ -2575,6 +2617,7 @@ __ZGVZNK9gui_forms21ResponsiveTrackResult*
 __ZGVZNK9gui_forms21RibbonGalleryCategory*
 __ZGVZNK9gui_forms21RibbonScalingCounters*
 __ZGVZNK9gui_forms21RibbonStateDiagnostic*
+__ZGVZNK9gui_forms21SceneDetailThresholds*
 __ZGVZNK9gui_forms21SemanticTextSelection*
 __ZGVZNK9gui_forms21StockSpecimenInstance*
 __ZGVZNK9gui_forms21SubSurfaceEndListener*
@@ -2630,6 +2673,7 @@ __ZGVZNK9gui_forms22PropertyValueConverter*
 __ZGVZNK9gui_forms22RibbonLadderGroupState*
 __ZGVZNK9gui_forms22RibbonStateParseResult*
 __ZGVZNK9gui_forms22SemanticFeedbackRecord*
+__ZGVZNK9gui_forms22SpatialIndexStatistics*
 __ZGVZNK9gui_forms22TableLayoutPanelCompat*
 __ZGVZNK9gui_forms22TextMaskBudgetSnapshot*
 __ZGVZNK9gui_forms22ThemeCompileDiagnostic*
@@ -3131,6 +3175,7 @@ __ZN9gui_forms10MediaFacts*
 __ZN9gui_forms10ModalLayer*
 __ZN9gui_forms10MotionStep*
 __ZN9gui_forms10MotionStop*
+__ZN9gui_forms10NodeCanvas*
 __ZN9gui_forms10NodeRecord*
 __ZN9gui_forms10NotifyIcon*
 __ZN9gui_forms10ObjectView*
@@ -3146,6 +3191,7 @@ __ZN9gui_forms10RisingBody*
 __ZN9gui_forms10RoutedLink*
 __ZN9gui_forms10RuleAction*
 __ZN9gui_forms10RuleFiring*
+__ZN9gui_forms10SceneCubic*
 __ZN9gui_forms10ScopeSweep*
 __ZN9gui_forms10ScrollCopy*
 __ZN9gui_forms10StaticNode*
@@ -3323,6 +3369,8 @@ __ZN9gui_forms12RuleSelector*
 __ZN9gui_forms12SemanticNode*
 __ZN9gui_forms12Sha256Digest*
 __ZN9gui_forms12Sha256Hasher*
+__ZN9gui_forms12SpatialEntry*
+__ZN9gui_forms12SpatialIndex*
 __ZN9gui_forms12Splashscreen*
 __ZN9gui_forms12TextMaskLine*
 __ZN9gui_forms12ThemeLibrary*
@@ -3381,6 +3429,10 @@ __ZN9gui_forms12merge_stripsB*
 __ZN9gui_forms12merge_stripsE*
 __ZN9gui_forms12revert_mergeB*
 __ZN9gui_forms12revert_mergeE*
+__ZN9gui_forms12scene_framedB*
+__ZN9gui_forms12scene_framedE*
+__ZN9gui_forms12scene_pannedB*
+__ZN9gui_forms12scene_pannedE*
 __ZN9gui_forms12seat_shadowsB*
 __ZN9gui_forms12seat_shadowsE*
 __ZN9gui_forms12text_role_emB*
@@ -3447,6 +3499,10 @@ __ZN9gui_forms13MarkdownImage*
 __ZN9gui_forms13MaskedTextBox*
 __ZN9gui_forms13MaterialPanel*
 __ZN9gui_forms13MonthCalendar*
+__ZN9gui_forms13NodeBodyPaint*
+__ZN9gui_forms13NodeCanvasHit*
+__ZN9gui_forms13NodeEditEnded*
+__ZN9gui_forms13NodeLinkCheck*
 __ZN9gui_forms13NumericUpDown*
 __ZN9gui_forms13PageDragStart*
 __ZN9gui_forms13PagePlacement*
@@ -3466,6 +3522,7 @@ __ZN9gui_forms13RibbonToolTip*
 __ZN9gui_forms13RuleAddResult*
 __ZN9gui_forms13RuleCondition*
 __ZN9gui_forms13RuleExclusion*
+__ZN9gui_forms13SoftLinkShape*
 __ZN9gui_forms13SplitterPanel*
 __ZN9gui_forms13StepIndicator*
 __ZN9gui_forms13StockSpecimen*
@@ -3575,6 +3632,7 @@ __ZN9gui_forms14RuleDiagnostic*
 __ZN9gui_forms14RuleProvenance*
 __ZN9gui_forms14SaveFileDialog*
 __ZN9gui_forms14ScaledGroupBox*
+__ZN9gui_forms14SceneZoomRange*
 __ZN9gui_forms14ScrollSnapshot*
 __ZN9gui_forms14ShapingFeature*
 __ZN9gui_forms14ShapingRequest*
@@ -3694,6 +3752,8 @@ __ZN9gui_forms15LayoutAuthority*
 __ZN9gui_forms15LocaleRejection*
 __ZN9gui_forms15MaterialKeyline*
 __ZN9gui_forms15MetricsSnapshot*
+__ZN9gui_forms15NodeEditRequest*
+__ZN9gui_forms15NodeGraphEdited*
 __ZN9gui_forms15NotifyIconClick*
 __ZN9gui_forms15OffscreenRaster*
 __ZN9gui_forms15PageDoubleClick*
@@ -3771,6 +3831,8 @@ __ZN9gui_forms15registered_nameB*
 __ZN9gui_forms15registered_nameE*
 __ZN9gui_forms15single_key_charB*
 __ZN9gui_forms15single_key_charE*
+__ZN9gui_forms15soft_link_cubicB*
+__ZN9gui_forms15soft_link_cubicE*
 __ZN9gui_forms15stock_specimensB*
 __ZN9gui_forms15stock_specimensE*
 __ZN9gui_forms15valid_date_timeB*
@@ -3876,6 +3938,8 @@ __ZN9gui_forms16ValueBarContrast*
 __ZN9gui_forms16VirtualRowScroll*
 __ZN9gui_forms16WindowDispatcher*
 __ZN9gui_forms16WrongThreadError*
+__ZN9gui_forms16clamp_scene_zoomB*
+__ZN9gui_forms16clamp_scene_zoomE*
 __ZN9gui_forms16colour_role_nameB*
 __ZN9gui_forms16colour_role_nameE*
 __ZN9gui_forms16cursor_kind_nameB*
@@ -3936,6 +4000,8 @@ __ZN9gui_forms16split_help_wordsB*
 __ZN9gui_forms16split_help_wordsE*
 __ZN9gui_forms16theme_layer_nameB*
 __ZN9gui_forms16theme_layer_nameE*
+__ZN9gui_forms16valid_scene_viewB*
+__ZN9gui_forms16valid_scene_viewE*
 __ZN9gui_forms17AbsoluteAxisInput*
 __ZN9gui_forms17AnatomyValidation*
 __ZN9gui_forms17AnimationTimeline*
@@ -3994,6 +4060,7 @@ __ZN9gui_forms17MaterialImageSize*
 __ZN9gui_forms17MenuStripItemSpec*
 __ZN9gui_forms17MessageBoxRefused*
 __ZN9gui_forms17MessageBoxRequest*
+__ZN9gui_forms17NodeLinkConnected*
 __ZN9gui_forms17ObjectDetailsCell*
 __ZN9gui_forms17ObjectDetailsSort*
 __ZN9gui_forms17PartRasterRequest*
@@ -4151,6 +4218,7 @@ __ZN9gui_forms18MaterialReflection*
 __ZN9gui_forms18MenuItemInvocation*
 __ZN9gui_forms18MotionRecordHandle*
 __ZN9gui_forms18NativePopupOptions*
+__ZN9gui_forms18NodePaletteRequest*
 __ZN9gui_forms18PageContentRequest*
 __ZN9gui_forms18PageControlContent*
 __ZN9gui_forms18PageSelectingEvent*
@@ -4174,9 +4242,11 @@ __ZN9gui_forms18RibbonCommandClick*
 __ZN9gui_forms18RibbonDialogLaunch*
 __ZN9gui_forms18RibbonToolTipEvent*
 __ZN9gui_forms18RuleActionArgument*
+__ZN9gui_forms18SceneViewTransform*
 __ZN9gui_forms18ScrollAxisSnapshot*
 __ZN9gui_forms18SemanticDescriptor*
 __ZN9gui_forms18SemanticTextLayout*
+__ZN9gui_forms18SpatialQueryResult*
 __ZN9gui_forms18SplashscreenResult*
 __ZN9gui_forms18TabSelectionChange*
 __ZN9gui_forms18TaskDialogExpander*
@@ -4263,6 +4333,10 @@ __ZN9gui_forms18read_theme_requestB*
 __ZN9gui_forms18read_theme_requestE*
 __ZN9gui_forms18resolved_text_roleB*
 __ZN9gui_forms18resolved_text_roleE*
+__ZN9gui_forms18scene_cubic_boundsB*
+__ZN9gui_forms18scene_cubic_boundsE*
+__ZN9gui_forms18scene_zoomed_aboutB*
+__ZN9gui_forms18scene_zoomed_aboutE*
 __ZN9gui_forms18semantic_role_nameB*
 __ZN9gui_forms18semantic_role_nameE*
 __ZN9gui_forms18snap_text_baselineB*
@@ -4338,6 +4412,8 @@ __ZN9gui_forms19MaterialCornerRadii*
 __ZN9gui_forms19MaterialDeclaration*
 __ZN9gui_forms19MenuStripInvocation*
 __ZN9gui_forms19NavigationPaneState*
+__ZN9gui_forms19NodeCanvasCallbacks*
+__ZN9gui_forms19NodeCanvasSelection*
 __ZN9gui_forms19ObjectDetailsColumn*
 __ZN9gui_forms19OffscreenAttachment*
 __ZN9gui_forms19PageSelectionChange*
@@ -4355,6 +4431,7 @@ __ZN9gui_forms19RibbonReductionStep*
 __ZN9gui_forms19RtfConversionResult*
 __ZN9gui_forms19SevenSegmentDisplay*
 __ZN9gui_forms19SourceMappingResult*
+__ZN9gui_forms19SpatialIndexOptions*
 __ZN9gui_forms19SpecimenStateResult*
 __ZN9gui_forms19SplashscreenOptions*
 __ZN9gui_forms19SubSurfaceKeyReturn*
@@ -4396,6 +4473,8 @@ __ZN9gui_forms19find_property_entryB*
 __ZN9gui_forms19find_property_entryE*
 __ZN9gui_forms19find_stock_specimenB*
 __ZN9gui_forms19find_stock_specimenE*
+__ZN9gui_forms19flatten_scene_cubicB*
+__ZN9gui_forms19flatten_scene_cubicE*
 __ZN9gui_forms19help_heading_anchorB*
 __ZN9gui_forms19help_heading_anchorE*
 __ZN9gui_forms19help_link_kind_nameB*
@@ -4505,6 +4584,7 @@ __ZN9gui_forms20ImageAtlasStatistics*
 __ZN9gui_forms20InstrumentModuleSpec*
 __ZN9gui_forms20MaterialColourFilter*
 __ZN9gui_forms20MaterialColourMatrix*
+__ZN9gui_forms20NodeCanvasStatistics*
 __ZN9gui_forms20ObjectContextRequest*
 __ZN9gui_forms20PointerCaptureChange*
 __ZN9gui_forms20PresentationSettings*
@@ -4574,6 +4654,8 @@ __ZN9gui_forms20reset_property_entryB*
 __ZN9gui_forms20reset_property_entryE*
 __ZN9gui_forms20rule_diagnostic_nameB*
 __ZN9gui_forms20rule_diagnostic_nameE*
+__ZN9gui_forms20scene_segments_crossB*
+__ZN9gui_forms20scene_segments_crossE*
 __ZN9gui_forms20semantic_action_nameB*
 __ZN9gui_forms20semantic_action_nameE*
 __ZN9gui_forms20semantic_field_namesB*
@@ -4653,6 +4735,7 @@ __ZN9gui_forms21ResponsiveTrackResult*
 __ZN9gui_forms21RibbonGalleryCategory*
 __ZN9gui_forms21RibbonScalingCounters*
 __ZN9gui_forms21RibbonStateDiagnostic*
+__ZN9gui_forms21SceneDetailThresholds*
 __ZN9gui_forms21SemanticTextSelection*
 __ZN9gui_forms21StockSpecimenInstance*
 __ZN9gui_forms21SubSurfaceEndListener*
@@ -4780,6 +4863,7 @@ __ZN9gui_forms22PropertyValueConverter*
 __ZN9gui_forms22RibbonLadderGroupState*
 __ZN9gui_forms22RibbonStateParseResult*
 __ZN9gui_forms22SemanticFeedbackRecord*
+__ZN9gui_forms22SpatialIndexStatistics*
 __ZN9gui_forms22TableLayoutPanelCompat*
 __ZN9gui_forms22TextMaskBudgetSnapshot*
 __ZN9gui_forms22ThemeCompileDiagnostic*
@@ -4841,6 +4925,8 @@ __ZN9gui_forms22rule_trigger_kind_nameB*
 __ZN9gui_forms22rule_trigger_kind_nameE*
 __ZN9gui_forms22same_prepared_text_keyB*
 __ZN9gui_forms22same_prepared_text_keyE*
+__ZN9gui_forms22scene_detail_level_forB*
+__ZN9gui_forms22scene_detail_level_forE*
 __ZN9gui_forms22select_tray_icon_imageB*
 __ZN9gui_forms22select_tray_icon_imageE*
 __ZN9gui_forms22serialize_ribbon_stateB*
@@ -4947,6 +5033,8 @@ __ZN9gui_forms23material_fields_read_emB*
 __ZN9gui_forms23material_fields_read_emE*
 __ZN9gui_forms23nearest_logical_monitorB*
 __ZN9gui_forms23nearest_logical_monitorE*
+__ZN9gui_forms23next_scene_detail_levelB*
+__ZN9gui_forms23next_scene_detail_levelE*
 __ZN9gui_forms23overridden_presentationB*
 __ZN9gui_forms23overridden_presentationE*
 __ZN9gui_forms23paint_canvas_backgroundB*
@@ -4965,6 +5053,8 @@ __ZN9gui_forms23resolve_flex_main_sizesB*
 __ZN9gui_forms23resolve_flex_main_sizesE*
 __ZN9gui_forms23resolve_window_backdropB*
 __ZN9gui_forms23resolve_window_backdropE*
+__ZN9gui_forms23scene_detail_level_nameB*
+__ZN9gui_forms23scene_detail_level_nameE*
 __ZN9gui_forms23semantic_text_unit_nameB*
 __ZN9gui_forms23semantic_text_unit_nameE*
 __ZN9gui_forms23stock_control_anatomiesB*
@@ -5180,6 +5270,8 @@ __ZN9gui_forms26register_link_flow_effectsB*
 __ZN9gui_forms26register_link_flow_effectsE*
 __ZN9gui_forms26reset_child_property_entryB*
 __ZN9gui_forms26reset_child_property_entryE*
+__ZN9gui_forms26scene_distance_to_polylineB*
+__ZN9gui_forms26scene_distance_to_polylineE*
 __ZN9gui_forms26show_specimen_custom_stateB*
 __ZN9gui_forms26show_specimen_custom_stateE*
 __ZN9gui_forms26write_child_property_entryB*
@@ -5278,6 +5370,8 @@ __ZN9gui_forms29register_progress_bar_effectsB*
 __ZN9gui_forms29register_progress_bar_effectsE*
 __ZN9gui_forms29stock_specimen_dominant_shareB*
 __ZN9gui_forms29stock_specimen_dominant_shareE*
+__ZN9gui_forms29valid_scene_detail_thresholdsB*
+__ZN9gui_forms29valid_scene_detail_thresholdsE*
 __ZN9gui_forms29window_backdrop_request_validB*
 __ZN9gui_forms29window_backdrop_request_validE*
 __ZN9gui_forms29window_corner_preference_nameB*
@@ -5298,6 +5392,8 @@ __ZN9gui_forms30is_virtual_semantic_runtime_idB*
 __ZN9gui_forms30is_virtual_semantic_runtime_idE*
 __ZN9gui_forms30material_field_colour_positionB*
 __ZN9gui_forms30material_field_colour_positionE*
+__ZN9gui_forms30scene_polyline_crosses_segmentB*
+__ZN9gui_forms30scene_polyline_crosses_segmentE*
 __ZN9gui_forms30set_recipe_declaration_lengthsB*
 __ZN9gui_forms30set_recipe_declaration_lengthsE*
 __ZN9gui_forms30valid_property_enum_descriptorB*
@@ -5905,6 +6001,7 @@ __ZNK[RO]9gui_forms10MediaFacts*
 __ZNK[RO]9gui_forms10ModalLayer*
 __ZNK[RO]9gui_forms10MotionStep*
 __ZNK[RO]9gui_forms10MotionStop*
+__ZNK[RO]9gui_forms10NodeCanvas*
 __ZNK[RO]9gui_forms10NodeRecord*
 __ZNK[RO]9gui_forms10NotifyIcon*
 __ZNK[RO]9gui_forms10ObjectView*
@@ -5920,6 +6017,7 @@ __ZNK[RO]9gui_forms10RisingBody*
 __ZNK[RO]9gui_forms10RoutedLink*
 __ZNK[RO]9gui_forms10RuleAction*
 __ZNK[RO]9gui_forms10RuleFiring*
+__ZNK[RO]9gui_forms10SceneCubic*
 __ZNK[RO]9gui_forms10ScopeSweep*
 __ZNK[RO]9gui_forms10ScrollCopy*
 __ZNK[RO]9gui_forms10StaticNode*
@@ -6073,6 +6171,8 @@ __ZNK[RO]9gui_forms12RuleSelector*
 __ZNK[RO]9gui_forms12SemanticNode*
 __ZNK[RO]9gui_forms12Sha256Digest*
 __ZNK[RO]9gui_forms12Sha256Hasher*
+__ZNK[RO]9gui_forms12SpatialEntry*
+__ZNK[RO]9gui_forms12SpatialIndex*
 __ZNK[RO]9gui_forms12Splashscreen*
 __ZNK[RO]9gui_forms12TextMaskLine*
 __ZNK[RO]9gui_forms12ThemeLibrary*
@@ -6153,6 +6253,10 @@ __ZNK[RO]9gui_forms13MarkdownImage*
 __ZNK[RO]9gui_forms13MaskedTextBox*
 __ZNK[RO]9gui_forms13MaterialPanel*
 __ZNK[RO]9gui_forms13MonthCalendar*
+__ZNK[RO]9gui_forms13NodeBodyPaint*
+__ZNK[RO]9gui_forms13NodeCanvasHit*
+__ZNK[RO]9gui_forms13NodeEditEnded*
+__ZNK[RO]9gui_forms13NodeLinkCheck*
 __ZNK[RO]9gui_forms13NumericUpDown*
 __ZNK[RO]9gui_forms13PageDragStart*
 __ZNK[RO]9gui_forms13PagePlacement*
@@ -6172,6 +6276,7 @@ __ZNK[RO]9gui_forms13RibbonToolTip*
 __ZNK[RO]9gui_forms13RuleAddResult*
 __ZNK[RO]9gui_forms13RuleCondition*
 __ZNK[RO]9gui_forms13RuleExclusion*
+__ZNK[RO]9gui_forms13SoftLinkShape*
 __ZNK[RO]9gui_forms13SplitterPanel*
 __ZNK[RO]9gui_forms13StepIndicator*
 __ZNK[RO]9gui_forms13StockSpecimen*
@@ -6265,6 +6370,7 @@ __ZNK[RO]9gui_forms14RuleDiagnostic*
 __ZNK[RO]9gui_forms14RuleProvenance*
 __ZNK[RO]9gui_forms14SaveFileDialog*
 __ZNK[RO]9gui_forms14ScaledGroupBox*
+__ZNK[RO]9gui_forms14SceneZoomRange*
 __ZNK[RO]9gui_forms14ScrollSnapshot*
 __ZNK[RO]9gui_forms14ShapingFeature*
 __ZNK[RO]9gui_forms14ShapingRequest*
@@ -6338,6 +6444,8 @@ __ZNK[RO]9gui_forms15LayoutAuthority*
 __ZNK[RO]9gui_forms15LocaleRejection*
 __ZNK[RO]9gui_forms15MaterialKeyline*
 __ZNK[RO]9gui_forms15MetricsSnapshot*
+__ZNK[RO]9gui_forms15NodeEditRequest*
+__ZNK[RO]9gui_forms15NodeGraphEdited*
 __ZNK[RO]9gui_forms15NotifyIconClick*
 __ZNK[RO]9gui_forms15OffscreenRaster*
 __ZNK[RO]9gui_forms15PageDoubleClick*
@@ -6540,6 +6648,7 @@ __ZNK[RO]9gui_forms17MaterialImageSize*
 __ZNK[RO]9gui_forms17MenuStripItemSpec*
 __ZNK[RO]9gui_forms17MessageBoxRefused*
 __ZNK[RO]9gui_forms17MessageBoxRequest*
+__ZNK[RO]9gui_forms17NodeLinkConnected*
 __ZNK[RO]9gui_forms17ObjectDetailsCell*
 __ZNK[RO]9gui_forms17ObjectDetailsSort*
 __ZNK[RO]9gui_forms17PartRasterRequest*
@@ -6637,6 +6746,7 @@ __ZNK[RO]9gui_forms18MaterialReflection*
 __ZNK[RO]9gui_forms18MenuItemInvocation*
 __ZNK[RO]9gui_forms18MotionRecordHandle*
 __ZNK[RO]9gui_forms18NativePopupOptions*
+__ZNK[RO]9gui_forms18NodePaletteRequest*
 __ZNK[RO]9gui_forms18PageContentRequest*
 __ZNK[RO]9gui_forms18PageControlContent*
 __ZNK[RO]9gui_forms18PageSelectingEvent*
@@ -6660,9 +6770,11 @@ __ZNK[RO]9gui_forms18RibbonCommandClick*
 __ZNK[RO]9gui_forms18RibbonDialogLaunch*
 __ZNK[RO]9gui_forms18RibbonToolTipEvent*
 __ZNK[RO]9gui_forms18RuleActionArgument*
+__ZNK[RO]9gui_forms18SceneViewTransform*
 __ZNK[RO]9gui_forms18ScrollAxisSnapshot*
 __ZNK[RO]9gui_forms18SemanticDescriptor*
 __ZNK[RO]9gui_forms18SemanticTextLayout*
+__ZNK[RO]9gui_forms18SpatialQueryResult*
 __ZNK[RO]9gui_forms18SplashscreenResult*
 __ZNK[RO]9gui_forms18TabSelectionChange*
 __ZNK[RO]9gui_forms18TaskDialogExpander*
@@ -6738,6 +6850,8 @@ __ZNK[RO]9gui_forms19MaterialCornerRadii*
 __ZNK[RO]9gui_forms19MaterialDeclaration*
 __ZNK[RO]9gui_forms19MenuStripInvocation*
 __ZNK[RO]9gui_forms19NavigationPaneState*
+__ZNK[RO]9gui_forms19NodeCanvasCallbacks*
+__ZNK[RO]9gui_forms19NodeCanvasSelection*
 __ZNK[RO]9gui_forms19ObjectDetailsColumn*
 __ZNK[RO]9gui_forms19OffscreenAttachment*
 __ZNK[RO]9gui_forms19PageSelectionChange*
@@ -6755,6 +6869,7 @@ __ZNK[RO]9gui_forms19RibbonReductionStep*
 __ZNK[RO]9gui_forms19RtfConversionResult*
 __ZNK[RO]9gui_forms19SevenSegmentDisplay*
 __ZNK[RO]9gui_forms19SourceMappingResult*
+__ZNK[RO]9gui_forms19SpatialIndexOptions*
 __ZNK[RO]9gui_forms19SpecimenStateResult*
 __ZNK[RO]9gui_forms19SplashscreenOptions*
 __ZNK[RO]9gui_forms19SubSurfaceKeyReturn*
@@ -6811,6 +6926,7 @@ __ZNK[RO]9gui_forms20ImageAtlasStatistics*
 __ZNK[RO]9gui_forms20InstrumentModuleSpec*
 __ZNK[RO]9gui_forms20MaterialColourFilter*
 __ZNK[RO]9gui_forms20MaterialColourMatrix*
+__ZNK[RO]9gui_forms20NodeCanvasStatistics*
 __ZNK[RO]9gui_forms20ObjectContextRequest*
 __ZNK[RO]9gui_forms20PointerCaptureChange*
 __ZNK[RO]9gui_forms20PresentationSettings*
@@ -6891,6 +7007,7 @@ __ZNK[RO]9gui_forms21ResponsiveTrackResult*
 __ZNK[RO]9gui_forms21RibbonGalleryCategory*
 __ZNK[RO]9gui_forms21RibbonScalingCounters*
 __ZNK[RO]9gui_forms21RibbonStateDiagnostic*
+__ZNK[RO]9gui_forms21SceneDetailThresholds*
 __ZNK[RO]9gui_forms21SemanticTextSelection*
 __ZNK[RO]9gui_forms21StockSpecimenInstance*
 __ZNK[RO]9gui_forms21SubSurfaceEndListener*
@@ -6946,6 +7063,7 @@ __ZNK[RO]9gui_forms22PropertyValueConverter*
 __ZNK[RO]9gui_forms22RibbonLadderGroupState*
 __ZNK[RO]9gui_forms22RibbonStateParseResult*
 __ZNK[RO]9gui_forms22SemanticFeedbackRecord*
+__ZNK[RO]9gui_forms22SpatialIndexStatistics*
 __ZNK[RO]9gui_forms22TableLayoutPanelCompat*
 __ZNK[RO]9gui_forms22TextMaskBudgetSnapshot*
 __ZNK[RO]9gui_forms22ThemeCompileDiagnostic*
@@ -7395,6 +7513,7 @@ __ZN[KRO]9gui_forms10MediaFacts*
 __ZN[KRO]9gui_forms10ModalLayer*
 __ZN[KRO]9gui_forms10MotionStep*
 __ZN[KRO]9gui_forms10MotionStop*
+__ZN[KRO]9gui_forms10NodeCanvas*
 __ZN[KRO]9gui_forms10NodeRecord*
 __ZN[KRO]9gui_forms10NotifyIcon*
 __ZN[KRO]9gui_forms10ObjectView*
@@ -7410,6 +7529,7 @@ __ZN[KRO]9gui_forms10RisingBody*
 __ZN[KRO]9gui_forms10RoutedLink*
 __ZN[KRO]9gui_forms10RuleAction*
 __ZN[KRO]9gui_forms10RuleFiring*
+__ZN[KRO]9gui_forms10SceneCubic*
 __ZN[KRO]9gui_forms10ScopeSweep*
 __ZN[KRO]9gui_forms10ScrollCopy*
 __ZN[KRO]9gui_forms10StaticNode*
@@ -7563,6 +7683,8 @@ __ZN[KRO]9gui_forms12RuleSelector*
 __ZN[KRO]9gui_forms12SemanticNode*
 __ZN[KRO]9gui_forms12Sha256Digest*
 __ZN[KRO]9gui_forms12Sha256Hasher*
+__ZN[KRO]9gui_forms12SpatialEntry*
+__ZN[KRO]9gui_forms12SpatialIndex*
 __ZN[KRO]9gui_forms12Splashscreen*
 __ZN[KRO]9gui_forms12TextMaskLine*
 __ZN[KRO]9gui_forms12ThemeLibrary*
@@ -7643,6 +7765,10 @@ __ZN[KRO]9gui_forms13MarkdownImage*
 __ZN[KRO]9gui_forms13MaskedTextBox*
 __ZN[KRO]9gui_forms13MaterialPanel*
 __ZN[KRO]9gui_forms13MonthCalendar*
+__ZN[KRO]9gui_forms13NodeBodyPaint*
+__ZN[KRO]9gui_forms13NodeCanvasHit*
+__ZN[KRO]9gui_forms13NodeEditEnded*
+__ZN[KRO]9gui_forms13NodeLinkCheck*
 __ZN[KRO]9gui_forms13NumericUpDown*
 __ZN[KRO]9gui_forms13PageDragStart*
 __ZN[KRO]9gui_forms13PagePlacement*
@@ -7662,6 +7788,7 @@ __ZN[KRO]9gui_forms13RibbonToolTip*
 __ZN[KRO]9gui_forms13RuleAddResult*
 __ZN[KRO]9gui_forms13RuleCondition*
 __ZN[KRO]9gui_forms13RuleExclusion*
+__ZN[KRO]9gui_forms13SoftLinkShape*
 __ZN[KRO]9gui_forms13SplitterPanel*
 __ZN[KRO]9gui_forms13StepIndicator*
 __ZN[KRO]9gui_forms13StockSpecimen*
@@ -7755,6 +7882,7 @@ __ZN[KRO]9gui_forms14RuleDiagnostic*
 __ZN[KRO]9gui_forms14RuleProvenance*
 __ZN[KRO]9gui_forms14SaveFileDialog*
 __ZN[KRO]9gui_forms14ScaledGroupBox*
+__ZN[KRO]9gui_forms14SceneZoomRange*
 __ZN[KRO]9gui_forms14ScrollSnapshot*
 __ZN[KRO]9gui_forms14ShapingFeature*
 __ZN[KRO]9gui_forms14ShapingRequest*
@@ -7828,6 +7956,8 @@ __ZN[KRO]9gui_forms15LayoutAuthority*
 __ZN[KRO]9gui_forms15LocaleRejection*
 __ZN[KRO]9gui_forms15MaterialKeyline*
 __ZN[KRO]9gui_forms15MetricsSnapshot*
+__ZN[KRO]9gui_forms15NodeEditRequest*
+__ZN[KRO]9gui_forms15NodeGraphEdited*
 __ZN[KRO]9gui_forms15NotifyIconClick*
 __ZN[KRO]9gui_forms15OffscreenRaster*
 __ZN[KRO]9gui_forms15PageDoubleClick*
@@ -8030,6 +8160,7 @@ __ZN[KRO]9gui_forms17MaterialImageSize*
 __ZN[KRO]9gui_forms17MenuStripItemSpec*
 __ZN[KRO]9gui_forms17MessageBoxRefused*
 __ZN[KRO]9gui_forms17MessageBoxRequest*
+__ZN[KRO]9gui_forms17NodeLinkConnected*
 __ZN[KRO]9gui_forms17ObjectDetailsCell*
 __ZN[KRO]9gui_forms17ObjectDetailsSort*
 __ZN[KRO]9gui_forms17PartRasterRequest*
@@ -8127,6 +8258,7 @@ __ZN[KRO]9gui_forms18MaterialReflection*
 __ZN[KRO]9gui_forms18MenuItemInvocation*
 __ZN[KRO]9gui_forms18MotionRecordHandle*
 __ZN[KRO]9gui_forms18NativePopupOptions*
+__ZN[KRO]9gui_forms18NodePaletteRequest*
 __ZN[KRO]9gui_forms18PageContentRequest*
 __ZN[KRO]9gui_forms18PageControlContent*
 __ZN[KRO]9gui_forms18PageSelectingEvent*
@@ -8150,9 +8282,11 @@ __ZN[KRO]9gui_forms18RibbonCommandClick*
 __ZN[KRO]9gui_forms18RibbonDialogLaunch*
 __ZN[KRO]9gui_forms18RibbonToolTipEvent*
 __ZN[KRO]9gui_forms18RuleActionArgument*
+__ZN[KRO]9gui_forms18SceneViewTransform*
 __ZN[KRO]9gui_forms18ScrollAxisSnapshot*
 __ZN[KRO]9gui_forms18SemanticDescriptor*
 __ZN[KRO]9gui_forms18SemanticTextLayout*
+__ZN[KRO]9gui_forms18SpatialQueryResult*
 __ZN[KRO]9gui_forms18SplashscreenResult*
 __ZN[KRO]9gui_forms18TabSelectionChange*
 __ZN[KRO]9gui_forms18TaskDialogExpander*
@@ -8228,6 +8362,8 @@ __ZN[KRO]9gui_forms19MaterialCornerRadii*
 __ZN[KRO]9gui_forms19MaterialDeclaration*
 __ZN[KRO]9gui_forms19MenuStripInvocation*
 __ZN[KRO]9gui_forms19NavigationPaneState*
+__ZN[KRO]9gui_forms19NodeCanvasCallbacks*
+__ZN[KRO]9gui_forms19NodeCanvasSelection*
 __ZN[KRO]9gui_forms19ObjectDetailsColumn*
 __ZN[KRO]9gui_forms19OffscreenAttachment*
 __ZN[KRO]9gui_forms19PageSelectionChange*
@@ -8245,6 +8381,7 @@ __ZN[KRO]9gui_forms19RibbonReductionStep*
 __ZN[KRO]9gui_forms19RtfConversionResult*
 __ZN[KRO]9gui_forms19SevenSegmentDisplay*
 __ZN[KRO]9gui_forms19SourceMappingResult*
+__ZN[KRO]9gui_forms19SpatialIndexOptions*
 __ZN[KRO]9gui_forms19SpecimenStateResult*
 __ZN[KRO]9gui_forms19SplashscreenOptions*
 __ZN[KRO]9gui_forms19SubSurfaceKeyReturn*
@@ -8301,6 +8438,7 @@ __ZN[KRO]9gui_forms20ImageAtlasStatistics*
 __ZN[KRO]9gui_forms20InstrumentModuleSpec*
 __ZN[KRO]9gui_forms20MaterialColourFilter*
 __ZN[KRO]9gui_forms20MaterialColourMatrix*
+__ZN[KRO]9gui_forms20NodeCanvasStatistics*
 __ZN[KRO]9gui_forms20ObjectContextRequest*
 __ZN[KRO]9gui_forms20PointerCaptureChange*
 __ZN[KRO]9gui_forms20PresentationSettings*
@@ -8381,6 +8519,7 @@ __ZN[KRO]9gui_forms21ResponsiveTrackResult*
 __ZN[KRO]9gui_forms21RibbonGalleryCategory*
 __ZN[KRO]9gui_forms21RibbonScalingCounters*
 __ZN[KRO]9gui_forms21RibbonStateDiagnostic*
+__ZN[KRO]9gui_forms21SceneDetailThresholds*
 __ZN[KRO]9gui_forms21SemanticTextSelection*
 __ZN[KRO]9gui_forms21StockSpecimenInstance*
 __ZN[KRO]9gui_forms21SubSurfaceEndListener*
@@ -8436,6 +8575,7 @@ __ZN[KRO]9gui_forms22PropertyValueConverter*
 __ZN[KRO]9gui_forms22RibbonLadderGroupState*
 __ZN[KRO]9gui_forms22RibbonStateParseResult*
 __ZN[KRO]9gui_forms22SemanticFeedbackRecord*
+__ZN[KRO]9gui_forms22SpatialIndexStatistics*
 __ZN[KRO]9gui_forms22TableLayoutPanelCompat*
 __ZN[KRO]9gui_forms22TextMaskBudgetSnapshot*
 __ZN[KRO]9gui_forms22ThemeCompileDiagnostic*
@@ -8885,6 +9025,7 @@ __ZT[VIST]N9gui_forms10MediaFacts*E
 __ZT[VIST]N9gui_forms10ModalLayer*E
 __ZT[VIST]N9gui_forms10MotionStep*E
 __ZT[VIST]N9gui_forms10MotionStop*E
+__ZT[VIST]N9gui_forms10NodeCanvas*E
 __ZT[VIST]N9gui_forms10NodeRecord*E
 __ZT[VIST]N9gui_forms10NotifyIcon*E
 __ZT[VIST]N9gui_forms10ObjectView*E
@@ -8900,6 +9041,7 @@ __ZT[VIST]N9gui_forms10RisingBody*E
 __ZT[VIST]N9gui_forms10RoutedLink*E
 __ZT[VIST]N9gui_forms10RuleAction*E
 __ZT[VIST]N9gui_forms10RuleFiring*E
+__ZT[VIST]N9gui_forms10SceneCubic*E
 __ZT[VIST]N9gui_forms10ScopeSweep*E
 __ZT[VIST]N9gui_forms10ScrollCopy*E
 __ZT[VIST]N9gui_forms10StaticNode*E
@@ -9053,6 +9195,8 @@ __ZT[VIST]N9gui_forms12RuleSelector*E
 __ZT[VIST]N9gui_forms12SemanticNode*E
 __ZT[VIST]N9gui_forms12Sha256Digest*E
 __ZT[VIST]N9gui_forms12Sha256Hasher*E
+__ZT[VIST]N9gui_forms12SpatialEntry*E
+__ZT[VIST]N9gui_forms12SpatialIndex*E
 __ZT[VIST]N9gui_forms12Splashscreen*E
 __ZT[VIST]N9gui_forms12TextMaskLine*E
 __ZT[VIST]N9gui_forms12ThemeLibrary*E
@@ -9133,6 +9277,10 @@ __ZT[VIST]N9gui_forms13MarkdownImage*E
 __ZT[VIST]N9gui_forms13MaskedTextBox*E
 __ZT[VIST]N9gui_forms13MaterialPanel*E
 __ZT[VIST]N9gui_forms13MonthCalendar*E
+__ZT[VIST]N9gui_forms13NodeBodyPaint*E
+__ZT[VIST]N9gui_forms13NodeCanvasHit*E
+__ZT[VIST]N9gui_forms13NodeEditEnded*E
+__ZT[VIST]N9gui_forms13NodeLinkCheck*E
 __ZT[VIST]N9gui_forms13NumericUpDown*E
 __ZT[VIST]N9gui_forms13PageDragStart*E
 __ZT[VIST]N9gui_forms13PagePlacement*E
@@ -9152,6 +9300,7 @@ __ZT[VIST]N9gui_forms13RibbonToolTip*E
 __ZT[VIST]N9gui_forms13RuleAddResult*E
 __ZT[VIST]N9gui_forms13RuleCondition*E
 __ZT[VIST]N9gui_forms13RuleExclusion*E
+__ZT[VIST]N9gui_forms13SoftLinkShape*E
 __ZT[VIST]N9gui_forms13SplitterPanel*E
 __ZT[VIST]N9gui_forms13StepIndicator*E
 __ZT[VIST]N9gui_forms13StockSpecimen*E
@@ -9245,6 +9394,7 @@ __ZT[VIST]N9gui_forms14RuleDiagnostic*E
 __ZT[VIST]N9gui_forms14RuleProvenance*E
 __ZT[VIST]N9gui_forms14SaveFileDialog*E
 __ZT[VIST]N9gui_forms14ScaledGroupBox*E
+__ZT[VIST]N9gui_forms14SceneZoomRange*E
 __ZT[VIST]N9gui_forms14ScrollSnapshot*E
 __ZT[VIST]N9gui_forms14ShapingFeature*E
 __ZT[VIST]N9gui_forms14ShapingRequest*E
@@ -9318,6 +9468,8 @@ __ZT[VIST]N9gui_forms15LayoutAuthority*E
 __ZT[VIST]N9gui_forms15LocaleRejection*E
 __ZT[VIST]N9gui_forms15MaterialKeyline*E
 __ZT[VIST]N9gui_forms15MetricsSnapshot*E
+__ZT[VIST]N9gui_forms15NodeEditRequest*E
+__ZT[VIST]N9gui_forms15NodeGraphEdited*E
 __ZT[VIST]N9gui_forms15NotifyIconClick*E
 __ZT[VIST]N9gui_forms15OffscreenRaster*E
 __ZT[VIST]N9gui_forms15PageDoubleClick*E
@@ -9520,6 +9672,7 @@ __ZT[VIST]N9gui_forms17MaterialImageSize*E
 __ZT[VIST]N9gui_forms17MenuStripItemSpec*E
 __ZT[VIST]N9gui_forms17MessageBoxRefused*E
 __ZT[VIST]N9gui_forms17MessageBoxRequest*E
+__ZT[VIST]N9gui_forms17NodeLinkConnected*E
 __ZT[VIST]N9gui_forms17ObjectDetailsCell*E
 __ZT[VIST]N9gui_forms17ObjectDetailsSort*E
 __ZT[VIST]N9gui_forms17PartRasterRequest*E
@@ -9617,6 +9770,7 @@ __ZT[VIST]N9gui_forms18MaterialReflection*E
 __ZT[VIST]N9gui_forms18MenuItemInvocation*E
 __ZT[VIST]N9gui_forms18MotionRecordHandle*E
 __ZT[VIST]N9gui_forms18NativePopupOptions*E
+__ZT[VIST]N9gui_forms18NodePaletteRequest*E
 __ZT[VIST]N9gui_forms18PageContentRequest*E
 __ZT[VIST]N9gui_forms18PageControlContent*E
 __ZT[VIST]N9gui_forms18PageSelectingEvent*E
@@ -9640,9 +9794,11 @@ __ZT[VIST]N9gui_forms18RibbonCommandClick*E
 __ZT[VIST]N9gui_forms18RibbonDialogLaunch*E
 __ZT[VIST]N9gui_forms18RibbonToolTipEvent*E
 __ZT[VIST]N9gui_forms18RuleActionArgument*E
+__ZT[VIST]N9gui_forms18SceneViewTransform*E
 __ZT[VIST]N9gui_forms18ScrollAxisSnapshot*E
 __ZT[VIST]N9gui_forms18SemanticDescriptor*E
 __ZT[VIST]N9gui_forms18SemanticTextLayout*E
+__ZT[VIST]N9gui_forms18SpatialQueryResult*E
 __ZT[VIST]N9gui_forms18SplashscreenResult*E
 __ZT[VIST]N9gui_forms18TabSelectionChange*E
 __ZT[VIST]N9gui_forms18TaskDialogExpander*E
@@ -9718,6 +9874,8 @@ __ZT[VIST]N9gui_forms19MaterialCornerRadii*E
 __ZT[VIST]N9gui_forms19MaterialDeclaration*E
 __ZT[VIST]N9gui_forms19MenuStripInvocation*E
 __ZT[VIST]N9gui_forms19NavigationPaneState*E
+__ZT[VIST]N9gui_forms19NodeCanvasCallbacks*E
+__ZT[VIST]N9gui_forms19NodeCanvasSelection*E
 __ZT[VIST]N9gui_forms19ObjectDetailsColumn*E
 __ZT[VIST]N9gui_forms19OffscreenAttachment*E
 __ZT[VIST]N9gui_forms19PageSelectionChange*E
@@ -9735,6 +9893,7 @@ __ZT[VIST]N9gui_forms19RibbonReductionStep*E
 __ZT[VIST]N9gui_forms19RtfConversionResult*E
 __ZT[VIST]N9gui_forms19SevenSegmentDisplay*E
 __ZT[VIST]N9gui_forms19SourceMappingResult*E
+__ZT[VIST]N9gui_forms19SpatialIndexOptions*E
 __ZT[VIST]N9gui_forms19SpecimenStateResult*E
 __ZT[VIST]N9gui_forms19SplashscreenOptions*E
 __ZT[VIST]N9gui_forms19SubSurfaceKeyReturn*E
@@ -9791,6 +9950,7 @@ __ZT[VIST]N9gui_forms20ImageAtlasStatistics*E
 __ZT[VIST]N9gui_forms20InstrumentModuleSpec*E
 __ZT[VIST]N9gui_forms20MaterialColourFilter*E
 __ZT[VIST]N9gui_forms20MaterialColourMatrix*E
+__ZT[VIST]N9gui_forms20NodeCanvasStatistics*E
 __ZT[VIST]N9gui_forms20ObjectContextRequest*E
 __ZT[VIST]N9gui_forms20PointerCaptureChange*E
 __ZT[VIST]N9gui_forms20PresentationSettings*E
@@ -9871,6 +10031,7 @@ __ZT[VIST]N9gui_forms21ResponsiveTrackResult*E
 __ZT[VIST]N9gui_forms21RibbonGalleryCategory*E
 __ZT[VIST]N9gui_forms21RibbonScalingCounters*E
 __ZT[VIST]N9gui_forms21RibbonStateDiagnostic*E
+__ZT[VIST]N9gui_forms21SceneDetailThresholds*E
 __ZT[VIST]N9gui_forms21SemanticTextSelection*E
 __ZT[VIST]N9gui_forms21StockSpecimenInstance*E
 __ZT[VIST]N9gui_forms21SubSurfaceEndListener*E
@@ -9926,6 +10087,7 @@ __ZT[VIST]N9gui_forms22PropertyValueConverter*E
 __ZT[VIST]N9gui_forms22RibbonLadderGroupState*E
 __ZT[VIST]N9gui_forms22RibbonStateParseResult*E
 __ZT[VIST]N9gui_forms22SemanticFeedbackRecord*E
+__ZT[VIST]N9gui_forms22SpatialIndexStatistics*E
 __ZT[VIST]N9gui_forms22TableLayoutPanelCompat*E
 __ZT[VIST]N9gui_forms22TextMaskBudgetSnapshot*E
 __ZT[VIST]N9gui_forms22ThemeCompileDiagnostic*E
@@ -10375,6 +10537,7 @@ __ZT[hvc]*9gui_forms10MediaFacts*
 __ZT[hvc]*9gui_forms10ModalLayer*
 __ZT[hvc]*9gui_forms10MotionStep*
 __ZT[hvc]*9gui_forms10MotionStop*
+__ZT[hvc]*9gui_forms10NodeCanvas*
 __ZT[hvc]*9gui_forms10NodeRecord*
 __ZT[hvc]*9gui_forms10NotifyIcon*
 __ZT[hvc]*9gui_forms10ObjectView*
@@ -10390,6 +10553,7 @@ __ZT[hvc]*9gui_forms10RisingBody*
 __ZT[hvc]*9gui_forms10RoutedLink*
 __ZT[hvc]*9gui_forms10RuleAction*
 __ZT[hvc]*9gui_forms10RuleFiring*
+__ZT[hvc]*9gui_forms10SceneCubic*
 __ZT[hvc]*9gui_forms10ScopeSweep*
 __ZT[hvc]*9gui_forms10ScrollCopy*
 __ZT[hvc]*9gui_forms10StaticNode*
@@ -10543,6 +10707,8 @@ __ZT[hvc]*9gui_forms12RuleSelector*
 __ZT[hvc]*9gui_forms12SemanticNode*
 __ZT[hvc]*9gui_forms12Sha256Digest*
 __ZT[hvc]*9gui_forms12Sha256Hasher*
+__ZT[hvc]*9gui_forms12SpatialEntry*
+__ZT[hvc]*9gui_forms12SpatialIndex*
 __ZT[hvc]*9gui_forms12Splashscreen*
 __ZT[hvc]*9gui_forms12TextMaskLine*
 __ZT[hvc]*9gui_forms12ThemeLibrary*
@@ -10623,6 +10789,10 @@ __ZT[hvc]*9gui_forms13MarkdownImage*
 __ZT[hvc]*9gui_forms13MaskedTextBox*
 __ZT[hvc]*9gui_forms13MaterialPanel*
 __ZT[hvc]*9gui_forms13MonthCalendar*
+__ZT[hvc]*9gui_forms13NodeBodyPaint*
+__ZT[hvc]*9gui_forms13NodeCanvasHit*
+__ZT[hvc]*9gui_forms13NodeEditEnded*
+__ZT[hvc]*9gui_forms13NodeLinkCheck*
 __ZT[hvc]*9gui_forms13NumericUpDown*
 __ZT[hvc]*9gui_forms13PageDragStart*
 __ZT[hvc]*9gui_forms13PagePlacement*
@@ -10642,6 +10812,7 @@ __ZT[hvc]*9gui_forms13RibbonToolTip*
 __ZT[hvc]*9gui_forms13RuleAddResult*
 __ZT[hvc]*9gui_forms13RuleCondition*
 __ZT[hvc]*9gui_forms13RuleExclusion*
+__ZT[hvc]*9gui_forms13SoftLinkShape*
 __ZT[hvc]*9gui_forms13SplitterPanel*
 __ZT[hvc]*9gui_forms13StepIndicator*
 __ZT[hvc]*9gui_forms13StockSpecimen*
@@ -10735,6 +10906,7 @@ __ZT[hvc]*9gui_forms14RuleDiagnostic*
 __ZT[hvc]*9gui_forms14RuleProvenance*
 __ZT[hvc]*9gui_forms14SaveFileDialog*
 __ZT[hvc]*9gui_forms14ScaledGroupBox*
+__ZT[hvc]*9gui_forms14SceneZoomRange*
 __ZT[hvc]*9gui_forms14ScrollSnapshot*
 __ZT[hvc]*9gui_forms14ShapingFeature*
 __ZT[hvc]*9gui_forms14ShapingRequest*
@@ -10808,6 +10980,8 @@ __ZT[hvc]*9gui_forms15LayoutAuthority*
 __ZT[hvc]*9gui_forms15LocaleRejection*
 __ZT[hvc]*9gui_forms15MaterialKeyline*
 __ZT[hvc]*9gui_forms15MetricsSnapshot*
+__ZT[hvc]*9gui_forms15NodeEditRequest*
+__ZT[hvc]*9gui_forms15NodeGraphEdited*
 __ZT[hvc]*9gui_forms15NotifyIconClick*
 __ZT[hvc]*9gui_forms15OffscreenRaster*
 __ZT[hvc]*9gui_forms15PageDoubleClick*
@@ -11010,6 +11184,7 @@ __ZT[hvc]*9gui_forms17MaterialImageSize*
 __ZT[hvc]*9gui_forms17MenuStripItemSpec*
 __ZT[hvc]*9gui_forms17MessageBoxRefused*
 __ZT[hvc]*9gui_forms17MessageBoxRequest*
+__ZT[hvc]*9gui_forms17NodeLinkConnected*
 __ZT[hvc]*9gui_forms17ObjectDetailsCell*
 __ZT[hvc]*9gui_forms17ObjectDetailsSort*
 __ZT[hvc]*9gui_forms17PartRasterRequest*
@@ -11107,6 +11282,7 @@ __ZT[hvc]*9gui_forms18MaterialReflection*
 __ZT[hvc]*9gui_forms18MenuItemInvocation*
 __ZT[hvc]*9gui_forms18MotionRecordHandle*
 __ZT[hvc]*9gui_forms18NativePopupOptions*
+__ZT[hvc]*9gui_forms18NodePaletteRequest*
 __ZT[hvc]*9gui_forms18PageContentRequest*
 __ZT[hvc]*9gui_forms18PageControlContent*
 __ZT[hvc]*9gui_forms18PageSelectingEvent*
@@ -11130,9 +11306,11 @@ __ZT[hvc]*9gui_forms18RibbonCommandClick*
 __ZT[hvc]*9gui_forms18RibbonDialogLaunch*
 __ZT[hvc]*9gui_forms18RibbonToolTipEvent*
 __ZT[hvc]*9gui_forms18RuleActionArgument*
+__ZT[hvc]*9gui_forms18SceneViewTransform*
 __ZT[hvc]*9gui_forms18ScrollAxisSnapshot*
 __ZT[hvc]*9gui_forms18SemanticDescriptor*
 __ZT[hvc]*9gui_forms18SemanticTextLayout*
+__ZT[hvc]*9gui_forms18SpatialQueryResult*
 __ZT[hvc]*9gui_forms18SplashscreenResult*
 __ZT[hvc]*9gui_forms18TabSelectionChange*
 __ZT[hvc]*9gui_forms18TaskDialogExpander*
@@ -11208,6 +11386,8 @@ __ZT[hvc]*9gui_forms19MaterialCornerRadii*
 __ZT[hvc]*9gui_forms19MaterialDeclaration*
 __ZT[hvc]*9gui_forms19MenuStripInvocation*
 __ZT[hvc]*9gui_forms19NavigationPaneState*
+__ZT[hvc]*9gui_forms19NodeCanvasCallbacks*
+__ZT[hvc]*9gui_forms19NodeCanvasSelection*
 __ZT[hvc]*9gui_forms19ObjectDetailsColumn*
 __ZT[hvc]*9gui_forms19OffscreenAttachment*
 __ZT[hvc]*9gui_forms19PageSelectionChange*
@@ -11225,6 +11405,7 @@ __ZT[hvc]*9gui_forms19RibbonReductionStep*
 __ZT[hvc]*9gui_forms19RtfConversionResult*
 __ZT[hvc]*9gui_forms19SevenSegmentDisplay*
 __ZT[hvc]*9gui_forms19SourceMappingResult*
+__ZT[hvc]*9gui_forms19SpatialIndexOptions*
 __ZT[hvc]*9gui_forms19SpecimenStateResult*
 __ZT[hvc]*9gui_forms19SplashscreenOptions*
 __ZT[hvc]*9gui_forms19SubSurfaceKeyReturn*
@@ -11281,6 +11462,7 @@ __ZT[hvc]*9gui_forms20ImageAtlasStatistics*
 __ZT[hvc]*9gui_forms20InstrumentModuleSpec*
 __ZT[hvc]*9gui_forms20MaterialColourFilter*
 __ZT[hvc]*9gui_forms20MaterialColourMatrix*
+__ZT[hvc]*9gui_forms20NodeCanvasStatistics*
 __ZT[hvc]*9gui_forms20ObjectContextRequest*
 __ZT[hvc]*9gui_forms20PointerCaptureChange*
 __ZT[hvc]*9gui_forms20PresentationSettings*
@@ -11361,6 +11543,7 @@ __ZT[hvc]*9gui_forms21ResponsiveTrackResult*
 __ZT[hvc]*9gui_forms21RibbonGalleryCategory*
 __ZT[hvc]*9gui_forms21RibbonScalingCounters*
 __ZT[hvc]*9gui_forms21RibbonStateDiagnostic*
+__ZT[hvc]*9gui_forms21SceneDetailThresholds*
 __ZT[hvc]*9gui_forms21SemanticTextSelection*
 __ZT[hvc]*9gui_forms21StockSpecimenInstance*
 __ZT[hvc]*9gui_forms21SubSurfaceEndListener*
@@ -11416,6 +11599,7 @@ __ZT[hvc]*9gui_forms22PropertyValueConverter*
 __ZT[hvc]*9gui_forms22RibbonLadderGroupState*
 __ZT[hvc]*9gui_forms22RibbonStateParseResult*
 __ZT[hvc]*9gui_forms22SemanticFeedbackRecord*
+__ZT[hvc]*9gui_forms22SpatialIndexStatistics*
 __ZT[hvc]*9gui_forms22TableLayoutPanelCompat*
 __ZT[hvc]*9gui_forms22TextMaskBudgetSnapshot*
 __ZT[hvc]*9gui_forms22ThemeCompileDiagnostic*
@@ -11865,6 +12049,7 @@ __ZZN9gui_forms10MediaFacts*
 __ZZN9gui_forms10ModalLayer*
 __ZZN9gui_forms10MotionStep*
 __ZZN9gui_forms10MotionStop*
+__ZZN9gui_forms10NodeCanvas*
 __ZZN9gui_forms10NodeRecord*
 __ZZN9gui_forms10NotifyIcon*
 __ZZN9gui_forms10ObjectView*
@@ -11880,6 +12065,7 @@ __ZZN9gui_forms10RisingBody*
 __ZZN9gui_forms10RoutedLink*
 __ZZN9gui_forms10RuleAction*
 __ZZN9gui_forms10RuleFiring*
+__ZZN9gui_forms10SceneCubic*
 __ZZN9gui_forms10ScopeSweep*
 __ZZN9gui_forms10ScrollCopy*
 __ZZN9gui_forms10StaticNode*
@@ -12033,6 +12219,8 @@ __ZZN9gui_forms12RuleSelector*
 __ZZN9gui_forms12SemanticNode*
 __ZZN9gui_forms12Sha256Digest*
 __ZZN9gui_forms12Sha256Hasher*
+__ZZN9gui_forms12SpatialEntry*
+__ZZN9gui_forms12SpatialIndex*
 __ZZN9gui_forms12Splashscreen*
 __ZZN9gui_forms12TextMaskLine*
 __ZZN9gui_forms12ThemeLibrary*
@@ -12113,6 +12301,10 @@ __ZZN9gui_forms13MarkdownImage*
 __ZZN9gui_forms13MaskedTextBox*
 __ZZN9gui_forms13MaterialPanel*
 __ZZN9gui_forms13MonthCalendar*
+__ZZN9gui_forms13NodeBodyPaint*
+__ZZN9gui_forms13NodeCanvasHit*
+__ZZN9gui_forms13NodeEditEnded*
+__ZZN9gui_forms13NodeLinkCheck*
 __ZZN9gui_forms13NumericUpDown*
 __ZZN9gui_forms13PageDragStart*
 __ZZN9gui_forms13PagePlacement*
@@ -12132,6 +12324,7 @@ __ZZN9gui_forms13RibbonToolTip*
 __ZZN9gui_forms13RuleAddResult*
 __ZZN9gui_forms13RuleCondition*
 __ZZN9gui_forms13RuleExclusion*
+__ZZN9gui_forms13SoftLinkShape*
 __ZZN9gui_forms13SplitterPanel*
 __ZZN9gui_forms13StepIndicator*
 __ZZN9gui_forms13StockSpecimen*
@@ -12225,6 +12418,7 @@ __ZZN9gui_forms14RuleDiagnostic*
 __ZZN9gui_forms14RuleProvenance*
 __ZZN9gui_forms14SaveFileDialog*
 __ZZN9gui_forms14ScaledGroupBox*
+__ZZN9gui_forms14SceneZoomRange*
 __ZZN9gui_forms14ScrollSnapshot*
 __ZZN9gui_forms14ShapingFeature*
 __ZZN9gui_forms14ShapingRequest*
@@ -12298,6 +12492,8 @@ __ZZN9gui_forms15LayoutAuthority*
 __ZZN9gui_forms15LocaleRejection*
 __ZZN9gui_forms15MaterialKeyline*
 __ZZN9gui_forms15MetricsSnapshot*
+__ZZN9gui_forms15NodeEditRequest*
+__ZZN9gui_forms15NodeGraphEdited*
 __ZZN9gui_forms15NotifyIconClick*
 __ZZN9gui_forms15OffscreenRaster*
 __ZZN9gui_forms15PageDoubleClick*
@@ -12500,6 +12696,7 @@ __ZZN9gui_forms17MaterialImageSize*
 __ZZN9gui_forms17MenuStripItemSpec*
 __ZZN9gui_forms17MessageBoxRefused*
 __ZZN9gui_forms17MessageBoxRequest*
+__ZZN9gui_forms17NodeLinkConnected*
 __ZZN9gui_forms17ObjectDetailsCell*
 __ZZN9gui_forms17ObjectDetailsSort*
 __ZZN9gui_forms17PartRasterRequest*
@@ -12597,6 +12794,7 @@ __ZZN9gui_forms18MaterialReflection*
 __ZZN9gui_forms18MenuItemInvocation*
 __ZZN9gui_forms18MotionRecordHandle*
 __ZZN9gui_forms18NativePopupOptions*
+__ZZN9gui_forms18NodePaletteRequest*
 __ZZN9gui_forms18PageContentRequest*
 __ZZN9gui_forms18PageControlContent*
 __ZZN9gui_forms18PageSelectingEvent*
@@ -12620,9 +12818,11 @@ __ZZN9gui_forms18RibbonCommandClick*
 __ZZN9gui_forms18RibbonDialogLaunch*
 __ZZN9gui_forms18RibbonToolTipEvent*
 __ZZN9gui_forms18RuleActionArgument*
+__ZZN9gui_forms18SceneViewTransform*
 __ZZN9gui_forms18ScrollAxisSnapshot*
 __ZZN9gui_forms18SemanticDescriptor*
 __ZZN9gui_forms18SemanticTextLayout*
+__ZZN9gui_forms18SpatialQueryResult*
 __ZZN9gui_forms18SplashscreenResult*
 __ZZN9gui_forms18TabSelectionChange*
 __ZZN9gui_forms18TaskDialogExpander*
@@ -12698,6 +12898,8 @@ __ZZN9gui_forms19MaterialCornerRadii*
 __ZZN9gui_forms19MaterialDeclaration*
 __ZZN9gui_forms19MenuStripInvocation*
 __ZZN9gui_forms19NavigationPaneState*
+__ZZN9gui_forms19NodeCanvasCallbacks*
+__ZZN9gui_forms19NodeCanvasSelection*
 __ZZN9gui_forms19ObjectDetailsColumn*
 __ZZN9gui_forms19OffscreenAttachment*
 __ZZN9gui_forms19PageSelectionChange*
@@ -12715,6 +12917,7 @@ __ZZN9gui_forms19RibbonReductionStep*
 __ZZN9gui_forms19RtfConversionResult*
 __ZZN9gui_forms19SevenSegmentDisplay*
 __ZZN9gui_forms19SourceMappingResult*
+__ZZN9gui_forms19SpatialIndexOptions*
 __ZZN9gui_forms19SpecimenStateResult*
 __ZZN9gui_forms19SplashscreenOptions*
 __ZZN9gui_forms19SubSurfaceKeyReturn*
@@ -12771,6 +12974,7 @@ __ZZN9gui_forms20ImageAtlasStatistics*
 __ZZN9gui_forms20InstrumentModuleSpec*
 __ZZN9gui_forms20MaterialColourFilter*
 __ZZN9gui_forms20MaterialColourMatrix*
+__ZZN9gui_forms20NodeCanvasStatistics*
 __ZZN9gui_forms20ObjectContextRequest*
 __ZZN9gui_forms20PointerCaptureChange*
 __ZZN9gui_forms20PresentationSettings*
@@ -12851,6 +13055,7 @@ __ZZN9gui_forms21ResponsiveTrackResult*
 __ZZN9gui_forms21RibbonGalleryCategory*
 __ZZN9gui_forms21RibbonScalingCounters*
 __ZZN9gui_forms21RibbonStateDiagnostic*
+__ZZN9gui_forms21SceneDetailThresholds*
 __ZZN9gui_forms21SemanticTextSelection*
 __ZZN9gui_forms21StockSpecimenInstance*
 __ZZN9gui_forms21SubSurfaceEndListener*
@@ -12906,6 +13111,7 @@ __ZZN9gui_forms22PropertyValueConverter*
 __ZZN9gui_forms22RibbonLadderGroupState*
 __ZZN9gui_forms22RibbonStateParseResult*
 __ZZN9gui_forms22SemanticFeedbackRecord*
+__ZZN9gui_forms22SpatialIndexStatistics*
 __ZZN9gui_forms22TableLayoutPanelCompat*
 __ZZN9gui_forms22TextMaskBudgetSnapshot*
 __ZZN9gui_forms22ThemeCompileDiagnostic*
@@ -13355,6 +13561,7 @@ __ZZNK9gui_forms10MediaFacts*
 __ZZNK9gui_forms10ModalLayer*
 __ZZNK9gui_forms10MotionStep*
 __ZZNK9gui_forms10MotionStop*
+__ZZNK9gui_forms10NodeCanvas*
 __ZZNK9gui_forms10NodeRecord*
 __ZZNK9gui_forms10NotifyIcon*
 __ZZNK9gui_forms10ObjectView*
@@ -13370,6 +13577,7 @@ __ZZNK9gui_forms10RisingBody*
 __ZZNK9gui_forms10RoutedLink*
 __ZZNK9gui_forms10RuleAction*
 __ZZNK9gui_forms10RuleFiring*
+__ZZNK9gui_forms10SceneCubic*
 __ZZNK9gui_forms10ScopeSweep*
 __ZZNK9gui_forms10ScrollCopy*
 __ZZNK9gui_forms10StaticNode*
@@ -13523,6 +13731,8 @@ __ZZNK9gui_forms12RuleSelector*
 __ZZNK9gui_forms12SemanticNode*
 __ZZNK9gui_forms12Sha256Digest*
 __ZZNK9gui_forms12Sha256Hasher*
+__ZZNK9gui_forms12SpatialEntry*
+__ZZNK9gui_forms12SpatialIndex*
 __ZZNK9gui_forms12Splashscreen*
 __ZZNK9gui_forms12TextMaskLine*
 __ZZNK9gui_forms12ThemeLibrary*
@@ -13603,6 +13813,10 @@ __ZZNK9gui_forms13MarkdownImage*
 __ZZNK9gui_forms13MaskedTextBox*
 __ZZNK9gui_forms13MaterialPanel*
 __ZZNK9gui_forms13MonthCalendar*
+__ZZNK9gui_forms13NodeBodyPaint*
+__ZZNK9gui_forms13NodeCanvasHit*
+__ZZNK9gui_forms13NodeEditEnded*
+__ZZNK9gui_forms13NodeLinkCheck*
 __ZZNK9gui_forms13NumericUpDown*
 __ZZNK9gui_forms13PageDragStart*
 __ZZNK9gui_forms13PagePlacement*
@@ -13622,6 +13836,7 @@ __ZZNK9gui_forms13RibbonToolTip*
 __ZZNK9gui_forms13RuleAddResult*
 __ZZNK9gui_forms13RuleCondition*
 __ZZNK9gui_forms13RuleExclusion*
+__ZZNK9gui_forms13SoftLinkShape*
 __ZZNK9gui_forms13SplitterPanel*
 __ZZNK9gui_forms13StepIndicator*
 __ZZNK9gui_forms13StockSpecimen*
@@ -13715,6 +13930,7 @@ __ZZNK9gui_forms14RuleDiagnostic*
 __ZZNK9gui_forms14RuleProvenance*
 __ZZNK9gui_forms14SaveFileDialog*
 __ZZNK9gui_forms14ScaledGroupBox*
+__ZZNK9gui_forms14SceneZoomRange*
 __ZZNK9gui_forms14ScrollSnapshot*
 __ZZNK9gui_forms14ShapingFeature*
 __ZZNK9gui_forms14ShapingRequest*
@@ -13788,6 +14004,8 @@ __ZZNK9gui_forms15LayoutAuthority*
 __ZZNK9gui_forms15LocaleRejection*
 __ZZNK9gui_forms15MaterialKeyline*
 __ZZNK9gui_forms15MetricsSnapshot*
+__ZZNK9gui_forms15NodeEditRequest*
+__ZZNK9gui_forms15NodeGraphEdited*
 __ZZNK9gui_forms15NotifyIconClick*
 __ZZNK9gui_forms15OffscreenRaster*
 __ZZNK9gui_forms15PageDoubleClick*
@@ -13990,6 +14208,7 @@ __ZZNK9gui_forms17MaterialImageSize*
 __ZZNK9gui_forms17MenuStripItemSpec*
 __ZZNK9gui_forms17MessageBoxRefused*
 __ZZNK9gui_forms17MessageBoxRequest*
+__ZZNK9gui_forms17NodeLinkConnected*
 __ZZNK9gui_forms17ObjectDetailsCell*
 __ZZNK9gui_forms17ObjectDetailsSort*
 __ZZNK9gui_forms17PartRasterRequest*
@@ -14087,6 +14306,7 @@ __ZZNK9gui_forms18MaterialReflection*
 __ZZNK9gui_forms18MenuItemInvocation*
 __ZZNK9gui_forms18MotionRecordHandle*
 __ZZNK9gui_forms18NativePopupOptions*
+__ZZNK9gui_forms18NodePaletteRequest*
 __ZZNK9gui_forms18PageContentRequest*
 __ZZNK9gui_forms18PageControlContent*
 __ZZNK9gui_forms18PageSelectingEvent*
@@ -14110,9 +14330,11 @@ __ZZNK9gui_forms18RibbonCommandClick*
 __ZZNK9gui_forms18RibbonDialogLaunch*
 __ZZNK9gui_forms18RibbonToolTipEvent*
 __ZZNK9gui_forms18RuleActionArgument*
+__ZZNK9gui_forms18SceneViewTransform*
 __ZZNK9gui_forms18ScrollAxisSnapshot*
 __ZZNK9gui_forms18SemanticDescriptor*
 __ZZNK9gui_forms18SemanticTextLayout*
+__ZZNK9gui_forms18SpatialQueryResult*
 __ZZNK9gui_forms18SplashscreenResult*
 __ZZNK9gui_forms18TabSelectionChange*
 __ZZNK9gui_forms18TaskDialogExpander*
@@ -14188,6 +14410,8 @@ __ZZNK9gui_forms19MaterialCornerRadii*
 __ZZNK9gui_forms19MaterialDeclaration*
 __ZZNK9gui_forms19MenuStripInvocation*
 __ZZNK9gui_forms19NavigationPaneState*
+__ZZNK9gui_forms19NodeCanvasCallbacks*
+__ZZNK9gui_forms19NodeCanvasSelection*
 __ZZNK9gui_forms19ObjectDetailsColumn*
 __ZZNK9gui_forms19OffscreenAttachment*
 __ZZNK9gui_forms19PageSelectionChange*
@@ -14205,6 +14429,7 @@ __ZZNK9gui_forms19RibbonReductionStep*
 __ZZNK9gui_forms19RtfConversionResult*
 __ZZNK9gui_forms19SevenSegmentDisplay*
 __ZZNK9gui_forms19SourceMappingResult*
+__ZZNK9gui_forms19SpatialIndexOptions*
 __ZZNK9gui_forms19SpecimenStateResult*
 __ZZNK9gui_forms19SplashscreenOptions*
 __ZZNK9gui_forms19SubSurfaceKeyReturn*
@@ -14261,6 +14486,7 @@ __ZZNK9gui_forms20ImageAtlasStatistics*
 __ZZNK9gui_forms20InstrumentModuleSpec*
 __ZZNK9gui_forms20MaterialColourFilter*
 __ZZNK9gui_forms20MaterialColourMatrix*
+__ZZNK9gui_forms20NodeCanvasStatistics*
 __ZZNK9gui_forms20ObjectContextRequest*
 __ZZNK9gui_forms20PointerCaptureChange*
 __ZZNK9gui_forms20PresentationSettings*
@@ -14341,6 +14567,7 @@ __ZZNK9gui_forms21ResponsiveTrackResult*
 __ZZNK9gui_forms21RibbonGalleryCategory*
 __ZZNK9gui_forms21RibbonScalingCounters*
 __ZZNK9gui_forms21RibbonStateDiagnostic*
+__ZZNK9gui_forms21SceneDetailThresholds*
 __ZZNK9gui_forms21SemanticTextSelection*
 __ZZNK9gui_forms21StockSpecimenInstance*
 __ZZNK9gui_forms21SubSurfaceEndListener*
@@ -14396,6 +14623,7 @@ __ZZNK9gui_forms22PropertyValueConverter*
 __ZZNK9gui_forms22RibbonLadderGroupState*
 __ZZNK9gui_forms22RibbonStateParseResult*
 __ZZNK9gui_forms22SemanticFeedbackRecord*
+__ZZNK9gui_forms22SpatialIndexStatistics*
 __ZZNK9gui_forms22TableLayoutPanelCompat*
 __ZZNK9gui_forms22TextMaskBudgetSnapshot*
 __ZZNK9gui_forms22ThemeCompileDiagnostic*

@@ -84,6 +84,7 @@
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/month_calendar.hpp"
 #include "gui_forms/controls/navigation_pane.hpp"
+#include "gui_forms/controls/node_canvas.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/controls/object_view.hpp"
 #include "gui_forms/controls/page_strip.hpp"
@@ -280,6 +281,7 @@ inline constexpr std::array<FormCatalogEntry, 144> form_catalog{{
     {"ribbon_tool_tip", "RibbonToolTip", "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp", &add_catalog_type<RibbonToolTip>},
     {"drawing_surface", "DrawingSurface", "gui_forms/controls/drawing_surface.hpp", &add_catalog_type<DrawingSurface>},
     {"raster_canvas", "RasterCanvas", "gui_forms/controls/raster_canvas.hpp", &add_catalog_type<RasterCanvas>},
+    {"node_canvas", "NodeCanvas", "gui_forms/controls/node_canvas.hpp", &add_catalog_type<NodeCanvas>},
     {"live_surface", "LiveSurface", "gui_forms/live_surface/surface/live_surface.hpp", &add_catalog_type<LiveSurface>},
     {"sub_surface_host", "SubSurfaceHost", "gui_forms/surface_root/sub_surface/sub_surface_host.hpp", &add_catalog_type<SubSurfaceHost>},
     {"metrics_view", "MetricsView", "gui_forms/controls/metrics_view.hpp", &add_catalog_type<MetricsView>},

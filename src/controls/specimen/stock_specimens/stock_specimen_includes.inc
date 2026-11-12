@@ -112,6 +112,7 @@
 #include "gui_forms/controls/lookup_combo_box.hpp"
 #include "gui_forms/controls/drawing_surface.hpp"
 #include "gui_forms/controls/raster_canvas.hpp"
+#include "gui_forms/controls/node_canvas.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/controls/metrics_view.hpp"
 #include "gui_forms/controls/help_book.hpp"

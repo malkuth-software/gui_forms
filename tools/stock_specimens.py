@@ -140,6 +140,7 @@ MAKERS: Mapping[str, str] = {
     "picture_box": "make_plain<PictureBox>",
     "drawing_surface": "make_drawing_surface",
     "raster_canvas": "make_raster_canvas",
+    "node_canvas": "make_node_canvas",
     "help_book": "make_help_book",
     "step_indicator": "make_step_indicator",
 }
@@ -209,6 +210,7 @@ SIZES: Mapping[str, tuple[float, float]] = {
     "sweep_scope": (240.0, 80.0),
     "sparkline": (224.0, 48.0),
     "plot_view": (340.0, 200.0),
+    "node_canvas": (368.0, 152.0),
     "plot_axis_item": (340.0, 200.0),
     "plot_series_item": (340.0, 200.0),
     "plot_annotation_item": (340.0, 200.0),

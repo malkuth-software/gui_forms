@@ -85,7 +85,8 @@ StockSpecimenInstance held(Control::Ptr root, Control::Ptr subject, Control::Ptr
 
 // A holder for a subject that borrows something: it owns what is
 // borrowed (a PageSet, a DockWorkspace, the commands a CommandBar
-// borrows), makes a DockWorkspace's panel contents, and lets its children
+// borrows, the graph a NodeCanvas edits), makes a DockWorkspace's panel
+// contents, and lets its children
 // go before its own members end, so the subject never outlives what it
 // borrows (the base's children would otherwise end after the members).
 // The workspace, whose factory is this holder, ends while the holder is
@@ -105,6 +106,7 @@ public:
     void create_panel(DockPanelCreation& creation);
 
     std::unique_ptr<PageSet> pages{};
+    std::unique_ptr<NodeGraph> graph{};
     std::shared_ptr<DockWorkspace> workspace{};
     std::vector<std::shared_ptr<Command>> commands{};
 };
@@ -1753,6 +1755,51 @@ StockSpecimenInstance make_raster_canvas(const StockSpecimen&, StableId id) {
     static_cast<void>((*bitmap).commit_edit(edit.token));
     (*control).bitmap = bitmap;
     StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
+// A NodeCanvas over a small graph the holder owns: a source feeding a
+// mixer feeding an output, one lit lamp and the mixer selected, so the
+// specimen shows faces, captions, ports, a lamp, links and a selection.
+StockSpecimenInstance make_node_canvas(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<StockSpecimenHolder> holder = make_control<StockSpecimenHolder>(child_id(id, ".holder"));
+    (*holder).graph = std::make_unique<NodeGraph>();
+    NodeGraph& graph = *(*holder).graph;
+    const std::array<std::string_view, 3> titles{"Noise", "Mix", "Output"};
+    const std::array<std::string_view, 3> keys{"noise", "mix", "output"};
+    const std::array<double, 3> lefts{16.0, 136.0, 256.0};
+    std::array<NodeId, 3> nodes{};
+    for (std::size_t index = 0U; index < titles.size(); ++index) {
+        NodeSpec spec{};
+        spec.key = std::string(keys[index]);
+        spec.kind = std::string(keys[index]);
+        spec.title = std::string(titles[index]);
+        spec.bounds = WorldRect{lefts[index], 40.0, 96.0, 72.0};
+        if (index > 0U) {
+            PortRecord input{};
+            input.name = "in";
+            input.direction = PortDirection::input;
+            input.side = PortSide::left;
+            spec.ports.push_back(input);
+        }
+        if (index + 1U < titles.size()) {
+            PortRecord output{};
+            output.name = "out";
+            output.direction = PortDirection::output;
+            output.side = PortSide::right;
+            spec.ports.push_back(output);
+        }
+        nodes[index] = graph.add_node(spec).node;
+    }
+    static_cast<void>(graph.connect(PortRef{nodes[0], PortIndex{0U}}, PortRef{nodes[1], PortIndex{0U}}));
+    static_cast<void>(graph.connect(PortRef{nodes[1], PortIndex{1U}}, PortRef{nodes[2], PortIndex{0U}}));
+    static_cast<void>(graph.set_port_lamp(PortRef{nodes[2], PortIndex{0U}}, PortLamp::on));
+    const std::shared_ptr<NodeCanvas> canvas = make_control<NodeCanvas>(id);
+    (*canvas).set_graph(&graph);
+    (*canvas).select_only(nodes[1]);
+    (*canvas).dock = DockStyle::fill;
+    (*holder).add_child(canvas);
+    StockSpecimenInstance instance = held(holder, canvas, canvas);
     return instance;
 }
 
