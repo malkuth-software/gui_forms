@@ -1964,8 +1964,7 @@ std::string_view recipe_field_name(RecipeField field) noexcept {
 namespace {
 
 // Whether a canvas texture layer may use `pattern`: every tiled built-in
-// pattern; the fresco covers a box and does not tile. industrial_paint and
-// cloth_weave come from claude/cp31-industrial-surfaces.
+// pattern; the fresco covers a box and does not tile.
 bool canvas_texture_pattern(ProceduralPattern pattern) noexcept {
     switch (pattern) {
     case ProceduralPattern::felt:
@@ -1973,24 +1972,50 @@ bool canvas_texture_pattern(ProceduralPattern pattern) noexcept {
     case ProceduralPattern::paper_fibre:
     case ProceduralPattern::pinstripe:
     case ProceduralPattern::brushed_metal:
-    case ProceduralPattern::checker:
-    case ProceduralPattern::industrial_paint:
-    case ProceduralPattern::cloth_weave: return true;
+    case ProceduralPattern::checker: return true;
     case ProceduralPattern::fresco:
     default: return false;
     }
 }
 
+// Whether a canvas texture layer may use `finish`: every finish but the
+// glint (whose light stands over its surface's centre, so it would repeat
+// with each block), with its seed and grain in range.
+bool canvas_texture_finish(const FinishFill& finish) noexcept {
+    bool kind = false;
+    switch (finish.kind) {
+    case FinishKind::dusty_matte:
+    case FinishKind::orange_peel:
+    case FinishKind::hammertone:
+    case FinishKind::wrinkle:
+    case FinishKind::bead_blast:
+    case FinishKind::sand_cast:
+    case FinishKind::flat:
+    case FinishKind::cloth_weave: kind = true; break;
+    case FinishKind::glint:
+    default: kind = false; break;
+    }
+    const bool grain = in_range(finish.grain, minimum_finish_grain, maximum_finish_grain);
+    const bool admitted = kind && grain && finish.seed >= 0;
+    return admitted;
+}
+
 // No layer is `none`; each layer's pattern tiles, and its tile, strength
-// and contrast are within the canvas's limits.
+// and contrast are within the canvas's limits; a finish layer's finish is
+// admitted.
 bool canvas_texture_admitted(const CanvasTextureLayers& texture) noexcept {
     if (texture.count > texture.items.size()) return false;
     for (std::size_t index = 0U; index < texture.count; ++index) {
         const CanvasTextureLayer& layer = texture.items[index];
+        if (!in_range(layer.contrast, 0.0, maximum_canvas_texture_contrast)) return false;
+        if (layer.source == CanvasTextureSource::finish) {
+            if (!canvas_texture_finish(layer.finish)) return false;
+            continue;
+        }
+        if (layer.source != CanvasTextureSource::procedural) return false;
         if (!canvas_texture_pattern(layer.pattern)) return false;
         if (!in_range(layer.tile, minimum_procedural_tile, maximum_canvas_texture_tile)) return false;
         if (!in_range(layer.strength, 0.0, 1.0)) return false;
-        if (!in_range(layer.contrast, 0.0, maximum_canvas_texture_contrast)) return false;
     }
     return true;
 }

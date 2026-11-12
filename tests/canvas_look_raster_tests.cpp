@@ -16,9 +16,9 @@
 // writes the review set as PNGs into an existing <directory> and checks
 // nothing: light and dark; each grid variant; forced high contrast; zoom
 // out, normal and in; close-ups of the links (and on blue) and the lamps
-// (and in dark); four flow frames; the texture off; felt, paper fibre,
-// industrial paint and cloth weave each in light and dark; felt over paper
-// fibre: 29 files. It never opens a window.
+// (and in dark); four flow frames; the texture off; felt and paper fibre
+// (procedural), orange peel and cloth weave (finishes), each in light and
+// dark; felt over paper fibre: 29 files. It never opens a window.
 
 #include "../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
@@ -537,8 +537,8 @@ void write_preview(const std::string& directory) {
     const std::array<TextureShot, 5> textures{{
         {"texture-felt", "procedural(felt, 31, 64px, 1) multiply 3%", true},
         {"texture-paper-fibre", "procedural(paper-fibre, 17, 64px, 1) multiply 3%", true},
-        {"texture-industrial-paint", "procedural(industrial-paint, 5, 64px, 1) multiply 3%", true},
-        {"texture-cloth-weave", "procedural(cloth-weave, 9, 32px, 1) multiply 3%", true},
+        {"texture-orange-peel", "finish(orange-peel, #ffffff, #c8c8c8, 5) multiply 3%", true},
+        {"texture-cloth-weave", "finish(cloth-weave, #ffffff, #d8d8d8, 9) multiply 3%", true},
         {"texture-layered",
          "procedural(paper-fibre, 17, 64px, 1) multiply 2%, procedural(felt, 31, 48px, 1) multiply 2%", false},
     }};

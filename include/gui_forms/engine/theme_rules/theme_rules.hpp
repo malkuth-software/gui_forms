@@ -8,6 +8,7 @@
 #include "gui_forms/engine/motion_value/motion_value.hpp"
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
@@ -1274,21 +1275,36 @@ inline constexpr double maximum_rule_font_size = 96.0;
 inline constexpr double minimum_rule_font_weight = 100.0;
 inline constexpr double maximum_rule_font_weight = 900.0;
 
-// One layer of the node canvas's texture (`background-texture`; cp31): a
-// built-in procedural pattern (ProceduralFill's `pattern`, `seed`, `tile`
-// in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units
-// and `strength` in [0, 1]) composited under the grid at `contrast`, a
-// fraction in [0, maximum_canvas_texture_contrast]. The canvas chooses the
-// pattern's colours (resolve_canvas_look): a theme sets its form only.
+// What a canvas texture layer draws: a built-in procedural pattern
+// (`procedural()`) or a surface finish (`finish()`).
+enum class CanvasTextureSource : std::uint8_t { procedural, finish };
+
+// A canvas texture's finish repeats every whole number of these logical
+// units (two of the cloth weave's 3-unit threads), so that a woven finish
+// meets itself across a block's edge.
+inline constexpr double canvas_finish_repeat = 6.0;
+
+// One layer of the node canvas's texture (`background-texture`; cp31),
+// composited under the grid at `contrast`, a fraction in
+// [0, maximum_canvas_texture_contrast]:
+// - `procedural`: a built-in pattern (ProceduralFill's `pattern`, `seed`,
+//   `tile` in [minimum_procedural_tile, maximum_canvas_texture_tile]
+//   logical units and `strength` in [0, 1]); the canvas chooses its
+//   colours (resolve_canvas_look), so a theme sets its form only;
+// - `finish`: a surface finish (`finish`, any kind but the glint, in the
+//   colours the theme writes); the pattern fields are not read.
 struct GUI_FORMS_API CanvasTextureLayer final {
+    CanvasTextureSource source{CanvasTextureSource::procedural};
     ProceduralPattern pattern{ProceduralPattern::felt};
     std::uint32_t seed{};
     double tile{64.0};
     double strength{1.0};
+    FinishFill finish{};
     double contrast{};
     friend bool operator==(const CanvasTextureLayer& left, const CanvasTextureLayer& right) noexcept {
-        return left.pattern == right.pattern && left.seed == right.seed && left.tile == right.tile &&
-               left.strength == right.strength && left.contrast == right.contrast;
+        return left.source == right.source && left.pattern == right.pattern && left.seed == right.seed &&
+               left.tile == right.tile && left.strength == right.strength && left.finish == right.finish &&
+               left.contrast == right.contrast;
     }
 };
 

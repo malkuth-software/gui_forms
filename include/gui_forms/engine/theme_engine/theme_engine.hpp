@@ -8,6 +8,7 @@
 #include <optional>
 #include <span>
 
+#include <cstddef>
 #include <cstdint>
 
 namespace gui_forms {
@@ -40,13 +41,18 @@ struct PartPaint;
 // period at scale 3; a larger period or scale may be refused, and is then
 // not drawn.
 inline constexpr double maximum_material_block_side = 256.0;
+// How often paint_material_blocks halves a block the bake refuses before
+// it draws nothing: a block of 256 device pixels shrinks to 16 at most.
+inline constexpr std::size_t maximum_material_block_halvings = 4U;
 
 // A material repeated over an area (ThemeEngine::paint_material_blocks):
 // - `key` names the part's record (borrowed for the call);
 // - `material` is borrowed for the call;
 // - `period` is the material's repeat in logical units (a procedural
 //   fill's tile), within [minimum_procedural_tile,
-//   maximum_procedural_tile];
+//   maximum_procedural_tile]; a material with no period of its own (a
+//   finish) passes the unit its blocks should be a whole number of, and
+//   then repeats once a block;
 // - the blocks lie on the lattice of whole periods through `anchor`, so
 //   that they stay where the caller anchors them as it pans, and are drawn
 //   where they meet `area`, clipped to it (the painter's coordinates).
@@ -158,12 +164,15 @@ public:
     // primitive and the window's caches as a keyed part is:
     // - The block is square, a whole number of periods across: as many as
     //   fit maximum_material_block_side device pixels at the window's
-    //   scale, and at least one. The primitive bakes it once into the
+    //   scale, and at least one, halved while the primitive refuses it
+    //   (maximum_material_block_halvings). The primitive bakes it once into the
     //   record `blocks.key` names, and again only when the material, the
     //   scale or the block changes; panning bakes nothing.
     // - A procedural fill's pattern is generated in an idle frame, never
     //   here (E10): until then the block shows the fill's ground, and the
     //   window repaints the area once the pattern is made.
+    // - A finish is painted with the block, anchored at the block's corner,
+    //   so it repeats once a block.
     // - The raster is then drawn at every block of the lattice that meets
     //   the area, in one save, clip_rect and restore.
     // Draws nothing and returns false for a control in no window, an empty

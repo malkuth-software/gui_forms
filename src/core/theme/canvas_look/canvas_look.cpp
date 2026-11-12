@@ -735,12 +735,19 @@ void paint_canvas_background(Painter& painter, const Control& canvas, const Canv
             const CanvasTextureLayer& layer = look.texture.items[index];
             const double contrast = clamp_canvas_texture_contrast(layer.contrast);
             if (!(contrast > 0.0)) continue;
-            material.fills.assign(1U, MaterialFillLayer::procedural_pattern(canvas_texture_fill(layer,
-                                                                                                 look.texture_blend)));
+            // A procedural layer repeats at its tile; a finish, which has no
+            // period, once a block of whole weave repeats.
+            const bool finished = layer.source == CanvasTextureSource::finish;
+            if (finished) {
+                material.fills.assign(1U, MaterialFillLayer::finish_fill(layer.finish));
+            } else {
+                const ProceduralFill fill = canvas_texture_fill(layer, look.texture_blend);
+                material.fills.assign(1U, MaterialFillLayer::procedural_pattern(fill));
+            }
             MaterialBlocks blocks{};
             blocks.key = PartKey{layer_keys[index], {}, {}};
             blocks.material = &material;
-            blocks.period = layer.tile;
+            blocks.period = finished ? canvas_finish_repeat : layer.tile;
             blocks.anchor = view.origin;
             blocks.area = area;
             PaintGroup group{};

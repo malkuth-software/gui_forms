@@ -157,7 +157,7 @@ struct GUI_FORMS_API CanvasFlow final {
 enum class CanvasTextureBlend : std::uint8_t { multiply, screen };
 
 // Every canvas part in every state, as one theme draws them in one colour
-// scheme and contrast. `texture` holds the theme's procedural layers, bottom
+// scheme and contrast. `texture` holds the theme's procedural and finish layers, bottom
 // first, each with its contrast clamped (layers of contrast 0 are dropped);
 // none where the theme sets none, and always in forced high contrast. `titles` are the header's title ink by
 // node state. The marquee is its area (`marquee`) and its dashed outline
@@ -277,16 +277,22 @@ struct GUI_FORMS_API CanvasView final {
 // The canvas background of `canvas` over `area`: the region's colour, then
 // each texture layer, then the grid (the level select_grid_level chooses for
 // `view.zoom`, one fill_grid_pattern pass with the level's fade).
-// - A texture layer is a baked procedural surface, never an image: a
-//   material of the one procedural fill canvas_texture_fill makes, baked by
-//   the theme engine (ThemeEngine::paint_material_blocks, record
-//   `texture.<index>`) and drawn in one multiply or screen group, as the
-//   look's texture_blend says, at the layer's clamped contrast. Its tiles
-//   are anchored at world (0, 0) and stay at the tile's logical size at
-//   every zoom, so the grain stays sharp.
+// - A texture layer is a baked surface, never an image: a material of one
+//   fill, the procedural fill canvas_texture_fill makes or the layer's
+//   finish in its theme's colours, baked by the theme engine
+//   (ThemeEngine::paint_material_blocks, record `texture.<index>`) and
+//   drawn in one multiply or screen group, as the look's texture_blend
+//   says, at the layer's clamped contrast. Its blocks are anchored at
+//   world (0, 0) and stay at their logical size at every zoom, so the
+//   grain stays sharp. A procedural layer repeats at its tile; a finish,
+//   which has no period, repeats once a block, a whole number of
+//   canvas_finish_repeat units across (at most
+//   maximum_material_block_side device pixels, smaller for a costly
+//   finish); where a block meets the next the finish does not continue,
+//   a seam drawn at the layer's contrast (at most 3 %).
 // - Cost: the engine bakes a layer once per change of the look or the
 //   window's scale, never per frame, and generates its pattern in an idle
-//   frame; each paint draws, per layer, one raster per block of at most
+//   frame (a finish is painted in that one bake); each paint draws, per layer, one raster per block of at most
 //   maximum_material_block_side device pixels.
 // A view that is not placed (a non-finite origin or zoom, or a zoom not
 // above 0) draws the colour alone.

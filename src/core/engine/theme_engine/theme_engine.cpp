@@ -1097,24 +1097,34 @@ bool ThemeEngine::paint_material_blocks(Painter& painter, const Control& control
     if (!part_bounds_paintable(area) || !periodic || !anchored) return false;
     const EnginePrimitive* const primitive = (*registry_).find("material");
     if (primitive == nullptr) return false;
-    // The block: whole periods, as many as fit the side bound, at least one.
+    // The block: whole periods, as many as fit the side bound, at least
+    // one; halved while the bake refuses it (a costly fill, such as a
+    // finish, at a large scale), at most maximum_material_block_halvings
+    // times, down to one period.
     const double scale = (*window).scale();
     const double period_pixels = blocks.period * scale;
     const double fitting = std::floor(maximum_material_block_side / period_pixels);
-    const double periods = std::max(1.0, fitting);
-    const double side = periods * blocks.period;
-    const Size block{side, side};
+    double periods = std::max(1.0, fitting);
     const Insets outsets = (*primitive).descriptor().outsets;
     PartRasterRequest request{};
     request.primitive = primitive;
     request.parameters = default_parameters((*primitive).descriptor());
-    request.target.logical_size = block;
     request.target.scale = DeviceScale{scale};
     request.target.material = blocks.material;
     request.target.images = &(*window).image_resources();
-    request.extent = raster_extent(block, outsets, scale);
-    if (request.extent.width == 0U || request.extent.height == 0U) return false;
-    if (!(*primitive).accepts(request.parameters, request.target)) return false;
+    bool accepted = false;
+    double side = periods * blocks.period;
+    for (std::size_t halving = 0U; halving <= maximum_material_block_halvings; ++halving) {
+        side = periods * blocks.period;
+        const Size block{side, side};
+        request.target.logical_size = block;
+        request.extent = raster_extent(block, outsets, scale);
+        if (request.extent.width == 0U || request.extent.height == 0U) return false;
+        accepted = (*primitive).accepts(request.parameters, request.target);
+        if (accepted || periods <= 1.0) break;
+        periods = std::max(1.0, std::floor(periods / 2.0));
+    }
+    if (!accepted) return false;
     // The record, and where the area was drawn: the window repaints that
     // extent when a pattern the bake awaits is made.
     const std::optional<PartRecordHandle> record =

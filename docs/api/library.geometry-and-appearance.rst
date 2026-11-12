@@ -63,7 +63,7 @@ Types
    * - :cpp:class:`CanvasLook <gui_forms::CanvasLook>`
      - Every canvas part in every state, as one theme draws them in one colour scheme and contrast.
    * - :cpp:class:`CanvasTextureLayer <gui_forms::CanvasTextureLayer>`
-     - One layer of the node canvas's texture (``background-texture``; cp31): a built-in procedural pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]) composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast].
+     - One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
    * - :cpp:class:`CanvasTextureLayers <gui_forms::CanvasTextureLayers>`
      - The texture's layers, bottom first: capacity maximum_canvas_texture_layers, ``count`` live (0 is ``none``).
    * - :cpp:class:`CanvasView <gui_forms::CanvasView>`
@@ -245,7 +245,7 @@ Types
    * - :cpp:class:`MaterialAssemblyContext <gui_forms::MaterialAssemblyContext>`
      - Replaces ``material`` with ``floor`` and the declarations of ``fields`` (the winning declaration of each field, by the field's position, null where none) in place: a part's assembled material (EC1); an ``initial`` declaration keeps the floor's value.
    * - :cpp:class:`MaterialBlocks <gui_forms::MaterialBlocks>`
-     - A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
+     - A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; a material with no period of its own (a finish) passes the unit its blocks should be a whole number of, and then repeats once a block; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
    * - :cpp:class:`MaterialBorder <gui_forms::MaterialBorder>`
      - MaterialBorder pairs an authored color and logical stroke width.
    * - :cpp:class:`MaterialBorderEdges <gui_forms::MaterialBorderEdges>`
@@ -944,7 +944,7 @@ Types
 
    ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
 
-   Every canvas part in every state, as one theme draws them in one colour scheme and contrast. ``texture`` holds the theme's procedural layers, bottom first, each with its contrast clamped (layers of contrast 0 are dropped); none where the theme sets none, and always in forced high contrast. ``titles`` are the header's title ink by node state. The marquee is its area (``marquee``) and its dashed outline (``marquee_outline``; no halo). A plain value: copy it, keep it, compare it.
+   Every canvas part in every state, as one theme draws them in one colour scheme and contrast. ``texture`` holds the theme's procedural and finish layers, bottom first, each with its contrast clamped (layers of contrast 0 are dropped); none where the theme sets none, and always in forced high contrast. ``titles`` are the header's title ink by node state. The marquee is its area (``marquee``) and its dashed outline (``marquee_outline``; no halo). A plain value: copy it, keep it, compare it.
 
    .. cpp:member:: CanvasArea background
 
@@ -1000,7 +1000,11 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One layer of the node canvas's texture (``background-texture``; cp31): a built-in procedural pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]) composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]. The canvas chooses the pattern's colours (resolve_canvas_look): a theme sets its form only.
+   One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
+
+   .. cpp:member:: CanvasTextureSource source
+
+      Default: ``{CanvasTextureSource::procedural}``.
 
    .. cpp:member:: ProceduralPattern pattern
 
@@ -1015,6 +1019,8 @@ Types
    .. cpp:member:: double strength
 
       Default: ``{1.0}``.
+
+   .. cpp:member:: FinishFill finish
 
    .. cpp:member:: double contrast
 
@@ -3441,7 +3447,7 @@ Types
 
    ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
 
-   A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
+   A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; a material with no period of its own (a finish) passes the unit its blocks should be a whole number of, and then repeats once a block; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
 
    .. cpp:member:: PartKey key
 
@@ -6124,7 +6130,7 @@ Types
 
    .. cpp:function:: bool paint_material_blocks(Painter& painter, const Control& control, const MaterialBlocks& blocks) const
 
-      Paints ``blocks.material`` repeated over ``blocks.area`` of ``control`` (the node canvas's texture layers; cp31), through the material primitive and the window's caches as a keyed part is: - The block is square, a whole number of periods across: as many as fit maximum_material_block_side device pixels at the window's scale, and at least one. The primitive bakes it once into the record ``blocks.key`` names, and again only when the material, the scale or the block changes; panning bakes nothing. - A procedural fill's pattern is generated in an idle frame, never here (E10): until then the block shows the fill's ground, and the window repaints the area once the pattern is made. - The raster is then drawn at every block of the lattice that meets the area, in one save, clip_rect and restore. Draws nothing and returns false for a control in no window, an empty or non-finite area or anchor, a period outside its range, no material, a material the primitive refuses (its bake over the material bound) or no raster. Allocation failure propagates as std::bad_alloc, as paint's does. Not reentrant, as paint is not.
+      Paints ``blocks.material`` repeated over ``blocks.area`` of ``control`` (the node canvas's texture layers; cp31), through the material primitive and the window's caches as a keyed part is: - The block is square, a whole number of periods across: as many as fit maximum_material_block_side device pixels at the window's scale, and at least one, halved while the primitive refuses it (maximum_material_block_halvings). The primitive bakes it once into the record ``blocks.key`` names, and again only when the material, the scale or the block changes; panning bakes nothing. - A procedural fill's pattern is generated in an idle frame, never here (E10): until then the block shows the fill's ground, and the window repaints the area once the pattern is made. - A finish is painted with the block, anchored at the block's corner, so it repeats once a block. - The raster is then drawn at every block of the lattice that meets the area, in one save, clip_rect and restore. Draws nothing and returns false for a control in no window, an empty or non-finite area or anchor, a period outside its range, no material, a material the primitive refuses (its bake over the material bound) or no raster. Allocation failure propagates as std::bad_alloc, as paint's does. Not reentrant, as paint is not.
 
    .. cpp:function:: PartHitRegion hit_region(const Control& control, const PartPaint& part) const noexcept
 
@@ -6734,6 +6740,16 @@ Enumerations
    .. cpp:enumerator:: multiply
 
    .. cpp:enumerator:: screen
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasTextureSource
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: procedural
+
+   .. cpp:enumerator:: finish
 
 .. cpp:namespace:: gui_forms
 
@@ -9094,6 +9110,10 @@ Functions, constants and aliases
 
    The side, in device pixels, that paint_material_blocks fits whole periods into. With the material's outsets (8 logical units each side) a block of one composited pattern stays within the material bake bound (maximum_material_bake_effort, at 135 units a pixel) up to a 96-unit period at scale 3; a larger period or scale may be refused, and is then not drawn. Value: ``256.0``.
 
+.. cpp:var:: constexpr std::size_t maximum_material_block_halvings
+
+   How often paint_material_blocks halves a block the bake refuses before it draws nothing: a block of 256 device pixels shrinks to 16 at most. Value: ``4U``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
@@ -9512,6 +9532,10 @@ Functions, constants and aliases
 
    Value: ``900.0``.
 
+.. cpp:var:: constexpr double canvas_finish_repeat
+
+   A canvas texture's finish repeats every whole number of these logical units (two of the cloth weave's 3-unit threads), so that a woven finish meets itself across a block's edge. Value: ``6.0``.
+
 .. cpp:var:: constexpr std::uint32_t custom_property_undefined
 
    One rule. ``label`` names it in diagnostics (T3: its source position). ``requires_engine``, when set, is the engine version the rule needs, in place of its sheet's. Its transitions and its ambient effect cascade as declarations do: for each property, the transition of the last matching rule that declares one (for a parameter, among the rules selecting the part's primitive), and the ambient effect of the last matching rule that declares one. Its material fields (EC1) cascade the same way, each on its own, from every matching rule, whatever primitive it selects: they change a part only where its primitive draws a theme material. Its recipe fields (RecipeField) cascade the same way for the control as a whole. ``specificity``, when set, is the rule's specificity in place of the one its selector gives (T3 engine change EC2): a rule expanded from CSS's ``:is()`` takes its most specific argument's. A class or stable-ID rule with a given specificity then needs a class or an ID in it rather than in its selector; an inline style still needs its selector's stable ID. Custom properties defined in more than one place (T3 P12, EC7; owner decision of 2026-10-29), resolved per part when the theme loads: each definition of such a name is a scoped definition of the rule that declares it, at the rule's level, selector and media; and a rule that reads such names is lowered once per combination of their candidate definitions, each copy holding the combination as its conditions. A part's winning definition of a name is the last matching one in ascending precedence, or none; a copy applies to a part only where every condition names the part's winner. A name defined once is substituted when the theme loads, and is not scoped. Names are written with their ``--``; a definition is identified by a number unique in the sheet. Value: ``0xFFFF'FFFFU``.
@@ -9706,7 +9730,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void paint_canvas_background(Painter& painter, const Control& canvas, const CanvasLook& look, Rect area, CanvasView view)
 
-   The canvas background of ``canvas`` over ``area``: the region's colour, then each texture layer, then the grid (the level select_grid_level chooses for ``view.zoom``, one fill_grid_pattern pass with the level's fade). - A texture layer is a baked procedural surface, never an image: a material of the one procedural fill canvas_texture_fill makes, baked by the theme engine (ThemeEngine::paint_material_blocks, record ``texture.<index>``) and drawn in one multiply or screen group, as the look's texture_blend says, at the layer's clamped contrast. Its tiles are anchored at world (0, 0) and stay at the tile's logical size at every zoom, so the grain stays sharp. - Cost: the engine bakes a layer once per change of the look or the window's scale, never per frame, and generates its pattern in an idle frame; each paint draws, per layer, one raster per block of at most maximum_material_block_side device pixels. A view that is not placed (a non-finite origin or zoom, or a zoom not above 0) draws the colour alone.
+   The canvas background of ``canvas`` over ``area``: the region's colour, then each texture layer, then the grid (the level select_grid_level chooses for ``view.zoom``, one fill_grid_pattern pass with the level's fade). - A texture layer is a baked surface, never an image: a material of one fill, the procedural fill canvas_texture_fill makes or the layer's finish in its theme's colours, baked by the theme engine (ThemeEngine::paint_material_blocks, record ``texture.<index>``) and drawn in one multiply or screen group, as the look's texture_blend says, at the layer's clamped contrast. Its blocks are anchored at world (0, 0) and stay at their logical size at every zoom, so the grain stays sharp. A procedural layer repeats at its tile; a finish, which has no period, repeats once a block, a whole number of canvas_finish_repeat units across (at most maximum_material_block_side device pixels, smaller for a costly finish); where a block meets the next the finish does not continue, a seam drawn at the layer's contrast (at most 3 %). - Cost: the engine bakes a layer once per change of the look or the window's scale, never per frame, and generates its pattern in an idle frame (a finish is painted in that one bake); each paint draws, per layer, one raster per block of at most maximum_material_block_side device pixels. A view that is not placed (a non-finite origin or zoom, or a zoom not above 0) draws the colour alone.
 
 .. cpp:function:: void paint_canvas_node(Painter& painter, const CanvasLook& look, Rect body, double header_height, CanvasNodeState state)
 

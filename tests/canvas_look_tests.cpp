@@ -4,7 +4,7 @@
 // contrast clamp and its layers' fills; the paint functions' commands (the
 // background's fill, texture groups, the engine's baked blocks on the world
 // lattice, and the grid level at three zooms, nodes, links with their
-// halo and dashes, the marquee, the focus ring, port labels, the knife and
+// halo and dashes, finish layers' blocks, the marquee, the focus ring, port labels, the knife and
 // the link preview); one item's look (`:item()` rules for a socket type and
 // a node's ID); and the link_flow effect: its frames
 // wanted only while a link flows and motion is not reduced, its still
@@ -478,18 +478,44 @@ CanvasLook stock_look() {
     return look;
 }
 
+// A procedural texture layer.
+CanvasTextureLayer procedural_layer(ProceduralPattern pattern, std::uint32_t seed, double tile, double strength,
+                                    double contrast) {
+    CanvasTextureLayer layer{};
+    layer.source = CanvasTextureSource::procedural;
+    layer.pattern = pattern;
+    layer.seed = seed;
+    layer.tile = tile;
+    layer.strength = strength;
+    layer.contrast = contrast;
+    return layer;
+}
+
 // Two layers: felt at 8 % (clamped to 3 %) and paper fibre at 0 (drawn
 // as nothing).
 CanvasTextureLayers two_layers() {
     CanvasTextureLayers layers{};
-    layers.items[0] = CanvasTextureLayer{ProceduralPattern::felt, 7U, 64.0, 0.5, 0.08};
-    layers.items[1] = CanvasTextureLayer{ProceduralPattern::paper_fibre, 3U, 48.0, 1.0, 0.0};
+    layers.items[0] = procedural_layer(ProceduralPattern::felt, 7U, 64.0, 0.5, 0.08);
+    layers.items[1] = procedural_layer(ProceduralPattern::paper_fibre, 3U, 48.0, 1.0, 0.0);
     layers.count = 2U;
     return layers;
 }
 
+// One finish layer: orange peel in white and a light grey, at 3 %.
+CanvasTextureLayers finish_layer() {
+    CanvasTextureLayers layers{};
+    CanvasTextureLayer& layer = layers.items[0];
+    layer.source = CanvasTextureSource::finish;
+    layer.finish.kind = FinishKind::orange_peel;
+    layer.finish.paint = Color::rgba(255, 255, 255);
+    layer.finish.secondary = Color::rgba(200, 200, 200);
+    layer.contrast = 0.03;
+    layers.count = 1U;
+    return layers;
+}
+
 void texture_fills() {
-    const CanvasTextureLayer layer{ProceduralPattern::paper_fibre, 9U, 48.0, 0.75, 0.02};
+    const CanvasTextureLayer layer = procedural_layer(ProceduralPattern::paper_fibre, 9U, 48.0, 0.75, 0.02);
     const ProceduralFill multiplied = canvas_texture_fill(layer, CanvasTextureBlend::multiply);
     require(multiplied.pattern == ProceduralPattern::paper_fibre && multiplied.seed == 9U && multiplied.tile == 48.0 &&
                 multiplied.strength == 0.75,
@@ -563,6 +589,31 @@ void background_commands() {
     paint_canvas_background(panned, *attached, look, area, view);
     require(panned.rasters.size() == 4U && panned.rasters[3] == baked.rasters[3],
             "a pan by one block leaves the lattice where it was");
+
+    // A finish layer: one block of whole 6-unit repeats, at most 256 device
+    // pixels (fewer where the bake refuses the larger), on the same
+    // lattice; in no window it bakes nothing.
+    look.texture = finish_layer();
+    RecordingPainter unbaked_finish;
+    paint_canvas_background(unbaked_finish, *detached, look, area, view);
+    require(unbaked_finish.groups.size() == 1U && unbaked_finish.groups[0].opacity == 0.03 &&
+                unbaked_finish.rasters.empty(),
+            "a finish layer is one group at its contrast, and bakes nothing in no window");
+    RecordingPainter finished;
+    paint_canvas_background(finished, *attached, look, area, view);
+    const Point corner{5.0 - outsets.left, 7.0 - outsets.top};
+    bool at_corner = false;
+    for (const Point origin : finished.rasters) {
+        if (origin == corner) at_corner = true;
+    }
+    require(finished.rasters.size() >= 4U && at_corner, "the finish's blocks lie on the lattice through world (0, 0)");
+    if (finished.rasters.size() >= 2U) {
+        const double side = finished.rasters[1].x - finished.rasters[0].x;
+        const double repeats = side / canvas_finish_repeat;
+        require(side > 0.0 && side <= 256.0 && std::floor(repeats) == repeats,
+                "a finish block is a whole number of repeats, at most 256 pixels");
+    }
+    look.texture = two_layers();
     view.origin = Point{5.0, 7.0};
     look.texture = CanvasTextureLayers{};
     look.grid.minor_shown = false;

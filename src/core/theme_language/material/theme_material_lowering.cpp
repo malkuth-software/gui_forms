@@ -2926,21 +2926,39 @@ bool MaterialReader::lower_background_texture() {
     return true;
 }
 
-// One texture layer: `procedural(...)` (read_procedural), `multiply` and a
-// percentage from 0% to 3%.
+// One texture layer: `procedural(...)` (read_procedural) or `finish(...)`
+// (read_finish, as a fill writes it; any finish but a glint), then
+// `multiply` and a percentage from 0% to 3%.
 bool MaterialReader::read_texture_layer(ComponentRange range, CanvasTextureLayer& layer) {
     const std::uint32_t token = range.first < range.end ? value_.components[range.first].token : start_;
     if (count(range) != 3U) {
-        return fail(DiagnosticCode::value_syntax, token, "none or procedural(...) multiply <percentage>");
+        return fail(DiagnosticCode::value_syntax, token,
+                    "none, or procedural(...) or finish(...), multiply <percentage>");
     }
     const std::size_t function_index = range.first;
     const std::size_t blend_index = next(function_index);
     const std::size_t contrast_index = next(blend_index);
     const ValueComponent& function = value_.components[function_index];
-    const bool procedural = function.kind == ValueComponentKind::function &&
-                            equals_ascii_folded(function.text, procedural_function_name);
-    if (!procedural) return fail(DiagnosticCode::value_wrong_kind, function.token, "procedural(...)");
-    if (!read_procedural(function_index, layer)) return false;
+    const bool written = function.kind == ValueComponentKind::function;
+    const bool procedural = written && equals_ascii_folded(function.text, procedural_function_name);
+    const bool finished = written && equals_ascii_folded(function.text, finish_function_name);
+    if (!procedural && !finished) {
+        return fail(DiagnosticCode::value_wrong_kind, function.token, "procedural(...) or finish(...)");
+    }
+    if (procedural) {
+        layer.source = CanvasTextureSource::procedural;
+        if (!read_procedural(function_index, layer)) return false;
+    } else {
+        MaterialFillLayer read{};
+        if (!read_finish(function_index, read)) return false;
+        if (read.finish.kind == FinishKind::glint) {
+            const std::size_t kind_index = function_index + 1U;
+            return fail(DiagnosticCode::value_wrong_kind, value_.components[kind_index].token,
+                        "a finish other than a glint");
+        }
+        layer.source = CanvasTextureSource::finish;
+        layer.finish = read.finish;
+    }
     const ValueComponent& blend = value_.components[blend_index];
     if (blend.kind != ValueComponentKind::keyword) {
         return fail(DiagnosticCode::value_wrong_kind, blend.token, "multiply");
@@ -2979,8 +2997,7 @@ bool MaterialReader::read_procedural(std::size_t index, CanvasTextureLayer& laye
     }
     if (named == nullptr) {
         return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
-                    "felt, wood-grain, paper-fibre, pinstripe, brushed-metal, checker, industrial-paint or "
-                    "cloth-weave");
+                    "felt, wood-grain, paper-fibre, pinstripe, brushed-metal or checker");
     }
     const ValueComponent& seed = value_.components[arguments[1].first];
     const bool whole = seed.kind == ValueComponentKind::number && seed.unit == ValueUnit::none &&

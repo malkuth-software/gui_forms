@@ -746,14 +746,15 @@ void test_warnings() {
     require(each_refused, "each stripe value outside its range or vocabulary refuses its sheet with one error");
     // The node canvas's properties (cp31) are part fields too: admitted on
     // a named part, range-checked, and refused on a control; the texture is
-    // one to three baked procedural layers, each multiplied at most 3 %.
+    // one to three baked layers, procedural or a finish, each multiplied at
+    // most 3 %.
     const Compilation canvas = compile(
         "#a::part(face) { fill-color: #fbfcfd; stroke-color: rgb(99 132 178 / 22%); stroke-width: 1.5px;"
         " stroke-dash: 6px 4px; halo: rgb(47 105 190 / 30%) 4px; corner-radius: 6px; grid-spacing: 16px;"
         " grid-band: 12px; flow: dots; flow-speed: 48; flow-spacing: 16px;"
         " background-texture: procedural(felt, 7, 64px, 0.5) multiply 2.5%,"
         " procedural(paper-fibre, 4294967295, 48px, 1) multiply 3%,"
-        " procedural(cloth-weave, 0, 16px, 0.75) multiply 1% }\n"
+        " finish(cloth-weave, #ffffff, #d8d8d8, 9, 2) multiply 1% }\n"
         "#b::part(face) { stroke-dash: none; halo: none; flow: none; background-texture: none }");
     bool canvas_admitted = true;
     for (const ThemeDiagnostic& diagnostic : canvas.diagnostics) {
@@ -793,15 +794,25 @@ void test_warnings() {
         require(fibre.pattern == ProceduralPattern::paper_fibre && fibre.seed == 4294967295U &&
                     fibre.contrast == 0.03,
                 "the largest seed and 3 % are admitted");
-        require(weave.pattern == ProceduralPattern::cloth_weave && weave.tile == 16.0 && weave.contrast == 0.01,
-                "the cloth weave is a texture kind");
+        require(felt.source == CanvasTextureSource::procedural && weave.source == CanvasTextureSource::finish &&
+                    weave.finish.kind == FinishKind::cloth_weave && weave.finish.seed == 9 &&
+                    weave.finish.grain == 2.0 && weave.finish.paint == Color::rgba(255, 255, 255) &&
+                    weave.finish.secondary == Color::rgba(0xd8, 0xd8, 0xd8) && weave.contrast == 0.01,
+                "a finish layer lowers to its finish, written as a fill writes it");
     }
     require(untextured != nullptr && (*untextured).texture.count == 0U, "none lowers to no layer");
     require(dash != nullptr && (*dash).number == 6.0 && gap != nullptr && (*gap).number == 4.0,
             "stroke-dash lowers to its dash and its gap");
     require(halo_width != nullptr && (*halo_width).number == 4.0, "a halo's width is read in either order");
     require(flow != nullptr && (*flow).flow_style == CanvasFlowStyle::dots, "flow lowers to its mark");
-    const std::array<BadStripe, 17> bad_canvas{{
+    const std::array<BadStripe, 21> bad_canvas{{
+        {"#a::part(face) { background-texture: procedural(cloth-weave, 0, 16px, 1) multiply 2% }",
+         DiagnosticCode::value_wrong_kind},
+        {"#a::part(face) { background-texture: finish(sand-blast-glint, #ffffff, #a3a3a3) multiply 2% }",
+         DiagnosticCode::value_wrong_kind},
+        {"#a::part(face) { background-texture: finish(orange-peel) multiply 2% }", DiagnosticCode::value_syntax},
+        {"#a::part(face) { background-texture: finish(orange-peel, #ffffff, #c8c8c8) multiply 4% }",
+         DiagnosticCode::value_out_of_range},
         {"#a::part(face) { background-texture: procedural(felt, 0, 64px, 1) multiply 5% }",
          DiagnosticCode::value_out_of_range},
         {"#a::part(face) { background-texture: procedural(felt, 0, 64px, 1) screen 2% }",
