@@ -59,8 +59,8 @@ public:
     TextEditingEngine& operator=(const TextEditingEngine&) = delete;
 
     [[nodiscard]] const TextStore& store() const noexcept { return store_; }
-    [[nodiscard]] std::string_view text() const& noexcept { return store_.utf8(); }
-    std::string_view text() const&& = delete;
+    [[nodiscard]] BorrowedText text() const& noexcept { return store_.utf8(); }
+    BorrowedText text() const&& = delete;
     [[nodiscard]] TextSelection selection() const noexcept { return selection_; }
     // Records a selection the control has validated; no host call.
     void set_selection_value(TextSelection selection) noexcept { selection_ = selection; }

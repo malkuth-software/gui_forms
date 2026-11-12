@@ -34,6 +34,7 @@
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/live_surface/write_lease/live_surface_write_lease.hpp"
 #include "gui_forms/text/text_store/text_store.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -227,6 +228,13 @@ int plain_mode() {
     const std::vector<ToolStripItemSpec> copied(strip_items.begin(), strip_items.end());
     if (copied.size() != 2U) return fail("strip items copy differs");
 
+    // The inline style's text (study row 10), valid until the style changes.
+    if (!(*first).inline_style().empty()) return fail("inline style present at first");
+    const InlineStyleResult styled = (*first).set_inline_style("outline: 5px solid");
+    const BorrowedText style = (*first).inline_style();
+    const std::string_view expected_style = styled.succeeded() ? std::string_view("outline: 5px solid") : std::string_view();
+    if (style != expected_style) return fail("inline style differs");
+
     std::printf("borrowed views: ok\n");
     return EXIT_SUCCESS;
 }
@@ -403,6 +411,15 @@ void tool_strip_items_mode() {
     std::printf("read %zu items\n", items.size());
 }
 
+// An inline style's text, then a new style, then a read.
+void inline_style_mode() {
+    std::shared_ptr<Control> control = make_control<Control>(StableId("borrow.styled"));
+    static_cast<void>((*control).set_inline_style("outline: 5px solid"));
+    const BorrowedText style = (*control).inline_style();
+    static_cast<void>((*control).set_inline_style("outline: 2px solid"));
+    std::printf("read %zu bytes\n", style.size());
+}
+
 // A layout workspace's view, then the next solve's storage, then a read.
 void layout_workspace_mode() {
     BlockFlowLayoutWorkspace workspace;
@@ -474,6 +491,7 @@ int main(int argc, char** argv) {
     else if (mode == "text_store") text_store_mode();
     else if (mode == "layout_workspace") layout_workspace_mode();
     else if (mode == "tool_strip_items") tool_strip_items_mode();
+    else if (mode == "inline_style") inline_style_mode();
     else if (mode == "write_lease") write_lease_mode();
     else if (mode == "raster_death") raster_death_mode();
     else {

@@ -192,7 +192,7 @@ void RichTextBox::line_runs(Utf8Range range, const LineBlock& block, std::size_t
 // A tab is a chunk of its own.
 void RichTextBox::measure_run(const Run& run, std::size_t& chunk) {
     const TextStore& store = (*editing_).store();
-    const std::string_view text = store.utf8();
+    const BorrowedText text = store.utf8();
     const FontSpec font = piece_styles_[run.style].font;
     std::size_t chunk_start = run.start;
     std::size_t chunk_graphemes = 0U;

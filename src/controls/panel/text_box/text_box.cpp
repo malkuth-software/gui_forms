@@ -468,7 +468,7 @@ void TextBox::rebuild_multiline_rows(const double width) {
     line_ascent_ = metrics.ascent > 0.0 ? metrics.ascent : content_font.size;
     const ResolvedTextLayout tab_metrics = resolve_text_layout_utf8("    ", content_font);
     const double tab_width = std::max(1.0, tab_metrics.logical_size.width);
-    const std::string_view source = (*editing_).text();
+    const BorrowedText source = (*editing_).text();
     const std::size_t logical_count = (*editing_).store().line_count();
     std::size_t maximum_line_bytes = 0U;
     for (std::size_t logical = 0U; logical < logical_count; ++logical) {
@@ -811,7 +811,7 @@ Rect TextBox::paint_multiline(Painter& painter) {
             continue;
         }
         if (selected) paint_selection_band(painter, selection_bounds);
-        const std::string_view source = (*editing_).text();
+        const BorrowedText source = (*editing_).text();
         if (!selected) {
             for (const VisualRun& run : row.runs) {
                 const Point baseline{origin + run.x, y + line_ascent_};

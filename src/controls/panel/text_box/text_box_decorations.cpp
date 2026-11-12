@@ -232,7 +232,7 @@ void TextBox::paint_decorated_row(Painter& painter, const DecoratedRow& decorate
     // at the selection band, whose part takes the selection's ink. The
     // row's first and last runs reach the clip's edges, so glyphs leaning
     // past either end of the row keep their ink.
-    const std::string_view source = (*editing_).text();
+    const BorrowedText source = (*editing_).text();
     const double band_left = decorated.band.x;
     const double band_right = decorated.band.x + decorated.band.width;
     for (std::size_t index = 0U; index < styled_scratch_.size(); ++index) {

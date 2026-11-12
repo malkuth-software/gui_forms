@@ -40,7 +40,7 @@ bool TextEditingEngine::show_text(std::string_view text, TextSelection selection
 std::string TextEditingEngine::selected_text() const {
     const Utf8Offset start = selection_.start();
     const std::size_t length = selection_.length();
-    const std::string_view source = store_.utf8();
+    const BorrowedText source = store_.utf8();
     const std::string_view selected = source.substr(start.value(), length);
     const std::string result(selected);
     return result;
@@ -224,7 +224,7 @@ std::size_t line_holding(const TextStore& store, Utf8Offset offset) {
 // edit, so those lines are the lines of that stretch of the new text.
 // The total size is checked by the caller.
 bool TextEditingEngine::edited_lines_fit(Utf8Offset start, Utf8Offset end, std::string_view replacement) const {
-    const std::string_view current = store_.utf8();
+    const BorrowedText current = store_.utf8();
     const std::size_t line = line_holding(store_, start);
     const std::size_t stretch_start = store_.line_start(LineIndex(line)).value();
     const std::size_t last = line_holding(store_, end);

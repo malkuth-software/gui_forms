@@ -725,8 +725,10 @@ public:
     // theme compiles it again (ApplicationResources::set_theme,
     // set_theme_override, attachment).
     [[nodiscard]] InlineStyleResult set_inline_style(std::string_view text);
-    // The inline style's text in force; empty without one.
-    [[nodiscard]] std::string_view inline_style() const noexcept;
+    // The inline style's text in force; empty without one. Valid until the
+    // style is set, cleared or recompiled for a theme change (checked
+    // builds fail fast on a later read).
+    [[nodiscard]] BorrowedText inline_style() const noexcept;
     // Its compiled rules (CompiledThemeRules::compile_inline), or null
     // without one; the cascade reads them for this control alone.
     [[nodiscard]] const CompiledThemeRules* inline_style_rules() const noexcept;
@@ -1863,6 +1865,8 @@ private:
                           ControlStyles::standard_double_click |
                           ControlStyles::selectable};
     std::shared_ptr<const detail::ControlInlineStyle> inline_style_;
+    // Ends inline_style() views whenever inline_style_ is replaced.
+    [[no_unique_address]] detail::BorrowLender inline_style_lender_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
     std::optional<SurfaceMaterial> authored_surface_material_;

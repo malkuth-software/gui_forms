@@ -13,11 +13,13 @@ namespace gui_forms::detail {
 struct ApplicationWindowState;
 
 // One native popup window (Window::open_native_popup): the run's
-// handle on it and a borrowed pointer to its model. Shared by the token
+// handle on it and a weak WindowRef to its model. Shared by the token
 // that keeps it open and, as a revocable, by the control that opened it.
-// The window and its model are owned by the host's entry; the model
-// pointer is used only while the handle is active, because the host
-// destroys the model only after the window's state is revoked.
+// The window and its model are owned by the host's entry; the model is
+// read only while the handle is active, because the host destroys the
+// model only after the window's state is revoked, and the WindowRef reads
+// null if a teardown reorder ever breaks that (borrow sanitizer study,
+// section 2.5, row 8: retention is not a borrow).
 class NativePopupRecord final : public Revocable {
 public:
     // Unbound until the run opens the window (bind).
@@ -46,7 +48,7 @@ public:
 
 private:
     ApplicationWindowHandle window_{};
-    Window* model_{};
+    WindowRef model_{};
     Event<> closed_{};
     // Set by notify_closed; the handle may still read active inside the
     // window's own closed callback.
