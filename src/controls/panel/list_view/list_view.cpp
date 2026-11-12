@@ -17,6 +17,7 @@
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <numeric>
 #include <stdexcept>
 #include <string>
@@ -1237,6 +1238,7 @@ ListView::Layout ListView::layout_for(Rect client) const {
     const double scale = effective_text_scale();
     placed.scale = scale;
     placed.well = client;
+    placed.mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
     const double inset = edge_inset * scale;
     const Rect content{client.x + inset, client.y + inset, std::max(0.0, client.width - inset * 2.0),
                        std::max(0.0, client.height - inset * 2.0)};
@@ -1621,12 +1623,18 @@ void ListView::arrange(Rect final_bounds) {
     if (vertical_bar_) {
         const bool shown = !placed.vertical_bar.empty();
         set_child_layout_collapsed(vertical_bar_, !shown);
-        if (shown) set_child_layout(vertical_bar_, placed.vertical_bar);
+        if (shown) {
+            const Rect bar = details_detail::shown_rect(placed.vertical_bar, placed.well, placed.mirrored);
+            set_child_layout(vertical_bar_, bar);
+        }
     }
     if (horizontal_bar_) {
         const bool shown = !placed.horizontal_bar.empty();
         set_child_layout_collapsed(horizontal_bar_, !shown);
-        if (shown) set_child_layout(horizontal_bar_, placed.horizontal_bar);
+        if (shown) {
+            const Rect bar = details_detail::shown_rect(placed.horizontal_bar, placed.well, placed.mirrored);
+            set_child_layout(horizontal_bar_, bar);
+        }
     }
     // Keep the stored scroll within the new bounds.
     if (placed.grouped) {
@@ -1643,6 +1651,14 @@ void ListView::arrange(Rect final_bounds) {
 
 // -- paint -------------------------------------------------------------------
 
+// Paints `part`, laid out in reading order, where it shows: mirrored, with
+// its text alignment exchanged, right to left.
+void ListView::paint_shown(Painter& painter, const Layout& placed, PartPaint part) {
+    part.bounds = details_detail::shown_rect(part.bounds, placed.well, placed.mirrored);
+    part.alignment = details_detail::shown_alignment(part.alignment, placed.mirrored);
+    paint_part(painter, *this, part);
+}
+
 void ListView::paint_column(Painter& painter, const Layout& placed, std::size_t column) {
     const Rect cell = column_cell(placed, column);
     const ColumnParts parts = column_parts(placed, column, cell);
@@ -1655,26 +1671,26 @@ void ListView::paint_column(Painter& painter, const Layout& placed, std::size_t 
     part.family = ControlVisualRole::menu_item;
     part.role = PartRole::face;
     part.bounds = parts.column_header.bounds;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
     part.role = PartRole::label;
     part.bounds = parts.column_label.bounds;
     part.alignment = text_alignment(columns_[column].alignment);
     details_detail::elide_to_width(painter, columns_[column].text, part.font, part.bounds.width, paint_text_);
     part.text = paint_text_;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
     part.text = {};
     part.alignment = PartTextAlignment::start;
     if (parts.sort_glyph.present) {
         part.role = PartRole::glyph;
         part.bounds = parts.sort_glyph.bounds;
         part.mark = sort_order_ == ListViewSortOrder::ascending ? PartMark::arrow_up : PartMark::arrow_down;
-        paint_part(painter, *this, part);
+        paint_shown(painter, placed, part);
         part.mark = PartMark::none;
     }
     part.family = ControlVisualRole::panel;
     part.role = PartRole::divider;
     part.bounds = parts.column_divider.bounds;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
     // column_grip is the divider's drag zone. The divider is its visible
     // sign; painting the grip role would draw grip dots at every divider.
 }
@@ -1698,19 +1714,19 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
     part.family = ControlVisualRole::selection;
     part.role = PartRole::face;
     part.bounds = parts.item_face.bounds;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
     if (parts.check_well.present) {
         part.family = ControlVisualRole::choice;
         part.role = PartRole::well;
         part.bounds = parts.check_well.bounds;
-        paint_part(painter, *this, part);
+        paint_shown(painter, placed, part);
         // An unchecked box shows no mark: an indicator without a mark
         // would paint a plate.
         if (states.contains(AnatomyState::checked)) {
             part.role = PartRole::indicator;
             part.bounds = parts.check.bounds;
             part.mark = PartMark::check;
-            paint_part(painter, *this, part);
+            paint_shown(painter, placed, part);
             part.mark = PartMark::none;
         }
         part.family = ControlVisualRole::selection;
@@ -1728,7 +1744,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
                                  .index = index,
                                  .column = 0U,
                                  .stable_id = paint_stable_id_,
-                                 .content = content,
+                                 .content = details_detail::shown_rect(content, placed.well, placed.mirrored),
                                  .states = states,
                                  .font = part.font,
                                  .text = item_content_text(*this, ControlVisualRole::selection, states)};
@@ -1746,7 +1762,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
             part.role = PartRole::icon;
             part.bounds = parts.icon.bounds;
             part.image = resolved.image;
-            paint_part(painter, *this, part);
+            paint_shown(painter, placed, part);
             part.image = {};
         }
     }
@@ -1756,7 +1772,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
     if (default_content) {
         details_detail::elide_to_width(painter, item.text, part.font, part.bounds.width, paint_text_);
         part.text = paint_text_;
-        paint_part(painter, *this, part);
+        paint_shown(painter, placed, part);
         part.text = {};
     }
     if (view.read() == ListViewView::details) {
@@ -1774,7 +1790,8 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
                                          .index = index,
                                          .column = column,
                                          .stable_id = paint_stable_id_,
-                                         .content = sub.sub_item_text.bounds,
+                                         .content = details_detail::shown_rect(sub.sub_item_text.bounds, placed.well,
+                                                                               placed.mirrored),
                                          .states = sub_states,
                                          .font = part.font,
                                          .text = item_content_text(*this, ControlVisualRole::selection, sub_states)};
@@ -1788,7 +1805,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
             details_detail::elide_to_width(painter, column_text(item, column), part.font, part.bounds.width,
                                            paint_text_);
             part.text = paint_text_;
-            paint_part(painter, *this, part);
+            paint_shown(painter, placed, part);
             part.text = {};
         }
         part.states = states;
@@ -1797,7 +1814,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
     if (view.read() == ListViewView::tile && !paint_tile_lines(painter, placed, index, parts, states)) return false;
     part.role = PartRole::focus;
     part.bounds = parts.cell_focus.bounds;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
     return true;
 }
 
@@ -1838,7 +1855,7 @@ bool ListView::paint_tile_lines(Painter& painter, const Layout& placed, std::siz
         details_detail::elide_to_width(painter, column_text(item, column), part.font, bounds.width, paint_text_);
         part.bounds = bounds;
         part.text = paint_text_;
-        paint_part(painter, *this, part);
+        paint_shown(painter, placed, part);
         part.text = {};
     }
     return true;
@@ -1860,11 +1877,11 @@ void ListView::paint_group(Painter& painter, const Layout& placed, std::size_t b
                                             : PartTextAlignment::start;
     details_detail::elide_to_width(painter, group_header(group), part.font, part.bounds.width, paint_text_);
     part.text = paint_text_;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
     part.text = {};
     part.role = PartRole::divider;
     part.bounds = parts.group_divider.bounds;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
 }
 
 // The header lines among the visible lines, in order.
@@ -1917,15 +1934,15 @@ void ListView::on_paint(Painter& painter, Rect) {
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.bounds = placed.well;
-    paint_part(painter, *this, well);
+    paint_shown(painter, placed, well);
     if (!placed.header.empty()) {
         PartPaint header;
         header.family = ControlVisualRole::panel;
         header.role = PartRole::face;
         header.bounds = placed.header;
-        paint_part(painter, *this, header);
+        paint_shown(painter, placed, header);
         painter.save();
-        painter.clip_rect(placed.header);
+        painter.clip_rect(details_detail::shown_rect(placed.header, placed.well, placed.mirrored));
         for (std::size_t column = 0; column < columns_.size(); ++column) {
             if (column_visible(placed, column)) paint_column(painter, placed, column);
         }
@@ -1933,7 +1950,7 @@ void ListView::on_paint(Painter& painter, Rect) {
     }
     if (!placed.viewport.empty()) {
         painter.save();
-        painter.clip_rect(placed.viewport);
+        painter.clip_rect(details_detail::shown_rect(placed.viewport, placed.well, placed.mirrored));
         const std::size_t groups = realized_group_count(placed);
         for (std::size_t group = 0; group < groups; ++group) {
             paint_group(painter, placed, realized_group_band(placed, group));
@@ -1956,7 +1973,7 @@ void ListView::on_paint(Painter& painter, Rect) {
             bar.role = PartRole::drop;
             bar.bounds = mark;
             bar.states.insert(AnatomyState::drop_accepted);
-            paint_part(painter, *this, bar);
+            paint_shown(painter, placed, bar);
         }
         painter.restore();
     }
@@ -1965,7 +1982,7 @@ void ListView::on_paint(Painter& painter, Rect) {
         corner.family = ControlVisualRole::panel;
         corner.role = PartRole::face;
         corner.bounds = placed.corner;
-        paint_part(painter, *this, corner);
+        paint_shown(painter, placed, corner);
     }
     // With no item to carry the focus cue, the view itself shows it.
     if (placed.shown_count == 0U) {
@@ -1974,7 +1991,7 @@ void ListView::on_paint(Painter& painter, Rect) {
         focus.role = PartRole::focus;
         focus.bounds = placed.well;
         focus.states = control_states;
-        paint_part(painter, *this, focus);
+        paint_shown(painter, placed, focus);
     }
 }
 
@@ -2091,8 +2108,11 @@ void ListView::reveal_cut_off_text(const Layout& placed, const Hit& hit, Point l
     const double row_left = text_cell.x - reveal_lead;
     detail::CutOffText revealed{};
     revealed.key = std::to_string(hit.index) + "#" + std::to_string(column);
-    revealed.row = {absolute.x + row_left, absolute.y + cell.y, std::max(0.0, row_right - row_left), cell.height};
-    revealed.cell = {absolute.x + text_cell.x, absolute.y + text_cell.y, text_cell.width, text_cell.height};
+    const Rect row_reading{row_left, cell.y, std::max(0.0, row_right - row_left), cell.height};
+    const Rect row_shown = details_detail::shown_rect(row_reading, placed.well, placed.mirrored);
+    const Rect cell_shown = details_detail::shown_rect(text_cell, placed.well, placed.mirrored);
+    revealed.row = {absolute.x + row_shown.x, absolute.y + row_shown.y, row_shown.width, row_shown.height};
+    revealed.cell = {absolute.x + cell_shown.x, absolute.y + cell_shown.y, cell_shown.width, cell_shown.height};
     revealed.text = std::string(text);
     revealed.font = text_font(font.read());
     revealed.paint = detail::RevealPaint{.family = ControlVisualRole::selection, .states = states};
@@ -2150,7 +2170,8 @@ std::optional<ListViewInsertionMark> ListView::insertion_mark_at(Point window_po
     const Layout placed = layout();
     if (placed.shown_count == 0U || placed.viewport.empty()) return std::nullopt;
     const Rect absolute = absolute_bounds();
-    const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point drawn{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point local = details_detail::reading_point(drawn, placed.well, placed.mirrored);
     // The point is clamped into the viewport, so that a drag past an edge
     // names the nearest item there.
     const Rect area = placed.viewport;
@@ -2191,8 +2212,10 @@ std::optional<ListViewInsertionMark> ListView::insertion_mark_at(Point window_po
 
 std::optional<std::size_t> ListView::item_index_at(Point window_point) const {
     const Rect absolute = absolute_bounds();
-    const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
-    const Hit hit = hit_test(layout(), local);
+    const Layout placed = layout();
+    const Point drawn{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point local = details_detail::reading_point(drawn, placed.well, placed.mirrored);
+    const Hit hit = hit_test(placed, local);
     if (hit.zone != HitZone::item && hit.zone != HitZone::check) return std::nullopt;
     return hit.index;
 }
@@ -2217,7 +2240,12 @@ void ListView::request_column_click(std::size_t column) {
 void ListView::on_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const Point drawn{event.position.x - absolute.x, event.position.y - absolute.y};
+    // In reading order from here on (right to left, the drawn view mirrors).
+    // The two values are copied: the kept layout is remade by later calls.
+    const Rect frame = layout().well;
+    const bool mirrored = layout().mirrored;
+    const Point local = details_detail::reading_point(drawn, frame, mirrored);
     const Control::Ptr lifetime = shared_from_this();
     if (resizing_column_) {
         conceal_cut_off_text();
@@ -2475,12 +2503,20 @@ void ListView::on_key(KeyEvent& event) {
         event.handled = true;
         return;
     }
-    const std::optional<std::size_t> target = navigation_target(event.physical_key, from, placed);
+    // Right to left the view reads from the right: Left and Right exchange
+    // before navigation, which works in reading order.
+    std::uint32_t key = event.physical_key;
+    if (placed.mirrored && key == PhysicalKey::left) {
+        key = PhysicalKey::right;
+    } else if (placed.mirrored && key == PhysicalKey::right) {
+        key = PhysicalKey::left;
+    }
+    const std::optional<std::size_t> target = navigation_target(key, from, placed);
     if (!target) {
         // The details view scrolls sideways with Left and Right.
-        const bool sideways = event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::right;
+        const bool sideways = key == PhysicalKey::left || key == PhysicalKey::right;
         if (!sideways || view.read() != ListViewView::details) return;
-        const double step = event.physical_key == PhysicalKey::left ? -horizontal_key_step : horizontal_key_step;
+        const double step = key == PhysicalKey::left ? -horizontal_key_step : horizontal_key_step;
         set_horizontal_offset(std::max(0.0, placed.horizontal_offset + step));
         event.handled = true;
         return;
@@ -2613,7 +2649,8 @@ Rect ListView::label_editor_bounds(const Layout& placed) const {
 
 void ListView::place_label_editor(const Layout& placed) {
     if (!label_editor_ || !label_edit_index_) return;
-    set_child_layout(label_editor_, label_editor_bounds(placed));
+    const Rect editor = details_detail::shown_rect(label_editor_bounds(placed), placed.well, placed.mirrored);
+    set_child_layout(label_editor_, editor);
 }
 
 // The editor is made on the view's first edit, so that a view which is never
@@ -2775,7 +2812,8 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
     // column_click.
     for (std::size_t column = 0; column < columns_.size(); ++column) {
         if (!column_visible(placed, column)) continue;
-        const Rect bounds = Rect::intersection(column_cell(placed, column), placed.header);
+        const Rect bounds = details_detail::shown_rect(Rect::intersection(column_cell(placed, column), placed.header),
+                                                       placed.well, placed.mirrored);
         SemanticNode node{};
         node.stable_id = column_identity(list_id, columns_[column].stable_id);
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
@@ -2799,7 +2837,8 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
     for (std::size_t position = first; position < end; ++position) {
         const std::size_t index = index_at(placed, position);
         const ListViewItem& item = item_at(index, scratch);
-        const Rect bounds = Rect::intersection(item_bounds(placed, index), placed.viewport);
+        const Rect bounds = details_detail::shown_rect(Rect::intersection(item_bounds(placed, index), placed.viewport),
+                                                       placed.well, placed.mirrored);
         SemanticNode node{};
         node.stable_id = item.stable_id;
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
@@ -2842,7 +2881,9 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
             group_node.runtime_id = virtual_semantic_runtime_id(group_node.stable_id);
             group_node.role = SemanticRole::group;
             group_node.name = group_header(record.group);
-            group_node.bounds = {absolute.x + extent.x, absolute.y + extent.y, extent.width, extent.height};
+            const Rect drawn_extent = details_detail::shown_rect(extent, placed.well, placed.mirrored);
+            group_node.bounds = {absolute.x + drawn_extent.x, absolute.y + drawn_extent.y, drawn_extent.width,
+                                 drawn_extent.height};
             group_node.states = SemanticState::visible | enabled_state;
         }
         group_node.children.push_back(std::move(node));
@@ -2863,7 +2904,8 @@ void ListView::append_row_cells(const Layout& placed, std::size_t index, const L
     for (std::size_t column = 0; column < columns_.size(); ++column) {
         const Rect extent = column_cell(placed, column);
         const Rect cell_rect{extent.x, line.y, extent.width, line.height};
-        const Rect bounds = Rect::intersection(cell_rect, placed.viewport);
+        const Rect bounds = details_detail::shown_rect(Rect::intersection(cell_rect, placed.viewport), placed.well,
+                                                       placed.mirrored);
         if (bounds.empty()) continue;
         SemanticNode cell{};
         cell.stable_id = item.stable_id + ".cell." + columns_[column].stable_id;
@@ -3086,6 +3128,7 @@ void ListView::publish_part_geometry(std::span<PartGeometry> geometry) const {
     record.insertion_mark = PartGeometry::from_bounds(insertion_mark_bounds(placed));
     if (record.insertion_mark.present) record.insertion_mark.states.insert(AnatomyState::drop_accepted);
     record.label_editor = PartGeometry::from_bounds(label_editor_bounds(placed));
+    if (placed.mirrored) details_detail::mirror_record(list_view_part_fields, record, placed.well);
     write_parts(anatomy(), list_view_part_fields, record, geometry);
 }
 
@@ -3183,16 +3226,20 @@ void ListView::publish_realized_item_geometry(std::size_t item, std::span<PartGe
     const RealizedSlot slot = realized_slot(placed, item);
     const ItemSystemDeclaration& system = anatomy().item_systems[slot.system.value];
     if (slot.system == item_system) {
-        const ItemParts record = item_parts(placed, slot.index, placed.viewport);
+        ItemParts record = item_parts(placed, slot.index, placed.viewport);
+        if (placed.mirrored) details_detail::mirror_record(list_view_item_part_fields, record, placed.well);
         write_item_parts(system, list_view_item_part_fields, record, geometry);
     } else if (slot.system == sub_item_system) {
-        const SubItemParts record = sub_item_parts(placed, slot.index, slot.column, placed.viewport);
+        SubItemParts record = sub_item_parts(placed, slot.index, slot.column, placed.viewport);
+        if (placed.mirrored) details_detail::mirror_record(list_view_sub_item_part_fields, record, placed.well);
         write_item_parts(system, list_view_sub_item_part_fields, record, geometry);
     } else if (slot.system == group_system) {
-        const GroupParts record = group_parts(placed, slot.index, placed.viewport);
+        GroupParts record = group_parts(placed, slot.index, placed.viewport);
+        if (placed.mirrored) details_detail::mirror_record(list_view_group_part_fields, record, placed.well);
         write_item_parts(system, list_view_group_part_fields, record, geometry);
     } else {
-        const ColumnParts record = column_parts(placed, slot.column, placed.header);
+        ColumnParts record = column_parts(placed, slot.column, placed.header);
+        if (placed.mirrored) details_detail::mirror_record(list_view_column_part_fields, record, placed.well);
         write_item_parts(system, list_view_column_part_fields, record, geometry);
     }
 }

@@ -3493,7 +3493,10 @@ void DataGridView::on_pointer(PointerEvent& event) {
     if (resizing_column_) {
         if (event.action == PointerAction::move) {
             const DataGridViewColumn& column = columns_[*resizing_column_];
-            const double delta = (local.x - resize_start_x_) / layout.scale;
+            // Right to left the divider is at the column's left edge, so
+            // dragging it left widens the column.
+            const double moved = layout.mirrored ? resize_start_x_ - local.x : local.x - resize_start_x_;
+            const double delta = moved / layout.scale;
             const double width = std::max(column.minimum_width, resize_start_width_ + delta);
             set_column_width(*resizing_column_, width);
         } else if (event.action == PointerAction::up) {
@@ -3831,7 +3834,15 @@ bool DataGridView::navigation_key(KeyEvent& event) {
     const std::size_t count = row_count();
     const std::size_t columns = shown_order_.size();
     if (count == 0U || columns == 0U) return false;
-    const std::uint32_t key = event.physical_key;
+    // Right to left the columns read from the right: Left moves to the next
+    // column and Right to the previous one.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    std::uint32_t key = event.physical_key;
+    if (mirrored && key == PhysicalKey::left) {
+        key = PhysicalKey::right;
+    } else if (mirrored && key == PhysicalKey::right) {
+        key = PhysicalKey::left;
+    }
     const bool control = has_modifier(event.modifiers, Modifier::control);
     const bool shift = has_modifier(event.modifiers, Modifier::shift);
     const bool full_row = selection_mode.read() == DataGridViewSelectionMode::full_row_select;

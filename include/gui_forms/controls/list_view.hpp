@@ -24,6 +24,7 @@
 namespace gui_forms {
 
 class HScrollBar;
+struct PartPaint;
 class TextBox;
 class VScrollBar;
 
@@ -521,6 +522,9 @@ private:
         Rect vertical_bar{};    // empty when not shown
         Rect horizontal_bar{};
         Rect corner{};          // between two shown bars
+        // Right to left: every rectangle here is in reading order and is
+        // mirrored about `well` where it is drawn, published or placed.
+        bool mirrored{};
         double scale{1.0};
         double row_height{};    // details, list and small-icon rows
         double text_line{};     // one line of the font's text
@@ -644,6 +648,7 @@ private:
     // before an owner-draw handler ran.
     [[nodiscard]] bool model_unchanged(std::uint64_t revision) const noexcept;
     void paint_column(Painter& painter, const Layout& placed, std::size_t column);
+    void paint_shown(Painter& painter, const Layout& placed, PartPaint part);
 
     void set_top_line(std::size_t line);
     void scroll_lines(std::ptrdiff_t lines);

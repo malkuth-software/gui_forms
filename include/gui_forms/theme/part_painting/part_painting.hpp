@@ -181,6 +181,10 @@ struct PartPaint final {
     // surface roles read it; none is a rectangle. Hit testing uses the same
     // shape (pointed_face_contains).
     std::optional<double> point{};
+    // The nose is at the left edge instead, its tip at the middle of the
+    // left edge: a right-to-left breadcrumb segment's (Control::
+    // right_to_left). Read only with `point`.
+    bool point_leading{};
     // The part's profile beside its rectangle (PartProfile), or none. Only
     // surface roles read it; a pointed face ignores it.
     std::optional<PartProfile> profile{};
@@ -321,6 +325,9 @@ void paint_text_part_at(Painter& painter, const Control& control, PartPaint part
 // `point` units long (PartPaint::point): inside the bounds and left of the
 // nose's edges. A point of zero or less is the whole rectangle.
 [[nodiscard]] bool pointed_face_contains(Rect bounds, double point, Point position) noexcept;
+// The same for a face whose nose is at its left edge (PartPaint::
+// point_leading): inside the bounds and right of the nose's edges.
+[[nodiscard]] bool leading_pointed_face_contains(Rect bounds, double point, Point position) noexcept;
 
 // How far `control`'s theme's overlay shadow reaches outside the casting
 // surface's rect, in the control's presentation (ordinary or high

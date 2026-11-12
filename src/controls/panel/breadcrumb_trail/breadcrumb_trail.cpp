@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <unordered_set>
 #include <utility>
@@ -246,6 +247,13 @@ void BreadcrumbTrail::rebuild_layout(double width, double height) {
     visible_items_.push_back(
         {VisibleKind::edit, 0U,
          {edit_x, inner_y, std::max(0.0, width - edit_x - 1.0), inner_height}});
+    // Right to left the trail reads from the right: the root at the right
+    // edge, the edit terminal at the left, each segment's overlap at its
+    // left (laid out left to right above, mirrored once here).
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        const Rect frame{0.0, 0.0, width, height};
+        for (VisibleItem& item : visible_items_) item.bounds = horizontally_mirrored(item.bounds, frame);
+    }
 }
 
 void BreadcrumbTrail::normalize_active() {
@@ -309,6 +317,7 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
     // parts are disabled.
     AnatomyStateSet states = anatomy_states();
     states.erase(AnatomyState::hot);
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
     // Paint every overlapping face before its shared chevron. Drawing a
     // joint inside this loop lets the next face erase that joint because each
     // successor deliberately overlaps the preceding face by edge_overlap_.
@@ -345,8 +354,11 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
         }
         const double text_width =
             painter.measure_text_utf8(text, item_font).width;
+        // A segment's label starts 9 units in from its reading start: its
+        // left, or its right edge right to left.
+        const double segment_x = mirrored ? item.bounds.x + item.bounds.width - 9.0 - text_width : item.bounds.x + 9.0;
         const double text_x = item.kind == VisibleKind::segment
-            ? item.bounds.x + 9.0
+            ? std::max(item.bounds.x, segment_x)
             : item.bounds.x + std::max(0.0,
                 (item.bounds.width - text_width) * 0.5);
         PartPaint label;
@@ -366,12 +378,15 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
         const bool active = focused_ && visible_stable_id(item) == active_id_;
         if (index + 1U < visible_items_.size()) {
             // An 8-unit square on the overlap holds the chevron.
-            const double edge_x = std::floor(item.bounds.x + item.bounds.width - edge_overlap_ * 0.5);
+            // On the overlap at the item's reading end, pointing onward.
+            const double trailing_x = mirrored ? item.bounds.x + edge_overlap_ * 0.5
+                                               : item.bounds.x + item.bounds.width - edge_overlap_ * 0.5;
+            const double edge_x = std::floor(trailing_x);
             const double middle = std::floor(item.bounds.y + item.bounds.height * 0.5);
             PartPaint chevron;
             chevron.family = ControlVisualRole::command_button;
             chevron.role = PartRole::disclosure;
-            chevron.mark = PartMark::chevron_right;
+            chevron.mark = mirrored ? PartMark::chevron_left : PartMark::chevron_right;
             chevron.bounds = {edge_x - 4.0, middle - 4.0, 8.0, 8.0};
             chevron.states = states;
             paint_part(painter, *this, chevron);
@@ -404,6 +419,10 @@ void BreadcrumbTrail::paint_raised(Painter& painter) {
         segment_font.size, committed_arranged_bounds().height * 0.5 + segment_font.size * 0.34));
     AnatomyStateSet states = anatomy_states();
     states.erase(AnatomyState::hot);
+    // Right to left each nose points left, over the segment to its left;
+    // the label and ring are laid out from the left, then mirrored in the
+    // segment.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
     painter.save();
     painter.clip_rect(local_bounds());
     for (std::size_t remaining = visible_items_.size(); remaining > 0U; --remaining) {
@@ -416,6 +435,8 @@ void BreadcrumbTrail::paint_raised(Painter& painter) {
         const bool active = focused_ && visible_stable_id(item) == active_id_;
         const bool terminal = item.kind == VisibleKind::edit;
         const double tip = terminal ? 0.0 : raised_point(bounds);
+        // The shoulder's distance from the reading start, as a left-to-right
+        // segment's x would be.
         const double shoulder = bounds.x + bounds.width - tip;
         AnatomyStateSet item_states = states;
         if (hovered_visible_ == index || active) item_states.insert(AnatomyState::hot);
@@ -434,6 +455,7 @@ void BreadcrumbTrail::paint_raised(Painter& painter) {
         face.states = item_states;
         face.corner_radius = 0.0;
         if (tip > 0.0) face.point = tip;
+        face.point_leading = mirrored;
         paint_part(painter, *this, face);
         FontSpec item_font = segment_font;
         if (current || terminal) item_font.weight = 700;
@@ -448,15 +470,17 @@ void BreadcrumbTrail::paint_raised(Painter& painter) {
         label.states = item_states;
         label.text = text;
         label.font = item_font;
-        label.bounds = {text_x, baseline - box_ascent, std::max(0.0, shoulder - text_x - 2.0), box_height};
+        const Rect reading_label{text_x, baseline - box_ascent, std::max(0.0, shoulder - text_x - 2.0), box_height};
+        label.bounds = mirrored ? horizontally_mirrored(reading_label, bounds) : reading_label;
         label.measured_text = measured;
         paint_part(painter, *this, label);
         if (active) {
             PartPaint ring;
             ring.family = family;
             ring.role = PartRole::focus;
-            ring.bounds = {bounds.x + left_padding - 5.0, bounds.y,
-                           std::max(0.0, shoulder - bounds.x - left_padding + 5.0), bounds.height};
+            const Rect reading_ring{bounds.x + left_padding - 5.0, bounds.y,
+                                    std::max(0.0, shoulder - bounds.x - left_padding + 5.0), bounds.height};
+            ring.bounds = mirrored ? horizontally_mirrored(reading_ring, bounds) : reading_ring;
             ring.states = item_states;
             ring.states.insert(AnatomyState::focus_visible);
             paint_part(painter, *this, ring);
@@ -472,6 +496,18 @@ double BreadcrumbTrail::raised_point(Rect bounds) const noexcept {
     return result;
 }
 
+// Whether `local` lies in a raised segment's pointed face of `bounds`: its
+// nose at the right, or at the left right to left.
+bool BreadcrumbTrail::raised_face_contains(Rect bounds, Point local) const noexcept {
+    const double point = raised_point(bounds);
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        const bool inside = leading_pointed_face_contains(bounds, point, local);
+        return inside;
+    }
+    const bool inside = pointed_face_contains(bounds, point, local);
+    return inside;
+}
+
 std::optional<std::size_t> BreadcrumbTrail::visible_index_at(
     Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
@@ -482,10 +518,10 @@ std::optional<std::size_t> BreadcrumbTrail::visible_index_at(
         // A raised segment is hit in its pointed face (the shape it is
         // painted in), less the preceding segment's nose over it.
         if (appearance.read() == BreadcrumbAppearance::raised && item.kind != VisibleKind::edit) {
-            if (!pointed_face_contains(item.bounds, raised_point(item.bounds), local)) continue;
+            if (!raised_face_contains(item.bounds, local)) continue;
             if (index > 1U) {
                 const Rect previous = visible_items_[index - 2U].bounds;
-                if (pointed_face_contains(previous, raised_point(previous), local)) continue;
+                if (raised_face_contains(previous, local)) continue;
             }
         }
         const std::optional<std::size_t> result(index - 1U);
@@ -564,8 +600,12 @@ void BreadcrumbTrail::on_key(KeyEvent& event) {
         event.handled = true;
         return;
     }
-    if (event.physical_key == PhysicalKey::left && active > 0U) --active;
-    else if (event.physical_key == PhysicalKey::right &&
+    // Right to left the trail reads from the right: Left moves on.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const std::uint32_t back_key = mirrored ? PhysicalKey::right : PhysicalKey::left;
+    const std::uint32_t onward_key = mirrored ? PhysicalKey::left : PhysicalKey::right;
+    if (event.physical_key == back_key && active > 0U) --active;
+    else if (event.physical_key == onward_key &&
              active + 1U < visible_items_.size()) ++active;
     else if (event.physical_key == PhysicalKey::home) active = 0U;
     else if (event.physical_key == PhysicalKey::end) {

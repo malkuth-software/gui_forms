@@ -4,6 +4,7 @@
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
+#include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/types/painter/painter.hpp"
@@ -1049,21 +1050,28 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
     PartPaint whole = part;
     whole.point.reset();
     const Rect bounds = part.bounds;
-    const double shoulder = bounds.x + bounds.width - length;
+    // The shape is laid out with the nose at the right and mirrored about
+    // the bounds for a leading nose (point_leading).
+    const bool leading = part.point_leading;
+    const double shoulder = leading ? bounds.x + length : bounds.x + bounds.width - length;
     std::array<Rect, pointed_face_strips + 1U> clips{};
-    clips[0] = Rect{bounds.x, bounds.y, bounds.width - length, bounds.height};
+    const Rect body{bounds.x, bounds.y, bounds.width - length, bounds.height};
+    clips[0] = leading ? horizontally_mirrored(body, bounds) : body;
     for (std::size_t strip = 0U; strip < pointed_face_strips; ++strip) {
         const double left = length * static_cast<double>(strip) / static_cast<double>(pointed_face_strips);
         const double right = length * static_cast<double>(strip + 1U) / static_cast<double>(pointed_face_strips);
         const double inset = bounds.height * 0.5 * left / length;
-        clips[strip + 1U] = Rect{shoulder + left, bounds.y + inset, right - left, bounds.height - inset * 2.0};
+        const double trailing_shoulder = bounds.x + bounds.width - length;
+        const Rect strip_rect{trailing_shoulder + left, bounds.y + inset, right - left, bounds.height - inset * 2.0};
+        clips[strip + 1U] = leading ? horizontally_mirrored(strip_rect, bounds) : strip_rect;
     }
     paint_part_clipped(painter, control, whole, clips);
     const ControlVisualContext context = part_visual_context(control, part.states);
     const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
     if (part.frame == PartFrame::none || !recipe.material.border) return;
     const Color edge = (*recipe.material.border).color;
-    const Point tip{bounds.x + bounds.width - 0.5, bounds.y + bounds.height * 0.5};
+    const double tip_x = leading ? bounds.x + 0.5 : bounds.x + bounds.width - 0.5;
+    const Point tip{tip_x, bounds.y + bounds.height * 0.5};
     painter.draw_line({shoulder, bounds.y + 0.5}, tip, edge, 1.0);
     painter.draw_line(tip, {shoulder, bounds.y + bounds.height - 0.5}, edge, 1.0);
 }
@@ -1244,6 +1252,13 @@ bool pointed_face_contains(Rect bounds, double point, Point position) noexcept {
     const double distance = std::abs(position.y - bounds.y - half_height);
     const double edge = bounds.x + bounds.width - tip * distance / half_height;
     const bool inside = position.x <= edge;
+    return inside;
+}
+
+bool leading_pointed_face_contains(Rect bounds, double point, Point position) noexcept {
+    // The mirror of the trailing face: a point mirrored about the bounds.
+    const Point mirrored{bounds.x + bounds.x + bounds.width - position.x, position.y};
+    const bool inside = pointed_face_contains(bounds, point, mirrored);
     return inside;
 }
 

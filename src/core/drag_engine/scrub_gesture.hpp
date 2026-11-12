@@ -56,6 +56,8 @@ inline constexpr double scrub_fine_factor = 0.1;
 //   rate: value units per logical unit of travel; positive and finite.
 //   snap_step: Ctrl's grid from minimum; zero or less snaps nothing.
 //   keyboard_step: the keyboard mode's arrow step; positive.
+//   reversed: travel to the left raises the value, for a target that reads
+//     right to left (Control::right_to_left).
 struct ScrubRange final {
     double start{};
     double minimum{};
@@ -63,6 +65,7 @@ struct ScrubRange final {
     double rate{0.01};
     double snap_step{};
     double keyboard_step{1.0};
+    bool reversed{};
 };
 
 // The host's pointer lock for this scrub (HostCapability
