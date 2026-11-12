@@ -783,7 +783,8 @@ def _command_members(args: argparse.Namespace) -> int:
     import member_manifest
 
     try:
-        return member_manifest.command_generate(args.catalogue, args.check)
+        return member_manifest.command_generate(args.catalogue, args.check, member_manifest.MANIFEST_PATH,
+                                                args.runtime)
     except member_manifest.ManifestError as error:
         print(f"members: {error}", file=sys.stderr)
         return 1
@@ -820,6 +821,8 @@ def build_parser() -> argparse.ArgumentParser:
         "members", help="write or check manifests/members.json, the member manifest")
     members.add_argument("--catalogue", type=Path, default=None,
                          help="stage W's WINFORMS_API_CATALOGUE.tsv; without it the committed Windows Forms rows are kept")
+    members.add_argument("--runtime", type=Path, default=None,
+                         help="dotnet/runtime reference sources, <version>/<library>.cs, for Component and BackgroundWorker")
     members.add_argument("--check", action="store_true",
                          help="fail when the manifest and the registry, schema or headers disagree")
     members.set_defaults(run=_command_members)

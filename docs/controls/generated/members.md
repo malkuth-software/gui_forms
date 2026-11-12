@@ -8,14 +8,14 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 1938 | 13 | 315 | 3488 | 2046 |
+| 1940 | 13 | 331 | 4141 | 2037 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
 | `Control` | `Control` | 186 | 0 | 5 | 345 | 179 |
-| `Component` | GUI.Forms-only | 7 | 0 | 0 | 2 | 9 |
+| `Component` | `Component` | 8 | 0 | 0 | 9 | 8 |
 | `ButtonBase` | `ButtonBase` | 17 | 0 | 0 | 35 | 21 |
 | `Button` | `Button` | 6 | 0 | 0 | 6 | 5 |
 | `DropDownButton` | `ToolStripSplitButton` | 6 | 0 | 0 | 18 | 5 |
@@ -141,7 +141,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `SubSurfaceHost` | GUI.Forms-only | 14 | 0 | 0 | 1 | 15 |
 | `MetricsView` | GUI.Forms-only | 1 | 0 | 0 | 0 | 1 |
 | `Timer` | `Timer` | 6 | 0 | 0 | 3 | 1 |
-| `BackgroundWorker` | `BackgroundWorker` | 9 | 0 | 0 | 1 | 10 |
+| `BackgroundWorker` | `BackgroundWorker` | 10 | 0 | 0 | 6 | 2 |
 | `NotifyIcon` | `NotifyIcon` | 12 | 0 | 0 | 14 | 6 |
 | `OpenFileDialog` | `OpenFileDialog` | 11 | 0 | 0 | 6 | 4 |
 | `SaveFileDialog` | `SaveFileDialog` | 9 | 0 | 0 | 5 | 4 |
@@ -203,15 +203,103 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `PageSetupDialog` | excluded | Stage W excludes it: printing. | 0 | 0 | 12 | 0 | 0 |
 | `ComponentEditorPage` | excluded | Stage W excludes it: design time. | 0 | 0 | 0 | 0 | 0 |
 | `NativeWindow` | unclassified | w-review: a platform-extension review row under ADR-001 | 0 | 0 | 0 | 13 | 0 |
+| `ListViewItem` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 32 | 0 |
+| `ListViewGroup` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 14 | 0 |
+| `TreeNode` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 47 | 0 |
+| `DataGridViewBand` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 15 | 0 |
+| `DataGridViewRow` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 23 | 0 |
+| `DataGridViewColumn` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 21 | 0 |
+| `DataGridViewCell` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 95 | 0 |
+| `DataGridViewCellStyle` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 19 | 0 |
+| `DataGridViewTextBoxCell` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 2 | 0 |
+| `DataGridViewCheckBoxCell` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 10 | 0 |
+| `DataGridViewComboBoxCell` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 12 | 0 |
+| `DataGridViewButtonCell` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 3 | 0 |
+| `DataGridViewImageCell` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 4 | 0 |
+| `DataGridViewLinkCell` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 8 | 0 |
+| `DataGridViewHeaderCell` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 2 | 0 |
+| `DataGridViewColumnHeaderCell` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 2 | 0 |
+| `DataGridViewRowHeaderCell` | unclassified | nested: an item, cell or band type the controls hold; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `AxHost.AboutBoxDelegate` | excluded | Stage W excludes it: nested in AxHost: ActiveX hosting. | 0 | 0 | 1 | 0 | 0 |
+| `AxHost.ActiveXInvokeKind` | excluded | Stage W excludes it: nested in AxHost: ActiveX hosting. | 0 | 0 | 0 | 0 | 0 |
+| `AxHost.AxComponentEditor` | excluded | Stage W excludes it: nested in AxHost: ActiveX hosting. | 0 | 0 | 1 | 0 | 0 |
+| `AxHost.ClsidAttribute` | excluded | Stage W excludes it: nested in AxHost: ActiveX hosting. | 0 | 0 | 2 | 0 | 0 |
+| `AxHost.ConnectionPointCookie` | excluded | Stage W excludes it: nested in AxHost: ActiveX hosting. | 0 | 0 | 2 | 0 | 0 |
+| `AxHost.InvalidActiveXStateException` | excluded | Stage W excludes it: nested in AxHost: ActiveX hosting. | 0 | 0 | 1 | 0 | 0 |
+| `AxHost.State` | excluded | Stage W excludes it: nested in AxHost: ActiveX hosting. | 0 | 0 | 2 | 0 | 0 |
+| `AxHost.StateConverter` | excluded | Stage W excludes it: nested in AxHost: ActiveX hosting. | 0 | 0 | 1 | 0 | 0 |
+| `AxHost.TypeLibraryTimeStampAttribute` | excluded | Stage W excludes it: nested in AxHost: ActiveX hosting. | 0 | 0 | 2 | 0 | 0 |
+| `ButtonBase.ButtonBaseAccessibleObject` | unclassified | nested: nested in ButtonBase; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `CheckBox.CheckBoxAccessibleObject` | unclassified | nested: nested in CheckBox; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `CheckedListBox.CheckedIndexCollection` | unclassified | nested: nested in CheckedListBox; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 7 | 0 |
+| `CheckedListBox.CheckedItemCollection` | unclassified | nested: nested in CheckedListBox; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 7 | 0 |
+| `CheckedListBox.ObjectCollection` | unclassified | nested: nested in CheckedListBox; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 2 | 0 |
+| `ComboBox.ChildAccessibleObject` | unclassified | nested: nested in ComboBox; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `ComboBox.ObjectCollection` | unclassified | nested: nested in ComboBox; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 14 | 0 |
+| `Control.ControlAccessibleObject` | unclassified | nested: nested in Control; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 4 | 0 |
+| `Control.ControlCollection` | unclassified | nested: nested in Control; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 16 | 0 |
+| `DataGridView.DataGridViewAccessibleObject` | unclassified | nested: nested in DataGridView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `DataGridView.DataGridViewControlCollection` | unclassified | nested: nested in DataGridView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 3 | 0 |
+| `DataGridView.DataGridViewTopRowAccessibleObject` | unclassified | nested: nested in DataGridView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 2 | 0 |
+| `DataGridView.HitTestInfo` | unclassified | nested: nested in DataGridView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 6 | 0 |
+| `DataGridViewButtonCell.DataGridViewButtonCellAccessibleObject` | unclassified | nested: nested in DataGridViewButtonCell; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `DataGridViewCell.DataGridViewCellAccessibleObject` | unclassified | nested: nested in DataGridViewCell; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 2 | 0 |
+| `DataGridViewCheckBoxCell.DataGridViewCheckBoxCellAccessibleObject` | unclassified | nested: nested in DataGridViewCheckBoxCell; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `DataGridViewColumnHeaderCell.DataGridViewColumnHeaderCellAccessibleObject` | unclassified | nested: nested in DataGridViewColumnHeaderCell; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `DataGridViewComboBoxCell.DataGridViewComboBoxCellAccessibleObject` | unclassified | nested: nested in DataGridViewComboBoxCell; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `DataGridViewComboBoxCell.ObjectCollection` | unclassified | nested: nested in DataGridViewComboBoxCell; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 14 | 0 |
+| `DataGridViewImageCell.DataGridViewImageCellAccessibleObject` | unclassified | nested: nested in DataGridViewImageCell; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `DataGridViewLinkCell.DataGridViewLinkCellAccessibleObject` | unclassified | nested: nested in DataGridViewLinkCell; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `DataGridViewRow.DataGridViewRowAccessibleObject` | unclassified | nested: nested in DataGridViewRow; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 2 | 0 |
+| `DataGridViewRowHeaderCell.DataGridViewRowHeaderCellAccessibleObject` | unclassified | nested: nested in DataGridViewRowHeaderCell; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `DataGridViewTextBoxCell.DataGridViewTextBoxCellAccessibleObject` | unclassified | nested: nested in DataGridViewTextBoxCell; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `DateTimePicker.DateTimePickerAccessibleObject` | unclassified | nested: nested in DateTimePicker; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `DomainUpDown.DomainItemAccessibleObject` | unclassified | nested: nested in DomainUpDown; no GUI.Forms type stands for it yet | 0 | 0 | 1 | 0 | 0 |
+| `DomainUpDown.DomainUpDownAccessibleObject` | unclassified | nested: nested in DomainUpDown; no GUI.Forms type stands for it yet | 0 | 0 | 1 | 0 | 0 |
+| `DomainUpDown.DomainUpDownItemCollection` | unclassified | nested: nested in DomainUpDown; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 0 | 0 |
+| `Form.ControlCollection` | unclassified | nested: nested in Form; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `ImageList.ImageCollection` | unclassified | nested: nested in ImageList; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 18 | 0 |
+| `LinkLabel.Link` | unclassified | nested: nested in LinkLabel; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 9 | 0 |
+| `LinkLabel.LinkCollection` | unclassified | nested: nested in LinkLabel; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 15 | 0 |
+| `ListBox.IntegerCollection` | unclassified | nested: nested in ListBox; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 11 | 0 |
+| `ListBox.ObjectCollection` | unclassified | nested: nested in ListBox; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 14 | 0 |
+| `ListBox.SelectedIndexCollection` | unclassified | nested: nested in ListBox; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 11 | 0 |
+| `ListBox.SelectedObjectCollection` | unclassified | nested: nested in ListBox; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 11 | 0 |
+| `ListView.CheckedIndexCollection` | unclassified | nested: nested in ListView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 7 | 0 |
+| `ListView.CheckedListViewItemCollection` | unclassified | nested: nested in ListView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 10 | 0 |
+| `ListView.ColumnHeaderCollection` | unclassified | nested: nested in ListView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 16 | 0 |
+| `ListView.ListViewItemCollection` | unclassified | nested: nested in ListView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 18 | 0 |
+| `ListView.SelectedIndexCollection` | unclassified | nested: nested in ListView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 11 | 0 |
+| `ListView.SelectedListViewItemCollection` | unclassified | nested: nested in ListView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 11 | 0 |
+| `ListViewItem.ListViewSubItem` | unclassified | nested: nested in ListViewItem; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 9 | 0 |
+| `ListViewItem.ListViewSubItemCollection` | unclassified | nested: nested in ListViewItem; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 16 | 0 |
+| `MdiClient.ControlCollection` | excluded | Stage W excludes it: nested in MdiClient: MDI (stage W's exclusion list; MDI was since admitted as a presentation of DK's document area, not as MdiClient). | 0 | 0 | 1 | 0 | 0 |
+| `MonthCalendar.HitArea` | unclassified | nested: nested in MonthCalendar; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 0 | 0 |
+| `MonthCalendar.HitTestInfo` | unclassified | nested: nested in MonthCalendar; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 3 | 0 |
+| `PropertyGrid.PropertyTabCollection` | unclassified | nested: nested in PropertyGrid; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 6 | 0 |
+| `RadioButton.RadioButtonAccessibleObject` | unclassified | nested: nested in RadioButton; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `ScrollableControl.DockPaddingEdges` | unclassified | nested: nested in ScrollableControl; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 5 | 0 |
+| `ScrollableControl.DockPaddingEdgesConverter` | unclassified | nested: nested in ScrollableControl; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `TabControl.ControlCollection` | unclassified | nested: nested in TabControl; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `TabControl.TabPageCollection` | unclassified | nested: nested in TabControl; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 16 | 0 |
+| `TabPage.TabPageControlCollection` | unclassified | nested: nested in TabPage; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `ToolStrip.ToolStripAccessibleObject` | unclassified | nested: nested in ToolStrip; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `ToolStripControlHost.ToolStripHostedControlAccessibleObject` | unclassified | nested: nested in ToolStripControlHost; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `ToolStripDropDown.ToolStripDropDownAccessibleObject` | unclassified | nested: nested in ToolStripDropDown; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `ToolStripItem.ToolStripItemAccessibleObject` | unclassified | nested: nested in ToolStripItem; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 2 | 0 |
+| `ToolStripPanel.ToolStripPanelRowCollection` | unclassified | nested: nested in ToolStripPanel; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 11 | 0 |
+| `ToolStripSplitButton.ToolStripSplitButtonAccessibleObject` | unclassified | nested: nested in ToolStripSplitButton; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 1 | 0 |
+| `WebBrowser.WebBrowserSite` | excluded | Stage W excludes it: nested in WebBrowser: browser hosting. | 0 | 0 | 1 | 0 | 0 |
 
 ## Unclassified members, by question
 
 | Question | Members |
 |---|---|
 | `carried` | 104 |
-| `hook` | 417 |
+| `hook` | 420 |
+| `nested` | 641 |
 | `no-entry` | 517 |
 | `review` | 13 |
-| `unmatched` | 1629 |
+| `unmatched` | 1638 |
 | `untested` | 803 |
 | `w-open` | 5 |

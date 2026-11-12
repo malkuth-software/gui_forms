@@ -245,7 +245,7 @@ gui_forms::BackgroundWorker
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``BackgroundWorker``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 1 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``BackgroundWorker``. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 6 unclassified; 2 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -256,42 +256,66 @@ Counterpart: ``BackgroundWorker``. Members declared here and by the counterpart:
      - Windows Forms
      - GUI.Forms
      - Status
+   * - constructor
+     - ``BackgroundWorker``
+     - ``BackgroundWorker``
+     - supported
    * - property
-     - GUI.Forms-only
+     - ``CancellationPending``
      - ``cancellation_pending``
+     - supported
+   * - property
+     - ``IsBusy``
+     - ``is_busy``
+     - supported
+   * - property
+     - ``WorkerReportsProgress``
+     - ``worker_reports_progress``
+     - supported
+   * - property
+     - ``WorkerSupportsCancellation``
+     - ``worker_supports_cancellation``
+     - supported
+   * - event
+     - ``DoWork``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ProgressChanged``
+     - ``progress_changed``
+     - supported
+   * - event
+     - ``RunWorkerCompleted``
+     - ``run_worker_completed``
+     - supported
+   * - method
+     - ``CancelAsync``
+     - ``cancel_async``
+     - supported
+   * - method
+     - ``OnDoWork``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnProgressChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRunWorkerCompleted``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``ReportProgress``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RunWorkerAsync``
+     - ``run_worker_async``
      - supported
    * - property
      - GUI.Forms-only
      - ``has_do_work``
      - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``is_busy``
-     - supported
-   * - property
-     - GUI.Forms-only
-     - ``worker_reports_progress``
-     - supported
-   * - property
-     - GUI.Forms-only
-     - ``worker_supports_cancellation``
-     - supported
-   * - event
-     - GUI.Forms-only
-     - ``progress_changed``
-     - supported
-   * - event
-     - GUI.Forms-only
-     - ``run_worker_completed``
-     - supported
-   * - method
-     - GUI.Forms-only
-     - ``cancel_async``
-     - supported
-   * - method
-     - GUI.Forms-only
-     - ``run_worker_async``
-     - supported
    * - method
      - GUI.Forms-only
      - ``set_do_work``

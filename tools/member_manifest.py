@@ -81,14 +81,36 @@ SCHEMA_ONLY_COUNTERPARTS: Mapping[str, str] = {"Window": "Form"}
 # The two roots every registry type derives from. Their members are the ones
 # every schema record of their kind shares (see ``root_schema_members``).
 ROOT_TYPES: Mapping[str, str] = {"Control": "control", "Component": "component"}
-ROOT_COUNTERPARTS: Mapping[str, str] = {"Control": "Control", "Component": ""}
+ROOT_COUNTERPARTS: Mapping[str, str] = {"Control": "Control", "Component": "Component"}
 GUI_FORMS_ONLY: str = "GUI.Forms-only"
 # Component's counterpart is System.ComponentModel.Component, which the Forms
-# catalogue does not list, so its members have no Windows Forms side here.
+# catalogue does not list; its rows come from dotnet/runtime's reference source.
 ROOT_NOTES: Mapping[str, str] = {
-    "Component": "System.ComponentModel.Component, outside the Windows Forms catalogue; its members are listed "
-                 "as GUI.Forms-only until that surface is read",
+    "Component": "System.ComponentModel.Component (dotnet/runtime, not the Windows Forms catalogue)",
 }
+# Types read from dotnet/runtime's reference assemblies' sources
+# (src/libraries/<library>/ref/<library>.cs), not from the Forms catalogue.
+RUNTIME_TYPES: Mapping[str, str] = {
+    "Component": "System.ComponentModel.Primitives",
+    "BackgroundWorker": "System.ComponentModel.EventBasedAsync",
+}
+RUNTIME_VERSIONS: tuple[str, ...] = ("8.0", "9.0", "10.0")
+# The release branch heads the reference sources were read at (2026-11-12).
+RUNTIME_COMMITS: Mapping[str, str] = {
+    "release/8.0": "0f366281b3e6cc5dfad6853c8aea2386a7ba8f6e",
+    "release/9.0": "4647bc655507f0420a665c43703f8fa1c398de5f",
+    "release/10.0": "56d5bb652aced6bb4fed74ab43fbdd4c39b6b7ed",
+}
+# Item, cell and band types the controls hold, listed with their nested types
+# (collections, sub-items) though no GUI.Forms type stands for them yet. The
+# nested types of every WINFORMS_TYPES entry are listed as well.
+ITEM_TYPES: tuple[str, ...] = (
+    "ListViewItem", "ListViewGroup", "TreeNode",
+    "DataGridViewBand", "DataGridViewRow", "DataGridViewColumn", "DataGridViewCell", "DataGridViewCellStyle",
+    "DataGridViewTextBoxCell", "DataGridViewCheckBoxCell", "DataGridViewComboBoxCell", "DataGridViewButtonCell",
+    "DataGridViewImageCell", "DataGridViewLinkCell", "DataGridViewHeaderCell", "DataGridViewColumnHeaderCell",
+    "DataGridViewRowHeaderCell",
+)
 
 
 @dataclass(frozen=True)
@@ -103,10 +125,11 @@ class WinFormsType:
 # The Windows Forms controls and UI components stage W surveyed
 # (notes:planning/stages/W-winforms-controls/README.md, "Coverage, 2026-10-25",
 # recounted 2026-10-31), with their Windows Forms base and W's state. Bases are
-# Windows Forms' own; an empty base is a type deriving from object or from
-# System.ComponentModel.Component, whose members are outside the catalogue.
+# Windows Forms' own (BindableComponent is folded into Component); an empty
+# base is a type deriving from object.
 WINFORMS_TYPES: Mapping[str, WinFormsType] = {
-    "Control": WinFormsType("", "done"),
+    "Component": WinFormsType("", "done", "System.ComponentModel.Component, read from dotnet/runtime's reference source"),
+    "Control": WinFormsType("Component", "done"),
     "ButtonBase": WinFormsType("Control", "done"),
     "Button": WinFormsType("ButtonBase", "done"),
     "CheckBox": WinFormsType("ButtonBase", "done"),
@@ -123,7 +146,7 @@ WINFORMS_TYPES: Mapping[str, WinFormsType] = {
     "CheckedListBox": WinFormsType("ListBox", "done"),
     "ComboBox": WinFormsType("ListControl", "done"),
     "ListView": WinFormsType("Control", "done"),
-    "ColumnHeader": WinFormsType("", "done", "ListViewColumn records, not a control"),
+    "ColumnHeader": WinFormsType("Component", "done", "ListViewColumn records, not a control"),
     "TreeView": WinFormsType("Control", "done"),
     "DataGridView": WinFormsType("Control", "partial", "provisional; the remaining breadth is in DATAGRIDVIEW_AUDIT.md"),
     "DataGridViewTextBoxColumn": WinFormsType("", "done", "DataGridViewColumnKind"),
@@ -168,7 +191,7 @@ WINFORMS_TYPES: Mapping[str, WinFormsType] = {
     "ToolStripPanel": WinFormsType("ContainerControl", "done"),
     "ToolStripContentPanel": WinFormsType("Panel", "done", "ToolStripContainer::content_panel(), a Panel"),
     "ToolStripPanelRow": WinFormsType("", "partial", "not a public type; several strips share a row"),
-    "ToolStripItem": WinFormsType("", "done", "item records (ToolStripItemKind)"),
+    "ToolStripItem": WinFormsType("Component", "done", "item records (ToolStripItemKind)"),
     "ToolStripDropDownItem": WinFormsType("ToolStripItem", "done", "item records (ToolStripItemKind)"),
     "ToolStripButton": WinFormsType("ToolStripItem", "done", "item kinds"),
     "ToolStripLabel": WinFormsType("ToolStripItem", "done", "item kinds"),
@@ -183,17 +206,18 @@ WINFORMS_TYPES: Mapping[str, WinFormsType] = {
     "ToolStripMenuItem": WinFormsType("ToolStripDropDownItem", "done", "menu items"),
     "ToolStripOverflow": WinFormsType("ToolStripDropDown", "done", "the strip's overflow menu"),
     "BindingNavigator": WinFormsType("ToolStrip", "done"),
-    "ToolTip": WinFormsType("", "done"),
-    "ErrorProvider": WinFormsType("", "done"),
-    "HelpProvider": WinFormsType("", "done"),
-    "ImageList": WinFormsType("", "done"),
-    "Timer": WinFormsType("", "done"),
-    "BindingSource": WinFormsType("", "done"),
-    "NotifyIcon": WinFormsType("", "done"),
+    "ToolTip": WinFormsType("Component", "done"),
+    "ErrorProvider": WinFormsType("Component", "done"),
+    "HelpProvider": WinFormsType("Component", "done"),
+    "ImageList": WinFormsType("Component", "done"),
+    "Timer": WinFormsType("Component", "done"),
+    "BindingSource": WinFormsType("Component", "done"),
+    "NotifyIcon": WinFormsType("Component", "done"),
     "Binding": WinFormsType("", "done"),
     "BindingContext": WinFormsType("", "done"),
     "Help": WinFormsType("", "done"),
-    "CommonDialog": WinFormsType("", "done", "no public base by design; the dialogs carry the members"),
+    "BackgroundWorker": WinFormsType("Component", "done", "System.ComponentModel.BackgroundWorker, read from dotnet/runtime's reference source"),
+    "CommonDialog": WinFormsType("Component", "done", "no public base by design; the dialogs carry the members"),
     "FileDialog": WinFormsType("CommonDialog", "done", "no public base by design; OpenFileDialog and SaveFileDialog carry the members"),
     "OpenFileDialog": WinFormsType("FileDialog", "done"),
     "SaveFileDialog": WinFormsType("FileDialog", "done"),
@@ -296,8 +320,8 @@ def classify_catalogue_member(type_name: str, member: str, api: str) -> tuple[st
         return ("property", name)
     call: re.Match[str] | None = re.fullmatch(r"([A-Za-z_]\w*)\((.*)\)", member)
     if call is not None:
-        if call.group(1) == type_name:
-            return ("constructor", type_name)
+        if call.group(1) == type_name.rsplit(".", 1)[-1]:
+            return ("constructor", call.group(1))
         return ("method", call.group(1))
     if re.fullmatch(r"[A-Za-z_]\w*", member) is None:
         return None
@@ -307,21 +331,30 @@ def classify_catalogue_member(type_name: str, member: str, api: str) -> tuple[st
     return ("field", member)
 
 
-def read_catalogue(path: Path, type_names: Iterable[str]) -> dict[str, list[WinFormsMember]]:
-    """Each named type's own members from the stage W catalogue TSV.
+def read_catalogue(path: Path, type_names: Iterable[str], nested: bool = True) -> dict[str, list[WinFormsMember]]:
+    """Each named type's own members from the stage W catalogue TSV, and with
+    nested those of the types nested in them (keyed "ListView.ListViewItemCollection").
 
     Override rows are left out: Windows Forms lists an override on the
     deriving type, and the member belongs to the type that declares it. A
     member whose rows are all excluded keeps the first exclusion's reason.
     """
     wanted: dict[str, str] = {FORMS_PREFIX + name: name for name in type_names}
+    heads: frozenset[str] = frozenset(wanted.values())
     found: dict[str, dict[tuple[str, str], WinFormsMember]] = {name: {} for name in wanted.values()}
     with path.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle, delimiter="\t", quoting=csv.QUOTE_NONE)
         for row in reader:
             if row.get("surface") != "System.Windows.Forms" or row.get("kind") != "member":
                 continue
-            owner: str | None = wanted.get(row.get("owner", ""))
+            full_owner: str = row.get("owner", "")
+            owner: str | None = wanted.get(full_owner)
+            if owner is None and nested and full_owner.startswith(FORMS_PREFIX):
+                # A nested type (ListView.ListViewItemCollection) of a wanted type.
+                short: str = full_owner[len(FORMS_PREFIX):]
+                if "." in short and short.split(".", 1)[0] in heads:
+                    owner = short
+                    found.setdefault(owner, {})
             if owner is None:
                 continue
             marker: str = row.get("source_marker", "")
@@ -349,6 +382,103 @@ def read_catalogue(path: Path, type_names: Iterable[str]) -> dict[str, list[WinF
     result: dict[str, list[WinFormsMember]] = {}
     for name, members in found.items():
         result[name] = sorted(members.values(), key=member_order)
+    return result
+
+
+_ATTRIBUTE_LINE: re.Pattern[str] = re.compile(r"^\s*\[[^\n]*\]\s*$")
+_ACCESS: re.Pattern[str] = re.compile(r"^(public|protected)\b")
+
+
+def read_runtime_class(source: str, type_name: str) -> list[WinFormsMember] | None:
+    """A class's public and protected members from a dotnet/runtime reference source.
+
+    The reference sources declare one member per line with stub bodies
+    (``{ get { throw null; } }``, ``{ }``); attribute lines are skipped, an
+    ``ObsoleteAttribute`` marks the next member excluded, and overrides are
+    left out as in the catalogue. None when the class is absent.
+    """
+    head: re.Match[str] | None = re.search(r"^\s*public (?:[a-z]+ )*partial class " + re.escape(type_name) + r"\b[^\n]*\n\s*\{",
+                                           source, re.MULTILINE)
+    if head is None:
+        return None
+    lines: list[str] = []
+    for line in source[head.end():].splitlines():
+        stripped: str = line.strip()
+        if stripped == "}":
+            break
+        lines.append(stripped)
+    found: dict[tuple[str, str], WinFormsMember] = {}
+    obsolete: bool = False
+    for line in lines:
+        if not line:
+            continue
+        if _ATTRIBUTE_LINE.match(line):
+            obsolete = obsolete or "ObsoleteAttribute" in line
+            continue
+        if not _ACCESS.match(line) or re.search(r"\boverride\b", line):
+            obsolete = False
+            continue
+        declaration: str = re.sub(r"\[[^\]]*\]", "", line)
+        kind: str
+        name: str
+        event: re.Match[str] | None = re.search(r"\bevent\s+\S+\s+([A-Za-z_]\w*)", declaration)
+        call: re.Match[str] | None = re.search(r"([A-Za-z_]\w*)\s*(?:<[^>]*>)?\(", declaration)
+        accessor: re.Match[str] | None = re.search(r"([A-Za-z_]\w*|this\[[^\]]*\])\s*\{\s*(?:get|set)", declaration)
+        if event is not None:
+            kind, name = "event", event.group(1)
+        elif accessor is not None and (call is None or accessor.start() < call.start()):
+            kind, name = "property", "this[]" if accessor.group(1).startswith("this[") else accessor.group(1)
+        elif call is not None:
+            name = call.group(1)
+            kind = "constructor" if name == type_name else "method"
+        else:
+            field_name: re.Match[str] | None = re.search(r"([A-Za-z_]\w*)\s*(?:=[^;]*)?;", declaration)
+            if field_name is None:
+                obsolete = False
+                continue
+            kind, name = "field", field_name.group(1)
+        record: WinFormsMember | None = found.get((kind, name))
+        if record is None:
+            record = WinFormsMember(kind, name, "excluded" if obsolete else "admitted",
+                                    "obsolete in the reference source" if obsolete else "")
+            found[(kind, name)] = record
+        elif not obsolete:
+            record.scope, record.reason = "admitted", ""
+        if kind in ("method", "constructor"):
+            record.overloads += 1
+        if re.search(r"\bstatic\b", declaration):
+            record.statics = True
+        obsolete = False
+    return sorted(found.values(), key=member_order)
+
+
+def read_runtime(directory: Path) -> dict[str, list[WinFormsMember]]:
+    """RUNTIME_TYPES' members, merged over every version directory under directory.
+
+    The directory holds <version>/<library>.cs for each of RUNTIME_VERSIONS; a
+    member listed by any version counts, and is admitted when any version
+    lists it without ObsoleteAttribute.
+    """
+    result: dict[str, list[WinFormsMember]] = {}
+    for type_name, library in RUNTIME_TYPES.items():
+        merged: dict[tuple[str, str], WinFormsMember] = {}
+        for version in RUNTIME_VERSIONS:
+            path: Path = directory / version / f"{library}.cs"
+            if not path.is_file():
+                raise ManifestError(f"{path}: missing; fetch {library}'s reference source for .NET {version}")
+            members: list[WinFormsMember] | None = read_runtime_class(path.read_text(encoding="utf-8"), type_name)
+            if members is None:
+                raise ManifestError(f"{path}: no class {type_name}")
+            for member in members:
+                kept: WinFormsMember | None = merged.get((member.kind, member.name))
+                if kept is None:
+                    merged[(member.kind, member.name)] = member
+                    continue
+                kept.overloads = max(kept.overloads, member.overloads)
+                kept.statics = kept.statics or member.statics
+                if member.scope == "admitted":
+                    kept.scope, kept.reason = "admitted", ""
+        result[type_name] = sorted(merged.values(), key=member_order)
     return result
 
 
@@ -619,7 +749,9 @@ def seed_status(row: dict, model: Model, entry_type: str, winforms_type: str,
             row.update(status="excluded", reason=f"Out of scope in the stage W catalogue: {member.reason}.",
                        basis="catalogue")
             return
-        declared_by: WinFormsType | None = WINFORMS_TYPES.get(winforms_type)
+        # A nested type follows its owner: WebBrowser.WebBrowserSite is excluded with WebBrowser.
+        declared_by: WinFormsType | None = WINFORMS_TYPES.get(winforms_type) or WINFORMS_TYPES.get(
+            winforms_type.split(".", 1)[0])
         if declared_by is not None and declared_by.state == "excluded":
             row.update(status="excluded", reason=f"Stage W excludes {winforms_type}: {declared_by.note}.",
                        basis="type")
@@ -641,6 +773,8 @@ def seed_status(row: dict, model: Model, entry_type: str, winforms_type: str,
             question = "untested: declared, but no test calls it"
         elif carriers:
             question = "carried: a deriving GUI.Forms type declares it; see carried_by"
+        elif entry_type == "" and winforms_type not in WINFORMS_TYPES:
+            question = "nested: an item, cell or nested Windows Forms type; no GUI.Forms type stands for it yet"
         elif entry_type == "":
             question = "no-entry: no GUI.Forms type stands for the Windows Forms type"
         elif member is not None and re.fullmatch(r"On[A-Z]\w*", member.name) and member.kind == "method":
@@ -709,6 +843,8 @@ def previous_winforms(previous: Mapping) -> dict[str, list[WinFormsMember]]:
     found: dict[str, dict[tuple[str, str], WinFormsMember]] = {}
     for entry in previous.get("controls", []):
         own: str = entry.get("winforms") or ""
+        if own:
+            found.setdefault(own, {})
         for row in entry.get("members", []):
             qualified: str | None = row.get("winforms")
             if not qualified:
@@ -792,7 +928,18 @@ def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], p
         entry["members"] = rows
         controls.append(entry)
 
-    for winforms_type, described in WINFORMS_TYPES.items():
+    extra: list[str] = [name for name in ITEM_TYPES if name in winforms]
+    extra += sorted(name for name in winforms if name not in WINFORMS_TYPES and name not in ITEM_TYPES)
+    listed: list[tuple[str, WinFormsType]] = list(WINFORMS_TYPES.items())
+    for name in extra:
+        owner: str = name.split(".", 1)[0]
+        note: str = f"nested in {owner}" if "." in name else "an item, cell or band type the controls hold"
+        owner_type: WinFormsType | None = WINFORMS_TYPES.get(owner)
+        if owner_type is not None and owner_type.state == "excluded":
+            listed.append((name, WinFormsType("", "excluded", f"nested in {owner}: {owner_type.note}")))
+        else:
+            listed.append((name, WinFormsType("", "nested", note)))
+    for winforms_type, described in listed:
         if winforms_type in covered:
             continue
         rows = []
@@ -812,6 +959,9 @@ def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], p
                          evidence=W_BRIEF)
         elif described.state == "done":
             entry.update(status="supported", basis="w-brief", evidence=W_BRIEF)
+        elif described.state == "nested":
+            entry.update(status="unclassified", basis="none",
+                         question=f"nested: {described.note}; no GUI.Forms type stands for it yet")
         else:
             entry.update(status="unclassified", basis="w-brief", evidence=W_BRIEF,
                          question=f"w-{described.state}: {described.note}")
@@ -833,7 +983,8 @@ def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], p
             "excluded), w-brief, owner or coordinator (a written decision; evidence names it), none "
             "(unclassified; question says why). scope is the catalogue's: admitted, excluded or review.",
             "Override rows of the Windows Forms catalogue are not listed: the member belongs to the declaring "
-            "type. Nested Windows Forms types (collections, item records) are not yet listed.",
+            "type. Nested Windows Forms types (collections, sub-items) and the item, cell and band types "
+            "(ITEM_TYPES) follow the controls, unclassified until a GUI.Forms type stands for them.",
         ],
         "statuses": list(STATUSES),
         "sources": dict(provenance),
@@ -1003,28 +1154,54 @@ def catalogue_provenance(path: Path) -> dict:
             "built_from": "dotnet/winforms PublicAPI.Shipped.txt, release/8.0, release/9.0 and release/10.0, "
                           "with [Obsolete] from Microsoft.WindowsDesktop.App.Ref 8.0.32, 9.0.21 and 10.0.13 "
                           "(notes:planning/WINFORMS_API_CATALOGUE.md)",
-            "types": "stage W's coverage tables (WINFORMS_TYPES in tools/member_manifest.py)",
+            "catalogue_commit": "notes gui_forms bc50948 (last change to the TSV)",
+            "repository": "https://github.com/dotnet/winforms",
+            "files": ["src/System.Windows.Forms/PublicAPI.Shipped.txt",
+                      "src/System.Windows.Forms.Primitives/PublicAPI.Shipped.txt"],
+            "commits": {"release/8.0": "edebee640e06f291a2a2e770cfb86d6bd42563f9",
+                        "release/9.0": "3e991f572c195fadf3b06e9e06c7c56d8ac4cd48",
+                        "release/10.0": "f3adc279ed152f9b88ec678218011168e90b0bdb"},
+            "types": "stage W's coverage tables (WINFORMS_TYPES), ITEM_TYPES and every type nested in either "
+                     "(tools/member_manifest.py); the nested types' rows are in the same catalogue, so no "
+                     "further dotnet/winforms file was fetched",
         },
         "gui_forms": ["manifests/controls.json", "manifests/control-schema.json", "include/gui_forms (methods)",
                       "tests/ (evidence)"],
     }
 
 
-def generate(catalogue: Path | None, manifest_path: Path = MANIFEST_PATH) -> dict:
+def runtime_provenance(directory: Path) -> dict:
+    return {
+        "repository": "https://github.com/dotnet/runtime",
+        "files": {library: f"src/libraries/{library}/ref/{library}.cs" for library in RUNTIME_TYPES.values()},
+        "commits": dict(RUNTIME_COMMITS),
+        "url_pattern": "https://raw.githubusercontent.com/dotnet/runtime/<commit>/<file>",
+        "types": sorted(RUNTIME_TYPES),
+        "read_from": directory.name,
+    }
+
+
+def generate(catalogue: Path | None, manifest_path: Path = MANIFEST_PATH, runtime: Path | None = None) -> dict:
     previous: dict = load_json(manifest_path) if manifest_path.is_file() else {}
     model: Model = build_model()
+    if (catalogue is None or runtime is None) and not previous:
+        raise ManifestError("no committed manifest to take the Windows Forms rows from; pass --catalogue and --runtime")
+    winforms: dict[str, list[WinFormsMember]] = previous_winforms(previous) if previous else {}
+    provenance: dict = dict(previous.get("sources", {}))
     if catalogue is not None:
-        winforms: dict[str, list[WinFormsMember]] = read_catalogue(catalogue, WINFORMS_TYPES)
-        provenance: dict = catalogue_provenance(catalogue)
-    else:
-        if not previous:
-            raise ManifestError("no committed manifest to take the Windows Forms rows from; pass --catalogue")
-        winforms = previous_winforms(previous)
-        provenance = previous["sources"]
+        catalogue_types: list[str] = [name for name in [*WINFORMS_TYPES, *ITEM_TYPES] if name not in RUNTIME_TYPES]
+        for name in [name for name in winforms if name not in RUNTIME_TYPES]:
+            del winforms[name]
+        winforms.update(read_catalogue(catalogue, catalogue_types))
+        provenance.update(catalogue_provenance(catalogue))
+    if runtime is not None:
+        winforms.update(read_runtime(runtime))
+        provenance["runtime"] = runtime_provenance(runtime)
     return build_manifest(model, winforms, previous, provenance)
 
 
-def command_generate(catalogue: Path | None, check: bool, manifest_path: Path = MANIFEST_PATH) -> int:
+def command_generate(catalogue: Path | None, check: bool, manifest_path: Path = MANIFEST_PATH,
+                     runtime: Path | None = None) -> int:
     if check:
         model: Model = build_model()
         problems: list[str] = validate(load_manifest(manifest_path), model)
@@ -1036,7 +1213,7 @@ def command_generate(catalogue: Path | None, check: bool, manifest_path: Path = 
             return 1
         print(f"member manifest: {len(model.order)} GUI.Forms types agree with the registry")
         return 0
-    manifest: dict = generate(catalogue, manifest_path)
+    manifest: dict = generate(catalogue, manifest_path, runtime)
     manifest_path.write_text(dump_manifest(manifest), encoding="utf-8", newline="\n")
     totals: dict[str, int] = counts(manifest)
     print(f"{manifest_path.relative_to(ROOT) if manifest_path.is_relative_to(ROOT) else manifest_path}: "
@@ -1050,11 +1227,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     generate_parser = subparsers.add_parser("generate", help="write manifests/members.json")
     generate_parser.add_argument("--catalogue", type=Path, default=None,
                                  help="the stage W catalogue TSV; without it the committed Windows Forms rows are kept")
+    generate_parser.add_argument("--runtime", type=Path, default=None,
+                                 help="a directory of dotnet/runtime reference sources, <version>/<library>.cs; "
+                                      "without it the committed Component and BackgroundWorker rows are kept")
     subparsers.add_parser("check", help="fail when the manifest and the registry, schema or headers disagree")
     args = parser.parse_args(argv)
     try:
         if args.command == "generate":
-            return command_generate(args.catalogue, False)
+            return command_generate(args.catalogue, False, MANIFEST_PATH, args.runtime)
         return command_generate(None, True)
     except ManifestError as error:
         print(f"member manifest: {error}", file=sys.stderr)

@@ -22,7 +22,8 @@ template_harness, checked out beside this repository at the commit
   member manifest `manifests/members.json` (`tools/member_manifest.py`): every
   control's properties, events and methods against Windows Forms, supported,
   deferred, excluded or unclassified; `--catalogue` reads stage W's Windows
-  Forms catalogue again, and `--check` fails when the manifest and the
+  Forms catalogue again, `--runtime` dotnet/runtime's reference sources for
+  `Component` and `BackgroundWorker`, and `--check` fails when the manifest and the
   registry, schema or headers disagree.
   `python3 tools/control_registry.py check`
   `python3 tools/control_registry.py members --check`

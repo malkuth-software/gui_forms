@@ -226,7 +226,7 @@ gui_forms::Component
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 2 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Component``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 9 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -237,6 +237,42 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 7 su
      - Windows Forms
      - GUI.Forms
      - Status
+   * - constructor
+     - ``Component``
+     - ``Component``
+     - supported
+   * - property
+     - ``CanRaiseEvents``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Container``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DesignMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Events``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Site``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Disposed``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Dispose``
+     - ``dispose``
+     - supported
+   * - method
+     - ``GetService``
+     - none
+     - unclassified (unmatched)
    * - property
      - GUI.Forms-only
      - ``component_state``
@@ -256,10 +292,6 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 7 su
    * - property
      - GUI.Forms-only
      - ``owned_subscription_count``
-     - supported
-   * - method
-     - GUI.Forms-only
-     - ``dispose``
      - supported
    * - method
      - GUI.Forms-only

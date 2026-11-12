@@ -140,5 +140,54 @@ class CatalogueTests(unittest.TestCase):
         self.assertEqual(by_name["Handle"].scope, "review")
 
 
+class RuntimeReferenceTests(unittest.TestCase):
+    SOURCE: str = """namespace System.ComponentModel
+{
+    public partial class Component : System.MarshalByRefObject, System.ComponentModel.IComponent
+    {
+        public Component() { }
+        protected virtual bool CanRaiseEvents { get { throw null; } }
+        [System.ComponentModel.BrowsableAttribute(false)]
+        public virtual System.ComponentModel.ISite? Site { get { throw null; } set { } }
+        public event System.EventHandler? Disposed { add { } remove { } }
+        public void Dispose() { }
+        protected virtual void Dispose(bool disposing) { }
+        ~Component() { }
+        [System.ObsoleteAttribute("old")]
+        public void Old() { }
+        public override string ToString() { throw null; }
+    }
+    public partial class ComponentCollection : System.Collections.ReadOnlyCollectionBase
+    {
+        public ComponentCollection() { }
+    }
+}
+"""
+
+    def test_reference_source_members(self) -> None:
+        members: list[mm.WinFormsMember] | None = mm.read_runtime_class(self.SOURCE, "Component")
+        self.assertIsNotNone(members)
+        by_key: dict[tuple[str, str], mm.WinFormsMember] = {(member.kind, member.name): member for member in members}
+        self.assertEqual(sorted(by_key), [("constructor", "Component"), ("event", "Disposed"), ("method", "Dispose"),
+                                          ("method", "Old"), ("property", "CanRaiseEvents"), ("property", "Site")])
+        self.assertEqual(by_key[("method", "Dispose")].overloads, 2)
+        self.assertEqual(by_key[("method", "Old")].scope, "excluded")
+        self.assertIsNone(mm.read_runtime_class(self.SOURCE, "Container"))
+
+    def test_component_rows_come_from_the_runtime(self) -> None:
+        manifest: dict = mm.load_manifest()
+        component: dict | None = mm.entry_for(manifest, "Component")
+        self.assertIsNotNone(component)
+        self.assertEqual(component["winforms"], "Component")
+        self.assertIn("Dispose", [row.get("winforms") for row in component["members"]])
+        self.assertIn("runtime", manifest["sources"])
+
+    def test_nested_types_are_listed_under_their_owner(self) -> None:
+        manifest: dict = mm.load_manifest()
+        nested: list[str] = [entry["winforms"] for entry in manifest["controls"] if entry.get("type") is None]
+        self.assertIn("ListView.ListViewItemCollection", nested)
+        self.assertIn("ListViewItem", nested)
+
+
 if __name__ == "__main__":
     unittest.main()
