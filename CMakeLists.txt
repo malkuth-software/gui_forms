@@ -4250,6 +4250,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_xsettings_parse_tests
         tests/xsettings_parse_tests.cpp src/host/linux/settings/xsettings_parse.cpp)
     target_include_directories(gui_forms_xsettings_parse_tests PRIVATE include)
+    # The public headers it includes refer to the checked-borrows link
+    # marker in a checked build, which only the core library defines.
+    target_link_libraries(gui_forms_xsettings_parse_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_xsettings_parse_tests COMMAND gui_forms_xsettings_parse_tests)
     # The X11 host's computed click counts and context keys take plain
     # values and no Xlib, so they are tested on every platform.
