@@ -57,6 +57,9 @@
 #include "gui_forms/surface_material.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/text_shaping.hpp"
+// Not in text.hpp: it uses text_shaping.hpp's TextDirection, and
+// text_shaping.hpp includes text.hpp.
+#include "gui_forms/text/paragraph_layout/paragraph_layout.hpp"
 #include "gui_forms/timer.hpp"
 #include "gui_forms/tooltip.hpp"
 #include "gui_forms/typography.hpp"

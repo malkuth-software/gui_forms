@@ -1313,6 +1313,37 @@ TextResolutionStatus HarfBuzzFontEngine::fill_line_break_opportunities_utf8(
     return TextResolutionStatus::exact;
 }
 
+TextResolutionStatus HarfBuzzFontEngine::fill_cluster_advances_utf8(
+    std::string_view utf8, FontSpec font, std::span<double> advances) {
+    if (advances.size() != utf8.size() || !validate_utf8(utf8).valid() || !valid_font_spec(font)) {
+        return TextResolutionStatus::invalid_request;
+    }
+    std::fill(advances.begin(), advances.end(), 0.0);
+    // Without a primary face resolve() measures nothing, so every advance
+    // stays zero, matching its zero width.
+    const std::vector<Impl::Face*> candidates = (*impl_).candidates(font);
+    if (!(*impl_).has_primary(font.role) || candidates.empty()) return TextResolutionStatus::missing_primary_face;
+    if (utf8.empty()) return TextResolutionStatus::exact;
+    const ShapedText shaped = shape(utf8, font);
+    // A glyph's cluster is the byte offset in `utf8` of its cluster's first
+    // byte (shape adds the whole text to each run's buffer), in either
+    // direction; the clusters' order does not matter to a sum.
+    const std::size_t size = utf8.size();
+    for (const ShapedFontRun& run : shaped.runs) {
+        for (const ShapedGlyph& glyph : run.glyphs) {
+            const std::size_t cluster = glyph.cluster.value();
+            if (cluster >= size) continue;
+            advances[cluster] += static_cast<double>(glyph.advance_x);
+        }
+    }
+    const TextResolutionStatus status = shaped.missing_primary_face
+        ? TextResolutionStatus::missing_primary_face
+        : shaped.missing_clusters != 0U
+            ? TextResolutionStatus::missing_cluster_coverage
+            : TextResolutionStatus::exact;
+    return status;
+}
+
 ResolvedTextLayout HarfBuzzFontEngine::resolve(std::string_view utf8,
                                                FontSpec font) {
     ResolvedTextLayout result{};

@@ -149,6 +149,22 @@ public:
     // engine answers UAX #14's opportunities and returns exact.
     [[nodiscard]] virtual TextResolutionStatus fill_line_break_opportunities_utf8(
         std::string_view utf8, std::span<LineBreakOpportunity> opportunities);
+    // Fills `advances`, whose size must equal utf8.size(), from one shaping
+    // of the whole text in `effective_font` (the shaping
+    // resolve_text_layout_utf8 measures): each cluster's horizontal advance
+    // in logical pixels at the byte that begins it, and zero at every other
+    // byte. A cluster's advance includes the font's letter spacing, except
+    // for the text's last cluster in visual order. The advances' sum is the
+    // text's width; the sum over a range estimates that range shaped alone,
+    // without the kerning and contextual shaping across its ends
+    // (paragraph layout, include/gui_forms/text/paragraph_layout/). Returns
+    // the resolution's status, or invalid_request with `advances` unchanged
+    // for invalid UTF-8, an invalid font or a size mismatch. The default
+    // measures each scalar value alone with measure_text_extent_utf8, so
+    // its clusters are scalar values and it omits shaping between them; the
+    // bundled engine's painters answer from one shaping, with its clusters.
+    [[nodiscard]] virtual TextResolutionStatus fill_cluster_advances_utf8(
+        std::string_view utf8, FontSpec effective_font, std::span<double> advances);
 };
 
 // Deterministic renderer-free line breaking: a line may end after a run of
@@ -157,6 +173,13 @@ public:
 // `opportunities` unchanged as TextMetricsProvider's query does.
 [[nodiscard]] GUI_FORMS_API TextResolutionStatus estimate_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept;
+
+// The cluster advances matching estimate_text_layout_utf8: every scalar
+// value a cluster of the estimate's width, the letter spacing after each but
+// the last. Returns estimated, or invalid_request with `advances` unchanged
+// as TextMetricsProvider's query does. Allocates nothing.
+[[nodiscard]] GUI_FORMS_API TextResolutionStatus estimate_cluster_advances_utf8(
+    std::string_view utf8, FontSpec effective_font, std::span<double> advances) noexcept;
 
 // Deterministic renderer-free fallback. It is explicitly labelled estimated;
 // callers must not report it as a resolved bundled face or a raster metric.

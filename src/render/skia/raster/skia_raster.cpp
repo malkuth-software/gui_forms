@@ -2264,6 +2264,12 @@ TextResolutionStatus SkiaRaster::fill_line_break_opportunities_utf8(
     return status;
 }
 
+TextResolutionStatus SkiaRaster::fill_cluster_advances_utf8(
+    std::string_view text, FontSpec font_spec, std::span<double> advances) {
+    const TextResolutionStatus status = (*impl_).text_engine.fill_cluster_advances_utf8(text, font_spec, advances);
+    return status;
+}
+
 // Below 1x on either axis (and no larger on the other) the image is drawn
 // from its resampled copy at the device size (Impl::downscaled_for); at or
 // above 1x it is drawn as it is, so those pixels are unchanged.

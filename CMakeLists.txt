@@ -456,6 +456,7 @@ add_library(gui_forms_core STATIC
     src/core/text/composite/text_composite.cpp
     src/core/text/localizable/localizable.cpp
     src/core/text/locale_file/locale_file.cpp
+    src/core/text/paragraph_layout/paragraph_layout.cpp
     src/core/document_view/document_view_state.cpp
     src/core/pages/page_set/page_set.cpp
     src/core/events/key_commands/key_commands.cpp
@@ -4522,6 +4523,25 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_text_block_engine_tests PRIVATE gui_forms_controls gui_forms_text_engine)
         add_test(NAME gui_forms_text_block_engine_tests
                  COMMAND gui_forms_text_block_engine_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+    endif()
+
+    # Paragraph layout into caller storage (chat_stress gap A1): wrapping
+    # against TextBlock's lines and the shared greedy wrapper, the storage
+    # results, counted allocations, long words and emoji clusters; and the
+    # same against the bundled engine.
+    add_executable(gui_forms_paragraph_layout_tests
+        tests/paragraph_layout_tests.cpp
+    )
+    target_link_libraries(gui_forms_paragraph_layout_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_paragraph_layout_tests
+             COMMAND gui_forms_paragraph_layout_tests)
+    if(TARGET gui_forms_text_engine)
+        add_executable(gui_forms_paragraph_layout_engine_tests
+            tests/paragraph_layout_engine_tests.cpp
+        )
+        target_link_libraries(gui_forms_paragraph_layout_engine_tests PRIVATE gui_forms_controls gui_forms_text_engine)
+        add_test(NAME gui_forms_paragraph_layout_engine_tests
+                 COMMAND gui_forms_paragraph_layout_engine_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
     endif()
 
     # Stage L, phase L5: absolute and relative positioning in the three CSS

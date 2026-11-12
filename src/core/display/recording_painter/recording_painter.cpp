@@ -514,6 +514,13 @@ TextResolutionStatus RecordingPainter::fill_line_break_opportunities_utf8(
     return status;
 }
 
+TextResolutionStatus RecordingPainter::fill_cluster_advances_utf8(
+    std::string_view text, FontSpec font, std::span<double> advances) {
+    if (text_metrics_ == nullptr) return estimate_cluster_advances_utf8(text, font, advances);
+    const TextResolutionStatus status = (*text_metrics_).fill_cluster_advances_utf8(text, font, advances);
+    return status;
+}
+
 void RecordingPainter::draw_image(ImageId image, Rect destination, double opacity) {
     DisplayCommand command;
     command.operation = DisplayOperation::draw_image;
