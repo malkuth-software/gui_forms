@@ -114,6 +114,7 @@ __ZGVZN9gui_forms10TaskDialog*
 __ZGVZN9gui_forms10TextChange*
 __ZGVZN9gui_forms10TextExtent*
 __ZGVZN9gui_forms10TextShaper*
+__ZGVZN9gui_forms10UndoLimits*
 __ZGVZN9gui_forms10UnitFormat*
 __ZGVZN9gui_forms10UnitSuffix*
 __ZGVZN9gui_forms10UpDownBase*
@@ -227,6 +228,7 @@ __ZGVZN9gui_forms12MaterialGlow*
 __ZGVZN9gui_forms12MenuItemSpec*
 __ZGVZN9gui_forms12MnemonicText*
 __ZGVZN9gui_forms12MotionPolicy*
+__ZGVZN9gui_forms12NodeProperty*
 __ZGVZN9gui_forms12NumberFormat*
 __ZGVZN9gui_forms12OverlayToken*
 __ZGVZN9gui_forms12PagePosition*
@@ -473,6 +475,8 @@ __ZGVZN9gui_forms15EnginePrimitive*
 __ZGVZN9gui_forms15EventStatistics*
 __ZGVZN9gui_forms15FontDeclaration*
 __ZGVZN9gui_forms15FramePollResult*
+__ZGVZN9gui_forms15GraphLoadResult*
+__ZGVZN9gui_forms15GraphSaveResult*
 __ZGVZN9gui_forms15HelpBookSection*
 __ZGVZN9gui_forms15HelpFieldLimits*
 __ZGVZN9gui_forms15HelpPageSection*
@@ -1526,6 +1530,7 @@ __ZGVZNK9gui_forms10TaskDialog*
 __ZGVZNK9gui_forms10TextChange*
 __ZGVZNK9gui_forms10TextExtent*
 __ZGVZNK9gui_forms10TextShaper*
+__ZGVZNK9gui_forms10UndoLimits*
 __ZGVZNK9gui_forms10UnitFormat*
 __ZGVZNK9gui_forms10UnitSuffix*
 __ZGVZNK9gui_forms10UpDownBase*
@@ -1639,6 +1644,7 @@ __ZGVZNK9gui_forms12MaterialGlow*
 __ZGVZNK9gui_forms12MenuItemSpec*
 __ZGVZNK9gui_forms12MnemonicText*
 __ZGVZNK9gui_forms12MotionPolicy*
+__ZGVZNK9gui_forms12NodeProperty*
 __ZGVZNK9gui_forms12NumberFormat*
 __ZGVZNK9gui_forms12OverlayToken*
 __ZGVZNK9gui_forms12PagePosition*
@@ -1885,6 +1891,8 @@ __ZGVZNK9gui_forms15EnginePrimitive*
 __ZGVZNK9gui_forms15EventStatistics*
 __ZGVZNK9gui_forms15FontDeclaration*
 __ZGVZNK9gui_forms15FramePollResult*
+__ZGVZNK9gui_forms15GraphLoadResult*
+__ZGVZNK9gui_forms15GraphSaveResult*
 __ZGVZNK9gui_forms15HelpBookSection*
 __ZGVZNK9gui_forms15HelpFieldLimits*
 __ZGVZNK9gui_forms15HelpPageSection*
@@ -2990,6 +2998,7 @@ __ZN9gui_forms10TaskDialog*
 __ZN9gui_forms10TextChange*
 __ZN9gui_forms10TextExtent*
 __ZN9gui_forms10TextShaper*
+__ZN9gui_forms10UndoLimits*
 __ZN9gui_forms10UnitFormat*
 __ZN9gui_forms10UnitSuffix*
 __ZN9gui_forms10UpDownBase*
@@ -3127,6 +3136,7 @@ __ZN9gui_forms12MaterialGlow*
 __ZN9gui_forms12MenuItemSpec*
 __ZN9gui_forms12MnemonicText*
 __ZN9gui_forms12MotionPolicy*
+__ZN9gui_forms12NodeProperty*
 __ZN9gui_forms12NumberFormat*
 __ZN9gui_forms12OverlayToken*
 __ZN9gui_forms12PagePosition*
@@ -3455,6 +3465,8 @@ __ZN9gui_forms15EnginePrimitive*
 __ZN9gui_forms15EventStatistics*
 __ZN9gui_forms15FontDeclaration*
 __ZN9gui_forms15FramePollResult*
+__ZN9gui_forms15GraphLoadResult*
+__ZN9gui_forms15GraphSaveResult*
 __ZN9gui_forms15HelpBookSection*
 __ZN9gui_forms15HelpFieldLimits*
 __ZN9gui_forms15HelpPageSection*
@@ -4403,6 +4415,8 @@ __ZN9gui_forms21file_dialog_name_partB*
 __ZN9gui_forms21file_dialog_name_partE*
 __ZN9gui_forms21find_dock_drop_targetB*
 __ZN9gui_forms21find_dock_drop_targetE*
+__ZN9gui_forms21graph_load_error_nameB*
+__ZN9gui_forms21graph_load_error_nameE*
 __ZN9gui_forms21grid_item_column_sizeB*
 __ZN9gui_forms21grid_item_column_sizeE*
 __ZN9gui_forms21grid_pattern_at_levelB*
@@ -5598,6 +5612,7 @@ __ZNK[RO]9gui_forms10TaskDialog*
 __ZNK[RO]9gui_forms10TextChange*
 __ZNK[RO]9gui_forms10TextExtent*
 __ZNK[RO]9gui_forms10TextShaper*
+__ZNK[RO]9gui_forms10UndoLimits*
 __ZNK[RO]9gui_forms10UnitFormat*
 __ZNK[RO]9gui_forms10UnitSuffix*
 __ZNK[RO]9gui_forms10UpDownBase*
@@ -5711,6 +5726,7 @@ __ZNK[RO]9gui_forms12MaterialGlow*
 __ZNK[RO]9gui_forms12MenuItemSpec*
 __ZNK[RO]9gui_forms12MnemonicText*
 __ZNK[RO]9gui_forms12MotionPolicy*
+__ZNK[RO]9gui_forms12NodeProperty*
 __ZNK[RO]9gui_forms12NumberFormat*
 __ZNK[RO]9gui_forms12OverlayToken*
 __ZNK[RO]9gui_forms12PagePosition*
@@ -5957,6 +5973,8 @@ __ZNK[RO]9gui_forms15EnginePrimitive*
 __ZNK[RO]9gui_forms15EventStatistics*
 __ZNK[RO]9gui_forms15FontDeclaration*
 __ZNK[RO]9gui_forms15FramePollResult*
+__ZNK[RO]9gui_forms15GraphLoadResult*
+__ZNK[RO]9gui_forms15GraphSaveResult*
 __ZNK[RO]9gui_forms15HelpBookSection*
 __ZNK[RO]9gui_forms15HelpFieldLimits*
 __ZNK[RO]9gui_forms15HelpPageSection*
@@ -7010,6 +7028,7 @@ __ZN[KRO]9gui_forms10TaskDialog*
 __ZN[KRO]9gui_forms10TextChange*
 __ZN[KRO]9gui_forms10TextExtent*
 __ZN[KRO]9gui_forms10TextShaper*
+__ZN[KRO]9gui_forms10UndoLimits*
 __ZN[KRO]9gui_forms10UnitFormat*
 __ZN[KRO]9gui_forms10UnitSuffix*
 __ZN[KRO]9gui_forms10UpDownBase*
@@ -7123,6 +7142,7 @@ __ZN[KRO]9gui_forms12MaterialGlow*
 __ZN[KRO]9gui_forms12MenuItemSpec*
 __ZN[KRO]9gui_forms12MnemonicText*
 __ZN[KRO]9gui_forms12MotionPolicy*
+__ZN[KRO]9gui_forms12NodeProperty*
 __ZN[KRO]9gui_forms12NumberFormat*
 __ZN[KRO]9gui_forms12OverlayToken*
 __ZN[KRO]9gui_forms12PagePosition*
@@ -7369,6 +7389,8 @@ __ZN[KRO]9gui_forms15EnginePrimitive*
 __ZN[KRO]9gui_forms15EventStatistics*
 __ZN[KRO]9gui_forms15FontDeclaration*
 __ZN[KRO]9gui_forms15FramePollResult*
+__ZN[KRO]9gui_forms15GraphLoadResult*
+__ZN[KRO]9gui_forms15GraphSaveResult*
 __ZN[KRO]9gui_forms15HelpBookSection*
 __ZN[KRO]9gui_forms15HelpFieldLimits*
 __ZN[KRO]9gui_forms15HelpPageSection*
@@ -8422,6 +8444,7 @@ __ZT[VIST]N9gui_forms10TaskDialog*E
 __ZT[VIST]N9gui_forms10TextChange*E
 __ZT[VIST]N9gui_forms10TextExtent*E
 __ZT[VIST]N9gui_forms10TextShaper*E
+__ZT[VIST]N9gui_forms10UndoLimits*E
 __ZT[VIST]N9gui_forms10UnitFormat*E
 __ZT[VIST]N9gui_forms10UnitSuffix*E
 __ZT[VIST]N9gui_forms10UpDownBase*E
@@ -8535,6 +8558,7 @@ __ZT[VIST]N9gui_forms12MaterialGlow*E
 __ZT[VIST]N9gui_forms12MenuItemSpec*E
 __ZT[VIST]N9gui_forms12MnemonicText*E
 __ZT[VIST]N9gui_forms12MotionPolicy*E
+__ZT[VIST]N9gui_forms12NodeProperty*E
 __ZT[VIST]N9gui_forms12NumberFormat*E
 __ZT[VIST]N9gui_forms12OverlayToken*E
 __ZT[VIST]N9gui_forms12PagePosition*E
@@ -8781,6 +8805,8 @@ __ZT[VIST]N9gui_forms15EnginePrimitive*E
 __ZT[VIST]N9gui_forms15EventStatistics*E
 __ZT[VIST]N9gui_forms15FontDeclaration*E
 __ZT[VIST]N9gui_forms15FramePollResult*E
+__ZT[VIST]N9gui_forms15GraphLoadResult*E
+__ZT[VIST]N9gui_forms15GraphSaveResult*E
 __ZT[VIST]N9gui_forms15HelpBookSection*E
 __ZT[VIST]N9gui_forms15HelpFieldLimits*E
 __ZT[VIST]N9gui_forms15HelpPageSection*E
@@ -9834,6 +9860,7 @@ __ZT[hvc]*9gui_forms10TaskDialog*
 __ZT[hvc]*9gui_forms10TextChange*
 __ZT[hvc]*9gui_forms10TextExtent*
 __ZT[hvc]*9gui_forms10TextShaper*
+__ZT[hvc]*9gui_forms10UndoLimits*
 __ZT[hvc]*9gui_forms10UnitFormat*
 __ZT[hvc]*9gui_forms10UnitSuffix*
 __ZT[hvc]*9gui_forms10UpDownBase*
@@ -9947,6 +9974,7 @@ __ZT[hvc]*9gui_forms12MaterialGlow*
 __ZT[hvc]*9gui_forms12MenuItemSpec*
 __ZT[hvc]*9gui_forms12MnemonicText*
 __ZT[hvc]*9gui_forms12MotionPolicy*
+__ZT[hvc]*9gui_forms12NodeProperty*
 __ZT[hvc]*9gui_forms12NumberFormat*
 __ZT[hvc]*9gui_forms12OverlayToken*
 __ZT[hvc]*9gui_forms12PagePosition*
@@ -10193,6 +10221,8 @@ __ZT[hvc]*9gui_forms15EnginePrimitive*
 __ZT[hvc]*9gui_forms15EventStatistics*
 __ZT[hvc]*9gui_forms15FontDeclaration*
 __ZT[hvc]*9gui_forms15FramePollResult*
+__ZT[hvc]*9gui_forms15GraphLoadResult*
+__ZT[hvc]*9gui_forms15GraphSaveResult*
 __ZT[hvc]*9gui_forms15HelpBookSection*
 __ZT[hvc]*9gui_forms15HelpFieldLimits*
 __ZT[hvc]*9gui_forms15HelpPageSection*
@@ -11246,6 +11276,7 @@ __ZZN9gui_forms10TaskDialog*
 __ZZN9gui_forms10TextChange*
 __ZZN9gui_forms10TextExtent*
 __ZZN9gui_forms10TextShaper*
+__ZZN9gui_forms10UndoLimits*
 __ZZN9gui_forms10UnitFormat*
 __ZZN9gui_forms10UnitSuffix*
 __ZZN9gui_forms10UpDownBase*
@@ -11359,6 +11390,7 @@ __ZZN9gui_forms12MaterialGlow*
 __ZZN9gui_forms12MenuItemSpec*
 __ZZN9gui_forms12MnemonicText*
 __ZZN9gui_forms12MotionPolicy*
+__ZZN9gui_forms12NodeProperty*
 __ZZN9gui_forms12NumberFormat*
 __ZZN9gui_forms12OverlayToken*
 __ZZN9gui_forms12PagePosition*
@@ -11605,6 +11637,8 @@ __ZZN9gui_forms15EnginePrimitive*
 __ZZN9gui_forms15EventStatistics*
 __ZZN9gui_forms15FontDeclaration*
 __ZZN9gui_forms15FramePollResult*
+__ZZN9gui_forms15GraphLoadResult*
+__ZZN9gui_forms15GraphSaveResult*
 __ZZN9gui_forms15HelpBookSection*
 __ZZN9gui_forms15HelpFieldLimits*
 __ZZN9gui_forms15HelpPageSection*
@@ -12658,6 +12692,7 @@ __ZZNK9gui_forms10TaskDialog*
 __ZZNK9gui_forms10TextChange*
 __ZZNK9gui_forms10TextExtent*
 __ZZNK9gui_forms10TextShaper*
+__ZZNK9gui_forms10UndoLimits*
 __ZZNK9gui_forms10UnitFormat*
 __ZZNK9gui_forms10UnitSuffix*
 __ZZNK9gui_forms10UpDownBase*
@@ -12771,6 +12806,7 @@ __ZZNK9gui_forms12MaterialGlow*
 __ZZNK9gui_forms12MenuItemSpec*
 __ZZNK9gui_forms12MnemonicText*
 __ZZNK9gui_forms12MotionPolicy*
+__ZZNK9gui_forms12NodeProperty*
 __ZZNK9gui_forms12NumberFormat*
 __ZZNK9gui_forms12OverlayToken*
 __ZZNK9gui_forms12PagePosition*
@@ -13017,6 +13053,8 @@ __ZZNK9gui_forms15EnginePrimitive*
 __ZZNK9gui_forms15EventStatistics*
 __ZZNK9gui_forms15FontDeclaration*
 __ZZNK9gui_forms15FramePollResult*
+__ZZNK9gui_forms15GraphLoadResult*
+__ZZNK9gui_forms15GraphSaveResult*
 __ZZNK9gui_forms15HelpBookSection*
 __ZZNK9gui_forms15HelpFieldLimits*
 __ZZNK9gui_forms15HelpPageSection*

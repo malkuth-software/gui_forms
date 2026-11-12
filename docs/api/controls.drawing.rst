@@ -47,8 +47,12 @@ Related types
      - Whether pointer input hits the surface (default false: it passes through to what lies beneath).
    * - :cpp:class:`DrawingSurfaceSemanticRoleCapability <gui_forms::DrawingSurfaceSemanticRoleCapability>`
      - The role the surface publishes to accessibility (default image).
+   * - :cpp:class:`GraphLoadResult <gui_forms::GraphLoadResult>`
+     - load's result: the error and, when it is not ok, its byte offset, and its line and column (both from 1, the column counted in bytes).
    * - :cpp:class:`GraphResult <gui_forms::GraphResult>`
      - An operation's result: the status and, for add_node and connect, the new record's identity (zero otherwise).
+   * - :cpp:class:`GraphSaveResult <gui_forms::GraphSaveResult>`
+     - save's result: the status, the bytes written (zero unless ok) and the document's size in bytes (always set, so save with empty storage measures).
    * - :cpp:class:`LinkId <gui_forms::LinkId>`
      - A link's identity, as NodeId.
    * - :cpp:class:`LinkRecord <gui_forms::LinkRecord>`
@@ -63,10 +67,12 @@ Related types
      - Owned by its consumer and borrowed by the canvases that draw it, on one thread (the consumer's UI thread).
    * - :cpp:class:`NodeId <gui_forms::NodeId>`
      - A node's identity: its slot and the slot's generation when it was added.
+   * - :cpp:class:`NodeProperty <gui_forms::NodeProperty>`
+     - A node's named value: a parameter its consumer gives meaning to (a kind's "scale" = "5.0").
    * - :cpp:class:`NodeRecord <gui_forms::NodeRecord>`
      - A node slot.
    * - :cpp:class:`NodeSpec <gui_forms::NodeSpec>`
-     - What add_node takes: the node's title, its bounds in world units and its ports, copied into the node's record.
+     - What add_node takes, copied into the node's record: - key: the node's stable text identity, unique among the live nodes and kept by documents (1 to 64 bytes of ASCII letters, digits, '_', '.' and '-'); runtime identities (NodeId) are assigned per graph and never saved; - kind: the consumer's kind name ("noise_texture"), opaque to the graph; - title, bounds in world units, ports, and properties in order.
    * - :cpp:class:`PortIndex <gui_forms::PortIndex>`
      - A port's position in its node's port list (not an identity: the list is fixed when the node is added).
    * - :cpp:class:`PortRecord <gui_forms::PortRecord>`
@@ -129,6 +135,8 @@ Related types
      - How a host's sub-surface thread ended (SubSurfaceHost::stopped): stopped when the host stopped it (new content, leaving the window), failed when the content threw or built no root, with what it threw.
    * - :cpp:class:`SubSurfaceThread <gui_forms::SubSurfaceThread>`
      - The parent's side of one sub-surface: owns its thread (owner decision 9, the library's thread) and the channel the two sides share.
+   * - :cpp:class:`UndoLimits <gui_forms::UndoLimits>`
+     - The undo log's bound.
    * - :cpp:class:`WorldPoint <gui_forms::WorldPoint>`
      - A point in graph space (world units, float64).
    * - :cpp:class:`WorldRect <gui_forms::WorldRect>`
@@ -238,6 +246,24 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: GraphLoadResult final
+
+   ``#include <gui_forms/controls/node_graph.hpp>``
+
+   load's result: the error and, when it is not ok, its byte offset, and its line and column (both from 1, the column counted in bytes).
+
+   .. cpp:member:: GraphLoadError error
+
+      Default: ``{GraphLoadError::ok}``.
+
+   .. cpp:member:: std::size_t offset
+
+   .. cpp:member:: std::size_t line
+
+   .. cpp:member:: std::size_t column
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: GraphResult final
 
    ``#include <gui_forms/controls/node_graph.hpp>``
@@ -251,6 +277,22 @@ Related types
    .. cpp:member:: NodeId node
 
    .. cpp:member:: LinkId link
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GraphSaveResult final
+
+   ``#include <gui_forms/controls/node_graph.hpp>``
+
+   save's result: the status, the bytes written (zero unless ok) and the document's size in bytes (always set, so save with empty storage measures).
+
+   .. cpp:member:: GraphSaveStatus status
+
+      Default: ``{GraphSaveStatus::ok}``.
+
+   .. cpp:member:: std::size_t written
+
+   .. cpp:member:: std::size_t required
 
 .. cpp:namespace:: gui_forms
 
@@ -396,6 +438,18 @@ Related types
 
    .. rubric:: Properties
 
+   .. cpp:function:: UndoLimits undo_limits() const noexcept
+
+   .. cpp:function:: void set_undo_limits(UndoLimits limits)
+
+      Discards the redo steps, applies the new bound by dropping the oldest steps, and reserves the step table (at most 2 * maximum_steps + 1 entries: dropped steps are compacted away once they are half the table).
+
+   .. cpp:function:: std::size_t undo_steps() const noexcept
+
+   .. cpp:function:: std::size_t redo_steps() const noexcept
+
+   .. cpp:function:: std::size_t undo_bytes() const noexcept
+
    .. cpp:function:: std::span<const NodeRecord> node_slots() const& noexcept
 
       Every slot, live or free, in slot order (the order the canvas paints and the router routes in); an identity is {index, record.generation}.
@@ -419,13 +473,17 @@ Related types
 
    .. cpp:function:: GraphResult add_node(const NodeSpec& spec)
 
+      Every recorded operation below may also throw std::bad_alloc while it makes room in the undo log, after validation and before it changes the graph: the graph is then unchanged, though the redo steps may have been discarded.
+
    .. cpp:function:: GraphResult remove_node(NodeId node)
 
       Removes the node and every link to or from it.
 
    .. cpp:function:: GraphResult move_nodes(std::span<const NodeId> nodes, WorldPoint delta)
 
-      Moves every node in ``nodes`` by ``delta``. All identities are checked first; one stale identity refuses the whole move. A node listed twice moves once.
+      Moves every node in ``nodes`` by ``delta``. All identities are checked first; one stale identity refuses the whole move. A node listed twice moves once. Inside an undo group, a move of the same identities in the same order as the group's previous record joins that record (a drag's frames), so a drag records once and allocates nothing after its first frame.
+
+   .. cpp:function:: GraphResult remove_property(NodeId node, std::string_view name)
 
    .. cpp:function:: GraphResult connect(PortRef from, PortRef to)
 
@@ -433,9 +491,41 @@ Related types
 
    .. cpp:function:: GraphResult disconnect(LinkId link)
 
+   .. cpp:function:: GraphResult undo()
+
+      -- undo --------------------------------------------------------------------- undo reverts the newest applied step and redo reapplies the oldest reverted one; recording a new operation discards every reverted step. Each advances the revision once (never back to an older number, so caches see every change). An identity that undo made stale is live again after redo: undo and redo restore exact identities. Neither allocates: every record keeps the storage its inverse needs.
+
+   .. cpp:function:: GraphResult redo()
+
+   .. cpp:function:: void begin_undo_group() noexcept
+
+      Groups nest; the operations between the outermost begin and its end form one step (an empty group forms none). undo, redo, clear_undo and load are refused while a group is open.
+
+   .. cpp:function:: GraphResult end_undo_group() noexcept
+
+   .. cpp:function:: GraphResult clear_undo() noexcept
+
+      Drops every step.
+
+   .. cpp:function:: GraphSaveResult save(std::span<char> storage) const
+
+      Writes the document into ``storage``. Measures first: storage shorter than the document is refused with storage_too_small and left untouched, and ``required`` is set either way. Never allocates.
+
+   .. cpp:function:: GraphLoadResult load(std::string_view document)
+
+      Replaces the graph's contents with the document's. The whole document is read and checked first (syntax, bounds, keys, links) into work storage bounded by the document; only then is the graph changed, with nothing left that can fail. Nodes take slots 0, 1, ... in document order with a generation newer than any the slot had, so no identity from before the load is live after it. The undo log is emptied: the loaded document is the start. One revision advance. May throw std::bad_alloc while building the work storage, before any change.
+
    .. cpp:function:: const NodeRecord* node(NodeId node) const noexcept
 
       The record of a live identity, or null for a stale one. Borrowed until the next operation.
+
+   .. cpp:function:: NodeId find_node(std::string_view key) const noexcept
+
+      The live node with this key, or a stale identity (O(log n)).
+
+   .. cpp:function:: const NodeProperty* property(NodeId node, std::string_view name) const noexcept
+
+      The node's named property, or null. Borrowed until the next operation.
 
    .. cpp:function:: const LinkRecord* link(LinkId link) const noexcept
 
@@ -451,7 +541,13 @@ Related types
 
    .. cpp:function:: GraphResult set_title(NodeId node, std::string_view title)
 
+   .. cpp:function:: GraphResult set_property(NodeId node, std::string_view name, std::string_view value)
+
+      Sets the named property's value: in place when the node has it, appended after its other properties otherwise.
+
    .. cpp:function:: GraphResult set_port_lamp(PortRef port, PortLamp lamp)
+
+      Not recorded for undo and not saved (evaluation state).
 
 .. cpp:namespace:: gui_forms
 
@@ -467,17 +563,35 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: NodeProperty final
+
+   ``#include <gui_forms/controls/node_graph.hpp>``
+
+   A node's named value: a parameter its consumer gives meaning to (a kind's "scale" = "5.0"). The graph keeps it as text and never interprets it, so a document keeps properties it does not know verbatim. A name is 1 to 64 bytes of ASCII letters, digits, '_', '.' and '-', starts with a letter and is none of the document's field words (kind, title, bounds, port).
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: std::string value
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: NodeRecord final
 
    ``#include <gui_forms/controls/node_graph.hpp>``
 
    A node slot. ``live`` is false for a free slot, whose fields are stale.
 
+   .. cpp:member:: std::string key
+
+   .. cpp:member:: std::string kind
+
    .. cpp:member:: std::string title
 
    .. cpp:member:: WorldRect bounds
 
    .. cpp:member:: std::vector<PortRecord> ports
+
+   .. cpp:member:: std::vector<NodeProperty> properties
 
    .. cpp:member:: std::uint32_t generation
 
@@ -489,13 +603,19 @@ Related types
 
    ``#include <gui_forms/controls/node_graph.hpp>``
 
-   What add_node takes: the node's title, its bounds in world units and its ports, copied into the node's record.
+   What add_node takes, copied into the node's record: - key: the node's stable text identity, unique among the live nodes and kept by documents (1 to 64 bytes of ASCII letters, digits, '_', '.' and '-'); runtime identities (NodeId) are assigned per graph and never saved; - kind: the consumer's kind name ("noise_texture"), opaque to the graph; - title, bounds in world units, ports, and properties in order. Each text (kind, title, a port name, a property value) is at most maximum_graph_text_bytes bytes.
+
+   .. cpp:member:: std::string key
+
+   .. cpp:member:: std::string kind
 
    .. cpp:member:: std::string title
 
    .. cpp:member:: WorldRect bounds
 
    .. cpp:member:: std::vector<PortRecord> ports
+
+   .. cpp:member:: std::vector<NodeProperty> properties
 
 .. cpp:namespace:: gui_forms
 
@@ -1263,6 +1383,22 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: UndoLimits final
+
+   ``#include <gui_forms/controls/node_graph.hpp>``
+
+   The undo log's bound. When a new step passes either limit, the oldest steps are dropped until both hold again, except that the newest step is never dropped: one step larger than maximum_bytes empties the rest of the log and stays. maximum_steps zero turns recording off (and empties the log). Bytes are an estimate: each record's fixed size plus the bytes of the texts, ports and positions it keeps.
+
+   .. cpp:member:: std::size_t maximum_steps
+
+      Default: ``{10000U}``.
+
+   .. cpp:member:: std::size_t maximum_bytes
+
+      Default: ``{64U * 1024U * 1024U}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: WorldPoint final
 
    ``#include <gui_forms/controls/node_graph.hpp>``
@@ -1308,6 +1444,64 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: GraphLoadError
+
+   ``#include <gui_forms/controls/node_graph.hpp>``
+
+   .. cpp:enumerator:: ok
+
+   .. cpp:enumerator:: undo_group_open
+
+   .. cpp:enumerator:: bad_header
+
+   .. cpp:enumerator:: unsupported_version
+
+   .. cpp:enumerator:: truncated
+
+   .. cpp:enumerator:: unexpected_character
+
+   .. cpp:enumerator:: syntax
+
+   .. cpp:enumerator:: unknown_statement
+
+   .. cpp:enumerator:: bad_key
+
+   .. cpp:enumerator:: bad_number
+
+   .. cpp:enumerator:: non_canonical
+
+   .. cpp:enumerator:: bad_text
+
+   .. cpp:enumerator:: bad_word
+
+   .. cpp:enumerator:: bad_property
+
+   .. cpp:enumerator:: duplicate_key
+
+   .. cpp:enumerator:: unknown_node
+
+   .. cpp:enumerator:: bad_port
+
+   .. cpp:enumerator:: wrong_direction
+
+   .. cpp:enumerator:: same_node
+
+   .. cpp:enumerator:: occupied
+
+   .. cpp:enumerator:: limit
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: GraphSaveStatus
+
+   ``#include <gui_forms/controls/node_graph.hpp>``
+
+   .. cpp:enumerator:: ok
+
+   .. cpp:enumerator:: storage_too_small
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: GraphStatus
 
    ``#include <gui_forms/controls/node_graph.hpp>``
@@ -1327,6 +1521,18 @@ Enumerations
    .. cpp:enumerator:: invalid_argument
 
    .. cpp:enumerator:: capacity
+
+   .. cpp:enumerator:: duplicate_key
+
+   .. cpp:enumerator:: missing_property
+
+   .. cpp:enumerator:: nothing_to_undo
+
+   .. cpp:enumerator:: nothing_to_redo
+
+   .. cpp:enumerator:: group_open
+
+   .. cpp:enumerator:: no_group
 
 .. cpp:namespace:: gui_forms
 
@@ -1465,6 +1671,8 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view graph_status_name(GraphStatus status) noexcept
 
+.. cpp:function:: std::string_view graph_load_error_name(GraphLoadError error) noexcept
+
 .. cpp:function:: WorldPoint port_anchor(const NodeRecord& node, PortSide side, double offset) noexcept
 
    Where a port sits on its node's edge ``side`` (left, right, top or bottom; a fixed port's own side and offset, or, for an automatic port, ``side`` with ``offset``), in world units, on the node's boundary.
@@ -1472,3 +1680,27 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_node_ports
 
    Value: ``256U``.
+
+.. cpp:var:: constexpr std::size_t maximum_node_properties
+
+   Value: ``256U``.
+
+.. cpp:var:: constexpr std::size_t maximum_graph_key_bytes
+
+   A node key or property name, in bytes. Value: ``64U``.
+
+.. cpp:var:: constexpr std::size_t maximum_graph_text_bytes
+
+   A kind, title, port name or property value, in bytes. Value: ``65536U``.
+
+.. cpp:var:: constexpr std::uint32_t graph_document_version
+
+   The document format version save writes and load accepts. Value: ``1U``.
+
+.. cpp:var:: constexpr std::size_t maximum_document_nodes
+
+   load's bounds on hostile input: nodes and links in one document (ports, properties and texts are bounded per node as above). Value: ``1048576U``.
+
+.. cpp:var:: constexpr std::size_t maximum_document_links
+
+   Value: ``4194304U``.

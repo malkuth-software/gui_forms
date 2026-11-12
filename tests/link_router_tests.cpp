@@ -41,6 +41,9 @@ PortRecord port_of(PortDirection direction, PortSide side, double offset) {
 
 NodeId add_box(NodeGraph& graph, double x, double y, std::vector<PortRecord> ports) {
     NodeSpec spec{};
+    // Keys are unique in a graph; these fixtures never remove a node, so the
+    // slot count names the next one.
+    spec.key = "box" + std::to_string(graph.node_slots().size());
     spec.title = "box";
     spec.bounds = WorldRect{x, y, 100.0, 100.0};
     spec.ports = std::move(ports);
