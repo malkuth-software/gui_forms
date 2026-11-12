@@ -1540,7 +1540,7 @@ void ThemeEngine::borrow_part_backplane(const PartPaint& part, PartPaintRun& run
     if (!run.margin) return;
     const Point raster_origin{run.place.window_origin.x + run.shown.bounds.x - descriptor.outsets.left,
                               run.place.window_origin.y + run.shown.bounds.y - descriptor.outsets.top};
-    run.backplane = (*window).engine_backplane(raster_origin, request.extent, run.decided.scale, *run.margin);
+    run.backplane = detail::SurfaceEngineAccess::backplane(*window, raster_origin, request.extent, run.decided.scale, *run.margin);
     request.target.backplane = run.backplane.image.get();
     request.target.backplane_margin = *run.margin;
     request.target.backplane_generation = run.backplane.generation;
