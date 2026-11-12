@@ -39,6 +39,7 @@ source files carry "Copyright (C) 1996-2025".)
 | stx_png (the owned PNG codec) | in this repository | MIT | all | `licenses/stx_png.txt` | `stx_png-LICENSE.txt` (and `share/licenses/stx_png/`) |
 | stx_conv (the owner's CONV resampler) | in this repository | MIT | all | `licenses/stx_conv.txt` | `stx_conv-LICENSE.txt` (and `share/licenses/stx_conv/`) |
 | stx_rtf2md (the owner's RTF and markdown converter) | in this repository | MIT | all | `licenses/stx_rtf2md.txt` | `stx_rtf2md-LICENSE.txt` (and `share/licenses/stx_rtf2md/`) |
+| stx_btree (the row height index's sequence tree, in stx_auxlib) | in the stx_auxlib repository, at `stx_auxlib.lock`'s commit | MIT; a C++ form of bbtree by Xiangpeng Hao (MIT OR Apache-2.0, MIT taken), whose notice is retained | all | `licenses/stx_btree.txt` and `licenses/stx_btree-NOTICE.txt` | `stx_btree-LICENSE.txt` and `stx_btree-NOTICE.txt` |
 | Unicode Character Database (grapheme tables) | Unicode 17.0.0 | Unicode License v3 | all | `licenses/Unicode.txt` | `Unicode-LICENSE.txt` |
 | Skia (in stx_skia) | `chrome/m152`, `2a9b593b`, pruned and converted in stx's `stx_skia/` | BSD-3-Clause | all | `licenses/Skia.txt` | `Skia-LICENSE.txt` |
 | stx_skia (the CPU renderer derived from Skia) | in the stx repository, at `stx.lock`'s commit | MIT; Skia's BSD-3-Clause notices are retained | all | `licenses/stx_skia.txt` | `stx_skia-LICENSE.txt` |

@@ -14,6 +14,7 @@
 #include <charconv>
 #include <cmath>
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <span>
@@ -364,7 +365,7 @@ void VirtualRowsView::set_estimated_row_height(double height) {
     if (!std::isfinite(height) || height < minimum_row_height || height > maximum_row_height) {
         throw std::invalid_argument("VirtualRowsView estimated row height outside its bounds");
     }
-    if ((*heights_).estimated_height() == height) return;
+    if ((*heights_).estimated_height() == RowHeightIndex::stored_estimate(height)) return;
     (*heights_).assign(row_count(), height);
     rows_changed();
     report_scroll();
@@ -434,37 +435,79 @@ void VirtualRowsView::capture_anchor() noexcept {
     anchor_top_ = top - offset_;
 }
 
-bool VirtualRowsView::measure_row(std::size_t row) {
+std::optional<double> VirtualRowsView::request_row_height(std::size_t row, double current) {
     VirtualRowMeasure request{};
     request.row = VirtualRowIndex{row};
     request.width = viewport_.width;
-    request.height = (*heights_).height_of(row);
+    request.height = current;
     if (callbacks_.measure) {
         const CallbackScope scope(*this);
         callbacks_.measure(request);
     }
     ++statistics_.rows_measured;
-    if (!std::isfinite(request.height)) return false;
+    if (!std::isfinite(request.height)) return std::nullopt;
     const double height = std::clamp(request.height, minimum_row_height, maximum_row_height);
-    static_cast<void>((*heights_).set_height(row, height));
+    return height;
+}
+
+bool VirtualRowsView::measure_row(std::size_t row) {
+    const std::optional<double> height = request_row_height(row, (*heights_).height_of(row));
+    if (!height.has_value()) return false;
+    static_cast<void>((*heights_).set_height(row, *height));
     return true;
 }
 
 std::size_t VirtualRowsView::measure_band(double top, double bottom, std::size_t budget, std::size_t& asked) {
-    const std::size_t count = row_count();
-    std::size_t row = (*heights_).row_at(std::max(0.0, top));
+    RowHeightIndex& heights = *heights_;
+    RowHeightIndex::Cursor cursor{};
+    heights.seek_offset(cursor, std::max(0.0, top));
     std::size_t stored = 0U;
+    // The stretch: the rows from stretch_first staged so far, consecutive
+    // and each measured (now or before); `fresh` were measured by this
+    // walk, and the last of them ends the first `stretch_length` staged
+    // rows. The index is not changed until the stretch is stored (the
+    // measure target runs in a callback scope and cannot edit the view),
+    // so the cursor stays valid; `shift` is how far the staged heights
+    // move every later top, so cursor.top() + shift is the top a row has
+    // once the stretch is stored, exactly (both are whole 1/64 units).
+    std::size_t stretch_first = cursor.row();
+    std::size_t stretch_length = 0U;
+    std::size_t fresh = 0U;
+    double shift = 0.0;
+    heights.clear_staged();
     // Each row is at least minimum_row_height tall, so the walk visits at
     // most (bottom - top) / minimum_row_height + 1 rows.
-    while (row < count && asked < budget) {
-        const double row_top = (*heights_).offset_of(row);
-        if (row_top >= bottom) break;
-        if (!(*heights_).measured(row)) {
+    while (!cursor.at_end() && asked < budget) {
+        if (cursor.top() + shift >= bottom) break;
+        const std::size_t row = cursor.row();
+        const double current = cursor.height();
+        if (!cursor.measured()) {
             ++asked;
-            if (measure_row(row)) ++stored;
+            const std::optional<double> height = request_row_height(row, current);
+            if (height.has_value()) {
+                static_cast<void>(heights.stage_height(*height));
+                shift = shift + (RowHeightIndex::stored_height(*height) - current);
+                ++fresh;
+                stretch_length = heights.staged_count();
+            } else {
+                // A refused row stays unmeasured and ends the stretch; the
+                // store leaves the cursor stale, and advance re-seeks it
+                // at this row first.
+                if (heights.store_staged(stretch_first, stretch_length)) stored = stored + fresh;
+                stretch_first = row + 1U;
+                stretch_length = 0U;
+                fresh = 0U;
+                shift = 0.0;
+            }
+        } else if (fresh == 0U) {
+            // Measured rows before the first fresh one are not restaged.
+            stretch_first = row + 1U;
+        } else {
+            static_cast<void>(heights.stage_height(current));
         }
-        ++row;
+        heights.advance(cursor);
     }
+    if (heights.store_staged(stretch_first, stretch_length)) stored = stored + fresh;
     return stored;
 }
 
@@ -526,8 +569,11 @@ void VirtualRowsView::enforce_measured_budget(std::size_t band_first, std::size_
     const std::size_t window_end = reference + 1U + std::min(half, count - reference - 1U);
     const std::size_t keep_first = std::min(window_first, band_first);
     const std::size_t keep_end = std::max(window_end, band_end);
-    if (keep_end < count) (*heights_).forget(keep_end, count - keep_end);
-    if (keep_first > 0U) (*heights_).forget(0U, keep_first);
+    // Coarsened, not forgotten: each side becomes one approximate run with
+    // its exact total, so every offset in the keep window, the total and
+    // the anchor stay as they were.
+    if (keep_end < count) (*heights_).coarsen(keep_end, count - keep_end);
+    if (keep_first > 0U) (*heights_).coarsen(0U, keep_first);
     const std::size_t remaining = (*heights_).measured_count();
     statistics_.rows_forgotten = statistics_.rows_forgotten + (measured - remaining);
     ++statistics_.budget_compactions;
@@ -552,10 +598,11 @@ void VirtualRowsView::update_realized() noexcept {
         return;
     }
     const double bottom = offset_ + viewport_.height;
-    first_realized_ = (*heights_).row_at(offset_);
-    std::size_t end = first_realized_;
-    while (end < count && (*heights_).offset_of(end) < bottom) ++end;
-    end_realized_ = end;
+    RowHeightIndex::Cursor cursor{};
+    (*heights_).seek_offset(cursor, offset_);
+    first_realized_ = cursor.row();
+    while (!cursor.at_end() && cursor.top() < bottom) (*heights_).advance(cursor);
+    end_realized_ = cursor.row();
 }
 
 // -- scrolling --------------------------------------------------------------------------

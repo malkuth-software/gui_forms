@@ -192,6 +192,10 @@ include(CMakePackageConfigHelpers)
 # carries none) compiled with GUI.Forms' options. Imported targets' headers are
 # system headers here.
 include(cmake/Stx.cmake)
+# stx_btree's header-only sequence tree from malkuth-software/stx_auxlib at
+# stx_auxlib.lock's commit, which the controls' row height index adapts
+# (cmake/StxAuxlib.cmake).
+include(cmake/StxAuxlib.cmake)
 include(cmake/FuzzTargets.cmake)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST AND NOT APPLE)
@@ -1143,6 +1147,9 @@ target_include_directories(gui_forms_controls PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+# stx_btree's headers reach only the controls' private row height index; no
+# public header includes them.
+target_include_directories(gui_forms_controls SYSTEM PRIVATE "${GUI_FORMS_STX_BTREE_INCLUDE_DIR}")
 # The plots package's controls (PlotView, its items, Sparkline) draw through
 # the public plot primitives.
 target_link_libraries(gui_forms_controls PUBLIC gui_forms_core gui_drawing_core gui_forms_plot_primitives)
@@ -4294,6 +4301,7 @@ if(GUI_FORMS_BUILD_TESTS)
 
     add_executable(gui_forms_row_height_index_tests tests/row_height_index_tests.cpp)
     target_link_libraries(gui_forms_row_height_index_tests PRIVATE gui_forms_controls)
+    target_include_directories(gui_forms_row_height_index_tests SYSTEM PRIVATE "${GUI_FORMS_STX_BTREE_INCLUDE_DIR}")
     add_test(NAME gui_forms_row_height_index_tests COMMAND gui_forms_row_height_index_tests)
 
     add_executable(gui_forms_virtual_rows_view_tests tests/virtual_rows_view_tests.cpp)
@@ -5860,6 +5868,8 @@ install(FILES ${gui_forms_stx_licenses}/stx_rtf2md/PROVENANCE.md DESTINATION ${C
 install(FILES ${gui_forms_stx_licenses}/stx_png/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_png-PROVENANCE.md)
 install(FILES ${gui_forms_stx_licenses}/stx_conv/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-LICENSE.txt)
 install(FILES ${gui_forms_stx_licenses}/stx_conv/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-PROVENANCE.md)
+install(FILES "${GUI_FORMS_STX_AUXLIB_SOURCE_DIR}/btree/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-LICENSE.txt)
+install(FILES "${GUI_FORMS_STX_AUXLIB_SOURCE_DIR}/btree/NOTICE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-NOTICE.txt)
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 # Every third-party component the SDK and the programs ship, with its licence
 # and the FreeType credit (THIRD_PARTY_NOTICES.md).

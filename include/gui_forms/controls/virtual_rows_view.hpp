@@ -143,12 +143,12 @@ struct GUI_FORMS_API VirtualRowScroll final {
 
 // Work counters, for bounded-work checks and workload records. The totals
 // only grow; the "last" figures describe the most recent settle (a layout
-// or a scroll) and paint. index_runs walks the height index's leaves
-// (O(runs)) and index_bytes its nodes (O(nodes)); the other fields are
-// O(1). index_bytes is the heap the height index holds (nodes and their
-// arrays at capacity); index_measured the rows holding a measured height.
-// rows_forgotten counts measured rows the budget returned to the estimate
-// in budget_compactions compactions (set_measured_row_budget);
+// or a scroll) and paint. Every field is O(1) to read. index_runs is the
+// height index's packed entries plus its dense rows, index_bytes the heap
+// it holds (its pages and its fixed edit scratch), index_measured the rows
+// holding a measured height. rows_forgotten counts measured rows the
+// budget coarsened in budget_compactions compactions
+// (set_measured_row_budget);
 // partial_repaints counts invalidate_rows calls that repainted only the
 // rows' rectangles.
 struct GUI_FORMS_API VirtualRowsStatistics final {
@@ -174,7 +174,8 @@ struct GUI_FORMS_API VirtualRowsStatistics final {
 // A vertically scrolling list of a very large number of owner-drawn rows of
 // varying height (CHAT_STRESS_SPEC section 4.6). Rows are not controls and
 // the view keeps no row records: it keeps the row count and each row's
-// height in a height-indexed order-statistic B-tree (RowHeightIndex), and
+// height in a height-indexed sequence B-tree (RowHeightIndex, over
+// stx_auxlib's stx_btree), and
 // asks the application to measure, draw and describe the rows it shows.
 //
 // Heights. Every row starts at the estimate (estimated_row_height), so a
@@ -187,15 +188,21 @@ struct GUI_FORMS_API VirtualRowsStatistics final {
 // and invalidate_rows forgets them, measures those near the viewport again
 // at once and repaints them.
 //
-// Memory. The index holds a run per measured row whose neighbours differ
-// (about 24 bytes each, plus nodes). A measured-row budget
+// Heights are kept in 1/64 logical units (a measured height is rounded to
+// the nearest), and every offset is the exact sum of the heights above it.
+//
+// Memory. The index holds 4 bytes a measured row in dense stretches (8 in
+// a mixed one) plus a page header a leaf. A measured-row budget
 // (set_measured_row_budget, none by default) bounds it: after a settle that
-// leaves more rows measured than the budget, every measured row outside the
-// keep window returns to the estimate. The keep window is the rows within
-// budget / 2 of the first visible row on each side, widened to cover the
-// settle's band (the viewport and its overscan), which is never forgotten;
-// so at most budget + 1 rows plus the band stay measured. The anchor keeps
-// the rows on screen still while heights above them change back.
+// leaves more rows measured than the budget, the rows outside the keep
+// window are coarsened: each side becomes one approximate run holding its
+// exact total, so no offset in the keep window moves, the total and the
+// scroll bar stay put, and the coarsened rows are measured again (as
+// unmeasured rows) when they come back into the band. The keep window is
+// the rows within budget / 2 of the first visible row on each side,
+// widened to cover the settle's band (the viewport and its overscan),
+// which is never coarsened; so at most budget + 1 rows plus the band stay
+// measured.
 //
 // Anchoring. The anchor is the first row whose top is at or below the
 // viewport's top (the row straddling the top when no later row starts in
@@ -501,8 +508,15 @@ private:
     bool settle();
     // Asks for the unmeasured rows meeting [top, bottom) in content
     // coordinates while `asked` (counted up here) is below `budget`;
-    // returns the heights stored.
+    // returns the heights stored. One cursor walks the band, and each
+    // stretch of rows is stored in one batch when it ends, with the same
+    // result as storing them a row at a time.
     std::size_t measure_band(double top, double bottom, std::size_t budget, std::size_t& asked);
+    // Asks the measure target for one row's height (`current` is offered
+    // as the starting value) and counts the request; the height clamped to
+    // [minimum_row_height, maximum_row_height], or none for one that is not
+    // finite.
+    std::optional<double> request_row_height(std::size_t row, double current);
     // Asks the measure target for one row's height and records it; returns
     // whether a height was stored (false for a height that is not finite).
     bool measure_row(std::size_t row);
@@ -537,8 +551,8 @@ private:
     bool shift_selection_for_erase(std::size_t at, std::size_t count);
     [[nodiscard]] bool selected_at(std::size_t row) const noexcept;
     void raise_selection(std::optional<std::size_t> previous);
-    // Forgets measured rows outside the keep window when more than the
-    // budget are measured (see the class comment); [band_first, band_end)
+    // Coarsens the rows outside the keep window when more than the budget
+    // are measured (see the class comment); [band_first, band_end)
     // is the settle's band.
     void enforce_measured_budget(std::size_t band_first, std::size_t band_end);
     // Raises scrolled when the offset or the first visible row moved since
