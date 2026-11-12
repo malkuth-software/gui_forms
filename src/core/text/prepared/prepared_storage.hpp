@@ -129,6 +129,10 @@ struct PreparedMaskStorage final {
     std::int32_t left{};
     std::int32_t top{};
     std::size_t pixel_count{};
+    // Stamps GrayTextMask::pixels(): the mask's release or replacement
+    // destroys this storage and ends the views (borrow sanitizer, stage 3).
+    // Masks are made on the session's worker and read elsewhere: any_thread.
+    BorrowLender lender{BorrowThreading::any_thread};
 };
 
 struct PreparedServiceState final {

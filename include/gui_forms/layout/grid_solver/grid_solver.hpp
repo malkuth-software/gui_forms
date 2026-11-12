@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -188,18 +189,18 @@ enum class GridSolveOutcome : std::uint8_t {
 // order. Its storage grows only when the item or track count does.
 class GUI_FORMS_API GridLayoutWorkspace final {
 public:
-    [[nodiscard]] std::span<const GridItemResult> items() const& noexcept {
-        return std::span<const GridItemResult>(items_.data(), items_.size());
+    [[nodiscard]] BorrowedSpan<GridItemResult> items() const& noexcept {
+        return detail::lend_view(items_.data(), items_.size(), solve_lender_);
     }
-    std::span<const GridItemResult> items() const&& = delete;
-    [[nodiscard]] std::span<const GridTrack> columns() const& noexcept {
-        return std::span<const GridTrack>(columns_.data(), columns_.size());
+    BorrowedSpan<GridItemResult> items() const&& = delete;
+    [[nodiscard]] BorrowedSpan<GridTrack> columns() const& noexcept {
+        return detail::lend_view(columns_.data(), columns_.size(), solve_lender_);
     }
-    std::span<const GridTrack> columns() const&& = delete;
-    [[nodiscard]] std::span<const GridTrack> rows() const& noexcept {
-        return std::span<const GridTrack>(rows_.data(), rows_.size());
+    BorrowedSpan<GridTrack> columns() const&& = delete;
+    [[nodiscard]] BorrowedSpan<GridTrack> rows() const& noexcept {
+        return detail::lend_view(rows_.data(), rows_.size(), solve_lender_);
     }
-    std::span<const GridTrack> rows() const&& = delete;
+    BorrowedSpan<GridTrack> rows() const&& = delete;
     // How many implicit tracks precede the explicit grid on each axis
     // (from negative or out-of-range lines).
     [[nodiscard]] std::uint32_t leading_implicit_columns() const noexcept { return leading_columns_; }
@@ -292,6 +293,10 @@ private:
     bool placed_{};
     bool columns_sized_{};
     bool rows_sized_{};
+    // Stamps the views above per solve (borrow sanitizer, stage 3): the
+    // next solve or reserve ends the views lent so far, and the sanitizer
+    // tree reports a later use. Empty in the ordinary build.
+    [[no_unique_address]] detail::BorrowLender solve_lender_{};
 };
 
 // The first call. Fills the tracks (sizing functions, implicit and

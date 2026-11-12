@@ -47,9 +47,11 @@ std::uint64_t LiveSurfaceWriteLease::row_bytes() const noexcept {
     return buffer_ ? (*buffer_).row_bytes : 0U;
 }
 
-std::span<std::byte> LiveSurfaceWriteLease::pixels() noexcept {
-    return buffer_ ? std::span<std::byte>((*buffer_).pixels)
-                   : std::span<std::byte>{};
+BorrowedMutableSpan<std::byte> LiveSurfaceWriteLease::pixels() noexcept {
+    if (!buffer_) return BorrowedMutableSpan<std::byte>();
+    std::vector<std::byte>& bytes = (*buffer_).pixels;
+    BorrowedMutableSpan<std::byte> view = detail::lend_mutable_view(bytes.data(), bytes.size(), (*buffer_).lender);
+    return view;
 }
 
 std::uint64_t LiveSurfaceWriteLease::publish(Rect damage, const std::uint64_t content_tag) {
@@ -61,6 +63,7 @@ std::uint64_t LiveSurfaceWriteLease::publish(Rect damage, const std::uint64_t co
         if ((*state_).epoch != epoch_ || (*state_).writing_slot != slot_ ||
             slot_ >= (*state_).buffers.size() ||
             (*state_).buffers[slot_].get() != buffer_.get()) {
+            (*buffer_).lender.invalidate();
             state_.reset();
             buffer_.reset();
             return 0U;
@@ -79,6 +82,8 @@ std::uint64_t LiveSurfaceWriteLease::publish(Rect damage, const std::uint64_t co
         ++(*state_).publishes;
         published = (*state_).generation;
         wakes = (*state_).wakes;
+        // The lease ends: its write views end with it.
+        (*buffer_).lender.invalidate();
     }
     state_.reset();
     buffer_.reset();
@@ -94,6 +99,7 @@ std::uint64_t LiveSurfaceWriteLease::publish(Rect damage, const std::uint64_t co
 }
 
 void LiveSurfaceWriteLease::abandon() noexcept {
+    if (buffer_) (*buffer_).lender.invalidate();
     if (state_) {
         std::scoped_lock lock((*state_).mutex);
         if ((*state_).epoch == epoch_ && (*state_).writing_slot == slot_) {

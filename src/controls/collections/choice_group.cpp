@@ -93,6 +93,8 @@ struct ChoiceGroup::Entry final {
 struct ChoiceGroup::Revision final {
     std::vector<ChoiceItem> items{};
     std::vector<std::shared_ptr<Entry>> entries{};
+    // Stamps items(): replacing the revision ends the views lent from it.
+    detail::BorrowLender lender{};
 };
 struct ChoiceGroup::ItemClick final {
     ChoiceGroup& group;
@@ -128,9 +130,11 @@ ChoiceGroup::ChoiceGroup(StableId id) : Panel(std::move(id)) {
 }
 ChoiceGroup::~ChoiceGroup() = default;
 
-std::span<const ChoiceItem> ChoiceGroup::items() const noexcept {
-    if (!revision_) return {};
-    return (*revision_).items;
+BorrowedSpan<ChoiceItem> ChoiceGroup::items() const noexcept {
+    if (!revision_) return BorrowedSpan<ChoiceItem>();
+    const std::vector<ChoiceItem>& current = (*revision_).items;
+    BorrowedSpan<ChoiceItem> view = detail::lend_view(current.data(), current.size(), (*revision_).lender);
+    return view;
 }
 Button& ChoiceGroup::item(const int index) const {
     if (!revision_ || index < 0 || static_cast<std::size_t>(index) >= (*revision_).entries.size()) {
@@ -240,6 +244,9 @@ void ChoiceGroup::set_items(std::vector<ChoiceItem> items) {
     replacing_ = true;
     try {
         const std::shared_ptr<Revision> previous = std::exchange(revision_, next);
+        // The items lent from the previous revision end here, even while a
+        // callback still holds that revision.
+        if (previous) (*previous).lender.invalidate();
         if (previous) {
             for (const std::shared_ptr<Entry>& entry : (*previous).entries) {
                 const std::vector<std::shared_ptr<Entry>>::const_iterator found =

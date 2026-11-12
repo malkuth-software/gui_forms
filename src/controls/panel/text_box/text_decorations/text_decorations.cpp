@@ -124,10 +124,11 @@ TextDecorationLayer TextDecorations::layer_at(std::size_t index) const {
     return id;
 }
 
-std::span<const TextDecoration> TextDecorations::items(TextDecorationLayer layer) const noexcept {
+BorrowedSpan<TextDecoration> TextDecorations::items(TextDecorationLayer layer) const noexcept {
     const std::size_t index = find_layer(layer);
-    if (index == layers_.size() || layers_[index].id != layer) return {};
-    const std::span<const TextDecoration> result(layers_[index].items);
+    if (index == layers_.size() || layers_[index].id != layer) return BorrowedSpan<TextDecoration>();
+    const std::vector<TextDecoration>& found = layers_[index].items;
+    BorrowedSpan<TextDecoration> result = detail::lend_view(found.data(), found.size(), items_lender_);
     return result;
 }
 
@@ -142,6 +143,7 @@ void TextDecorations::measure_layer(Layer& layer) noexcept {
 }
 
 void TextDecorations::install(TextDecorationLayer id, std::vector<TextDecoration> items, bool layout) {
+    items_lender_.invalidate();
     const std::size_t index = find_layer(id);
     const bool present = index != layers_.size() && layers_[index].id == id;
     if (present) {
@@ -272,6 +274,7 @@ TextDecorationChange TextDecorations::clear_all() {
         if (layer.font_count != 0U) change.layout = true;
     }
     layers_.clear();
+    items_lender_.invalidate();
     font_decorations_ = 0U;
     if (change.layout) ++layout_revision_;
     return change;
@@ -281,6 +284,7 @@ void TextDecorations::shift_for_edit(TextChange change) {
     const std::size_t edit_start = change.start.value();
     const std::size_t old_end = edit_start + change.removed_bytes;
     const std::size_t new_end = edit_start + change.inserted_bytes;
+    items_lender_.invalidate();
     bool emptied_layer = false;
     for (Layer& layer : layers_) {
         for (TextDecoration& decoration : layer.items) {

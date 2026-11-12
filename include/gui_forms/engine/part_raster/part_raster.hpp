@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 
 #include <cstddef>
@@ -43,10 +44,10 @@ public:
     // Whether record_opacity found every pixel opaque since the last view().
     [[nodiscard]] bool opaque() const noexcept { return opaque_; }
 
-    [[nodiscard]] std::span<const std::uint8_t> pixels() const& noexcept {
-        return std::span<const std::uint8_t>(pixels_.data(), pixels_.size());
-    }
-    std::span<const std::uint8_t> pixels() const&& = delete;
+    // Borrowed from the raster: the sanitizer tree reports a use after the
+    // raster died (the last shared owner let it go).
+    [[nodiscard]] BorrowedSpan<std::uint8_t> pixels() const& noexcept { return detail::lend_view(pixels_); }
+    BorrowedSpan<std::uint8_t> pixels() const&& = delete;
     [[nodiscard]] DeviceExtent extent() const noexcept { return extent_; }
     [[nodiscard]] std::size_t row_bytes() const noexcept { return row_bytes_; }
     [[nodiscard]] DeviceScale scale() const noexcept { return scale_; }
@@ -54,7 +55,7 @@ public:
 private:
     PartRaster(DeviceExtent extent, DeviceScale scale);
 
-    std::vector<std::uint8_t> pixels_;
+    detail::LendingVector<std::uint8_t> pixels_;
     DeviceExtent extent_{};
     std::size_t row_bytes_{};
     DeviceScale scale_{};

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -153,18 +154,18 @@ enum class FlexSolveOutcome : std::uint8_t {
 // in order. Its storage grows only when the item count does.
 class GUI_FORMS_API FlexLayoutWorkspace final {
 public:
-    [[nodiscard]] std::span<const FlexItemResult> items() const& noexcept {
-        return std::span<const FlexItemResult>(items_.data(), items_.size());
+    [[nodiscard]] BorrowedSpan<FlexItemResult> items() const& noexcept {
+        return detail::lend_view(items_.data(), items_.size(), solve_lender_);
     }
-    std::span<const FlexItemResult> items() const&& = delete;
-    [[nodiscard]] std::span<const FlexLine> lines() const& noexcept {
-        return std::span<const FlexLine>(lines_.data(), lines_.size());
+    BorrowedSpan<FlexItemResult> items() const&& = delete;
+    [[nodiscard]] BorrowedSpan<FlexLine> lines() const& noexcept {
+        return detail::lend_view(lines_.data(), lines_.size(), solve_lender_);
     }
-    std::span<const FlexLine> lines() const&& = delete;
-    [[nodiscard]] std::span<const std::uint32_t> order() const& noexcept {
-        return std::span<const std::uint32_t>(order_.data(), order_.size());
+    BorrowedSpan<FlexLine> lines() const&& = delete;
+    [[nodiscard]] BorrowedSpan<std::uint32_t> order() const& noexcept {
+        return detail::lend_view(order_.data(), order_.size(), solve_lender_);
     }
-    std::span<const std::uint32_t> order() const&& = delete;
+    BorrowedSpan<std::uint32_t> order() const&& = delete;
     // The content's extent: the longest line's main extent, and the lines'
     // cross sizes with the gaps between them; filled by each call.
     [[nodiscard]] double content_main() const noexcept { return content_main_; }
@@ -191,6 +192,10 @@ private:
     std::vector<double> unclamped_{};
     double content_main_{};
     double content_cross_{};
+    // Stamps the views above per solve (borrow sanitizer, stage 3): the
+    // next solve or reserve ends the views lent so far, and the sanitizer
+    // tree reports a later use. Empty in the ordinary build.
+    [[no_unique_address]] detail::BorrowLender solve_lender_{};
 };
 
 // The first call. Fills each item's flex_base_size, hypothetical_main,

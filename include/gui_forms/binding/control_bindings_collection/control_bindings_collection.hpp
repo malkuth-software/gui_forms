@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/binding/binding/binding.hpp"
 
 #include <cstddef>
@@ -33,10 +34,10 @@ public:
     void clear() noexcept;
     [[nodiscard]] std::shared_ptr<Binding> find(
         std::string_view property_name) const;
-    [[nodiscard]] std::span<const std::shared_ptr<Binding>> items() const& noexcept {
-        return std::span<const std::shared_ptr<Binding>>(bindings_.data(), bindings_.size());
-    }
-    std::span<const std::shared_ptr<Binding>> items() const&& = delete;
+    // Borrowed: add, remove and clear end the views lent so far (the
+    // sanitizer tree reports a later use).
+    [[nodiscard]] BorrowedSpan<std::shared_ptr<Binding>> items() const& noexcept { return detail::lend_view(bindings_); }
+    BorrowedSpan<std::shared_ptr<Binding>> items() const&& = delete;
     [[nodiscard]] std::size_t size() const noexcept { return bindings_.size(); }
     [[nodiscard]] bool empty() const noexcept { return bindings_.empty(); }
     [[nodiscard]] DataSourceUpdateMode
@@ -54,7 +55,7 @@ private:
     friend class Control;
     ControlBindingsCollection() noexcept {}
 
-    using BindingList = std::vector<std::shared_ptr<Binding>>;
+    using BindingList = detail::LendingVector<std::shared_ptr<Binding>>;
     Control* target_{};
     BindingList bindings_;
     DataSourceUpdateMode default_update_mode_{

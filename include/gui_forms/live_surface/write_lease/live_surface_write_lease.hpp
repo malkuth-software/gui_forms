@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/live_surface/types/live_surface_types.hpp"
 
 #include <cstddef>
@@ -35,7 +36,9 @@ public:
     [[nodiscard]] std::uint32_t width() const noexcept;
     [[nodiscard]] std::uint32_t height() const noexcept;
     [[nodiscard]] std::uint64_t row_bytes() const noexcept;
-    [[nodiscard]] std::span<std::byte> pixels() noexcept;
+    // Borrowed from the candidate buffer until publish or abandon; the
+    // sanitizer tree reports a later use.
+    [[nodiscard]] BorrowedMutableSpan<std::byte> pixels() noexcept;
     // Damage promises that every pixel outside it equals the previous
     // publication; a presenter may copy only the damage. Acquire with
     // preserve_published_contents or repair the buffer completely. Empty or

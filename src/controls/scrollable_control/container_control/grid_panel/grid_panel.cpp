@@ -950,7 +950,7 @@ void GridPanel::forget_departed_children() {
 }
 
 void GridPanel::gather_children() {
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     children_.clear();
     children_.reserve(all.size());
     absolute_children_.clear();
@@ -1020,8 +1020,8 @@ void GridPanel::resolve_item_inputs() {
 void GridPanel::measure_column_contributions(const SolveRequest& request, const GridLayoutWorkspace& workspace) {
     const std::size_t count = children_.size();
     column_contributions_.resize(count);
-    const std::span<const GridItemResult> results = workspace.items();
-    const std::span<const GridTrack> columns = workspace.columns();
+    const BorrowedSpan<GridItemResult> results = workspace.items();
+    const BorrowedSpan<GridTrack> columns = workspace.columns();
     const bool definite = request.width.kind == GridSizingKind::definite;
     for (std::size_t index = 0U; index < count; ++index) {
         Control& child = *children_[index];
@@ -1116,7 +1116,7 @@ void GridPanel::measure_row_contributions(const GridContainerInput& container,
 
 void GridPanel::publish_slots(const GridLayoutWorkspace& workspace, Size content_box) {
     const LayoutDirection direction = effective_layout_direction();
-    const std::span<const GridItemResult> results = workspace.items();
+    const BorrowedSpan<GridItemResult> results = workspace.items();
     const Insets inset = padding.read();
     const Point offset = scroll_position();
     arranged_ids_.clear();

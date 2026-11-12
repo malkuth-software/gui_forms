@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
@@ -177,7 +178,9 @@ public:
     // a layer without any). The spans are valid until the next change.
     [[nodiscard]] std::size_t layer_count() const noexcept { return layers_.size(); }
     [[nodiscard]] TextDecorationLayer layer_at(std::size_t index) const;
-    [[nodiscard]] std::span<const TextDecoration> items(TextDecorationLayer layer) const noexcept;
+    // Borrowed: any change of the decorations (replace, clear, an edit's
+    // shift) ends the views lent so far.
+    [[nodiscard]] BorrowedSpan<TextDecoration> items(TextDecorationLayer layer) const noexcept;
     [[nodiscard]] bool empty() const noexcept { return layers_.empty(); }
     // Whether any decoration changes the font.
     [[nodiscard]] bool changes_font() const noexcept { return font_decorations_ != 0U; }
@@ -219,6 +222,8 @@ private:
     void collect_overlapping(const Layer& layer, Utf8Range window);
 
     std::vector<Layer> layers_{};
+    // Stamps items(); empty in the ordinary build.
+    [[no_unique_address]] detail::BorrowLender items_lender_{};
     std::size_t font_decorations_{};
     std::uint64_t layout_revision_{};
     // compose's scratch: the overlapping decorations (borrowed from

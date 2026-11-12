@@ -227,9 +227,10 @@ public:
     }
     void end() override { ++ended; }
     Painter& painter() noexcept override { return painter_; }
-    std::span<std::byte> pixels() noexcept override {
+    BorrowedMutableSpan<std::byte> pixels() noexcept override {
         const std::span<std::uint8_t> bytes = painter_.pixels();
-        const std::span<std::byte> view{reinterpret_cast<std::byte*>(bytes.data()), bytes.size()};
+        std::byte* const first = reinterpret_cast<std::byte*>(bytes.data());
+        BorrowedMutableSpan<std::byte> view = detail::lend_mutable_view(first, bytes.size(), lender_);
         return view;
     }
     std::size_t row_bytes() const noexcept override { return static_cast<std::size_t>(painter_.width()) * 4U; }
@@ -239,6 +240,7 @@ public:
     std::size_t begun{};
     std::size_t ended{};
     FillPainter painter_{};
+    detail::BorrowLender lender_;
 };
 
 // The window's framebuffer painter: makes FillFramebuffers, counting them;
