@@ -521,6 +521,19 @@ TextResolutionStatus RecordingPainter::fill_cluster_advances_utf8(
     return status;
 }
 
+std::unique_ptr<ShapingWorkspace> RecordingPainter::create_shaping_workspace() {
+    if (text_metrics_ == nullptr) return nullptr;
+    std::unique_ptr<ShapingWorkspace> workspace = (*text_metrics_).create_shaping_workspace();
+    return workspace;
+}
+
+TextExtent RecordingPainter::shape_in_workspace_utf8(ShapingWorkspace& workspace, std::string_view text,
+                                                     FontSpec font) {
+    if (text_metrics_ == nullptr) return TextMetricsProvider::shape_in_workspace_utf8(workspace, text, font);
+    const TextExtent extent = (*text_metrics_).shape_in_workspace_utf8(workspace, text, font);
+    return extent;
+}
+
 void RecordingPainter::draw_image(ImageId image, Rect destination, double opacity) {
     DisplayCommand command;
     command.operation = DisplayOperation::draw_image;

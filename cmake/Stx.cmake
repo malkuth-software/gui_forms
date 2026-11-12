@@ -171,7 +171,16 @@ else()
     gui_forms_text_digest("${CMAKE_CURRENT_LIST_FILE}" _gui_stx_this_digest)
     gui_forms_text_digest("${_gui_stx_recipe}/CMakeLists.txt" _gui_stx_recipe_digest)
     gui_forms_text_digest("${_gui_stx_root}/cmake/freetype/gui_forms_ftoption.h" _gui_stx_options_digest)
-    string(SHA256 _gui_stx_inputs "${_gui_stx_this_digest};${_gui_stx_recipe_digest};${_gui_stx_options_digest};${CMAKE_GENERATOR};${_gui_stx_stamped_arguments}")
+    # The text stack's allocation hooks, which the recipe compiles into
+    # HarfBuzz and SheenBidi (cmake/stx_text_allocation/).
+    set(_gui_stx_allocation_digests "")
+    foreach(_gui_stx_allocation_file IN ITEMS stx_text_allocation.h stx_harfbuzz_allocation.c
+                                              stx_sheenbidi_allocation.c)
+        gui_forms_text_digest("${_gui_stx_root}/cmake/stx_text_allocation/${_gui_stx_allocation_file}"
+                              _gui_stx_allocation_digest)
+        string(APPEND _gui_stx_allocation_digests "${_gui_stx_allocation_digest};")
+    endforeach()
+    string(SHA256 _gui_stx_inputs "${_gui_stx_this_digest};${_gui_stx_recipe_digest};${_gui_stx_options_digest};${_gui_stx_allocation_digests}${CMAKE_GENERATOR};${_gui_stx_stamped_arguments}")
     set(_gui_stx_stamp "commit = ${_gui_stx_commit}\n${_gui_stx_choices}inputs = ${_gui_stx_inputs}\n")
     set(_gui_stx_recorded "")
     if(EXISTS "${_gui_stx_package}/${_gui_stx_stamp_name}")

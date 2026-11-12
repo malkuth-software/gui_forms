@@ -7,8 +7,13 @@
 // short storage reports what it needs and changes nothing it should not;
 // laying out, measuring and painting allocate nothing once the storage is
 // sized (counted); long words overflow or break between clusters, and emoji
-// sequences are never split. The bundled engine's numbers are in
-// paragraph_layout_engine_tests.cpp.
+// sequences are never split. With a provider's shaping workspace (a fixed
+// one here) every line's glyph runs are filled into caller storage at no
+// extra shaping under the verified fit, short glyph storage reports the
+// exact counts, a workspace of another provider is refused, and
+// paint_paragraph draws the runs instead of the text, allocating nothing.
+// The bundled engine's numbers are in paragraph_layout_engine_tests.cpp,
+// and its glyph runs against reshaped painting in paragraph_glyph_tests.cpp.
 
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/text/paragraph_layout/paragraph_layout.hpp"
@@ -218,6 +223,221 @@ public:
 
     std::size_t draws{};
     std::size_t bytes{};
+};
+
+// One cluster as the fixed workspace stages it.
+struct FixedGlyph final {
+    char32_t scalar{};
+    std::size_t cluster{};
+    double x{};
+    double advance{};
+};
+
+// The fixed provider's shaping workspace: one glyph a cluster (its first
+// scalar's value as the glyph id), one left-to-right run in face 1, pen
+// positions the sums of the fixed advances. Reserved once; shaping
+// allocates nothing.
+class FixedWorkspace final : public ShapingWorkspace {
+public:
+    explicit FixedWorkspace(std::uint64_t engine_identity) : engine(engine_identity) {}
+
+    std::size_t capacity_bytes() const noexcept override { return staged_.size(); }
+
+    void reserve(std::size_t text_bytes) override {
+        if (staged_.size() < text_bytes) staged_.resize(text_bytes);
+        shaped_ = false;
+    }
+
+    ShapedGlyphCounts shaped_counts() const noexcept override {
+        ShapedGlyphCounts counts{};
+        if (!shaped_) return counts;
+        counts.runs = glyph_count_ != 0U ? 1U : 0U;
+        counts.glyphs = glyph_count_;
+        return counts;
+    }
+
+    GlyphSource glyph_source() const noexcept override {
+        GlyphSource source{};
+        if (!shaped_) return source;
+        source.engine = engine;
+        source.generation = 1U;
+        return source;
+    }
+
+    bool fill_cluster_advances(std::span<double> advances) const noexcept override {
+        if (!shaped_ || advances.size() != shaped_bytes_) return false;
+        for (double& advance : advances) advance = 0.0;
+        for (std::size_t index = 0U; index < glyph_count_; ++index) {
+            advances[staged_[index].cluster] += staged_[index].advance;
+        }
+        return true;
+    }
+
+    bool copy_glyphs(Utf8Offset text_offset, std::size_t first_glyph, std::span<GlyphRunRecord> runs,
+                     std::span<PositionedGlyph> glyphs) const noexcept override {
+        const ShapedGlyphCounts counts = shaped_counts();
+        if (!shaped_ || runs.size() < counts.runs || glyphs.size() < counts.glyphs) return false;
+        if (counts.runs != 0U) {
+            GlyphRunRecord run{};
+            run.source_range = Utf8Range{text_offset, Utf8Offset(text_offset.value() + shaped_bytes_)};
+            run.face = FontFaceId{1U};
+            run.first_glyph = first_glyph;
+            run.glyph_count = glyph_count_;
+            runs[0] = run;
+        }
+        for (std::size_t index = 0U; index < glyph_count_; ++index) {
+            PositionedGlyph glyph{};
+            glyph.glyph = GlyphId{static_cast<std::uint32_t>(staged_[index].scalar)};
+            glyph.cluster = Utf8Offset(text_offset.value() + staged_[index].cluster);
+            glyph.x = static_cast<float>(staged_[index].x);
+            glyphs[index] = glyph;
+        }
+        return true;
+    }
+
+    // Stages `text` (at most capacity_bytes() bytes, valid UTF-8); returns
+    // its width.
+    double shape(std::string_view text) noexcept {
+        glyph_count_ = 0U;
+        double pen = 0.0;
+        char32_t previous = 0U;
+        std::size_t offset = 0U;
+        while (offset < text.size()) {
+            const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
+            if (glyph_count_ == 0U || !joins_previous(decoded.scalar, previous)) {
+                const double advance = scalar_advance(decoded.scalar);
+                staged_[glyph_count_] = FixedGlyph{decoded.scalar, offset, pen, advance};
+                ++glyph_count_;
+                pen += advance;
+            }
+            previous = decoded.scalar;
+            offset += decoded.length;
+        }
+        shaped_ = true;
+        shaped_bytes_ = text.size();
+        return pen;
+    }
+
+    const std::uint64_t engine;
+
+private:
+    std::vector<FixedGlyph> staged_{};
+    std::size_t glyph_count_{};
+    std::size_t shaped_bytes_{};
+    bool shaped_{};
+};
+
+// The fixed provider without kerning, with workspaces of its own engine
+// number. It counts its plain calls and its workspace shapings.
+class WorkspaceMetrics final : public TextMetricsProvider {
+public:
+    explicit WorkspaceMetrics(std::uint64_t engine_identity) : engine_(engine_identity) {}
+
+    ResolvedTextLayout resolve_text_layout_utf8(std::string_view utf8, FontSpec font) override {
+        ResolvedTextLayout layout{};
+        layout.effective_font = font;
+        layout.logical_size = Size{fixed_run_width(utf8, false), font.size * 1.25};
+        layout.ascent = std::ceil(1950.0 / 2048.0 * font.size);
+        layout.descent = std::ceil(550.0 / 2048.0 * font.size);
+        layout.status = TextResolutionStatus::exact;
+        return layout;
+    }
+
+    TextExtent measure_text_extent_utf8(std::string_view utf8, FontSpec font) override {
+        ++plain_calls;
+        TextExtent extent{};
+        extent.logical_size = Size{fixed_run_width(utf8, false), font.size * 1.25};
+        extent.status = TextResolutionStatus::exact;
+        return extent;
+    }
+
+    TextResolutionStatus fill_cluster_advances_utf8(std::string_view utf8, FontSpec,
+                                                    std::span<double> advances) override {
+        ++plain_calls;
+        if (advances.size() != utf8.size() || !validate_utf8(utf8).valid()) {
+            return TextResolutionStatus::invalid_request;
+        }
+        static_cast<void>(fill_fixed_advances(utf8, advances));
+        return TextResolutionStatus::exact;
+    }
+
+    std::unique_ptr<ShapingWorkspace> create_shaping_workspace() override {
+        std::unique_ptr<ShapingWorkspace> workspace = std::make_unique<FixedWorkspace>(engine_);
+        return workspace;
+    }
+
+    TextExtent shape_in_workspace_utf8(ShapingWorkspace& workspace, std::string_view utf8, FontSpec font) override {
+        FixedWorkspace* const own = dynamic_cast<FixedWorkspace*>(&workspace);
+        TextExtent extent{};
+        extent.status = TextResolutionStatus::invalid_request;
+        if (own == nullptr || (*own).engine != engine_ || utf8.size() > (*own).capacity_bytes() ||
+            !validate_utf8(utf8).valid()) {
+            return extent;
+        }
+        ++workspace_shapings;
+        extent.logical_size = Size{(*own).shape(utf8), font.size * 1.25};
+        extent.status = TextResolutionStatus::exact;
+        return extent;
+    }
+
+    std::size_t plain_calls{};
+    std::size_t workspace_shapings{};
+
+private:
+    std::uint64_t engine_{};
+};
+
+// Records each draw_glyph_runs and draw_text_utf8 (allocating; not for the
+// counted test).
+class GlyphPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point origin, std::string_view text, FontSpec, Color) override {
+        texts.emplace_back(text);
+        origins.push_back(origin);
+        glyph_draws.push_back(false);
+        run_counts.push_back(0U);
+    }
+    void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec, Color) override {
+        texts.emplace_back(view.text);
+        origins.push_back(origin);
+        glyph_draws.push_back(true);
+        run_counts.push_back(view.runs.size());
+    }
+    void draw_image(ImageId, Rect, double) override {}
+
+    std::vector<std::string> texts{};
+    std::vector<Point> origins{};
+    std::vector<bool> glyph_draws{};
+    std::vector<std::size_t> run_counts{};
+};
+
+// Counts draw_glyph_runs and draw_text_utf8 calls, allocating nothing.
+class CountingGlyphPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override { ++text_draws; }
+    void draw_glyph_runs(Point, const GlyphRunsView& view, FontSpec, Color) override {
+        ++glyph_draws;
+        glyphs += view.glyphs.size();
+    }
+    void draw_image(ImageId, Rect, double) override {}
+
+    std::size_t text_draws{};
+    std::size_t glyph_draws{};
+    std::size_t glyphs{};
 };
 
 FontSpec carlito() {
@@ -714,6 +934,188 @@ void test_no_allocations() {
             "sized layout, measurement and paint allocate nothing; counted " + std::to_string(counted_allocations));
 }
 
+// Glyph output through the fixed workspace: every line's run covers its
+// bytes, its glyphs are its clusters at the fixed pen positions from the
+// line's origin, the verified fit costs no more shapings than without
+// glyphs (and the estimated fit one more a line), and paint_paragraph draws
+// each line's runs where it drew its text.
+void test_glyph_output() {
+    WorkspaceMetrics metrics(77U);
+    const std::string_view text = "The quick brown fox jumps over the lazy dog and \xF0\x9F\x91\x8D\xF0\x9F\x8F\xBD";
+    ParagraphBuffers buffers{};
+    const ParagraphStorageRequirement bound =
+        paragraph_storage_bound(text, ParagraphWhiteSpace::preserve_line_ends, ParagraphGlyphOutput::runs);
+    require(bound.glyph_runs == text.size() && bound.glyphs == text.size(), "the glyph bound is a byte each");
+    buffers.reserve(bound, &metrics);
+    require(buffers.storage().workspace != nullptr && (*buffers.storage().workspace).capacity_bytes() >= text.size(),
+            "the buffers hold a reserved workspace of the provider's");
+    ParagraphStyle plain = style_at(metrics, 70.0);
+    ParagraphStyle glyph_style = plain;
+    glyph_style.glyph_output = ParagraphGlyphOutput::runs;
+
+    const ParagraphMetrics without = laid_out(lay_out_paragraph(&metrics, text, plain, buffers.storage()), "no glyphs");
+    require(!without.glyph_source.valid() && without.glyph_run_count == 0U, "no glyphs without glyph output");
+    const std::span<const ParagraphLine> plain_view = buffers.lines(without.line_count);
+    const std::vector<ParagraphLine> plain_lines(plain_view.begin(), plain_view.end());
+
+    metrics.plain_calls = 0U;
+    const ParagraphMetrics result =
+        laid_out(lay_out_paragraph(&metrics, text, glyph_style, buffers.storage()), "glyph output");
+    require(metrics.plain_calls == 0U, "every shaping goes through the workspace");
+    require(result.glyph_source.engine == 77U && result.glyph_source.generation == 1U, "the workspace's source");
+    require(result.line_count == without.line_count && result.line_count > 2U, "the same lines, several");
+    require(result.shaping_calls == without.shaping_calls, "glyphs cost no shaping under the verified fit");
+    const std::span<const ParagraphLine> lines = buffers.lines(result.line_count);
+    const ParagraphGlyphRuns glyphs = buffers.glyph_runs(result);
+    require(glyphs.runs.size() == result.glyph_run_count && glyphs.glyphs.size() == result.glyph_count,
+            "the buffers give the counts written");
+    std::size_t expected_run = 0U;
+    std::size_t expected_glyph = 0U;
+    for (std::size_t index = 0U; index < lines.size(); ++index) {
+        const std::string what = "line " + std::to_string(index);
+        const ParagraphLine& line = lines[index];
+        require(line.bytes == plain_lines[index].bytes && line.width == plain_lines[index].width,
+                what + ": the line laid out without glyphs");
+        require(line.first_glyph_run == expected_run && line.glyph_run_count == 1U, what + ": one run, in order");
+        const GlyphRunRecord& run = glyphs.runs[line.first_glyph_run];
+        require(run.source_range == line.bytes && run.face == FontFaceId{1U} &&
+                    run.direction == TextDirection::left_to_right,
+                what + ": the run shapes the line's bytes");
+        require(run.first_glyph == expected_glyph, what + ": its glyphs follow the previous line's");
+        const std::string_view line_text =
+            text.substr(line.bytes.start.value(), line.bytes.end.value() - line.bytes.start.value());
+        std::vector<double> advances(line_text.size(), 0.0);
+        const double line_width = fill_fixed_advances(line_text, advances);
+        double pen = 0.0;
+        std::size_t glyph_index = run.first_glyph;
+        for (std::size_t byte = 0U; byte < line_text.size(); ++byte) {
+            if (advances[byte] == 0.0) continue;
+            const PositionedGlyph& glyph = glyphs.glyphs[glyph_index];
+            require(glyph.cluster.value() == line.bytes.start.value() + byte,
+                    what + ": a glyph's cluster in paragraph offsets");
+            require_near(static_cast<double>(glyph.x), pen, what + ": its pen position from the line's origin");
+            pen += advances[byte];
+            ++glyph_index;
+        }
+        require(glyph_index == run.first_glyph + run.glyph_count, what + ": one glyph a cluster");
+        require_near(pen, line_width, what + ": the glyphs span the line");
+        expected_run += line.glyph_run_count;
+        expected_glyph += run.glyph_count;
+    }
+
+    ParagraphPaint paint{};
+    paint.origin = Point{10.0, 20.0};
+    paint.visible = Rect{0.0, 0.0, 200.0, 400.0};
+    TextPainter text_painter{};
+    const std::size_t text_drawn = paint_paragraph(text_painter, text, lines, glyph_style, paint);
+    GlyphPainter glyph_painter{};
+    const std::size_t glyph_drawn = paint_paragraph(glyph_painter, text, lines, glyphs, glyph_style, paint);
+    require(text_drawn == glyph_drawn && glyph_drawn == lines.size(), "every line is drawn either way");
+    for (std::size_t index = 0U; index < glyph_drawn; ++index) {
+        require(glyph_painter.glyph_draws[index] && glyph_painter.run_counts[index] == 1U,
+                "each line is drawn from its runs");
+        require(glyph_painter.texts[index] == text_painter.texts[index], "with the line's text");
+        require_near(glyph_painter.origins[index].x, text_painter.origins[index].x, "at the text's x");
+        require_near(glyph_painter.origins[index].y, text_painter.origins[index].y, "on the text's baseline");
+    }
+    ParagraphGlyphRuns sourceless = glyphs;
+    sourceless.source = GlyphSource{};
+    GlyphPainter fallback_painter{};
+    static_cast<void>(paint_paragraph(fallback_painter, text, lines, sourceless, glyph_style, paint));
+    require(!fallback_painter.glyph_draws.empty() && !fallback_painter.glyph_draws[0], "the zero source draws text");
+
+    ParagraphStyle estimated = glyph_style;
+    estimated.fit = ParagraphFit::estimated;
+    const ParagraphMetrics quick =
+        laid_out(lay_out_paragraph(&metrics, text, estimated, buffers.storage()), "estimated glyph output");
+    require(quick.shaping_calls == 1U + static_cast<std::uint64_t>(quick.line_count),
+            "the estimated fit shapes each line once more for its glyphs");
+    require(quick.glyph_source.valid(), "and fills them");
+}
+
+// Short glyph storage: storage_too_small with the exact runs and glyphs of
+// the layout; a workspace of another provider is not used, and the call
+// lays out without glyphs through the plain calls.
+void test_glyph_storage_and_foreign_workspace() {
+    WorkspaceMetrics metrics(91U);
+    const std::string_view text = "one two three four five six seven eight nine ten";
+    ParagraphStyle style = style_at(metrics, 50.0);
+    style.glyph_output = ParagraphGlyphOutput::runs;
+    ParagraphBuffers roomy{};
+    roomy.reserve(paragraph_storage_bound(text, ParagraphWhiteSpace::preserve_line_ends, ParagraphGlyphOutput::runs),
+                  &metrics);
+    const ParagraphMetrics full = laid_out(lay_out_paragraph(&metrics, text, style, roomy.storage()), "roomy");
+
+    ParagraphBuffers tight{};
+    ParagraphStorageRequirement small =
+        paragraph_storage_bound(text, ParagraphWhiteSpace::preserve_line_ends, ParagraphGlyphOutput::none);
+    small.glyph_runs = 1U;
+    small.glyphs = 3U;
+    tight.reserve(small, &metrics);
+    const ParagraphLayoutResult short_result = lay_out_paragraph(&metrics, text, style, tight.storage());
+    require(!short_result.succeeded() && short_result.required_storage() != nullptr, "short glyph storage is reported");
+    const ParagraphStorageRequirement needed = *short_result.required_storage();
+    require(needed.glyph_runs == full.glyph_run_count && needed.glyphs == full.glyph_count,
+            "with the exact runs and glyphs");
+    require(needed.lines == full.line_count, "and the exact lines");
+    tight.reserve(needed, &metrics);
+    const ParagraphMetrics retried = laid_out(lay_out_paragraph(&metrics, text, style, tight.storage()), "retried");
+    require(retried.glyph_count == full.glyph_count, "storage of that size succeeds");
+
+    WorkspaceMetrics other(92U);
+    other.plain_calls = 0U;
+    const ParagraphMetrics foreign =
+        laid_out(lay_out_paragraph(&other, text, style, roomy.storage()), "another provider's workspace");
+    require(!foreign.glyph_source.valid() && foreign.glyph_count == 0U, "lays out without glyphs");
+    require(other.workspace_shapings == 0U && other.plain_calls != 0U, "through the provider's plain calls");
+    require(foreign.line_count == full.line_count, "with the same lines");
+}
+
+// With a reserved workspace and glyph output, a thousand rows lay out and
+// paint from their glyph runs allocating nothing (counted as
+// test_no_allocations counts: every global operator new while armed).
+void test_glyph_output_allocates_nothing() {
+    WorkspaceMetrics metrics(93U);
+    const std::array<std::string_view, 3> rows{
+        "short",
+        "a message long enough to wrap over several lines at this width",
+        "line one\nline two \xF0\x9F\x91\x8D\xF0\x9F\x8F\xBD",
+    };
+    ParagraphBuffers buffers{};
+    for (const std::string_view row : rows) {
+        buffers.reserve(
+            paragraph_storage_bound(row, ParagraphWhiteSpace::preserve_line_ends, ParagraphGlyphOutput::runs),
+            &metrics);
+    }
+    ParagraphStyle style = style_at(metrics, 120.0);
+    style.glyph_output = ParagraphGlyphOutput::runs;
+    CountingGlyphPainter painter{};
+    ParagraphPaint paint{};
+    paint.visible = Rect{0.0, 0.0, 120.0, 1000.0};
+    const ParagraphStorage storage = buffers.storage();
+    std::size_t failures = 0U;
+
+    counted_allocations = 0U;
+    counting_allocations = true;
+    for (std::size_t index = 0U; index < 1000U; ++index) {
+        const std::string_view row = rows[index % rows.size()];
+        const ParagraphLayoutResult result = lay_out_paragraph(&metrics, row, style, storage);
+        const ParagraphMetrics* const row_metrics = result.metrics();
+        if (row_metrics == nullptr) {
+            ++failures;
+            continue;
+        }
+        const std::span<const ParagraphLine> row_lines = buffers.lines((*row_metrics).line_count);
+        static_cast<void>(paint_paragraph(painter, row, row_lines, buffers.glyph_runs(*row_metrics), style, paint));
+    }
+    counting_allocations = false;
+
+    require(failures == 0U, "every row lays out");
+    require(painter.glyph_draws > 1000U && painter.text_draws == 0U, "every line is drawn from its glyph runs");
+    require(counted_allocations == 0U,
+            "sized glyph output and its paint allocate nothing; counted " + std::to_string(counted_allocations));
+}
+
 } // namespace
 
 int main() {
@@ -727,6 +1129,9 @@ int main() {
         test_long_words_and_emoji();
         test_paint_visible_lines();
         test_no_allocations();
+        test_glyph_output();
+        test_glyph_storage_and_foreign_workspace();
+        test_glyph_output_allocates_nothing();
         std::cout << "paragraph-layout-tests: pass\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

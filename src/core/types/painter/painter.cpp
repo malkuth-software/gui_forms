@@ -209,6 +209,11 @@ void Painter::draw_retained_text_utf8(
     draw_text_utf8(origin, text, font, color);
 }
 
+void Painter::draw_glyph_runs(const Point origin, const GlyphRunsView& view, const FontSpec font,
+                              const Color color) {
+    draw_text_utf8(origin, view.text, font, color);
+}
+
 void Painter::draw_turned_text_utf8(const Point origin, const std::string_view text, const FontSpec font,
                                     const Color color, const TextOrientation) {
     draw_text_utf8(origin, text, font, color);

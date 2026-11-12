@@ -688,6 +688,7 @@ if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
     add_library(gui_forms_text_engine STATIC
         src/render/text/harfbuzz/harfbuzz_font_engine.cpp
         src/render/text/harfbuzz/bounded_shape_workspace.cpp
+        src/render/text/harfbuzz/reusable_shape_workspace.cpp
         src/render/text/glyph_run/glyph_run_raster.cpp
     )
     target_include_directories(gui_forms_text_engine
@@ -5574,6 +5575,13 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_CONTROL_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Regular.ttf"
             GUI_FORMS_TEST_FALLBACK_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoEmoji-Regular.ttf")
         add_test(NAME gui_forms_retained_draw_cache_raster_tests COMMAND gui_forms_retained_draw_cache_raster_tests)
+        if(TARGET gui_forms_text_engine)
+            add_executable(gui_forms_paragraph_glyph_tests tests/paragraph_glyph_tests.cpp)
+            target_link_libraries(gui_forms_paragraph_glyph_tests PRIVATE
+                gui_forms_controls gui_forms_skia gui_forms_text_engine)
+            add_test(NAME gui_forms_paragraph_glyph_tests
+                     COMMAND gui_forms_paragraph_glyph_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        endif()
         add_executable(gui_forms_skia_smoke src/render/skia/skia_raster_smoke.cpp
             $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
         target_compile_definitions(gui_forms_skia_smoke PRIVATE

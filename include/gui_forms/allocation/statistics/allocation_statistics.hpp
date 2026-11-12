@@ -31,10 +31,11 @@
 // - damage_lists: a DamageRegion's rectangles (every window's damage planes,
 //   the damage hosts take) and a window's pending localized paint marks
 //   (Control::invalidate(Rect)).
-// - text_layout: reserved for the paragraph layout's reused scratch (the
-//   public paragraph wrapping of branch claude/cp29-gap-paragraph-wrap);
-//   nothing counts under it until that code allocates through
-//   detail::CountedAllocator<..., AllocationSubsystem::text_layout>.
+// - text_layout: the paragraph layout's reused storage (ParagraphBuffers'
+//   lines, collapsed text, break opportunities, advances, glyph runs and
+//   glyphs) and the bundled engine's shaping workspace arrays (its scalars,
+//   segments, runs, staged glyphs and SheenBidi arena); the workspace's
+//   grapheme tables and HarfBuzz buffer are not counted.
 //
 // Bytes are the bytes asked of operator new, without the allocator's own
 // overhead or rounding. A release is counted by the thread that releases,

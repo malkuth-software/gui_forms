@@ -70,11 +70,34 @@ void write_collapsed(std::string_view text, std::span<char> output) noexcept {
     return static_cast<std::uint8_t>(candidate) > static_cast<std::uint8_t>(current);
 }
 
+// A byte range of the laid-out text, [begin, end).
+struct ByteSpan final {
+    std::size_t begin{};
+    std::size_t end{};
+    friend bool operator==(const ByteSpan& left, const ByteSpan& right) noexcept {
+        return left.begin == right.begin && left.end == right.end;
+    }
+};
+
+// The glyphs of the line being chosen, as last copied into the caller's
+// storage at the line's slot (ParagraphGlyphOutput::runs): which run they
+// shape, how many runs and glyphs that shaping had, and whether they fitted
+// the storage (they are counted either way).
+struct GlyphCapture final {
+    bool valid{};
+    ByteSpan run{};
+    ShapedGlyphCounts counts{};
+    bool written{};
+};
+
 // One call's laid-out text, its per-byte facts, and what the call has cost.
-// The text and arrays are borrowed for the call; the arrays hold one
-// element per byte of `text`.
+// The text and arrays are borrowed for the call; the per-byte arrays hold
+// one element per byte of `text`.
 struct ParagraphPass final {
     TextMetricsProvider* provider{};
+    // The provider's workspace when it accepts it; every shaping then goes
+    // through it. Null otherwise.
+    ShapingWorkspace* workspace{};
     std::string_view text{};
     std::span<const LineBreakOpportunity> opportunities{};
     std::span<const double> advances{};
@@ -86,6 +109,24 @@ struct ParagraphPass final {
     TextResolutionStatus status{TextResolutionStatus::exact};
     std::uint64_t shaping_calls{};
     std::uint64_t shaped_bytes{};
+    // The run the workspace holds the shaping of, and its extent's width.
+    bool has_shaped{};
+    ByteSpan shaped{};
+    double shaped_width{};
+    // Glyph output (ParagraphGlyphOutput::runs with a workspace): the
+    // caller's arrays, the next line's slot in them (every earlier line's
+    // runs and glyphs, written or not), the current line's capture, the
+    // source of the glyphs, whether every line's glyphs fitted, and whether
+    // a line could not be staged (no glyphs are then reported).
+    bool fill_glyphs{};
+    std::span<GlyphRunRecord> glyph_runs{};
+    std::span<PositionedGlyph> glyphs{};
+    std::size_t run_cursor{};
+    std::size_t glyph_cursor{};
+    GlyphCapture capture{};
+    GlyphSource glyph_source{};
+    bool glyphs_fit{true};
+    bool glyphs_unavailable{};
 };
 
 void note_status(ParagraphPass& pass, TextResolutionStatus status) noexcept {
@@ -130,14 +171,25 @@ void note_status(ParagraphPass& pass, TextResolutionStatus status) noexcept {
 }
 
 // The provider's width of text[begin, end) shaped alone: what TextBlock
-// measures and Painter::draw_text_utf8 draws.
+// measures and Painter::draw_text_utf8 draws. Through the workspace when
+// there is one, which then holds that shaping (a run it already holds is
+// read, not shaped again); a shaping the workspace refuses (more glyphs
+// than it stages) is measured with the plain call.
 [[nodiscard]] double whole_width(ParagraphPass& pass, std::size_t begin, std::size_t end) {
     if (end == begin) return 0.0;
+    const ByteSpan wanted{begin, end};
+    if (pass.workspace != nullptr && pass.has_shaped && pass.shaped == wanted) return pass.shaped_width;
     const std::string_view run = pass.text.substr(begin, end - begin);
     ++pass.shaping_calls;
     pass.shaped_bytes += static_cast<std::uint64_t>(run.size());
     TextExtent extent{};
-    if (pass.provider != nullptr) {
+    if (pass.workspace != nullptr) {
+        extent = (*pass.provider).shape_in_workspace_utf8(*pass.workspace, run, pass.font);
+        pass.has_shaped = extent.status != TextResolutionStatus::invalid_request;
+        pass.shaped = wanted;
+        pass.shaped_width = extent.logical_size.width;
+        if (!pass.has_shaped) extent = (*pass.provider).measure_text_extent_utf8(run, pass.font);
+    } else if (pass.provider != nullptr) {
         extent = (*pass.provider).measure_text_extent_utf8(run, pass.font);
     } else {
         extent = text_extent_of(estimate_text_layout_utf8(run, pass.font));
@@ -145,6 +197,40 @@ void note_status(ParagraphPass& pass, TextResolutionStatus status) noexcept {
     note_status(pass, extent.status);
     const double width = extent.logical_size.width;
     return width;
+}
+
+// Copies the glyphs of text[begin, end) into the current line's slot when
+// the workspace holds that run's shaping (whole_width has just measured it
+// for the line being chosen), replacing any earlier candidate's. Called
+// wherever a measured run becomes the line's choice; an empty run has no
+// glyphs. Copies nothing without glyph output.
+void capture_glyphs(ParagraphPass& pass, std::size_t begin, std::size_t end) noexcept {
+    if (!pass.fill_glyphs) return;
+    const ByteSpan run{begin, end};
+    pass.capture = GlyphCapture{};
+    if (end == begin) {
+        pass.capture.valid = true;
+        pass.capture.run = run;
+        pass.capture.written = true;
+        return;
+    }
+    if (!pass.has_shaped || !(pass.shaped == run)) return;
+    const ShapingWorkspace& workspace = *pass.workspace;
+    const ShapedGlyphCounts counts = workspace.shaped_counts();
+    const bool runs_fit = pass.run_cursor <= pass.glyph_runs.size() &&
+                          counts.runs <= pass.glyph_runs.size() - pass.run_cursor;
+    const bool glyphs_fit = pass.glyph_cursor <= pass.glyphs.size() &&
+                            counts.glyphs <= pass.glyphs.size() - pass.glyph_cursor;
+    bool written = false;
+    if (runs_fit && glyphs_fit) {
+        written = workspace.copy_glyphs(Utf8Offset(begin), pass.glyph_cursor, pass.glyph_runs.subspan(pass.run_cursor),
+                                        pass.glyphs.subspan(pass.glyph_cursor));
+    }
+    if (!pass.glyph_source.valid()) pass.glyph_source = workspace.glyph_source();
+    pass.capture.valid = true;
+    pass.capture.run = run;
+    pass.capture.counts = counts;
+    pass.capture.written = written;
 }
 
 // The sum of the cluster advances of text[begin, end), less the letter
@@ -205,12 +291,14 @@ struct LineChoice final {
     const std::size_t begin = choice.begin;
     const std::size_t first = next_line_end(pass, begin);
     choice.width = whole_width(pass, begin, choice.content);
+    capture_glyphs(pass, begin, choice.content);
     std::size_t known_too_wide = 0U;
     while (choice.next != first && choice.width > pass.limit) {
         known_too_wide = choice.next;
         choice.next = previous_line_end(pass, begin, choice.next);
         choice.content = content_end(pass.text, begin, choice.next);
         choice.width = whole_width(pass, begin, choice.content);
+        capture_glyphs(pass, begin, choice.content);
     }
     while (choice.next < pass.text.size() && !line_must_end(pass, choice.next)) {
         const std::size_t candidate = next_line_end(pass, choice.next);
@@ -221,6 +309,7 @@ struct LineChoice final {
         choice.next = candidate;
         choice.content = candidate_content;
         choice.width = candidate_width;
+        capture_glyphs(pass, begin, candidate_content);
     }
     return choice;
 }
@@ -258,6 +347,7 @@ struct LineChoice final {
     LineChoice choice{begin, chosen, chosen, advance_sum(pass, begin, chosen)};
     if (pass.fit != ParagraphFit::verified) return choice;
     choice.width = whole_width(pass, begin, chosen);
+    capture_glyphs(pass, begin, chosen);
     std::size_t known_too_wide = 0U;
     while (choice.next != first_break && choice.width > pass.limit) {
         known_too_wide = choice.next;
@@ -266,6 +356,7 @@ struct LineChoice final {
         choice.next = previous;
         choice.content = previous;
         choice.width = whole_width(pass, begin, previous);
+        capture_glyphs(pass, begin, previous);
     }
     while (true) {
         std::size_t candidate = choice.next + 1U;
@@ -276,8 +367,40 @@ struct LineChoice final {
         choice.next = candidate;
         choice.content = candidate;
         choice.width = candidate_width;
+        capture_glyphs(pass, begin, candidate);
     }
     return choice;
+}
+
+// A line's runs in the caller's glyph run array.
+struct LineGlyphRuns final {
+    std::size_t first_run{};
+    std::size_t run_count{};
+};
+
+// The chosen line's glyphs, under glyph output: the capture of its run when
+// one was made while choosing it, and otherwise one shaping of the run now
+// (estimated fit, or a choice taken from advance sums). Returns the line's
+// runs, and moves the slot past the line's runs and glyphs.
+[[nodiscard]] LineGlyphRuns finish_line_glyphs(ParagraphPass& pass, const LineChoice& choice) {
+    const LineGlyphRuns none{};
+    if (!pass.fill_glyphs) return none;
+    const ByteSpan run{choice.begin, choice.content};
+    if (!pass.capture.valid || !(pass.capture.run == run)) {
+        static_cast<void>(whole_width(pass, choice.begin, choice.content));
+        capture_glyphs(pass, choice.begin, choice.content);
+    }
+    if (!pass.capture.valid || !(pass.capture.run == run)) {
+        pass.glyphs_unavailable = true;
+        pass.capture = GlyphCapture{};
+        return none;
+    }
+    if (!pass.capture.written) pass.glyphs_fit = false;
+    const LineGlyphRuns runs{pass.run_cursor, pass.capture.counts.runs};
+    pass.run_cursor += pass.capture.counts.runs;
+    pass.glyph_cursor += pass.capture.counts.glyphs;
+    pass.capture = GlyphCapture{};
+    return runs;
 }
 
 // The line from `begin`: estimated, verified under ParagraphFit::verified,
@@ -344,10 +467,15 @@ template <LineOutput Output>
     // Checks, before anything is written.
     const std::optional<ParagraphRequestError> error = request_error(text, style);
     if (error) return ParagraphLayoutResult::refused(*error);
-    const ParagraphStorageRequirement bound = paragraph_storage_bound(text, style.white_space);
+    const ParagraphGlyphOutput glyph_output =
+        Output == LineOutput::records ? style.glyph_output : ParagraphGlyphOutput::none;
+    const ParagraphStorageRequirement bound = paragraph_storage_bound(text, style.white_space, glyph_output);
     const std::size_t size = bound.per_byte;
+    // A workspace is used only with a provider, and must hold the text.
+    ShapingWorkspace* workspace = provider != nullptr ? storage.workspace : nullptr;
     const bool per_byte_short = storage.opportunities.size() < size || storage.advances.size() < size ||
-                                storage.collapsed_text.size() < bound.collapsed_bytes;
+                                storage.collapsed_text.size() < bound.collapsed_bytes ||
+                                (workspace != nullptr && (*workspace).capacity_bytes() < size);
     if (per_byte_short) return ParagraphLayoutResult::storage_too_small(bound);
 
     // The laid-out text: the caller's, or its collapsed form in the
@@ -372,17 +500,42 @@ template <LineOutput Output>
     if (break_status == TextResolutionStatus::invalid_request) {
         break_status = estimate_line_break_opportunities_utf8(laid_out, opportunities);
     }
-    // Cluster advances: one shaping of the paragraph.
+    // Cluster advances: one shaping of the paragraph, through the workspace
+    // when the provider accepts it (a workspace it refuses is not used for
+    // the rest of the call).
     const std::span<double> advances = storage.advances.first(size);
     std::fill(advances.begin(), advances.end(), 0.0);
     TextResolutionStatus advance_status = TextResolutionStatus::invalid_request;
-    if (provider != nullptr) advance_status = (*provider).fill_cluster_advances_utf8(laid_out, style.font, advances);
+    double paragraph_width = 0.0;
+    if (workspace != nullptr) {
+        const TextExtent shaped = (*provider).shape_in_workspace_utf8(*workspace, laid_out, style.font);
+        const bool accepted =
+            shaped.status != TextResolutionStatus::invalid_request && (*workspace).fill_cluster_advances(advances);
+        if (accepted) {
+            advance_status = shaped.status;
+            paragraph_width = shaped.logical_size.width;
+        } else {
+            workspace = nullptr;
+        }
+    }
+    if (advance_status == TextResolutionStatus::invalid_request && provider != nullptr) {
+        advance_status = (*provider).fill_cluster_advances_utf8(laid_out, style.font, advances);
+    }
     if (advance_status == TextResolutionStatus::invalid_request) {
         advance_status = estimate_cluster_advances_utf8(laid_out, style.font, advances);
     }
 
     ParagraphPass pass{};
     pass.provider = provider;
+    pass.workspace = workspace;
+    if (workspace != nullptr) {
+        pass.has_shaped = true;
+        pass.shaped = ByteSpan{0U, size};
+        pass.shaped_width = paragraph_width;
+    }
+    pass.fill_glyphs = glyph_output == ParagraphGlyphOutput::runs && workspace != nullptr;
+    pass.glyph_runs = storage.glyph_runs;
+    pass.glyphs = storage.glyphs;
     pass.text = laid_out;
     pass.opportunities = opportunities;
     pass.advances = advances;
@@ -405,6 +558,7 @@ template <LineOutput Output>
     std::size_t begin = 0U;
     while (begin < size) {
         const LineChoice choice = choose_line(pass, begin);
+        const LineGlyphRuns line_runs = finish_line_glyphs(pass, choice);
         widest = std::max(widest, choice.width);
         if (choice.width > pass.limit) ++overflowing;
         if constexpr (Output == LineOutput::records) {
@@ -418,6 +572,8 @@ template <LineOutput Output>
                 line.width = choice.width;
                 line.x = line_left(style, choice.width);
                 line.baseline = static_cast<double>(line_count) * style.line_box.height + style.line_box.baseline;
+                line.first_glyph_run = line_runs.first_run;
+                line.glyph_run_count = line_runs.run_count;
                 lines[line_count] = line;
             }
         }
@@ -425,9 +581,17 @@ template <LineOutput Output>
         begin = choice.next;
     }
 
+    // Glyphs are reported only when every line's could be staged.
+    const bool glyphs_reported = pass.fill_glyphs && !pass.glyphs_unavailable;
     if constexpr (Output == LineOutput::records) {
-        if (line_count > lines.size()) {
-            const ParagraphStorageRequirement required{bound.per_byte, bound.collapsed_bytes, line_count};
+        const bool glyphs_short = glyphs_reported && !pass.glyphs_fit;
+        if (line_count > lines.size() || glyphs_short) {
+            ParagraphStorageRequirement required{};
+            required.per_byte = bound.per_byte;
+            required.collapsed_bytes = bound.collapsed_bytes;
+            required.lines = line_count;
+            required.glyph_runs = glyphs_reported ? pass.run_cursor : bound.glyph_runs;
+            required.glyphs = glyphs_reported ? pass.glyph_cursor : bound.glyphs;
             return ParagraphLayoutResult::storage_too_small(required);
         }
     }
@@ -438,6 +602,11 @@ template <LineOutput Output>
     metrics.status = pass.status;
     metrics.shaping_calls = pass.shaping_calls;
     metrics.shaped_bytes = pass.shaped_bytes;
+    if (glyphs_reported) {
+        metrics.glyph_source = pass.glyph_source;
+        metrics.glyph_run_count = pass.run_cursor;
+        metrics.glyph_count = pass.glyph_cursor;
+    }
     return ParagraphLayoutResult::laid_out(metrics);
 }
 
@@ -499,7 +668,8 @@ LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, 
     return metrics;
 }
 
-ParagraphStorageRequirement paragraph_storage_bound(std::string_view text, ParagraphWhiteSpace white_space) noexcept {
+ParagraphStorageRequirement paragraph_storage_bound(std::string_view text, ParagraphWhiteSpace white_space,
+                                                    ParagraphGlyphOutput glyph_output) noexcept {
     ParagraphStorageRequirement required{};
     required.per_byte = text.size();
     if (white_space == ParagraphWhiteSpace::collapse) {
@@ -507,6 +677,10 @@ ParagraphStorageRequirement paragraph_storage_bound(std::string_view text, Parag
         required.collapsed_bytes = required.per_byte;
     }
     required.lines = required.per_byte;
+    if (glyph_output == ParagraphGlyphOutput::runs) {
+        required.glyph_runs = required.per_byte;
+        required.glyphs = required.per_byte;
+    }
     return required;
 }
 
@@ -522,8 +696,11 @@ ParagraphLayoutResult measure_paragraph(TextMetricsProvider* provider, std::stri
     return result;
 }
 
-std::size_t paint_paragraph(Painter& painter, std::string_view text, std::span<const ParagraphLine> lines,
-                            const ParagraphStyle& style, const ParagraphPaint& paint) {
+namespace {
+
+// paint_paragraph's body; `glyphs` null draws every line as text.
+std::size_t paint_lines(Painter& painter, std::string_view text, std::span<const ParagraphLine> lines,
+                        const ParagraphGlyphRuns* glyphs, const ParagraphStyle& style, const ParagraphPaint& paint) {
     const double line_height = style.line_box.height;
     if (lines.empty() || !std::isfinite(line_height) || !(line_height > 0.0)) return 0U;
     // Lines are line_height apart from the box's top, so the visible ones
@@ -546,9 +723,37 @@ std::size_t paint_paragraph(Painter& painter, std::string_view text, std::span<c
         const std::string_view run = text.substr(line_begin, line_end - line_begin);
         const double baseline = snap_text_baseline(paint.origin.y + line.baseline, paint.device_scale);
         const Point origin{paint.origin.x + line.x, baseline};
-        painter.draw_text_utf8(origin, run, style.font, paint.color);
+        const bool runs_in_range = glyphs != nullptr && (*glyphs).source.valid() &&
+                                   line.first_glyph_run <= (*glyphs).runs.size() &&
+                                   line.glyph_run_count <= (*glyphs).runs.size() - line.first_glyph_run;
+        if (runs_in_range) {
+            GlyphRunsView view{};
+            view.source = (*glyphs).source;
+            view.runs = (*glyphs).runs.subspan(line.first_glyph_run, line.glyph_run_count);
+            view.glyphs = (*glyphs).glyphs;
+            view.text = run;
+            view.text_offset = Utf8Offset(line_begin);
+            painter.draw_glyph_runs(origin, view, style.font, paint.color);
+        } else {
+            painter.draw_text_utf8(origin, run, style.font, paint.color);
+        }
         ++drawn;
     }
+    return drawn;
+}
+
+} // namespace
+
+std::size_t paint_paragraph(Painter& painter, std::string_view text, std::span<const ParagraphLine> lines,
+                            const ParagraphStyle& style, const ParagraphPaint& paint) {
+    const std::size_t drawn = paint_lines(painter, text, lines, nullptr, style, paint);
+    return drawn;
+}
+
+std::size_t paint_paragraph(Painter& painter, std::string_view text, std::span<const ParagraphLine> lines,
+                            const ParagraphGlyphRuns& glyphs, const ParagraphStyle& style,
+                            const ParagraphPaint& paint) {
+    const std::size_t drawn = paint_lines(painter, text, lines, &glyphs, style, paint);
     return drawn;
 }
 
@@ -557,17 +762,40 @@ void ParagraphBuffers::reserve(std::size_t per_byte, std::size_t lines) {
     if (collapsed_text_.size() < per_byte) collapsed_text_.resize(per_byte);
     if (opportunities_.size() < per_byte) opportunities_.resize(per_byte, LineBreakOpportunity::prohibited);
     if (advances_.size() < per_byte) advances_.resize(per_byte, 0.0);
+    if (workspace_) (*workspace_).reserve(per_byte);
 }
 
 void ParagraphBuffers::reserve(const ParagraphStorageRequirement& required) {
     reserve(required.per_byte, required.lines);
+    if (glyph_runs_.size() < required.glyph_runs) glyph_runs_.resize(required.glyph_runs);
+    if (glyphs_.size() < required.glyphs) glyphs_.resize(required.glyphs);
+}
+
+void ParagraphBuffers::reserve(const ParagraphStorageRequirement& required, TextMetricsProvider* provider) {
+    reserve(required);
+    if (provider == nullptr) return;
+    if (!workspace_ || workspace_provider_ != provider) {
+        // The replacement is reserved before it replaces the old one, so a
+        // failure keeps the old workspace.
+        std::unique_ptr<ShapingWorkspace> created = (*provider).create_shaping_workspace();
+        if (!created) return;
+        (*created).reserve(required.per_byte);
+        workspace_ = std::move(created);
+        workspace_provider_ = provider;
+        return;
+    }
+    (*workspace_).reserve(required.per_byte);
 }
 
 void ParagraphBuffers::release() noexcept {
-    lines_ = std::vector<ParagraphLine>{};
-    collapsed_text_ = std::vector<char>{};
-    opportunities_ = std::vector<LineBreakOpportunity>{};
-    advances_ = std::vector<double>{};
+    lines_ = CountedArray<ParagraphLine>{};
+    collapsed_text_ = CountedArray<char>{};
+    opportunities_ = CountedArray<LineBreakOpportunity>{};
+    advances_ = CountedArray<double>{};
+    glyph_runs_ = CountedArray<GlyphRunRecord>{};
+    glyphs_ = CountedArray<PositionedGlyph>{};
+    workspace_.reset();
+    workspace_provider_ = nullptr;
 }
 
 ParagraphStorage ParagraphBuffers::storage() noexcept {
@@ -576,6 +804,9 @@ ParagraphStorage ParagraphBuffers::storage() noexcept {
     view.collapsed_text = std::span<char>(collapsed_text_);
     view.opportunities = std::span<LineBreakOpportunity>(opportunities_);
     view.advances = std::span<double>(advances_);
+    view.glyph_runs = std::span<GlyphRunRecord>(glyph_runs_);
+    view.glyphs = std::span<PositionedGlyph>(glyphs_);
+    view.workspace = workspace_.get();
     return view;
 }
 
@@ -588,6 +819,16 @@ std::span<const ParagraphLine> ParagraphBuffers::lines(std::size_t line_count) c
 std::string_view ParagraphBuffers::collapsed_text(std::size_t laid_out_bytes) const noexcept {
     const std::size_t count = std::min(laid_out_bytes, collapsed_text_.size());
     const std::string_view written(collapsed_text_.data(), count);
+    return written;
+}
+
+ParagraphGlyphRuns ParagraphBuffers::glyph_runs(const ParagraphMetrics& metrics) const noexcept {
+    ParagraphGlyphRuns written{};
+    written.source = metrics.glyph_source;
+    const std::size_t run_count = std::min(metrics.glyph_run_count, glyph_runs_.size());
+    const std::size_t glyph_count = std::min(metrics.glyph_count, glyphs_.size());
+    written.runs = std::span<const GlyphRunRecord>(glyph_runs_.data(), run_count);
+    written.glyphs = std::span<const PositionedGlyph>(glyphs_.data(), glyph_count);
     return written;
 }
 

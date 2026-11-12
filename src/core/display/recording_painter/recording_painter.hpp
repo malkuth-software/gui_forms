@@ -81,6 +81,11 @@ public:
         std::string_view text, std::span<LineBreakOpportunity> opportunities) override;
     [[nodiscard]] TextResolutionStatus fill_cluster_advances_utf8(
         std::string_view text, FontSpec font, std::span<double> advances) override;
+    // The workspace calls go to the provider the recording measures with;
+    // draw_glyph_runs keeps Painter's (the line is recorded as its text).
+    [[nodiscard]] std::unique_ptr<ShapingWorkspace> create_shaping_workspace() override;
+    [[nodiscard]] TextExtent shape_in_workspace_utf8(ShapingWorkspace& workspace, std::string_view text,
+                                                     FontSpec font) override;
     [[nodiscard]] ResolvedTextLayout resolve_text_layout_utf8(
         std::string_view text, FontSpec font) override;
     void draw_image(ImageId image, Rect destination, double opacity) override;

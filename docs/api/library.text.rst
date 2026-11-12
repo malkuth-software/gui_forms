@@ -67,6 +67,12 @@ Related types
      - GlyphPlacement correlates one glyph to a UTF-8 cluster and finite two-axis advance/offset values.
    * - :cpp:class:`GlyphRun <gui_forms::GlyphRun>`
      - GlyphRun owns ordered placements for one source range, face, and direction.
+   * - :cpp:class:`GlyphRunRecord <gui_forms::GlyphRunRecord>`
+     - One run of glyphs shaped in one face and one direction, in visual order within its sequence: the bytes it shapes, its face (the engine's identity), its direction, and its glyphs, glyph_count elements from first_glyph of the glyph array its sequence is stored with.
+   * - :cpp:class:`GlyphRunsView <gui_forms::GlyphRunsView>`
+     - One line's glyph runs as a painter draws them (Painter::draw_glyph_runs), borrowed for the call: - source: the engine that shaped them; - runs: the line's runs in visual order; each names its glyphs in ``glyphs`` by index; - text: the line's text, which a painter that cannot draw the runs draws with draw_text_utf8 instead; - text_offset: where ``text`` begins in the offsets the runs' ranges and the glyphs' clusters use (the paragraph's, for a paragraph's line).
+   * - :cpp:class:`GlyphSource <gui_forms::GlyphSource>`
+     - Which engine shaped a set of glyphs, and in which state of its face table: a face identity means nothing to another engine, and a glyph id nothing to another face.
    * - :cpp:class:`GrayTextMask <gui_forms::GrayTextMask>`
      -  
    * - :cpp:class:`LayoutAuthority <gui_forms::LayoutAuthority>`
@@ -113,6 +119,8 @@ Related types
      - OpenTypeTag stores one big-endian four-byte script or feature tag.
    * - :cpp:class:`ParagraphBuffers <gui_forms::ParagraphBuffers>`
      - Owned storage for repeated calls, sized once and reused: reserve for the largest text and line count expected, then pass storage() to every call.
+   * - :cpp:class:`ParagraphGlyphRuns <gui_forms::ParagraphGlyphRuns>`
+     - A laid-out paragraph's glyph runs (ParagraphGlyphOutput::runs), borrowed from the storage it was laid out into: its metrics' glyph_source, and the leading glyph_run_count runs and glyph_count glyphs of the storage's arrays (ParagraphBuffers::glyph_runs gives them).
    * - :cpp:class:`ParagraphLayoutResult <gui_forms::ParagraphLayoutResult>`
      - The result of lay_out_paragraph and measure_paragraph: laid out with its metrics; storage too small, with what it needs; or a refused request.
    * - :cpp:class:`ParagraphLine <gui_forms::ParagraphLine>`
@@ -127,6 +135,8 @@ Related types
      - What a call needs.
    * - :cpp:class:`ParagraphStyle <gui_forms::ParagraphStyle>`
      - What one call lays out.
+   * - :cpp:class:`PositionedGlyph <gui_forms::PositionedGlyph>`
+     - One glyph as the engine placed it: its id in its run's face, the byte offset of the first byte of its cluster (in the text the offsets of its run index), and its pen position in logical pixels from the run sequence's origin on the baseline (x right, y down), offsets and letter spacing included.
    * - :cpp:class:`PreparedFontSource <gui_forms::PreparedFontSource>`
      -  
    * - :cpp:class:`PreparedParagraphProof <gui_forms::PreparedParagraphProof>`
@@ -161,10 +171,14 @@ Related types
      -  
    * - :cpp:class:`RtfBodySize <gui_forms::RtfBodySize>`
      -  
+   * - :cpp:class:`ShapedGlyphCounts <gui_forms::ShapedGlyphCounts>`
+     - The runs and glyphs one shaping produced.
    * - :cpp:class:`ShapingFeature <gui_forms::ShapingFeature>`
      - ShapingFeature applies one OpenType tag/value to a validated UTF-8 subrange.
    * - :cpp:class:`ShapingRequest <gui_forms::ShapingRequest>`
      - ShapingRequest is a non-owning, bounded shaping transaction with text, range, face, size, direction, script, language, and features.
+   * - :cpp:class:`ShapingWorkspace <gui_forms::ShapingWorkspace>`
+     - A text metrics provider's reusable shaping state (TextMetricsProvider::create_shaping_workspace): the provider creates it, the caller owns it (ParagraphBuffers holds one), and the provider shapes into it (TextMetricsProvider::shape_in_workspace_utf8) without allocating once it holds the text's size.
    * - :cpp:class:`SourceByteOffset <gui_forms::SourceByteOffset>`
      -  
    * - :cpp:class:`SourceByteRange <gui_forms::SourceByteRange>`
@@ -585,6 +599,61 @@ Related types
       Default: ``{TextDirection::left_to_right}``.
 
    .. cpp:member:: std::vector<GlyphPlacement> glyphs
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GlyphRunRecord final
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   One run of glyphs shaped in one face and one direction, in visual order within its sequence: the bytes it shapes, its face (the engine's identity), its direction, and its glyphs, glyph_count elements from first_glyph of the glyph array its sequence is stored with.
+
+   .. cpp:member:: Utf8Range source_range
+
+   .. cpp:member:: FontFaceId face
+
+   .. cpp:member:: TextDirection direction
+
+      Default: ``{TextDirection::left_to_right}``.
+
+   .. cpp:member:: std::size_t first_glyph
+
+   .. cpp:member:: std::size_t glyph_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GlyphRunsView final
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   One line's glyph runs as a painter draws them (Painter::draw_glyph_runs), borrowed for the call: - source: the engine that shaped them; - runs: the line's runs in visual order; each names its glyphs in ``glyphs`` by index; - text: the line's text, which a painter that cannot draw the runs draws with draw_text_utf8 instead; - text_offset: where ``text`` begins in the offsets the runs' ranges and the glyphs' clusters use (the paragraph's, for a paragraph's line).
+
+   .. cpp:member:: GlyphSource source
+
+   .. cpp:member:: std::span<const GlyphRunRecord> runs
+
+   .. cpp:member:: std::span<const PositionedGlyph> glyphs
+
+   .. cpp:member:: std::string_view text
+
+   .. cpp:member:: Utf8Offset text_offset
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GlyphSource final
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   Which engine shaped a set of glyphs, and in which state of its face table: a face identity means nothing to another engine, and a glyph id nothing to another face. ``engine`` is a process-unique number the engine was given when it was created (never zero); ``generation`` changes whenever a face is registered with it, since registration can change which face shapes a cluster. A painter draws glyph runs only when their source is its own engine's current one, and otherwise draws their text (Painter:: draw_glyph_runs). The zero source is no engine's.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: constexpr bool valid() const noexcept
+
+   .. cpp:member:: std::uint64_t engine
+
+   .. cpp:member:: std::uint64_t generation
 
 .. cpp:namespace:: gui_forms
 
@@ -1148,7 +1217,7 @@ Related types
 
    ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
 
-   Owned storage for repeated calls, sized once and reused: reserve for the largest text and line count expected, then pass storage() to every call. A call never grows it; on storage_too_small, reserve the requirement and call again. Single-threaded, like the calls it serves.
+   Owned storage for repeated calls, sized once and reused: reserve for the largest text and line count expected, then pass storage() to every call. A call never grows it; on storage_too_small, reserve the requirement and call again. Its arrays are counted under AllocationSubsystem::text_layout. It also owns a shaping workspace once reserved with a provider: reserve with the provider the calls go through, so that their shaping allocates nothing either. Single-threaded, like the calls it serves.
 
 
    .. rubric:: Construction
@@ -1160,17 +1229,23 @@ Related types
 
    .. cpp:function:: void reserve(std::size_t per_byte, std::size_t lines)
 
-      Grows the arrays to at least these sizes (never shrinks them). Lines already written are kept; scratch contents are not.
+      Grows the line and per-byte arrays to at least these sizes (never shrinks them), and the workspace, if there is one, to per_byte. Lines already written are kept; scratch contents are not.
 
    .. cpp:function:: void reserve(const ParagraphStorageRequirement& required)
 
+      As above, with the glyph arrays grown to the requirement's.
+
+   .. cpp:function:: void reserve(const ParagraphStorageRequirement& required, TextMetricsProvider* provider)
+
+      As above, and with a shaping workspace from ``provider`` (TextMetricsProvider::create_shaping_workspace) reserved for required.per_byte bytes: created on the first reserve with a provider, and created again when the provider differs from the one that created it (``provider`` is compared, never kept for use). A provider without workspaces, or null, leaves none. Throws as the workspace's reserve does, with the arrays grown and the old workspace kept.
+
    .. cpp:function:: void release() noexcept
 
-      Frees all the storage.
+      Frees all the storage, the workspace with it.
 
    .. cpp:function:: ParagraphStorage storage() noexcept
 
-      Spans over the whole arrays; valid until the next reserve or release.
+      Spans over the whole arrays and the workspace; valid until the next reserve or release.
 
    .. cpp:function:: std::span<const ParagraphLine> lines(std::size_t line_count) const noexcept
 
@@ -1179,6 +1254,24 @@ Related types
    .. cpp:function:: std::string_view collapsed_text(std::size_t laid_out_bytes) const noexcept
 
       The collapsed text a collapse layout wrote, given its metrics' laid_out_bytes; valid until the next reserve, release or call.
+
+   .. cpp:function:: ParagraphGlyphRuns glyph_runs(const ParagraphMetrics& metrics) const noexcept
+
+      The glyph runs a successful lay_out_paragraph with storage() wrote, given its metrics; valid until the next reserve, release or call.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphGlyphRuns final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   A laid-out paragraph's glyph runs (ParagraphGlyphOutput::runs), borrowed from the storage it was laid out into: its metrics' glyph_source, and the leading glyph_run_count runs and glyph_count glyphs of the storage's arrays (ParagraphBuffers::glyph_runs gives them).
+
+   .. cpp:member:: GlyphSource source
+
+   .. cpp:member:: std::span<const GlyphRunRecord> runs
+
+   .. cpp:member:: std::span<const PositionedGlyph> glyphs
 
 .. cpp:namespace:: gui_forms
 
@@ -1240,6 +1333,12 @@ Related types
 
    .. cpp:member:: double baseline
 
+   .. cpp:member:: std::size_t first_glyph_run
+
+      The line's glyph runs under ParagraphGlyphOutput::runs: glyph_run_count records from first_glyph_run of ParagraphStorage::glyph_runs, in visual order, their ranges and clusters in the laid-out text's offsets and their positions from the line's origin. Zero otherwise.
+
+   .. cpp:member:: std::size_t glyph_run_count
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ParagraphMetrics final
@@ -1266,13 +1365,21 @@ Related types
 
    .. cpp:member:: std::uint64_t shaping_calls
 
-      Provider shaping calls (the cluster advances and each whole-run measurement) and the bytes they shaped: what the layout cost.
+      Provider shaping calls (the cluster advances, each whole-run measurement and, under ParagraphGlyphOutput::runs, each line shaped for its glyphs) and the bytes they shaped: what the layout cost. A measurement of the run the workspace has just shaped (a one-line paragraph's line) is read from it and not counted.
 
    .. cpp:member:: std::uint64_t shaped_bytes
 
    .. cpp:member:: std::size_t laid_out_bytes
 
       The size of the laid-out text (the collapsed size under collapse).
+
+   .. cpp:member:: GlyphSource glyph_source
+
+      Under ParagraphGlyphOutput::runs, the engine that shaped the glyph runs and the runs and glyphs written (ParagraphGlyphRuns); the zero source when none were filled (no glyph output, no workspace the provider accepts, or a line the workspace could not stage).
+
+   .. cpp:member:: std::size_t glyph_run_count
+
+   .. cpp:member:: std::size_t glyph_count
 
 .. cpp:namespace:: gui_forms
 
@@ -1298,7 +1405,7 @@ Related types
 
    ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
 
-   The caller's storage for one call, borrowed for the call only; nothing is retained. The arrays must not overlap each other or the text. - lines (output): one record per line, in order; only lay_out_paragraph writes it. - collapsed_text (output, collapse only): the collapsed text, which the line ranges index and which paint_paragraph must be given. - opportunities and advances (scratch): one element per laid-out byte; their contents after a call are unspecified. The call uses the leading elements it needs and leaves the rest as they were.
+   The caller's storage for one call, borrowed for the call only; nothing is retained. The arrays must not overlap each other or the text. - lines (output): one record per line, in order; only lay_out_paragraph writes it. - collapsed_text (output, collapse only): the collapsed text, which the line ranges index and which paint_paragraph must be given. - opportunities and advances (scratch): one element per laid-out byte; their contents after a call are unspecified. - glyph_runs and glyphs (output, ParagraphGlyphOutput::runs only): every line's runs, then every line's glyphs, line after line; only lay_out_paragraph writes them. - workspace (borrowed, optional): the provider's shaping workspace (TextMetricsProvider::create_shaping_workspace), holding at least the laid-out size; every shaping of the call goes through it. Null uses the provider's plain calls, and no glyph runs are filled. The call uses the leading elements it needs and leaves the rest as they were.
 
    .. cpp:member:: std::span<ParagraphLine> lines
 
@@ -1308,19 +1415,29 @@ Related types
 
    .. cpp:member:: std::span<double> advances
 
+   .. cpp:member:: std::span<GlyphRunRecord> glyph_runs
+
+   .. cpp:member:: std::span<PositionedGlyph> glyphs
+
+   .. cpp:member:: ShapingWorkspace* workspace
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ParagraphStorageRequirement final
 
    ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
 
-   What a call needs. per_byte is the size of the laid-out text (the collapsed size under collapse): the element count opportunities and advances need, and collapsed_text too under collapse (zero otherwise). lines is exact when the per-byte arrays were large enough to lay the text out, and otherwise per_byte, the most lines a text of that size can have (every line holds at least one byte), so storage of these sizes always succeeds on the next call.
+   What a call needs. per_byte is the size of the laid-out text (the collapsed size under collapse): the element count opportunities and advances need, the bytes a workspace must hold, and collapsed_text too under collapse (zero otherwise). lines is exact when the per-byte arrays were large enough to lay the text out, and otherwise per_byte, the most lines a text of that size can have (every line holds at least one byte), so storage of these sizes always succeeds on the next call. Under ParagraphGlyphOutput::runs, glyph_runs and glyphs are the runs and glyphs of every line: exact after a call that laid the text out, and otherwise per_byte each, which bounds the runs (each holds a byte of its line) and holds the glyphs of any text shaped into at most one glyph a byte (a call that needs more says so). Zero for ParagraphGlyphOutput::none.
 
    .. cpp:member:: std::size_t per_byte
 
    .. cpp:member:: std::size_t collapsed_bytes
 
    .. cpp:member:: std::size_t lines
+
+   .. cpp:member:: std::size_t glyph_runs
+
+   .. cpp:member:: std::size_t glyphs
 
 .. cpp:namespace:: gui_forms
 
@@ -1350,6 +1467,10 @@ Related types
 
       Default: ``{ParagraphFit::verified}``.
 
+   .. cpp:member:: ParagraphGlyphOutput glyph_output
+
+      Default: ``{ParagraphGlyphOutput::none}``.
+
    .. cpp:member:: TextAlignment alignment
 
       Where each line sits in ``width``, as TextBlock's ``text_align``; start and end follow ``direction``. Default: ``{TextAlignment::start}``.
@@ -1357,6 +1478,22 @@ Related types
    .. cpp:member:: TextDirection direction
 
       Default: ``{TextDirection::left_to_right}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PositionedGlyph final
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   One glyph as the engine placed it: its id in its run's face, the byte offset of the first byte of its cluster (in the text the offsets of its run index), and its pen position in logical pixels from the run sequence's origin on the baseline (x right, y down), offsets and letter spacing included. These are the positions Painter::draw_text_utf8 draws the same text at.
+
+   .. cpp:member:: GlyphId glyph
+
+   .. cpp:member:: Utf8Offset cluster
+
+   .. cpp:member:: float x
+
+   .. cpp:member:: float y
 
 .. cpp:namespace:: gui_forms
 
@@ -1785,6 +1922,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ShapedGlyphCounts final
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   The runs and glyphs one shaping produced.
+
+   .. cpp:member:: std::size_t runs
+
+   .. cpp:member:: std::size_t glyphs
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ShapingFeature final
 
    ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
@@ -1822,6 +1971,41 @@ Related types
    .. cpp:member:: std::string_view language
 
    .. cpp:member:: std::span<const ShapingFeature> features
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ShapingWorkspace
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   A text metrics provider's reusable shaping state (TextMetricsProvider::create_shaping_workspace): the provider creates it, the caller owns it (ParagraphBuffers holds one), and the provider shapes into it (TextMetricsProvider::shape_in_workspace_utf8) without allocating once it holds the text's size. It keeps the last shaping until the next one, which the reads below answer from. Use it with the provider that created it, on one thread at a time; a provider refuses a workspace of another (invalid_request).
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual std::size_t capacity_bytes() const noexcept = 0
+
+      The longest text, in bytes, one shaping takes without allocating.
+
+   .. cpp:function:: virtual void reserve(std::size_t text_bytes) = 0
+
+      Grows to shape texts of ``text_bytes`` bytes (never shrinks). It may allocate, and throws std::bad_alloc or std::length_error with the workspace unchanged when it cannot; it forgets the last shaping.
+
+   .. cpp:function:: virtual ShapedGlyphCounts shaped_counts() const noexcept = 0
+
+      The last shaping's runs and glyphs; zero when there is none (none yet, or the last one was refused).
+
+   .. cpp:function:: virtual GlyphSource glyph_source() const noexcept = 0
+
+      The engine and face table of the last shaping; the zero source when there is none.
+
+   .. cpp:function:: virtual bool fill_cluster_advances(std::span<double> advances) const noexcept = 0
+
+      Fills ``advances`` with the last shaping's cluster advances, under TextMetricsProvider::fill_cluster_advances_utf8's contract; its size must equal the shaped text's. False, writing nothing, when it does not or there is no shaping.
+
+   .. cpp:function:: virtual bool copy_glyphs(Utf8Offset text_offset, std::size_t first_glyph, std::span<GlyphRunRecord> runs, std::span<PositionedGlyph> glyphs) const noexcept = 0
+
+      Copies the last shaping's runs into ``runs`` and its glyphs into ``glyphs`` (at least shaped_counts() of each; the rest is left as it was), with ``text_offset`` added to every range and cluster and ``first_glyph`` to every run's first_glyph, so that a run's glyphs are found at its first_glyph in the array ``glyphs`` begins at element first_glyph of. False, writing nothing, when either span is too short or there is no shaping.
 
 .. cpp:namespace:: gui_forms
 
@@ -2311,6 +2495,14 @@ Related types
    .. cpp:function:: virtual TextResolutionStatus fill_cluster_advances_utf8(std::string_view utf8, FontSpec effective_font, std::span<double> advances)
 
       Fills ``advances``, whose size must equal utf8.size(), from one shaping of the whole text in ``effective_font`` (the shaping resolve_text_layout_utf8 measures): each cluster's horizontal advance in logical pixels at the byte that begins it, and zero at every other byte. A cluster's advance includes the font's letter spacing, except for the text's last cluster in visual order. The advances' sum is the text's width; the sum over a range estimates that range shaped alone, without the kerning and contextual shaping across its ends (paragraph layout, include/gui_forms/text/paragraph_layout/). Returns the resolution's status, or invalid_request with ``advances`` unchanged for invalid UTF-8, an invalid font or a size mismatch. The default measures each scalar value alone with measure_text_extent_utf8, so its clusters are scalar values and it omits shaping between them; the bundled engine's painters answer from one shaping, with its clusters.
+
+   .. cpp:function:: virtual std::unique_ptr<ShapingWorkspace> create_shaping_workspace()
+
+      A reusable shaping workspace for shape_in_workspace_utf8 (include/gui_forms/typography/shaping_workspace/), empty of capacity; the caller owns it and reserves it before use. Null when the provider has none, which is the default: callers then use the calls above. The bundled engine's painters create one. May allocate.
+
+   .. cpp:function:: virtual TextExtent shape_in_workspace_utf8(ShapingWorkspace& workspace, std::string_view utf8, FontSpec effective_font)
+
+      One shaping of ``utf8`` in ``effective_font`` into ``workspace``, which this provider created and which holds at least utf8.size() bytes: the shaping measure_text_extent_utf8 measures and Painter::draw_text_utf8 draws, answered with the same extent and status, and kept in the workspace (its glyphs, runs and cluster advances) until the next shaping into it. With a reserved workspace the bundled engine allocates nothing here once each face the text needs has been opened. The status is invalid_request, with the workspace holding no shaping, for invalid UTF-8, an invalid font, a workspace of another provider or one too small, or (the default) a provider without workspaces.
 
 .. cpp:namespace:: gui_forms
 
@@ -2935,6 +3127,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ParagraphGlyphOutput
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: runs
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ParagraphOverflowWrap
 
    ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
@@ -3418,13 +3620,13 @@ Functions, constants and aliases
 
    The line box every line of a paragraph in ``font`` shares, as TextBlock's: the provider's resolution of a space in the effective font, then line_box_metrics with ``line_height`` (a used line height in logical pixels, already scaled; none for ``line-height: normal``). A null provider uses estimate_text_layout_utf8. Resolving may allocate in the provider; call it once per font and keep the answer in ParagraphStyle.
 
-.. cpp:function:: ParagraphStorageRequirement paragraph_storage_bound(std::string_view text, ParagraphWhiteSpace white_space) noexcept
+.. cpp:function:: ParagraphStorageRequirement paragraph_storage_bound(std::string_view text, ParagraphWhiteSpace white_space, ParagraphGlyphOutput glyph_output = ParagraphGlyphOutput::none) noexcept
 
-   The storage lay_out_paragraph needs for ``text`` before the line count is known: per_byte and collapsed_bytes exact, lines the bound per_byte. It reads the text only (counting the collapsed size under collapse) and allocates nothing.
+   The storage lay_out_paragraph needs for ``text`` before the line count is known: per_byte and collapsed_bytes exact, lines the bound per_byte, and under ``glyph_output`` runs glyph_runs and glyphs per_byte (see ParagraphStorageRequirement). It reads the text only (counting the collapsed size under collapse) and allocates nothing.
 
 .. cpp:function:: ParagraphLayoutResult lay_out_paragraph(TextMetricsProvider* provider, std::string_view text, const ParagraphStyle& style, const ParagraphStorage& storage)
 
-   Lays ``text`` out in ``style`` into ``storage``, through ``provider`` (a window's text_metrics_provider() or a Painter; null uses the renderer-free estimates). Inputs are read only; storage is written as ParagraphStorage states. The checks come first and change nothing: a refused request, then per-byte arrays shorter than the text. Allocates nothing of its own. Not thread-safe with other calls into the same provider.
+   Lays ``text`` out in ``style`` into ``storage``, through ``provider`` (a window's text_metrics_provider() or a Painter; null uses the renderer-free estimates). Inputs are read only; storage is written as ParagraphStorage states. The checks come first and change nothing: a refused request, then per-byte arrays (or a workspace) shorter than the text. Allocates nothing of its own. A workspace the provider refuses (one another provider made) is not used: the call goes on with the provider's plain calls. Not thread-safe with other calls into the same provider or workspace.
 
 .. cpp:function:: ParagraphLayoutResult measure_paragraph(TextMetricsProvider* provider, std::string_view text, const ParagraphStyle& style, const ParagraphStorage& storage)
 
@@ -3433,6 +3635,10 @@ Functions, constants and aliases
 .. cpp:function:: std::size_t paint_paragraph(Painter& painter, std::string_view text, std::span<const ParagraphLine> lines, const ParagraphStyle& style, const ParagraphPaint& paint)
 
    Draws laid-out lines with Painter::draw_text_utf8, one call per non-empty visible line at (origin.x + line.x, snapped origin.y + line.baseline), in style.font. ``text`` is the text the lines were laid out from (the collapsed text under collapse) and ``lines`` their records, unchanged since. A line whose range lies outside ``text`` stops the drawing. Returns the lines drawn. A theme part draws a line the same way: its text is text.substr(line.bytes) and paint_text_part_at takes the same origin and line.width.
+
+.. cpp:function:: std::size_t paint_paragraph(Painter& painter, std::string_view text, std::span<const ParagraphLine> lines, const ParagraphGlyphRuns& glyphs, const ParagraphStyle& style, const ParagraphPaint& paint)
+
+   As paint_paragraph above, drawing each line's glyph runs with Painter::draw_glyph_runs instead of shaping its text again, at the same origin: the same pixels with a painter of the engine that shaped them, and the text drawn otherwise. A line whose runs lie outside ``glyphs.runs`` is drawn as text; with the zero source every line is.
 
 .. cpp:namespace:: gui_forms
 

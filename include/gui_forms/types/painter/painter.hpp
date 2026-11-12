@@ -5,6 +5,7 @@
 #include "gui_forms/types/paint_marks/paint_marks.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/typography.hpp"
+#include "gui_forms/typography/shaping_workspace/shaping_workspace.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -234,6 +235,17 @@ public:
     // recording and Skia painters turn it.
     virtual void draw_turned_text_utf8(Point origin, std::string_view text, FontSpec font,
                                        Color color, TextOrientation orientation);
+    // One line of glyph runs a provider shaped earlier (GlyphRunsView, as a
+    // paragraph layout fills them), drawn at `origin` (the start of the
+    // baseline, as for draw_text_utf8) in `font`'s size and colour without
+    // shaping again. A painter whose own engine shaped them, in its current
+    // face table (view.source), draws exactly the pixels draw_text_utf8
+    // draws for view.text; for any other source, or runs whose glyph
+    // indices fall outside view.glyphs, it draws view.text with
+    // draw_text_utf8. That fallback is the base implementation, which the
+    // recording painter keeps (a recorded line is shaped again on replay);
+    // the Skia painter draws the runs.
+    virtual void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font, Color color);
     // Text controls need the same metrics used by the painter for caret hit
     // testing, selection geometry, and horizontal viewport maintenance.  The
     // renderer owns those metrics; controls must not guess a fixed glyph width.

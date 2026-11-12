@@ -28,6 +28,8 @@ struct BoundedFontRun final {
     Utf8Range source_range{};
     std::size_t glyph_begin{};
     std::size_t glyph_count{};
+    // The direction the run was shaped in (its bidi level's parity).
+    bool right_to_left{};
 };
 
 struct BoundedShapedText final {
