@@ -27,7 +27,9 @@ class Painter;
 // caller's (ParagraphStorage), and a call whose storage is too small says
 // how much it needs (ParagraphLayoutResult::storage_too_small) instead of
 // growing anything. The text metrics provider's own work (shaping, its
-// caches) may allocate inside the provider.
+// caches) may allocate inside the provider: with the bundled engine each
+// paragraph shaping and each uncached whole-run measurement allocates its
+// glyph records today.
 //
 // It wraps as TextBlock wraps, with the same provider calls, so a laid-out
 // line is the line TextBlock paints:

@@ -640,7 +640,13 @@ void test_paint_visible_lines() {
 }
 
 // After the storage is sized, laying out, measuring and painting a
-// thousand rows allocate nothing.
+// thousand rows allocate nothing. What is counted: every global operator
+// new and new[] in this process while armed, which covers the paragraph
+// layout's own code and these test classes. The fixed provider allocates
+// nothing, so the bundled engine's shaping is not exercised here; with it,
+// HarfBuzzFontEngine::shape and the SkiaRaster kept-layout cache allocate
+// per call (and SheenBidi and HarfBuzz call malloc directly, which this
+// counter does not see). Zero allocation through the engine is a follow-up.
 void test_no_allocations() {
     FixedMetrics metrics(true);
     const std::array<std::string_view, 4> rows{
