@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/scroll_bar.hpp"
 
 namespace gui_forms {
 
-class VScrollBar final : public ScrollBar {
+class GUI_FORMS_API VScrollBar final : public ScrollBar {
 public:
     explicit VScrollBar(StableId stable_id);
 

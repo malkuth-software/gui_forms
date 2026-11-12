@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/scaled_panel_capabilities.hpp"
 
@@ -8,7 +9,7 @@
 
 namespace gui_forms {
 
-class ScaledPanel : public Panel, public ScaledPanelCapabilities<ScaledPanel> {
+class GUI_FORMS_API ScaledPanel : public Panel, public ScaledPanelCapabilities<ScaledPanel> {
 public:
     explicit ScaledPanel(StableId stable_id, Size initial_design_size = {1.0, 1.0});
 

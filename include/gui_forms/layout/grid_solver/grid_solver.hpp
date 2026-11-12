@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -58,13 +59,13 @@ enum class GridAxis : std::uint8_t { columns, rows };
 // (CSS Grid 12.1's intrinsic sizing of the container).
 enum class GridSizingKind : std::uint8_t { definite, min_content, max_content };
 
-struct GridAvailableExtent final {
+struct GUI_FORMS_API GridAvailableExtent final {
     double extent{};
     GridSizingKind kind{GridSizingKind::max_content};
 };
 
 // One margin as the solver reads it: a resolved length, or `auto`.
-struct GridMargin final {
+struct GUI_FORMS_API GridMargin final {
     double length{};
     bool automatic{};
 
@@ -74,7 +75,7 @@ struct GridMargin final {
 };
 
 // One item's inputs to every call.
-struct GridItemInput final {
+struct GUI_FORMS_API GridItemInput final {
     // The item's placement properties, borrowed for each call: the caller
     // keeps the record alive and unchanged from the first call to the last.
     const GridItemStyle* placement{};
@@ -93,7 +94,7 @@ struct GridItemInput final {
     SizeValue max_height{SizeKind::none, {}};
 };
 
-struct GridContainerInput final {
+struct GUI_FORMS_API GridContainerInput final {
     LayoutAlignment justify_content{LayoutAlignment::normal};
     LayoutAlignment align_content{LayoutAlignment::normal};
     LayoutAlignment justify_items{LayoutAlignment::normal};
@@ -116,7 +117,7 @@ struct GridContainerInput final {
 // (CSS Grid 6.6), which the solver applies only where 6.6 does: when the
 // item spans a track whose minimum is `auto` and, if it spans several, no
 // flexible one.
-struct GridItemContribution final {
+struct GUI_FORMS_API GridItemContribution final {
     double minimum{};
     bool automatic_minimum{};
     double min_content{};
@@ -129,7 +130,7 @@ struct GridItemContribution final {
 };
 
 // One track of the implicit grid, in line order.
-struct GridTrack final {
+struct GUI_FORMS_API GridTrack final {
     // The sizing function it was given (from the template, `repeat()`, or
     // grid-auto-columns / -rows for an implicit track).
     GridTrackSize sizing{};
@@ -147,7 +148,7 @@ struct GridTrack final {
 };
 
 // One item's area in the implicit grid: zero-based, half-open track ranges.
-struct GridItemArea final {
+struct GUI_FORMS_API GridItemArea final {
     std::uint32_t column_start{};
     std::uint32_t column_end{};
     std::uint32_t row_start{};
@@ -159,7 +160,7 @@ struct GridItemArea final {
     }
 };
 
-struct GridItemResult final {
+struct GUI_FORMS_API GridItemResult final {
     GridItemArea area{};
     // Whether placement found the area from the item's lines (not by
     // auto-placement), for inspection.
@@ -185,13 +186,19 @@ enum class GridSolveOutcome : std::uint8_t {
 // (house style section 1): `items` has one record per input item, in input
 // order; `columns` and `rows` the tracks of the implicit grid in line
 // order. Its storage grows only when the item or track count does.
-class GridLayoutWorkspace final {
+class GUI_FORMS_API GridLayoutWorkspace final {
 public:
-    [[nodiscard]] std::span<const GridItemResult> items() const& noexcept { return items_; }
+    [[nodiscard]] std::span<const GridItemResult> items() const& noexcept {
+        return std::span<const GridItemResult>(items_.data(), items_.size());
+    }
     std::span<const GridItemResult> items() const&& = delete;
-    [[nodiscard]] std::span<const GridTrack> columns() const& noexcept { return columns_; }
+    [[nodiscard]] std::span<const GridTrack> columns() const& noexcept {
+        return std::span<const GridTrack>(columns_.data(), columns_.size());
+    }
     std::span<const GridTrack> columns() const&& = delete;
-    [[nodiscard]] std::span<const GridTrack> rows() const& noexcept { return rows_; }
+    [[nodiscard]] std::span<const GridTrack> rows() const& noexcept {
+        return std::span<const GridTrack>(rows_.data(), rows_.size());
+    }
     std::span<const GridTrack> rows() const&& = delete;
     // How many implicit tracks precede the explicit grid on each axis
     // (from negative or out-of-range lines).
@@ -210,7 +217,7 @@ public:
     // A track's sizing function with percentages resolved, as the sizing
     // algorithm reads it (CSS Grid 12.4). Internal to the solver.
     enum class Breadth : std::uint8_t { fixed, min_content, max_content, automatic, fraction, fit_content };
-    struct TrackFunction final {
+    struct GUI_FORMS_API TrackFunction final {
         Breadth minimum{Breadth::automatic};
         double minimum_value{};
         Breadth maximum{Breadth::automatic};
@@ -220,23 +227,23 @@ public:
     // One item's placement on one axis during auto-placement: its start
     // line (zero for the explicit grid's first line, negative before it),
     // its span, and whether its lines fixed it. Internal to the solver.
-    struct AxisPlacement final {
+    struct GUI_FORMS_API AxisPlacement final {
         std::int64_t start{};
         std::uint32_t span{1U};
         bool definite{};
     };
 
 private:
-    friend GridSolveOutcome place_grid_items(const GridContainerStyle& style, const GridContainerInput& container,
+    friend GUI_FORMS_API GridSolveOutcome place_grid_items(const GridContainerStyle& style, const GridContainerInput& container,
                                              std::span<const GridItemInput> items, GridLayoutWorkspace& workspace);
-    friend GridSolveOutcome size_grid_tracks(GridAxis axis, const GridContainerInput& container,
+    friend GUI_FORMS_API GridSolveOutcome size_grid_tracks(GridAxis axis, const GridContainerInput& container,
                                              std::span<const GridItemInput> items,
                                              std::span<const GridItemContribution> contributions,
                                              GridLayoutWorkspace& workspace);
-    friend double grid_item_column_size(const GridContainerInput& container, const GridItemInput& item,
+    friend GUI_FORMS_API double grid_item_column_size(const GridContainerInput& container, const GridItemInput& item,
                                         const GridItemContribution& column_contribution,
                                         const GridLayoutWorkspace& workspace, std::size_t index);
-    friend GridSolveOutcome arrange_grid_items(const GridContainerInput& container,
+    friend GUI_FORMS_API GridSolveOutcome arrange_grid_items(const GridContainerInput& container,
                                                std::span<const GridItemInput> items,
                                                std::span<const GridItemContribution> column_contributions,
                                                std::span<const GridItemContribution> row_contributions,
@@ -291,13 +298,13 @@ private:
 // collapsed flags) and each item's area; `style` and `items` are borrowed
 // for the call. Refuses more than maximum_grid_items items, and an implicit
 // grid of more than maximum_grid_cells cells.
-GridSolveOutcome place_grid_items(const GridContainerStyle& style, const GridContainerInput& container,
+GUI_FORMS_API GridSolveOutcome place_grid_items(const GridContainerStyle& style, const GridContainerInput& container,
                                   std::span<const GridItemInput> items, GridLayoutWorkspace& workspace);
 
 // The second and third calls: sizes the tracks of `axis`, columns first,
 // from one contribution per item on that axis. Fills each track's base,
 // growth_limit and size, and the content extent.
-GridSolveOutcome size_grid_tracks(GridAxis axis, const GridContainerInput& container,
+GUI_FORMS_API GridSolveOutcome size_grid_tracks(GridAxis axis, const GridContainerInput& container,
                                   std::span<const GridItemInput> items,
                                   std::span<const GridItemContribution> contributions,
                                   GridLayoutWorkspace& workspace);
@@ -305,13 +312,13 @@ GridSolveOutcome size_grid_tracks(GridAxis axis, const GridContainerInput& conta
 // The border-box width item `index` takes in its column area, once the
 // columns are sized: what arrange_grid_items will give it. The caller
 // measures the item's height at this width for its row contributions.
-double grid_item_column_size(const GridContainerInput& container, const GridItemInput& item,
+GUI_FORMS_API double grid_item_column_size(const GridContainerInput& container, const GridItemInput& item,
                              const GridItemContribution& column_contribution, const GridLayoutWorkspace& workspace,
                              std::size_t index);
 
 // The fourth call, with the contributions the sizing calls were given.
 // Fills the tracks' positions and each item's bounds.
-GridSolveOutcome arrange_grid_items(const GridContainerInput& container, std::span<const GridItemInput> items,
+GUI_FORMS_API GridSolveOutcome arrange_grid_items(const GridContainerInput& container, std::span<const GridItemInput> items,
                                     std::span<const GridItemContribution> column_contributions,
                                     std::span<const GridItemContribution> row_contributions,
                                     GridLayoutWorkspace& workspace);

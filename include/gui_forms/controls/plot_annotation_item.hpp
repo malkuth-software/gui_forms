@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/controls/plot_annotation_item_capabilities.hpp"
@@ -17,7 +18,7 @@ namespace gui_forms {
 // (plots::layout_annotations). Plain text (owner ruling 7a). The item
 // draws nothing itself, takes no input, no focus and no space, and
 // publishes no semantic node; the plot reads it.
-class PlotAnnotationItem final : public Control, public PlotAnnotationItemCapabilities<PlotAnnotationItem> {
+class GUI_FORMS_API PlotAnnotationItem final : public Control, public PlotAnnotationItemCapabilities<PlotAnnotationItem> {
 public:
     explicit PlotAnnotationItem(StableId stable_id);
 

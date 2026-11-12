@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/quick_access_toolbar.hpp"
 
 #include <cstddef>
@@ -19,7 +20,7 @@ namespace gui_forms {
 // ribbon never saves them on its own. The program captures and applies the
 // state (capture_ribbon_state, apply_ribbon_state) and stores it as text
 // (serialize_ribbon_state, parse_ribbon_state).
-struct RibbonState final {
+struct GUI_FORMS_API RibbonState final {
     std::vector<std::string> quick_access_command_ids{};
     QuickAccessToolbarPlacement quick_access_placement{QuickAccessToolbarPlacement::above_ribbon};
     bool minimized{};
@@ -44,7 +45,7 @@ enum class RibbonStateIssue : std::uint8_t {
     too_many_commands,   // more than QuickAccessToolbar::maximum_commands IDs
 };
 
-struct RibbonStateDiagnostic final {
+struct GUI_FORMS_API RibbonStateDiagnostic final {
     std::size_t line{};  // one-based
     RibbonStateIssue issue{RibbonStateIssue::malformed_line};
 };
@@ -52,7 +53,7 @@ struct RibbonStateDiagnostic final {
 // A parse never fails as a whole: a malformed known entry is reported and
 // its built-in default kept, as the configuration contract (§7) asks. A
 // missing or unsupported header yields the default state.
-struct RibbonStateParseResult final {
+struct GUI_FORMS_API RibbonStateParseResult final {
     RibbonState state{};
     std::vector<RibbonStateDiagnostic> diagnostics{};
 };
@@ -69,8 +70,8 @@ struct RibbonStateParseResult final {
 // break or other control character. Throws std::invalid_argument for such an
 // ID, a repeated ID, more than QuickAccessToolbar::maximum_commands IDs, or an
 // unrecognized entry that holds a line break.
-[[nodiscard]] std::string serialize_ribbon_state(const RibbonState& state);
-[[nodiscard]] RibbonStateParseResult parse_ribbon_state(std::string_view text);
+[[nodiscard]] GUI_FORMS_API std::string serialize_ribbon_state(const RibbonState& state);
+[[nodiscard]] GUI_FORMS_API RibbonStateParseResult parse_ribbon_state(std::string_view text);
 
 // The toolbar's part of the state, and its application to a toolbar.
 // `minimized` is the Ribbon's, which applies it. Command IDs the toolbar
@@ -79,7 +80,7 @@ struct RibbonStateParseResult final {
 // caller that keeps them copies them from the state it loaded. Applying sets
 // the toolbar's shown commands and placement, emitting placement_changed
 // when the placement changes.
-[[nodiscard]] RibbonState capture_ribbon_state(const QuickAccessToolbar& toolbar, bool minimized);
-void apply_ribbon_state(QuickAccessToolbar& toolbar, const RibbonState& state);
+[[nodiscard]] GUI_FORMS_API RibbonState capture_ribbon_state(const QuickAccessToolbar& toolbar, bool minimized);
+GUI_FORMS_API void apply_ribbon_state(QuickAccessToolbar& toolbar, const RibbonState& state);
 
 } // namespace gui_forms

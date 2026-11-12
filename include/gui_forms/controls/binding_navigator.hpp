@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
 #include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/controls/binding_navigator_capabilities.hpp"
@@ -14,7 +15,7 @@ namespace gui_forms {
 // to add, its values in the source's column order; without one nothing is
 // added. The navigator adds it to the end of the binding source and moves
 // to it.
-struct BindingNavigatorAddNew final {
+struct GUI_FORMS_API BindingNavigatorAddNew final {
     std::string navigator_id{};
     std::optional<BindingRow> row{};
 };
@@ -29,7 +30,7 @@ struct BindingNavigatorAddNew final {
 // The standard items have the IDs move_first, move_previous, position,
 // count, move_next, move_last, add_new and delete, with separators between
 // the groups. Replacing the items with set_items drops the ones left out.
-class BindingNavigator final : public ToolStrip, public BindingNavigatorCapabilities<BindingNavigator> {
+class GUI_FORMS_API BindingNavigator final : public ToolStrip, public BindingNavigatorCapabilities<BindingNavigator> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit BindingNavigator(StableId stable_id);

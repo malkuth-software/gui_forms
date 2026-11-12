@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/matrix/matrix.hpp"
 #include "gui_forms/drawing/object/drawing_object.hpp"
 #include "gui_forms/drawing/types/drawing_types.hpp"
@@ -21,7 +22,7 @@ enum class PathVerb : std::uint8_t {
     bezier = 7,
 };
 
-struct PathElement final {
+struct GUI_FORMS_API PathElement final {
     PathVerb verb{};
     PointF first{};
     PointF second{};
@@ -32,12 +33,12 @@ struct PathElement final {
     double sweep_angle{};
 };
 
-struct PathSnapshot final {
+struct GUI_FORMS_API PathSnapshot final {
     FillMode fill_mode{FillMode::alternate};
     std::vector<PathElement> elements;
 };
 
-class GraphicsPath final : public DrawingObject {
+class GUI_FORMS_API GraphicsPath final : public DrawingObject {
 public:
     static constexpr std::size_t maximum_elements = 1'000'000;
 

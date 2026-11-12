@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/engine/part_table/engine_part_table.hpp"
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
@@ -20,17 +21,17 @@ struct PartPaint;
 
 // What `window` (a window or a sub-surface) is to a rule's media condition (EC3): its presentation
 // settings' colour scheme, high contrast and reduced motion, and its scale.
-[[nodiscard]] MediaFacts window_media_facts(const SurfaceRoot& window) noexcept;
+[[nodiscard]] GUI_FORMS_API MediaFacts window_media_facts(const SurfaceRoot& window) noexcept;
 
 // The text role a part of `control` whose cascade gave it `font` has (T3
 // P8c): the font's role, or, where it is `inherit` (owner decision D7),
 // the parent control's own: the font its rules give the control itself,
 // followed up the tree while that inherits too, and ui at the root.
-[[nodiscard]] TextRole resolved_text_role(const Control& control, FontDeclaration font);
+[[nodiscard]] GUI_FORMS_API TextRole resolved_text_role(const Control& control, FontDeclaration font);
 
 // The em of text in `role` on `control` (D5): the role's size in the
 // control's theme's typography tokens times its window's text scale.
-[[nodiscard]] double text_role_em(const Control& control, TextRole role) noexcept;
+[[nodiscard]] GUI_FORMS_API double text_role_em(const Control& control, TextRole role) noexcept;
 
 // The theme engine's entry point (T2 plan, ThemeEngine). paint_part hands it
 // every part; controls never call it directly.
@@ -59,7 +60,7 @@ struct PartPaint;
 // built-in recipe draws is drawn as one paint group (Painter::begin_group)
 // composited once at that opacity. A part painted without a key stands at
 // its machines' targets and its ambient effect's pose.
-class ThemeEngine final {
+class GUI_FORMS_API ThemeEngine final {
 public:
     // An engine with only the built-in rules.
     ThemeEngine();
@@ -100,7 +101,7 @@ public:
         not_paintable,
     };
 
-    struct PartPlan final {
+    struct GUI_FORMS_API PartPlan final {
         PartDrawing drawing{PartDrawing::built_in_recipe};
         CompiledThemeRules::Resolution resolution{};
         // The raster's size for a primitive, in device pixels.

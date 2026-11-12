@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstdint>
@@ -25,7 +26,7 @@ enum class ProgressBarOverlayStyle : std::uint8_t {
     marching_stripes = moving_stripes,
 };
 
-struct ProgressBarAnimationAppearance final {
+struct GUI_FORMS_API ProgressBarAnimationAppearance final {
     Color luminance_color{Color::rgba(255, 255, 255, 92)};
     Color stripe_color{Color::rgba(224, 241, 252, 116)};
     Color laser_phase_color{Color::rgba(130, 222, 247, 108)};

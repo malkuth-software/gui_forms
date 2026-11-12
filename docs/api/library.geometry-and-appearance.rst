@@ -1404,7 +1404,7 @@ Types
 
 .. cpp:struct:: ControlVisualContext final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
 
    ControlVisualContext selects a role recipe from surface state plus selected, focused, defaulted, and high-contrast axes.
 
@@ -3485,7 +3485,7 @@ Types
 
 .. cpp:struct:: MediaFacts final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
 
    What a window is, as a rule's media condition reads it (T3 EC3): its presentation settings and its scale. Every window evaluates a theme's conditions against its own facts, so windows sharing a theme may differ.
 
@@ -4922,7 +4922,7 @@ Types
 
 .. cpp:struct:: ResolvedFont final
 
-   ``#include <gui_forms/theme/theme/theme.hpp>``
+   ``#include <gui_forms/theme/theme/resolved_font.hpp>``
 
    A control's primary text font as resolved (Theme::resolve_font, Control::resolved_text_font), before the window's text scale: the font the control holds with the theme's font fields over it. ``levels`` says, per FontField, the cascade level of the rule that set the field (built_in where none did, the control's own value). ``from_code`` is set where code set the font (set_font): inline code, which wins over every theme field, so no level applies.
 
@@ -6049,7 +6049,7 @@ Types
 
 .. cpp:struct:: VisualInteraction final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
 
    A control's interaction state as it asks for its visual context (Control::visual_context, audit A13): named fields, all false by default.
 
@@ -6102,7 +6102,7 @@ Enumerations
 
 .. cpp:enum-class:: CascadeLevel
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
 
    .. cpp:enumerator:: built_in
 
@@ -6268,7 +6268,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlSurfaceState
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -6290,7 +6290,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlVisualRole
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
 
    .. cpp:enumerator:: window
 
@@ -6330,7 +6330,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlVisualStatus
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -6610,7 +6610,7 @@ Enumerations
 
 .. cpp:enum-class:: FontField
 
-   ``#include <gui_forms/theme/theme/theme.hpp>``
+   ``#include <gui_forms/theme/theme/resolved_font.hpp>``
 
    .. cpp:enumerator:: family
 
@@ -8273,9 +8273,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
 
 .. cpp:function:: std::string_view cascade_level_name(CascadeLevel level) noexcept
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
 .. cpp:function:: bool valid_style_class_name(std::string_view name) noexcept
 
@@ -8885,6 +8889,14 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/theme/theme/resolved_font.hpp>``
+
+.. cpp:var:: constexpr std::size_t font_field_count
+
+   Value: ``static_cast<std::size_t>(FontField::count)``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/theme/theme/theme.hpp>``
 
 .. cpp:function:: ThemeDefinition windows_professional_theme_definition()
@@ -8894,10 +8906,6 @@ Functions, constants and aliases
 .. cpp:function:: std::shared_ptr<const Theme> default_theme()
 
    The built-in default theme: GUI.Forms' own, ``gui-forms`` (gui_forms_theme()), built once on the first call (thread-safe). It seeds ApplicationResources, a SurfaceRoot without resources and the C ABI's theme reset.
-
-.. cpp:var:: constexpr std::size_t font_field_count
-
-   Value: ``static_cast<std::size_t>(FontField::count)``.
 
 .. cpp:namespace:: gui_forms
 

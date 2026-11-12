@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 
 namespace gui_drawing {
 
-struct SizeI final {
+struct GUI_FORMS_API SizeI final {
     std::int32_t width{};
     std::int32_t height{};
     friend constexpr bool operator==(const SizeI& left,

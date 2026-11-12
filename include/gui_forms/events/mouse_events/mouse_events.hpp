@@ -6,6 +6,7 @@
 // macOS report it; the Linux host computes it from the desktop's
 // double-click time and distance); the core counts no clicks.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/types.hpp"
 
@@ -19,7 +20,7 @@ namespace gui_forms {
 // a move or wheel), the position in the control's own coordinates and in
 // the window's, the wheel delta (logical pixels, positive away from the
 // user and to the right) and the modifiers held.
-struct MouseEventArgs final {
+struct GUI_FORMS_API MouseEventArgs final {
     PointerButton button{PointerButton::none};
     std::uint32_t clicks{};
     Point location{};
@@ -42,7 +43,7 @@ enum class ContextRequestOrigin : std::uint8_t {
 // coordinates and `window_position` in the window's; a keyboard request
 // has no pointer position and carries the control's own origin, so the
 // control chooses its anchor (its selection, its keyboard item).
-struct ContextMenuRequest final {
+struct GUI_FORMS_API ContextMenuRequest final {
     ContextRequestOrigin origin{ContextRequestOrigin::pointer};
     Point location{};
     Point window_position{};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
 
@@ -51,7 +52,7 @@ enum class UserThemePolicy : std::uint8_t {
 enum class IconOverride : std::uint8_t { overridable, fixed };
 
 // One program icon a user theme may name, by its identifier.
-struct IconDeclaration final {
+struct GUI_FORMS_API IconDeclaration final {
     std::string identifier{};
     IconOverride policy{IconOverride::overridable};
 };
@@ -60,7 +61,7 @@ struct IconDeclaration final {
 // letters, digits and dashes, each beginning with a letter or digit,
 // joined by `.` (as the locale keys), at most 128 bytes in all; for
 // example `toolbar.save` or `check-mark`.
-[[nodiscard]] bool icon_identifier_valid(std::string_view identifier) noexcept;
+[[nodiscard]] GUI_FORMS_API bool icon_identifier_valid(std::string_view identifier) noexcept;
 
 // The image registry and the theme of an application (stage DK decision 8),
 // shared by every Window constructed with it. In those windows an ImageId
@@ -74,7 +75,7 @@ struct IconDeclaration final {
 // Window registers itself while it lives and the list only observes them.
 // Every member runs on the thread that constructed the object, which must be
 // the windows' UI thread.
-class ApplicationResources final {
+class GUI_FORMS_API ApplicationResources final {
 public:
     explicit ApplicationResources(ImageRegistryLimits limits = {});
     ~ApplicationResources();
@@ -192,7 +193,9 @@ public:
     void register_icon(std::string_view identifier, ImageId image, IconOverride policy);
     // The registered icons, in registration order, for a user theme's
     // compilation (ThemeCompileOptions::icons).
-    [[nodiscard]] std::span<const IconDeclaration> icon_declarations() const& noexcept { return icons_; }
+    [[nodiscard]] std::span<const IconDeclaration> icon_declarations() const& noexcept {
+        return std::span<const IconDeclaration>(icons_.data(), icons_.size());
+    }
     std::span<const IconDeclaration> icon_declarations() const&& = delete;
     // The image to draw for the icon `identifier`: the selected user
     // theme's override of an overridable icon, else the program's image;

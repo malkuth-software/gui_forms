@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
+
 // A link of one property of a control to a source outside it (stage FD,
 // FD-6): what a form binding made. The control it links keeps it
 // (Control::adopt_property_link) and ends it when the control is destroyed
@@ -9,7 +11,7 @@
 
 namespace gui_forms {
 
-class PropertyLink {
+class GUI_FORMS_API PropertyLink {
 public:
     PropertyLink() = default;
     virtual ~PropertyLink();

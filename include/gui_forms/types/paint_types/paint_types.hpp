@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/type_tag/type_tag.hpp"
 
 #include <cmath>
@@ -10,7 +11,7 @@
 
 namespace gui_forms {
 
-struct Color {
+struct GUI_FORMS_API Color {
     std::uint8_t red{};
     std::uint8_t green{};
     std::uint8_t blue{};
@@ -32,7 +33,7 @@ struct Color {
 // A rounded rectangle's four corner radii, in the rectangle's units:
 // top-left, top-right, bottom-right and bottom-left. A painter draws each at
 // most half the rectangle's shorter side.
-struct PaintCornerRadii final {
+struct GUI_FORMS_API PaintCornerRadii final {
     double top_left{};
     double top_right{};
     double bottom_right{};
@@ -47,7 +48,7 @@ struct PaintCornerRadii final {
 // Renderer-neutral retained paint vocabulary.  Stops are deliberately copied
 // into display chunks; callers may therefore supply stack-backed spans without
 // extending their lifetime through presentation.
-struct GradientStop final {
+struct GUI_FORMS_API GradientStop final {
     double offset{};
     Color color{};
     friend constexpr bool operator==(const GradientStop& left,
@@ -68,7 +69,7 @@ enum class GradientSpreadMode : std::uint8_t {
 
 inline constexpr std::size_t maximum_gradient_stops = 32U;
 
-[[nodiscard]] bool valid_gradient_stops(
+[[nodiscard]] GUI_FORMS_API bool valid_gradient_stops(
     std::span<const GradientStop> stops) noexcept;
 
 enum class FontRole : std::uint8_t {
@@ -101,7 +102,7 @@ inline constexpr TypeTag<CursorKind> cursor_kind{};
 // Only families bundled with the library have numbers (the table in
 // src/core/resources/fonts/bundled_font_families.hpp); a host font never has
 // one, so a family can never reach a font the application did not ship.
-struct BundledFontFamily {
+struct GUI_FORMS_API BundledFontFamily {
     std::uint8_t value{};
     friend constexpr bool operator==(const BundledFontFamily& left,
                                      const BundledFontFamily& right) noexcept {
@@ -109,7 +110,7 @@ struct BundledFontFamily {
     }
 };
 
-struct FontSpec {
+struct GUI_FORMS_API FontSpec {
     FontRole role{FontRole::control};
     double size{13.0};
     std::uint16_t weight{400};
@@ -139,7 +140,7 @@ struct FontSpec {
            font.letter_spacing <= font.size;
 }
 
-struct ImageId {
+struct GUI_FORMS_API ImageId {
     std::uint64_t value{};
     friend constexpr bool operator==(const ImageId& left,
                                      const ImageId& right) noexcept {

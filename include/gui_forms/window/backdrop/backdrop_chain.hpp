@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/types.hpp"
 
@@ -35,14 +36,14 @@ enum class BackdropOperationKind : std::uint8_t {
     tint,
 };
 
-[[nodiscard]] const char* backdrop_operation_name(BackdropOperationKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* backdrop_operation_name(BackdropOperationKind kind) noexcept;
 
 // The largest blur radius, in logical units, and the largest saturation
 // factor, that a valid chain may carry.
 inline constexpr double backdrop_maximum_blur = 32.0;
 inline constexpr double backdrop_maximum_saturation = 4.0;
 
-struct BackdropOperation final {
+struct GUI_FORMS_API BackdropOperation final {
     BackdropOperationKind kind{BackdropOperationKind::tint};
     // blur: radius, 0 to backdrop_maximum_blur; saturate: factor, 0 to
     // backdrop_maximum_saturation; unused for tint (0).
@@ -63,7 +64,7 @@ struct BackdropOperation final {
 };
 
 // The chain: `length` live operations, applied in order, in a fixed array.
-struct BackdropChain final {
+struct GUI_FORMS_API BackdropChain final {
     static constexpr std::size_t maximum_operations = 8U;
 
     std::array<BackdropOperation, maximum_operations> operations{};
@@ -86,18 +87,18 @@ struct BackdropChain final {
 
 // Valid: at most maximum_operations live, every amount finite and within its
 // range, a tint's amount 0, at most one blur.
-[[nodiscard]] bool backdrop_chain_valid(const BackdropChain& chain) noexcept;
+[[nodiscard]] GUI_FORMS_API bool backdrop_chain_valid(const BackdropChain& chain) noexcept;
 
 // The chain's fallback: its tints composited in order over clear, as one
 // solid colour in straight alpha; transparent black when it has none.
-[[nodiscard]] Color backdrop_chain_solid(const BackdropChain& chain) noexcept;
+[[nodiscard]] GUI_FORMS_API Color backdrop_chain_solid(const BackdropChain& chain) noexcept;
 
 // The largest blur radius in the chain, in logical units; 0 without one.
-[[nodiscard]] double backdrop_chain_blur(const BackdropChain& chain) noexcept;
+[[nodiscard]] GUI_FORMS_API double backdrop_chain_blur(const BackdropChain& chain) noexcept;
 
 // How a window carries its chain under its grant
 // (SurfaceRoot::backdrop_chain_resolution).
-struct BackdropChainResolution final {
+struct GUI_FORMS_API BackdropChainResolution final {
     // The chain's blur is the system material granted (window_material or
     // transient_material).
     bool blur_by_material{};
@@ -115,7 +116,7 @@ struct BackdropChainResolution final {
 };
 
 // The chain's resolution under `grant`, with the window's high contrast.
-[[nodiscard]] BackdropChainResolution resolve_backdrop_chain(const BackdropChain& chain,
+[[nodiscard]] GUI_FORMS_API BackdropChainResolution resolve_backdrop_chain(const BackdropChain& chain,
                                                              const WindowBackdropGrant& grant,
                                                              bool high_contrast) noexcept;
 

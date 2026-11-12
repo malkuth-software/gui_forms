@@ -6,7 +6,15 @@
 // thread; help asked while the box is open (the Help button or F1), the
 // owner window's handlers, then its HelpProviders in creation order.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/components/help_provider/help_provider.hpp"
+#include "gui_forms/components/message_box/message_box.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
 #include <cstdlib>

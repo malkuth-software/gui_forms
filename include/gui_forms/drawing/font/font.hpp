@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/object/drawing_object.hpp"
 #include "gui_forms/drawing/types/drawing_types.hpp"
 
@@ -7,7 +8,7 @@
 
 namespace gui_drawing {
 
-struct FontSnapshot final {
+struct GUI_FORMS_API FontSnapshot final {
     std::string family;
     double size{12.0};
     std::uint32_t style{};
@@ -15,7 +16,7 @@ struct FontSnapshot final {
     std::uint8_t charset{1};
 };
 
-class Font final : public DrawingObject {
+class GUI_FORMS_API Font final : public DrawingObject {
 public:
     Font(std::string family, double size,
          FontStyle style = FontStyle::regular,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
 #include <cstddef>
@@ -9,7 +10,7 @@
 
 namespace gui_forms {
 
-class DamageRegion {
+class GUI_FORMS_API DamageRegion {
 public:
     static constexpr std::size_t maximum_rectangles = 64;
 
@@ -17,7 +18,9 @@ public:
     void clear() noexcept;
 
     [[nodiscard]] bool empty() const noexcept { return rectangles_.empty(); }
-    [[nodiscard]] std::span<const Rect> rectangles() const& noexcept { return rectangles_; }
+    [[nodiscard]] std::span<const Rect> rectangles() const& noexcept {
+        return std::span<const Rect>(rectangles_.data(), rectangles_.size());
+    }
     std::span<const Rect> rectangles() const&& = delete;
     [[nodiscard]] std::size_t rectangle_count() const noexcept { return rectangles_.size(); }
     [[nodiscard]] std::uint64_t compaction_count() const noexcept { return compaction_count_; }
@@ -35,6 +38,6 @@ private:
 // `clip` by `offset` (window coordinates): a rectangle's share inside the
 // clip moves with its pixels and is cut to the clip; its share outside the
 // clip stays where it was. The pixels the copy exposed are not included.
-[[nodiscard]] DamageRegion damage_after_scroll_copy(const DamageRegion& damage, Rect clip, Point offset);
+[[nodiscard]] GUI_FORMS_API DamageRegion damage_after_scroll_copy(const DamageRegion& damage, Rect clip, Point offset);
 
 } // namespace gui_forms

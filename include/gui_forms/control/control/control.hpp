@@ -1,4 +1,5 @@
 #pragma once
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 #include "gui_forms/types/cursor_image/cursor_image.hpp"
 
@@ -13,13 +14,16 @@
 #include "gui_forms/display.hpp"
 #include "gui_forms/dispatcher.hpp"
 #include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/theme_rules/cascade_facts.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/semantics.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/types.hpp"
-#include "gui_forms/theme.hpp"
+#include "gui_forms/theme/theme/resolved_font.hpp"
+#include "gui_forms/theme/types/control_visual_types.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
@@ -50,6 +54,14 @@ class SurfaceRoot;
 class Control;
 class Painter;
 struct PartPaint;
+// The theme, named here and defined in gui_forms/theme.hpp: control.hpp
+// takes them by reference, pointer or shared pointer only, so a unit that
+// reads a theme includes the theme's headers itself.
+class Theme;
+struct ThemeRoleColours;
+class InlineStyleResult;
+struct ThemeCompileDiagnostic;
+class CompiledThemeRules;
 class ContainerControl;
 class CommandTarget;
 class ErrorProvider;
@@ -63,17 +75,17 @@ namespace detail {
 class DisplayChunk;
 class KeptResolutions;
 // The control's kept cascade results (src/core/theme/theme/kept_resolutions.hpp).
-[[nodiscard]] KeptResolutions& kept_resolutions_of(const Control& control);
+[[nodiscard]] GUI_FORMS_API KeptResolutions& kept_resolutions_of(const Control& control);
 // Whether controls keep their layouts (S5); on by default. Off, every
 // layout is made afresh: for tests that compare kept layouts with fresh ones.
-void set_layout_keeping(bool keeping) noexcept;
+GUI_FORMS_API void set_layout_keeping(bool keeping) noexcept;
 struct DispatcherState;
 struct ControlInlineStyle;
 struct InlineRestyle;
 // A control's help fields (Control::help_line, help and keywords), made on
 // the first non-empty write and released when all three are empty again,
 // so a control without help pays one pointer.
-struct ControlHelpFields final {
+struct GUI_FORMS_API ControlHelpFields final {
     std::string help_line{};
     std::string help{};
     std::string keywords{};
@@ -100,7 +112,7 @@ private:
 };
 }
 
-struct RuntimeId {
+struct GUI_FORMS_API RuntimeId {
     std::uint64_t value{};
     friend constexpr bool operator==(const RuntimeId& left,
                                      const RuntimeId& right) noexcept {
@@ -138,7 +150,7 @@ enum class OwnerDecorationLayer : std::uint8_t {
     after_content,
 };
 
-struct OwnerDecorationRecipe final {
+struct GUI_FORMS_API OwnerDecorationRecipe final {
     OwnerDecorationLayer layer{OwnerDecorationLayer::after_content};
     Size size{};
     std::optional<double> left;
@@ -215,7 +227,7 @@ constexpr ValidationConstraints& operator|=(ValidationConstraints& left,
     return (value & flag) != ValidationConstraints::none;
 }
 
-struct ControlValidationEvent final {
+struct GUI_FORMS_API ControlValidationEvent final {
     Control* control{};
     Control* destination{};
     bool bulk{};
@@ -225,7 +237,7 @@ struct ControlValidationEvent final {
 // Renderer-neutral snapshot of a WinForms-style per-control layout
 // transaction. Requested and committed revisions make deferred work
 // observable without exposing a platform layout engine.
-struct LayoutTransactionState final {
+struct GUI_FORMS_API LayoutTransactionState final {
     std::uint32_t suspend_depth{};
     bool deferred{};
     std::uint64_t requested_revision{};
@@ -237,16 +249,16 @@ struct LayoutTransactionState final {
 // ampersand. Matching currently applies Unicode identity plus ASCII case
 // folding, which covers the desktop command vocabulary without importing a
 // locale-dependent platform text API into the core.
-struct MnemonicText final {
+struct GUI_FORMS_API MnemonicText final {
     std::string display_text;
     std::optional<char32_t> mnemonic;
 };
 
-[[nodiscard]] MnemonicText parse_mnemonic_text(std::string_view text);
+[[nodiscard]] GUI_FORMS_API MnemonicText parse_mnemonic_text(std::string_view text);
 // The character the first '&' marks, as UTF-8 (a semantic node's
 // access_key, 12.13), or empty when `text` marks none.
-[[nodiscard]] std::string mnemonic_access_key(std::string_view text);
-[[nodiscard]] bool is_mnemonic(char32_t character,
+[[nodiscard]] GUI_FORMS_API std::string mnemonic_access_key(std::string_view text);
+[[nodiscard]] GUI_FORMS_API bool is_mnemonic(char32_t character,
                                std::string_view text) noexcept;
 
 // Where a control's plain tooltip (Control::tool_tip_text) shows. Its
@@ -359,7 +371,7 @@ constexpr ControlStyles& operator|=(ControlStyles& left,
 // (Control::release_children_iteratively).
 inline constexpr std::size_t maximum_control_tree_depth = 64U;
 
-class Control : public Component,
+class GUI_FORMS_API Control : public Component,
                 public std::enable_shared_from_this<Control>,
                 public ControlCapabilities<Control> {
 public:
@@ -591,7 +603,7 @@ public:
     [[nodiscard]] std::optional<Color> ambient_fore_color() const noexcept;
     [[nodiscard]] std::span<const OwnerDecorationRecipe>
     owned_decorations() const& noexcept {
-        return owned_decorations_;
+        return std::span<const OwnerDecorationRecipe>(owned_decorations_.data(), owned_decorations_.size());
     }
     std::span<const OwnerDecorationRecipe> owned_decorations() const&& = delete;
     void set_owned_decorations(const OwnerDecorationRecipe* decorations,
@@ -1163,11 +1175,11 @@ public:
     // that declares its own anatomy hides these with records of its own.
     // Every record reads the control's published geometry and states, so a
     // record read through a base type agrees with the dynamic type.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};
@@ -1389,7 +1401,7 @@ protected:
     // invalidation of the control and by advance_layout_revision), its
     // client rectangle and its text scale. A kept layout whose key differs
     // from the current one is made again.
-    struct LayoutKey final {
+    struct GUI_FORMS_API LayoutKey final {
         std::uint64_t property_epoch{};
         std::uint64_t revision{};
         Rect client{};
@@ -1572,7 +1584,7 @@ private:
     void written(const decltype(classes)& cell);
     friend class ContainerControl;
     // Reports an opaque engine face's cover (report_opaque_cover).
-    friend void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part,
+    friend GUI_FORMS_API void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part,
                                                 const SurfaceMaterial* resolved_material);
     friend class ErrorProvider;
     friend class HelpProvider;

@@ -5,7 +5,29 @@
 // reported unsupported, and the semantics a suggesting box publishes. Then
 // ComboBox's editable drop_down style and its auto-complete settings.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/auto_complete.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/combo_box_values.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
+#include "gui_forms/host/types/host_capability/host_capability.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
 #include <cstdlib>

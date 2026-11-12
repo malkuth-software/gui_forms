@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/group_box.hpp"
 #include "gui_forms/controls/scaled_group_box_capabilities.hpp"
 
@@ -9,7 +10,7 @@
 
 namespace gui_forms {
 
-class ScaledGroupBox final : public GroupBox, public ScaledGroupBoxCapabilities<ScaledGroupBox> {
+class GUI_FORMS_API ScaledGroupBox final : public GroupBox, public ScaledGroupBoxCapabilities<ScaledGroupBox> {
 public:
     explicit ScaledGroupBox(StableId stable_id, std::string initial_text = {},
                             Size initial_design_size = {1.0, 1.0});

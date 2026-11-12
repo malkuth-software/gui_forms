@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/collection_cell/collection_cell.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/controls/data_grid_view_row_order.hpp"
@@ -17,7 +18,7 @@ namespace gui_forms {
 // One unbound row. `stable_id` is unique within the grid; an empty ID is
 // replaced by a generated one ("row.1", "row.2", ...). `cells` holds one value
 // per column in column order; a shorter list is padded with empty values.
-struct DataGridViewRow final {
+struct GUI_FORMS_API DataGridViewRow final {
     DataGridViewRowId stable_id{};
     std::vector<BindingValue> cells{};
     std::string header_text{};

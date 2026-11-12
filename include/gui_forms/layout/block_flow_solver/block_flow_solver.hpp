@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -46,7 +47,7 @@ enum class BlockFlowLevel : std::uint8_t {
 
 // A set of adjoining vertical margins (8.3.1): the largest positive margin
 // and the most negative one; the collapsed margin is their sum.
-struct CollapsedMargin final {
+struct GUI_FORMS_API CollapsedMargin final {
     double positive{};
     // Zero or less.
     double negative{};
@@ -65,7 +66,7 @@ struct CollapsedMargin final {
 // and descent above and below the baseline, as its font and line height
 // give them, and the x-height `vertical-align: middle` aligns to. A zero
 // strut is a point on the baseline (CSS's strut of a zero-size font).
-struct LineStrut final {
+struct GUI_FORMS_API LineStrut final {
     double ascent{};
     double descent{};
     double x_height{};
@@ -76,7 +77,7 @@ struct LineStrut final {
 };
 
 // One item's inputs.
-struct BlockFlowItemInput final {
+struct GUI_FORMS_API BlockFlowItemInput final {
     BlockFlowLevel level{BlockFlowLevel::block};
     // The used border-box size.
     double width{};
@@ -105,7 +106,7 @@ struct BlockFlowItemInput final {
     double baseline{std::numeric_limits<double>::quiet_NaN()};
 };
 
-struct BlockFlowContainerInput final {
+struct GUI_FORMS_API BlockFlowContainerInput final {
     // The content box's width the items are placed in.
     double width{};
     TextAlignment text_align{TextAlignment::start};
@@ -121,7 +122,7 @@ struct BlockFlowContainerInput final {
 };
 
 // One item's result.
-struct BlockFlowItemResult final {
+struct GUI_FORMS_API BlockFlowItemResult final {
     // The border box in the container's content box.
     Rect bounds{};
     // Its line, for an inline-level item; no_block_flow_line for a block.
@@ -131,7 +132,7 @@ struct BlockFlowItemResult final {
 inline constexpr std::uint32_t no_block_flow_line = 0xFFFF'FFFFU;
 
 // One line box, its items being items[first, first + count).
-struct BlockFlowLine final {
+struct GUI_FORMS_API BlockFlowLine final {
     std::uint32_t first{};
     std::uint32_t count{};
     double top{};
@@ -154,11 +155,15 @@ enum class BlockFlowSolveOutcome : std::uint8_t {
 // (house style section 1): `items` has one record per input item, in input
 // order; `lines` the line boxes in order. Its storage grows only when the
 // item or line count does.
-class BlockFlowLayoutWorkspace final {
+class GUI_FORMS_API BlockFlowLayoutWorkspace final {
 public:
-    [[nodiscard]] std::span<const BlockFlowItemResult> items() const& noexcept { return items_; }
+    [[nodiscard]] std::span<const BlockFlowItemResult> items() const& noexcept {
+        return std::span<const BlockFlowItemResult>(items_.data(), items_.size());
+    }
     std::span<const BlockFlowItemResult> items() const&& = delete;
-    [[nodiscard]] std::span<const BlockFlowLine> lines() const& noexcept { return lines_; }
+    [[nodiscard]] std::span<const BlockFlowLine> lines() const& noexcept {
+        return std::span<const BlockFlowLine>(lines_.data(), lines_.size());
+    }
     std::span<const BlockFlowLine> lines() const&& = delete;
     // The block end of the last line box or nonempty block, where the
     // content ends before its trailing margins.
@@ -180,7 +185,7 @@ public:
     void reserve(std::size_t count);
 
 private:
-    friend BlockFlowSolveOutcome solve_block_flow(const BlockFlowContainerInput& container,
+    friend GUI_FORMS_API BlockFlowSolveOutcome solve_block_flow(const BlockFlowContainerInput& container,
                                                   std::span<const BlockFlowItemInput> items,
                                                   BlockFlowLayoutWorkspace& workspace);
 
@@ -194,7 +199,7 @@ private:
 
 // Lays the items out. `items` is borrowed for the call. On refusal the
 // workspace is cleared.
-BlockFlowSolveOutcome solve_block_flow(const BlockFlowContainerInput& container,
+GUI_FORMS_API BlockFlowSolveOutcome solve_block_flow(const BlockFlowContainerInput& container,
                                        std::span<const BlockFlowItemInput> items,
                                        BlockFlowLayoutWorkspace& workspace);
 
@@ -204,7 +209,7 @@ enum class BlockFlowIntrinsicKind : std::uint8_t { min_content, max_content };
 // widest block item's margin box, and of each inline run the widest item
 // (min-content, every item boundary being a break) or the items' sum
 // (max-content). Each item's `width` is its contribution for that kind.
-[[nodiscard]] double block_flow_intrinsic_width(std::span<const BlockFlowItemInput> items,
+[[nodiscard]] GUI_FORMS_API double block_flow_intrinsic_width(std::span<const BlockFlowItemInput> items,
                                                 BlockFlowIntrinsicKind kind) noexcept;
 
 } // namespace gui_forms

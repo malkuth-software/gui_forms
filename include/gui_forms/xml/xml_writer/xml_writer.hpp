@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
 namespace gui_forms {
@@ -12,7 +13,7 @@ namespace gui_forms {
 // document reproduces it byte for byte. Names, values, counts and depth are
 // validated against limits; an element with both children and text is
 // refused with XmlError::mixed_content. On failure the text is empty.
-[[nodiscard]] XmlWriteResult write_xml(const XmlElement& root,
+[[nodiscard]] GUI_FORMS_API XmlWriteResult write_xml(const XmlElement& root,
                                        const XmlWriteOptions& options = {},
                                        const XmlLimits& limits = {});
 

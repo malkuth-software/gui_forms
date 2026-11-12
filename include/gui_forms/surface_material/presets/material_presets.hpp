@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 
 namespace gui_forms {
@@ -15,7 +16,7 @@ inline constexpr double gloss_break_end = 0.52;
 
 // The colours of a gloss material, top to bottom. The defaults are a pale
 // blue gloss.
-struct GlossColours final {
+struct GUI_FORMS_API GlossColours final {
     // The gradient's four stops: at the top (0), just above the break
     // (gloss_break_start), just below it (gloss_break_end) and at the
     // bottom (1).
@@ -35,7 +36,7 @@ struct GlossColours final {
 // 1-unit border, with `corner_radius` in logical units. Throws
 // std::invalid_argument for a corner radius that is not finite or lies
 // outside [0, 4096].
-[[nodiscard]] SurfaceMaterial gloss_material(const GlossColours& colours, double corner_radius);
+[[nodiscard]] GUI_FORMS_API SurfaceMaterial gloss_material(const GlossColours& colours, double corner_radius);
 
 // The surface finish's constants (E9.6, owner 2026-10-23), provisional
 // until the owner's eye at the gate: at finish f, the face's top half is
@@ -53,6 +54,6 @@ inline constexpr double finish_shine_alpha = 176.0;
 // under the top edge, inside the border. A material whose finish is 0 is
 // returned as it is. `material` must be valid (valid_surface_material);
 // gloss_material is unchanged and is not finish 1 over its colours.
-[[nodiscard]] SurfaceMaterial finished_surface_material(const SurfaceMaterial& material);
+[[nodiscard]] GUI_FORMS_API SurfaceMaterial finished_surface_material(const SurfaceMaterial& material);
 
 } // namespace gui_forms

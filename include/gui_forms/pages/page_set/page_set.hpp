@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/pages/types/page_set_types.hpp"
 
@@ -50,7 +51,7 @@ class PageSetBatch;
 // takes the last visible position. The visible count is the strip's layout
 // state, so the strip computes that position and calls `move` (in a batch with
 // `select`); `move` holds the pinned boundary for that path as for any other.
-class PageSet final {
+class GUI_FORMS_API PageSet final {
 public:
     // Throws std::invalid_argument when `options.capacity` is 0 or above
     // `PageSetLimits::maximum_capacity`.
@@ -71,7 +72,7 @@ public:
     }
     // Most recent first. The span is valid until the next edit.
     [[nodiscard]] std::span<const PageId> activation_history() const& noexcept {
-        const std::span<const PageId> history(history_);
+        const std::span<const PageId> history(history_.data(), history_.size());
         return history;
     }
     std::span<const PageId> activation_history() const&& = delete;
@@ -233,7 +234,7 @@ private:
 // handler may throw. Either way the batch's edits stand, the batch is closed,
 // the set stays consistent and usable, and the notifications of that
 // publication not yet emitted are dropped, as for any handler exception.
-class PageSetBatch final {
+class GUI_FORMS_API PageSetBatch final {
 public:
     explicit PageSetBatch(PageSet& set) noexcept;
     ~PageSetBatch();

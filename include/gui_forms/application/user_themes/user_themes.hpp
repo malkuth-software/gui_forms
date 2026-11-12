@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
 #include <cstddef>
@@ -25,7 +26,7 @@ namespace gui_forms {
 
 // Where a scan reads: the folder beside the program (read-only, shipped
 // with it) and the user's own; an empty path is a folder not read.
-struct UserThemeFolders final {
+struct GUI_FORMS_API UserThemeFolders final {
     std::string beside_program{};
     std::string per_user{};
 };
@@ -35,7 +36,7 @@ struct UserThemeFolders final {
 // `~/Library/Application Support/<program>/themes`, on Windows
 // `%APPDATA%\<program>\themes`, elsewhere `$XDG_CONFIG_HOME/<program>/themes`
 // (`~/.config` without it). Empty where the environment names none.
-[[nodiscard]] std::string per_user_theme_folder(std::string_view program);
+[[nodiscard]] GUI_FORMS_API std::string per_user_theme_folder(std::string_view program);
 
 // At most 64 theme files (`*.css`) are read from each folder; later ones,
 // in name order, are skipped with a log line.
@@ -47,7 +48,7 @@ enum class UserThemeOrigin : std::uint8_t { beside_program, per_user };
 
 // One theme found: compiled, or refused with its diagnostics (a list shows
 // it greyed out).
-struct UserThemeCandidate final {
+struct GUI_FORMS_API UserThemeCandidate final {
     std::string name{};
     UserThemeOrigin origin{UserThemeOrigin::beside_program};
     // The main file's path.
@@ -63,7 +64,7 @@ struct UserThemeCandidate final {
 // What a scan found: the themes by name (where both folders hold one, the
 // per-user one), and one line for each file passed over (no theme header,
 // a name the rule refuses, a limit, a folder that could not be read).
-struct UserThemeScan final {
+struct GUI_FORMS_API UserThemeScan final {
     std::vector<UserThemeCandidate> themes{};
     std::vector<std::string> log{};
 };
@@ -74,14 +75,14 @@ struct UserThemeScan final {
 // the images of all of them until it is released; select one and release
 // the scan. Under the refused policy, nothing is read and the scan is
 // empty. The resources' UI thread only.
-[[nodiscard]] UserThemeScan scan_user_themes(const UserThemeFolders& folders, ApplicationResources& resources,
+[[nodiscard]] GUI_FORMS_API UserThemeScan scan_user_themes(const UserThemeFolders& folders, ApplicationResources& resources,
                                              const ThemeLibrary& program, const ThemeCompileOptions& options);
 
 // The theme a command line chooses: none given, `--theme built-in`, or
 // `--theme <name>`.
 enum class ThemeChoiceKind : std::uint8_t { unspecified, built_in, named };
 
-struct ThemeChoice final {
+struct GUI_FORMS_API ThemeChoice final {
     ThemeChoiceKind kind{ThemeChoiceKind::unspecified};
     std::string name{};
 };
@@ -91,14 +92,14 @@ struct ThemeChoice final {
 // the folder empty for the per-user one. Other arguments are the
 // program's and are passed over. `error` is set, and the rest left as
 // unspecified, when `--theme` has no value or is given twice.
-struct ThemeCommandLine final {
+struct GUI_FORMS_API ThemeCommandLine final {
     ThemeChoice theme{};
     bool export_themes{};
     std::string export_folder{};
     std::string error{};
 };
 
-[[nodiscard]] ThemeCommandLine read_theme_command_line(std::span<const std::string_view> arguments);
+[[nodiscard]] GUI_FORMS_API ThemeCommandLine read_theme_command_line(std::span<const std::string_view> arguments);
 
 enum class ThemeSelection : std::uint8_t {
     // No choice: nothing changes.
@@ -114,7 +115,7 @@ enum class ThemeSelection : std::uint8_t {
 
 // Applies `choice` to `resources` (ApplicationResources::set_user_theme,
 // so before the first window) from the themes `scan` found.
-[[nodiscard]] ThemeSelection select_user_theme(ApplicationResources& resources, const UserThemeScan& scan,
+[[nodiscard]] GUI_FORMS_API ThemeSelection select_user_theme(ApplicationResources& resources, const UserThemeScan& scan,
                                                const ThemeChoice& choice);
 
 // -- The theme every program takes from its start (USER_THEMES.md 5, 8) -----
@@ -166,7 +167,7 @@ enum class ThemeRequestKind : std::uint8_t {
     sheet,
 };
 
-struct ThemeRequest final {
+struct GUI_FORMS_API ThemeRequest final {
     ThemeRequestSource source{ThemeRequestSource::none};
     ThemeRequestKind kind{ThemeRequestKind::none};
     // The theme's name, or the sheet's path, as given.
@@ -180,33 +181,33 @@ struct ThemeRequest final {
 // `environment_sheet`, the environment variable's value (empty where
 // unset): the command line's --theme when given, else the environment's
 // sheet.
-[[nodiscard]] ThemeRequest read_theme_request(std::span<const std::string_view> arguments,
+[[nodiscard]] GUI_FORMS_API ThemeRequest read_theme_request(std::span<const std::string_view> arguments,
                                               std::string_view environment_sheet);
 
 // The request the process was started with: read_theme_request over its
 // own arguments and GUI_FORMS_THEME_SHEET.
-[[nodiscard]] ThemeRequest process_theme_request();
+[[nodiscard]] GUI_FORMS_API ThemeRequest process_theme_request();
 
 // `arguments` without the user-theme options (`--theme <value>` and
 // `--export-themes [folder]`), in order: what a program parses as its own.
 // The views borrow `arguments`' text.
-[[nodiscard]] std::vector<std::string_view> program_arguments(std::span<const std::string_view> arguments);
+[[nodiscard]] GUI_FORMS_API std::vector<std::string_view> program_arguments(std::span<const std::string_view> arguments);
 
 // The process's own arguments after its name, as UTF-8 (Windows: its
 // command line split as the C runtime splits it; Linux:
 // /proc/self/cmdline; macOS: the C runtime's argument vector). Empty where
 // the platform gives none.
-[[nodiscard]] std::vector<std::string> process_arguments();
+[[nodiscard]] GUI_FORMS_API std::vector<std::string> process_arguments();
 
 // The folders a process reads user themes from: `themes` beside its
 // executable, and the per-user folder of the program named by the
 // executable's file name without its extension (per_user_theme_folder).
 // Either is empty where the platform names none.
-[[nodiscard]] UserThemeFolders process_theme_folders();
+[[nodiscard]] GUI_FORMS_API UserThemeFolders process_theme_folders();
 
 // What a request compiles against. Its library is shared, so a request
 // held for the first window keeps what it needs alive.
-struct ThemeRequestContext final {
+struct GUI_FORMS_API ThemeRequestContext final {
     UserThemeFolders folders{};
     // The program's installed packages, which a user theme may `@import`.
     // Null: none.
@@ -246,7 +247,7 @@ enum class ThemeRequestOutcome : std::uint8_t {
 };
 
 // What a request did, kept by the resources it was settled on.
-struct ThemeRequestReport final {
+struct GUI_FORMS_API ThemeRequestReport final {
     ThemeRequest request{};
     ThemeRequestOutcome outcome{ThemeRequestOutcome::none};
     // The compile's findings: a refusal's diagnostics, or an applied
@@ -258,7 +259,7 @@ struct ThemeRequestReport final {
 
 // A request held by resources until their first window
 // (ApplicationResources::hold_theme_request).
-struct DeferredThemeRequest final {
+struct GUI_FORMS_API DeferredThemeRequest final {
     ThemeRequest request{};
     ThemeRequestContext context{};
 };
@@ -272,19 +273,19 @@ struct DeferredThemeRequest final {
 // request cannot be met, so the program's own choice stands.
 // std::logic_error once a window shares `resources` (as set_user_theme).
 // UI thread.
-[[nodiscard]] ThemeRequestReport apply_theme_request(ApplicationResources& resources, const ThemeRequest& request,
+[[nodiscard]] GUI_FORMS_API ThemeRequestReport apply_theme_request(ApplicationResources& resources, const ThemeRequest& request,
                                                      const ThemeRequestContext& context);
 
 // Holds the process's request (process_theme_request) on `resources` with
 // `context`, for their first window to settle; replaces a request held
 // already. Nothing is held for a process started with none.
 // std::logic_error once a window shares `resources`. UI thread.
-void hold_process_theme_request(ApplicationResources& resources, ThemeRequestContext context);
+GUI_FORMS_API void hold_process_theme_request(ApplicationResources& resources, ThemeRequestContext context);
 
 // What an export did: the files written, those already there (left as they
 // were) and those that could not be written, by path; and the package
 // resources and icons that a user theme cannot hold.
-struct ThemeExportReport final {
+struct GUI_FORMS_API ThemeExportReport final {
     std::vector<std::string> written{};
     std::vector<std::string> skipped{};
     std::vector<std::string> failed{};
@@ -296,7 +297,7 @@ struct ThemeExportReport final {
 // overridable icon of `resources` that is a PNG as
 // `<name>/icons/<identifier>.png` of each, and a `README.txt`. Never
 // overwrites a file.
-[[nodiscard]] ThemeExportReport export_user_themes(const ThemeLibrary& program, const ApplicationResources& resources,
+[[nodiscard]] GUI_FORMS_API ThemeExportReport export_user_themes(const ThemeLibrary& program, const ApplicationResources& resources,
                                                    std::string_view folder);
 
 } // namespace gui_forms

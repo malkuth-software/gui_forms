@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/metrics_view_capabilities.hpp"
 
@@ -9,7 +10,7 @@
 namespace gui_forms {
 
 // Renderer-neutral view over the structured Window metrics snapshot.
-class MetricsView final : public Control, public MetricsViewCapabilities<MetricsView> {
+class GUI_FORMS_API MetricsView final : public Control, public MetricsViewCapabilities<MetricsView> {
 public:
     explicit MetricsView(StableId stable_id,
                          std::string initial_title = "Runtime metrics");
@@ -24,13 +25,13 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry accent_strip;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};

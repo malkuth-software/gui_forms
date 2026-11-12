@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types.hpp"
 
 #include <cstddef>
@@ -24,7 +25,7 @@ inline constexpr std::size_t paint_plane_count = 3;
     return static_cast<std::size_t>(plane);
 }
 
-struct DisplayChunkInfo final {
+struct GUI_FORMS_API DisplayChunkInfo final {
     std::uint64_t generation{};
     PaintPlane plane{PaintPlane::control};
     Rect logical_bounds{};

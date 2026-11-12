@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 
 #include <cstddef>
@@ -40,7 +41,7 @@ namespace gui_forms {
 
 // A point on the host's device desktop: Win32 screen pixels of a
 // per-monitor-aware process, X11 root-window pixels.
-struct DesktopDevicePoint final {
+struct GUI_FORMS_API DesktopDevicePoint final {
     double x{};
     double y{};
 
@@ -56,7 +57,7 @@ struct DesktopDevicePoint final {
 
 // A point in desktop logical units: where window frames, the pointer's
 // desktop position and logical work areas are published.
-struct DesktopLogicalPoint final {
+struct GUI_FORMS_API DesktopLogicalPoint final {
     double x{};
     double y{};
 
@@ -74,25 +75,25 @@ struct DesktopLogicalPoint final {
 // and work area extents divided by the scale. The work area keeps its
 // offset from the monitor origin divided by the scale, so it stays inside
 // the logical frame.
-[[nodiscard]] HostMonitor logical_monitor(const HostMonitor& device) noexcept;
+[[nodiscard]] GUI_FORMS_API HostMonitor logical_monitor(const HostMonitor& device) noexcept;
 // As logical_monitor, converting `monitor` from device to logical units in
 // place (its id untouched, so nothing is allocated).
-void make_logical_monitor(HostMonitor& monitor) noexcept;
+GUI_FORMS_API void make_logical_monitor(HostMonitor& monitor) noexcept;
 
 // Index of the monitor whose frame contains `point`, else of the monitor
 // whose frame is nearest to it (squared distance to the rectangle; the
 // first such monitor on a tie). `monitors` must not be empty. The device
 // form reads device monitor records (HostServices::query_monitors), the
 // logical form logical ones (HostWindowing::query_monitors).
-[[nodiscard]] std::size_t nearest_device_monitor(std::span<const HostMonitor> device_monitors,
+[[nodiscard]] GUI_FORMS_API std::size_t nearest_device_monitor(std::span<const HostMonitor> device_monitors,
                                                  DesktopDevicePoint point) noexcept;
-[[nodiscard]] std::size_t nearest_logical_monitor(std::span<const HostMonitor> logical_monitors,
+[[nodiscard]] GUI_FORMS_API std::size_t nearest_logical_monitor(std::span<const HostMonitor> logical_monitors,
                                                   DesktopLogicalPoint point) noexcept;
 
 // Converts a device desktop point to desktop logical units through the
 // monitor that contains it (or the nearest one). Returns the point
 // unchanged when `device_monitors` is empty.
-[[nodiscard]] DesktopLogicalPoint desktop_logical_point(std::span<const HostMonitor> device_monitors,
+[[nodiscard]] GUI_FORMS_API DesktopLogicalPoint desktop_logical_point(std::span<const HostMonitor> device_monitors,
                                                         DesktopDevicePoint device_point) noexcept;
 
 // The inverse: finds the monitor whose logical frame contains the point (or
@@ -100,7 +101,7 @@ void make_logical_monitor(HostMonitor& monitor) noexcept;
 // point unchanged when `device_monitors` is empty. `scale` receives that
 // monitor's scale (1 when there is none), which a caller uses to convert an
 // extent placed at that point.
-[[nodiscard]] DesktopDevicePoint desktop_device_point(std::span<const HostMonitor> device_monitors,
+[[nodiscard]] GUI_FORMS_API DesktopDevicePoint desktop_device_point(std::span<const HostMonitor> device_monitors,
                                                       DesktopLogicalPoint logical_point, double& scale) noexcept;
 
 } // namespace gui_forms

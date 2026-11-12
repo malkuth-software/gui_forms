@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <memory>
 #include <span>
 #include <string_view>
@@ -12,7 +13,7 @@ struct PropertyObjectMember;
 struct PropertyValueFactoryAccess;
 
 // Cheap immutable handle over a validated bounded recursive property object.
-class PropertyObjectValue final {
+class GUI_FORMS_API PropertyObjectValue final {
 public:
     PropertyObjectValue() = default;
     [[nodiscard]] explicit operator bool() const noexcept;
@@ -21,7 +22,7 @@ public:
     [[nodiscard]] const PropertyObjectData* data() const noexcept {
         return data_.get();
     }
-    friend bool operator==(const PropertyObjectValue& left,
+    friend GUI_FORMS_API bool operator==(const PropertyObjectValue& left,
                            const PropertyObjectValue& right) noexcept;
 
 private:

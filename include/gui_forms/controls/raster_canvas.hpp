@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/drawing.hpp"
 #include "gui_forms/resources.hpp"
@@ -15,7 +16,7 @@ namespace gui_forms {
 // Retained viewport over an owned GUI.Drawing bitmap. Applications own tools,
 // document history, and selection state; RasterCanvas owns presentation,
 // coordinate transforms, resource synchronization, and local invalidation.
-class RasterCanvas : public Control, public RasterCanvasCapabilities<RasterCanvas> {
+class GUI_FORMS_API RasterCanvas : public Control, public RasterCanvasCapabilities<RasterCanvas> {
 public:
     explicit RasterCanvas(StableId stable_id);
 
@@ -48,13 +49,13 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry image;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};

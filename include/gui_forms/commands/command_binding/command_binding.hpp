@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/commands/command/command.hpp"
 
@@ -8,7 +9,7 @@
 namespace gui_forms {
 
 // RAII two-way binding between one command and one button presentation.
-class CommandBinding final {
+class GUI_FORMS_API CommandBinding final {
 public:
     CommandBinding(std::shared_ptr<Command> command,
                    std::shared_ptr<ButtonBase> button,

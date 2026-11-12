@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp"
 #include "gui_forms/event.hpp"
@@ -41,13 +42,13 @@ enum class ErrorIconAlignment : std::uint8_t {
     bottom_right,
 };
 
-struct ErrorProviderChange final {
+struct GUI_FORMS_API ErrorProviderChange final {
     std::string target_stable_id;
     // The target's new message; empty when its error was cleared.
     std::string error;
 };
 
-struct ErrorIconSnapshot final {
+struct GUI_FORMS_API ErrorIconSnapshot final {
     std::string target_stable_id;
     std::string error;
     Rect bounds{};
@@ -57,7 +58,7 @@ struct ErrorIconSnapshot final {
     bool blink_phase_visible{true};
 };
 
-struct ErrorProviderSnapshot final {
+struct GUI_FORMS_API ErrorProviderSnapshot final {
     std::vector<ErrorIconSnapshot> icons;
     std::size_t live_errors{};
     std::size_t presented_icons{};
@@ -67,7 +68,7 @@ struct ErrorProviderSnapshot final {
 // target semantic node while each visible target owns an independent overlay
 // glyph. Blink work uses the Window frame scheduler, so occlusion and reduced
 // motion suppress wakeups rather than running a provider-local loop.
-class ErrorProvider final : public Component, public ErrorProviderCapabilities<ErrorProvider> {
+class GUI_FORMS_API ErrorProvider final : public Component, public ErrorProviderCapabilities<ErrorProvider> {
 public:
     explicit ErrorProvider(Window& window);
     ~ErrorProvider() override;

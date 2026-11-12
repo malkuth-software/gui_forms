@@ -2,7 +2,17 @@
 // and reads, validation, what reaches the host and when, and the icon's
 // decode, on the headless reference host.
 #include "gui_forms/basic_controls.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/host/image/host_image.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/chrome/window_chrome.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
 #include <array>

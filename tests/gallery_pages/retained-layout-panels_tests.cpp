@@ -1,4 +1,11 @@
 #include "support.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/flow_layout_panel_compat.hpp"
+#include "gui_forms/controls/flow_layout_panel_compat_values.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
+#include "gui_forms/controls/table_layout_panel_compat.hpp"
+#include "gui_forms/controls/track_bar.hpp"
 
 namespace gallery_pages_tests {
 

@@ -8,13 +8,45 @@
 // scroll bar, the combo box's drop button, the check box's well, the radio
 // button's well, the switch's track, the group box's caption, the value
 // bar's fill, the split container's panels, the menu strip's items, the
-// column order of the list view, tree list view and data grid, and the
-// breadcrumb trail's segments (the value bar's reversed scrub is tested in
+// column order of the list view, tree list view, object view and data grid,
+// and the breadcrumb trail's segments (the value bar's reversed scrub is tested in
 // tests/scrub_gesture_tests.cpp, reversed_scrub). The
 // barber pole's direction is tested with the other progress effects
 // (tests/effect_program_tests.cpp, progress_bar_follows_right_to_left).
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/breadcrumb_trail.hpp"
+#include "gui_forms/controls/breadcrumb_trail_values.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
+#include "gui_forms/controls/group_box.hpp"
+#include "gui_forms/controls/h_scroll_bar.hpp"
+#include "gui_forms/controls/list_view.hpp"
+#include "gui_forms/controls/list_view_values.hpp"
+#include "gui_forms/controls/menu_strip.hpp"
+#include "gui_forms/controls/object_view.hpp"
+#include "gui_forms/controls/object_view_values.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/radio_button.hpp"
+#include "gui_forms/controls/range_control_values.hpp"
+#include "gui_forms/controls/scroll_bar.hpp"
+#include "gui_forms/controls/split_container.hpp"
+#include "gui_forms/controls/toggle_switch.hpp"
+#include "gui_forms/controls/track_bar.hpp"
+#include "gui_forms/controls/tree_list_view.hpp"
+#include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/layout/types/layout_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/window.hpp"
 
 #include <cmath>
@@ -424,6 +456,43 @@ void test_tree_list_view_follows() {
                                 "right to left, the tree list view's first column is at the right");
 }
 
+// ObjectView shares the details columns with ListView and mirrors as it
+// does: its first column at the right, its published column parts with it,
+// and Left and Right exchanged in the header.
+void test_object_view_follows() {
+    std::shared_ptr<ObjectView> view = make_control<ObjectView>(StableId("rtl.objects"));
+    (*view).view_mode = ObjectViewMode::details;
+    std::vector<ObjectDetailsColumn> columns(2U);
+    columns[0].id = ObjectColumnId{"name"};
+    columns[0].label = "Name";
+    columns[0].width = 100.0;
+    columns[1].id = ObjectColumnId{"size"};
+    columns[1].label = "Size";
+    columns[1].width = 80.0;
+    (*view).set_details_model(std::move(columns), {});
+    Hosted hosted = host(view, {0.0, 0.0, 280.0, 90.0}, "rtl.objects.root");
+    require_reading_order_flips(hosted, *view, SemanticRole::column_header,
+                                "right to left, the object view's first column is at the right");
+    const std::vector<ObjectView::Column> published = (*view).realized_columns();
+    require(published.size() >= 2U &&
+                published[0].parts.column_header.bounds.x > published[1].parts.column_header.bounds.x,
+            "right to left, the object view publishes its first column's header at the right");
+    // The header takes the keyboard (F6) at its first column; Left moves on
+    // to the second column, which stands to the first one's left.
+    require((*hosted.window).request_focus(view), "the object view takes focus");
+    KeyEvent header{};
+    header.action = KeyAction::down;
+    header.physical_key = PhysicalKey::f6;
+    (*view).on_key(header);
+    KeyEvent left{};
+    left.action = KeyAction::down;
+    left.physical_key = PhysicalKey::left;
+    (*view).on_key(left);
+    const std::vector<ObjectView::Column> moved = (*view).realized_columns();
+    require(left.handled && moved.size() >= 2U && moved[1].states.current && !moved[0].states.current,
+            "on a right-to-left object view Left moves the header focus to the next column");
+}
+
 void test_data_grid_view_follows() {
     std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("rtl.grid"));
     (*grid).set_columns({{.name = "name", .header_text = "Name", .width = 100.0},
@@ -471,6 +540,7 @@ int main() {
         test_menu_strip_follows();
         test_list_view_follows();
         test_tree_list_view_follows();
+        test_object_view_follows();
         test_data_grid_view_follows();
         test_breadcrumb_follows();
         std::cout << "right-to-left-tests: pass\n";

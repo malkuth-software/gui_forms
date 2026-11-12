@@ -31,6 +31,7 @@
 // Execution: UI thread, inside the parent's paint. The canvas borrows the
 // painter for the frame and is discarded with it.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/part_shape/part_shape.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -52,7 +53,7 @@ inline constexpr std::size_t maximum_effect_save_depth = 4U;
 
 // A gradient's stops: the first `count` of `stops` are live, offsets in
 // [0, 1] and non-decreasing.
-struct EffectGradient final {
+struct GUI_FORMS_API EffectGradient final {
     std::array<GradientStop, maximum_effect_gradient_stops> stops{};
     std::uint32_t count{};
 
@@ -68,7 +69,7 @@ using EffectSegments = EffectArray<PaintSegment, maximum_effect_batch>;
 
 // What one frame's canvas did: device pixels charged against the budget,
 // and the calls refused for the budget or the save depth.
-struct EffectCanvasMeter final {
+struct GUI_FORMS_API EffectCanvasMeter final {
     double budget{};
     double charged{};
     std::uint32_t calls{};
@@ -80,7 +81,7 @@ struct EffectCanvasMeter final {
     }
 };
 
-class EffectCanvas final {
+class GUI_FORMS_API EffectCanvas final {
 public:
     // A canvas over `painter` for a part of `part` logical size whose origin
     // is the painter's current origin, with `outsets` around it, at display

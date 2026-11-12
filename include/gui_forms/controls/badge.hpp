@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/badge_values.hpp"
 #include "gui_forms/controls/badge_capabilities.hpp"
@@ -19,7 +20,7 @@ namespace gui_forms {
 // small dot without text. A badge takes no input and no focus. It is
 // static text to assistive technology, named by its accessible name or
 // else by the text it shows; a hidden badge is not exposed.
-class Badge final : public Control, public BadgeCapabilities<Badge> {
+class GUI_FORMS_API Badge final : public Control, public BadgeCapabilities<Badge> {
 public:
     explicit Badge(StableId stable_id);
 
@@ -39,7 +40,7 @@ public:
     // Stage T1 anatomy, as dot members (see Control::Parts). `chip` is the
     // drawn pill or dot and `label` the text inside it; both are absent
     // while the badge is hidden, and `label` in dot mode.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry chip;
         PartGeometry label;

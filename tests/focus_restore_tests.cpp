@@ -5,7 +5,14 @@
 // to its edit part (Control::focus_target) and is still reported as the
 // focused control (active_control, control_focused).
 #include "gui_forms/control.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/combo_box_values.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/input_controls.hpp"
 
 #include <cstdlib>

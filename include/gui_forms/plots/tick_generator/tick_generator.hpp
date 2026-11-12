@@ -23,6 +23,7 @@
 // so a tick at zero is exactly zero. Everything is written into a TickSet
 // of fixed capacity; generate() never allocates.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/scale/scale.hpp"
 
 #include <array>
@@ -38,7 +39,7 @@ inline constexpr std::size_t maximum_minor_ticks = 256U;
 // The longest label a tick holds, in bytes of UTF-8.
 inline constexpr std::size_t maximum_tick_label = 31U;
 
-struct TickLabel final {
+struct GUI_FORMS_API TickLabel final {
     std::array<char, maximum_tick_label + 1U> bytes{};
     std::uint8_t length{};
 
@@ -48,7 +49,7 @@ struct TickLabel final {
     }
 };
 
-struct MajorTick final {
+struct GUI_FORMS_API MajorTick final {
     double value{};
     // The device coordinate along the axis (ScaleMapping::forward).
     double device{};
@@ -59,7 +60,7 @@ struct MajorTick final {
 
 // Caller-owned output of TickGenerator::generate: capacity fixed, live
 // counts stated. A generation replaces it whole.
-struct TickSet final {
+struct GUI_FORMS_API TickSet final {
     std::array<MajorTick, maximum_major_ticks> major{};
     std::size_t major_count{};
     // Minor ticks' device coordinates.
@@ -84,7 +85,7 @@ struct TickSet final {
 // units (a horizontal axis's widths, a vertical axis's line heights).
 // Runtime variation is real (each host and font measures differently), so
 // this is an interface; the control passes its painter's text metrics.
-class TickLabelMetrics {
+class GUI_FORMS_API TickLabelMetrics {
 public:
     virtual ~TickLabelMetrics() = default;
     [[nodiscard]] virtual double label_extent(std::string_view label) const = 0;
@@ -93,7 +94,7 @@ public:
 // Estimates a label's extent as `advance` per byte: deterministic, for
 // headless tests and for vertical axes (pass the line height and 0 per
 // byte through a fixed extent instead).
-class EstimatedLabelMetrics final : public TickLabelMetrics {
+class GUI_FORMS_API EstimatedLabelMetrics final : public TickLabelMetrics {
 public:
     EstimatedLabelMetrics(double advance, double fixed) noexcept : advance_(advance), fixed_(fixed) {}
     [[nodiscard]] double label_extent(std::string_view label) const override;
@@ -103,7 +104,7 @@ private:
     double fixed_{};
 };
 
-struct TickRequest final {
+struct GUI_FORMS_API TickRequest final {
     // The fewest device units between two major ticks.
     double minimum_spacing{64.0};
     // The fewest device units between two labels' facing edges.
@@ -125,18 +126,18 @@ enum class TickOutcome : std::uint8_t {
 // Fills `out` for `mapping` (its domain is the visible range, its device
 // ends the axis's) with `metrics` measuring labels (null: no thinning by
 // measurement, every major labelled).
-TickOutcome generate_ticks(const ScaleMapping& mapping, const TickRequest& request,
+GUI_FORMS_API TickOutcome generate_ticks(const ScaleMapping& mapping, const TickRequest& request,
                            const TickLabelMetrics* metrics, TickSet& out);
 
 // The nice linear step for `raw` (> 0, finite): the smallest of 1, 2, 5 and
 // 10 times a power of ten that is at least `raw`. Exact: the power of ten
 // is the correctly rounded double (std::from_chars of "1e<k>").
-[[nodiscard]] double nice_step(double raw) noexcept;
+[[nodiscard]] GUI_FORMS_API double nice_step(double raw) noexcept;
 
 // A calendar date and time in UTC from seconds since the Unix epoch (the
 // proleptic Gregorian calendar; Howard Hinnant's days-from-civil in
 // integers), and back.
-struct CivilTime final {
+struct GUI_FORMS_API CivilTime final {
     std::int64_t year{1970};
     std::int32_t month{1};
     std::int32_t day{1};
@@ -150,7 +151,7 @@ struct CivilTime final {
     }
 };
 
-[[nodiscard]] CivilTime civil_from_seconds(std::int64_t seconds) noexcept;
-[[nodiscard]] std::int64_t seconds_from_civil(const CivilTime& time) noexcept;
+[[nodiscard]] GUI_FORMS_API CivilTime civil_from_seconds(std::int64_t seconds) noexcept;
+[[nodiscard]] GUI_FORMS_API std::int64_t seconds_from_civil(const CivilTime& time) noexcept;
 
 } // namespace gui_forms::plots

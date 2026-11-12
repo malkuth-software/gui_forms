@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/engine/motion_value/motion_value.hpp"
 #include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
@@ -20,7 +21,7 @@ class SurfaceRoot;
 // source is installed: tests install one so that motion is sampled from a
 // time they choose, never from the wall clock. Its times must be in the
 // same domain as the times the window is polled with.
-class MotionTimeSource {
+class GUI_FORMS_API MotionTimeSource {
 public:
     virtual ~MotionTimeSource() = default;
     [[nodiscard]] virtual FrameTime now() const noexcept = 0;
@@ -75,7 +76,7 @@ inline constexpr FrameInterval motion_frame_interval = std::chrono::milliseconds
 // park the controls (each repaints once, at its still pose, under
 // finish_all); repaint_parked repaints them when ambient motion may resume,
 // and their paints enlist them again.
-class MotionClock final {
+class GUI_FORMS_API MotionClock final {
 public:
     explicit MotionClock(SurfaceRoot& root) noexcept;
     ~MotionClock();

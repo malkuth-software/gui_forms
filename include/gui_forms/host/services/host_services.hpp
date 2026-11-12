@@ -1,4 +1,5 @@
 #pragma once
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/cursor_image/cursor_image.hpp"
 
 #include "gui_forms/host/types/host_types.hpp"
@@ -15,14 +16,14 @@ namespace gui_forms {
 // A corner request's outcome (HostServices::apply_window_corners): the
 // status, and what the window's corners are afterwards, which the window's
 // band follows. A refused or failed request reports unknown corners.
-struct HostWindowCornersResult final {
+struct GUI_FORMS_API HostWindowCornersResult final {
     HostServiceStatus status{};
     WindowCornerReport report{};
 };
 
 // A chrome request's outcome (HostServices::apply_window_chrome): the
 // status, and which of the requested properties the platform applied.
-struct HostWindowChromeResult final {
+struct GUI_FORMS_API HostWindowChromeResult final {
     HostServiceStatus status{};
     WindowChromeFields applied{};
 };
@@ -30,7 +31,7 @@ struct HostWindowChromeResult final {
 // Portable host-to-platform service seam. The base class owns thread,
 // capability, UTF-8, size, accounting, modal-depth, and shutdown policy so
 // adapters cannot silently disagree on those contracts.
-class HostServices {
+class GUI_FORMS_API HostServices {
 public:
     static constexpr std::size_t maximum_clipboard_text_bytes = 16U * 1024U * 1024U;
     static constexpr std::size_t maximum_dialog_text_bytes = 64U * 1024U;

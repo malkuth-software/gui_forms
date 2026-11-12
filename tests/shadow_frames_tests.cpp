@@ -5,7 +5,12 @@
 // thread's failure snapshot built from them.
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 #include "support/clip_tracking_painter.hpp"
 #include "../src/core/failure/failure_snapshot.hpp"
 

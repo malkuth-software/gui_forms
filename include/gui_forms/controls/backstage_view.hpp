@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/control.hpp"
@@ -24,7 +25,7 @@ namespace gui_forms {
 // (with an optional mnemonic) is the label; a command takes its Command's
 // text when it is empty.
 enum class BackstageItemKind : std::uint8_t { command, topic };
-struct BackstageItemSpec final {
+struct GUI_FORMS_API BackstageItemSpec final {
     std::string stable_id{};
     BackstageItemKind kind{BackstageItemKind::command};
     std::shared_ptr<Command> command{};
@@ -35,7 +36,7 @@ struct BackstageItemSpec final {
 };
 
 // The selected topic after it changed.
-struct BackstageTopicChange final {
+struct GUI_FORMS_API BackstageTopicChange final {
     std::string backstage_id{};
     std::size_t item{};
     std::string topic_id{};
@@ -52,7 +53,7 @@ struct BackstageTopicChange final {
 // The column and page are told apart by their surfaces (decision 26: the
 // contrast between them helps), the column on the card family and the page
 // on the window family until the default theme (T4) gives the column its own.
-class BackstageView final : public Control, public BackstageViewCapabilities<BackstageView> {
+class GUI_FORMS_API BackstageView final : public Control, public BackstageViewCapabilities<BackstageView> {
 public:
     // Development bounds, not measured capacity.
     static constexpr std::size_t maximum_items = 64U;
@@ -94,7 +95,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry column;
         PartGeometry page;
@@ -103,20 +104,20 @@ public:
     [[nodiscard]] Parts parts() const;
 
     // The "backstage_item" item system: one column entry.
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry item_face;
         PartGeometry item_icon;
         PartGeometry item_label;
         PartGeometry item_focus;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool hot{};
         bool pressed{};
         bool selected{};
         bool disabled{};
         bool focus_visible{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;

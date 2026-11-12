@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/application/window_frame_drag/window_frame_drag.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
@@ -75,7 +76,7 @@ enum class DockDragEnd : std::uint8_t {
 // How a drag ended, with the subject dragged. Only a drop has a target and
 // only a float a frame; the subject is common to every end. One alternative
 // per state (house form for results).
-class DockDragOutcome final {
+class GUI_FORMS_API DockDragOutcome final {
 public:
     // `across_windows`: whether the target was in another site's window (a
     // drag across windows, phase D4).
@@ -200,7 +201,7 @@ enum class DockFlyoutCause : std::uint8_t {
 };
 
 // Raised after a flyout opened (open true) or closed.
-struct DockFlyoutChange final {
+struct GUI_FORMS_API DockFlyoutChange final {
     DockPanelId panel{};
     bool open{};
     DockFlyoutCause cause{DockFlyoutCause::programmatic};
@@ -374,7 +375,7 @@ struct DockFlyoutChange final {
 // the announcement (drag_announcement, also the name of the site's live
 // region, "<site id>.announcements"). Enter commits through the same
 // transaction as a drop; Escape cancels.
-class DockSite : public Control, public DockSiteCapabilities<DockSite> {
+class GUI_FORMS_API DockSite : public Control, public DockSiteCapabilities<DockSite> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // Borrows `workspace` (see the lifetime rule above). Realizes the main
@@ -542,7 +543,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         // The document area's rectangle, its well showing while it is empty.
         PartGeometry document_area;
@@ -569,17 +570,17 @@ public:
     };
     [[nodiscard]] Parts parts() const;
     // Item system seam: the bar between a split's two children and its grip.
-    struct SeamParts final {
+    struct GUI_FORMS_API SeamParts final {
         PartGeometry seam_bar;
         PartGeometry seam_grip;
     };
-    struct SeamStates final {
+    struct GUI_FORMS_API SeamStates final {
         bool hot{};
         bool captured{};
         bool focus_visible{};
         bool disabled{};
     };
-    struct Seam final {
+    struct GUI_FORMS_API Seam final {
         DockNodeId split{};
         DockAxis axis{DockAxis::horizontal};
         std::string stable_id;
@@ -589,7 +590,7 @@ public:
     // Item system stack: a stack's area and, for a tool stack, its caption
     // and the caption's parts (absent for a document stack). The actuators
     // carry their own hot, pressed, open, checked and disabled states.
-    struct StackParts final {
+    struct GUI_FORMS_API StackParts final {
         PartGeometry stack_area;
         PartGeometry caption;
         PartGeometry caption_accent;
@@ -606,12 +607,12 @@ public:
         PartGeometry caption_close;
         PartGeometry caption_close_glyph;
     };
-    struct StackStates final {
+    struct GUI_FORMS_API StackStates final {
         // The stack holds the active panel.
         bool current{};
         bool disabled{};
     };
-    struct Stack final {
+    struct GUI_FORMS_API Stack final {
         DockNodeId stack{};
         DockNodeKind kind{DockNodeKind::tool_stack};
         // The stack's selected panel.
@@ -624,16 +625,16 @@ public:
     // the hovered pane (five) and at the window's edges (four), while
     // dragging. `selected` is the lit tile; `disabled` a choice the
     // restrictions refuse; `expanding` while the cross fades in.
-    struct TileParts final {
+    struct GUI_FORMS_API TileParts final {
         PartGeometry tile;
         PartGeometry tile_glyph;
     };
-    struct TileStates final {
+    struct GUI_FORMS_API TileStates final {
         bool selected{};
         bool disabled{};
         bool expanding{};
     };
-    struct Tile final {
+    struct GUI_FORMS_API Tile final {
         DockDropTargetKind kind{DockDropTargetKind::pane};
         DockNodeId pane{};
         DockDropZone zone{DockDropZone::center};

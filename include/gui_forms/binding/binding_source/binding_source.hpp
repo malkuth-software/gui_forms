@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/binding_provider/binding_provider.hpp"
 #include "gui_forms/binding/binding_table/binding_table.hpp"
 #include "gui_forms/binding/currency_manager/currency_manager.hpp"
@@ -58,7 +59,7 @@ enum class BindingViewMode : std::uint8_t {
 // wrong kind, or an exception it throws becomes a cell error (error()).
 // Misuse of the source itself (another thread, an index past count(), an
 // unknown column in a sort) throws, as a programming error (N70).
-class BindingSource final : public Component,
+class GUI_FORMS_API BindingSource final : public Component,
                             public std::enable_shared_from_this<BindingSource> {
 public:
     explicit BindingSource(Window& window);

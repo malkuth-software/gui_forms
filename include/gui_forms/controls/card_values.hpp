@@ -1,12 +1,13 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
 #include <cstdint>
 
 namespace gui_forms {
 
-struct CardLayout final {
+struct GUI_FORMS_API CardLayout final {
     Insets padding{12.0, 10.0, 12.0, 10.0};
     double section_gap{8.0};
     double header_extent{30.0};

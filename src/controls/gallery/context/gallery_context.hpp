@@ -3,7 +3,10 @@
 #include "gallery_form_pages_form.hpp"
 #include "gallery_model.hpp"
 #include "gallery_window.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include <memory>
 #include <string>

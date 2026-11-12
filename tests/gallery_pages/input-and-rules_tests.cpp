@@ -1,4 +1,7 @@
 #include "page_tests.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/list_box.hpp"
 
 #include <span>
 #include <string>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/list_box_values.hpp"
 #include "gui_forms/controls/list_control.hpp"
 #include "gui_forms/controls/text_items_capability.hpp"
@@ -16,13 +17,13 @@
 
 namespace gui_forms {
 
-struct ListSelectionChange final {
+struct GUI_FORMS_API ListSelectionChange final {
     std::vector<std::size_t> previous;
     std::vector<std::size_t> current;
     std::optional<std::size_t> active_index;
 };
 
-class ListBox : public ListControl, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox> {
+class GUI_FORMS_API ListBox : public ListControl, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox> {
 public:
     explicit ListBox(StableId stable_id);
 
@@ -33,7 +34,7 @@ public:
     void set_item_stable_ids(std::vector<std::string> stable_ids);
     [[nodiscard]] std::string item_stable_id(std::size_t index) const;
     [[nodiscard]] std::span<const std::size_t> selected_indices() const& noexcept {
-        return selected_;
+        return std::span<const std::size_t>(selected_.data(), selected_.size());
     }
     std::span<const std::size_t> selected_indices() const&& = delete;
     [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept;
@@ -64,24 +65,24 @@ public:
         std::size_t item) const override;
     // Stage T1 anatomy, as dot members. Rows are an item system: each
     // realized row is a value record, not a control (owner decision 5).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
         PartGeometry well;
         PartGeometry content;
     };
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry row;
         PartGeometry label;
         PartGeometry row_focus;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool selected{};
         bool hot{};
         bool current{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;

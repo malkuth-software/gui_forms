@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/spinner_capabilities.hpp"
@@ -28,7 +29,7 @@ namespace gui_forms {
 // Theme: its dots are the progress family's `track` and, lit, its
 // `activity` part with the selected state (src/controls/progress_ring/
 // ring_dots.hpp), so the floor sheet's :family(progress) blocks style it.
-class Spinner final : public Control, public SpinnerCapabilities<Spinner> {
+class GUI_FORMS_API Spinner final : public Control, public SpinnerCapabilities<Spinner> {
 public:
     explicit Spinner(StableId stable_id);
 
@@ -51,7 +52,7 @@ public:
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members (see Control::Parts). `activity` is
     // the ring's square, present while active.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry activity;
     };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -12,7 +13,7 @@ namespace gui_forms {
 /// framebuffer and raster holds pixels. Row padding is permitted; the final
 /// row does not require trailing padding.
 /// The producer retains ownership and keeps the bytes alive for the whole call.
-struct HostImageView final {
+struct GUI_FORMS_API HostImageView final {
     std::uint32_t width{};
     std::uint32_t height{};
     std::uint64_t row_bytes{};
@@ -24,7 +25,7 @@ struct HostImageView final {
 /// read back byte for byte; straight-alpha native formats (PNG, DIB, icons)
 /// are converted only where they meet the host, and a valid premultiplied
 /// image survives that conversion unchanged.
-struct HostImage final {
+struct GUI_FORMS_API HostImage final {
     static constexpr std::uint64_t maximum_pixels = 100'000'000U;
     static constexpr std::uint64_t maximum_bytes = maximum_pixels * 4U;
     std::uint32_t width{};
@@ -33,7 +34,8 @@ struct HostImage final {
     std::vector<std::byte> pixels;
 
     [[nodiscard]] HostImageView view() const noexcept {
-        return {width, height, row_bytes, pixels};
+        const std::span<const std::byte> bytes(pixels.data(), pixels.size());
+        return {width, height, row_bytes, bytes};
     }
 };
 
@@ -47,6 +49,6 @@ enum class HostImageError : std::uint8_t {
 
 /// Validates dimensions, the 100-megapixel bound and the readable row span.
 /// Performs no allocation and never multiplies an unchecked source stride.
-[[nodiscard]] HostImageError validate_host_image(HostImageView image) noexcept;
+[[nodiscard]] GUI_FORMS_API HostImageError validate_host_image(HostImageView image) noexcept;
 
 } // namespace gui_forms

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/delegate.hpp"
 
@@ -58,7 +59,7 @@ struct MemberArgumentPrefix final {
 
 } // namespace detail
 
-struct EventStatistics {
+struct GUI_FORMS_API EventStatistics {
     std::uint64_t subscriptions_connected{};
     std::uint64_t subscriptions_disconnected{};
     std::uint64_t callbacks_emitted{};
@@ -85,7 +86,7 @@ namespace detail {
 inline thread_local std::size_t nested_event_emissions = 0U;
 
 // Counts one emission on this thread for its duration, on every exit.
-class NestedEmissionScope final {
+class GUI_FORMS_API NestedEmissionScope final {
 public:
     NestedEmissionScope() noexcept { ++nested_event_emissions; }
     ~NestedEmissionScope() { --nested_event_emissions; }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/controls/callout_capabilities.hpp"
@@ -53,7 +54,7 @@ enum class CalloutCloseReason : std::uint8_t {
 // The callout's bounds hold the card and the beak; presses beside the beak
 // pass through. To assistive technology it is a non-modal dialog named by its
 // title, described by its text, with the close action.
-class Callout final : public Control, public CalloutCapabilities<Callout> {
+class GUI_FORMS_API Callout final : public Control, public CalloutCapabilities<Callout> {
 public:
     // Its title and text labels are added once a shared owner exists.
     static constexpr bool initialize_tree_after_construction = true;
@@ -94,7 +95,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry beak;

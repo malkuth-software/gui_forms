@@ -2,7 +2,28 @@
 // vertical item layout and keys, panel stacking and orientation, and the
 // container's four panels around its content.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/range_control_values.hpp"
+#include "gui_forms/controls/status_strip.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
+#include "gui_forms/controls/tool_strip_container.hpp"
+#include "gui_forms/controls/tool_strip_panel.hpp"
+#include "gui_forms/controls/tool_strip_panel_values.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <chrono>
 #include <cmath>

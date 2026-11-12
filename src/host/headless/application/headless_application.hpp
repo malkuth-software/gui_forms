@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "../session/headless_host.hpp"
 #include "gui_forms/application.hpp"
 #include "gui_forms/host/windowing/host_windowing.hpp"
@@ -38,7 +39,7 @@ enum class HeadlessOpenFault : std::uint8_t {
 // monitors, native window rectangles, visibility, a z-order and a pointer.
 // Every native operation appends one line to trace(), so tests can read the
 // order in which the portable seam asked for things.
-class HeadlessWindowing final : public HostWindowing {
+class GUI_FORMS_API HeadlessWindowing final : public HostWindowing {
 public:
     // Decorations the simulated desktop draws around every window, in
     // logical units: a title bar above the client area and a border on
@@ -172,7 +173,7 @@ private:
 // calls each ready callback; the test then drives windows through host()
 // and the simulate_* operations. Programs reach the windowing through
 // ApplicationWindowHandle::windows(), exactly as on a native host.
-class HeadlessApplication final {
+class GUI_FORMS_API HeadlessApplication final {
 public:
     // Throws std::invalid_argument when Application::validate refuses the
     // entries (a test fixture error).

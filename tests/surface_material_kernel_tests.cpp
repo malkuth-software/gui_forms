@@ -8,7 +8,17 @@
 // engine bakes a face and composited at the box less its outset. Every
 // pixel of the three is equal. A lone solid square fill stays one fill_rect
 // (material_raster.hpp) and is not compared here.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
+#include "gui_forms/surface_material/painting/surface_material_painting.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 #include "skia_raster.hpp"
 #include "../src/core/display/recording_painter/recording_painter.hpp"
 #include "../src/core/display/replay/replay_display_chunk.hpp"

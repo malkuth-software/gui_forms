@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
@@ -102,7 +103,7 @@ enum class RibbonCommandSize : std::uint8_t { large, small };
 // is as wide as its widest row. It is ignored where the command, or the
 // one before it, is large or a gallery in the layout in force; the
 // group's first command may not set it.
-struct RibbonCommandSpec final {
+struct GUI_FORMS_API RibbonCommandSpec final {
     std::string stable_id{};
     RibbonCommandKind kind{RibbonCommandKind::button};
     RibbonCommandSize size{RibbonCommandSize::large};
@@ -135,7 +136,7 @@ enum class RibbonGroupSize : std::uint8_t { large, medium, small, collapsed };
 // rows per column. The rows stand from the top of the plane at the
 // three-row pitch, so a column of one or two rows aligns with the tops of
 // the large commands beside it rather than centring in the plane.
-struct RibbonGroupLayout final {
+struct GUI_FORMS_API RibbonGroupLayout final {
     RibbonGroupSize size{RibbonGroupSize::large};
     std::vector<RibbonCommandSize> command_sizes{};
     std::size_t rows{3U};
@@ -155,7 +156,7 @@ inline constexpr std::uint32_t ribbon_all_modes = 0xFFFFFFFFU;
 // not end in the collapsed button gain it as their last step, so that a
 // group never vanishes from a narrow plane (a group of one command never
 // collapses). `modes` are the application modes it shows in.
-struct RibbonGroupSpec final {
+struct GUI_FORMS_API RibbonGroupSpec final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(text) std::string caption{};
     bool dialog_launcher{};
@@ -169,7 +170,7 @@ struct RibbonGroupSpec final {
 // `group` (a group's stable ID on the same tab) moves to its next layout, or
 // its gallery gives up one column (decision 8).
 enum class RibbonReductionKind : std::uint8_t { layout, gallery_column };
-struct RibbonReductionStep final {
+struct GUI_FORMS_API RibbonReductionStep final {
     std::string group{};
     RibbonReductionKind kind{RibbonReductionKind::layout};
 };
@@ -194,7 +195,7 @@ struct RibbonReductionStep final {
 // unowned or already this ribbon's; the ribbon removes it when a new
 // definition no longer names it. Its keyboard stops and semantics are its
 // own, as a hosted control's are.
-struct RibbonTabSpec final {
+struct GUI_FORMS_API RibbonTabSpec final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(text) std::string text{};
     std::vector<RibbonGroupSpec> groups{};
@@ -212,7 +213,7 @@ struct RibbonTabSpec final {
 // and on the command plane of its selected tab (owner decisions 14, 22, 25),
 // with no captioned band; `caption` ("Picture Tools") names the set to
 // accessibility.
-struct RibbonTabSetSpec final {
+struct GUI_FORMS_API RibbonTabSetSpec final {
     std::string stable_id{};
     std::string caption{};
 };
@@ -224,7 +225,7 @@ enum class RibbonTabSetAvailability : std::uint8_t { not_available, available, a
 // One group's place in a ladder entry: its layout (an index into
 // Ribbon::group_layouts), that layout's size, and its gallery's column count
 // (zero without a gallery).
-struct RibbonLadderGroupState final {
+struct GUI_FORMS_API RibbonLadderGroupState final {
     std::size_t layout{};
     RibbonGroupSize size{RibbonGroupSize::large};
     std::size_t gallery_columns{};
@@ -238,7 +239,7 @@ struct RibbonLadderGroupState final {
 // One entry of a tab's reduction ladder: every group's state and the width,
 // in logical units, the groups need side by side. Entries run from the widest
 // to the narrowest; widths strictly decrease.
-struct RibbonLadderEntry final {
+struct GUI_FORMS_API RibbonLadderEntry final {
     std::vector<RibbonLadderGroupState> groups{};
     double width{};
 };
@@ -249,7 +250,7 @@ struct RibbonLadderEntry final {
 // tab is folded into the next entry), `ladder_lookups` counts layouts that
 // chose an entry, and `text_measurements` counts the ribbon's own text
 // measurements (labels, captions and tabs, each measured once per cache).
-struct RibbonScalingCounters final {
+struct GUI_FORMS_API RibbonScalingCounters final {
     std::uint64_t ladder_builds{};
     std::uint64_t ladder_entries{};
     std::uint64_t nonshrinking_steps{};
@@ -259,13 +260,13 @@ struct RibbonScalingCounters final {
 
 // A click on a button-family command (or its split face), after its Command
 // ran.
-struct RibbonCommandClick final {
+struct GUI_FORMS_API RibbonCommandClick final {
     std::string ribbon_id{};
     std::string command_id{};
 };
 
 // A choice from a split or drop-down command's menu.
-struct RibbonDropDownInvocation final {
+struct GUI_FORMS_API RibbonDropDownInvocation final {
     std::string ribbon_id{};
     std::string command_id{};
     MenuItemInvocation choice{};
@@ -274,26 +275,26 @@ struct RibbonDropDownInvocation final {
 // One item of the application menu's recent pane (stage RB, phase 6): a
 // recently used document, shown numbered under the pane's caption, with its
 // `description` (a folder, say) for accessibility.
-struct RibbonRecentItem final {
+struct GUI_FORMS_API RibbonRecentItem final {
     std::string stable_id{};
     std::string text{};
     std::string description{};
 };
 
 // A choice from the recent pane.
-struct RibbonRecentItemInvocation final {
+struct GUI_FORMS_API RibbonRecentItemInvocation final {
     std::string ribbon_id{};
     std::string item_id{};
 };
 
 // A click on a group's dialog launcher.
-struct RibbonDialogLaunch final {
+struct GUI_FORMS_API RibbonDialogLaunch final {
     std::string ribbon_id{};
     std::string group_id{};
 };
 
 // The selected tab after it changed.
-struct RibbonTabChange final {
+struct GUI_FORMS_API RibbonTabChange final {
     std::string ribbon_id{};
     std::size_t tab{};
     std::string tab_id{};
@@ -331,7 +332,7 @@ struct RibbonTabChange final {
 // Not yet: hosting the QuickAccessToolbar on the tab row (it is a separate
 // control the application places), the minimized ribbon's temporary overlay,
 // right-to-left mirroring and two-line large labels.
-class Ribbon final : public Control, public RibbonCapabilities<Ribbon> {
+class GUI_FORMS_API Ribbon final : public Control, public RibbonCapabilities<Ribbon> {
 public:
     // Development bounds, not measured capacity.
     static constexpr std::size_t maximum_tabs = 32U;
@@ -351,7 +352,9 @@ public:
     explicit Ribbon(StableId stable_id);
     ~Ribbon() override;
 
-    [[nodiscard]] std::span<const RibbonTabSpec> tabs() const& noexcept { return tabs_; }
+    [[nodiscard]] std::span<const RibbonTabSpec> tabs() const& noexcept {
+        return std::span<const RibbonTabSpec>(tabs_.data(), tabs_.size());
+    }
     std::span<const RibbonTabSpec> tabs() const&& = delete;
     // Replaces the tabs, keeping the selection on the tab with the same ID
     // (or the first). Throws std::invalid_argument, keeping the previous tabs,
@@ -375,7 +378,9 @@ public:
     // that is not unique in the ribbon's ID namespace, or zero modes. Sets
     // keep their availability across a set_tabs by ID.
     void set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetSpec> sets = {});
-    [[nodiscard]] std::span<const RibbonTabSetSpec> tab_sets() const& noexcept { return tab_sets_; }
+    [[nodiscard]] std::span<const RibbonTabSetSpec> tab_sets() const& noexcept {
+        return std::span<const RibbonTabSetSpec>(tab_sets_.data(), tab_sets_.size());
+    }
     std::span<const RibbonTabSetSpec> tab_sets() const&& = delete;
     // A set's availability. Making a set active selects the tab of the set
     // last chosen by the user, if any, else its first tab; making it
@@ -429,7 +434,9 @@ public:
     // beside an application menu with other kinds (and set_application_menu
     // likewise for such items beside recent ones).
     static constexpr std::size_t maximum_recent_items = 50U;
-    [[nodiscard]] std::span<const RibbonRecentItem> recent_items() const& noexcept { return recent_items_; }
+    [[nodiscard]] std::span<const RibbonRecentItem> recent_items() const& noexcept {
+        return std::span<const RibbonRecentItem>(recent_items_.data(), recent_items_.size());
+    }
     std::span<const RibbonRecentItem> recent_items() const&& = delete;
     void set_recent_items(std::vector<RibbonRecentItem> items);
     // The two-pane menu's content control, null before its first opening.
@@ -500,7 +507,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry tab_rail;
         PartGeometry application_button;
@@ -517,7 +524,7 @@ public:
     [[nodiscard]] Parts parts() const;
 
     // The "tab" item system: one core tab on the tab row.
-    struct TabParts final {
+    struct GUI_FORMS_API TabParts final {
         PartGeometry tab;
         // The hover layer over the tab's face: the engine's dithered rise
         // (flat at rest), drawn within the tab's body.
@@ -525,13 +532,13 @@ public:
         PartGeometry tab_label;
         PartGeometry tab_focus;
     };
-    struct TabStates final {
+    struct GUI_FORMS_API TabStates final {
         bool hot{};
         bool selected{};
         bool focus_visible{};
         bool disabled{};
     };
-    struct Tab final {
+    struct GUI_FORMS_API Tab final {
         std::size_t index{};
         std::string stable_id;
         TabParts parts;
@@ -541,7 +548,7 @@ public:
 
     // The "group" item system: one group of the selected tab. A collapsed
     // group shows its button parts and no caption or launcher.
-    struct GroupParts final {
+    struct GUI_FORMS_API GroupParts final {
         PartGeometry group_region;
         PartGeometry group_caption;
         PartGeometry group_divider;
@@ -554,7 +561,7 @@ public:
         PartGeometry group_button_glyph;
         PartGeometry group_button_focus;
     };
-    struct Group final {
+    struct GUI_FORMS_API Group final {
         std::size_t index{};
         std::string stable_id;
         std::size_t layout{};
@@ -564,7 +571,7 @@ public:
     [[nodiscard]] std::vector<Group> realized_groups() const;
 
     // The "command" item system: one command of the selected tab.
-    struct CommandParts final {
+    struct GUI_FORMS_API CommandParts final {
         PartGeometry command_face;
         PartGeometry command_icon;
         PartGeometry command_label;
@@ -579,7 +586,7 @@ public:
         PartGeometry command_font_control;
         PartGeometry command_color_picker;
     };
-    struct CommandStates final {
+    struct GUI_FORMS_API CommandStates final {
         bool hot{};
         bool pressed{};
         bool checked{};
@@ -587,7 +594,7 @@ public:
         bool disabled{};
         bool focus_visible{};
     };
-    struct CommandItem final {
+    struct GUI_FORMS_API CommandItem final {
         std::size_t group{};
         std::size_t index{};
         std::string stable_id;

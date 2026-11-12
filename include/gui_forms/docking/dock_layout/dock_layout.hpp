@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -29,11 +30,11 @@ inline constexpr std::uint32_t dock_layout_maximum_xml_depth = 48;
 
 // The XML limits layouts are written and read with: XmlLimits' defaults
 // with a depth of dock_layout_maximum_xml_depth.
-[[nodiscard]] XmlLimits dock_layout_xml_limits() noexcept;
+[[nodiscard]] GUI_FORMS_API XmlLimits dock_layout_xml_limits() noexcept;
 
 // A monitor as restore needs it; convert from HostMonitor (id, work_area,
 // primary). Frames are in screen logical units.
-struct DockMonitor final {
+struct GUI_FORMS_API DockMonitor final {
     std::string id{};
     Rect work_area{};
     bool primary{false};
@@ -42,7 +43,7 @@ struct DockMonitor final {
 // How much of a restored window must lie inside a work area so its caption
 // can be reached: the caption's full height and this much of its width
 // (DOCKING_STUDY.md section 5.8, step 4).
-struct DockCaptionReach final {
+struct GUI_FORMS_API DockCaptionReach final {
     double caption_height{32.0};
     double visible_width{64.0};
 };
@@ -55,7 +56,7 @@ enum class DockMonitorMatch : std::uint8_t {
     primary,
 };
 
-struct DockMonitorPlacement final {
+struct GUI_FORMS_API DockMonitorPlacement final {
     Rect frame{};
     std::string monitor_id{};
     DockMonitorMatch match{DockMonitorMatch::none};
@@ -66,14 +67,14 @@ struct DockMonitorPlacement final {
 // is connected, else the one whose work area overlaps the frame most, else
 // the primary (else the first). The frame keeps its size and is moved, if
 // needed, so the caption is reachable inside that monitor's work area.
-[[nodiscard]] DockMonitorPlacement place_on_monitor(Rect frame, std::string_view monitor_id,
+[[nodiscard]] GUI_FORMS_API DockMonitorPlacement place_on_monitor(Rect frame, std::string_view monitor_id,
                                                     std::span<const DockMonitor> monitors,
                                                     const DockCaptionReach& reach = {});
 
 // Renames a panel everywhere in a state: stacks and its record. For an
 // application's upgrade hook (renamed panels). Returns false, changing
 // nothing, when from is not in the state or to already is.
-bool rename_dock_panel(DockLayoutState& state, const DockPanelId& from, const DockPanelId& to);
+GUI_FORMS_API bool rename_dock_panel(DockLayoutState& state, const DockPanelId& from, const DockPanelId& to);
 
 enum class DockUpgradeDecision : std::uint8_t { accept, reject };
 
@@ -83,13 +84,13 @@ enum class DockUpgradeDecision : std::uint8_t { accept, reject };
 // move or drop them, or reject the layout (the layout then keeps what it
 // held). It must not retain the state. Runs on the caller's thread, inside
 // restore_xml; it must not call into the DockLayout being restored.
-struct DockLayoutUpgradeHook final {
+struct GUI_FORMS_API DockLayoutUpgradeHook final {
     DockUpgradeDecision (*upgrade)(void* context, std::uint32_t saved_version,
                                    DockLayoutState& state){nullptr};
     void* context{nullptr};
 };
 
-struct DockRestoreOptions final {
+struct GUI_FORMS_API DockRestoreOptions final {
     // The application's current layout version.
     std::uint32_t application_version{0};
     DockLayoutUpgradeHook upgrade{};
@@ -123,7 +124,7 @@ enum class DockRestoreDiagnosticKind : std::uint8_t {
     unknown_fields_dropped,
 };
 
-struct DockRestoreDiagnostic final {
+struct GUI_FORMS_API DockRestoreDiagnostic final {
     DockRestoreDiagnosticKind kind{DockRestoreDiagnosticKind::unreadable_xml};
     // What was found and where, in words (an element path, a panel ID).
     std::string detail{};
@@ -137,12 +138,12 @@ enum class DockRestoreStatus : std::uint8_t {
     kept_current,
 };
 
-struct DockRestoreResult final {
+struct GUI_FORMS_API DockRestoreResult final {
     DockRestoreStatus status{DockRestoreStatus::kept_current};
     std::vector<DockRestoreDiagnostic> diagnostics{};
 };
 
-struct DockLayoutWriteResult final {
+struct GUI_FORMS_API DockLayoutWriteResult final {
     XmlError error{XmlError::none};
     std::string text{};
 
@@ -158,7 +159,7 @@ struct DockLayoutWriteResult final {
 // never creates panels: it reports which are visible and selected.
 //
 // Execution: one thread, the owner's; nothing is synchronized.
-class DockLayout final {
+class GUI_FORMS_API DockLayout final {
 public:
     // A main site holding only an empty document area.
     DockLayout();

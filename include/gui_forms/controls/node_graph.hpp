@@ -21,6 +21,7 @@
 // Undo, serialization, socket-type conversion and frames arrive with the
 // rest of phase N0.
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -33,7 +34,7 @@ namespace gui_forms {
 // -- world geometry ---------------------------------------------------------------
 
 // A point in graph space (world units, float64).
-struct WorldPoint final {
+struct GUI_FORMS_API WorldPoint final {
     double x{};
     double y{};
     friend bool operator==(WorldPoint left, WorldPoint right) noexcept {
@@ -42,7 +43,7 @@ struct WorldPoint final {
 };
 
 // An axis-aligned rectangle in graph space: its top-left corner and size.
-struct WorldRect final {
+struct GUI_FORMS_API WorldRect final {
     double x{};
     double y{};
     double width{};
@@ -62,7 +63,7 @@ struct WorldRect final {
 // -- identities -------------------------------------------------------------------
 
 // A node's identity: its slot and the slot's generation when it was added.
-struct NodeId final {
+struct GUI_FORMS_API NodeId final {
     std::uint32_t index{};
     std::uint32_t generation{};
     friend bool operator==(NodeId left, NodeId right) noexcept {
@@ -71,7 +72,7 @@ struct NodeId final {
 };
 
 // A link's identity, as NodeId.
-struct LinkId final {
+struct GUI_FORMS_API LinkId final {
     std::uint32_t index{};
     std::uint32_t generation{};
     friend bool operator==(LinkId left, LinkId right) noexcept {
@@ -81,13 +82,13 @@ struct LinkId final {
 
 // A port's position in its node's port list (not an identity: the list is
 // fixed when the node is added).
-struct PortIndex final {
+struct GUI_FORMS_API PortIndex final {
     std::uint16_t value{};
     friend bool operator==(PortIndex left, PortIndex right) noexcept { return left.value == right.value; }
 };
 
 // One port of one node.
-struct PortRef final {
+struct GUI_FORMS_API PortRef final {
     NodeId node{};
     PortIndex port{};
     friend bool operator==(PortRef left, PortRef right) noexcept {
@@ -115,7 +116,7 @@ enum class PortLamp : std::uint8_t { off, on, error };
 // top to bottom; ignored for an automatic port), its lamp and its socket
 // type (the consumer's number; type conversion arrives with N0's tables).
 // An input takes one link; an output any number.
-struct PortRecord final {
+struct GUI_FORMS_API PortRecord final {
     std::string name{};
     PortDirection direction{PortDirection::input};
     PortSide side{PortSide::left};
@@ -126,14 +127,14 @@ struct PortRecord final {
 
 // What add_node takes: the node's title, its bounds in world units and its
 // ports, copied into the node's record.
-struct NodeSpec final {
+struct GUI_FORMS_API NodeSpec final {
     std::string title{};
     WorldRect bounds{};
     std::vector<PortRecord> ports{};
 };
 
 // A node slot. `live` is false for a free slot, whose fields are stale.
-struct NodeRecord final {
+struct GUI_FORMS_API NodeRecord final {
     std::string title{};
     WorldRect bounds{};
     std::vector<PortRecord> ports{};
@@ -142,7 +143,7 @@ struct NodeRecord final {
 };
 
 // A link slot, as NodeRecord.
-struct LinkRecord final {
+struct GUI_FORMS_API LinkRecord final {
     PortRef from{};
     PortRef to{};
     std::uint32_t generation{};
@@ -172,13 +173,13 @@ enum class GraphStatus : std::uint8_t {
 
 // An operation's result: the status and, for add_node and connect, the new
 // record's identity (zero otherwise).
-struct GraphResult final {
+struct GUI_FORMS_API GraphResult final {
     GraphStatus status{GraphStatus::ok};
     NodeId node{};
     LinkId link{};
 };
 
-[[nodiscard]] std::string_view graph_status_name(GraphStatus status) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view graph_status_name(GraphStatus status) noexcept;
 
 inline constexpr std::size_t maximum_node_ports = 256U;
 
@@ -187,7 +188,7 @@ inline constexpr std::size_t maximum_node_ports = 256U;
 // Owned by its consumer and borrowed by the canvases that draw it, on one
 // thread (the consumer's UI thread). Not copyable: identities name slots of
 // one graph.
-class NodeGraph final {
+class GUI_FORMS_API NodeGraph final {
 public:
     NodeGraph() = default;
     NodeGraph(const NodeGraph&) = delete;
@@ -223,9 +224,13 @@ public:
 
     // Every slot, live or free, in slot order (the order the canvas paints
     // and the router routes in); an identity is {index, record.generation}.
-    [[nodiscard]] std::span<const NodeRecord> node_slots() const& noexcept { return nodes_; }
+    [[nodiscard]] std::span<const NodeRecord> node_slots() const& noexcept {
+        return std::span<const NodeRecord>(nodes_.data(), nodes_.size());
+    }
     std::span<const NodeRecord> node_slots() const&& = delete;
-    [[nodiscard]] std::span<const LinkRecord> link_slots() const& noexcept { return links_; }
+    [[nodiscard]] std::span<const LinkRecord> link_slots() const& noexcept {
+        return std::span<const LinkRecord>(links_.data(), links_.size());
+    }
     std::span<const LinkRecord> link_slots() const&& = delete;
     [[nodiscard]] std::size_t node_count() const noexcept { return live_nodes_; }
     [[nodiscard]] std::size_t link_count() const noexcept { return live_links_; }
@@ -253,6 +258,6 @@ private:
 // Where a port sits on its node's edge `side` (left, right, top or bottom;
 // a fixed port's own side and offset, or, for an automatic port, `side` with
 // `offset`), in world units, on the node's boundary.
-[[nodiscard]] WorldPoint port_anchor(const NodeRecord& node, PortSide side, double offset) noexcept;
+[[nodiscard]] GUI_FORMS_API WorldPoint port_anchor(const NodeRecord& node, PortSide side, double offset) noexcept;
 
 } // namespace gui_forms

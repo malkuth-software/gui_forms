@@ -1,5 +1,6 @@
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/live_surface.hpp"
+#include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 #include "gui_forms/paint_framebuffer.hpp"

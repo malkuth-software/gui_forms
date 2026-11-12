@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/events.hpp"
 #include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
 
@@ -8,7 +9,7 @@
 
 namespace gui_forms {
 
-struct HostServicesSnapshot final {
+struct GUI_FORMS_API HostServicesSnapshot final {
     HostCapabilities capabilities;
     CursorKind cursor{CursorKind::arrow};
     bool pointer_captured{};

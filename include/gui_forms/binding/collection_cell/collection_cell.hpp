@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/property_cell/property_cell.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 
@@ -32,7 +33,7 @@ enum class CollectionEditKind : std::uint8_t {
 // through the queries, so an edit is always one of the four shapes. The
 // collection's hooks receive it: prepare_edit before anything changes,
 // written after the elements are stored.
-class CollectionEdit final {
+class GUI_FORMS_API CollectionEdit final {
 public:
     // The whole sequence replaced by `count` elements (also clear(), with 0).
     [[nodiscard]] static CollectionEdit assigned(std::size_t count) noexcept;
@@ -73,7 +74,7 @@ private:
 // is dirty (its element moved or is new), so a bit there says nothing more
 // and is dropped at the take. Edits between two takes coalesce: the lowest
 // watermark wins and the bits unite. Used on its control's thread.
-class CollectionDirty final {
+class GUI_FORMS_API CollectionDirty final {
 public:
     // Makes room for replacement bits below `length`; existing bits keep.
     // The only allocation; called before the edit is stored.

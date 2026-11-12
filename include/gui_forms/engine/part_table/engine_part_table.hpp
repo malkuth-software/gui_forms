@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/engine/engine_expression/engine_expression.hpp"
 #include "gui_forms/engine/motion_value/motion_value.hpp"
@@ -74,7 +75,7 @@ namespace gui_forms {
 // generation when the record was made. Releasing a record advances its
 // slot's generation, so a handle kept past the release is stale and finds
 // nothing, even after the slot is reused.
-struct PartRecordHandle final {
+struct GUI_FORMS_API PartRecordHandle final {
     std::uint32_t slot{};
     std::uint32_t generation{};
 
@@ -94,7 +95,7 @@ struct PartRecordHandle final {
 // occupy its address. The kept target's borrowed pointers are cleared. When
 // the material has an image fill, `image_revision` is the image registry's
 // revision it was drawn at, so any change to the registry redraws it.
-struct CachedPartRaster final {
+struct GUI_FORMS_API CachedPartRaster final {
     std::shared_ptr<PartRaster> raster{};
     const EnginePrimitive* primitive{};
     PrimitiveParameterBlock parameters{};
@@ -132,7 +133,7 @@ struct CachedPartRaster final {
 //   theme's recipe may be replaced and another may occupy its address;
 // - `box`: the part's box size, for fields that read it
 //   (material_fields_read_box), else empty.
-struct AssembledPartMaterial final {
+struct GUI_FORMS_API AssembledPartMaterial final {
     std::uint64_t rules_serial{};
     // The serial of the part's inline style, or 0 (T3 P9).
     std::uint64_t inline_serial{};
@@ -152,7 +153,7 @@ struct AssembledPartMaterial final {
 // part without a record, and every part's derived dark variant): the
 // assembly, the role whose dark variant darkened it (none for a light
 // assembly) and whether it holds one yet.
-struct UnkeptPartAssembly final {
+struct GUI_FORMS_API UnkeptPartAssembly final {
     AssembledPartMaterial assembled{};
     std::optional<ControlVisualRole> darkened{};
     bool filled{};
@@ -172,7 +173,7 @@ class SurfaceRoot;
 // with the transition. The machine is CompiledTransition::machine of the
 // compiled rules whose serial is `rules_serial`; a machine of other rules
 // (a theme replaced) is compared by state alone.
-struct PartTransitionChannel final {
+struct GUI_FORMS_API PartTransitionChannel final {
     PresentationProperty property{PresentationProperty::parameter};
     std::size_t parameter{};
     std::uint64_t rules_serial{};
@@ -188,7 +189,7 @@ struct PartTransitionChannel final {
 // window's MotionClock, and reports each step to on_step, which repaints
 // the part's extent on the control that recorded it. The record is released
 // with its control, which releases the values from the clock.
-class PartMotion final {
+class GUI_FORMS_API PartMotion final {
 public:
     PartMotion(SurfaceRoot& window, PartRecordHandle record) noexcept;
     PartMotion(const PartMotion&) = delete;
@@ -209,7 +210,7 @@ private:
 
 // One painted part's record. The identity strings are owned copies of the
 // key the part was first painted with.
-struct EnginePartRecord final {
+struct GUI_FORMS_API EnginePartRecord final {
     std::string control;
     std::string part;
     std::string item;
@@ -308,7 +309,7 @@ inline constexpr std::size_t maximum_item_part_records = 4096;
 // parameters stand at keyframe levels or whose ambient effect is at a frame
 // of its loop, so that its rasters are baked once and kept for every
 // transition after.
-struct PartRasterRequest final {
+struct GUI_FORMS_API PartRasterRequest final {
     const EnginePrimitive* primitive{};
     PrimitiveParameterBlock parameters{};
     PrimitiveTarget target{};
@@ -336,14 +337,14 @@ enum class PartRasterStatus : std::uint8_t {
     refused,
 };
 
-struct PartRasterResult final {
+struct GUI_FORMS_API PartRasterResult final {
     // The part's raster, or null when status is stale_record or refused.
     std::shared_ptr<const PartRaster> raster{};
     PartRasterStatus status{PartRasterStatus::refused};
 };
 
 // The raster cache's counters, for instrumentation.
-struct RasterCacheStatistics final {
+struct GUI_FORMS_API RasterCacheStatistics final {
     // Rasters held and their bytes now.
     std::size_t rasters{};
     std::size_t bytes{};
@@ -419,7 +420,7 @@ struct RasterCacheStatistics final {
 // One backplane image's region (E9-B): `extent` device pixels at `scale`,
 // its top-left pixel at `origin` in the window's device pixels (the
 // window's logical origin times the scale; possibly fractional).
-struct BackplaneRegion final {
+struct GUI_FORMS_API BackplaneRegion final {
     Point origin{};
     DeviceExtent extent{};
     DeviceScale scale{};
@@ -456,7 +457,7 @@ inline constexpr std::size_t maximum_queued_patterns = 32U;
 enum class PatternGeneration : std::uint8_t { none, made, made_unrecorded };
 
 // What acquire() did.
-struct PartRecordAcquisition final {
+struct GUI_FORMS_API PartRecordAcquisition final {
     PartRecordHandle handle{};
     // A new record was made for the key.
     bool created{};
@@ -466,7 +467,7 @@ struct PartRecordAcquisition final {
 
 // The table. It owns its records. Every member runs on the window's UI
 // thread; the table is not shared between windows.
-class EnginePartTable final {
+class GUI_FORMS_API EnginePartTable final {
 public:
     // The table keeps at most `item_record_cap` item-part records (at least
     // 1); the window's table uses maximum_item_part_records.

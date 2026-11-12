@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <compare>
 #include <cstddef>
 #include <cstdint>
@@ -56,7 +57,7 @@ enum class Utf8ValidationError : std::uint8_t {
     overlong_encoding, surrogate_code_point, code_point_out_of_range,
 };
 
-struct Utf8ValidationResult final {
+struct GUI_FORMS_API Utf8ValidationResult final {
     Utf8ValidationError error{Utf8ValidationError::none};
     Utf8Offset error_offset{};
     std::size_t scalar_count{};
@@ -66,23 +67,23 @@ struct Utf8ValidationResult final {
     }
 };
 
-[[nodiscard]] Utf8ValidationResult validate_utf8(
+[[nodiscard]] GUI_FORMS_API Utf8ValidationResult validate_utf8(
     std::string_view text) noexcept;
-[[nodiscard]] std::string_view to_string(Utf8ValidationError error) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view to_string(Utf8ValidationError error) noexcept;
 
 // One scalar decoded strictly (the rules of validate_utf8: no overlong
 // forms, surrogates or values past U+10FFFF). At a malformed or truncated
 // sequence `valid` is false, `length` is 1 (the caller steps one byte) and
 // `scalar` is U+FFFD. `offset` must be inside `text`.
-struct Utf8ScalarDecode final {
+struct GUI_FORMS_API Utf8ScalarDecode final {
     char32_t scalar{};
     std::size_t length{};
     bool valid{};
 };
-[[nodiscard]] Utf8ScalarDecode decode_utf8_scalar(std::string_view text, Utf8Offset offset) noexcept;
-[[nodiscard]] std::string_view grapheme_unicode_version() noexcept;
+[[nodiscard]] GUI_FORMS_API Utf8ScalarDecode decode_utf8_scalar(std::string_view text, Utf8Offset offset) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view grapheme_unicode_version() noexcept;
 
-struct TextStyleId final {
+struct GUI_FORMS_API TextStyleId final {
     std::uint32_t value{};
     friend constexpr bool operator==(const TextStyleId& left,
                                      const TextStyleId& right) noexcept {
@@ -94,7 +95,7 @@ struct TextStyleId final {
     }
 };
 
-struct TextStyleSpan final {
+struct GUI_FORMS_API TextStyleSpan final {
     Utf8Range range{};
     TextStyleId style{};
     friend constexpr bool operator==(const TextStyleSpan& left,
@@ -103,12 +104,12 @@ struct TextStyleSpan final {
     }
 };
 
-struct TextStoreLimits final {
+struct GUI_FORMS_API TextStoreLimits final {
     std::size_t maximum_utf8_bytes{16U * 1024U * 1024U};
     std::size_t maximum_style_spans{65'536U};
 };
 
-struct TextStoreSnapshot final {
+struct GUI_FORMS_API TextStoreSnapshot final {
     std::size_t utf8_bytes{};
     std::size_t utf16_units{};
     std::size_t scalars{};
@@ -138,7 +139,7 @@ struct TextStoreSnapshot final {
     }
 };
 
-struct TextEditResult final {
+struct GUI_FORMS_API TextEditResult final {
     Utf8Range removed{};
     Utf8Range inserted{};
     std::size_t removed_scalars{};

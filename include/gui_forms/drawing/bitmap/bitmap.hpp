@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/image_attributes/image_attributes.hpp"
 
 #include <cstddef>
@@ -11,7 +12,7 @@ namespace gui_drawing {
 
 enum class BitmapLockMode : std::uint8_t { read, write, read_write };
 
-struct BitmapLockView final {
+struct GUI_FORMS_API BitmapLockView final {
     const std::byte* data{};
     std::byte* writable_data{};
     std::size_t row_bytes{};
@@ -28,7 +29,7 @@ struct BitmapLockView final {
  * rectangle byte-for-byte; commit derives conservative bounded damage from
  * the pixels whose bytes actually changed.
  */
-struct BitmapEditView final {
+struct GUI_FORMS_API BitmapEditView final {
     const std::byte* data{};
     std::byte* writable_data{};
     std::size_t row_bytes{};
@@ -37,7 +38,7 @@ struct BitmapEditView final {
     std::uint64_t token{};
 };
 
-struct BitmapDamageSnapshot final {
+struct GUI_FORMS_API BitmapDamageSnapshot final {
     std::uint64_t from_generation{};
     std::uint64_t to_generation{};
     bool history_complete{true};
@@ -46,7 +47,7 @@ struct BitmapDamageSnapshot final {
     [[nodiscard]] bool empty() const noexcept { return rectangles.empty(); }
 };
 
-class Bitmap final : public DrawingObject {
+class GUI_FORMS_API Bitmap final : public DrawingObject {
 public:
     static constexpr std::uint32_t maximum_dimension = 32768;
     static constexpr std::uint64_t maximum_pixels = 100'000'000ULL;

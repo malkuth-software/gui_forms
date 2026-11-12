@@ -1,4 +1,10 @@
 #include "support.hpp"
+#include "gui_forms/controls/badge.hpp"
+#include "gui_forms/controls/badge_values.hpp"
+#include "gui_forms/controls/empty_state.hpp"
+#include "gui_forms/controls/info_banner.hpp"
+#include "gui_forms/controls/notice_values.hpp"
+#include "gui_forms/controls/toast.hpp"
 
 namespace gallery_pages_tests {
 

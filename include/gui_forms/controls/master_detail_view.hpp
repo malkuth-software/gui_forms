@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/container_controls.hpp"
 #include "gui_forms/controls/master_detail_view_values.hpp"
 #include "gui_forms/controls/master_detail_view_capabilities.hpp"
@@ -9,7 +10,7 @@
 
 namespace gui_forms {
 
-struct MasterDetailLayout final {
+struct GUI_FORMS_API MasterDetailLayout final {
     Orientation orientation{Orientation::vertical};
     double master_extent{260.0};
     double splitter_width{3.0};
@@ -32,7 +33,7 @@ struct MasterDetailLayout final {
     }
 };
 
-struct MasterDetailPresentationChange final {
+struct GUI_FORMS_API MasterDetailPresentationChange final {
     MasterDetailDisplayMode previous{MasterDetailDisplayMode::side_by_side};
     MasterDetailDisplayMode current{MasterDetailDisplayMode::side_by_side};
     bool automatic{};
@@ -43,7 +44,7 @@ struct MasterDetailPresentationChange final {
 // draggable/keyboard splitter, focus transfer on collapse, and compact
 // master/detail navigation. This is intentionally content-agnostic so decision
 // browsers, settings panes, inspectors, and navigation stacks share one law.
-class MasterDetailView final : public ContainerControl, public MasterDetailViewCapabilities<MasterDetailView> {
+class GUI_FORMS_API MasterDetailView final : public ContainerControl, public MasterDetailViewCapabilities<MasterDetailView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit MasterDetailView(StableId stable_id);

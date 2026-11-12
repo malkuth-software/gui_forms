@@ -1,4 +1,6 @@
 #include "support.hpp"
+#include "gui_forms/controls/help_book.hpp"
+#include "gui_forms/controls/help_book_viewer.hpp"
 
 namespace gallery_pages_tests {
 

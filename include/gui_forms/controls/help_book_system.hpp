@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
@@ -37,7 +38,7 @@ class HelpPickLayer;
 // hides when the user closes it and is shown again on the next open, so its
 // history, tab and pane width carry over; it is destroyed with its owner or
 // by close(). Without application windowing (a headless run) open refuses.
-class HelpBookWindow final {
+class GUI_FORMS_API HelpBookWindow final {
 public:
     explicit HelpBookWindow(std::string stable_id);
     ~HelpBookWindow();
@@ -64,7 +65,7 @@ private:
     Event<HelpBookViewer&> created_;
 };
 
-struct HelpBookSystemOptions final {
+struct GUI_FORMS_API HelpBookSystemOptions final {
     // The prefix of every stable ID the system makes (its window, viewer
     // and popups).
     std::string stable_id{"help"};
@@ -85,14 +86,14 @@ struct HelpBookSystemOptions final {
 };
 
 // Where help for a control is: the page and the anchor on it.
-struct HelpTarget final {
+struct GUI_FORMS_API HelpTarget final {
     std::string page{};
     std::string anchor{};
     // Nothing on the way up had help: `page` is the home page.
     bool home{};
 };
 
-struct HelpBookSystemSnapshot final {
+struct GUI_FORMS_API HelpBookSystemSnapshot final {
     std::uint64_t compiles{};
     std::size_t rejections{};
     std::uint64_t requests{};
@@ -129,7 +130,7 @@ struct HelpBookSystemSnapshot final {
 //
 // One execution context: the UI thread of the attached windows. Attached
 // windows must be detached before they are destroyed.
-class HelpBookSystem final : public Component {
+class GUI_FORMS_API HelpBookSystem final : public Component {
 public:
     explicit HelpBookSystem(HelpBookSystemOptions options = {});
     ~HelpBookSystem() override;

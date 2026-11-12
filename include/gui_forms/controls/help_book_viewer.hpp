@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/help_book.hpp"
 #include "gui_forms/event.hpp"
@@ -33,7 +34,7 @@ struct TreeSelectionChange;
 // with the program's. `built_in_language` is the untranslatable way back
 // (translation design): the name of the program's built-in language, which
 // the program supplies in that language; empty hides the link.
-struct HelpBookViewerLabels final {
+struct GUI_FORMS_API HelpBookViewerLabels final {
     GUI_FORMS_LOCALIZABLE(text) std::string contents{"Contents"};
     GUI_FORMS_LOCALIZABLE(text) std::string index{"Index"};
     GUI_FORMS_LOCALIZABLE(text) std::string search{"Search"};
@@ -58,13 +59,13 @@ enum class HelpNavigationTab : std::uint8_t { contents, index, search, bookmarks
 
 // Printing was asked for: the page shown (`page`), or the contents book
 // under it when `book` is set. The help system's handler prints.
-struct HelpPrintRequest final {
+struct GUI_FORMS_API HelpPrintRequest final {
     std::string page{};
     bool book{};
     bool handled{};
 };
 
-struct HelpBookViewerSnapshot final {
+struct GUI_FORMS_API HelpBookViewerSnapshot final {
     std::size_t history_size{};
     std::size_t history_position{};
     std::size_t navigations{};
@@ -85,7 +86,7 @@ struct HelpBookViewerSnapshot final {
 // and Bookmarks; F6 moves between the navigation pane and the book;
 // Alt+Left and Alt+Right move in history and Alt+Home goes home; Ctrl+P
 // prints.
-class HelpBookViewer final : public Control {
+class GUI_FORMS_API HelpBookViewer final : public Control {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // The most pages history keeps; the oldest goes first.

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 
 #include <functional>
@@ -11,7 +12,7 @@
 
 namespace gui_forms {
 
-struct PropertyEditorBinding final {
+struct GUI_FORMS_API PropertyEditorBinding final {
     Control::Ptr control;
     std::function<void(const BindingValue&)> synchronize;
     std::function<SubscriptionToken(
@@ -24,7 +25,7 @@ struct PropertyEditorBinding final {
 using PropertyEditorFactory = std::function<std::optional<PropertyEditorBinding>(
     const PropertyEditorRequest&)>;
 
-class PropertyEditorRegistry final {
+class GUI_FORMS_API PropertyEditorRegistry final {
 public:
     bool register_factory(std::string name, PropertyEditorFactory factory);
     bool unregister_factory(std::string_view name);

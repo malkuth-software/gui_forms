@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 
 #include <span>
@@ -14,6 +15,6 @@ namespace gui_forms {
 // the life of the program (ControlAnatomy). An application compiling a
 // theme package passes these, and its own controls' anatomies, as
 // ThemeCompileOptions::controls.
-[[nodiscard]] std::span<const ControlAnatomy> stock_control_anatomies() noexcept;
+[[nodiscard]] GUI_FORMS_API std::span<const ControlAnatomy> stock_control_anatomies() noexcept;
 
 } // namespace gui_forms

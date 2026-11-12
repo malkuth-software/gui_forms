@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/geometry/point_f/point_f.hpp"
 
 namespace gui_drawing {
 
-struct RectF final {
+struct GUI_FORMS_API RectF final {
     double x{};
     double y{};
     double width{};

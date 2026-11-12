@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/date_time_value.hpp"
 
 #include <array>
@@ -7,7 +8,7 @@
 
 namespace gui_forms {
 
-struct DateTimeFormatProvider final {
+struct GUI_FORMS_API DateTimeFormatProvider final {
     std::array<std::string, 12> month_names;
     std::array<std::string, 12> abbreviated_month_names;
     std::array<std::string, 7> day_names;

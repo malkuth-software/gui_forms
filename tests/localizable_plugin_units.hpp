@@ -1,6 +1,7 @@
 #pragma once
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/dirty.hpp"
 
 #include <string_view>
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
 #include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 
@@ -25,7 +26,7 @@ enum class MaterialBorderStyle : std::uint8_t {
     dotted,
 };
 
-struct MaterialBorder final {
+struct GUI_FORMS_API MaterialBorder final {
     Color color{Color::rgba(76, 94, 111)};
     double width{1.0};
     MaterialBorderStyle style{MaterialBorderStyle::solid};
@@ -41,7 +42,7 @@ struct MaterialBorder final {
 // (σ = blur / 2, as a shadow's), moved by `offset`, in `color`, drawn
 // beneath the raster. Unlike a MaterialShadow it follows whatever the
 // material draws, such as a glyph or a round shape.
-struct MaterialDropShadow final {
+struct GUI_FORMS_API MaterialDropShadow final {
     Point offset{0.0, 1.0};
     double blur_radius{2.0};
     Color color{Color::rgba(0, 0, 0, 96)};
@@ -55,7 +56,7 @@ struct MaterialDropShadow final {
 // A material's four corner radii (E9.6, CSS `border-*-radius`), in logical
 // units: top-left, top-right, bottom-right and bottom-left. Each is drawn
 // at most half the box's shorter side.
-struct MaterialCornerRadii final {
+struct GUI_FORMS_API MaterialCornerRadii final {
     double top_left{};
     double top_right{};
     double bottom_right{};
@@ -68,7 +69,7 @@ struct MaterialCornerRadii final {
                left.bottom_left == right.bottom_left;
     }
 };
-struct MaterialShadow final {
+struct GUI_FORMS_API MaterialShadow final {
     Point offset{0.0, 2.0};
     double blur_radius{4.0};
     double spread{};
@@ -108,7 +109,7 @@ enum class MaterialGlowPlacement : std::uint8_t { under, over };
 // step), is at most SurfaceMaterial::maximum_glow_reach in both
 // placements, so that an under glow stays within the part's granted
 // overflow; an over glow lies within the box and needs no overflow.
-struct MaterialGlow final {
+struct GUI_FORMS_API MaterialGlow final {
     Color color{Color::rgba(255, 255, 255, 96)};
     double blur_radius{2.0};
     double spread{};
@@ -125,7 +126,7 @@ enum class MaterialEdge : std::uint8_t { top, right, bottom, left };
 // One ordered physical keyline. An inset of zero places the stroke immediately
 // inside the owned edge; positive insets allow a separate highlight or lowlight
 // to sit behind/inside an outer boundary without requiring a nested control.
-struct MaterialKeyline final {
+struct GUI_FORMS_API MaterialKeyline final {
     MaterialEdge edge{MaterialEdge::top};
     Color color{Color::rgba(255, 255, 255, 128)};
     double width{1.0};
@@ -157,7 +158,7 @@ enum class MaterialReflectionSource : std::uint8_t {
 // outer shadows and glows). The engine's material primitive draws it, and
 // omits it under high contrast and reduced transparency (T5-Q16); the
 // built-in path, paint_surface_material, draws none.
-struct MaterialReflection final {
+struct GUI_FORMS_API MaterialReflection final {
     MaterialEdge edge{MaterialEdge::bottom};
     double gap{};
     double reach{8.0};
@@ -179,7 +180,7 @@ struct MaterialReflection final {
 // the colour of the edge it lies nearest (split along 45-degree lines from
 // the corners, as CSS splits a rounded box's edge colours), and the
 // material's keylines draw as rings the same way.
-struct MaterialBorderEdges final {
+struct GUI_FORMS_API MaterialBorderEdges final {
     std::optional<MaterialBorder> top;
     std::optional<MaterialBorder> right;
     std::optional<MaterialBorder> bottom;
@@ -198,7 +199,7 @@ struct MaterialBorderEdges final {
                left_value.left == right_value.left;
     }
 };
-struct SurfaceMaterial final {
+struct GUI_FORMS_API SurfaceMaterial final {
     static constexpr std::size_t maximum_fill_layers = 8U;
     static constexpr std::size_t maximum_shadows = 4U;
     static constexpr std::size_t maximum_keylines = 8U;

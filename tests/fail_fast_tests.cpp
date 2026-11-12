@@ -5,7 +5,15 @@
 // appears and "survived" does not.
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 #include "../src/core/failure/fail_fast.hpp"
 

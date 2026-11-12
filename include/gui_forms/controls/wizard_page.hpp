@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/wizard_page_capabilities.hpp"
 
@@ -11,7 +12,7 @@ namespace gui_forms {
 // gate, which enables or disables the wizard's Next (or Finish) button
 // while the page is shown. A WizardPage outside a Wizard is an ordinary
 // Panel.
-class WizardPage final : public Panel, public WizardPageCapabilities<WizardPage> {
+class GUI_FORMS_API WizardPage final : public Panel, public WizardPageCapabilities<WizardPage> {
 public:
     explicit WizardPage(StableId stable_id);
 

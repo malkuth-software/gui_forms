@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <memory>
 
 namespace gui_forms {
@@ -14,7 +15,7 @@ class LiveSurface;
 // Revocable connection for a retained consumer's presentation wake. The wake
 // may run on the producer thread and therefore must only signal/marshal work;
 // it must never paint, mutate controls, or call application code directly.
-class LiveSurfaceWakeConnection final {
+class GUI_FORMS_API LiveSurfaceWakeConnection final {
 public:
     LiveSurfaceWakeConnection() = default;
     ~LiveSurfaceWakeConnection();

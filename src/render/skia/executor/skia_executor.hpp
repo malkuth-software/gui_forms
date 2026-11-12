@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing.hpp"
 
 #include <cstddef>
@@ -26,7 +27,7 @@ enum class RasterError : std::uint8_t {
     internal_error,
 };
 
-struct RasterResult final {
+struct GUI_FORMS_API RasterResult final {
     RasterError error{RasterError::none};
     std::size_t commands_executed{};
 
@@ -35,7 +36,7 @@ struct RasterResult final {
     }
 };
 
-struct DecodeResult final {
+struct GUI_FORMS_API DecodeResult final {
     std::unique_ptr<Bitmap> bitmap;
     RasterError error{RasterError::none};
 
@@ -52,14 +53,14 @@ struct DecodeResult final {
     }
 };
 
-struct PngCodecLimits final {
+struct GUI_FORMS_API PngCodecLimits final {
     std::size_t maximum_encoded_bytes{32U * 1024U * 1024U};
     std::uint32_t maximum_width{4096};
     std::uint32_t maximum_height{4096};
     std::uint64_t maximum_pixels{4096ULL * 4096ULL};
 };
 
-class SkiaExecutor final {
+class GUI_FORMS_API SkiaExecutor final {
 public:
     SkiaExecutor();
     ~SkiaExecutor();

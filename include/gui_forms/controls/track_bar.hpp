@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/range_control.hpp"
 #include "gui_forms/controls/track_bar_values.hpp"
 #include "gui_forms/controls/track_bar_capabilities.hpp"
@@ -10,7 +11,7 @@
 
 namespace gui_forms {
 
-class TrackBar : public RangeControl, public TrackBarCapabilities<TrackBar> {
+class GUI_FORMS_API TrackBar : public RangeControl, public TrackBarCapabilities<TrackBar> {
 public:
     explicit TrackBar(StableId stable_id);
 
@@ -28,7 +29,7 @@ public:
 
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry track;
         PartGeometry fill;
@@ -36,7 +37,7 @@ public:
         PartGeometry thumb;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

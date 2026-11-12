@@ -14,6 +14,7 @@
 //
 // Distances are Euclidean in logical device units.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/plot_transform/plot_transform.hpp"
 #include "gui_forms/plots/plot_types/plot_types.hpp"
@@ -28,7 +29,7 @@
 
 namespace gui_forms::plots {
 
-struct PickResult final {
+struct GUI_FORMS_API PickResult final {
     bool found{};
     SeriesIdentity series{};
     ElementIndex element{};
@@ -38,7 +39,7 @@ struct PickResult final {
     double distance{std::numeric_limits<double>::infinity()};
 };
 
-class SeriesPicker final {
+class GUI_FORMS_API SeriesPicker final {
 public:
     // Reserves an unordered series' grid for up to `elements` elements over
     // a grid of `cells` cells (allocates once).
@@ -80,11 +81,11 @@ private:
 
 // Whether `device` lies in `rects` (bars, heatmap cells); the first
 // containing rectangle's index, or none.
-struct RectPick final {
+struct GUI_FORMS_API RectPick final {
     bool found{};
     std::size_t index{};
 };
-[[nodiscard]] RectPick pick_rect(std::span<const Rect> rects, Point device) noexcept;
+[[nodiscard]] GUI_FORMS_API RectPick pick_rect(std::span<const Rect> rects, Point device) noexcept;
 
 // -- definitions ---------------------------------------------------------------
 

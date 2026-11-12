@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
@@ -24,7 +25,7 @@ enum class TextResolutionStatus : std::uint8_t {
     invalid_request,
 };
 
-struct ResolvedFontRun final {
+struct GUI_FORMS_API ResolvedFontRun final {
     std::size_t utf8_start{};
     std::size_t utf8_length{};
     std::string family;
@@ -47,7 +48,7 @@ struct ResolvedFontRun final {
 // face's tables, scaled by size over units per em and not rounded. CSS's
 // `line-height: normal` rounds each to a whole pixel and sums them, where
 // ResolvedTextLayout's ascent and descent are already rounded outward.
-struct FontVerticalMetrics final {
+struct GUI_FORMS_API FontVerticalMetrics final {
     double ascent{};
     double descent{};
     double line_gap{};
@@ -61,7 +62,7 @@ struct FontVerticalMetrics final {
     }
 };
 
-struct ResolvedTextLayout final {
+struct GUI_FORMS_API ResolvedTextLayout final {
     FontSpec effective_font{};
     Size logical_size{};
     double ascent{};
@@ -99,7 +100,7 @@ struct ResolvedTextLayout final {
     }
 };
 
-[[nodiscard]] const char* text_resolution_status_name(
+[[nodiscard]] GUI_FORMS_API const char* text_resolution_status_name(
     TextResolutionStatus status) noexcept;
 
 // What a line may do after one byte of UTF-8 text (UAX #14's classes, as
@@ -116,7 +117,7 @@ enum class LineBreakOpportunity : std::uint8_t {
 // ResolvedTextLayout that measuring reads. A provider answers it with the
 // same values its resolve_text_layout_utf8 reports, without copying the
 // layout's strings and run vector.
-struct TextExtent final {
+struct GUI_FORMS_API TextExtent final {
     Size logical_size{};
     double ascent{};
     double descent{};
@@ -124,13 +125,13 @@ struct TextExtent final {
     TextResolutionStatus status{TextResolutionStatus::estimated};
 };
 
-[[nodiscard]] TextExtent text_extent_of(const ResolvedTextLayout& layout) noexcept;
+[[nodiscard]] GUI_FORMS_API TextExtent text_extent_of(const ResolvedTextLayout& layout) noexcept;
 
 // Portable non-owning service seam. Implementations may use a private text
 // engine, but this contract contains no HarfBuzz, FreeType, Skia, AppKit, or
 // Win32 type. A Window invalidates measurement when the installed provider
 // changes.
-class TextMetricsProvider {
+class GUI_FORMS_API TextMetricsProvider {
 public:
     virtual ~TextMetricsProvider() = default;
     [[nodiscard]] virtual ResolvedTextLayout resolve_text_layout_utf8(
@@ -154,18 +155,18 @@ public:
 // spaces or tabs and must end after a line feed, or a carriage return not
 // followed by one. Returns estimated, or invalid_request with
 // `opportunities` unchanged as TextMetricsProvider's query does.
-[[nodiscard]] TextResolutionStatus estimate_line_break_opportunities_utf8(
+[[nodiscard]] GUI_FORMS_API TextResolutionStatus estimate_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept;
 
 // Deterministic renderer-free fallback. It is explicitly labelled estimated;
 // callers must not report it as a resolved bundled face or a raster metric.
-[[nodiscard]] ResolvedTextLayout estimate_text_layout_utf8(
+[[nodiscard]] GUI_FORMS_API ResolvedTextLayout estimate_text_layout_utf8(
     std::string_view utf8, FontSpec effective_font) noexcept;
 
 // One line box of CSS text in a primary face (CSS 2.1 section 10.8 with
 // `line-height: normal` as browsers compute it): its height, its baseline
 // from its top, and the face's x-height.
-struct LineBoxMetrics final {
+struct GUI_FORMS_API LineBoxMetrics final {
     double height{};
     double baseline{};
     double x_height{};
@@ -184,13 +185,13 @@ struct LineBoxMetrics final {
 // 155 from 12 to 21 px (notes:planning/stages/L-layout/PLAN.md section 12.5).
 // Without design metrics (an estimate) it uses the resolution's ascent,
 // descent and line gap.
-[[nodiscard]] LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary,
+[[nodiscard]] GUI_FORMS_API LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary,
                                               std::optional<double> used_line_height) noexcept;
 
 // Baselines are authored in logical coordinates. This helper rounds only the
 // final placement to a device pixel and therefore does not change line
 // measurement or the font identity when a window crosses displays.
-[[nodiscard]] double snap_text_baseline(double logical_baseline,
+[[nodiscard]] GUI_FORMS_API double snap_text_baseline(double logical_baseline,
                                         double device_scale) noexcept;
 
 } // namespace gui_forms

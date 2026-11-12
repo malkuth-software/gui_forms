@@ -1,4 +1,13 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/command_overflow_panel.hpp"
+#include "gui_forms/controls/drop_down_button.hpp"
+#include "gui_forms/controls/drop_down_button_values.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstdlib>
 #include <iostream>

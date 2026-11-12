@@ -22,6 +22,7 @@
 // This header is everything an effect's own code needs besides the canvas
 // (gui_forms/engine/effect_canvas/effect_canvas.hpp) and its parent's view.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
@@ -124,7 +125,7 @@ struct EffectArray final {
 // over their mix, with no host randomness and no hidden state beyond the
 // counter in this value. Bit-exact on every host; known-answer vectors are
 // in the tests.
-class EffectRandom final {
+class GUI_FORMS_API EffectRandom final {
 public:
     constexpr EffectRandom(std::uint64_t seed, std::uint64_t stream) noexcept : seed_(seed), stream_(stream) {}
 
@@ -302,7 +303,7 @@ enum class EffectInputEventKind : std::uint8_t {
 
 // One granted input event: the pointer in part-local logical units, or a
 // key's code (KeyCode's value).
-struct EffectInputEvent final {
+struct GUI_FORMS_API EffectInputEvent final {
     EffectInputEventKind kind{};
     Point position{};
     std::uint32_t key{};
@@ -318,7 +319,7 @@ struct EffectInputEvent final {
 // or the host's own colours where the theme names none. An effect varies
 // their alpha for its own layers; it does not name colours of its own.
 // Transparent black when the host supplies none.
-struct EffectColours final {
+struct GUI_FORMS_API EffectColours final {
     Color primary{};
     Color secondary{};
 
@@ -333,7 +334,7 @@ struct EffectColours final {
 // units. Filled only for an effect that declares pointer input on a part
 // whose host grants it; otherwise every field is zero, as in headless runs
 // and still poses, so motion checksums do not depend on it.
-struct EffectPointer final {
+struct GUI_FORMS_API EffectPointer final {
     bool inside{};
     bool pressed{};
     Point position{};
@@ -351,7 +352,7 @@ struct EffectPointer final {
 // its still pose and advances nothing. A random draw for tick t uses
 // EffectRandom(seed, t), so draws do not depend on how ticks were grouped
 // into frames.
-struct EffectFrame final {
+struct GUI_FORMS_API EffectFrame final {
     std::uint32_t ticks{};
     std::uint64_t first_tick{};
     double transition{};
@@ -370,7 +371,7 @@ struct EffectFrame final {
 // What `setup` is given: once when the effect is instantiated on a part,
 // and again on a geometry change if the effect declares setup_on_geometry.
 // Its draws come from EffectRandom(seed, EffectRandom::setup_stream).
-struct EffectSetup final {
+struct GUI_FORMS_API EffectSetup final {
     std::uint64_t seed{};
     Size part{};
     double scale{1.0};
@@ -380,7 +381,7 @@ struct EffectSetup final {
 // static bound) plus `per_device_pixel` operations for each device pixel of
 // the part and its outsets (metered by the canvas, which refuses drawing
 // past it; owner decision 1(a)).
-struct EffectCost final {
+struct GUI_FORMS_API EffectCost final {
     std::uint32_t fixed{};
     std::uint32_t per_device_pixel{};
 
@@ -391,7 +392,7 @@ struct EffectCost final {
 
 // What an effect is, as its class declares it in `static constexpr
 // EffectDeclaration declaration`.
-struct EffectDeclaration final {
+struct GUI_FORMS_API EffectDeclaration final {
     // Registered (snake_case) name, as themes and applications write it.
     std::string_view name{};
     // The vocabulary version the effect draws with, 1 to

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/types/command_types.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
@@ -16,7 +17,7 @@ struct KeyGesture;
 class AcceleratorToken;
 
 // Shared authority for menu, shortcut, context, semantic, and test surfaces.
-class Command final : public Component {
+class GUI_FORMS_API Command final : public Component {
 public:
     Command();
     Command(std::string stable_id, std::string text);

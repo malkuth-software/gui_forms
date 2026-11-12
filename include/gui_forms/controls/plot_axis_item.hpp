@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/plots/axis/axis.hpp"
@@ -26,7 +27,7 @@ namespace gui_forms {
 // publishes no semantic node: the plot reads it. Changing a property tells
 // the owning plot, which lays out and repaints; it takes the item's range
 // again only until a gesture moves its view (PlotView::reset_view).
-class PlotAxisItem final : public Control, public PlotAxisItemCapabilities<PlotAxisItem> {
+class GUI_FORMS_API PlotAxisItem final : public Control, public PlotAxisItemCapabilities<PlotAxisItem> {
 public:
     explicit PlotAxisItem(StableId stable_id);
 

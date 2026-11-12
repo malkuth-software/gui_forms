@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <array>
@@ -17,7 +18,7 @@ namespace gui_forms::detail {
 // Cousine monospace), or a numbered family (FontSpec::family) whose faces the text engine
 // prefers over the role's. Every face a family lists is in assets/fonts/bundled-fonts.sha256
 // and staged with every program, so a name here always resolves to shipped bytes.
-struct BundledFamilyName final {
+struct GUI_FORMS_API BundledFamilyName final {
     // The family's name as its faces report it; matched without regard to ASCII case.
     std::string_view name{};
     // The role the name stands for, or none for a numbered family.
@@ -39,7 +40,7 @@ inline constexpr std::array<BundledFamilyName, 4> bundled_family_names{{
 // One face of a numbered family: its manifest name, family, weight and slant. A host registers
 // each lazily (HarfBuzzFontEngine::register_lazy_family_typeface); it is read the first time
 // text asks for its family. Selawik has no italic: an italic request draws upright.
-struct BundledFamilyFace final {
+struct GUI_FORMS_API BundledFamilyFace final {
     std::string_view file_name{};
     BundledFontFamily family{};
     std::uint16_t weight{400};

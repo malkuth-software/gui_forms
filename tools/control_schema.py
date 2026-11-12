@@ -33,7 +33,7 @@ SCHEMA_PATH: Path = ROOT / "manifests" / "control-schema.json"
 INCLUDE_ROOT: Path = ROOT / "include"
 PAGE_PATH: Path = ROOT / "docs" / "controls" / "generated" / "schema.md"
 
-_CLASS_HEAD: re.Pattern[str] = re.compile(r"^(class|struct)\s+(\w+)(\s+final)?\s*(:[^{;]*)?\{", re.M)
+_CLASS_HEAD: re.Pattern[str] = re.compile(r"^(class|struct)\s+(?:GUI_FORMS_API\s+)?(\w+)(\s+final)?\s*(:[^{;]*)?\{", re.M)
 _ACCESS: re.Pattern[str] = re.compile(r"(public|protected|private)\s*:")
 _ACCESSOR_TAIL: re.Pattern[str] = re.compile(r"\s*&\s*(\w+)\s*\(\s*\)")
 _SNAKE: re.Pattern[str] = re.compile(r"[a-z][a-z0-9]*(_[a-z0-9]+)*")

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/tab_page_capabilities.hpp"
@@ -9,7 +10,7 @@
 namespace gui_forms {
 
 // One page of a TabControl: a panel with the text and image its tab shows.
-class TabPage final : public Panel, public TabPageCapabilities<TabPage> {
+class GUI_FORMS_API TabPage final : public Panel, public TabPageCapabilities<TabPage> {
 public:
     explicit TabPage(StableId stable_id, std::string initial_text = {});
 

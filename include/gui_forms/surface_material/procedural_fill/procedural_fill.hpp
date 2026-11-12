@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstdint>
@@ -50,7 +51,7 @@ enum class ProceduralPattern : std::uint8_t {
 //   colour (fibres, grain, stripes, streaks); the fresco also reads
 //   `accent`, its gradient's last stop, and `bloom`, whose alpha is its
 //   blooms' peak opacity.
-struct ProceduralFill final {
+struct GUI_FORMS_API ProceduralFill final {
     ProceduralPattern pattern{ProceduralPattern::felt};
     std::uint32_t seed{};
     double tile{64.0};

@@ -3,6 +3,9 @@
 #include "gallery_theme_package.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/controls/date_time_value.hpp"
+#include "gui_forms/controls/month_calendar.hpp"
+#include "gui_forms/live_surface/surface/live_surface.hpp"
 
 #include <array>
 #include <cmath>

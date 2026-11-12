@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/text_box_base.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/scheduler.hpp"
@@ -27,7 +28,7 @@ class TextEditingEngine;
 
 // One change a RichTextBox command makes to its source: [start, end)
 // becomes text. A command's changes are sorted and do not overlap.
-struct RichTextSourceChange final {
+struct GUI_FORMS_API RichTextSourceChange final {
     std::size_t start{};
     std::size_t end{};
     std::string text{};
@@ -59,7 +60,7 @@ enum class RichTextFormatState : std::uint8_t { off, on, mixed };
 // every touched line is a heading of one level, held in heading_level; it
 // is mixed when the lines differ and at least one is a heading, and
 // heading_level is then 0, as it is for body text.
-struct RichTextFormat final {
+struct GUI_FORMS_API RichTextFormat final {
     RichTextFormatState bold{RichTextFormatState::off};
     RichTextFormatState italic{RichTextFormatState::off};
     RichTextFormatState code{RichTextFormatState::off};
@@ -83,7 +84,7 @@ struct RichTextFormat final {
 //
 // Positions are byte offsets into the source, on grapheme boundaries.
 // text() is the plain text (the markup removed); markdown() is the source.
-class RichTextBox final : public TextBoxBase, public RichTextBoxCapabilities<RichTextBox> {
+class GUI_FORMS_API RichTextBox final : public TextBoxBase, public RichTextBoxCapabilities<RichTextBox> {
 public:
     explicit RichTextBox(StableId stable_id, std::string_view markdown = {});
     ~RichTextBox() override;
@@ -191,7 +192,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members: TextBox's parts and the bar.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
@@ -201,7 +202,7 @@ public:
         PartGeometry caret;
         PartGeometry selection;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};
@@ -217,12 +218,12 @@ public:
     [[nodiscard]] States states() const;
     // A bar button's parts: its face, its label and, on the heading button,
     // the drop-down arrow.
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry button;
         PartGeometry button_label;
         PartGeometry button_glyph;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool hot{};
         bool pressed{};
         bool checked{};
@@ -231,7 +232,7 @@ public:
         bool disabled{};
         bool open{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         RichTextBarButton button{RichTextBarButton::bold};

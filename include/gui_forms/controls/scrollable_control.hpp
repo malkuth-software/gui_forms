@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/scroll_properties.hpp"
 #include "gui_forms/controls/scrollable_control_capabilities.hpp"
 #include "gui_forms/controls/scroll_bar_metrics.hpp"
@@ -13,7 +14,7 @@
 
 namespace gui_forms {
 
-class ScrollableControl : public Control, public ScrollableControlCapabilities<ScrollableControl> {
+class GUI_FORMS_API ScrollableControl : public Control, public ScrollableControlCapabilities<ScrollableControl> {
 public:
     static constexpr std::uint32_t scroll_state_auto_scrolling = 1U;
     static constexpr std::uint32_t scroll_state_hscroll_visible = 2U;
@@ -104,7 +105,7 @@ public:
                                   std::string_view value) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry viewport;
         PartGeometry horizontal_decrement_arrow;
@@ -118,7 +119,7 @@ public:
         PartGeometry scroll_corner;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

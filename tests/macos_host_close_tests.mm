@@ -2,7 +2,24 @@
 
 #include "macos_host.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/dispatcher/operation/dispatch_operation.hpp"
+#include "gui_forms/dispatcher/types/dispatcher_types.hpp"
+#include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
+#include "gui_forms/host/types/host_capability/host_capability.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/cursor_image/cursor_image.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <chrono>

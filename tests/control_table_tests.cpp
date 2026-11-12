@@ -5,7 +5,16 @@
 // and a read of settled state (a layout pass, a paint) drains the bits.
 // M0.2: a write only touches; the settle before a read does the ancestor
 // marks and places the damage at the bounds as they are then.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/layout/resize_axes/resize_axes.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 #include "gui_forms/control/content_region/content_region.hpp"
 

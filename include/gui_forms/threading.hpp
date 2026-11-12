@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/export/threading_export.hpp"
+
 #include <atomic>
 #include <memory>
 #include <span>
@@ -9,7 +11,7 @@ namespace gui_forms {
 
 // Cooperative cancellation. A request is permanent; observing it acquires
 // writes preceding request(). It does not interrupt I/O or wake a condition.
-class CancellationFlag final {
+class GUI_FORMS_THREADING_API CancellationFlag final {
 public:
     CancellationFlag() noexcept = default;
     CancellationFlag(const CancellationFlag&) = delete;
@@ -28,7 +30,7 @@ struct AtomicTask final {
 // The owner's threadpool_atomic_fast algorithm: synchronous batches, reusable
 // task storage, native pthread workers. Small batches may run on the caller.
 // Methods belong to one owner thread; entries borrow contexts until run returns.
-class AtomicThreadPool final {
+class GUI_FORMS_THREADING_API AtomicThreadPool final {
 public:
     explicit AtomicThreadPool(std::uint32_t threads);
     ~AtomicThreadPool();
@@ -47,7 +49,7 @@ private:
 // context until join or destruction finishes. Declare the worker AFTER its
 // context owner. Only request_cancel is concurrent-safe; join/destruction
 // belong to the creating thread, never to the worker itself.
-class Worker final {
+class GUI_FORMS_THREADING_API Worker final {
 public:
     using Entry = void (*)(const CancellationFlag& cancellation, void* context);
     explicit Worker(Entry entry, void* context);

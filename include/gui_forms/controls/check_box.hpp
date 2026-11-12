@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/detail/scalar_binding.hpp"
 
 #include "gui_forms/controls/button_base.hpp"
@@ -10,7 +11,7 @@
 
 namespace gui_forms {
 
-class CheckBox : public ButtonBase, public CheckBoxCapabilities<CheckBox> {
+class GUI_FORMS_API CheckBox : public ButtonBase, public CheckBoxCapabilities<CheckBox> {
 public:
     explicit CheckBox(StableId stable_id, std::string text = {});
     void bind(Command& command) override;
@@ -30,7 +31,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry well;
@@ -39,7 +40,7 @@ public:
         PartGeometry label;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool hot{};
         bool pressed{};

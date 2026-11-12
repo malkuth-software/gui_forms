@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
 
 #include <memory>
@@ -12,7 +13,7 @@ struct PropertyCollectionData;
 struct PropertyValueFactoryAccess;
 
 // Cheap immutable handle over a validated bounded homogeneous sequence.
-class PropertyCollectionValue final {
+class GUI_FORMS_API PropertyCollectionValue final {
 public:
     PropertyCollectionValue() = default;
     [[nodiscard]] explicit operator bool() const noexcept;
@@ -21,7 +22,7 @@ public:
     [[nodiscard]] const PropertyCollectionData* data() const noexcept {
         return data_.get();
     }
-    friend bool operator==(const PropertyCollectionValue& left,
+    friend GUI_FORMS_API bool operator==(const PropertyCollectionValue& left,
                            const PropertyCollectionValue& right) noexcept;
 
 private:

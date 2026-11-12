@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 #include <string>
 
@@ -18,7 +19,7 @@ enum class ObjectSelectionMode : std::uint8_t {
     multiple,
 };
 
-struct ObjectColumnId final {
+struct GUI_FORMS_API ObjectColumnId final {
     std::string value{};
     friend bool operator==(const ObjectColumnId& left, const ObjectColumnId& right) {
         const bool equal = left.value == right.value;
@@ -28,7 +29,7 @@ struct ObjectColumnId final {
 
 enum class ObjectSortDirection : std::uint8_t { ascending, descending };
 
-struct ObjectDetailsSort final {
+struct GUI_FORMS_API ObjectDetailsSort final {
     ObjectColumnId column{}; // Empty means no accepted sort indicator.
     ObjectSortDirection direction{ObjectSortDirection::ascending};
 };

@@ -1,4 +1,7 @@
 #include "pages.hpp"
+#include "gui_forms/controls/checked_list_box.hpp"
+#include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/list_view.hpp"
 
 #include "checked-collections_form.hpp"
 

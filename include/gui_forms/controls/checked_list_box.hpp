@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
@@ -13,14 +14,14 @@
 
 namespace gui_forms {
 
-struct ItemCheckEvent final {
+struct GUI_FORMS_API ItemCheckEvent final {
     std::size_t index{};
     CheckState current_state{CheckState::unchecked};
     CheckState new_state{CheckState::unchecked};
     bool cancel{};
 };
 
-class CheckedListBox final : public ListBox, public CheckedListBoxCapabilities<CheckedListBox> {
+class GUI_FORMS_API CheckedListBox final : public ListBox, public CheckedListBoxCapabilities<CheckedListBox> {
 public:
     explicit CheckedListBox(StableId stable_id);
 
@@ -50,21 +51,21 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(
         std::size_t item) const override;
     // Stage T1 item records: ListBox's row parts and states plus the check.
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry row;
         PartGeometry label;
         PartGeometry row_focus;
         PartGeometry check_well;
         PartGeometry check;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool selected{};
         bool hot{};
         bool current{};
         bool checked{};
         bool indeterminate{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;

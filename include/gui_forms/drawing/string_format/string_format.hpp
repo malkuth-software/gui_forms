@@ -1,18 +1,19 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/object/drawing_object.hpp"
 #include "gui_forms/drawing/types/drawing_types.hpp"
 
 namespace gui_drawing {
 
-struct StringFormatSnapshot final {
+struct GUI_FORMS_API StringFormatSnapshot final {
     StringAlignment alignment{StringAlignment::near};
     StringAlignment line_alignment{StringAlignment::near};
     StringTrimming trimming{StringTrimming::none};
     std::uint32_t flags{};
 };
 
-class StringFormat final : public DrawingObject {
+class GUI_FORMS_API StringFormat final : public DrawingObject {
 public:
     StringFormat() = default;
     explicit StringFormat(std::uint32_t flags);

@@ -1,4 +1,10 @@
 #include "pages.hpp"
+#include "gui_forms/components/about_dialog/about_dialog.hpp"
+#include "gui_forms/controls/callout.hpp"
+#include "gui_forms/controls/lookup_combo_box.hpp"
+#include "gui_forms/controls/modal_layer.hpp"
+#include "gui_forms/controls/step_indicator.hpp"
+#include "gui_forms/controls/wizard.hpp"
 
 #include "guided-tasks_form.hpp"
 

@@ -4,7 +4,13 @@
 // with the root, and the handle and host capabilities keep their stated
 // invariants.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/update_scope/update_scope.hpp"
+#include "gui_forms/window/window.hpp"
 #include "../src/core/surface_root/access/surface_application_access.hpp"
 #include "../src/core/surface_root/access/surface_engine_access.hpp"
 #include "../src/core/surface_root/access/surface_forwarding_access.hpp"

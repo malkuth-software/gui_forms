@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 #include <string>
 
@@ -10,7 +11,7 @@ namespace gui_forms {
 
 enum class BreadcrumbAppearance : std::uint8_t { plain, raised };
 
-struct BreadcrumbSegment final {
+struct GUI_FORMS_API BreadcrumbSegment final {
     std::string stable_id{};
     std::string text{};
     std::string description{};

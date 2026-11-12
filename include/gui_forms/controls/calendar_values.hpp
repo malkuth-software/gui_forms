@@ -3,6 +3,7 @@
 // MonthCalendar's value types, apart from the control so its capabilities
 // header can name them.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/date_time_value.hpp"
 
 #include <cstdint>
@@ -21,7 +22,7 @@ enum class CalendarWeekday : std::uint8_t {
 };
 
 // A run of whole days, first to last inclusive; the time of day is zero.
-struct CalendarDateRange final {
+struct GUI_FORMS_API CalendarDateRange final {
     DateTimeValue start{};
     DateTimeValue end{};
 
@@ -32,7 +33,7 @@ struct CalendarDateRange final {
 };
 
 // How many months the calendar shows: columns by rows, at most twelve.
-struct CalendarDimensions final {
+struct GUI_FORMS_API CalendarDimensions final {
     std::uint32_t columns{1U};
     std::uint32_t rows{1U};
 

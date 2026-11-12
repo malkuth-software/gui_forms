@@ -1,7 +1,18 @@
 // Stage DP: a paint pass over a set of damage rectangles paints each one
 // under its own clip. Two distant changes cost the sum of their areas, not
 // their bounding box, and nothing is drawn between them.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <cstdlib>

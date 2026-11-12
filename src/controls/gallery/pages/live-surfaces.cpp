@@ -4,6 +4,8 @@
 
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
+#include "gui_forms/controls/drawing_surface.hpp"
+#include "gui_forms/timer/timer/timer.hpp"
 
 namespace gui_forms::gallery::pages {
 

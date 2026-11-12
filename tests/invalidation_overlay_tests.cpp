@@ -7,7 +7,14 @@
 // stable id), to layout on a resize and to a host expose for a painted area
 // nothing asked for; the process switch reaches windows without a setting
 // of their own, and a window's own setting wins.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 
 #include <chrono>

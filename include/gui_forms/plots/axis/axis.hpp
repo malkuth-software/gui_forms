@@ -10,6 +10,7 @@
 // respect `lock`: a locked end does not move, and a zoom about a point
 // with one end locked zooms about that end instead.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/plot_types/plot_types.hpp"
 #include "gui_forms/plots/scale/scale.hpp"
 
@@ -33,7 +34,7 @@ enum class AxisFit : std::uint8_t { none, once, always, visible_range };
 
 // A follow-tail axis keeps its maximum on the newest data and its extent at
 // `span` (scrolling time); the user's pan stops it until a fit or End.
-struct AxisFollow final {
+struct GUI_FORMS_API AxisFollow final {
     bool tail{};
     double span{};
 
@@ -45,7 +46,7 @@ struct AxisFollow final {
 // The most axes of one orientation a plot holds.
 inline constexpr std::size_t maximum_axes_per_orientation = 4U;
 
-struct Axis final {
+struct GUI_FORMS_API Axis final {
     ScaleKind kind{ScaleKind::linear};
     PlotRange range{};
     AxisSide side{AxisSide::bottom};
@@ -66,7 +67,7 @@ struct Axis final {
 // device_high] along it (left to right, or top to bottom). A horizontal
 // axis maps its minimum to the low end; a vertical one to the high end
 // (device y grows downwards); `inverted` swaps them.
-[[nodiscard]] Scale axis_scale(const Axis& axis, double device_low, double device_high) noexcept;
+[[nodiscard]] GUI_FORMS_API Scale axis_scale(const Axis& axis, double device_low, double device_high) noexcept;
 
 [[nodiscard]] constexpr bool locks_minimum(AxisLock lock) noexcept {
     return lock == AxisLock::minimum || lock == AxisLock::both;
@@ -76,7 +77,7 @@ struct Axis final {
 }
 
 // A range the axis may take: valid, and positive for a log10 axis.
-[[nodiscard]] bool admissible_range(const Axis& axis, PlotRange range) noexcept;
+[[nodiscard]] GUI_FORMS_API bool admissible_range(const Axis& axis, PlotRange range) noexcept;
 
 // The smallest extent a zoom may reach, relative to the range's magnitude,
 // so that zooming in never collapses a range below what doubles resolve.
@@ -87,7 +88,7 @@ inline constexpr double minimum_relative_extent = 1e-12;
 // the link. One thread: the plots of a link live on one UI thread (linked
 // live plots exchange ranges as messages, plot_view.hpp). Shared by the
 // plots that join it.
-class AxisLink final {
+class GUI_FORMS_API AxisLink final {
 public:
     explicit AxisLink(PlotRange range) noexcept : range_(range) {}
 

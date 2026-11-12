@@ -1,4 +1,12 @@
 #include "pages.hpp"
+#include "gui_forms/controls/breadcrumb_trail.hpp"
+#include "gui_forms/controls/breadcrumb_trail_values.hpp"
+#include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view_row_order.hpp"
+#include "gui_forms/controls/data_grid_view_types.hpp"
+#include "gui_forms/controls/tree_list_view.hpp"
+#include "gui_forms/controls/tree_view.hpp"
 
 #include "tree-and-object-views_form.hpp"
 #include "gui_forms_lab/correspondence_view.hpp"

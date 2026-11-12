@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
 #include <cstdint>
@@ -12,7 +13,7 @@ namespace gui_forms {
 
 // Renderer- and platform-neutral mutable Unicode storage. Typed positions keep
 // callers independent from the current contiguous UTF-8 representation.
-class TextStore final {
+class GUI_FORMS_API TextStore final {
 public:
     explicit TextStore(std::string_view text = {}, TextStoreLimits limits = {});
 
@@ -38,7 +39,7 @@ public:
         return limits_;
     }
     [[nodiscard]] std::span<const TextStyleSpan> style_spans() const& noexcept {
-        return style_spans_;
+        return std::span<const TextStyleSpan>(style_spans_.data(), style_spans_.size());
     }
     std::span<const TextStyleSpan> style_spans() const&& = delete;
 

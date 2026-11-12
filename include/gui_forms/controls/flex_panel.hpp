@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/layout/flex_solver/flex_solver.hpp"
 #include "gui_forms/layout/positioning/positioning.hpp"
@@ -18,7 +19,7 @@ namespace gui_forms {
 // the child leaves. Margins are the child's own `margin`; `auto_margin`
 // marks the sides that are `auto` instead. The child's minimum_size and
 // maximum_size still bound it after these sizes are applied.
-struct FlexItemLayout final {
+struct GUI_FORMS_API FlexItemLayout final {
     // flex-grow, flex-shrink, flex-basis and order.
     FlexItemStyle flex{};
     // `auto` takes the panel's align_items.
@@ -52,7 +53,7 @@ struct FlexItemLayout final {
 // A container that lays its children out as a CSS flex container (stage L,
 // phase L3): one or more lines along a main axis, with growing, shrinking,
 // gaps and box alignment, through the core flex solver.
-class FlexPanel final : public ContainerControl, public FlexPanelCapabilities<FlexPanel> {
+class GUI_FORMS_API FlexPanel final : public ContainerControl, public FlexPanelCapabilities<FlexPanel> {
 public:
     explicit FlexPanel(StableId stable_id);
 
@@ -74,7 +75,9 @@ public:
     // last until its next arrange.
     [[nodiscard]] const FlexLayoutWorkspace& layout_snapshot() const& noexcept { return arranged_; }
     const FlexLayoutWorkspace& layout_snapshot() const&& = delete;
-    [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept { return arranged_ids_; }
+    [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept {
+        return std::span<const RuntimeId>(arranged_ids_.data(), arranged_ids_.size());
+    }
     std::span<const RuntimeId> laid_out_children() const&& = delete;
 
     [[nodiscard]] Size measure(Size available) override;

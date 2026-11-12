@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -14,7 +15,7 @@ namespace host {
 
 // Thread-affine Win32 compatibility raster endpoint. Its registry token is
 // never an HWND and its retained renderer consumes only the durable surface.
-class WindowsCompatibilityPaintEndpoint final {
+class GUI_FORMS_API WindowsCompatibilityPaintEndpoint final {
 public:
     static std::shared_ptr<WindowsCompatibilityPaintEndpoint> acquire(
         std::uint32_t width, std::uint32_t height);

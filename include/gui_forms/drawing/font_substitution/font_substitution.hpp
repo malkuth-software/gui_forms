@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 #include <span>
 #include <string_view>
@@ -50,14 +51,14 @@ enum class FontResolutionSource : std::uint8_t {
     content,
 };
 
-struct BundledFontFace final {
+struct GUI_FORMS_API BundledFontFace final {
     std::string_view family;
     FontFaceStyle style{FontFaceStyle::regular};
     // A file name inside the bundled font directory.
     std::string_view file;
 };
 
-struct FontSubstitution final {
+struct GUI_FORMS_API FontSubstitution final {
     // As written in the table; requests match it ignoring ASCII case.
     std::string_view requested;
     std::string_view family;
@@ -90,7 +91,7 @@ enum class FontGateCriterion : std::uint8_t {
 // A named exception (decisions 16 and 17): one style of a substitution may
 // fail one criterion, within `limit`, in the criterion's own unit. The gate
 // fails an exception whose criterion passes, so stale exceptions surface.
-struct FontGateException final {
+struct GUI_FORMS_API FontGateException final {
     std::string_view requested;
     FontFaceStyle style{FontFaceStyle::regular};
     FontGateCriterion criterion{FontGateCriterion::advances};
@@ -100,7 +101,7 @@ struct FontGateException final {
 
 // One request's answer. Every view points into the static table except
 // `requested`, which borrows the caller's string.
-struct FontFamilyResolution final {
+struct GUI_FORMS_API FontFamilyResolution final {
     std::string_view requested;
     FontResolutionSource source{FontResolutionSource::unmapped};
     FontMappingClass mapping{FontMappingClass::none};
@@ -116,22 +117,22 @@ struct FontFamilyResolution final {
 };
 
 // The face style of a FontStyle value: its bold and italic bits.
-[[nodiscard]] FontFaceStyle font_face_style(std::uint32_t font_style) noexcept;
+[[nodiscard]] GUI_FORMS_API FontFaceStyle font_face_style(std::uint32_t font_style) noexcept;
 
 // The table's answer for a family and style. Matching ignores ASCII case
 // only. An empty or unknown name is `unmapped`.
-[[nodiscard]] FontFamilyResolution resolve_font_family(std::string_view requested, FontFaceStyle style) noexcept;
+[[nodiscard]] GUI_FORMS_API FontFamilyResolution resolve_font_family(std::string_view requested, FontFaceStyle style) noexcept;
 
 // The content family's face for an unmapped request no host face answers,
 // reported as `content`.
-[[nodiscard]] FontFamilyResolution content_font_resolution(std::string_view requested, FontFaceStyle style) noexcept;
+[[nodiscard]] GUI_FORMS_API FontFamilyResolution content_font_resolution(std::string_view requested, FontFaceStyle style) noexcept;
 
-[[nodiscard]] std::string_view content_font_family() noexcept;
-[[nodiscard]] std::span<const BundledFontFace> bundled_font_faces() noexcept;
-[[nodiscard]] std::span<const FontSubstitution> font_substitutions() noexcept;
-[[nodiscard]] const char* font_resolution_source_name(FontResolutionSource source) noexcept;
-[[nodiscard]] const char* font_mapping_class_name(FontMappingClass mapping) noexcept;
-[[nodiscard]] std::span<const FontGateException> font_gate_exceptions() noexcept;
-[[nodiscard]] const char* font_gate_criterion_name(FontGateCriterion criterion) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view content_font_family() noexcept;
+[[nodiscard]] GUI_FORMS_API std::span<const BundledFontFace> bundled_font_faces() noexcept;
+[[nodiscard]] GUI_FORMS_API std::span<const FontSubstitution> font_substitutions() noexcept;
+[[nodiscard]] GUI_FORMS_API const char* font_resolution_source_name(FontResolutionSource source) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* font_mapping_class_name(FontMappingClass mapping) noexcept;
+[[nodiscard]] GUI_FORMS_API std::span<const FontGateException> font_gate_exceptions() noexcept;
+[[nodiscard]] GUI_FORMS_API const char* font_gate_criterion_name(FontGateCriterion criterion) noexcept;
 
 } // namespace gui_drawing

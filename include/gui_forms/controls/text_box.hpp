@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/text_box_base.hpp"
 #include "gui_forms/controls/auto_complete.hpp"
 #include "gui_forms/delegate.hpp"
@@ -22,7 +23,7 @@
 
 namespace gui_forms {
 
-struct TextSelection final {
+struct GUI_FORMS_API TextSelection final {
     Utf8Offset anchor{};
     Utf8Offset caret{};
 
@@ -74,7 +75,7 @@ enum class TextEditVerdict : std::uint8_t {
 // the whole new text and where the caret goes in it. `replacement` and the
 // caret offsets are borrowed for the call. For a deletion with an empty
 // selection the range is the grapheme Backspace or Delete would remove.
-struct TextEdit final {
+struct GUI_FORMS_API TextEdit final {
     TextEditKind kind{TextEditKind::typing};
     Utf8Offset start{};
     Utf8Offset end{};
@@ -97,7 +98,7 @@ struct TextBoxAutoCompleteSession;
 class TextEditingEngine;
 } // namespace detail
 
-class TextBox final : public TextBoxBase, public TextBoxCapabilities<TextBox> {
+class GUI_FORMS_API TextBox final : public TextBoxBase, public TextBoxCapabilities<TextBox> {
 public:
     explicit TextBox(StableId stable_id, std::string initial_text = {});
     ~TextBox() override;
@@ -246,7 +247,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
@@ -255,7 +256,7 @@ public:
         PartGeometry caret;
         PartGeometry selection;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

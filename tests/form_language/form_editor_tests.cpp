@@ -7,7 +7,9 @@
 #include "../../src/core/form_language/form_model/form_model.hpp"
 #include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/user_control.hpp"
 
 #include <cstddef>
 #include <iostream>

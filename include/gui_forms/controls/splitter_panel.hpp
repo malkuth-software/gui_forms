@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/splitter_panel_capabilities.hpp"
 
@@ -7,14 +8,14 @@
 
 namespace gui_forms {
 
-class SplitterPanel final : public ContainerControl, public SplitterPanelCapabilities<SplitterPanel> {
+class GUI_FORMS_API SplitterPanel final : public ContainerControl, public SplitterPanelCapabilities<SplitterPanel> {
 public:
     explicit SplitterPanel(StableId stable_id);
 
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members: the scrollable parts and the face.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
     };

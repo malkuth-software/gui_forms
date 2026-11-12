@@ -1,11 +1,12 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <compare>
 #include <cstdint>
 
 namespace gui_forms {
 
-struct DateTimeValue final {
+struct GUI_FORMS_API DateTimeValue final {
     std::int32_t year{2000};
     std::uint8_t month{1U};
     std::uint8_t day{1U};
@@ -38,11 +39,11 @@ struct DateTimeValue final {
     }
 };
 
-[[nodiscard]] bool valid_date_time(DateTimeValue value) noexcept;
-[[nodiscard]] std::uint8_t days_in_month(std::int32_t year,
+[[nodiscard]] GUI_FORMS_API bool valid_date_time(DateTimeValue value) noexcept;
+[[nodiscard]] GUI_FORMS_API std::uint8_t days_in_month(std::int32_t year,
                                          std::uint8_t month) noexcept;
-[[nodiscard]] DateTimeValue add_days(DateTimeValue value,
+[[nodiscard]] GUI_FORMS_API DateTimeValue add_days(DateTimeValue value,
                                      std::int64_t days) noexcept;
-[[nodiscard]] std::uint8_t day_of_week(DateTimeValue value) noexcept;
+[[nodiscard]] GUI_FORMS_API std::uint8_t day_of_week(DateTimeValue value) noexcept;
 
 } // namespace gui_forms

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <optional>
 #include <string_view>
@@ -25,7 +26,7 @@ namespace gui_drawing::render {
 // back at the default weight, and the raster module files it by its OS/2
 // value rather than in the bold slot. Static families (the tested Helvetica
 // case) are unaffected.
-[[nodiscard]] std::optional<std::vector<std::byte>> core_text_font_bytes(std::string_view family, bool bold,
+[[nodiscard]] GUI_FORMS_API std::optional<std::vector<std::byte>> core_text_font_bytes(std::string_view family, bool bold,
                                                                          std::size_t maximum_bytes);
 
 } // namespace gui_drawing::render

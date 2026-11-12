@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <array>
@@ -47,7 +48,7 @@ inline constexpr std::string_view c_abi_failure_site = "c_abi";
 // (at most shadow_stack_capacity) the recorded ones, the leading elements of
 // frames. The text arrays hold site_size and message_size bytes; the bytes
 // past them are zero.
-struct FailureSnapshot final {
+struct GUI_FORMS_API FailureSnapshot final {
     std::int32_t status = 0;
     std::uint32_t interface_id = 0U;
     std::uint32_t function_index = 0U;
@@ -63,7 +64,7 @@ struct FailureSnapshot final {
 
 // Where a snapshot is taken: the boundary's site and status, and the C ABI
 // function when there is one (else zero).
-struct FailureBoundary final {
+struct GUI_FORMS_API FailureBoundary final {
     std::string_view site;
     std::int32_t status = 0;
     std::uint32_t interface_id = 0U;
@@ -73,22 +74,22 @@ struct FailureBoundary final {
 // Replaces the calling thread's snapshot with message at boundary and the
 // failure's shadow frames. To be called inside the catch block that caught
 // the exception, before anything opens a frame. status must not be zero.
-void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message) noexcept;
+GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message) noexcept;
 
 // As record_failure_snapshot, with failure's text as the message (what() for
 // a std::exception, else a fixed text).
-void record_failure_snapshot(const FailureBoundary& boundary, std::exception_ptr failure) noexcept;
+GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::exception_ptr failure) noexcept;
 
 // The calling thread's snapshot, borrowed for use on this thread until its
 // next record or clear; a C ABI reader copies out of it.
-[[nodiscard]] const FailureSnapshot& thread_failure_snapshot() noexcept;
+[[nodiscard]] GUI_FORMS_API const FailureSnapshot& thread_failure_snapshot() noexcept;
 
 // Forgets the calling thread's snapshot (status zero, no frames, no text);
 // sequence keeps counting.
-void clear_failure_snapshot() noexcept;
+GUI_FORMS_API void clear_failure_snapshot() noexcept;
 
 // Exception reflection's process switch. Any thread.
-void set_exception_reflection(bool enabled) noexcept;
-[[nodiscard]] bool exception_reflection() noexcept;
+GUI_FORMS_API void set_exception_reflection(bool enabled) noexcept;
+[[nodiscard]] GUI_FORMS_API bool exception_reflection() noexcept;
 
 } // namespace gui_forms::detail

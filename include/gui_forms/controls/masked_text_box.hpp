@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/masked_text_provider.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/text_box_base.hpp"
@@ -17,7 +18,7 @@ namespace gui_forms {
 
 // Input the mask refused: the position the character was tested at, why,
 // and the refused text (one character typed, or the whole value offered).
-struct MaskInputRejection final {
+struct GUI_FORMS_API MaskInputRejection final {
     MaskPosition position{};
     MaskResultHint hint{MaskResultHint::invalid_input};
     std::string text{};
@@ -27,7 +28,7 @@ struct MaskInputRejection final {
 // The hook reads `text` (the text in text_mask_format) and writes `valid`
 // and, when it refuses, a `message`; setting `cancel` keeps the focus in the
 // box when validation runs because the focus is leaving.
-struct MaskValidation final {
+struct GUI_FORMS_API MaskValidation final {
     std::string text{};
     bool mask_completed{};
     bool valid{true};
@@ -43,7 +44,7 @@ struct MaskValidation final {
 // provider: input that does not fit is refused and reported by
 // mask_input_rejected, and the caret passes over literals. An empty mask
 // takes any text, as a plain TextBox.
-class MaskedTextBox final : public TextBoxBase, public MaskedTextBoxCapabilities<MaskedTextBox> {
+class GUI_FORMS_API MaskedTextBox final : public TextBoxBase, public MaskedTextBoxCapabilities<MaskedTextBox> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit MaskedTextBox(StableId stable_id, std::string initial_mask = {});
@@ -101,13 +102,13 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
         PartGeometry field;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

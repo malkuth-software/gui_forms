@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/geometry/drawing_geometry.hpp"
 
 namespace gui_drawing {
 
-class Matrix final {
+class GUI_FORMS_API Matrix final {
 public:
     constexpr Matrix() noexcept = default;
     constexpr Matrix(double m11, double m12, double m21, double m22,

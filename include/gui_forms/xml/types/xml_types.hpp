@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -22,7 +23,7 @@ namespace gui_forms {
 // column counts Unicode scalar values from the start of the line, not bytes;
 // CR LF, CR and LF each end one line. byte_offset counts bytes from the start
 // of the input, including any byte order mark.
-struct XmlSourcePosition final {
+struct GUI_FORMS_API XmlSourcePosition final {
     std::size_t byte_offset{};
     std::uint32_t line{};
     std::uint32_t column{};
@@ -36,7 +37,7 @@ struct XmlSourcePosition final {
 
 // Every bound the reader and writer enforce. Each one, when exceeded, gives
 // its own XmlError. Lengths are in bytes of UTF-8 after entity decoding.
-struct XmlLimits final {
+struct GUI_FORMS_API XmlLimits final {
     std::size_t maximum_input_bytes{4U * 1024U * 1024U};
     // The root element is at depth 1.
     std::uint32_t maximum_depth{64};
@@ -84,9 +85,9 @@ enum class XmlError : std::uint8_t {
     mixed_content,
 };
 
-[[nodiscard]] std::string_view xml_error_name(XmlError error) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view xml_error_name(XmlError error) noexcept;
 
-struct XmlAttribute final {
+struct GUI_FORMS_API XmlAttribute final {
     std::string name;
     std::string value;
 
@@ -103,7 +104,7 @@ struct XmlAttribute final {
 // A tree built in code has no depth limit, so copying, comparing and
 // destroying walk it in explicit work storage instead of recursing per
 // level (HOUSE_STYLE section 1). Moving moves the child list's storage.
-struct XmlElement final {
+struct GUI_FORMS_API XmlElement final {
     std::string name;
     std::vector<XmlAttribute> attributes;
     std::vector<XmlElement> children;
@@ -129,10 +130,10 @@ struct XmlElement final {
 
     // Compares the trees level by level in a work list, so it may throw
     // std::bad_alloc.
-    friend bool operator==(const XmlElement& left, const XmlElement& right);
+    friend GUI_FORMS_API bool operator==(const XmlElement& left, const XmlElement& right);
 };
 
-struct XmlReadResult final {
+struct GUI_FORMS_API XmlReadResult final {
     XmlError error{XmlError::none};
     // Where the error was found; all zero on success.
     XmlSourcePosition position{};
@@ -144,14 +145,14 @@ struct XmlReadResult final {
     }
 };
 
-struct XmlWriteOptions final {
+struct GUI_FORMS_API XmlWriteOptions final {
     // Spaces per nesting level; zero writes each element on its own line
     // without indentation.
     std::uint32_t indent_spaces{2};
     bool declaration{true};
 };
 
-struct XmlWriteResult final {
+struct GUI_FORMS_API XmlWriteResult final {
     XmlError error{XmlError::none};
     // The document on success; empty on failure.
     std::string text{};

@@ -21,6 +21,7 @@
 // sub-surface's frame time (LiveSurfacePacer), so tests install a
 // MotionTimeSource or pass times directly.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 
 #include <array>
@@ -38,7 +39,7 @@ inline constexpr std::size_t signal_sink_capacity =
     static_cast<std::size_t>(maximum_ticks_per_frame) * maximum_samples_per_tick;
 
 // The ticks one frame runs: [first_tick, first_tick + tick_count).
-struct SignalFrame final {
+struct GUI_FORMS_API SignalFrame final {
     std::uint64_t first_tick{};
     std::uint32_t tick_count{};
     std::uint32_t samples_per_tick{16U};
@@ -51,7 +52,7 @@ struct SignalFrame final {
 
 // Where a program writes: fixed capacity, times in seconds from the
 // program's start. Reused frame to frame (clear() first).
-struct SignalSink final {
+struct GUI_FORMS_API SignalSink final {
     std::array<double, signal_sink_capacity> times{};
     std::array<double, signal_sink_capacity> values{};
     std::size_t count{};
@@ -73,12 +74,12 @@ struct SignalSink final {
 // one run against operations_per_sample × signal_sink_capacity, so the
 // per-sample figure also covers each sample's share of the frame's loop
 // and validation overhead.
-struct SignalDeclaration final {
+struct GUI_FORMS_API SignalDeclaration final {
     std::string_view name{};
     std::uint32_t operations_per_sample{};
 };
 
-struct SineSignal final {
+struct GUI_FORMS_API SineSignal final {
     static constexpr SignalDeclaration declaration{"sine", 80U};
     double frequency{1.0};
     double amplitude{1.0};
@@ -88,7 +89,7 @@ struct SineSignal final {
     void run(const SignalFrame& frame, SignalSink& sink) const noexcept;
 };
 
-struct SquareSignal final {
+struct GUI_FORMS_API SquareSignal final {
     static constexpr SignalDeclaration declaration{"square", 32U};
     double frequency{1.0};
     double amplitude{1.0};
@@ -98,7 +99,7 @@ struct SquareSignal final {
     void run(const SignalFrame& frame, SignalSink& sink) const noexcept;
 };
 
-struct SawSignal final {
+struct GUI_FORMS_API SawSignal final {
     static constexpr SignalDeclaration declaration{"saw", 32U};
     double frequency{1.0};
     double amplitude{1.0};
@@ -108,7 +109,7 @@ struct SawSignal final {
 
 // A linear chirp from `frequency` to `end_frequency` over each sweep of
 // `sweep_seconds`, repeating.
-struct ChirpSignal final {
+struct GUI_FORMS_API ChirpSignal final {
     static constexpr SignalDeclaration declaration{"chirp", 96U};
     double frequency{1.0};
     double end_frequency{10.0};
@@ -118,7 +119,7 @@ struct ChirpSignal final {
 };
 
 // Uniform noise in [-amplitude, amplitude] (plus offset), keyed by sample.
-struct NoiseSignal final {
+struct GUI_FORMS_API NoiseSignal final {
     static constexpr SignalDeclaration declaration{"noise", 40U};
     double amplitude{1.0};
     double offset{};
@@ -128,14 +129,14 @@ struct NoiseSignal final {
 
 inline constexpr std::size_t maximum_oscillators = 8U;
 
-struct Oscillator final {
+struct GUI_FORMS_API Oscillator final {
     double frequency{1.0};
     double amplitude{1.0};
     double phase{};
 };
 
 // A sum of up to maximum_oscillators sines.
-struct OscillatorBank final {
+struct GUI_FORMS_API OscillatorBank final {
     static constexpr SignalDeclaration declaration{"oscillators", 64U * maximum_oscillators};
     std::array<Oscillator, maximum_oscillators> oscillators{};
     std::size_t count{};
@@ -153,7 +154,7 @@ enum class SignalKind : std::uint8_t { sine, square, saw, chirp, noise, oscillat
 // plugin's effect pass, which verifies P::run under the effect rules and
 // bounds it by the declared budget (signal_program.cpp instantiates one per
 // kind, in SignalKind order).
-struct SignalEntry final {
+struct GUI_FORMS_API SignalEntry final {
     const SignalDeclaration* declaration{};
     std::size_t state_size{};
 };
@@ -167,7 +168,7 @@ template <typename Program>
 
 // One program of any kind, by value: the kind chooses which member is live
 // (a tagged record rather than a callable, so no indirect call runs).
-struct SignalProgram final {
+struct GUI_FORMS_API SignalProgram final {
     SignalKind kind{SignalKind::sine};
     SineSignal sine{};
     SquareSignal square{};
@@ -180,13 +181,13 @@ struct SignalProgram final {
 };
 
 // Runs the live program for `frame` into `sink` (not cleared first).
-void run_signal(const SignalProgram& program, const SignalFrame& frame, SignalSink& sink) noexcept;
-[[nodiscard]] const SignalDeclaration& signal_declaration(SignalKind kind) noexcept;
+GUI_FORMS_API void run_signal(const SignalProgram& program, const SignalFrame& frame, SignalSink& sink) noexcept;
+[[nodiscard]] GUI_FORMS_API const SignalDeclaration& signal_declaration(SignalKind kind) noexcept;
 
 // Converts frame times to ticks. Starts at the first advance() (tick 0 at
 // that time); each advance runs the ticks due since, at most
 // maximum_ticks_per_frame of them, skipping the excess.
-class SignalClock final {
+class GUI_FORMS_API SignalClock final {
 public:
     // The ticks due at `now`; an empty frame when none are.
     SignalFrame advance(FrameTime now, std::uint32_t samples_per_tick) noexcept;
@@ -225,6 +226,6 @@ enum class SignalParseOutcome : std::uint8_t {
 // amplitude repeated (one oscillator per frequency), offset. All take
 // samples (per tick). A form names data, not code: the kind must be
 // registered here.
-SignalParseOutcome parse_signal_source(std::string_view text, SignalProgram& program) noexcept;
+GUI_FORMS_API SignalParseOutcome parse_signal_source(std::string_view text, SignalProgram& program) noexcept;
 
 } // namespace gui_forms::plots

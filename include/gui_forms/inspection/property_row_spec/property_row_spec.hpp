@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/inspection/types/property_editor_kind/property_editor_kind.hpp"
 
 #include <cstdint>
@@ -9,7 +10,7 @@
 namespace gui_forms {
 
 // Authored settings-row state consumed by PropertyList and PropertyGrid.
-struct PropertyRowSpec final {
+struct GUI_FORMS_API PropertyRowSpec final {
     PropertyRowSpec() = default;
     PropertyRowSpec(std::string authored_stable_id,
                     std::string authored_name,

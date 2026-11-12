@@ -30,7 +30,22 @@
 //
 // Usage: gui_forms_canvas_pan_benchmark [steps]
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/live_surface/surface/live_surface.hpp"
+#include "gui_forms/live_surface/types/live_surface_types.hpp"
+#include "gui_forms/live_surface/write_lease/live_surface_write_lease.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "skia_raster.hpp"
 

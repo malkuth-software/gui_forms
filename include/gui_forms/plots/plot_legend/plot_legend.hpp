@@ -13,6 +13,7 @@
 //   (else the first placement). At most maximum_annotations labels:
 //   O(n²) with n bounded.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
 #include <cstddef>
@@ -35,7 +36,7 @@ enum class LegendPlace : std::uint8_t {
 
 enum class LegendFlow : std::uint8_t { vertical, horizontal };
 
-struct LegendStyle final {
+struct GUI_FORMS_API LegendStyle final {
     LegendPlace place{LegendPlace::top_right};
     // Inside the plot rectangle (true) or beside it (false: outside the
     // plot's side the place names; center inside always).
@@ -51,28 +52,28 @@ struct LegendStyle final {
 };
 
 // One entry's laid-out geometry, in the plot's coordinates.
-struct LegendEntryLayout final {
+struct GUI_FORMS_API LegendEntryLayout final {
     Rect bounds{};
     Rect swatch{};
     Rect label{};
 };
 
-struct LegendLayout final {
+struct GUI_FORMS_API LegendLayout final {
     Rect frame{};
     std::size_t entry_count{};
 };
 
 // Lays out entries whose label widths are `label_widths` into `entries`
 // (at least as many) and returns the frame. No entries: an empty frame.
-LegendLayout layout_legend(const LegendStyle& style, Rect plot, std::span<const double> label_widths,
+GUI_FORMS_API LegendLayout layout_legend(const LegendStyle& style, Rect plot, std::span<const double> label_widths,
                            std::span<LegendEntryLayout> entries) noexcept;
 
 // The index of the entry at `point`, or entries.size() for none.
-[[nodiscard]] std::size_t legend_entry_at(std::span<const LegendEntryLayout> entries, Point point) noexcept;
+[[nodiscard]] GUI_FORMS_API std::size_t legend_entry_at(std::span<const LegendEntryLayout> entries, Point point) noexcept;
 
 inline constexpr std::size_t maximum_annotations = 64U;
 
-struct AnnotationRequest final {
+struct GUI_FORMS_API AnnotationRequest final {
     // The anchor in device (logical) coordinates.
     Point anchor{};
     Size size{};
@@ -81,7 +82,7 @@ struct AnnotationRequest final {
 // Places labels of `requests` (at most maximum_annotations; the excess is
 // left unplaced) into `placed`, clamped inside `plot`; returns the count
 // placed.
-std::size_t layout_annotations(Rect plot, std::span<const AnnotationRequest> requests,
+GUI_FORMS_API std::size_t layout_annotations(Rect plot, std::span<const AnnotationRequest> requests,
                                std::span<Rect> placed) noexcept;
 
 } // namespace gui_forms::plots

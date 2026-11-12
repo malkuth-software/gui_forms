@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/object_view_values.hpp"
@@ -19,6 +20,8 @@
 
 namespace gui_forms {
 
+struct PartPaint;
+
 enum class ObjectGlyph : std::uint8_t {
     folder,
     document,
@@ -31,7 +34,7 @@ enum class ObjectGlyph : std::uint8_t {
 enum class ObjectCellAvailability : std::uint8_t { available, unavailable, not_applicable };
 enum class ObjectColumnAlignment : std::uint8_t { left, right };
 
-struct ObjectDetailsColumn final {
+struct GUI_FORMS_API ObjectDetailsColumn final {
     ObjectColumnId id{};
     std::string label{};
     double width{160.0};
@@ -41,19 +44,19 @@ struct ObjectDetailsColumn final {
     bool sortable{true};
 };
 
-struct ObjectDetailsCell final {
+struct GUI_FORMS_API ObjectDetailsCell final {
     ObjectColumnId column{};
     std::string text{};
     ObjectCellAvailability availability{ObjectCellAvailability::available};
 };
 
-struct ObjectDetailsPaintWork final {
+struct GUI_FORMS_API ObjectDetailsPaintWork final {
     std::size_t rows{};
     std::size_t cells{};
     std::size_t text_preparations{};
 };
 
-struct ObjectViewItem final {
+struct GUI_FORMS_API ObjectViewItem final {
     std::string stable_id{};
     std::string name{};
     std::string secondary_text{};
@@ -64,14 +67,14 @@ struct ObjectViewItem final {
     std::vector<ObjectDetailsCell> cells{};
 };
 
-struct ObjectSelectionChange final {
+struct GUI_FORMS_API ObjectSelectionChange final {
     std::string previous_id{};
     std::string current_id{};
     std::vector<std::string> previous_ids{};
     std::vector<std::string> current_ids{};
 };
 
-struct ObjectContextRequest final {
+struct GUI_FORMS_API ObjectContextRequest final {
     std::string stable_id{};
     Point screen_position{};
 };
@@ -79,7 +82,7 @@ struct ObjectContextRequest final {
 // A stable-ID virtual object collection with icon and details projections.
 // It owns no per-item controls: paint, hit testing, keyboard spatial movement,
 // and semantic realization operate on a bounded visible window.
-class ObjectView final : public Panel, public ObjectViewCapabilities<ObjectView> {
+class GUI_FORMS_API ObjectView final : public Panel, public ObjectViewCapabilities<ObjectView> {
 public:
     explicit ObjectView(StableId stable_id);
     // Provisional development admission guard, not measured product capacity.
@@ -103,7 +106,7 @@ public:
                            std::vector<ObjectViewItem> items,
                            ObjectDetailsSort accepted_sort);
     [[nodiscard]] std::span<const ObjectDetailsColumn> details_columns() const& noexcept {
-        return details_columns_;
+        return std::span<const ObjectDetailsColumn>(details_columns_.data(), details_columns_.size());
     }
     std::span<const ObjectDetailsColumn> details_columns() const&& = delete;
     void set_details_column_width(const ObjectColumnId& column, double width);
@@ -112,7 +115,7 @@ public:
     [[nodiscard]] double horizontal_offset() const noexcept { return horizontal_offset_; }
     [[nodiscard]] ObjectDetailsPaintWork details_paint_work() const noexcept { return details_paint_work_; }
     [[nodiscard]] std::span<const std::string> selected_ids() const& noexcept {
-        return selected_ids_;
+        return std::span<const std::string>(selected_ids_.data(), selected_ids_.size());
     }
     std::span<const std::string> selected_ids() const&& = delete;
     void set_selected_ids(std::vector<std::string> stable_ids,
@@ -158,27 +161,27 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(
         std::size_t item) const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
         PartGeometry header;
     };
     [[nodiscard]] Parts parts() const;
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry cell;
         PartGeometry glyph;
         PartGeometry name;
         PartGeometry secondary;
         PartGeometry cell_focus;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool selected{};
         bool hot{};
         bool current{};
         bool disabled{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;
@@ -190,7 +193,7 @@ public:
     // "column". Realized columns are those the viewport shows; in the
     // generic realized-item path they follow the realized items. A column's
     // identity is the view's stable ID, ".column.", and the column's id.
-    struct ColumnParts final {
+    struct GUI_FORMS_API ColumnParts final {
         PartGeometry column_header;
         PartGeometry column_label;
         PartGeometry sort_glyph;
@@ -198,7 +201,7 @@ public:
         PartGeometry column_grip;
         PartGeometry column_focus;
     };
-    struct ColumnStates final {
+    struct GUI_FORMS_API ColumnStates final {
         bool pressed{};
         bool captured{};
         bool current{};
@@ -206,7 +209,7 @@ public:
         bool sorted_ascending{};
         bool sorted_descending{};
     };
-    struct Column final {
+    struct GUI_FORMS_API Column final {
         // The column's position in the details model.
         std::size_t index{};
         std::string stable_id;
@@ -325,6 +328,16 @@ private:
     void paint_glyph(Painter& painter, Rect bounds, ObjectGlyph glyph,
                      bool enabled) const;
     void paint_focus_ring_part(Painter& painter, Rect bounds) const;
+    // Right to left (Control::right_to_left) the view keeps its layout in
+    // reading order and mirrors it once at its edges, as ListView does
+    // (details_columns.hpp): every part it paints, clips to, publishes or
+    // describes goes through shown, every text run through
+    // paint_text_shown, and every pointer position through reading_local.
+    [[nodiscard]] bool mirrored() const noexcept;
+    [[nodiscard]] Rect shown(Rect reading) const noexcept;
+    [[nodiscard]] Point reading_local(Point absolute) const noexcept;
+    void paint_shown(Painter& painter, PartPaint part) const;
+    void paint_text_shown(Painter& painter, const PartPaint& part, Point origin, double width) const;
     void invalidate_hover_change(std::optional<std::size_t> previous, std::optional<std::size_t> next);
 
     detail::LendingVector<ObjectViewItem> items_{};

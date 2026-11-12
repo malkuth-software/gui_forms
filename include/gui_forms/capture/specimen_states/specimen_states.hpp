@@ -26,6 +26,7 @@
 // look). Show one state on a fresh control: states shown one after another
 // accumulate. UI thread.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 
 #include <cstdint>
@@ -45,7 +46,7 @@ enum class SpecimenStateRoute : std::uint8_t {
     refused,
 };
 
-struct SpecimenStateResult final {
+struct GUI_FORMS_API SpecimenStateResult final {
     SpecimenStateRoute route{SpecimenStateRoute::rest};
     // The property written ("checked"), or for refused the refusal's text;
     // empty otherwise.
@@ -54,11 +55,11 @@ struct SpecimenStateResult final {
 
 // Shows `state` on `control` by its route, above. Never throws for a state
 // the control cannot take: that is not_declared or refused.
-[[nodiscard]] SpecimenStateResult show_specimen_state(Control& control, AnatomyState state);
+[[nodiscard]] GUI_FORMS_API SpecimenStateResult show_specimen_state(Control& control, AnatomyState state);
 // Shows custom state `state` (a position in anatomy().custom_states) by
 // presentation; not_declared past the declaration.
-[[nodiscard]] SpecimenStateResult show_specimen_custom_state(Control& control, CustomStateIndex state);
+[[nodiscard]] GUI_FORMS_API SpecimenStateResult show_specimen_custom_state(Control& control, CustomStateIndex state);
 // The route name ("value") for manifests and logs.
-[[nodiscard]] std::string_view specimen_state_route_name(SpecimenStateRoute route) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view specimen_state_route_name(SpecimenStateRoute route) noexcept;
 
 } // namespace gui_forms

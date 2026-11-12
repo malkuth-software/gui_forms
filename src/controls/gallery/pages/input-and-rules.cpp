@@ -1,4 +1,7 @@
 #include "pages.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/rules/rule_set/rule_set.hpp"
 
 #include "input-and-rules_form.hpp"
 

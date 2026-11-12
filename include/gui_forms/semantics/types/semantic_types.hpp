@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/types.hpp"
 
@@ -129,7 +130,7 @@ enum class SemanticOrientation : std::uint8_t { horizontal, vertical };
 // The selection and caret of a node's text (owner decision A-T1, 12.13), as
 // UTF-8 byte offsets into the node's value, on grapheme boundaries; with
 // nothing selected the anchor and the caret are the same offset.
-struct SemanticTextSelection final {
+struct GUI_FORMS_API SemanticTextSelection final {
     Utf8Offset anchor{};
     Utf8Offset caret{};
     friend constexpr bool operator==(const SemanticTextSelection& left,
@@ -143,7 +144,7 @@ struct SemanticTextSelection final {
 // value it shows (without the line break that ends it) and its box. Boxes
 // are in window client coordinates, as node bounds are, and may lie outside
 // the node's bounds when the text is scrolled.
-struct SemanticTextLine final {
+struct GUI_FORMS_API SemanticTextLine final {
     TextRange<Utf8Offset> range{};
     Rect bounds{};
 };
@@ -151,7 +152,7 @@ struct SemanticTextLine final {
 // One grapheme of a text node's layout: its UTF-8 range in the node's value,
 // the index of its visual line in SemanticTextLayout::lines, and its box. A
 // line break is not a grapheme of any line.
-struct SemanticTextGrapheme final {
+struct GUI_FORMS_API SemanticTextGrapheme final {
     TextRange<Utf8Offset> range{};
     LineIndex line{};
     Rect bounds{};
@@ -163,7 +164,7 @@ struct SemanticTextGrapheme final {
 // rule stops (its Ctrl+Left and Ctrl+Right), ascending: 0, each word start,
 // and the end of the text; empty for empty text. Sentences are not reported
 // (A-T2).
-struct SemanticTextLayout final {
+struct GUI_FORMS_API SemanticTextLayout final {
     std::vector<SemanticTextLine> lines;
     std::vector<SemanticTextGrapheme> graphemes;
     std::vector<Utf8Offset> word_starts;
@@ -239,7 +240,7 @@ enum class SemanticTextUnit : std::uint8_t {
 // appears, not only when its name changes later (semantic_announcement_due).
 // A live region present from the start (a dock site's announcements, a
 // banner) leaves it false, so a page that shows one announces nothing.
-struct SemanticDescriptor final {
+struct GUI_FORMS_API SemanticDescriptor final {
     SemanticRole role{SemanticRole::generic};
     std::string name;
     std::string value;
@@ -285,7 +286,7 @@ struct SemanticDescriptor final {
 // at a few hundred bytes per level, at most about 40 KiB of stack.
 inline constexpr std::size_t maximum_virtual_semantic_depth = 16U;
 
-struct SemanticNode final {
+struct GUI_FORMS_API SemanticNode final {
     std::uint64_t runtime_id{};
     std::string stable_id;
     SemanticRole role{SemanticRole::generic};
@@ -322,18 +323,18 @@ struct SemanticNode final {
     std::vector<SemanticNode> children;
 };
 
-struct SemanticSnapshot final {
+struct GUI_FORMS_API SemanticSnapshot final {
     std::uint64_t generation{};
     std::size_t node_count{};
     std::vector<SemanticNode> roots;
     [[nodiscard]] std::string to_json() const;
 };
 
-[[nodiscard]] const char* semantic_role_name(SemanticRole role) noexcept;
-[[nodiscard]] const char* semantic_action_name(SemanticAction action) noexcept;
-[[nodiscard]] const char* semantic_orientation_name(SemanticOrientation orientation) noexcept;
-[[nodiscard]] const char* semantic_text_result_name(SemanticTextResult result) noexcept;
-[[nodiscard]] const char* semantic_text_unit_name(SemanticTextUnit unit) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* semantic_role_name(SemanticRole role) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* semantic_action_name(SemanticAction action) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* semantic_orientation_name(SemanticOrientation orientation) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* semantic_text_result_name(SemanticTextResult result) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* semantic_text_unit_name(SemanticTextUnit unit) noexcept;
 
 // Fills `boundaries` with the offsets in `value` at which `unit` starts or
 // ends, ascending and distinct, from `layout` (Window::semantic_text_layout
@@ -346,12 +347,12 @@ struct SemanticSnapshot final {
 // adjacent boundaries is one unit. Replaces what `boundaries` held, reusing
 // its storage. Throws std::bad_alloc when memory runs out, leaving
 // `boundaries` unspecified.
-void fill_semantic_text_boundaries(const SemanticTextLayout& layout, std::string_view value,
+GUI_FORMS_API void fill_semantic_text_boundaries(const SemanticTextLayout& layout, std::string_view value,
                                    SemanticTextUnit unit, std::vector<Utf8Offset>& boundaries);
 // The name of one state bit (`state` holds exactly one of semantic_states).
-[[nodiscard]] const char* semantic_state_name(SemanticState state) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* semantic_state_name(SemanticState state) noexcept;
 // The node fields the vocabulary admits, by name, for the schema export.
-[[nodiscard]] std::span<const char* const> semantic_field_names() noexcept;
+[[nodiscard]] GUI_FORMS_API std::span<const char* const> semantic_field_names() noexcept;
 
 // Whether a host asks assistive technology to speak `current`'s name now, at
 // polite priority (DK-51; the toast, owner ruling 2026-11-08). `current` is a
@@ -362,7 +363,7 @@ void fill_semantic_text_boundaries(const SemanticTextLayout& layout, std::string
 // appearance. Every host decides through this one rule: UI Automation raises
 // the live-region event, AppKit posts an announcement request, AT-SPI emits
 // object:announcement; the text spoken is `current.name`.
-[[nodiscard]] bool semantic_announcement_due(const SemanticNode* previous, const SemanticNode& current) noexcept;
+[[nodiscard]] GUI_FORMS_API bool semantic_announcement_due(const SemanticNode* previous, const SemanticNode& current) noexcept;
 
 // The runtime ID of a virtual semantic child (a tab, an item, a caption
 // button: a SemanticNode with no control of its own), from its stable ID: a
@@ -372,7 +373,7 @@ void fill_semantic_text_boundaries(const SemanticTextLayout& layout, std::string
 // A virtual child the control publishes with runtime ID zero is given this
 // one when the window assembles its snapshot, so no node below the window
 // has runtime ID zero.
-[[nodiscard]] std::uint64_t virtual_semantic_runtime_id(std::string_view stable_id) noexcept;
+[[nodiscard]] GUI_FORMS_API std::uint64_t virtual_semantic_runtime_id(std::string_view stable_id) noexcept;
 
 // True for a runtime ID virtual_semantic_runtime_id gives (its top bit is
 // set), false for a control's own runtime ID and for zero. A host uses it to
@@ -380,6 +381,6 @@ void fill_semantic_text_boundaries(const SemanticTextLayout& layout, std::string
 // Window::perform_semantic_action by that runtime ID, from a virtual child,
 // which it names by the runtime ID of the nearest control's node above it
 // and the child's stable ID.
-[[nodiscard]] bool is_virtual_semantic_runtime_id(std::uint64_t runtime_id) noexcept;
+[[nodiscard]] GUI_FORMS_API bool is_virtual_semantic_runtime_id(std::uint64_t runtime_id) noexcept;
 
 } // namespace gui_forms

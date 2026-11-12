@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 
 #include <thread>
@@ -11,7 +12,7 @@ struct PointerCaptureChange;
 
 // Experimental 0.x host seam. It normalizes host events into the retained
 // Window without admitting any platform type into the portable API.
-class HostSession final {
+class GUI_FORMS_API HostSession final {
 public:
     HostSession(Window& window,
                 HostCapabilities capabilities,

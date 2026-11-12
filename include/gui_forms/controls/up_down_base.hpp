@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
@@ -19,7 +20,7 @@ namespace gui_forms {
 // configuration and the subscriptions' targets are its own); until then
 // both are null. It declares no virtual function of its own: the stepping
 // and the text each derived class gives the field are its own.
-class UpDownBase : public Panel {
+class GUI_FORMS_API UpDownBase : public Panel {
 public:
     ~UpDownBase() override;
 

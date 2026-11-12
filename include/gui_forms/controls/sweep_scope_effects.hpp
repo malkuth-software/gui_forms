@@ -4,6 +4,7 @@
 // the level's trace and the sweep line crossing it. Its part is the scope's
 // plot.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/sweep_scope.hpp"
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
@@ -39,7 +40,7 @@ struct EffectView<SweepScope> final {
 // The trace (a rise from the lower left to a peak above the level's place,
 // and a fall to the right edge) and the sweep line crossing the plot once a
 // period.
-class ScopeSweep final {
+class GUI_FORMS_API ScopeSweep final {
 public:
     using parent_type = SweepScope;
     static constexpr double trace_width = 2.0;
@@ -58,6 +59,6 @@ private:
 };
 
 // Adds the sweep scope's effects to `registry`.
-void register_sweep_scope_effects(EffectRegistry& registry);
+GUI_FORMS_API void register_sweep_scope_effects(EffectRegistry& registry);
 
 } // namespace gui_forms

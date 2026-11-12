@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/flow_layout_panel_compat_values.hpp"
@@ -42,7 +43,7 @@ struct FlowBreakCapability {
 // force"). In a right-to-left effective layout direction the layout is
 // computed left to right and mirrored about the viewport, padding and
 // margins included: a `left_to_right` flow starts at the right edge.
-class FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>, public FlowLayoutPanelCompatCapabilities<FlowLayoutPanelCompat> {
+class GUI_FORMS_API FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>, public FlowLayoutPanelCompatCapabilities<FlowLayoutPanelCompat> {
 public:
     explicit FlowLayoutPanelCompat(StableId stable_id);
 

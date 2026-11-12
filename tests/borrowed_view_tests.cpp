@@ -7,7 +7,10 @@
 // only if the process was not ended; CTest passes a mode when its report
 // line appears and "survived" does not (as gui_forms_fail_fast_tests).
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/list_view.hpp"

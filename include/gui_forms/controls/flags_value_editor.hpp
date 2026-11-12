@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/flags_value_editor_capabilities.hpp"
@@ -19,7 +20,7 @@ namespace gui_forms {
 // `none-name` (the name of no flag; empty for none) and `checked-flags`
 // (names among `flag-names`). Until `flag-names` is written the editor
 // holds no flags, shows no value and opens no list.
-class FlagsValueEditor final : public Panel, public FlagsValueEditorCapabilities<FlagsValueEditor> {
+class GUI_FORMS_API FlagsValueEditor final : public Panel, public FlagsValueEditorCapabilities<FlagsValueEditor> {
 public:
     explicit FlagsValueEditor(StableId stable_id);
     FlagsValueEditor(StableId stable_id, PropertyEnumDescriptor initial_descriptor,
@@ -42,7 +43,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
@@ -51,7 +52,7 @@ public:
         PartGeometry drop_down;
         PartGeometry disclosure;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

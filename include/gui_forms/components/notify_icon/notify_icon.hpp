@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/event.hpp"
@@ -20,7 +21,7 @@ class Window;
 
 // A click on the icon: `button` is primary for a click and secondary for the
 // platform's context gesture.
-struct NotifyIconClick final {
+struct GUI_FORMS_API NotifyIconClick final {
     PointerButton button{PointerButton::primary};
 };
 
@@ -33,7 +34,7 @@ struct NotifyIconClick final {
 // that reports HostCapability::notification_area; status() after a write of
 // icon, text or visible, and the result of show_balloon_tip, say when it does
 // not. Events arrive on the UI thread.
-class NotifyIcon final : public Component, public NotifyIconCapabilities<NotifyIcon> {
+class GUI_FORMS_API NotifyIcon final : public Component, public NotifyIconCapabilities<NotifyIcon> {
 public:
     // Construct on the window's UI thread. The icon is shown through the
     // HostServices the window has when it becomes visible.

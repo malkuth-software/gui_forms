@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
@@ -11,7 +12,7 @@
 
 namespace gui_forms {
 
-struct CommandItem final {
+struct GUI_FORMS_API CommandItem final {
     int id{};
     GUI_FORMS_LOCALIZABLE(text) std::string label{};
     std::string glyph{};
@@ -21,7 +22,7 @@ struct CommandItem final {
 };
 
 // Retained item buttons; one group notification survives list replacement.
-class CommandBar final : public Panel {
+class GUI_FORMS_API CommandBar final : public Panel {
 public:
     explicit CommandBar(StableId id);
     ~CommandBar() override;

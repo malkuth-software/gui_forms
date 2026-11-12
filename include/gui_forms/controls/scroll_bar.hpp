@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/range_control.hpp"
 #include "gui_forms/controls/scroll_bar_capabilities.hpp"
 
@@ -18,7 +19,7 @@ enum class ScrollBarPart : std::uint8_t {
     thumb,
 };
 
-class ScrollBar : public RangeControl, public ScrollBarCapabilities<ScrollBar> {
+class GUI_FORMS_API ScrollBar : public RangeControl, public ScrollBarCapabilities<ScrollBar> {
 public:
     explicit ScrollBar(StableId stable_id,
                        Orientation initial_orientation = Orientation::vertical);
@@ -31,7 +32,7 @@ public:
 
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry decrement_arrow;
         PartGeometry increment_arrow;
@@ -43,7 +44,7 @@ public:
         PartGeometry thumb;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

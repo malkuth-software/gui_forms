@@ -4,7 +4,20 @@
 // missing images, markdown faults), its binary round trip and version
 // refusal, search v1 (with a 2,000-record measurement) and the page model.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/help/help_contents/help_contents.hpp"
+#include "gui_forms/help/help_page/help_page.hpp"
+#include "gui_forms/help/help_records/help_records.hpp"
+#include "gui_forms/help/help_search/help_search.hpp"
+#include "gui_forms/help/helpbook_section/helpbook_section.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
+#include "gui_forms/xml/types/xml_types.hpp"
 
 #include <chrono>
 #include <cstdlib>

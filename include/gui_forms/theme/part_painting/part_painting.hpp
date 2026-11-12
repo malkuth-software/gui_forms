@@ -1,4 +1,5 @@
 #pragma once
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
@@ -83,7 +84,7 @@ enum class PartMark : std::uint8_t {
 inline constexpr std::size_t part_mark_count = static_cast<std::size_t>(PartMark::count);
 
 // Registered (snake_case) name of a mark, as the schema's vocabulary lists it.
-[[nodiscard]] std::string_view part_mark_name(PartMark mark) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view part_mark_name(PartMark mark) noexcept;
 
 // The values admitted to the vocabulary beside states and marks (design
 // language 12.7), as the schema lists them: they have no enum, so this is
@@ -100,7 +101,7 @@ enum class PartTextAlignment : std::uint8_t { start, center, end };
 // arc runs from `start` through `sweep` (negative sweeps anticlockwise; at
 // most one turn either way is drawn); a needle points at `start` and reads
 // no sweep.
-struct PartArc final {
+struct GUI_FORMS_API PartArc final {
     double start{};
     double sweep{};
 };
@@ -135,7 +136,7 @@ enum class DockShapeRegion : std::uint8_t { top, bottom, left, right, tab_into }
 // A tapered part is cut to its shape, its outer shadows with it; the edge
 // shadow then draws its cast. Each is bounded: the taper by the part's
 // width, the flare by its height, all by maximum_part_shape.
-struct PartProfile final {
+struct GUI_FORMS_API PartProfile final {
     double taper{};
     std::optional<Color> taper_colour{};
     double flare{};
@@ -152,7 +153,7 @@ struct PartProfile final {
 // it only where today's recipe has no shape for the part. `orientation` and
 // `alignment` are read with `text`; `dock_region` only by the dock_shape
 // mark.
-struct PartPaint final {
+struct GUI_FORMS_API PartPaint final {
     PartRole role{PartRole::region};
     Rect bounds{};
     AnatomyStateSet states{};
@@ -272,7 +273,7 @@ struct PartPaint final {
 // cue and preselect. The control supplies what the part does not carry: its
 // enabled, invalid and pending status, window activity and high contrast. A
 // part that is itself disabled or unavailable is drawn disabled.
-[[nodiscard]] ControlVisualContext part_visual_context(
+[[nodiscard]] GUI_FORMS_API ControlVisualContext part_visual_context(
     const Control& control, AnatomyStateSet states) noexcept;
 
 // Paints one part of `control` by its role (see PartPaint), through the
@@ -308,7 +309,7 @@ struct PartPaint final {
 // (Control::set_back_color and set_fore_color): the control's own or
 // inherited foreground, and its own background, or an inherited one on any
 // role but a well.
-void paint_part(Painter& painter, const Control& control, const PartPaint& part);
+GUI_FORMS_API void paint_part(Painter& painter, const Control& control, const PartPaint& part);
 
 // A text part (label, caption or content) placed by its baseline, as
 // controls that lay out text by baseline draw it: `part`'s bounds become
@@ -318,28 +319,28 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
 // so the text lands on `origin` exactly. A part without text draws nothing.
 // A part that carries its text's measurement (PartPaint::measured_text) is
 // not measured again.
-void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
+GUI_FORMS_API void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
                         double width);
 
 // Whether `position` lies in the pointed face of `bounds` whose nose is
 // `point` units long (PartPaint::point): inside the bounds and left of the
 // nose's edges. A point of zero or less is the whole rectangle.
-[[nodiscard]] bool pointed_face_contains(Rect bounds, double point, Point position) noexcept;
+[[nodiscard]] GUI_FORMS_API bool pointed_face_contains(Rect bounds, double point, Point position) noexcept;
 // The same for a face whose nose is at its left edge (PartPaint::
 // point_leading): inside the bounds and right of the nose's edges.
-[[nodiscard]] bool leading_pointed_face_contains(Rect bounds, double point, Point position) noexcept;
+[[nodiscard]] GUI_FORMS_API bool leading_pointed_face_contains(Rect bounds, double point, Point position) noexcept;
 
 // How far `control`'s theme's overlay shadow reaches outside the casting
 // surface's rect, in the control's presentation (ordinary or high
 // contrast). Zero on every side when the theme casts none.
-[[nodiscard]] Insets overlay_shadow_outsets(const Control& control) noexcept;
+[[nodiscard]] GUI_FORMS_API Insets overlay_shadow_outsets(const Control& control) noexcept;
 
 // paint_part's drawing, with the recipe and context already resolved. For
 // helpers that resolve a recipe themselves (the existing controls' focus and
 // default cues), so that every part is drawn by one implementation. The
 // shadow role paints nothing here: the overlay shadow is the theme's value,
 // not the recipe's, so it is drawn only through paint_part.
-void paint_part_from_recipe(Painter& painter, const PartPaint& part,
+GUI_FORMS_API void paint_part_from_recipe(Painter& painter, const PartPaint& part,
                             const ControlVisualRecipe& recipe, ControlVisualContext context);
 
 } // namespace gui_forms

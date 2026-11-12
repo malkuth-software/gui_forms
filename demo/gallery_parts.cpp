@@ -1,4 +1,5 @@
 #include "gallery_parts.hpp"
+#include "gui_forms/controls/label.hpp"
 
 #include <algorithm>
 #include <cstddef>

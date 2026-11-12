@@ -14,7 +14,20 @@
 // nothing over the header, which no vertical edge touches; a width-only
 // resize damages nothing over the left column, which no horizontal edge
 // touches.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/border_style.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "skia_raster.hpp"
 
 #include <array>

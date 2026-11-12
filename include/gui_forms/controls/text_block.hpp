@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
@@ -27,7 +28,7 @@ namespace gui_forms {
 // It publishes its first and last baselines to the layout containers. Use it
 // for text inside FlexPanel, GridPanel and BlockPanel; Label keeps Windows
 // Forms' label model (its inset and line spacing).
-class TextBlock final : public Control, public TextBlockCapabilities<TextBlock> {
+class GUI_FORMS_API TextBlock final : public Control, public TextBlockCapabilities<TextBlock> {
 public:
     explicit TextBlock(StableId stable_id, std::string initial_text = {});
 
@@ -53,7 +54,7 @@ public:
     // Stage T1 anatomy, as dot members (see Control::Parts); its states are
     // Control's. `text` is the box the lines fill: the content box's width
     // and the lines' height, absent with no text.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry text;
     };

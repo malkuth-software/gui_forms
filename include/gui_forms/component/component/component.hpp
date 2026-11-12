@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component/revocable/revocable.hpp"
 #include "gui_forms/component/types/component_types.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
@@ -13,7 +14,7 @@ namespace gui_forms {
 
 struct PropertyEntry;
 
-class Component {
+class GUI_FORMS_API Component {
 public:
     using Ptr = std::shared_ptr<Component>;
 

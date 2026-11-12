@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/help/help_contents/help_contents.hpp"
 #include "gui_forms/help/help_records/help_records.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
@@ -27,7 +28,7 @@ inline constexpr std::uint16_t helpbook_format_minor = 0U;
 
 // One record of the section: its resolved fields, the help body's plain
 // text folded for phrase search, and where the fields came from.
-struct HelpBookRecord final {
+struct GUI_FORMS_API HelpBookRecord final {
     std::string stable_id{};
     std::string title{};
     std::string help_line{};
@@ -44,7 +45,7 @@ struct HelpBookRecord final {
 
 // One keyword of the index: folded for ordering and lookup, as written for
 // showing, and the record it opens.
-struct HelpKeywordEntry final {
+struct GUI_FORMS_API HelpKeywordEntry final {
     std::string folded{};
     std::string keyword{};
     std::string subkeyword{};
@@ -62,10 +63,10 @@ enum class HelpLinkKind : std::uint8_t {
     image,
 };
 
-[[nodiscard]] std::string_view help_link_kind_name(HelpLinkKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view help_link_kind_name(HelpLinkKind kind) noexcept;
 
 // One link of a body, in record and source order.
-struct HelpLinkEntry final {
+struct GUI_FORMS_API HelpLinkEntry final {
     std::uint32_t record{};
     HelpLinkKind kind{HelpLinkKind::external};
     // The stable ID (topic, popup), the destination as written (external)
@@ -77,7 +78,7 @@ struct HelpLinkEntry final {
 
 // One posting of a search term: a record that holds it, how many times,
 // and whether its title does.
-struct HelpSearchPosting final {
+struct GUI_FORMS_API HelpSearchPosting final {
     std::uint32_t record{};
     std::uint32_t count{};
     bool in_title{};
@@ -86,13 +87,13 @@ struct HelpSearchPosting final {
 // One search term: folded, with its postings (HelpBookSection::postings from
 // first_posting, posting_count of them, in record order). Terms are sorted
 // by bytes.
-struct HelpSearchTerm final {
+struct GUI_FORMS_API HelpSearchTerm final {
     std::string term{};
     std::uint32_t first_posting{};
     std::uint32_t posting_count{};
 };
 
-struct HelpBookSection final {
+struct GUI_FORMS_API HelpBookSection final {
     std::uint16_t format_major{helpbook_format_major};
     std::uint16_t format_minor{helpbook_format_minor};
     std::string language{};
@@ -117,31 +118,31 @@ struct HelpBookSection final {
 // Case-folds help text for indexing and search: ASCII letters to lower
 // case; other bytes are kept (Unicode case folding is the text engine's and
 // comes with the language-file implementation). `folded` is replaced.
-void fold_help_text(std::string_view text, std::string& folded);
+GUI_FORMS_API void fold_help_text(std::string_view text, std::string& folded);
 
 // Splits folded text into search words: maximal runs of ASCII letters and
 // digits and of non-ASCII bytes. Each word is a view into `text`; `words`
 // is cleared first.
-void split_help_words(std::string_view text, std::vector<std::string_view>& words);
+GUI_FORMS_API void split_help_words(std::string_view text, std::vector<std::string_view>& words);
 
 // What a link destination is in a help body (study section 4): a valid
 // stable ID, optionally with '#' and an anchor, is a topic link (a popup
 // when `title` is "popup"); anything else is external.
-struct HelpLinkTarget final {
+struct GUI_FORMS_API HelpLinkTarget final {
     HelpLinkKind kind{HelpLinkKind::external};
     std::string target{};
     std::string fragment{};
 };
 
-[[nodiscard]] HelpLinkTarget classify_help_link(std::string_view destination, std::string_view title);
+[[nodiscard]] GUI_FORMS_API HelpLinkTarget classify_help_link(std::string_view destination, std::string_view title);
 
-struct HelpBookCompileOptions final {
+struct GUI_FORMS_API HelpBookCompileOptions final {
     // The PNG resources an image may name, by name ("name.png"). Any order.
     std::span<const std::string> image_names{};
     MarkdownLimits markdown{};
 };
 
-struct HelpBookCompileResult final {
+struct GUI_FORMS_API HelpBookCompileResult final {
     HelpBookSection section{};
     // Every field the pass rejected: a body that does not parse, links to
     // records that do not exist, images that are not resources. A rejected
@@ -158,7 +159,7 @@ struct HelpBookCompileResult final {
 // contents from `skeleton` and `topics`, and builds the keyword index, the
 // search term table and the link table. A topic link may name any record in
 // the catalog or any node of the skeleton.
-[[nodiscard]] HelpBookCompileResult compile_helpbook_section(const HelpCatalog& catalog,
+[[nodiscard]] GUI_FORMS_API HelpBookCompileResult compile_helpbook_section(const HelpCatalog& catalog,
                                                              std::span<const HelpSkeletonNode> skeleton,
                                                              std::span<const HelpTopicPlacement> topics,
                                                              const HelpBookCompileOptions& options = {});
@@ -166,7 +167,7 @@ struct HelpBookCompileResult final {
 // The section's bytes (little-endian): the magic "GFHB", the format's major
 // and minor version, then sub-sections, each a tag, its own version and its
 // byte length. `bytes` is replaced.
-void write_helpbook_section(const HelpBookSection& section, std::vector<std::byte>& bytes);
+GUI_FORMS_API void write_helpbook_section(const HelpBookSection& section, std::vector<std::byte>& bytes);
 
 enum class HelpBookReadError : std::uint8_t {
     none,
@@ -182,15 +183,15 @@ enum class HelpBookReadError : std::uint8_t {
     limit_exceeded,
 };
 
-[[nodiscard]] std::string_view helpbook_read_error_name(HelpBookReadError error) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view helpbook_read_error_name(HelpBookReadError error) noexcept;
 
-struct HelpBookReadLimits final {
+struct GUI_FORMS_API HelpBookReadLimits final {
     std::size_t maximum_bytes{64U * 1024U * 1024U};
     std::size_t maximum_records{100000U};
     std::size_t maximum_entries{4U * 1024U * 1024U};
 };
 
-struct HelpBookReadResult final {
+struct GUI_FORMS_API HelpBookReadResult final {
     HelpBookReadError error{HelpBookReadError::none};
     // The section on success; empty on failure.
     HelpBookSection section{};
@@ -201,7 +202,7 @@ struct HelpBookReadResult final {
 // Reads bytes write_helpbook_section wrote. Every length, count and index is
 // checked before use; unknown sub-sections are skipped; a later major
 // version is refused with its own error. Expected faults never throw.
-[[nodiscard]] HelpBookReadResult read_helpbook_section(std::span<const std::byte> bytes,
+[[nodiscard]] GUI_FORMS_API HelpBookReadResult read_helpbook_section(std::span<const std::byte> bytes,
                                                        const HelpBookReadLimits& limits = {});
 
 } // namespace gui_forms

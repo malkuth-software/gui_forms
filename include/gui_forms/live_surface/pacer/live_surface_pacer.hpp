@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/live_surface/types/live_surface_types.hpp"
 
 #include <atomic>
@@ -27,7 +28,7 @@ enum class LivePacingOutcome : std::uint8_t {
     stopped,
 };
 
-struct LivePacingResult final {
+struct GUI_FORMS_API LivePacingResult final {
     LivePacingOutcome outcome{LivePacingOutcome::pending};
     // The display time the next frame will be shown for: the vertical blank
     // after now in the presenter's phase, or now without display timing.
@@ -46,7 +47,7 @@ struct LivePacingResult final {
 // (LiveSurface::notify_presented) and never to a free-running sleep, and
 // keeps it going when the presenter stalls. Owned by the producer's thread;
 // only arm() may be called from another. Holds the surface alive.
-class LiveSurfacePacer final {
+class GUI_FORMS_API LiveSurfacePacer final {
 public:
     LiveSurfacePacer() = default;
     explicit LiveSurfacePacer(std::shared_ptr<LiveSurface> surface) noexcept;

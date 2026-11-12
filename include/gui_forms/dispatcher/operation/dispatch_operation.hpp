@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/dispatcher/types/dispatcher_types.hpp"
 
 #include <exception>
@@ -15,7 +16,7 @@ namespace detail {
 struct DispatchWork;
 }
 
-class DispatchCancelledError final : public std::runtime_error {
+class GUI_FORMS_API DispatchCancelledError final : public std::runtime_error {
 public:
     DispatchCancelledError()
         : std::runtime_error(
@@ -25,7 +26,7 @@ public:
 // A posted operation remains queued when this observation handle is dropped.
 // Cancellation is explicit, matching BeginInvoke-style fire-and-forget use
 // while still allowing deterministic revocation when a caller needs it.
-class DispatchOperation final {
+class GUI_FORMS_API DispatchOperation final {
 public:
     DispatchOperation() = default;
     // Internal construction seam; DispatchWork is intentionally incomplete to

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/list_view_capabilities.hpp"
@@ -42,7 +43,7 @@ enum class ListViewSortOrder : std::uint8_t { none, ascending, descending };
 // One details-view column. `stable_id` is unique within the view and names
 // the column in the published anatomy and semantics. `width` is in logical
 // units at text scale 1.
-struct ListViewColumn final {
+struct GUI_FORMS_API ListViewColumn final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(header) std::string text{};
     double width{120.0};
@@ -57,7 +58,7 @@ struct ListViewColumn final {
 // `checked` is shown while the view has check boxes. `group` names the
 // ListViewGroup the item is shown in; an empty or unknown name puts it in
 // the default group. A virtual view's items are never grouped.
-struct ListViewItem final {
+struct GUI_FORMS_API ListViewItem final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(text) std::string text{};
     std::vector<std::string> sub_items{};
@@ -68,7 +69,7 @@ struct ListViewItem final {
 
 // One group of a ListView (Windows Forms' ListViewGroup): a header over its
 // items. `stable_id` is unique within the view; items name it in `group`.
-struct ListViewGroup final {
+struct GUI_FORMS_API ListViewGroup final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(header) std::string header{};
     ListViewAlignment header_alignment{ListViewAlignment::left};
@@ -80,7 +81,7 @@ struct ListViewGroup final {
 // for single items only when it paints, lays out or describes the visible
 // ones. Both functions are called on the view's UI thread from inside the
 // view's own (const) work and must not change the view.
-class ListViewItemSource {
+class GUI_FORMS_API ListViewItemSource {
 public:
     virtual ~ListViewItemSource();
     [[nodiscard]] virtual std::size_t item_count() const = 0;
@@ -94,7 +95,7 @@ public:
 // A change of the selected items, after it happened. The selected indices
 // are read from the view (selected_indices()); a virtual view with a large
 // selection does not copy them into every event.
-struct ListViewSelectionChange final {
+struct GUI_FORMS_API ListViewSelectionChange final {
     std::string list_id{};
     std::size_t selected_count{};
     std::optional<std::size_t> focused_index{};
@@ -102,7 +103,7 @@ struct ListViewSelectionChange final {
 
 // An item activated by a double click, Enter, or the semantic press action
 // on a view without check boxes.
-struct ListViewItemActivation final {
+struct GUI_FORMS_API ListViewItemActivation final {
     std::string list_id{};
     std::size_t index{};
     std::string item_id{};
@@ -113,7 +114,7 @@ struct ListViewItemActivation final {
 // change is made. In a virtual view the application owns the checked state:
 // it stores `new_value` when handling item_checking, and the view shows
 // what the source then retrieves.
-struct ListViewItemCheck final {
+struct GUI_FORMS_API ListViewItemCheck final {
     std::string list_id{};
     std::size_t index{};
     std::string item_id{};
@@ -125,7 +126,7 @@ struct ListViewItemCheck final {
 // A click on a column header. The view does not sort: the application
 // reorders its items (sort_items() is a helper for that) and shows the order
 // with set_sort_indicator().
-struct ListViewColumnClick final {
+struct GUI_FORMS_API ListViewColumnClick final {
     std::string list_id{};
     std::size_t column{};
     std::string column_id{};
@@ -133,7 +134,7 @@ struct ListViewColumnClick final {
 
 // A column's new width in logical units, after a divider drag ends or
 // set_column_width() changes it.
-struct ListViewColumnWidthChange final {
+struct GUI_FORMS_API ListViewColumnWidthChange final {
     std::string list_id{};
     std::size_t column{};
     double width{};
@@ -142,7 +143,7 @@ struct ListViewColumnWidthChange final {
 // Where a ListView's insertion mark stands (Windows Forms'
 // ListViewInsertionMark Index and AppearsAfterItem): beside the item at
 // model index `index`, before it or, with `after`, after it.
-struct ListViewInsertionMark final {
+struct GUI_FORMS_API ListViewInsertionMark final {
     std::size_t index{};
     bool after{};
     friend constexpr bool operator==(const ListViewInsertionMark& left,
@@ -157,7 +158,7 @@ struct ListViewInsertionMark final {
 // cancelled; a handler sets `cancel` to refuse the text, and the item keeps
 // the text it had. A handler's change to `label` is ignored. `index` is the
 // item's position when its edit began.
-struct ListViewLabelEdit final {
+struct GUI_FORMS_API ListViewLabelEdit final {
     std::string list_id{};
     std::size_t index{};
     std::string item_id{};
@@ -182,14 +183,14 @@ struct ListViewLabelEdit final {
 // How a splice moves an index (ListView::splice_virtual_items): before
 // `first` it stays, inside [first, removed_end) it is dropped, after it
 // shifts by inserted - removed.
-struct ListViewSpliceRemap final {
+struct GUI_FORMS_API ListViewSpliceRemap final {
     std::size_t first{};
     std::size_t removed_end{};
     std::size_t inserted{};
     [[nodiscard]] std::optional<std::size_t> apply(std::optional<std::size_t> index) const noexcept;
 };
 
-class ListView final : public Control, public ListViewCapabilities<ListView> {
+class GUI_FORMS_API ListView final : public Control, public ListViewCapabilities<ListView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // Development bounds, not measured capacity.
@@ -203,7 +204,9 @@ public:
     ~ListView() override;
     void initialize_control_tree();
 
-    [[nodiscard]] std::span<const ListViewColumn> columns() const& noexcept { return columns_; }
+    [[nodiscard]] std::span<const ListViewColumn> columns() const& noexcept {
+        return std::span<const ListViewColumn>(columns_.data(), columns_.size());
+    }
     std::span<const ListViewColumn> columns() const&& = delete;
     // Replaces the columns. Throws std::invalid_argument for an empty or
     // duplicate ID, invalid UTF-8, a width outside the minimum and maximum
@@ -236,7 +239,9 @@ public:
     // not collapse. set_groups throws std::invalid_argument for an empty or
     // repeated ID, invalid UTF-8, an unknown alignment, or more than
     // maximum_groups groups.
-    [[nodiscard]] std::span<const ListViewGroup> groups() const& noexcept { return groups_; }
+    [[nodiscard]] std::span<const ListViewGroup> groups() const& noexcept {
+        return std::span<const ListViewGroup>(groups_.data(), groups_.size());
+    }
     std::span<const ListViewGroup> groups() const&& = delete;
     void set_groups(std::vector<ListViewGroup> groups);
     // Whether the items are shown in groups now.
@@ -386,7 +391,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry well;
         PartGeometry header;
@@ -403,7 +408,7 @@ public:
 
     // The "item" item system: one realized item (a details row, or a cell of
     // the other views).
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry cell;
         PartGeometry item_face;
         PartGeometry check_well;
@@ -412,7 +417,7 @@ public:
         PartGeometry text;
         PartGeometry cell_focus;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool selected{};
         bool hot{};
         bool current{};
@@ -420,7 +425,7 @@ public:
         bool disabled{};
         bool focus_visible{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         // The item's position in the model.
         std::size_t index{};
         std::string stable_id;
@@ -432,15 +437,15 @@ public:
 
     // The "sub_item" item system: one visible details-view cell past the
     // first column. Its identity is the item's ID, ".sub.", and the column's.
-    struct SubItemParts final {
+    struct GUI_FORMS_API SubItemParts final {
         PartGeometry sub_item_cell;
         PartGeometry sub_item_text;
     };
-    struct SubItemStates final {
+    struct GUI_FORMS_API SubItemStates final {
         bool selected{};
         bool disabled{};
     };
-    struct SubItem final {
+    struct GUI_FORMS_API SubItem final {
         std::size_t index{};
         std::size_t column{};
         std::string stable_id;
@@ -452,14 +457,14 @@ public:
     // The "column" item system, named as ObjectView's: one visible column
     // header of the details view. Its identity is the view's stable ID,
     // ".column.", and the column's ID.
-    struct ColumnParts final {
+    struct GUI_FORMS_API ColumnParts final {
         PartGeometry column_header;
         PartGeometry column_label;
         PartGeometry sort_glyph;
         PartGeometry column_divider;
         PartGeometry column_grip;
     };
-    struct ColumnStates final {
+    struct GUI_FORMS_API ColumnStates final {
         bool hot{};
         bool pressed{};
         bool captured{};
@@ -467,7 +472,7 @@ public:
         bool sorted_ascending{};
         bool sorted_descending{};
     };
-    struct Column final {
+    struct GUI_FORMS_API Column final {
         std::size_t index{};
         std::string stable_id;
         ColumnParts parts;
@@ -480,15 +485,15 @@ public:
     // group's is the view's stable ID and ".default-group". `index` is the
     // group's position in groups(), or groups().size() for the default
     // group.
-    struct GroupParts final {
+    struct GUI_FORMS_API GroupParts final {
         PartGeometry group_band;
         PartGeometry group_caption;
         PartGeometry group_divider;
     };
-    struct GroupStates final {
+    struct GUI_FORMS_API GroupStates final {
         bool disabled{};
     };
-    struct Group final {
+    struct GUI_FORMS_API Group final {
         std::size_t index{};
         std::string stable_id;
         GroupParts parts;

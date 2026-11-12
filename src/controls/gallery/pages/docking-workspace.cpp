@@ -1,4 +1,11 @@
 #include "pages.hpp"
+#include "gui_forms/controls/dock_site.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/dock_workspace_values.hpp"
+#include "gui_forms/controls/scaled_group_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/docking/dock_layout/dock_layout.hpp"
+#include "gui_forms/docking/types/dock_types.hpp"
 
 #include "docking-workspace_form.hpp"
 

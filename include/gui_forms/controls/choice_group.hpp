@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/choice_group_values.hpp"
@@ -12,7 +13,7 @@
 
 namespace gui_forms {
 
-struct ChoiceItem final {
+struct GUI_FORMS_API ChoiceItem final {
     int id{};
     GUI_FORMS_LOCALIZABLE(text) std::string label{};
     std::string glyph{};
@@ -28,7 +29,7 @@ struct ChoiceItem final {
 // `segmented` and publishes the `track` and `selection` parts; the
 // indicator is a keyed part, so the theme's engine may move it between
 // segments, and does not when motion is reduced.
-class ChoiceGroup final : public Panel, public ChoiceGroupCapabilities<ChoiceGroup> {
+class GUI_FORMS_API ChoiceGroup final : public Panel, public ChoiceGroupCapabilities<ChoiceGroup> {
 public:
     explicit ChoiceGroup(StableId id);
     ~ChoiceGroup() override;
@@ -52,7 +53,7 @@ public:
     // presentation's track (the whole strip) and selection (the indicator
     // behind the selected segment). Both are absent in the buttons
     // presentation, and the selection while nothing is selected.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         Panel::Parts panel;
         PartGeometry track;
         PartGeometry selection;

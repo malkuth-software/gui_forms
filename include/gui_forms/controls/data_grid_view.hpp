@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/types/binding_contract_types.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/commands.hpp"
@@ -62,7 +63,7 @@ class DataGridViewBoundIndex;
 // UseColumnTextForLinkValue). With `track_visited_state` a link the user
 // clicks becomes visited (Windows Forms' TrackVisitedState).
 // `data_property_name` names the BindingSource field a bound column shows.
-struct DataGridViewColumn final {
+struct GUI_FORMS_API DataGridViewColumn final {
     std::string name{};
     GUI_FORMS_LOCALIZABLE(header) std::string header_text{};
     DataGridViewColumnKind kind{DataGridViewColumnKind::text};
@@ -95,7 +96,7 @@ struct DataGridViewColumn final {
 // A column's place in the order the grid shows its columns (Windows Forms'
 // DisplayIndex), apart from its index in columns(), which never changes
 // with the order. 0 is the first column shown.
-struct DataGridViewDisplayIndex final {
+struct GUI_FORMS_API DataGridViewDisplayIndex final {
     std::size_t value{};
 
     friend bool operator==(const DataGridViewDisplayIndex& left, const DataGridViewDisplayIndex& right) noexcept {
@@ -105,7 +106,7 @@ struct DataGridViewDisplayIndex final {
 
 // A cell by row position and column index, as the rows are presented now.
 // Inserting, removing or sorting rows moves the row a position names.
-struct DataGridViewCellAddress final {
+struct GUI_FORMS_API DataGridViewCellAddress final {
     DataGridViewRowPosition row{};
     std::size_t column{};
 
@@ -118,14 +119,14 @@ struct DataGridViewCellAddress final {
 // The cell an event concerns: its row's identity, the row's position when
 // the event is raised (the position it had, for a row just removed), and the
 // column.
-struct DataGridViewCellEvent final {
+struct GUI_FORMS_API DataGridViewCellEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
     std::size_t column{};
 };
 
 // Raised before an edit begins; setting `cancel` keeps the cell out of edit.
-struct DataGridViewCellCancelEvent final {
+struct GUI_FORMS_API DataGridViewCellCancelEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
     std::size_t column{};
@@ -134,7 +135,7 @@ struct DataGridViewCellCancelEvent final {
 
 // Raised before an edited text cell commits, with the text as typed. Setting
 // `cancel` refuses the text: the cell stays in edit and is marked invalid.
-struct DataGridViewCellValidatingEvent final {
+struct GUI_FORMS_API DataGridViewCellValidatingEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
     std::size_t column{};
@@ -149,7 +150,7 @@ struct DataGridViewCellValidatingEvent final {
 // B1-1) keeps the cell in edit, marked invalid, with its old value stored;
 // false discards the edit, leaving the old value. A check box or choice has
 // no edit to keep: its cell keeps its old value either way.
-struct DataGridViewDataErrorEvent final {
+struct GUI_FORMS_API DataGridViewDataErrorEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
     std::size_t column{};
@@ -166,7 +167,7 @@ struct DataGridViewDataErrorEvent final {
 // change, with `cell_style`'s format and null value. The style the handler
 // leaves (font, alignment, padding) places and draws the content that
 // time. Handlers must not change the grid; a paint stops at a change.
-struct DataGridViewCellFormattingEvent final {
+struct GUI_FORMS_API DataGridViewCellFormattingEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
     std::size_t column{};
@@ -183,7 +184,7 @@ struct DataGridViewCellFormattingEvent final {
 // `parsing_applied` gives the value stored; otherwise text equal to the
 // style's null value stores its data source null value, and other text
 // converts as without the event.
-struct DataGridViewCellParsingEvent final {
+struct GUI_FORMS_API DataGridViewCellParsingEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
     std::size_t column{};
@@ -202,7 +203,7 @@ struct DataGridViewCellParsingEvent final {
 // second, in ascending order) and `handled` decides; otherwise the grid's
 // value order does. A descending sort reverses the result. Handlers may
 // not change the grid's rows, columns or values (std::logic_error).
-struct DataGridViewSortCompareEvent final {
+struct GUI_FORMS_API DataGridViewSortCompareEvent final {
     std::size_t column{};
     const BindingValue& cell_value1;
     const BindingValue& cell_value2;
@@ -219,7 +220,7 @@ struct DataGridViewSortCompareEvent final {
 // number when `left` goes before, with or after `right`. It need not be a
 // consistent order: the grid's merge sort stays within the rows whatever it
 // returns. It may not change the grid (std::logic_error).
-class DataGridViewRowComparer {
+class GUI_FORMS_API DataGridViewRowComparer {
 public:
     virtual ~DataGridViewRowComparer();
     [[nodiscard]] virtual int compare(const DataGridViewRow& left, const DataGridViewRow& right) const = 0;
@@ -227,7 +228,7 @@ public:
 
 // A row an event concerns: its identity and its position when the event is
 // raised (the position it had, for a row just removed).
-struct DataGridViewRowEvent final {
+struct GUI_FORMS_API DataGridViewRowEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
 };
@@ -237,7 +238,7 @@ struct DataGridViewRowEvent final {
 // grid holds (set_cell_error_text, or the record's error) and a handler may
 // replace it with valid UTF-8 (other text is ignored). Raised from const
 // reads (layout, paint, semantics); handlers may not change the grid.
-struct DataGridViewCellErrorTextNeededEvent final {
+struct GUI_FORMS_API DataGridViewCellErrorTextNeededEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
     std::size_t column{};
@@ -246,14 +247,14 @@ struct DataGridViewCellErrorTextNeededEvent final {
 
 // As DataGridViewCellErrorTextNeededEvent, for a row's own error text
 // (Windows Forms' RowErrorTextNeeded).
-struct DataGridViewRowErrorTextNeededEvent final {
+struct GUI_FORMS_API DataGridViewRowErrorTextNeededEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
     std::string error_text{};
 };
 
 // Raised before a row is left or deleted; setting `cancel` keeps it.
-struct DataGridViewRowCancelEvent final {
+struct GUI_FORMS_API DataGridViewRowCancelEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
     bool cancel{};
@@ -262,7 +263,7 @@ struct DataGridViewRowCancelEvent final {
 // Raised when the new row becomes current (Windows Forms'
 // DefaultValuesNeeded): `values` holds one value per column, empty, for the
 // handler to fill with the values the new row starts with.
-struct DataGridViewRowValuesEvent final {
+struct GUI_FORMS_API DataGridViewRowValuesEvent final {
     DataGridViewRowId row_id{};
     DataGridViewRowPosition row{};
     std::vector<BindingValue> values{};
@@ -280,7 +281,7 @@ struct DataGridViewRowValuesEvent final {
 // asks for any other row. Calls
 // arrive on the grid's UI thread, from paint, layout, input and the grid's own
 // methods. The provider may not mutate the grid from inside a call.
-class DataGridViewCellValueProvider {
+class GUI_FORMS_API DataGridViewCellValueProvider {
 public:
     virtual ~DataGridViewCellValueProvider();
     // The value of one cell; `row` is in the grid's current order.
@@ -317,7 +318,7 @@ public:
 // every part is painted through the by-role paint path. A text cell edits in
 // a hosted TextBox placed over it; a combo box cell chooses from a
 // ContextMenu of its column's items.
-class DataGridView final : public Control,
+class GUI_FORMS_API DataGridView final : public Control,
                            public DataGridViewCapabilities<DataGridView>,
                            public DataGridViewRowsCapability<DataGridView> {
 public:
@@ -328,7 +329,9 @@ public:
     void initialize_control_tree();
 
     // -- columns ---------------------------------------------------------
-    [[nodiscard]] std::span<const DataGridViewColumn> columns() const& noexcept { return columns_; }
+    [[nodiscard]] std::span<const DataGridViewColumn> columns() const& noexcept {
+        return std::span<const DataGridViewColumn>(columns_.data(), columns_.size());
+    }
     std::span<const DataGridViewColumn> columns() const&& = delete;
     // Replaces the columns. Unbound rows keep their values by position:
     // values past the new column count are dropped and new columns start
@@ -856,7 +859,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry well;
         PartGeometry edge;
@@ -872,7 +875,7 @@ public:
         // boundary, present only during the drag.
         PartGeometry column_drop_indicator;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};
@@ -884,7 +887,7 @@ public:
     [[nodiscard]] States states() const;
 
     // The "row" item system: one realized item per visible row.
-    struct RowParts final {
+    struct GUI_FORMS_API RowParts final {
         PartGeometry row_header;
         PartGeometry row_header_label;
         // The current row's arrow, the pencil while it is dirty, or the new
@@ -897,7 +900,7 @@ public:
         // may resize rows.
         PartGeometry row_grip;
     };
-    struct RowStates final {
+    struct GUI_FORMS_API RowStates final {
         bool selected{};
         bool current{};
         bool read_only{};
@@ -906,7 +909,7 @@ public:
         // A row whose height the user is dragging.
         bool captured{};
     };
-    struct Row final {
+    struct GUI_FORMS_API Row final {
         DataGridViewRowPosition position{};
         std::string stable_id;
         RowParts parts;
@@ -916,7 +919,7 @@ public:
 
     // The "cell" item system: one realized item per visible cell. A part a
     // cell's kind does not show is absent.
-    struct CellParts final {
+    struct GUI_FORMS_API CellParts final {
         PartGeometry cell;
         PartGeometry cell_selection;
         PartGeometry cell_content;
@@ -937,7 +940,7 @@ public:
         // The error glyph of a cell with error text, at the cell's end.
         PartGeometry cell_error;
     };
-    struct CellStates final {
+    struct GUI_FORMS_API CellStates final {
         bool selected{};
         bool current{};
         bool read_only{};
@@ -951,7 +954,7 @@ public:
         // (as LinkLabel's).
         bool visited{};
     };
-    struct Cell final {
+    struct GUI_FORMS_API Cell final {
         DataGridViewCellAddress address{};
         std::string stable_id;
         CellParts parts;
@@ -960,14 +963,14 @@ public:
     [[nodiscard]] std::vector<Cell> realized_cells() const;
 
     // The "column" item system: one realized item per visible column header.
-    struct ColumnParts final {
+    struct GUI_FORMS_API ColumnParts final {
         PartGeometry column_header;
         PartGeometry column_label;
         PartGeometry sort_glyph;
         PartGeometry column_divider;
         PartGeometry column_grip;
     };
-    struct ColumnStates final {
+    struct GUI_FORMS_API ColumnStates final {
         bool hot{};
         bool pressed{};
         bool captured{};
@@ -975,7 +978,7 @@ public:
         bool sorted_ascending{};
         bool sorted_descending{};
     };
-    struct Column final {
+    struct GUI_FORMS_API Column final {
         std::size_t index{};
         std::string stable_id;
         ColumnParts parts;

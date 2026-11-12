@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/event.hpp"
@@ -17,7 +18,7 @@ struct TaskDialogResult;
 // ("Product 1.2"); `description` and `copyright` are the body's paragraphs;
 // `credits` (licences, acknowledgements) sit behind a "Show credits"
 // expander, left out when empty. An empty caption gives "About <product>".
-struct AboutInfo final {
+struct GUI_FORMS_API AboutInfo final {
     std::string caption{};
     std::string product{};
     std::string version{};
@@ -39,7 +40,7 @@ struct AboutInfo final {
 // from the constructor. The dialog is used on the UI thread of the window
 // it is shown over. Disposing or destroying a shown dialog closes it
 // without raising closed.
-class AboutDialog final : public Component {
+class GUI_FORMS_API AboutDialog final : public Component {
 public:
     AboutDialog(StableId stable_id, AboutInfo info);
     ~AboutDialog() override;

@@ -1,6 +1,19 @@
 #pragma once
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/commands/color_command/color_command.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/commands/types/command_types.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/drop_down_button.hpp"
+#include "gui_forms/controls/list_view.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/pages/page_set/page_set.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
 
 #include <cstddef>
 #include <cstdint>

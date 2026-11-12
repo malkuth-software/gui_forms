@@ -1,6 +1,16 @@
 #include "seam_proximity_lab.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/controls/range_control_values.hpp"
+#include "gui_forms/controls/split_container.hpp"
+#include "gui_forms/controls/split_container_values.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cmath>
 #include <cstdlib>

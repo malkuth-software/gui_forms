@@ -20,6 +20,7 @@
 // appears here. Link GUIForms::Application, which holds it; a program
 // linking only the core libraries has no definition of these members.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include <cstddef>
@@ -51,7 +52,7 @@ enum class OffscreenRasterError : std::uint8_t {
     raster_refused,
 };
 
-struct OffscreenRasterOptions final {
+struct GUI_FORMS_API OffscreenRasterOptions final {
     // The bundled font directory (assets/fonts, installed as
     // share/GUIForms/fonts); empty looks where the hosts look.
     std::filesystem::path font_directory{};
@@ -61,7 +62,7 @@ class OffscreenRaster;
 
 // OffscreenRaster::create's outcome: the raster, or why there is none.
 // Made only through `created` and `refused`.
-class OffscreenRasterCreateResult final {
+class GUI_FORMS_API OffscreenRasterCreateResult final {
 public:
     [[nodiscard]] static OffscreenRasterCreateResult created(std::unique_ptr<OffscreenRaster> raster);
     [[nodiscard]] static OffscreenRasterCreateResult refused(OffscreenRasterError error, std::string detail);
@@ -99,7 +100,7 @@ private:
 // attached to it. Not copyable or movable: windows hold its address.
 // Destroy it after every attachment to it has ended (its destructor stops
 // the program otherwise, since a window would keep a dangling painter).
-class OffscreenRaster final {
+class GUI_FORMS_API OffscreenRaster final {
 public:
     // Finds the bundled faces (OffscreenRasterOptions), reads and seals
     // them once for the process (the hosts' shared set) and makes the
@@ -131,7 +132,7 @@ private:
 // What OffscreenAttachment's captures draw. The settings apply for the
 // capture alone: the window's own scale and presentation are put back
 // after it (a scale change relays the window out, both ways).
-struct OffscreenCaptureOptions final {
+struct GUI_FORMS_API OffscreenCaptureOptions final {
     // Device pixels per logical unit, in (0, 8]. The window is laid out at
     // this scale for the capture, as a host lays it out on such a display.
     double scale{1.0};
@@ -154,7 +155,7 @@ struct OffscreenCaptureOptions final {
 // shows keeps its host's raster). Declare it after the raster and the
 // window, so that it ends before both. std::logic_error off the window's
 // thread (which must be the raster's). Not copyable or movable.
-class OffscreenAttachment final {
+class GUI_FORMS_API OffscreenAttachment final {
 public:
     OffscreenAttachment(OffscreenRaster& raster, Window& window);
     ~OffscreenAttachment();

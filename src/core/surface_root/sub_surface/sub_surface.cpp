@@ -1,4 +1,5 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include "sub_surface_alerts.hpp"
 #include "sub_surface_channel.hpp"

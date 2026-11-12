@@ -6,7 +6,23 @@
 // Without the plugin it checks only the table reader. The plugin also
 // searches lambda bodies; the house style keeps lambdas out of this
 // repository, so no test here passes a literal in one.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
+#include "gui_forms/components/tool_tip/tool_tip.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/group_box.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/list_view.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/text/localizable/localizable.hpp"
 
 #include "localizable_plugin_units.hpp"

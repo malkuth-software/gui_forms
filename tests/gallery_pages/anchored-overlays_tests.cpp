@@ -1,4 +1,9 @@
 #include "page_tests.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/anchored_overlay_placement.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/label.hpp"
 
 namespace gallery_pages_tests {
 namespace {

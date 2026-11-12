@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 
 namespace gui_forms {
@@ -23,7 +24,7 @@ enum class RangeAction : std::uint8_t {
     thumb_position,
 };
 
-struct RangeScrollEvent final {
+struct GUI_FORMS_API RangeScrollEvent final {
     double old_value{};
     double new_value{};
     RangeAction action{RangeAction::thumb_position};

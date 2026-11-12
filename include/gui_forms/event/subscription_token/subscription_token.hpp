@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component/revocable/revocable.hpp"
 
 #include <memory>
@@ -9,7 +10,7 @@ namespace gui_forms {
 
 class Component;
 
-class SubscriptionToken final {
+class GUI_FORMS_API SubscriptionToken final {
 public:
     SubscriptionToken() = default;
     ~SubscriptionToken() { disconnect(); }

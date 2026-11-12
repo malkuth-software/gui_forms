@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/brush/brush.hpp"
 
 namespace gui_drawing {
 
-struct PenSnapshot final {
+struct GUI_FORMS_API PenSnapshot final {
     Color color;
     double width{1.0};
     DashStyle dash_style{DashStyle::solid};
@@ -14,7 +15,7 @@ struct PenSnapshot final {
     LineCap cap{LineCap::flat};
 };
 
-class Pen final : public DrawingObject {
+class GUI_FORMS_API Pen final : public DrawingObject {
 public:
     explicit Pen(Color color, double width = 1.0);
     explicit Pen(const Brush& brush, double width = 1.0);

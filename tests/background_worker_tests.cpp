@@ -3,7 +3,16 @@
 // restarting from the completion handler, refusals, and what happens when the
 // window's dispatcher shuts down or the worker is disposed mid-run.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/background_worker/background_worker.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dispatcher/types/dispatcher_types.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <atomic>
 #include <chrono>

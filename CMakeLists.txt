@@ -221,11 +221,59 @@ target_include_directories(gui_forms_threading PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_compile_features(gui_forms_threading PUBLIC cxx_std_20)
 target_link_libraries(gui_forms_threading PRIVATE Threads::Threads)
+# Exports only what gui_forms/threading.hpp marks GUI_FORMS_THREADING_API
+# (gui_forms/export/threading_export.hpp; CP29 handoff section 2.2): hidden
+# visibility on ELF and Mach-O, dllexport on Windows. Inline functions are
+# hidden too: the exceptions crossing the boundary (a worker entry's failure,
+# rethrown by join, and std::logic_error) carry the typeinfo of their own
+# image or of the C++ runtime, never of an inline function here.
+target_compile_definitions(gui_forms_threading PRIVATE GUI_FORMS_THREADING_BUILD=1)
+set_target_properties(gui_forms_threading PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES)
 if(WIN32)
     target_compile_definitions(gui_forms_threading PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(gui_forms_threading PRIVATE winpthread)
-    target_link_options(gui_forms_threading PRIVATE "-Wl,--export-all-symbols")
 endif()
+
+# The archives the Application library (and the shared test runtime,
+# cmake/TestRuntime.cmake) holds whole: compiled with hidden visibility on
+# ELF and Mach-O and with GUI_FORMS_API_BUILD, so the libraries export only
+# the declarations marked GUI_FORMS_API (gui_forms/export/application_export.hpp,
+# placed and checked by tools/export_annotations.py; CP29 handoff section
+# 2.2). Inline functions are hidden as well: no first-party code compares the
+# address of an inline function across images, and a static local of an
+# inline function keeps default visibility (Clang's
+# -fvisibility-inlines-hidden-static-local-var is not used). On ELF each
+# function and datum gets its own section, so the Application library's
+# --gc-sections drops what no export reaches (Mach-O's -dead_strip needs no
+# flag; MinGW Release has the sections already, above).
+function(gui_forms_application_archive target)
+    target_compile_definitions(${target} PRIVATE GUI_FORMS_API_BUILD=1)
+    set_target_properties(${target} PROPERTIES
+        C_VISIBILITY_PRESET hidden
+        CXX_VISIBILITY_PRESET hidden
+        OBJCXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN YES)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_compile_options(${target} PRIVATE
+            $<$<CONFIG:Release>:-ffunction-sections> $<$<CONFIG:Release>:-fdata-sections>)
+    endif()
+endfunction()
+
+# The usage requirement of a shared library holding those archives: its
+# consumers import the marked declarations (dllimport on Windows), and on
+# ELF and Mach-O the linker drops the sections no export reaches.
+function(gui_forms_application_library target)
+    gui_forms_application_archive(${target})
+    target_compile_definitions(${target} INTERFACE GUI_FORMS_API_IMPORT=1)
+    if(APPLE)
+        target_link_options(${target} PRIVATE $<$<CONFIG:Release>:LINKER:-dead_strip>)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_options(${target} PRIVATE $<$<CONFIG:Release>:LINKER:--gc-sections>)
+    endif()
+endfunction()
 
 # The bundled fallback faces (owner ruling 2026-11-11): the seven Noto faces and their OFL texts
 # form their own install component, fallback_fonts, installed when GUI_FORMS_INSTALL_FALLBACK_FONTS
@@ -1723,7 +1771,6 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
             $<TARGET_NAME_IF_EXISTS:gui_drawing_skia> "-Wl,--no-whole-archive"
             gui_forms_text_engine stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
             user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32)
-        target_link_options(gui_forms_application PRIVATE "-Wl,--export-all-symbols")
         install(TARGETS gui_forms_application EXPORT GUIFormsApplicationTargets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -1793,6 +1840,24 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         add_test(NAME gui_forms_windows_gdi_compat_shim_tests
                  COMMAND gui_forms_windows_gdi_compat_shim_tests)
     endif()
+endif()
+
+# Export annotations (CP29 handoff section 2.2): every archive the
+# Application library or the shared test runtime holds whole, and the
+# Application library itself. gui_forms_application_archive and
+# gui_forms_application_library are defined beside the Threading library.
+foreach(_gf_archive IN ITEMS
+        gui_forms_core gui_drawing_core gui_forms_controls gui_forms_plot_primitives
+        gui_forms_host_headless gui_forms_text_engine gui_forms_prepared_text_impl
+        gui_forms_text_masks_impl gui_forms_sealed_pages_objects gui_forms_dib_frame_store_objects
+        gui_forms_skia gui_drawing_skia gui_forms_host_macos gui_forms_host_linux
+        gui_forms_windows_host_objects gui_forms_host_windows)
+    if(TARGET ${_gf_archive})
+        gui_forms_application_archive(${_gf_archive})
+    endif()
+endforeach()
+if(TARGET gui_forms_application)
+    gui_forms_application_library(gui_forms_application)
 endif()
 
 if(GUI_FORMS_BUILD_GALLERY OR (GUI_FORMS_BUILD_TESTS AND GUI_FORMS_ENABLE_MACOS_HOST))

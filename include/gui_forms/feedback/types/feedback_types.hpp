@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host.hpp"
 
 #include <cstdint>
@@ -18,7 +19,7 @@ enum class SemanticFeedbackKind : std::uint8_t {
     conflict,
 };
 
-struct SemanticFeedbackRecord final {
+struct GUI_FORMS_API SemanticFeedbackRecord final {
     std::uint64_t sequence{};
     SemanticFeedbackKind kind{SemanticFeedbackKind::option_committed};
     HostSoundCue cue{HostSoundCue::success};
@@ -37,7 +38,7 @@ struct SemanticFeedbackRecord final {
     }
 };
 
-[[nodiscard]] const char* semantic_feedback_kind_name(
+[[nodiscard]] GUI_FORMS_API const char* semantic_feedback_kind_name(
     SemanticFeedbackKind kind) noexcept;
 
 } // namespace gui_forms

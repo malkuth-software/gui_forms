@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/token_box_capabilities.hpp"
 
@@ -16,7 +17,7 @@ namespace gui_forms {
 
 // A token's identity in its TokenBox: assigned when the token is added and
 // never reused, so it stays valid while positions change. It is not an index.
-struct TokenId final {
+struct GUI_FORMS_API TokenId final {
     std::uint64_t value{};
 
     friend constexpr bool operator==(TokenId left, TokenId right) noexcept {
@@ -30,7 +31,7 @@ struct TokenId final {
 };
 
 // One accepted entry.
-struct Token final {
+struct GUI_FORMS_API Token final {
     TokenId id{};
     std::string text{};
 };
@@ -42,7 +43,7 @@ struct Token final {
 // typed (nothing, or only spaces), Enter goes on to the containers and the
 // window's accept button (owner decision W-6). A
 // GUI.Forms-only control (Windows Forms has none).
-class TokenBox final : public Control, public TokenBoxCapabilities<TokenBox> {
+class GUI_FORMS_API TokenBox final : public Control, public TokenBoxCapabilities<TokenBox> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit TokenBox(StableId stable_id);
@@ -50,7 +51,9 @@ public:
     void initialize_control_tree();
 
     // The tokens, first to last.
-    [[nodiscard]] std::span<const Token> tokens() const& noexcept { return tokens_; }
+    [[nodiscard]] std::span<const Token> tokens() const& noexcept {
+        return std::span<const Token>(tokens_.data(), tokens_.size());
+    }
     std::span<const Token> tokens() const&& = delete;
     // Adds a token after the last and returns its identity. The text is
     // trimmed of ASCII spaces; text that is not valid UTF-8, or empty once
@@ -95,31 +98,31 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members. Tokens are an item system.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry well;
         PartGeometry field;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};
         bool focused{};
         bool focus_visible{};
     };
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry token_face;
         PartGeometry token_label;
         PartGeometry token_close;
         PartGeometry token_focus;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool selected{};
         bool hot{};
         bool focus_visible{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         TokenId id{};
         std::size_t index{};
         std::string stable_id;

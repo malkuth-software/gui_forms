@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 
 #include <cstdint>
@@ -25,14 +26,14 @@ enum class ScrollOrientation : std::uint8_t {
     vertical = 1,
 };
 
-struct ScrollEvent final {
+struct GUI_FORMS_API ScrollEvent final {
     ScrollEventType type{ScrollEventType::thumb_position};
     double old_value{};
     double new_value{};
     ScrollOrientation orientation{ScrollOrientation::horizontal};
 };
 
-struct ScrollAxisSnapshot final {
+struct GUI_FORMS_API ScrollAxisSnapshot final {
     bool enabled{true};
     bool visible{};
     double minimum{};
@@ -42,7 +43,7 @@ struct ScrollAxisSnapshot final {
     double value{};
 };
 
-struct ScrollSnapshot final {
+struct GUI_FORMS_API ScrollSnapshot final {
     bool auto_scroll{};
     Point position{};
     Size margin{};
@@ -55,7 +56,7 @@ struct ScrollSnapshot final {
 
 class ScrollableControl;
 
-class ScrollProperties final {
+class GUI_FORMS_API ScrollProperties final {
 public:
     [[nodiscard]] bool enabled() const noexcept { return enabled_; }
     void set_enabled(bool enabled);

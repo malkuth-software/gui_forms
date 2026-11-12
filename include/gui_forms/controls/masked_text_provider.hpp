@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
 #include <cstddef>
@@ -25,7 +26,7 @@ using MaskPosition = TextUnitIndex<MaskPositionTag>;
 // service, so the default is the invariant culture's symbols (the invariant
 // currency symbol is U+00A4, the generic currency sign); a caller that wants
 // another culture supplies its symbols.
-struct MaskCulture final {
+struct GUI_FORMS_API MaskCulture final {
     std::string decimal_separator{"."};
     std::string group_separator{","};
     std::string time_separator{":"};
@@ -70,13 +71,13 @@ enum class MaskResultHint : std::uint8_t {
     position_out_of_range,
 };
 
-[[nodiscard]] std::string_view mask_result_hint_name(MaskResultHint hint) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view mask_result_hint_name(MaskResultHint hint) noexcept;
 
 // What an edit did. On success `position` is the last position the edit
 // wrote or passed over (the start position when the input was empty); on
 // failure it is the position the refused character was tested at, and the
 // provider is unchanged.
-struct MaskEditResult final {
+struct GUI_FORMS_API MaskEditResult final {
     MaskResultHint hint{MaskResultHint::success};
     MaskPosition position{};
 
@@ -108,7 +109,7 @@ struct MaskEditResult final {
 //
 // Every edit validates the whole input before it changes anything: a failed
 // edit leaves the provider as it was and reports the first refused character.
-class MaskedTextProvider final {
+class GUI_FORMS_API MaskedTextProvider final {
 public:
     // Throws std::invalid_argument for a mask or culture symbol that is not
     // valid UTF-8, a mask ending in a lone backslash, a control character in

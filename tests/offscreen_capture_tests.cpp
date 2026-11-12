@@ -14,7 +14,21 @@
 //   (stock_specimen_uniform_share) without its stated blank_reason, and
 //   every declared state of every subject shown and captured.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
+#include "gui_forms/capture/specimen_states/specimen_states.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/check_box_values.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/stock_specimens.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/window/presentation/colour_scheme.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <algorithm>
 #include <cstddef>

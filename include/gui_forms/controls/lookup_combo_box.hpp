@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/controls/lookup_combo_box_capabilities.hpp"
@@ -20,7 +21,7 @@ enum class OverlayDismissReason : std::uint8_t;
 
 // One column of a LookupComboBox's list: its header and its width in
 // logical units.
-struct LookupColumn final {
+struct GUI_FORMS_API LookupColumn final {
     std::string header{};
     double width{100.0};
 
@@ -31,7 +32,7 @@ struct LookupColumn final {
 
 // One row of a LookupComboBox: the key the application stores and the
 // cells shown, one per column (missing cells show empty).
-struct LookupRow final {
+struct GUI_FORMS_API LookupRow final {
     std::string key{};
     std::vector<std::string> cells{};
 
@@ -61,7 +62,7 @@ struct LookupRow final {
 // family), its `header` captions, its rows (`item`, selected when
 // highlighted) and their cells' `label`s. To assistive technology it is a
 // combo box whose value is the shown cell, expanded while the list is open.
-class LookupComboBox final : public Control, public LookupComboBoxCapabilities<LookupComboBox> {
+class GUI_FORMS_API LookupComboBox final : public Control, public LookupComboBoxCapabilities<LookupComboBox> {
 public:
     explicit LookupComboBox(StableId stable_id);
     ~LookupComboBox() override;
@@ -106,7 +107,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry well;
         PartGeometry label;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 
 #include "gui_forms/live_surface.hpp"
@@ -33,7 +34,7 @@ class SubSurfaceAlertRequester;
 // updates sent before the sub-surface applied any only the newest is
 // applied (statistics: updates_coalesced). A content downcasts it to the
 // type it made.
-class SubSurfaceContentUpdate {
+class GUI_FORMS_API SubSurfaceContentUpdate {
 public:
     virtual ~SubSurfaceContentUpdate() = default;
 };
@@ -42,7 +43,7 @@ public:
 // section 2). The parent hands one to a SubSurfaceThread, which moves it to
 // the sub-surface's thread; it is called and destroyed there, so the
 // controls it makes are created on, owned by and released on that thread.
-class SubSurfaceContent {
+class GUI_FORMS_API SubSurfaceContent {
 public:
     virtual ~SubSurfaceContent() = default;
     // Called once, on the sub-surface's thread, before the first
@@ -66,7 +67,7 @@ public:
 // The state both sides agree on in one visible frame (design note section
 // 6), sent by the parent with each content epoch. Move-only: the
 // framebuffer goes with it.
-struct SubSurfaceConfiguration final {
+struct GUI_FORMS_API SubSurfaceConfiguration final {
     // Grows with every configuration the parent sends; each frame the
     // sub-surface publishes at this configuration carries it as its
     // LiveSurface content tag.
@@ -134,7 +135,7 @@ enum class SubSurfaceInputKind : std::uint8_t {
 // children, that child's stable identity (empty for the control's own
 // node). Runtime identities are never reused, so an action for a control
 // the sub-surface has since replaced is refused there.
-struct SubSurfaceSemanticAction final {
+struct GUI_FORMS_API SubSurfaceSemanticAction final {
     RuntimeId control{};
     std::string virtual_child{};
     SemanticAction action{SemanticAction::focus};
@@ -144,7 +145,7 @@ struct SubSurfaceSemanticAction final {
 // One input event forwarded from the host to the sub-surface's thread
 // (design note section 4). Only the member `kind` names is meaningful.
 // Pointer positions are in the sub-surface's logical coordinates.
-struct SubSurfaceInput final {
+struct GUI_FORMS_API SubSurfaceInput final {
     SubSurfaceInputKind kind{SubSurfaceInputKind::pointer};
     PointerEvent pointer{};
     KeyEvent key{};
@@ -160,7 +161,7 @@ struct SubSurfaceInput final {
 // dispatcher, in the order the keys were forwarded; `sequence` is the one
 // SubSurfaceThread::post_input returned for the key. A target the parent
 // has released receives nothing.
-class SubSurfaceKeyReturn {
+class GUI_FORMS_API SubSurfaceKeyReturn {
 public:
     virtual ~SubSurfaceKeyReturn() = default;
     virtual void return_unhandled_key(const KeyEvent& event, std::uint64_t sequence) = 0;
@@ -194,7 +195,7 @@ enum class SubSurfaceToolTipOrigin : std::uint8_t {
 // which keeps it until revoked; revoked: the pointer or keyboard focus left
 // the host; stale: older than the newest configuration, or than the pointer
 // or focus leaving).
-struct SubSurfaceRequest final {
+struct GUI_FORMS_API SubSurfaceRequest final {
     // From the sub-surface's channel: 1 for the first, growing by one.
     std::uint64_t id{};
     SubSurfaceRequestKind kind{SubSurfaceRequestKind::tool_tip};
@@ -229,7 +230,7 @@ struct SubSurfaceRequest final {
 // through the parent's dispatcher, in the order the sub-surface posted. A
 // revoke names a request posted earlier. A target the parent has released
 // receives nothing.
-class SubSurfaceRequestTarget {
+class GUI_FORMS_API SubSurfaceRequestTarget {
 public:
     virtual ~SubSurfaceRequestTarget() = default;
     virtual void receive_request(const SubSurfaceRequest& request) = 0;
@@ -241,7 +242,7 @@ public:
 // dispatcher; one notice stands for every snapshot published until the
 // parent takes the newest (SubSurfaceThread::take_semantics). A target the
 // parent has released receives nothing.
-class SubSurfaceSemanticsListener {
+class GUI_FORMS_API SubSurfaceSemanticsListener {
 public:
     virtual ~SubSurfaceSemanticsListener() = default;
     virtual void sub_surface_semantics_changed() = 0;
@@ -253,7 +254,7 @@ public:
 // a stop the parent asked for (SubSurfaceThread::stop) posts nothing, since
 // the parent knows of it. A target the parent has released receives
 // nothing.
-class SubSurfaceEndListener {
+class GUI_FORMS_API SubSurfaceEndListener {
 public:
     virtual ~SubSurfaceEndListener() = default;
     virtual void sub_surface_ended() = 0;
@@ -273,7 +274,7 @@ enum class SubSurfaceState : std::uint8_t {
 
 // Counters of one sub-surface (design note section 8, rules), written by its
 // thread and read by its parent under the channel's lock.
-struct SubSurfaceStatistics final {
+struct GUI_FORMS_API SubSurfaceStatistics final {
     std::uint64_t configurations_received{};
     // Configurations replaced by a newer one before the thread applied them
     // (newest wins: resize rule 3).
@@ -334,7 +335,7 @@ struct SubSurfaceStatistics final {
 // its parent window (design note section 2). Made, run and destroyed by a
 // SubSurfaceThread on the thread it owns; every member is that thread's
 // (SurfaceRoot::check_access). Controls inside see window() null.
-class SubSurface final : public SurfaceRoot {
+class GUI_FORMS_API SubSurface final : public SurfaceRoot {
 public:
     // Binds the root to the calling thread and attaches `root`, which must
     // be alive and without a parent (std::invalid_argument or
@@ -379,7 +380,7 @@ private:
 // the library's thread) and the channel the two sides share. Made, used and
 // destroyed on the parent's thread. Nothing crosses but the configurations,
 // the stop request and the published frames (house style 8).
-class SubSurfaceThread final {
+class GUI_FORMS_API SubSurfaceThread final {
 public:
     // Starts the thread. It makes ApplicationResources of its own showing
     // `theme`, calls content.build_root(), makes a SubSurface of the root,

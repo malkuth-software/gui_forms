@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -11,7 +12,7 @@ namespace gui_forms {
 // A page's stable identity: the application's string, unique within one set
 // (docking uses the panel's identity). It is never a position; positions are
 // `PagePosition` values in the current order and change on every reorder.
-struct PageId final {
+struct GUI_FORMS_API PageId final {
     std::string value{};
 
     friend bool operator==(const PageId& left, const PageId& right) noexcept {
@@ -26,7 +27,7 @@ struct PageId final {
 
 // A position in a set's current order, counted from 0 at the first pinned
 // page (or the first page when nothing is pinned).
-struct PagePosition final {
+struct GUI_FORMS_API PagePosition final {
     std::size_t value{};
 
     friend bool operator==(const PagePosition& left,
@@ -45,7 +46,7 @@ struct PagePosition final {
 // group (the pinned group for a pinned page, the ordinary pages otherwise);
 // `at` names the position it occupies after the edit, which must lie inside
 // its group.
-struct PagePlacement final {
+struct GUI_FORMS_API PagePlacement final {
     enum class Kind : std::uint8_t {
         end_of_group,
         at,
@@ -67,7 +68,7 @@ struct PagePlacement final {
 // The descriptive fields of one page. The presenter decides how they look:
 // `title` may carry a mnemonic marker, `image_key` names an image in the
 // presenter's image list (empty: none).
-struct PageRecord final {
+struct GUI_FORMS_API PageRecord final {
     PageId id{};
     std::string title{};
     std::string image_key{};
@@ -87,7 +88,7 @@ struct PageRecord final {
 // page or destroying the set destroys it. A page may have no content until
 // its presenter supplies it (late content). The derived type is the
 // presenter's; the set only destroys it.
-class PageContent {
+class GUI_FORMS_API PageContent {
 public:
     virtual ~PageContent();
     PageContent(const PageContent&) = delete;
@@ -102,7 +103,7 @@ protected:
 // A page out of any set: its record and its content, moved together. A
 // default-constructed or moved-from `TakenPage` is empty (an empty id and no
 // content).
-struct TakenPage final {
+struct GUI_FORMS_API TakenPage final {
     PageRecord record{};
     std::unique_ptr<PageContent> content{};
 };
@@ -162,17 +163,17 @@ enum class PageEditStatus : std::uint8_t {
 
 // The result of `PageSet::take`: on success the page with its content; on a
 // refusal an empty page and the reason.
-struct PageTakeResult final {
+struct GUI_FORMS_API PageTakeResult final {
     PageEditStatus status{PageEditStatus::unknown_page};
     TakenPage page{};
 };
 
-struct PageSetLimits final {
+struct GUI_FORMS_API PageSetLimits final {
     static constexpr std::size_t default_capacity = 256U;
     static constexpr std::size_t maximum_capacity = 4096U;
 };
 
-struct PageSetOptions final {
+struct GUI_FORMS_API PageSetOptions final {
     PageSelectionFallback fallback{PageSelectionFallback::neighbour};
     // Pinning is opt-in per set (decision 31).
     bool pinning_enabled{false};
@@ -183,7 +184,7 @@ struct PageSetOptions final {
 
 // Raised before a requested selection changes. Setting `cancel` keeps the
 // current selection; later handlers still run and see the flag.
-struct PageSelectingEvent final {
+struct GUI_FORMS_API PageSelectingEvent final {
     std::optional<PageId> old_page{};
     PageId new_page{};
     PageSelectionCause cause{PageSelectionCause::programmatic};
@@ -192,7 +193,7 @@ struct PageSelectingEvent final {
 
 // Raised after the selected page changed. Inside a batch, `old_page` is the
 // selection when the batch began and `cause` the cause of its last change.
-struct PageSelectionChange final {
+struct GUI_FORMS_API PageSelectionChange final {
     std::optional<PageId> old_page{};
     std::optional<PageId> new_page{};
     PageSelectionCause cause{PageSelectionCause::programmatic};
@@ -200,7 +201,7 @@ struct PageSelectionChange final {
 
 // Raised after pages entered, left, moved or changed. Each flag says whether
 // any edit since the last publication changed that aspect.
-struct PageSetChange final {
+struct GUI_FORMS_API PageSetChange final {
     // Pages were inserted, removed, taken or put.
     bool membership{};
     // Positions changed (a move, a pin or unpin, or a membership change).

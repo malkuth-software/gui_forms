@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/command_overflow_panel_capabilities.hpp"
@@ -18,7 +19,7 @@ namespace gui_forms {
 // One direct child command group. A missing priority makes the group
 // non-collapsible. Smaller priorities collapse first; priorities are unique so
 // the projection never depends on child coordinates or incidental DOM order.
-struct CommandOverflowGroupSpec final {
+struct GUI_FORMS_API CommandOverflowGroupSpec final {
     double minimum{};
     double preferred{};
     double maximum{};
@@ -33,7 +34,7 @@ struct CommandOverflowGroupSpec final {
     }
 };
 
-struct CommandOverflowGroupResult final {
+struct GUI_FORMS_API CommandOverflowGroupResult final {
     std::string stable_id;
     double measured{};
     double allocated{};
@@ -50,7 +51,7 @@ struct CommandOverflowGroupResult final {
     }
 };
 
-struct CommandOverflowSnapshot final {
+struct GUI_FORMS_API CommandOverflowSnapshot final {
     double available_extent{};
     double group_gap{};
     bool overflow_actuator_visible{};
@@ -99,7 +100,7 @@ struct GroupSpecCapability {
 // and the overflow actuator's effective availability. Command authority and
 // overlay item composition remain with the consumer and can use the stable IDs
 // published by layout_snapshot().
-class CommandOverflowPanel final : public ContainerControl,
+class GUI_FORMS_API CommandOverflowPanel final : public ContainerControl,
                                    public GroupSpecCapability<CommandOverflowPanel>, public CommandOverflowPanelCapabilities<CommandOverflowPanel> {
 public:
     explicit CommandOverflowPanel(StableId stable_id);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/button_values.hpp"
 #include "gui_forms/controls/button_capabilities.hpp"
@@ -8,7 +9,7 @@
 
 namespace gui_forms {
 
-class Button : public ButtonBase, public ButtonCapabilities<Button> {
+class GUI_FORMS_API Button : public ButtonBase, public ButtonCapabilities<Button> {
 public:
     explicit Button(StableId stable_id, std::string text = {});
 
@@ -21,7 +22,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry icon;
@@ -29,7 +30,7 @@ public:
         PartGeometry preselect;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool hot{};
         bool pressed{};

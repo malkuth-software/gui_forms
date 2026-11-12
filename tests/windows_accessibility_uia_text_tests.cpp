@@ -16,7 +16,19 @@
 // - TextSelectionChanged and TextChanged reach a client's handler;
 // - a range of a removed control answers UIA_E_ELEMENTNOTAVAILABLE.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/dispatcher/types/dispatcher_types.hpp"
+#include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/platform/windows_host.hpp"
 #include "support/windows_own_window.hpp"
 

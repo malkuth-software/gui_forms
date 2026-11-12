@@ -10,6 +10,7 @@
 // layout is a value: placing fills caller storage, picking is a pure
 // function of the layout and the pointer, and nothing allocates.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
@@ -37,7 +38,7 @@ enum class RadialItemAlignment : std::uint8_t {
     outward,
 };
 
-struct RadialLayout final {
+struct GUI_FORMS_API RadialLayout final {
     Point center{};
     // From the centre to each anchor; finite and positive.
     double radius{};
@@ -53,7 +54,7 @@ struct RadialLayout final {
 // One placed item: its box, its anchor and direction, and the sector of
 // directions that picks it, from `sweep_start` to `sweep_start + sweep`
 // degrees (sweep = 360 / count, centred on the direction).
-struct RadialSlot final {
+struct GUI_FORMS_API RadialSlot final {
     Rect bounds{};
     Point anchor{};
     double direction_degrees{};
@@ -67,17 +68,17 @@ struct RadialSlot final {
     }
 };
 
-[[nodiscard]] bool valid_radial_layout(const RadialLayout& layout) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_radial_layout(const RadialLayout& layout) noexcept;
 
 // Fills the first `layout.count` entries of `slots` and returns that count;
 // 0, writing nothing, when the layout is not valid or `slots` is shorter.
-std::size_t place_radial_items(const RadialLayout& layout, std::span<RadialSlot> slots) noexcept;
+GUI_FORMS_API std::size_t place_radial_items(const RadialLayout& layout, std::span<RadialSlot> slots) noexcept;
 
 // What a pointer picks: nothing within `dead_zone` of the centre (or for a
 // layout that is not valid, or a point or dead zone that is not finite),
 // otherwise the item whose sector holds the pointer's direction. A
 // direction on a boundary picks the item clockwise of it.
-struct RadialPick final {
+struct GUI_FORMS_API RadialPick final {
     bool picked{};
     std::uint32_t index{};
     double direction_degrees{};
@@ -88,12 +89,12 @@ struct RadialPick final {
     }
 };
 
-[[nodiscard]] RadialPick pick_radial_item(const RadialLayout& layout, Point pointer, double dead_zone) noexcept;
+[[nodiscard]] GUI_FORMS_API RadialPick pick_radial_item(const RadialLayout& layout, Point pointer, double dead_zone) noexcept;
 
 // The direction ring: an annulus between `inner_radius` and `outer_radius`
 // (finite, 0 <= inner < outer) about the layout's centre in `track`, with
 // the picked item's sector of it in `pick`.
-struct DirectionRingStyle final {
+struct GUI_FORMS_API DirectionRingStyle final {
     double inner_radius{};
     double outer_radius{};
     Color track{};
@@ -108,7 +109,7 @@ inline constexpr std::size_t maximum_ring_arc_steps = 30U;
 // an item, its sector as one polygon (the whole annulus for a one-item
 // layout, as a second round stroke). An invalid layout or style paints
 // nothing.
-void paint_direction_ring(Painter& painter, const RadialLayout& layout, const RadialPick& pick,
+GUI_FORMS_API void paint_direction_ring(Painter& painter, const RadialLayout& layout, const RadialPick& pick,
                           const DirectionRingStyle& style);
 
 } // namespace gui_forms

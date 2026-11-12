@@ -7,6 +7,11 @@
 #include "gui_forms/controls/plot_view.hpp"
 #include "gui_forms/controls/value_bar.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/anchored_overlay_placement.hpp"
+#include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/scroll_bar.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
 
 #include <algorithm>
 #include <cstdlib>

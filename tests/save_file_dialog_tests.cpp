@@ -4,7 +4,18 @@
 // answers, file_ok with cancel, destruction from file_ok, a save dialog shown
 // from an open dialog's file_ok, reset and the interactions it declares.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
+#include "gui_forms/components/open_file_dialog/open_file_dialog.hpp"
+#include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/schema/types/schema_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
 #include <cstddef>

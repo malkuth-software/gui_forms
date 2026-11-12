@@ -4,6 +4,7 @@
 // presentation settings so that the theme rules and the host's compositor
 // report can name it without the window's types.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstdint>
@@ -30,7 +31,7 @@ enum class ColourScheme : std::uint8_t {
 // theme sheet declares them with `:root { color-scheme: light dark }`, a
 // definition built in code sets them. Light alone by default. A set with
 // neither is invalid (Theme::create refuses it).
-struct ColourSchemeSet final {
+struct GUI_FORMS_API ColourSchemeSet final {
     bool light{true};
     bool dark{};
 
@@ -49,7 +50,7 @@ struct ColourSchemeSet final {
 // selection colour. Each is empty where the host reports none, and a
 // theme then reads its fallback. They are hints: a theme may use,
 // override or ignore them, and GUI.Forms' own theme reads neither.
-struct SystemColourHints final {
+struct GUI_FORMS_API SystemColourHints final {
     std::optional<Color> accent{};
     std::optional<Color> highlight{};
 

@@ -678,7 +678,7 @@ bool ObjectView::paint_item_image(
     icon.image = resolved.image;
     icon.bounds = destination;
     if (!item.enabled) icon.states.insert(AnatomyState::disabled);
-    paint_part(painter, *this, icon);
+    paint_shown(painter, icon);
     return true;
 }
 
@@ -748,11 +748,11 @@ void ObjectView::invalidate_hover_change(std::optional<std::size_t> previous, st
     }
     const Rect bounds = local_bounds();
     if (previous && *previous < items_.size()) {
-        const Rect cell = Rect::intersection(item_bounds(*previous), bounds);
+        const Rect cell = Rect::intersection(shown(item_bounds(*previous)), bounds);
         if (!cell.empty()) invalidate(cell);
     }
     if (next && *next < items_.size()) {
-        const Rect cell = Rect::intersection(item_bounds(*next), bounds);
+        const Rect cell = Rect::intersection(shown(item_bounds(*next)), bounds);
         if (!cell.empty()) invalidate(cell);
     }
 }
@@ -773,8 +773,9 @@ Rect ObjectView::item_bounds(const std::size_t index) const noexcept {
 std::optional<std::size_t> ObjectView::index_at(const Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
     if (!bounds.contains(absolute)) return {};
-    const double local_x = absolute.x - bounds.x - 4.0;
-    const double local_y = absolute.y - bounds.y - 2.0 - header_height();
+    const Point reading = reading_local(absolute);
+    const double local_x = reading.x - 4.0;
+    const double local_y = reading.y - 2.0 - header_height();
     if (local_x < 0.0 || local_y < 0.0) return {};
     const std::size_t column_count = columns();
     const double cell_width = std::max(1.0, (bounds.width - 8.0) / column_count);
@@ -864,7 +865,54 @@ void ObjectView::paint_focus_ring_part(Painter& painter, Rect bounds) const {
     ring.role = PartRole::focus;
     ring.bounds = bounds;
     ring.states.insert(AnatomyState::focus_visible);
-    paint_part(painter, *this, ring);
+    paint_shown(painter, ring);
+}
+
+bool ObjectView::mirrored() const noexcept {
+    const bool result = effective_layout_direction() == LayoutDirection::right_to_left;
+    return result;
+}
+
+// `reading` as drawn: mirrored about the view's local bounds right to left.
+Rect ObjectView::shown(Rect reading) const noexcept {
+    const Rect drawn = details_detail::shown_rect(reading, local_bounds(), mirrored());
+    return drawn;
+}
+
+// A window position in the view's local coordinates, in reading order.
+Point ObjectView::reading_local(Point absolute) const noexcept {
+    const Rect bounds = absolute_bounds();
+    const Point drawn{absolute.x - bounds.x, absolute.y - bounds.y};
+    const Point reading = details_detail::reading_point(drawn, local_bounds(), mirrored());
+    return reading;
+}
+
+// Paints `part`, laid out in reading order, where it shows: mirrored, with
+// its text alignment exchanged, right to left.
+void ObjectView::paint_shown(Painter& painter, PartPaint part) const {
+    const bool mirror = mirrored();
+    part.bounds = details_detail::shown_rect(part.bounds, local_bounds(), mirror);
+    part.alignment = details_detail::shown_alignment(part.alignment, mirror);
+    paint_part(painter, *this, part);
+}
+
+// Paints a text run laid out in reading order from `origin` (on its
+// baseline) in a slot `width` wide. Right to left the run's own extent is
+// mirrored, so the text ends where it began and a right-aligned column's
+// text starts at the left; the glyphs themselves are not mirrored.
+void ObjectView::paint_text_shown(Painter& painter, const PartPaint& part, Point origin, double width) const {
+    if (!mirrored() || part.text.empty()) {
+        paint_text_part_at(painter, *this, part, origin, width);
+        return;
+    }
+    PartPaint measured_part = part;
+    const Size measured = part.measured_text ? *part.measured_text
+                                             : painter.measure_text_utf8(part.text, part.font);
+    measured_part.measured_text = measured;
+    const Rect frame = local_bounds();
+    const double run = std::min(std::max(0.0, width), measured.width);
+    const Point drawn{frame.x + frame.x + frame.width - origin.x - run, origin.y};
+    paint_text_part_at(painter, *this, measured_part, drawn, run);
 }
 
 void ObjectView::paint_glyph(Painter& painter, Rect b, ObjectGlyph glyph,
@@ -890,36 +938,36 @@ void ObjectView::paint_glyph(Painter& painter, Rect b, ObjectGlyph glyph,
     if (glyph == ObjectGlyph::folder) {
         well.bounds = {b.x + 3.0, b.y + 9.0, b.width - 6.0, b.height - 12.0};
         well.authored_background = base;
-        paint_part(painter, *this, well);
+        paint_shown(painter, well);
         fill.bounds = {b.x + 7.0, b.y + 4.0, b.width * .42, 5.0};
         fill.content_color = with_alpha(style().highlight, 180);
-        paint_part(painter, *this, fill);
+        paint_shown(painter, fill);
         fill.bounds = {b.x + 5.0, b.y + 12.0, b.width - 10.0, 3.0};
         fill.content_color = with_alpha(style().highlight, 130);
-        paint_part(painter, *this, fill);
+        paint_shown(painter, fill);
         return;
     }
     well.bounds = {b.x + 7.0, b.y + 2.0, b.width - 14.0, b.height - 4.0};
     well.authored_background = style().paper;
-    paint_part(painter, *this, well);
+    paint_shown(painter, well);
     fill.bounds = {b.x + 8.0, b.y + 3.0, b.width - 16.0, 6.0};
     fill.content_color = base;
-    paint_part(painter, *this, fill);
+    paint_shown(painter, fill);
     if (glyph == ObjectGlyph::image) {
         fill.bounds = {b.x + 12.0, b.y + 14.0, b.width - 24.0, b.height - 22.0};
         fill.content_color = with_alpha(base, 120);
-        paint_part(painter, *this, fill);
+        paint_shown(painter, fill);
     } else if (glyph == ObjectGlyph::audio) {
         // A sound bar across the page where the stroke rose.
         fill.bounds = {b.x + 15.0, b.y + b.height * .5 - 1.5, b.width - 29.0, 3.0};
         fill.content_color = base;
-        paint_part(painter, *this, fill);
+        paint_shown(painter, fill);
     } else {
         fill.content_color = style().border;
         fill.bounds = {b.x + 12.0, b.y + 16.0, b.width - 24.0, 2.0};
-        paint_part(painter, *this, fill);
+        paint_shown(painter, fill);
         fill.bounds = {b.x + 12.0, b.y + 22.0, b.width - 29.0, 2.0};
-        paint_part(painter, *this, fill);
+        paint_shown(painter, fill);
     }
 }
 
@@ -954,9 +1002,9 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
         const ObjectViewItem& item = items_[index];
         const Rect cell = item_bounds(index);
         painter.save();
-        painter.clip_rect({cell.x + 1.0, cell.y + 1.0,
-                           std::max(0.0, cell.width - 2.0),
-                           std::max(0.0, cell.height - 2.0)});
+        painter.clip_rect(shown({cell.x + 1.0, cell.y + 1.0,
+                                 std::max(0.0, cell.width - 2.0),
+                                 std::max(0.0, cell.height - 2.0)}));
         const bool selected = is_selected(item.stable_id);
         const bool active = focused_ && item.stable_id == focused_id_;
         const bool hovered = hovered_index_ == index;
@@ -972,7 +1020,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                             std::max(0.0, cell.height - 2.0)};
             plate.states = item_states;
             if (overridden) plate.authored_background = selected ? selected_fill : style().face_light;
-            paint_part(painter, *this, plate);
+            paint_shown(painter, plate);
         }
         PartPaint text;
         text.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
@@ -998,7 +1046,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 const double text_x = cell.x +
                     std::max(4.0, (cell.width - measured.width) * .5);
                 text.text = line;
-                paint_text_part_at(painter, *this, text, {text_x, baseline}, measured.width);
+                paint_text_shown(painter, text, {text_x, baseline}, measured.width);
                 baseline += line_height;
             }
             if (label.truncated) {
@@ -1021,9 +1069,9 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 secondary_text.tone = PartTextTone::secondary;
                 secondary_text.text = display_secondary;
                 secondary_text.font = secondary;
-                paint_text_part_at(painter, *this, secondary_text,
-                                   {cell.x + 5.0, cell.y + cell.height - 5.0},
-                                   std::max(0.0, cell.width - 10.0));
+                paint_text_shown(painter, secondary_text,
+                                 {cell.x + 5.0, cell.y + cell.height - 5.0},
+                                 std::max(0.0, cell.width - 10.0));
             }
         } else {
             const Rect glyph_bounds{cell.x + 6.0, cell.y + 3.0, 24.0,
@@ -1043,8 +1091,8 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
             const std::string display_name = elide_text_end(
                 painter, item.name, body_font, name_width);
             text.text = display_name;
-            paint_text_part_at(painter, *this, text,
-                               {cell.x + 38.0, cell.y + cell.height * .5 + 4.0}, name_width);
+            paint_text_shown(painter, text,
+                             {cell.x + 38.0, cell.y + cell.height * .5 + 4.0}, name_width);
             const bool name_truncated = display_name != item.name;
             if (name_truncated) {
                 painted_truncated_.push_back(index);
@@ -1060,9 +1108,9 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 PartPaint secondary_text = text;
                 secondary_text.tone = PartTextTone::secondary;
                 secondary_text.text = display_secondary;
-                paint_text_part_at(painter, *this, secondary_text,
-                                   {secondary_x, cell.y + cell.height * .5 + 4.0},
-                                   std::max(0.0, cell.x + cell.width - 6.0 - secondary_x));
+                paint_text_shown(painter, secondary_text,
+                                 {secondary_x, cell.y + cell.height * .5 + 4.0},
+                                 std::max(0.0, cell.x + cell.width - 6.0 - secondary_x));
             }
             PartPaint rule;
             rule.family = ControlVisualRole::editor;
@@ -1070,7 +1118,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
             rule.bounds = {cell.x + 2.0, cell.y + cell.height - 1.5,
                            std::max(0.0, cell.width - 4.0), 1.0};
             rule.states = states;
-            paint_part(painter, *this, rule);
+            paint_shown(painter, rule);
         }
         if (active && window() && (*window()).focus_cue_visible()) paint_focus_ring_part(painter, cell);
         painter.restore();
@@ -1080,7 +1128,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
     if (inspection && *inspection < items_.size()) {
         painted_inspection_ = true;
         paint_complete_name_inspection(
-            painter, *this, items_[*inspection], item_bounds(*inspection), bounds,
+            painter, *this, items_[*inspection], shown(item_bounds(*inspection)), bounds,
             body_font);
     }
     painter.restore();
@@ -1224,8 +1272,12 @@ void ObjectView::on_key(KeyEvent& event) {
         return;
     }
     const std::size_t column_count = columns();
-    if (event.physical_key == PhysicalKey::left && index > 0U) --index;
-    else if (event.physical_key == PhysicalKey::right && index + 1U < items_.size()) ++index;
+    // Right to left the items run from the right, so Left and Right exchange.
+    const bool mirror = mirrored();
+    const bool previous_key = event.physical_key == (mirror ? PhysicalKey::right : PhysicalKey::left);
+    const bool next_key = event.physical_key == (mirror ? PhysicalKey::left : PhysicalKey::right);
+    if (previous_key && index > 0U) --index;
+    else if (next_key && index + 1U < items_.size()) ++index;
     else if (event.physical_key == PhysicalKey::up) {
         index = index >= column_count ? index - column_count : 0U;
     } else if (event.physical_key == PhysicalKey::down) {
@@ -1331,8 +1383,8 @@ std::vector<SemanticNode> ObjectView::semantic_virtual_children() const {
         node.name = item.name;
         node.value = item.secondary_text;
         node.description = item.description;
-        node.bounds = {absolute.x + local.x, absolute.y + local.y,
-                       local.width, local.height};
+        const Rect drawn = shown(local);
+        node.bounds = {absolute.x + drawn.x, absolute.y + drawn.y, drawn.width, drawn.height};
         node.states = SemanticState::visible | SemanticState::focusable;
         if (effectively_enabled() && item.enabled) node.states |= SemanticState::enabled;
         if (is_selected(item.stable_id)) node.states |= SemanticState::selected;
@@ -1353,7 +1405,7 @@ void ObjectView::append_column_headers(std::vector<SemanticNode>& nodes) const {
     const Rect band{4.0, 2.0, std::max(0.0, local_bounds().width - 8.0), header_height()};
     const std::string view_id(stable_id().value());
     for (std::size_t column = 0U; column < details_columns_.size(); ++column) {
-        const Rect bounds = Rect::intersection(column_bounds(column), band);
+        const Rect bounds = shown(Rect::intersection(column_bounds(column), band));
         if (bounds.empty()) continue;
         const ObjectDetailsColumn& definition = details_columns_[column];
         SemanticNode node{};
@@ -1386,7 +1438,7 @@ void ObjectView::append_row_cells(std::size_t index, SemanticNode& row_node) con
     for (std::size_t column = 0U; column < details_columns_.size(); ++column) {
         const Rect extent = column_bounds(column);
         const Rect cell_rect{extent.x, line.y, extent.width, line.height};
-        const Rect bounds = Rect::intersection(cell_rect, body);
+        const Rect bounds = shown(Rect::intersection(cell_rect, body));
         if (bounds.empty()) continue;
         const ObjectDetailsCell& value = item.cells[column];
         SemanticNode cell{};
@@ -1426,7 +1478,7 @@ bool ObjectView::on_semantic_child_action(std::string_view id,
     if (action == SemanticAction::show_menu) {
         if (!is_selected(id)) select_index(*index, false);
         else focus_index(*index);
-        const Rect local = item_bounds(*index);
+        const Rect local = shown(item_bounds(*index));
         const Rect absolute = absolute_bounds();
         context_requested_.emit({std::string(id),
             {absolute.x + local.x + local.width * .5,
@@ -1601,7 +1653,9 @@ bool ObjectView::details_pointer_context_valid(const DetailsPointerContext& cont
 bool ObjectView::details_pointer(PointerEvent& event) {
     const Control::Ptr lifetime = shared_from_this();
     const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    // In reading order from here on (right to left, the drawn view mirrors,
+    // so a column's resize edge is its drawn left edge).
+    const Point local = reading_local(event.position);
     if (resizing_column_ && window() && !has_pointer_capture()) {
         // The host or another control may revoke capture without a final up.
         // A later pointer move must not resume that retired width gesture.
@@ -1715,8 +1769,12 @@ bool ObjectView::details_key(KeyEvent& event) {
         event.handled = true;
         return true;
     }
-    const bool left = event.physical_key == PhysicalKey::left;
-    const bool right = event.physical_key == PhysicalKey::right;
+    // In reading order: right to left the columns run from the right, so the
+    // Left and Right keys exchange (toward the first column, a narrower
+    // column, a smaller offset is then Right).
+    const bool mirror = mirrored();
+    const bool left = event.physical_key == (mirror ? PhysicalKey::right : PhysicalKey::left);
+    const bool right = event.physical_key == (mirror ? PhysicalKey::left : PhysicalKey::right);
     if (!header_focused_) {
         if (adjust_column && (left || right)) {
             const double next = std::max(0.0, horizontal_offset_ + (left ? -32.0 : 32.0));
@@ -1813,7 +1871,7 @@ void ObjectView::paint_details(Painter& painter) {
     band.role = PartRole::face;
     band.bounds = {4.0, 2.0, std::max(0.0, viewport_right - 4.0), header};
     band.states = states;
-    paint_part(painter, *this, band);
+    paint_shown(painter, band);
     for (std::size_t visible = 0U; visible < visible_count; ++visible) {
         const std::size_t index = visible_columns[visible];
         const ObjectDetailsColumn& column = details_columns_[index];
@@ -1825,7 +1883,7 @@ void ObjectView::paint_details(Painter& painter) {
         const Size label_measured = details_cache_[cache_slot].measured;
         ++cache_slot;
         painter.save();
-        painter.clip_rect(cell);
+        painter.clip_rect(shown(cell));
         PartPaint caption;
         caption.family = ControlVisualRole::panel;
         caption.role = PartRole::label;
@@ -1833,16 +1891,16 @@ void ObjectView::paint_details(Painter& painter) {
         caption.text = label;
         caption.font = body_font;
         caption.measured_text = label_measured;
-        paint_text_part_at(painter, *this, caption,
-                           {cell.x + 6.0, cell.y + cell.height * .5 + body_font.size * .35},
-                           std::max(0.0, cell.width - reserved));
+        paint_text_shown(painter, caption,
+                         {cell.x + 6.0, cell.y + cell.height * .5 + body_font.size * .35},
+                         std::max(0.0, cell.width - reserved));
         PartPaint separator;
         separator.family = ControlVisualRole::panel;
         separator.role = PartRole::divider;
         separator.bounds = {cell.x + cell.width - 1.5, cell.y + 3.0, 1.0,
                             std::max(0.0, cell.height - 6.0)};
         separator.states = states;
-        paint_part(painter, *this, separator);
+        paint_shown(painter, separator);
         if (sorted) {
             // An 8-unit square holds the arrow's four rows.
             const double center = std::floor(cell.x + cell.width - 10.0);
@@ -1854,7 +1912,7 @@ void ObjectView::paint_details(Painter& painter) {
                                                                                   : PartMark::arrow_down;
             arrow.bounds = {center - 4.0, y - 4.0, 8.0, 8.0};
             arrow.states = states;
-            paint_part(painter, *this, arrow);
+            paint_shown(painter, arrow);
         }
         if (focused_ && header_focused_ && focused_column_ == index) paint_focus_ring_part(painter, cell);
         painter.restore();
@@ -1864,7 +1922,7 @@ void ObjectView::paint_details(Painter& painter) {
     header_rule.role = PartRole::divider;
     header_rule.bounds = {4.0, 1.5 + header, std::max(0.0, viewport_right - 4.0), 1.0};
     header_rule.states = states;
-    paint_part(painter, *this, header_rule);
+    paint_shown(painter, header_rule);
     painter.clip_rect({4.0, 2.0 + header, viewport_right - 4.0, std::max(0.0, bounds.height - header - 4.0)});
     const Color selected_row_fill = focused_ ? style().accent_light : with_alpha(style().accent_light, 190);
     for (std::size_t item_index_value = first; item_index_value < end; ++item_index_value) {
@@ -1885,7 +1943,7 @@ void ObjectView::paint_details(Painter& painter) {
             plate.bounds = row;
             plate.states = row_states;
             if (overridden) plate.authored_background = selected ? selected_row_fill : style().face_light;
-            paint_part(painter, *this, plate);
+            paint_shown(painter, plate);
         }
         for (std::size_t visible = 0U; visible < visible_count; ++visible) {
             const std::size_t index = visible_columns[visible];
@@ -1899,7 +1957,7 @@ void ObjectView::paint_details(Painter& painter) {
             const std::string& text = details_text(painter, text_slot, item_index_value, index, false, value.text, text_width, body_font);
             ++details_paint_work_.cells;
             painter.save();
-            painter.clip_rect(cell);
+            painter.clip_rect(shown(cell));
             if (index == 0U) {
                 const Rect icon{cell.x + 4.0, cell.y + 3.0, 24.0, std::max(18.0, cell.height - 6.0)};
                 if (!paint_item_image(painter, item, item_index_value, selected, icon)) paint_glyph(painter, icon, item.glyph, item.enabled);
@@ -1918,9 +1976,9 @@ void ObjectView::paint_details(Painter& painter) {
             content.text = text;
             content.font = body_font;
             content.measured_text = details_cache_[text_slot].measured;
-            paint_text_part_at(painter, *this, content,
-                               {origin, cell.y + cell.height * .5 + body_font.size * .35},
-                               std::max(0.0, cell.x + cell.width - 6.0 - origin));
+            paint_text_shown(painter, content,
+                             {origin, cell.y + cell.height * .5 + body_font.size * .35},
+                             std::max(0.0, cell.x + cell.width - 6.0 - origin));
             painter.restore();
         }
         if (focused_ && !header_focused_ && item.stable_id == focused_id_ && window() && (*window()).focus_cue_visible()) {
@@ -2120,6 +2178,7 @@ ObjectView::ColumnParts ObjectView::column_parts(std::size_t column) const {
     record.column_divider = PartGeometry::from_bounds(header.divider);
     record.column_grip = PartGeometry::from_bounds(header.grip);
     record.column_focus = record.column_header;
+    if (mirrored()) details_detail::mirror_record(object_view_column_part_fields, record, bounds);
     return record;
 }
 
@@ -2198,6 +2257,7 @@ void ObjectView::publish_realized_item_geometry(std::size_t item,
     record.name = PartGeometry::from_bounds(Rect::intersection(name, visible_cell));
     record.secondary = PartGeometry::from_bounds(Rect::intersection(secondary, visible_cell));
     record.cell_focus = record.cell;
+    if (mirrored()) details_detail::mirror_record(object_view_item_part_fields, record, bounds);
     write_item_parts(anatomy().item_systems.front(), object_view_item_part_fields, record, geometry);
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 
 #include <cstdint>
@@ -20,7 +21,7 @@ enum class OverlayDismissReason : std::uint8_t {
 // click-away and Escape dismissal requests. Overlay lifetime and focus scope stay
 // with Window, allowing product composites to implement staged Escape behavior
 // without duplicating overlay hit testing or edge avoidance.
-class AnchoredOverlayLayer final : public Panel, public AnchoredOverlayLayerCapabilities<AnchoredOverlayLayer> {
+class GUI_FORMS_API AnchoredOverlayLayer final : public Panel, public AnchoredOverlayLayerCapabilities<AnchoredOverlayLayer> {
 public:
     AnchoredOverlayLayer(StableId stable_id, Control::Ptr anchor,
                        AnchoredOverlayPlacement initial_placement = {});

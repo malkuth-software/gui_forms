@@ -1,6 +1,10 @@
 #include "support.hpp"
 
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/drawing_surface.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/track_bar.hpp"
 
 #include <string_view>
 

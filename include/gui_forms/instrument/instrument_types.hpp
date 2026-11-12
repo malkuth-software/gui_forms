@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -16,7 +17,7 @@ enum class InstrumentModuleState : std::uint8_t {
     invalid,
 };
 
-struct InstrumentFieldSpec final {
+struct GUI_FORMS_API InstrumentFieldSpec final {
     std::string stable_id;
     std::string name;
     std::string value;
@@ -27,7 +28,7 @@ struct InstrumentFieldSpec final {
     bool required{};
 };
 
-struct InstrumentModuleSpec final {
+struct GUI_FORMS_API InstrumentModuleSpec final {
     std::string stable_id;
     std::string name;
     std::vector<InstrumentFieldSpec> fields;
@@ -38,7 +39,7 @@ struct InstrumentModuleSpec final {
     bool removable{true};
 };
 
-struct InstrumentFieldChange final {
+struct GUI_FORMS_API InstrumentFieldChange final {
     std::string module_id;
     std::string field_id;
     std::string previous_value;
@@ -46,14 +47,14 @@ struct InstrumentFieldChange final {
     bool committed{};
 };
 
-struct InstrumentModuleToggle final {
+struct GUI_FORMS_API InstrumentModuleToggle final {
     std::string module_id;
     bool enabled{};
 };
 
-struct InstrumentModuleRequest final { std::string module_id; };
+struct GUI_FORMS_API InstrumentModuleRequest final { std::string module_id; };
 
-struct InstrumentModuleMoveRequest final {
+struct GUI_FORMS_API InstrumentModuleMoveRequest final {
     std::string module_id;
     std::size_t previous_index{};
     std::size_t requested_index{};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/controls/quick_access_toolbar_values.hpp"
@@ -19,7 +20,7 @@ namespace gui_forms {
 // check, in the customize menu; `shown` is whether the toolbar shows it
 // before the user customizes. `image` is the button's icon: a command with
 // one shows only its icon, a command without one its text.
-struct QuickAccessToolbarCommand final {
+struct GUI_FORMS_API QuickAccessToolbarCommand final {
     std::shared_ptr<Command> command{};
     ImageId image{};
     bool shown{true};
@@ -27,13 +28,13 @@ struct QuickAccessToolbarCommand final {
 
 // The user showed or hid a command from the customize menu, or the
 // application did through set_command_shown.
-struct QuickAccessToolbarCustomization final {
+struct GUI_FORMS_API QuickAccessToolbarCustomization final {
     std::string toolbar_id{};
     std::string command_id{};
     bool shown{};
 };
 
-struct QuickAccessToolbarPlacementChange final {
+struct GUI_FORMS_API QuickAccessToolbarPlacementChange final {
     std::string toolbar_id{};
     QuickAccessToolbarPlacement placement{QuickAccessToolbarPlacement::above_ribbon};
 };
@@ -49,7 +50,7 @@ struct QuickAccessToolbarPlacementChange final {
 // and item anatomy; it admits only command buttons (commands only, D2-2), and
 // set_items with any other item throws std::invalid_argument. The
 // application declares commands with set_commands instead.
-class QuickAccessToolbar final : public ToolStrip, public QuickAccessToolbarCapabilities<QuickAccessToolbar> {
+class GUI_FORMS_API QuickAccessToolbar final : public ToolStrip, public QuickAccessToolbarCapabilities<QuickAccessToolbar> {
 public:
     // The most commands the toolbar may declare.
     static constexpr std::size_t maximum_commands = 20U;
@@ -112,7 +113,7 @@ public:
 
     // Stage T1 anatomy, as dot members: ToolStrip's parts and the customize
     // button. Its states are Control's; its item system is ToolStrip's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry grip;

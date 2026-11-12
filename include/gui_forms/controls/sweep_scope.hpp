@@ -9,6 +9,7 @@
 // the trace are an effect program, `scope_sweep` (sweep_scope_effects.hpp),
 // bounded and verified by the gui_forms plugin's effect pass.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/range_control.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/controls/sweep_scope_capabilities.hpp"
@@ -22,7 +23,7 @@ namespace gui_forms {
 
 struct PresentationSettings;
 
-class SweepScope : public RangeControl, public SweepScopeCapabilities<SweepScope> {
+class GUI_FORMS_API SweepScope : public RangeControl, public SweepScopeCapabilities<SweepScope> {
 public:
     explicit SweepScope(StableId stable_id);
 
@@ -45,7 +46,7 @@ public:
     // well the trace is drawn in; the graticule its ruled lines; the
     // indicator the level's trace; the activity the band the sweep line
     // crosses (the plot: its phase is the effect's state).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry caption;
         PartGeometry plot;
@@ -53,7 +54,7 @@ public:
         PartGeometry indicator;
         PartGeometry activity;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};

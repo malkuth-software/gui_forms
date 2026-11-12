@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/binding_provider/binding_provider.hpp"
 
 #include <cstddef>
@@ -26,7 +27,7 @@ namespace gui_forms {
 // a row that breaks either throws std::invalid_argument and changes
 // nothing; a provider function refuses instead. Inserting or removing in
 // the middle moves the rows after it (O(rows * width)).
-class BindingTable final : public BindingProvider {
+class GUI_FORMS_API BindingTable final : public BindingProvider {
 public:
     explicit BindingTable(BindingSchema schema = {});
 

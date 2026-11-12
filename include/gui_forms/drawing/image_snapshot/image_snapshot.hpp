@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/types/pixel_format/pixel_format.hpp"
 
 #include <cstddef>
@@ -12,7 +13,7 @@ namespace gui_drawing {
 struct PixelStorage;
 
 // Immutable image identity and optional shared CPU pixel projection.
-struct ImageSnapshot final {
+struct GUI_FORMS_API ImageSnapshot final {
     std::uint64_t stable_id{};
     std::uint32_t width{};
     std::uint32_t height{};

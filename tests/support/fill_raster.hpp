@@ -5,7 +5,12 @@
 // FillRaster makes FillFramebuffers (moved out of sub_surface_tests.cpp for
 // the S7 cell-region tests).
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 
 #include <algorithm>

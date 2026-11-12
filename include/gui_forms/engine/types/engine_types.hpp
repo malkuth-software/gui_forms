@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -14,7 +15,7 @@ namespace gui_forms {
 
 // The engine version a primitive was introduced in, and the version a theme
 // declares it needs. Versions order by major, then minor.
-struct EngineVersion final {
+struct GUI_FORMS_API EngineVersion final {
     std::uint16_t major{};
     std::uint16_t minor{};
 
@@ -35,7 +36,7 @@ inline constexpr EngineVersion current_engine_version{0, 3};
 
 // Device pixels per logical unit. Kept apart from plain doubles so that a
 // logical length is never passed where a scale is meant (house style §3).
-struct DeviceScale final {
+struct GUI_FORMS_API DeviceScale final {
     double value{1.0};
 
     friend constexpr bool operator==(DeviceScale left, DeviceScale right) noexcept {
@@ -49,7 +50,7 @@ inline constexpr double minimum_device_scale = 0.5;
 inline constexpr double maximum_device_scale = 8.0;
 
 // A raster's size in device pixels.
-struct DeviceExtent final {
+struct GUI_FORMS_API DeviceExtent final {
     std::uint32_t width{};
     std::uint32_t height{};
 
@@ -71,7 +72,7 @@ inline constexpr std::size_t part_raster_bytes_per_pixel = 4;
 // must stay valid for the call that fills it. Row y starts at byte
 // y * row_bytes; the bytes of a row past width * 4 are padding and are never
 // read or written.
-struct PartRasterView final {
+struct GUI_FORMS_API PartRasterView final {
     std::span<std::uint8_t> pixels{};
     DeviceExtent extent{};
     std::size_t row_bytes{};
@@ -87,10 +88,10 @@ enum class RasterViewDefect : std::uint8_t {
 
 // Checks the view's shape against its buffer once, before any kernel runs.
 // An empty extent is valid and has nothing to fill.
-[[nodiscard]] RasterViewDefect validate_raster_view(const PartRasterView& view) noexcept;
+[[nodiscard]] GUI_FORMS_API RasterViewDefect validate_raster_view(const PartRasterView& view) noexcept;
 
 // Registered (snake_case) name of a defect, for diagnostics.
-[[nodiscard]] const char* raster_view_defect_name(RasterViewDefect defect) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* raster_view_defect_name(RasterViewDefect defect) noexcept;
 
 // A painted part's identity from frame to frame (T2 GIVEN H3-1), which lets
 // the engine keep a record for it: its states and when it entered them, its
@@ -108,7 +109,7 @@ enum class RasterViewDefect : std::uint8_t {
 //   metrics, because the record then follows the position, not the item.
 //
 // Every view is borrowed for the call that paints the part.
-struct PartKey final {
+struct GUI_FORMS_API PartKey final {
     std::string_view part{};
     std::string_view item{};
     std::optional<std::size_t> item_index{};

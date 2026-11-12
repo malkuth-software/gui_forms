@@ -7,7 +7,14 @@
 
 #include "../../src/core/theme_language/compiler/theme_compiler.hpp"
 #include "../../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/token_box.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
 
 #include <cstddef>
 #include <iostream>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/live_surface/types/live_surface_types.hpp"
 
 #include <cstddef>
@@ -19,7 +20,7 @@ class LiveSurface;
 // Exclusive producer lease. Destruction without publish abandons the candidate
 // frame. Acquiring may fail instead of blocking when all buffers are retained
 // by readers; high-rate producers should drop that frame.
-class LiveSurfaceWriteLease final {
+class GUI_FORMS_API LiveSurfaceWriteLease final {
 public:
     LiveSurfaceWriteLease() = default;
     ~LiveSurfaceWriteLease();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -21,7 +22,7 @@ inline constexpr AutoLengthPercentage automatic_inset{true, {}};
 // An item's `position` and its insets, `auto` by default. A positioned item
 // (relative or absolute) is a containing block for its absolutely
 // positioned descendants.
-struct ItemPositioning final {
+struct GUI_FORMS_API ItemPositioning final {
     PositionKind position{PositionKind::static_position};
     BoxSides<AutoLengthPercentage> inset{automatic_inset, automatic_inset, automatic_inset, automatic_inset};
 
@@ -34,13 +35,13 @@ struct ItemPositioning final {
 // containing block's width and height. Of left and right, the start side
 // wins when both are set (left for left to right, right for right to left);
 // of top and bottom, top. A static or absolute item has none.
-[[nodiscard]] Point relative_position_offset(const ItemPositioning& positioning, Size containing_block,
+[[nodiscard]] GUI_FORMS_API Point relative_position_offset(const ItemPositioning& positioning, Size containing_block,
                                              LayoutDirection direction) noexcept;
 
 // One axis of an absolutely positioned box in its containing block's
 // padding box: left and right with the width, or top and bottom with the
 // height. Lengths are resolved by the caller; the insets keep `auto`.
-struct AbsoluteAxisInput final {
+struct GUI_FORMS_API AbsoluteAxisInput final {
     double containing_extent{};
     // left or top, and right or bottom.
     AutoLengthPercentage start_inset{true, {}};
@@ -74,16 +75,16 @@ struct AbsoluteAxisInput final {
     bool vertical{};
 };
 
-struct AbsoluteAxisResult final {
+struct GUI_FORMS_API AbsoluteAxisResult final {
     // The border box's start edge and size in the containing block.
     double position{};
     double size{};
 };
 
-[[nodiscard]] AbsoluteAxisResult resolve_absolute_axis(const AbsoluteAxisInput& input) noexcept;
+[[nodiscard]] GUI_FORMS_API AbsoluteAxisResult resolve_absolute_axis(const AbsoluteAxisInput& input) noexcept;
 
 // Whether the axis's size comes from the content: neither the item's own
 // size nor both insets fix it. A caller measures the content only then.
-[[nodiscard]] bool absolute_axis_reads_content(const AbsoluteAxisInput& input) noexcept;
+[[nodiscard]] GUI_FORMS_API bool absolute_axis_reads_content(const AbsoluteAxisInput& input) noexcept;
 
 } // namespace gui_forms

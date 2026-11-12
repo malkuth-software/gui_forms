@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/drop_down_button_values.hpp"
 #include "gui_forms/controls/drop_down_button_capabilities.hpp"
@@ -11,7 +12,7 @@ namespace gui_forms {
 // Retained desktop command button with an explicit disclosure actuator.
 // Menu mode routes the whole button to the owned overlay. Split mode retains a
 // primary Click region and a bounded disclosure region at the trailing edge.
-class DropDownButton final : public Button, public DropDownButtonCapabilities<DropDownButton> {
+class GUI_FORMS_API DropDownButton final : public Button, public DropDownButtonCapabilities<DropDownButton> {
 public:
     explicit DropDownButton(StableId stable_id, std::string text = {},
                             DropDownButtonMode mode = DropDownButtonMode::menu);
@@ -36,7 +37,7 @@ public:
                             std::string_view value) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry icon;
@@ -46,7 +47,7 @@ public:
         PartGeometry preselect;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool hot{};
         bool pressed{};

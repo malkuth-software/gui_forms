@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/resources/types/image_resource_types.hpp"
 
 #include <memory>
@@ -14,7 +15,7 @@ namespace detail { struct ImageRegistryAccess; struct ImageRegistryLiveness; }
 // Renderer-neutral ownership for validated PNG files and premultiplied
 // BGRA bytes. ImageId values are generational; views expire at
 // the next registry mutation.
-class ImageRegistry final {
+class GUI_FORMS_API ImageRegistry final {
 public:
     explicit ImageRegistry(ImageRegistryLimits limits = {});
     ~ImageRegistry();

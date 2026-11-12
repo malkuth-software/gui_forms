@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/types.hpp"
 
@@ -97,7 +98,7 @@ enum class DataGridViewHeaderBorderStyle : std::uint8_t { single, raised, sunken
 // keeps its link colours, a check box its theme's), and the selection
 // colours stand in for both while the cell is selected; an unset selection
 // colour leaves the theme's selection look. A disabled grid stays greyed.
-struct DataGridViewCellStyle final {
+struct GUI_FORMS_API DataGridViewCellStyle final {
     std::optional<FontSpec> font{};
     std::optional<DataGridViewContentAlignment> alignment{};
     std::optional<Insets> padding{};

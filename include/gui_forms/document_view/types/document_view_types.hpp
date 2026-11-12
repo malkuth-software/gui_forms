@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -10,34 +11,34 @@
 
 namespace gui_forms {
 
-struct SourceByteOffset final {
+struct GUI_FORMS_API SourceByteOffset final {
     std::uint64_t value{};
     explicit constexpr SourceByteOffset(std::uint64_t offset = 0) noexcept : value(offset) {}
 };
-struct DisplayByteOffset final {
+struct GUI_FORMS_API DisplayByteOffset final {
     std::uint32_t value{};
     explicit constexpr DisplayByteOffset(std::uint32_t offset = 0) noexcept : value(offset) {}
 };
-struct DocumentRevision final {
+struct GUI_FORMS_API DocumentRevision final {
     std::uint64_t document{};
     std::uint64_t revision{};
 };
-struct SourceByteRange final {
+struct GUI_FORMS_API SourceByteRange final {
     SourceByteOffset begin{};
     SourceByteOffset end{};
 };
-struct DocumentViewport final {
+struct GUI_FORMS_API DocumentViewport final {
     SourceByteOffset anchor{};
     double horizontal_dip{};
 };
-struct DocumentPageRequest final {
+struct GUI_FORMS_API DocumentPageRequest final {
     DocumentRevision revision{};
     std::uint64_t serial{};
     SourceByteRange permitted{};
     DocumentViewport viewport{};
 };
 enum class DocumentMapKind : std::uint8_t { identity_utf8, atomic_token };
-struct DocumentMapSpan final {
+struct GUI_FORMS_API DocumentMapSpan final {
     SourceByteRange source{};
     DisplayByteOffset begin{};
     DisplayByteOffset end{};
@@ -48,7 +49,7 @@ enum class DocumentViewStatus : std::uint8_t {
     stale, cancelled, busy, unavailable, context_required, serial_exhausted,
     invalid_boundary,
 };
-struct DocumentViewLimits final {
+struct GUI_FORMS_API DocumentViewLimits final {
     static constexpr std::uint64_t source_bytes = 65'536;
     static constexpr std::size_t display_capacity = 1'048'576;
     static constexpr std::size_t mapping_capacity = 65'536;
@@ -58,7 +59,7 @@ struct DocumentViewLimits final {
 // Unique payload ownership; moves empty the former owner, including metadata.
 // Producers check all capacity budgets before allocation; no source bytes are
 // retained here. Consumer indexing/shaping workspaces have separate budgets.
-struct DocumentPage final {
+struct GUI_FORMS_API DocumentPage final {
     DocumentPageRequest request{};
     SourceByteRange covered{};
     std::string display_utf8{};
@@ -74,7 +75,7 @@ struct DocumentPage final {
 
 // A page request's result: the request the document side fulfils, or why
 // there is none. One alternative per state (house form for results).
-class DocumentRequestResult final {
+class GUI_FORMS_API DocumentRequestResult final {
 public:
     [[nodiscard]] static DocumentRequestResult requested(DocumentPageRequest request) noexcept {
         DocumentRequestResult result{Requested{std::move(request)}};
@@ -118,7 +119,7 @@ private:
 };
 // A display position mapped to the source.
 // One alternative per state (house form for results).
-class SourceMappingResult final {
+class GUI_FORMS_API SourceMappingResult final {
 public:
     [[nodiscard]] static SourceMappingResult mapped(SourceByteOffset position) noexcept {
         SourceMappingResult result{Mapped{position}};
@@ -159,7 +160,7 @@ private:
 };
 // A source position mapped to the display.
 // One alternative per state (house form for results).
-class DisplayMappingResult final {
+class GUI_FORMS_API DisplayMappingResult final {
 public:
     [[nodiscard]] static DisplayMappingResult mapped(DisplayByteOffset position) noexcept {
         DisplayMappingResult result{Mapped{position}};

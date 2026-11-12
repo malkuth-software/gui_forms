@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types.hpp"
 
 #include <cstdint>
@@ -69,7 +70,7 @@ enum class Modifier : std::uint8_t {
     return (modifiers & requested) == requested;
 }
 
-struct PointerEvent {
+struct GUI_FORMS_API PointerEvent {
     PointerAction action{PointerAction::move};
     PointerButton button{PointerButton::none};
     Point position{};
@@ -85,7 +86,7 @@ struct PointerEvent {
     WheelDeltaUnit wheel_unit{WheelDeltaUnit::lines};
 };
 
-struct KeyEvent {
+struct GUI_FORMS_API KeyEvent {
     KeyAction action{KeyAction::down};
     std::uint32_t physical_key{};
     Modifier modifiers{Modifier::none};
@@ -101,7 +102,7 @@ struct KeyEvent {
 
 // USB HID usage IDs are the normalized physical-key vocabulary at the host
 // boundary. Text remains a separate TextInputEvent.
-struct PhysicalKey final {
+struct GUI_FORMS_API PhysicalKey final {
     static constexpr std::uint32_t a = 0x04U;
     static constexpr std::uint32_t b = 0x05U;
     static constexpr std::uint32_t c = 0x06U;
@@ -174,7 +175,7 @@ struct PhysicalKey final {
     static constexpr std::uint32_t right_meta = 0xE7U;
 };
 
-struct TextInputEvent {
+struct GUI_FORMS_API TextInputEvent {
     std::string text_utf8;
     bool composing{};
     std::int32_t replacement_start{-1};
@@ -196,7 +197,7 @@ enum class DragEffect : std::uint8_t {
     link = 1U << 2U,
 };
 
-struct DragLimits final {
+struct GUI_FORMS_API DragLimits final {
     static constexpr std::size_t maximum_items = 16U;
     static constexpr std::size_t maximum_paths = 4096U;
     static constexpr std::size_t maximum_path_bytes = 64U * 1024U;
@@ -218,22 +219,22 @@ struct DragLimits final {
            static_cast<std::uint8_t>(requested);
 }
 
-struct DragTextData final {
+struct GUI_FORMS_API DragTextData final {
     std::string text_utf8;
 };
 
-struct DragFileListData final {
+struct GUI_FORMS_API DragFileListData final {
     std::vector<std::string> paths_utf8;
 };
 
-struct DragBinaryData final {
+struct GUI_FORMS_API DragBinaryData final {
     std::string media_type;
     std::vector<std::uint8_t> bytes;
 };
 
 using DragDataItem = std::variant<DragTextData, DragFileListData, DragBinaryData>;
 
-struct DragEvent final {
+struct GUI_FORMS_API DragEvent final {
     DragAction action{DragAction::enter};
     std::uint64_t session_id{};
     Point position{};
@@ -245,7 +246,7 @@ struct DragEvent final {
     bool handled{};
 };
 
-struct DragDispatchResult final {
+struct GUI_FORMS_API DragDispatchResult final {
     bool handled{};
     DragEffect accepted_effect{DragEffect::none};
     // Lease-time drag dispatch cannot synchronously enter application code.

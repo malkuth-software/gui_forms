@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/table_layout_panel_compat_values.hpp"
@@ -23,7 +24,7 @@ enum class TableSizeMode : std::uint8_t {
     auto_size,
 };
 
-struct TableLayoutStyle final {
+struct GUI_FORMS_API TableLayoutStyle final {
     TableSizeMode size_mode{TableSizeMode::auto_size};
     double size{};
     friend constexpr bool operator==(const TableLayoutStyle& left,
@@ -32,7 +33,7 @@ struct TableLayoutStyle final {
     }
 };
 
-struct TableLayoutCellPosition final {
+struct GUI_FORMS_API TableLayoutCellPosition final {
     std::size_t column{};
     std::size_t row{};
     friend constexpr bool operator==(
@@ -116,7 +117,7 @@ struct TableRowSpanCapability {
 // a right-to-left effective layout direction the layout is computed left
 // to right and mirrored about the panel, padding, margins and the
 // placement in cells included: the first column is at the right edge.
-class TableLayoutPanelCompat final : public ContainerControl,
+class GUI_FORMS_API TableLayoutPanelCompat final : public ContainerControl,
                                      public TableCellCapability<TableLayoutPanelCompat>,
                                      public TableColumnSpanCapability<TableLayoutPanelCompat>,
                                      public TableRowSpanCapability<TableLayoutPanelCompat>, public TableLayoutPanelCompatCapabilities<TableLayoutPanelCompat> {
@@ -131,15 +132,17 @@ public:
 
     // The anonymous spans, in the order they were made; each is anchored at
     // a placed child's cell.
-    [[nodiscard]] std::span<const GridSpan> spans() const& noexcept { return spans_; }
+    [[nodiscard]] std::span<const GridSpan> spans() const& noexcept {
+        return std::span<const GridSpan>(spans_.data(), spans_.size());
+    }
     std::span<const GridSpan> spans() const&& = delete;
 
     [[nodiscard]] std::span<const TableLayoutStyle> column_styles() const& noexcept {
-        return column_styles_;
+        return std::span<const TableLayoutStyle>(column_styles_.data(), column_styles_.size());
     }
     std::span<const TableLayoutStyle> column_styles() const&& = delete;
     [[nodiscard]] std::span<const TableLayoutStyle> row_styles() const& noexcept {
-        return row_styles_;
+        return std::span<const TableLayoutStyle>(row_styles_.data(), row_styles_.size());
     }
     std::span<const TableLayoutStyle> row_styles() const&& = delete;
     void set_column_style(std::size_t column, TableLayoutStyle style);
@@ -164,11 +167,11 @@ public:
                                                      std::size_t row) const;
 
     [[nodiscard]] std::span<const double> column_widths() const& noexcept {
-        return column_widths_;
+        return std::span<const double>(column_widths_.data(), column_widths_.size());
     }
     std::span<const double> column_widths() const&& = delete;
     [[nodiscard]] std::span<const double> row_heights() const& noexcept {
-        return row_heights_;
+        return std::span<const double>(row_heights_.data(), row_heights_.size());
     }
     std::span<const double> row_heights() const&& = delete;
     [[nodiscard]] bool layout_overflowed() const noexcept {
@@ -181,7 +184,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members: the scrollable parts and the cell grid.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry cell_grid;
     };

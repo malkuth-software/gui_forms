@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/responsive_track_panel_values.hpp"
@@ -32,7 +33,7 @@ enum class ResponsiveTrackCollapseReason : std::uint8_t {
 // A zero maximum is unbounded, matching Control::maximum_size. Collapse is
 // never inferred from content identity: an authored priority explicitly opts
 // the track into automatic collapse. Smaller priority values collapse first.
-struct ResponsiveTrackSpec final {
+struct GUI_FORMS_API ResponsiveTrackSpec final {
     ResponsiveTrackSizeMode size_mode{ResponsiveTrackSizeMode::content};
     double minimum{};
     double preferred{};
@@ -53,7 +54,7 @@ struct ResponsiveTrackSpec final {
     }
 };
 
-struct ResponsiveTrackResult final {
+struct GUI_FORMS_API ResponsiveTrackResult final {
     double measured_content{};
     double minimum{};
     double desired{};
@@ -86,7 +87,7 @@ struct ResponsiveTrackResult final {
     }
 };
 
-struct ResponsiveTrackResolution final {
+struct GUI_FORMS_API ResponsiveTrackResolution final {
     double available_extent{};
     double gap{};
     double device_scale{1.0};
@@ -114,7 +115,7 @@ struct ResponsiveTrackResolution final {
 // Renderer-free one-dimensional solver. Content measurements and protected
 // tracks are explicit inputs. Logical allocation is independent of display
 // scale; only cumulative output boundaries are snapped to device pixels.
-[[nodiscard]] ResponsiveTrackResolution resolve_responsive_tracks(
+[[nodiscard]] GUI_FORMS_API ResponsiveTrackResolution resolve_responsive_tracks(
     std::span<const ResponsiveTrackSpec> specs,
     std::span<const double> measured_content,
     double available_extent,
@@ -122,7 +123,7 @@ struct ResponsiveTrackResolution final {
     double device_scale,
     std::span<const std::size_t> collapse_protected_tracks = {});
 
-struct ResponsiveLayoutSnapshot final {
+struct GUI_FORMS_API ResponsiveLayoutSnapshot final {
     ResponsiveTrackOrientation orientation{
         ResponsiveTrackOrientation::horizontal};
     ResponsiveTrackResolution resolution;
@@ -157,7 +158,7 @@ struct ChildTrackCapability {
 // separate effective-layout state and therefore leaves author visibility
 // intact while removing the subtree from paint, hit testing, focus, and
 // semantics.
-class ResponsiveTrackPanel final : public ContainerControl,
+class GUI_FORMS_API ResponsiveTrackPanel final : public ContainerControl,
                                    public ChildTrackCapability<ResponsiveTrackPanel>, public ResponsiveTrackPanelCapabilities<ResponsiveTrackPanel> {
 public:
     explicit ResponsiveTrackPanel(StableId stable_id);
@@ -169,7 +170,7 @@ public:
     [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
 
     [[nodiscard]] std::span<const ResponsiveTrackSpec> track_specs() const& noexcept {
-        return track_specs_;
+        return std::span<const ResponsiveTrackSpec>(track_specs_.data(), track_specs_.size());
     }
     std::span<const ResponsiveTrackSpec> track_specs() const&& = delete;
     void set_track_specs(std::vector<ResponsiveTrackSpec> specs);

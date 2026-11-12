@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/event/event/event.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
@@ -40,7 +41,7 @@ enum class ItemDrawMode : std::uint8_t { normal, owner_draw };
 //
 // A handler paints only: it must not change, dispose or re-parent the
 // control, or anything else in its window, while the event is raised.
-struct ItemContentPaint final {
+struct GUI_FORMS_API ItemContentPaint final {
     Painter& painter;
     std::size_t index{};
     std::size_t column{};
@@ -55,7 +56,7 @@ struct ItemContentPaint final {
 // The text colour `family`'s recipe gives `control` for an item in
 // `states`: the colour a control's default item content is drawn in, which
 // it reports as ItemContentPaint::text.
-[[nodiscard]] Color item_content_text(const Control& control, ControlVisualRole family,
+[[nodiscard]] GUI_FORMS_API Color item_content_text(const Control& control, ControlVisualRole family,
                                       AnatomyStateSet states) noexcept;
 
 // Raises `event` once with `item`, with `item.painter` saved and clipped to
@@ -64,6 +65,6 @@ struct ItemContentPaint final {
 // item. Returns whether the control then draws its default content: true
 // only when a handler set `draw_default`. An empty or non-finite content
 // rectangle raises nothing and returns false.
-[[nodiscard]] bool raise_item_content_paint(Event<ItemContentPaint&>& event, ItemContentPaint& item);
+[[nodiscard]] GUI_FORMS_API bool raise_item_content_paint(Event<ItemContentPaint&>& event, ItemContentPaint& item);
 
 } // namespace gui_forms

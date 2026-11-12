@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/events/key_commands/key_commands.hpp"
 #include "gui_forms/host/types/host_capability/host_capability.hpp"
 
@@ -11,7 +12,7 @@
 namespace gui_forms {
 
 // One host protocol version and the feature it added.
-struct HostProtocolRevision final {
+struct GUI_FORMS_API HostProtocolRevision final {
     std::uint32_t version{};
     const char* feature{};
 };
@@ -44,7 +45,7 @@ constexpr bool host_protocol_revisions_consecutive() noexcept {
 static_assert(host_protocol_revisions_consecutive(),
               "host protocol versions are added one row at a time, in order, each with its feature");
 
-struct HostCapabilities final {
+struct GUI_FORMS_API HostCapabilities final {
     // The last row of host_protocol_revisions.
     static constexpr std::uint32_t current_protocol_version =
         host_protocol_revisions[host_protocol_revisions.size() - 1U].version;

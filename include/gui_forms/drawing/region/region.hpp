@@ -1,16 +1,17 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/graphics_path/graphics_path.hpp"
 
 namespace gui_drawing {
 
-struct RegionSnapshot final {
+struct GUI_FORMS_API RegionSnapshot final {
     std::vector<RectF> rectangles;
     std::vector<PathSnapshot> paths;
     std::vector<RectF> exclusions;
 };
 
-class Region final : public DrawingObject {
+class GUI_FORMS_API Region final : public DrawingObject {
 public:
     explicit Region(RectF rectangle);
     explicit Region(const GraphicsPath& path);

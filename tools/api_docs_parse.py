@@ -91,14 +91,17 @@ class Report:
 
 
 def without_localizable_marks(text: str) -> str:
-    """The header without its GUI_FORMS_LOCALIZABLE(property) marks.
+    """The header without its GUI_FORMS_LOCALIZABLE(property) and
+    GUI_FORMS_API marks.
 
-    The mark is an attribute for the localizable-literal plugin
-    (gui_forms/text/localizable/localizable_property.hpp), not part of a
-    signature the reference shows. Only the mark and the blanks after it go,
+    The first is an attribute for the localizable-literal plugin
+    (gui_forms/text/localizable/localizable_property.hpp), the second the
+    export macro (gui_forms/export/application_export.hpp); neither is part of
+    a signature the reference shows. Only the mark and the blanks after it go,
     so every declaration keeps its line.
     """
-    return re.sub(r"\bGUI_FORMS_LOCALIZABLE\(\w+\)[ \t]*", "", text)
+    unmarked = re.sub(r"\bGUI_FORMS_LOCALIZABLE\(\w+\)[ \t]*", "", text)
+    return re.sub(r"\bGUI_FORMS_(?:THREADING_)?API\b[ \t]*", "", unmarked)
 
 
 def sanitized(text: str) -> str:

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/wizard_capabilities.hpp"
 
@@ -18,7 +19,7 @@ class WizardPage;
 
 // The argument of Wizard::page_changing: the page shown, the page asked
 // for, and whether a handler refuses the move.
-struct WizardPageChangingEvent final {
+struct GUI_FORMS_API WizardPageChangingEvent final {
     std::uint32_t from{0U};
     std::uint32_t to{0U};
     bool cancel{false};
@@ -46,7 +47,7 @@ struct WizardPageChangingEvent final {
 // buttons, are of the panel family; the indicator and buttons are stock
 // controls. To assistive technology it is a group named by the current
 // page's title.
-class Wizard final : public Control, public WizardCapabilities<Wizard> {
+class GUI_FORMS_API Wizard final : public Control, public WizardCapabilities<Wizard> {
 public:
     // Its step indicator and buttons are added once a shared owner exists.
     static constexpr bool initialize_tree_after_construction = true;
@@ -89,7 +90,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry caption;
         PartGeometry label;

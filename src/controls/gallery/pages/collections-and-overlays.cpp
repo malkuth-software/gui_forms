@@ -1,4 +1,6 @@
 #include "pages.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/list_box.hpp"
 
 #include "collections-and-overlays_form.hpp"
 

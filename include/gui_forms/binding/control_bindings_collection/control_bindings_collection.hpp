@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/binding/binding.hpp"
 
 #include <cstddef>
@@ -14,7 +15,7 @@ namespace gui_forms {
 class BindingSource;
 class Control;
 
-class ControlBindingsCollection final {
+class GUI_FORMS_API ControlBindingsCollection final {
 public:
     explicit ControlBindingsCollection(Control& target) : target_(&target) {}
     ~ControlBindingsCollection();
@@ -33,7 +34,7 @@ public:
     [[nodiscard]] std::shared_ptr<Binding> find(
         std::string_view property_name) const;
     [[nodiscard]] std::span<const std::shared_ptr<Binding>> items() const& noexcept {
-        return bindings_;
+        return std::span<const std::shared_ptr<Binding>>(bindings_.data(), bindings_.size());
     }
     std::span<const std::shared_ptr<Binding>> items() const&& = delete;
     [[nodiscard]] std::size_t size() const noexcept { return bindings_.size(); }

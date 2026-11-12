@@ -9,7 +9,29 @@
 // hooks, the thread check before the compare (G4), a cell-less view (G2),
 // an override of a base entry (G3), and a component's table read through
 // the free entry operations (G7).
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_cell/property_cell.hpp"
+#include "gui_forms/binding/property_table/property_table.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/binding/type_tag/type_tag.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
+#include "gui_forms/component/component/component.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/layout/types/layout_types.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/surface_root/control_table/control_table.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <cstdint>

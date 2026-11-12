@@ -1,4 +1,5 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include "gui_forms/window.hpp"
 #include "../access/surface_request_access.hpp"
