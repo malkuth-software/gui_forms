@@ -139,6 +139,18 @@ const char* finish_kind_name(FinishKind kind) noexcept {
     case FinishKind::sand_cast: return "sand_cast";
     case FinishKind::flat: return "flat";
     case FinishKind::cloth_weave: return "cloth_weave";
+    case FinishKind::glint: return "glint";
+    }
+    return "unknown";
+}
+
+const char* glint_preset_name(GlintPreset preset) noexcept {
+    switch (preset) {
+    case GlintPreset::bead_blast: return "bead_blast";
+    case GlintPreset::sand_blast: return "sand_blast";
+    case GlintPreset::iridescent: return "iridescent";
+    case GlintPreset::coarse_grit: return "coarse_grit";
+    case GlintPreset::painted_sand: return "painted_sand";
     }
     return "unknown";
 }
@@ -342,7 +354,9 @@ void append_fill(std::ostringstream& output, const MaterialFillLayer& fill) {
         output << ",\"light_azimuth_degrees\":" << finish.light_azimuth_degrees
                << ",\"light_elevation_degrees\":" << finish.light_elevation_degrees
                << ",\"ambient\":" << finish.ambient << ",\"relief\":" << finish.relief
-               << ",\"gloss\":" << finish.gloss << '}';
+               << ",\"gloss\":" << finish.gloss << ",\"glint\":";
+        append_json_string(output, glint_preset_name(finish.glint));
+        output << '}';
     }
     output << '}';
 }

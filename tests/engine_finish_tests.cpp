@@ -23,6 +23,11 @@
 // - Through the engine: a material whose fill is a finish shows the
 //   kernel's pixels, anchored to the part's box, at scales 1 and 2; the bake
 //   budget refuses a finish too large to paint.
+// - The glint (phase 2): each preset repaints in bands to its whole bytes;
+//   presets differ; the iridescent one is coloured, the sand blast grey;
+//   only the painted sand reads the paint; its bake bound refuses large
+//   faces. Its bytes are not compared with the JavaScript reference, which
+//   calls Math.exp and Math.log (finish_kernel.cpp, "glints").
 // - The theme language's finish() compiles, and its refusals.
 //
 // `--measure` prints what each finish's effort weight (finish_kernel.hpp)
@@ -83,9 +88,15 @@ bool print_mode() {
     return printing;
 }
 
-constexpr std::array<FinishKind, 8> finish_kinds{
-    FinishKind::dusty_matte, FinishKind::orange_peel, FinishKind::hammertone, FinishKind::wrinkle,
-    FinishKind::bead_blast,  FinishKind::sand_cast,   FinishKind::flat,       FinishKind::cloth_weave,
+constexpr std::array<FinishKind, 9> finish_kinds{
+    FinishKind::dusty_matte, FinishKind::orange_peel, FinishKind::hammertone,
+    FinishKind::wrinkle,     FinishKind::bead_blast,  FinishKind::sand_cast,
+    FinishKind::flat,        FinishKind::cloth_weave, FinishKind::glint,
+};
+
+constexpr std::array<GlintPreset, 5> glint_presets{
+    GlintPreset::bead_blast, GlintPreset::sand_blast, GlintPreset::iridescent, GlintPreset::coarse_grit,
+    GlintPreset::painted_sand,
 };
 
 const char* kind_name(FinishKind kind) {
@@ -98,19 +109,22 @@ const char* kind_name(FinishKind kind) {
     case FinishKind::sand_cast: return "sand-cast";
     case FinishKind::flat: return "flat";
     case FinishKind::cloth_weave: return "cloth-weave";
+    case FinishKind::glint: return "glint";
     default: break;
     }
     return "unknown";
 }
 
-// The study's fill for `kind`: its seed, paint and dust, and for the cloth
-// its weft (#c8b98f), as finish_reference.mjs paints them.
+// The study's fill for `kind`: its seed, paint and dust, for the cloth its
+// weft (#c8b98f), as finish_reference.mjs paints them, and for the glint
+// the sand blast's metal (#a3a3a3).
 FinishFill study_fill(FinishKind kind) {
     FinishFill fill{};
     fill.kind = kind;
     fill.seed = 7;
     fill.paint = Color::rgba(0x2f, 0x6e, 0x6c);
     fill.secondary = kind == FinishKind::cloth_weave ? Color::rgba(0xc8, 0xb9, 0x8f) : Color::rgba(0xbd, 0xb6, 0xa8);
+    if (kind == FinishKind::glint) fill.secondary = Color::rgba(0xa3, 0xa3, 0xa3);
     return fill;
 }
 
@@ -468,6 +482,60 @@ void cloth_shows_warp_and_weft() {
     require(warp > tenth && weft > tenth, "the warp's and the weft's colours both show");
 }
 
+// -- the glint (phase 2) --------------------------------------------------------------
+
+// Each preset at scales 1 and 2 (the coarse grit takes the blended and the
+// cell paths there, the others the speck path): repainted in uneven bands
+// of rows, the whole paint's bytes; the presets differ from one another;
+// the iridescent preset shows colour over grey metal; only the painted
+// sand reads the paint.
+void glint_presets_hold() {
+    constexpr std::array<double, 2> scales{1.0, 2.0};
+    for (const double scale : scales) {
+        std::vector<std::uint64_t> hashes{};
+        for (const GlintPreset preset : glint_presets) {
+            FinishFill fill = study_fill(FinishKind::glint);
+            fill.glint = preset;
+            const std::uint32_t width = device_side(48.0, scale);
+            const std::uint32_t height = device_side(32.0, scale);
+            const std::shared_ptr<PartRaster> whole = whole_finish(fill, scale, width, height);
+            bands_match(fill, scale, *whole, true);
+            const std::uint64_t hash = raster_hash(*whole);
+            require(std::find(hashes.begin(), hashes.end(), hash) == hashes.end(), "each preset paints its own bytes");
+            hashes.push_back(hash);
+
+            FinishFill repainted = fill;
+            repainted.paint = Color::rgba(0x8a, 0x20, 0x10);
+            const bool reads_paint = raster_hash(*whole_finish(repainted, scale, width, height)) != hash;
+            require(reads_paint == (preset == GlintPreset::painted_sand), "only the painted sand reads the paint");
+        }
+    }
+    FinishFill iridescent = study_fill(FinishKind::glint);
+    iridescent.glint = GlintPreset::iridescent;
+    const std::shared_ptr<PartRaster> oxide = whole_finish(iridescent, 2.0, 96U, 64U);
+    bool coloured = false;
+    for (std::uint32_t row = 0U; row < 64U && !coloured; ++row) {
+        for (std::uint32_t column = 0U; column < 96U; ++column) {
+            const std::array<std::uint8_t, 4> pixel = pixel_of(*oxide, column, row);
+            if (pixel[0] != pixel[1] || pixel[1] != pixel[2]) coloured = true;
+        }
+    }
+    require(coloured, "the iridescent preset's glints are coloured");
+    FinishFill sand = study_fill(FinishKind::glint);
+    const std::shared_ptr<PartRaster> grey = whole_finish(sand, 2.0, 96U, 64U);
+    bool neutral = true;
+    for (std::uint32_t row = 0U; row < 64U; ++row) {
+        for (std::uint32_t column = 0U; column < 96U; ++column) {
+            const std::array<std::uint8_t, 4> pixel = pixel_of(*grey, column, row);
+            if (pixel[0] != pixel[1] || pixel[1] != pixel[2]) neutral = false;
+        }
+    }
+    require(neutral, "the sand blast over grey metal stays grey");
+    FinishFill seeded = sand;
+    seeded.seed = 8;
+    require(raster_hash(*whole_finish(seeded, 2.0, 96U, 64U)) != raster_hash(*grey), "the seed moves the glints");
+}
+
 // -- through the engine ------------------------------------------------------------
 
 class ManualTime final : public MotionTimeSource {
@@ -608,6 +676,18 @@ void bake_budget_refuses_large_finishes() {
     require(engine_primitives::finish_effort_weight(FinishKind::hammertone) >
                 engine_primitives::finish_effort_weight(FinishKind::flat),
             "the hammertone weighs more than the flat finish");
+
+    // The glint's own bound: a 40 x 24 face is painted, a 200 x 200 one at
+    // scale 1 is past the budget.
+    SurfaceMaterial glinting{};
+    glinting.fills.clear();
+    glinting.fills.push_back(MaterialFillLayer::finish_fill(study_fill(FinishKind::glint)));
+    target.material = &glinting;
+    target.logical_size = Size{40.0, 24.0};
+    target.scale = DeviceScale{1.0};
+    require((*primitive).accepts(parameters, target), "a small glint is within the budget");
+    target.logical_size = Size{200.0, 200.0};
+    require(!(*primitive).accepts(parameters, target), "a large glint is refused");
 }
 
 // -- the theme language ------------------------------------------------------------
@@ -629,6 +709,9 @@ void theme_language_finish() {
     require(sheet_compiles_cleanly(
                 "button::part(face) { background-image: finish(cloth-weave, #8a6f4a, #c8b98f, 11, 2) }\n"),
             "finish() with a seed and a grain compiles");
+    require(sheet_compiles_cleanly(
+                "button::part(face) { background-image: finish(painted-sand-glint, #2f6e6c, #a3a3a3, 5) }\n"),
+            "a glint preset compiles");
     require(!sheet_compiles_cleanly("button::part(face) { background-image: finish(glitter, #4d676d, #bdb6a8) }\n"),
             "an unknown finish is refused");
     require(!sheet_compiles_cleanly("button::part(face) { background-image: finish(wrinkle, #4d676d) }\n"),
@@ -726,6 +809,7 @@ int main(int argc, char** argv) {
     writes_only_the_damage();
     parameters_change_bytes();
     cloth_shows_warp_and_weft();
+    glint_presets_hold();
     material_shows_the_finish();
     bake_budget_refuses_large_finishes();
     theme_language_finish();

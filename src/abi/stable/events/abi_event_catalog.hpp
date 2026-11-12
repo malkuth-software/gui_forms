@@ -453,7 +453,7 @@ struct EnumerationChoices<EventPhase> {
 template <>
 struct EnumerationChoices<FinishKind> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 8> choices{{
+    static constexpr std::array<EnumerationChoice, 9> choices{{
         {"dusty_matte", static_cast<std::int64_t>(FinishKind::dusty_matte)},
         {"orange_peel", static_cast<std::int64_t>(FinishKind::orange_peel)},
         {"hammertone", static_cast<std::int64_t>(FinishKind::hammertone)},
@@ -462,6 +462,7 @@ struct EnumerationChoices<FinishKind> {
         {"sand_cast", static_cast<std::int64_t>(FinishKind::sand_cast)},
         {"flat", static_cast<std::int64_t>(FinishKind::flat)},
         {"cloth_weave", static_cast<std::int64_t>(FinishKind::cloth_weave)},
+        {"glint", static_cast<std::int64_t>(FinishKind::glint)},
     }};
 };
 
@@ -472,6 +473,18 @@ struct EnumerationChoices<FontRole> {
         {"control", static_cast<std::int64_t>(FontRole::control)},
         {"content", static_cast<std::int64_t>(FontRole::content)},
         {"monospace", static_cast<std::int64_t>(FontRole::monospace)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<GlintPreset> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 5> choices{{
+        {"bead_blast", static_cast<std::int64_t>(GlintPreset::bead_blast)},
+        {"sand_blast", static_cast<std::int64_t>(GlintPreset::sand_blast)},
+        {"iridescent", static_cast<std::int64_t>(GlintPreset::iridescent)},
+        {"coarse_grit", static_cast<std::int64_t>(GlintPreset::coarse_grit)},
+        {"painted_sand", static_cast<std::int64_t>(GlintPreset::painted_sand)},
     }};
 };
 
@@ -1754,6 +1767,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Finis
     append_field(fields, "ambient", value.ambient);
     append_field(fields, "relief", value.relief);
     append_field(fields, "gloss", value.gloss);
+    append_field(fields, "glint", value.glint);
     fields.leave(prefix);
 }
 

@@ -267,6 +267,12 @@ ridges), `bead-blast` (bare peened steel, in its own steel colour),
 `sand-cast` (a casting's skin under paint; the second colour is the
 dust's), `flat` (the paint as a plain solid) and `cloth-weave` (a plain
 weave; the paint is the warp's colour and the second the weft's). The
+glints are blasted metal drawn from its facets' glints rather than its
+relief: `bead-blast-glint`, `sand-blast-glint`, `iridescent-glint`,
+`coarse-grit-glint` and `painted-sand-glint` (the sand blast under a thin
+coat of the paint); for a glint the second colour is the metal's (the
+fitted presets used #a3a3a3 to #a6a5a7). A glint costs some eight times a
+finish, and a part too large for it falls back to its built-in look. The
 seed, a whole number from 0 to 2147483647 (7 by default), chooses the
 noise; the grain, a number from 0.5 to 4 (1 by default), scales every
 feature. A finish layer, like a pattern, takes no position, size or

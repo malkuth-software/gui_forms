@@ -206,13 +206,15 @@ constexpr std::array<NamedPattern, 6> pattern_names{{
 constexpr std::string_view pattern_function_name = "pattern";
 
 // The surface finishes `finish()` names (FinishKind; skeudoindustrial
-// surfaces, phase 1).
+// surfaces, phases 1 and 2): the finishes, and the glint in each of its
+// presets.
 struct NamedFinish final {
     std::string_view name{};
     FinishKind kind{FinishKind::orange_peel};
+    GlintPreset glint{GlintPreset::sand_blast};
 };
 
-constexpr std::array<NamedFinish, 8> finish_names{{
+constexpr std::array<NamedFinish, 13> finish_names{{
     {.name = "dusty-matte", .kind = FinishKind::dusty_matte},
     {.name = "orange-peel", .kind = FinishKind::orange_peel},
     {.name = "hammertone", .kind = FinishKind::hammertone},
@@ -221,6 +223,11 @@ constexpr std::array<NamedFinish, 8> finish_names{{
     {.name = "sand-cast", .kind = FinishKind::sand_cast},
     {.name = "flat", .kind = FinishKind::flat},
     {.name = "cloth-weave", .kind = FinishKind::cloth_weave},
+    {.name = "bead-blast-glint", .kind = FinishKind::glint, .glint = GlintPreset::bead_blast},
+    {.name = "sand-blast-glint", .kind = FinishKind::glint, .glint = GlintPreset::sand_blast},
+    {.name = "iridescent-glint", .kind = FinishKind::glint, .glint = GlintPreset::iridescent},
+    {.name = "coarse-grit-glint", .kind = FinishKind::glint, .glint = GlintPreset::coarse_grit},
+    {.name = "painted-sand-glint", .kind = FinishKind::glint, .glint = GlintPreset::painted_sand},
 }};
 
 constexpr std::string_view finish_function_name = "finish";
@@ -970,10 +977,12 @@ bool MaterialReader::read_finish(std::size_t index, MaterialFillLayer& layer) {
     }
     if (named == nullptr) {
         return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
-                    "dusty-matte, orange-peel, hammertone, wrinkle, bead-blast, sand-cast, flat or cloth-weave");
+                    "dusty-matte, orange-peel, hammertone, wrinkle, bead-blast, sand-cast, flat, cloth-weave "
+                    "or a glint");
     }
     FinishFill finish{};
     finish.kind = (*named).kind;
+    finish.glint = (*named).glint;
     if (!read_colour(arguments[1].first, finish.paint)) return false;
     if (!read_colour(arguments[2].first, finish.secondary)) return false;
     if (arguments.size() >= 4U) {

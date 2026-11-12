@@ -2638,7 +2638,7 @@ Types
 
    ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
 
-   One finish's parameters. The defaults are the study's: its paint (#2f6e6c, a teal), its dust (#bdb6a8), a light from 125 degrees (counter-clockwise from the right) at 38 degrees above the surface, and ambient 0.32. - ``seed`` chooses the noise; equal parameters give equal bytes. - ``grain`` multiplies every feature's size, and the relief with it, so that a coarser finish keeps its slopes; within [0.5, 4]. - ``paint`` is the finish's colour; ``secondary`` the dust's (dusty matte, sand cast) or the weft's (cloth). Both are drawn opaque: their alpha is not read; the fill layer's opacity composites the finish. - The light's azimuth is a whole number of degrees in [0, 359] and its elevation one in [0, 90]: the kernel reads each degree's cosine and sine from a table, never libm. - ``ambient`` in [0, 1]; ``relief`` and ``gloss`` scale the finish's own relief and sheen, within [0, 4].
+   One finish's parameters. The defaults are the study's: its paint (#2f6e6c, a teal), its dust (#bdb6a8), a light from 125 degrees (counter-clockwise from the right) at 38 degrees above the surface, and ambient 0.32. - ``seed`` chooses the noise; equal parameters give equal bytes. - ``grain`` multiplies every feature's size, and the relief with it, so that a coarser finish keeps its slopes; within [0.5, 4]. - ``paint`` is the finish's colour; ``secondary`` the dust's (dusty matte, sand cast) or the weft's (cloth). Both are drawn opaque: their alpha is not read; the fill layer's opacity composites the finish. - For the glint, ``secondary`` is the metal's colour (the presets' own are listed with them), ``paint`` the coat's (painted sand alone draws it), ``gloss`` scales the glints' energy and ``grain`` the facets and specks; the light, ambient and relief are the preset's fitted geometry. - The light's azimuth is a whole number of degrees in [0, 359] and its elevation one in [0, 90]: the kernel reads each degree's cosine and sine from a table, never libm. - ``ambient`` in [0, 1]; ``relief`` and ``gloss`` scale the finish's own relief and sheen, within [0, 4].
 
    .. cpp:member:: FinishKind kind
 
@@ -2679,6 +2679,10 @@ Types
    .. cpp:member:: double gloss
 
       Default: ``{1.0}``.
+
+   .. cpp:member:: GlintPreset glint
+
+      Default: ``{GlintPreset::sand_blast}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -6690,6 +6694,8 @@ Enumerations
 
    .. cpp:enumerator:: cloth_weave
 
+   .. cpp:enumerator:: glint
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: FontField
@@ -6719,6 +6725,22 @@ Enumerations
    .. cpp:enumerator:: content
 
    .. cpp:enumerator:: monospace
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: GlintPreset
+
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+   .. cpp:enumerator:: bead_blast
+
+   .. cpp:enumerator:: sand_blast
+
+   .. cpp:enumerator:: iridescent
+
+   .. cpp:enumerator:: coarse_grit
+
+   .. cpp:enumerator:: painted_sand
 
 .. cpp:namespace:: gui_forms
 

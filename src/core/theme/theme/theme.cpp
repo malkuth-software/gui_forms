@@ -163,6 +163,18 @@ bool valid_procedural_fill(const ProceduralFill& fill) noexcept {
 // degrees (any whole azimuth, read modulo 360), a finite ambient in
 // [0, 1], and finite relief and gloss scales within [0,
 // maximum_finish_scale].
+bool valid_glint_preset(GlintPreset preset) noexcept {
+    switch (preset) {
+    case GlintPreset::bead_blast:
+    case GlintPreset::sand_blast:
+    case GlintPreset::iridescent:
+    case GlintPreset::coarse_grit:
+    case GlintPreset::painted_sand: return true;
+    }
+    // A preset outside the enumeration is not fitted.
+    return false;
+}
+
 bool valid_finish_fill(const FinishFill& fill) noexcept {
     switch (fill.kind) {
     case FinishKind::dusty_matte:
@@ -172,7 +184,8 @@ bool valid_finish_fill(const FinishFill& fill) noexcept {
     case FinishKind::bead_blast:
     case FinishKind::sand_cast:
     case FinishKind::flat:
-    case FinishKind::cloth_weave: {
+    case FinishKind::cloth_weave:
+    case FinishKind::glint: {
         const bool grain = std::isfinite(fill.grain) && fill.grain >= minimum_finish_grain &&
                            fill.grain <= maximum_finish_grain;
         const bool light = fill.light_elevation_degrees >= 0 &&
@@ -180,7 +193,9 @@ bool valid_finish_fill(const FinishFill& fill) noexcept {
         const bool ambient = std::isfinite(fill.ambient) && fill.ambient >= 0.0 && fill.ambient <= 1.0;
         const bool scales = std::isfinite(fill.relief) && fill.relief >= 0.0 && fill.relief <= maximum_finish_scale &&
                             std::isfinite(fill.gloss) && fill.gloss >= 0.0 && fill.gloss <= maximum_finish_scale;
-        const bool valid = grain && light && ambient && scales;
+        // The glint reads its preset, which every other finish ignores.
+        const bool preset = fill.kind != FinishKind::glint || valid_glint_preset(fill.glint);
+        const bool valid = grain && light && ambient && scales && preset;
         return valid;
     }
     }

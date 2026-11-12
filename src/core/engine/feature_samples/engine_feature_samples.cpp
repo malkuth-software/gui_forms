@@ -260,6 +260,18 @@ void finish_cloth_weave(const FeatureSampleInputs&, ThemeDefinition& definition)
     draw_finish(definition, FinishKind::cloth_weave, 108, "finish_cloth_weave");
 }
 
+// The glint (phase 2) in its sand-blast preset, over the preset's metal.
+void finish_glint(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    FinishFill finish{};
+    finish.kind = FinishKind::glint;
+    finish.glint = GlintPreset::sand_blast;
+    finish.seed = 109;
+    finish.secondary = Color::rgba(0xa3, 0xa3, 0xa3);
+    SurfaceMaterial material = bordered();
+    material.fills.push_back(MaterialFillLayer::finish_fill(finish));
+    draw_material(definition, material, "finish_glint");
+}
+
 // A face with a second fill blended onto it by `blend`.
 void draw_fill_blend(ThemeDefinition& definition, MaterialBlendMode blend, std::string_view label) {
     SurfaceMaterial material = lit_face();
@@ -620,6 +632,7 @@ constexpr EngineFeatureSample samples[] = {
     {"finish_sand_cast", "material", PartRole::face, Drive::rest, finish_sand_cast},
     {"finish_flat", "material", PartRole::face, Drive::rest, finish_flat},
     {"finish_cloth_weave", "material", PartRole::face, Drive::rest, finish_cloth_weave},
+    {"finish_glint", "material", PartRole::face, Drive::rest, finish_glint},
     {"fill_blend_multiply", "material", PartRole::face, Drive::rest, fill_blend_multiply},
     {"fill_blend_screen", "material", PartRole::face, Drive::rest, fill_blend_screen},
     {"shape_corner_radii", "material", PartRole::face, Drive::rest, shape_corner_radii},

@@ -39,6 +39,35 @@ enum class FinishKind : std::uint8_t {
     // logical units apart, with slubbed yarn. `paint` is the warp's colour
     // and `secondary` the weft's.
     cloth_weave,
+    // Blasted metal seen as glints (skeudoindustrial surfaces, phase 2):
+    // a field of tiny facets, each bright where it mirrors the light into
+    // the eye, drawn from their statistics (`glint`, a fitted preset). An
+    // optional effect: drawn only where a theme asks for it. It is still,
+    // as every finish is: its light and eye are fixed above the surface's
+    // centre, so it never animates and has nothing for reduced motion to
+    // hold. Costlier than the other finishes (finish_effort_weights): the
+    // bake budget refuses it over large surfaces.
+    glint,
+};
+
+// The glint's presets, fitted by the industrial-surfaces study against
+// photographs of blasted discs (glint_kernel.js, PRESETS) at display scale
+// 2 with the light 900 and the eye 700 logical units above the surface.
+enum class GlintPreset : std::uint8_t {
+    // Many facets a pixel: a satin with faint, even grain (fitted; metal
+    // #a5a5a5).
+    bead_blast,
+    // The same fine grain with twice the glint energy (fitted; #a3a3a3).
+    sand_blast,
+    // Larger specks, strong glints, colour from a thin oxide film (fitted;
+    // #a6a5a7).
+    iridescent,
+    // Facets wider than a pixel: distinct, flat glinting chips (not fitted;
+    // #9f9f9f).
+    coarse_grit,
+    // The sand blast under a thin satin coat of `paint` (not fitted;
+    // #a3a3a3).
+    painted_sand,
 };
 
 // One finish's parameters. The defaults are the study's: its paint (#2f6e6c,
@@ -51,6 +80,10 @@ enum class FinishKind : std::uint8_t {
 // - `paint` is the finish's colour; `secondary` the dust's (dusty matte,
 //   sand cast) or the weft's (cloth). Both are drawn opaque: their alpha is
 //   not read; the fill layer's opacity composites the finish.
+// - For the glint, `secondary` is the metal's colour (the presets' own are
+//   listed with them), `paint` the coat's (painted sand alone draws it),
+//   `gloss` scales the glints' energy and `grain` the facets and specks;
+//   the light, ambient and relief are the preset's fitted geometry.
 // - The light's azimuth is a whole number of degrees in [0, 359] and its
 //   elevation one in [0, 90]: the kernel reads each degree's cosine and
 //   sine from a table, never libm.
@@ -67,12 +100,13 @@ struct GUI_FORMS_API FinishFill final {
     double ambient{0.32};
     double relief{1.0};
     double gloss{1.0};
+    GlintPreset glint{GlintPreset::sand_blast};
     friend constexpr bool operator==(const FinishFill& left, const FinishFill& right) noexcept {
         return left.kind == right.kind && left.seed == right.seed && left.grain == right.grain &&
                left.paint == right.paint && left.secondary == right.secondary &&
                left.light_azimuth_degrees == right.light_azimuth_degrees &&
                left.light_elevation_degrees == right.light_elevation_degrees && left.ambient == right.ambient &&
-               left.relief == right.relief && left.gloss == right.gloss;
+               left.relief == right.relief && left.gloss == right.gloss && left.glint == right.glint;
     }
 };
 

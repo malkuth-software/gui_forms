@@ -1,5 +1,7 @@
 #include "finish_kernel.hpp"
 
+#include "gui_forms/engine/engine_math/engine_math.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -172,6 +174,8 @@ constexpr FinishConstants constants_of(FinishKind kind) noexcept {
     case FinishKind::sand_cast: return FinishConstants{1.35, 0.05, 9U, 0.0, false, Color{}};
     case FinishKind::flat: return FinishConstants{0.0, 0.0, 1U, 0.0, false, Color{}};
     case FinishKind::cloth_weave: return FinishConstants{1.1, 0.03, 8U, 0.0, false, Color{}};
+    // The glint shades itself (paint_glints); never painted by paint_rows.
+    case FinishKind::glint: return FinishConstants{0.0, 0.0, 1U, 0.0, false, Color{}};
     }
     // A kind outside the enumeration is never accepted
     // (valid_surface_material): the flat finish's constants.
@@ -384,6 +388,377 @@ std::size_t paint_rows(const FinishFill& fill, double scale, FinishRect surface,
     return written;
 }
 
+// ---- glints (phase 2) -----------------------------------------------------------------
+//
+// A port of the study's paint_glints (cpp/surface_kernels.cpp, itself a port
+// of glint_kernel.js): blasted metal as a field of facets with random tilts,
+// each pixel bright where one of its facets mirrors the light into the eye.
+// Facets smaller than a pixel are counted (a Poisson draw from the lobe's
+// density, blended over four half-vector bins, gathered at jittered speck
+// points); facets wider than a pixel are jittered cells with their own tilt;
+// the two are blended where a facet is about a pixel wide. Every pixel is a
+// function of its position, the scale and the fill alone: no scratch.
+//
+// Where the study called libm (e^x, ln x, cosine and sine, the Fresnel
+// power, hypot) the port calls engine_math, whole powers by squaring and
+// square roots, which give the same bits on every host. The JavaScript
+// reference calls Math.exp and Math.log, whose last bits vary between
+// engines, so the glint's bytes are held to this kernel's own recorded
+// hashes and the reference stays its statistical description.
+
+// A preset's fitted constants (glint_kernel.js, PRESETS): the facet and
+// speck sizes (logical units), the Beckmann slope spread, the facet
+// tolerance (in slope), the diffuse and specular weights, the blast's
+// mottle, the oxide film's iridescence, and the paint coat's share and its
+// own slope spread.
+struct GlintConstants final {
+    double grain{};
+    double speck{};
+    double alpha{};
+    double tau{};
+    double diffuse{};
+    double specular{};
+    double mottle{};
+    double iridescence{};
+    double film{};
+    double film_alpha{};
+};
+
+constexpr GlintConstants glint_constants_of(GlintPreset preset) noexcept {
+    switch (preset) {
+    case GlintPreset::bead_blast: return GlintConstants{0.05, 0.75, 0.32, 0.03, 0.79, 0.57, 0.05, 0.0, 0.0, 0.3};
+    case GlintPreset::sand_blast: return GlintConstants{0.05, 0.75, 0.42, 0.034, 0.46, 1.23, 0.06, 0.0, 0.0, 0.3};
+    case GlintPreset::iridescent: return GlintConstants{0.10, 1.4, 0.4, 0.034, 0.37, 2.82, 0.06, 0.27, 0.0, 0.3};
+    case GlintPreset::coarse_grit: return GlintConstants{0.9, 0.0, 0.45, 0.05, 0.33, 0.7, 0.08, 0.0, 0.0, 0.3};
+    case GlintPreset::painted_sand: return GlintConstants{0.05, 0.75, 0.42, 0.034, 0.9, 1.23, 0.05, 0.0, 0.7, 0.3};
+    }
+    // A preset outside the enumeration is never accepted
+    // (valid_surface_material): the sand blast's.
+    return GlintConstants{0.05, 0.75, 0.42, 0.034, 0.46, 1.23, 0.06, 0.0, 0.0, 0.3};
+}
+
+// The study's fitted geometry: the light 900 and the eye 700 logical units
+// above the surface (here above its centre), ambient 0.35.
+constexpr double glint_light_height = 900.0;
+constexpr double glint_eye_height = 700.0;
+constexpr double glint_ambient = 0.35;
+// The reference's π and its truncated 2π, kept as it writes them.
+constexpr double glint_pi = 3.141592653589793;
+constexpr double glint_turn = 6.283185307;
+
+// What a paint reads once: the preset, the derived spreads and the colours,
+// the seed and the light's and eye's positions in logical units from the
+// surface's origin.
+struct GlintState final {
+    GlintConstants constants{};
+    double sigma2{};
+    double tau_area{};
+    double bin_width{};
+    std::uint32_t seed{};
+    Linear metal{};
+    Linear paint{};
+    double specular{};
+    double centre_x{};
+    double centre_y{};
+};
+
+// A facet density and the hue seed of its glints.
+struct GlintDensity final {
+    double value{};
+    double hue{};
+};
+
+// A Poisson draw of mean `lambda` from the uniform `u` (by inversion, at
+// most 64 steps), or past a mean of 24 the normal approximation with the
+// second uniform `u2` as its angle.
+std::int32_t poisson(double lambda, double u, double u2) noexcept {
+    if (!(lambda > 0.0)) return 0;
+    if (lambda > 24.0) {
+        const double radius = std::sqrt(-2.0 * engine_logarithm(std::max(u, 1e-12)));
+        const double z = radius * engine_sine_cosine(glint_turn * u2).cosine;
+        const double n = std::floor(lambda + std::sqrt(lambda) * z + 0.5);
+        const std::int32_t count = n > 0.0 ? static_cast<std::int32_t>(n) : 0;
+        return count;
+    }
+    double p = engine_exponential(-lambda);
+    double f = p;
+    std::int32_t n = 0;
+    while (u > f && n < 64) {
+        n = n + 1;
+        p = p * (lambda / static_cast<double>(n));
+        f = f + p;
+    }
+    return n;
+}
+
+// The hash key of half-vector bin (cx, cy), as the reference's
+// Math.imul(cx, 0x632be5ab) ^ Math.imul(cy, 0x85157af5) gives it, modulo
+// 2^32.
+std::uint32_t bin_key(double cx, double cy) noexcept {
+    const std::uint32_t key = (wrap32(cx) * 0x632be5abU) ^ (wrap32(cy) * 0x85157af5U);
+    return key;
+}
+
+// Facets smaller than a pixel: the glint count of each of the four bins
+// around the half-vector slope (hx, hy) for the point (x, y), blended
+// bilinearly, so that a moving light makes glints come and go rather than
+// swell. The reference's sums of signed 32-bit values are taken modulo 2^32,
+// as its `| 0` reads them.
+GlintDensity sub_pixel_density(const GlintState& state, double x, double y, double facets, double hx, double hy) noexcept {
+    const double w = state.bin_width;
+    const double bx = hx / w - 0.5;
+    const double by = hy / w - 0.5;
+    const double ix = std::floor(bx);
+    const double iy = std::floor(by);
+    const double fx = bx - ix;
+    const double fy = by - iy;
+    const std::uint32_t xi = wrap32(x);
+    const std::uint32_t yi = wrap32(y);
+    double sum = 0.0;
+    double hue_sum = 0.0;
+    double weight_sum = 0.0;
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 2; ++i) {
+            const double cx = ix + i;
+            const double cy = iy + j;
+            const double sx = (cx + 0.5) * w;
+            const double sy = (cy + 0.5) * w;
+            const double pdf = engine_exponential(-(sx * sx + sy * sy) / state.sigma2) / (glint_pi * state.sigma2);
+            const double lambda = facets * pdf * state.tau_area;
+            const std::uint32_t key = bin_key(cx, cy);
+            const double u = hash_unit(xi ^ key, yi + key, state.seed);
+            const double u2 = hash_unit(xi + key, yi ^ key, state.seed + 1U);
+            const std::int32_t n = poisson(lambda, u, u2);
+            const double weight = (i != 0 ? fx : 1.0 - fx) * (j != 0 ? fy : 1.0 - fy);
+            sum = sum + weight * static_cast<double>(n);
+            if (n > 0) {
+                hue_sum = hue_sum + weight * hash_unit(xi, yi, key + state.seed + 2U);
+                weight_sum = weight_sum + weight;
+            }
+        }
+    }
+    const GlintDensity density{sum / (facets * state.tau_area), weight_sum > 0.0 ? hue_sum / weight_sum : 0.0};
+    return density;
+}
+
+// Specks about a pixel and a half wide: two jittered points in each cell
+// of `speck` device pixels, each drawing its own count for the facets under
+// it, blended by (1 - d²)² over the points within one cell of the pixel;
+// the nearest point stands in when none is.
+GlintDensity speck_density(const GlintState& state, double x, double y, double speck, double facet_px, double hx,
+                           double hy) noexcept {
+    const double per_pixel = 1.0 / (facet_px * facet_px);
+    if (speck <= 1.01) return sub_pixel_density(state, x, y, per_pixel, hx, hy);
+    const double gx = x / speck;
+    const double gy = y / speck;
+    const double ix = std::floor(gx);
+    const double iy = std::floor(gy);
+    const double facets = per_pixel * speck * speck * 0.5;
+    const double s = static_cast<double>(static_cast<std::int32_t>(state.seed));
+    double sum = 0.0;
+    double weight_sum = 0.0;
+    double hue = 0.0;
+    double nearest = 9.0;
+    double nearest_x = 0.0;
+    double nearest_y = 0.0;
+    for (int j = -1; j <= 1; ++j) {
+        for (int i = -1; i <= 1; ++i) {
+            const double cx = ix + i;
+            const double cy = iy + j;
+            for (int d = 0; d < 2; ++d) {
+                const double px = cx + hash_at(cx, cy, s + 30.0 + d * 2);
+                const double py = cy + hash_at(cx, cy, s + 31.0 + d * 2);
+                const double dx = gx - px;
+                const double dy = gy - py;
+                const double q = dx * dx + dy * dy;
+                if (q < nearest) {
+                    nearest = q;
+                    nearest_x = cx * 2.0 + d;
+                    nearest_y = cy;
+                }
+                if (q < 1.0) {
+                    const double weight = (1.0 - q) * (1.0 - q);
+                    const GlintDensity one = sub_pixel_density(state, cx * 2.0 + d, cy, facets, hx, hy);
+                    sum = sum + weight * one.value;
+                    if (weight > weight_sum * 0.5) hue = one.hue;
+                    weight_sum = weight_sum + weight;
+                }
+            }
+        }
+    }
+    if (weight_sum > 1e-6) {
+        const GlintDensity blended{sum / weight_sum, hue};
+        return blended;
+    }
+    return sub_pixel_density(state, nearest_x, nearest_y, facets, hx, hy);
+}
+
+// Facets wider than a pixel: the nearest jittered facet centre owns the
+// pixel, its tilt drawn from the Beckmann slope distribution, with a thin
+// dark seam where facets meet.
+GlintDensity cell_density(const GlintState& state, double x, double y, double size, double hx, double hy) noexcept {
+    const double gx = x / size;
+    const double gy = y / size;
+    const double ix = std::floor(gx);
+    const double iy = std::floor(gy);
+    double best = 9.0;
+    double second = 9.0;
+    double bx = 0.0;
+    double by = 0.0;
+    const double s = static_cast<double>(static_cast<std::int32_t>(state.seed));
+    for (int j = -1; j <= 1; ++j) {
+        for (int i = -1; i <= 1; ++i) {
+            const double cx = ix + i;
+            const double cy = iy + j;
+            const double dx = gx - (cx + 0.1 + 0.8 * hash_at(cx, cy, s + 10.0));
+            const double dy = gy - (cy + 0.1 + 0.8 * hash_at(cx, cy, s + 11.0));
+            const double d = dx * dx + dy * dy;
+            if (d < best) {
+                second = best;
+                best = d;
+                bx = cx;
+                by = cy;
+            } else if (d < second) {
+                second = d;
+            }
+        }
+    }
+    const double u1 = std::max(1e-9, hash_at(bx, by, s + 12.0));
+    const double u2 = hash_at(bx, by, s + 13.0);
+    const double r = std::sqrt(state.sigma2 * -engine_logarithm(u1));
+    const EngineSineCosine turned = engine_sine_cosine(glint_turn * u2);
+    const double dx = hx - r * turned.cosine;
+    const double dy = hy - r * turned.sine;
+    const double seam = std::sqrt(second) - std::sqrt(best);
+    const double edge = seam < 0.08 ? 0.6 + 5.0 * seam : 1.0;
+    const double tau = state.constants.tau;
+    const double value = engine_exponential(-(dx * dx + dy * dy) / (tau * tau)) / state.tau_area * edge;
+    const GlintDensity density{value, hash_at(bx, by, s + 14.0)};
+    return density;
+}
+
+// The oxide film's rainbow: the hue `h` in [0, 1) as red, green and blue.
+Linear rainbow(double h) noexcept {
+    const std::array<double, 3> offsets{5.0, 3.0, 1.0};
+    std::array<double, 3> channel{};
+    for (std::size_t at = 0U; at < 3U; ++at) {
+        const double k = std::fmod(offsets[at] + h * 6.0, 6.0);
+        channel[at] = 1.0 - std::max(0.0, std::min({k, 4.0 - k, 1.0}));
+    }
+    const Linear colour{channel[0], channel[1], channel[2]};
+    return colour;
+}
+
+// A soft shoulder, so that glints saturate toward white rather than clip.
+double glint_tone(double v) noexcept {
+    if (v < 0.8) return v;
+    const double toned = 0.8 + 0.2 * (1.0 - engine_exponential(-(v - 0.8) * 5.0));
+    return toned;
+}
+
+// One pixel at device position (x, y) from the surface's origin, `k`
+// device pixels per logical unit, written as opaque BGRA.
+void shade_glint(const GlintState& state, double x, double y, double k, double grain, std::uint8_t* pixel) noexcept {
+    const GlintConstants& constants = state.constants;
+    const double lx = state.centre_x - x / k;
+    const double ly = state.centre_y - y / k;
+    const double lz = glint_light_height;
+    const double vx = state.centre_x - x / k;
+    const double vy = state.centre_y - y / k;
+    const double vz = glint_eye_height;
+    const double li = 1.0 / std::sqrt(lx * lx + ly * ly + lz * lz);
+    const double vi = 1.0 / std::sqrt(vx * vx + vy * vy + vz * vz);
+    const double lux = lx * li;
+    const double luy = ly * li;
+    const double luz = lz * li;
+    const double vuz = vz * vi;
+    const double hx3 = lux + vx * vi;
+    const double hy3 = luy + vy * vi;
+    const double hz3 = luz + vuz;
+    const double hi = 1.0 / std::sqrt(hx3 * hx3 + hy3 * hy3 + hz3 * hz3);
+    const double half_x = hx3 * hi;
+    const double half_y = hy3 * hi;
+    const double half_z = hz3 * hi;
+    // The facet slope that would mirror the light into the eye.
+    const double hx = -half_x / half_z;
+    const double hy = -half_y / half_z;
+    const double facet_px = constants.grain * grain * k;
+    const double speck = std::max(1.0, constants.speck * grain * k);
+    GlintDensity density{};
+    if (facet_px <= 0.7) {
+        density = speck_density(state, x, y, speck, facet_px, hx, hy);
+    } else if (facet_px >= 1.3) {
+        density = cell_density(state, x, y, facet_px, hx, hy);
+    } else {
+        const double t = (facet_px - 0.7) / 0.6;
+        const GlintDensity a = sub_pixel_density(state, x, y, 1.0 / (facet_px * facet_px), hx, hy);
+        const GlintDensity b = cell_density(state, x, y, facet_px, hx, hy);
+        density = GlintDensity{a.value + (b.value - a.value) * t, t < 0.5 ? a.hue : b.hue};
+    }
+    // Beckmann D = slope density / cos⁴θh; radiance D F / (4 n·v).
+    const double cos2 = half_z * half_z;
+    const double d = density.value / (cos2 * cos2);
+    const double vdh = lux * half_x + luy * half_y + luz * half_z;
+    const double fresnel = power(1.0 - vdh, 5U);
+    const double film = constants.film;
+    const double f_metal = 0.6 + 0.4 * fresnel;
+    const double spec_metal = d * f_metal / (4.0 * vuz) * state.specular * (1.0 - film) * (1.0 - film);
+    double spec_paint = 0.0;
+    if (film > 0.0) {
+        const double a2 = constants.film_alpha * constants.film_alpha;
+        const double lobe = engine_exponential(-(hx * hx + hy * hy) / a2) / (glint_pi * a2) / (cos2 * cos2);
+        const double f_paint = 0.04 + 0.96 * fresnel;
+        spec_paint = lobe * f_paint / (4.0 * vuz) * state.specular * film;
+    }
+    const double ndl = luz > 0.0 ? luz : 0.0;
+    const double s = static_cast<double>(static_cast<std::int32_t>(state.seed));
+    const double mottle = 1.0 + (noise(x, y, 40.0 * k, s + 20.0) - 0.5) * constants.mottle;
+    const double diffuse = (glint_ambient + (1.0 - glint_ambient) * ndl) * mottle;
+    Linear tint{1.0, 1.0, 1.0};
+    if (constants.iridescence > 0.0) {
+        const Linear hue = rainbow(density.hue);
+        const double m = constants.iridescence;
+        tint = Linear{1.0 - m + m * hue.red * 1.6, 1.0 - m + m * hue.green * 1.6, 1.0 - m + m * hue.blue * 1.6};
+    }
+    const Linear& base = film > 0.0 ? state.paint : state.metal;
+    const double r = base.red * diffuse * constants.diffuse + spec_metal * state.metal.red * tint.red + spec_paint;
+    const double g = base.green * diffuse * constants.diffuse + spec_metal * state.metal.green * tint.green + spec_paint;
+    const double b = base.blue * diffuse * constants.diffuse + spec_metal * state.metal.blue * tint.blue + spec_paint;
+    pixel[0] = encode(glint_tone(b));
+    pixel[1] = encode(glint_tone(g));
+    pixel[2] = encode(glint_tone(r));
+    pixel[3] = 255U;
+}
+
+// The glint over `area`: the preset and colours read once, then each
+// pixel on its own.
+std::size_t paint_glints(const FinishFill& fill, double scale, FinishRect surface, FinishRect area,
+                         const PartRasterView& destination) noexcept {
+    GlintState state{};
+    state.constants = glint_constants_of(fill.glint);
+    state.sigma2 = state.constants.alpha * state.constants.alpha;
+    state.tau_area = glint_pi * state.constants.tau * state.constants.tau;
+    state.bin_width = state.constants.tau * 2.0;
+    state.seed = static_cast<std::uint32_t>(fill.seed);
+    state.metal = linear_of(fill.secondary);
+    state.paint = linear_of(fill.paint);
+    state.specular = state.constants.specular * fill.gloss;
+    state.centre_x = static_cast<double>(surface.width) * 0.5 / scale;
+    state.centre_y = static_cast<double>(surface.height) * 0.5 / scale;
+    for (std::int64_t y = area.y; y < area.y + area.height; ++y) {
+        const std::size_t row_start = static_cast<std::size_t>(y) * destination.row_bytes;
+        std::uint8_t* pixel =
+            destination.pixels.data() + row_start + static_cast<std::size_t>(area.x) * part_raster_bytes_per_pixel;
+        const double down = static_cast<double>(y - surface.y);
+        for (std::int64_t x = area.x; x < area.x + area.width; ++x) {
+            shade_glint(state, static_cast<double>(x - surface.x), down, scale, fill.grain, pixel);
+            pixel = pixel + part_raster_bytes_per_pixel;
+        }
+    }
+    const std::size_t written = static_cast<std::size_t>(area.width) * static_cast<std::size_t>(area.height);
+    return written;
+}
+
 } // namespace
 
 void reserve_finish_scratch(FinishScratch& scratch, std::uint32_t width) {
@@ -413,6 +788,7 @@ std::size_t paint_finish(const FinishFill& fill, double scale, FinishRect surfac
     case FinishKind::flat: return paint_rows<FinishKind::flat>(fill, scale, surface, area, destination, scratch);
     case FinishKind::cloth_weave:
         return paint_rows<FinishKind::cloth_weave>(fill, scale, surface, area, destination, scratch);
+    case FinishKind::glint: return paint_glints(fill, scale, surface, area, destination);
     }
     // A kind outside the enumeration is never accepted
     // (valid_surface_material): the flat finish, the paint as a solid.
@@ -430,6 +806,7 @@ std::uint64_t finish_effort_weight(FinishKind kind) noexcept {
     case FinishKind::sand_cast: return weights.sand_cast;
     case FinishKind::flat: return weights.flat;
     case FinishKind::cloth_weave: return weights.cloth_weave;
+    case FinishKind::glint: return weights.glint;
     }
     // A kind outside the enumeration is never accepted: past the budget.
     const std::uint64_t unbounded = maximum_material_bake_effort.units + 1U;

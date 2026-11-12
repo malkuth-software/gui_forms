@@ -826,6 +826,7 @@ std::string_view finish_kind_name(FinishKind kind) {
     case FinishKind::sand_cast: return "sand_cast";
     case FinishKind::flat: return "flat";
     case FinishKind::cloth_weave: return "cloth_weave";
+    case FinishKind::glint: return "glint";
     }
     return {};
 }

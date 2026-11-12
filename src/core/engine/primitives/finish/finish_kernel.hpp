@@ -73,7 +73,8 @@ void reserve_finish_scratch(FinishScratch& scratch, std::uint32_t width);
 // `fill` at `scale` device pixels per logical unit, anchored to
 // `surface`'s origin. Returns the pixels written: none for an empty
 // intersection, and none (writing nothing) when `scratch` holds fewer
-// than the clipped width plus one samples. The fill is valid
+// than the clipped width plus one samples (the glint reads no scratch, but
+// is held to the same rule). The fill is valid
 // (valid_surface_material) and the destination validated by the caller.
 // Bytes outside the clipped damage are left as they are.
 std::size_t paint_finish(const FinishFill& fill, double scale, FinishRect surface, FinishRect damage,
@@ -102,6 +103,7 @@ struct FinishEffortWeights final {
     std::uint32_t sand_cast{};
     std::uint32_t flat{};
     std::uint32_t cloth_weave{};
+    std::uint32_t glint{};
 };
 
 inline constexpr FinishEffortWeights finish_effort_weights{
@@ -113,6 +115,12 @@ inline constexpr FinishEffortWeights finish_effort_weights{
     .sand_cast = 600U,
     .flat = 60U,
     .cloth_weave = 260U,
+    // About six speck points in reach of each pixel, each four bins of an
+    // exponential, three hashes and a Poisson draw: some 2000. Over the
+    // budget past about 10,000 device pixels (a 100 x 100 face), where the
+    // material is refused and the built-in recipe draws: the glint's cost
+    // bound.
+    .glint = 2000U,
 };
 
 // `kind`'s weight per painted device pixel; past the budget for a kind
