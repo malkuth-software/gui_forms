@@ -258,4 +258,14 @@ public static unsafe partial class Exports
         }
     }
 
+    /// <summary>Negotiates gf_classes_table at the manifest's version; a refusal leaves it zeroed.</summary>
+    public static gf_status get_classes_table(out gf_classes_table table)
+    {
+        table = default;
+        fixed (gf_classes_table* storage = &table)
+        {
+            return gf_abi_get_table(Constants.GF_TABLE_CLASSES, Constants.GF_ABI_MAJOR, Constants.GF_ABI_MINOR, storage, (ulong)sizeof(gf_classes_table));
+        }
+    }
+
 }

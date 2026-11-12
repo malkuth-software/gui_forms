@@ -5,8 +5,8 @@
 // GuiForms.Forms.Generators source generator emits a module initializer per
 // assembly that registers every class's overridden hooks (ClassOverrides).
 // A class table carries an entry only for those, so a raise whose hook is
-// not overridden never leaves native code. A type the generator did not see
-// (an assembly built without it) is read once by reflection instead.
+// not overridden never leaves native code. There is no reflection at
+// startup: a type the generator did not see overrides nothing.
 //
 // The base call: inside an entry (HookFrame), base runs the base function the
 // library passed with the event it passed; called directly (an OnX called by
@@ -111,6 +111,9 @@ public static class ClassOverrides
         return new HookSet(keys);
     }
 
+    // A type the generator registered nothing for overrides no hook: no
+    // reflection at startup (owner, 2026-11-12). An assembly that derives
+    // from these classes references the generator as an analyzer.
     private static HookKey[] keys_of(Type type)
     {
         lock (registry_lock)
@@ -120,35 +123,7 @@ public static class ClassOverrides
                 return found;
             }
         }
-        HookKey[] read = read_by_reflection(type);
-        lock (registry_lock)
-        {
-            registered[type] = read;
-        }
-        return read;
-    }
-
-    // The fallback for an assembly built without the generator: type's own
-    // overrides of a [Hook] virtual.
-    private static HookKey[] read_by_reflection(Type type)
-    {
-        List<HookKey> keys = new List<HookKey>();
-        const BindingFlags declared = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
-                                      BindingFlags.DeclaredOnly;
-        foreach (MethodInfo method in type.GetMethods(declared))
-        {
-            MethodInfo definition = method.GetBaseDefinition();
-            if (definition == method)
-            {
-                continue;
-            }
-            HookAttribute? hook = definition.GetCustomAttribute<HookAttribute>();
-            if (hook != null)
-            {
-                keys.Add(new HookKey(hook.class_id, hook.entry));
-            }
-        }
-        return keys.ToArray();
+        return Array.Empty<HookKey>();
     }
 }
 

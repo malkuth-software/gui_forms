@@ -57,6 +57,19 @@ SNAPSHOT_RECORD: str = ("typedef struct gf_sample_snapshot {\n    uint32_t struc
                         "    uint64_t sequence;\n    uint8_t site[16];\n} gf_sample_snapshot;\n\n")
 SLOT_SNAPSHOT: str = ("    gf_status (GF_CALL* snapshot)(gf_sample_snapshot* snapshot, uint64_t capacity, "
                       "uint64_t* required);\n")
+# The shape of the class tables (C ABI 1.3, gf_abi_classes.h): a class id, an
+# entry typedef, a segment, the class header and a class table.
+CLASS_ID: str = "#define GF_CLASS_SAMPLE 1u\n"
+SEGMENT_ENTRY: str = "    gf_hook_entry on_first;\n"
+CLASS_POINTER: str = "    const gf_sample_hooks* sample;\n"
+CLASS_TABLES: str = ("typedef uint32_t gf_class_id;\n" + CLASS_ID +
+                     "typedef void (GF_CALL* gf_hook_entry)(void* instance, gf_object self);\n"
+                     "typedef struct gf_sample_hooks {\n    uint32_t struct_size;\n    gf_class_id class_id;\n" +
+                     SEGMENT_ENTRY + "} gf_sample_hooks;\n\n"
+                     "typedef struct gf_class_header {\n    uint32_t struct_size;\n    uint32_t abi_minor;\n"
+                     "    gf_class_id class_id;\n    uint32_t segment_count;\n} gf_class_header;\n\n"
+                     "typedef struct gf_sample_class {\n    gf_class_header header;\n" + CLASS_POINTER +
+                     "} gf_sample_class;\n\n")
 
 CASES: tuple[Case, ...] = (
     Case("unchanged", (), ""),
@@ -110,6 +123,16 @@ CASES: tuple[Case, ...] = (
          "break", "report", True),
     Case("blocking mode: major changed", ((MAJOR, "#define GF_ABI_MAJOR 2u"),), "break", "blocking"),
     Case("report mode: major changed", ((MAJOR, "#define GF_ABI_MAJOR 2u"),), "", "report"),
+    Case("class tables added with a minor bump", ((TABLE, CLASS_TABLES + TABLE), (MINOR, MINOR_BUMPED)), ""),
+    Case("segment holding a field that is not an entry",
+         ((TABLE, CLASS_TABLES + TABLE), (SEGMENT_ENTRY, SEGMENT_ENTRY + "    uint64_t count_extra;\n"),
+          (MINOR, MINOR_BUMPED)), "class-table"),
+    Case("class table holding a field that is not a segment pointer",
+         ((TABLE, CLASS_TABLES + TABLE), (CLASS_POINTER, CLASS_POINTER + "    uint64_t count_extra;\n"),
+          (MINOR, MINOR_BUMPED)), "class-table"),
+    Case("two class ids sharing a value",
+         ((TABLE, CLASS_TABLES + TABLE), (CLASS_ID, CLASS_ID + "#define GF_CLASS_OTHER 1u\n"),
+          (MINOR, MINOR_BUMPED)), "class-table"),
 )
 UNRECORDED: str = " (unrecorded: "
 

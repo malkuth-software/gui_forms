@@ -81,3 +81,4 @@ global using gf_locale_field = uint;
 global using gf_locale_origin = uint;
 global using gf_paint_endpoint = ulong;
 global using gf_paint_write_lease = ulong;
+global using gf_class_id = uint;

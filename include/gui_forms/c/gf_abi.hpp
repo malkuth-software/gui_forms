@@ -2872,6 +2872,55 @@ private:
     gf_windows_paint_endpoint_table table_;
 };
 
+// gf_classes_table, negotiated as GF_TABLE_CLASSES.
+class ClassesTable {
+public:
+    ClassesTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(ClassesTable& output) noexcept {
+        gf_classes_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_CLASSES, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = ClassesTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static ClassesTable adopt(const gf_classes_table& adopted_table) noexcept {
+        ClassesTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_classes_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status create(const gf_class_header* table, gf_utf8_view stable_id, void* instance,
+                                   gf_object* object) const noexcept {
+        if (table_.struct_size < 16u || table_.create == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.create(table, stable_id, instance, object);
+        return called;
+    }
+
+    [[nodiscard]] gf_status base_raiser(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser) const noexcept {
+        if (table_.struct_size < 24u || table_.base_raiser == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.base_raiser(class_id, entry, raiser);
+        return called;
+    }
+
+private:
+    gf_classes_table table_;
+};
+
 // One reference to a library object, released (objects.release) when the
 // owner goes or resets. The ObjectsTable it borrows must outlive it.
 class ObjectReference {

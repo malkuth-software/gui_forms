@@ -799,9 +799,28 @@ def by_name(entries: list[dict[str, object]]) -> dict[str, dict[str, object]]:
     return found
 
 
+def added_since(since: object, baseline_version: str, version: str) -> bool:
+    """Whether a slot's since names a minor after the baseline's, up to the current one.
+
+    The baseline may be several minors behind (1.1 against a 1.3 header): a
+    slot added at 1.2 is as new to it as one added at 1.3.
+    """
+    if not isinstance(since, str) or re.fullmatch(r"\d+\.\d+", since) is None:
+        return False
+    major, minor = (int(part) for part in since.split("."))
+    base_major, base_minor = (int(part) for part in baseline_version.split("."))
+    current_major, current_minor = (int(part) for part in version.split("."))
+    return major == base_major == current_major and base_minor < minor <= current_minor
+
+
 def compare_struct(old: dict[str, object], new: dict[str, object], version: str,
-                   findings: list[Finding]) -> bool:
-    """Report breaks in one record; return whether it grew."""
+                   findings: list[Finding], baseline_version: str | None = None) -> bool:
+    """Report breaks in one record; return whether it grew.
+
+    A slot new since the baseline must be since a minor after the baseline's
+    (baseline_version), up to version; without a baseline version, since
+    version exactly.
+    """
     name: str = str(old["name"])
     if old["kind"] != new["kind"]:
         findings.append(Finding("break", f"{name}: kind changed from {old['kind']} to {new['kind']}"))
@@ -827,8 +846,13 @@ def compare_struct(old: dict[str, object], new: dict[str, object], version: str,
         findings.append(Finding("break", f"{name}: a fixed record without struct_size cannot grow"))
     added: dict[str, object]
     for added in new_fields[len(old_fields):]:
-        if old["kind"] == "table" and added.get("since") != version:
+        if old["kind"] != "table":
+            continue
+        if baseline_version is None and added.get("since") != version:
             findings.append(Finding("break", f"{name}.{added['name']}: a new slot must be since {version}"))
+        elif baseline_version is not None and not added_since(added.get("since"), baseline_version, version):
+            findings.append(Finding("break", f"{name}.{added['name']}: a new slot must be since a minor after "
+                                             f"{baseline_version}, at most {version}"))
     return True
 
 
@@ -872,7 +896,8 @@ def compare_manifests(old: dict[str, object], new: dict[str, object], findings: 
         if struct_name not in new_structs:
             findings.append(Finding("break", f"structs: {struct_name} removed"))
             continue
-        if compare_struct(old_struct, new_structs[struct_name], version, findings):
+        if compare_struct(old_struct, new_structs[struct_name], version, findings,
+                          f"{old_abi['major']}.{old_abi['minor']}"):
             additions.append(struct_name)
     for struct_name in new_structs:
         if struct_name not in old_structs:
