@@ -228,6 +228,10 @@ gui_forms::Splitter
 
       *Protected.*
 
+   .. cpp:function:: void on_detaching_from_window(SurfaceRoot& former_window) noexcept override
+
+      *Protected.*
+
 .. rubric:: Windows Forms correspondence
 
 Counterpart: ``Splitter``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 19 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
