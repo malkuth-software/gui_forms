@@ -217,6 +217,16 @@ struct GUI_FORMS_API MetricsSnapshot {
     // Paint groups begun deeper than maximum_paint_group_depth, drawn
     // without isolation (Painter::begin_group).
     std::uint64_t paint_group_refusals{};
+    // Arrangements refused because the layout pass was arranging another
+    // control (LayoutDiagnosticCode::arrange_outside_slot): a custom layout
+    // that arranged a child directly instead of set_child_layout.
+    std::uint64_t layout_arrange_refusals{};
+    // Uses of a stale image identity refused: a window's scoped patch,
+    // replace or update given one, and draws recorded with one (counted
+    // when the control's paint is recorded, and drawn as nothing). A
+    // replace or a generation-advancing patch returns the identity that
+    // replaces the one passed in.
+    std::uint64_t stale_image_refusals{};
     // Host font lookups in this process that found no bundled font directory
     // (bundled_font_diagnostics, read when the snapshot is taken): nonzero
     // means some window drew no bundled text; bundled_font_refusal says why.

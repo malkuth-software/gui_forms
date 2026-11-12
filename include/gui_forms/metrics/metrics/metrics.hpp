@@ -98,6 +98,19 @@ public:
     void record_engine_primitive_refusal() noexcept;
     void record_engine_material_assembly() noexcept;
     void record_paint_group_refusals(std::uint64_t refusals) noexcept;
+    // A control arranged while the layout pass was arranging another
+    // (LayoutDiagnosticCode::arrange_outside_slot), refused. Counts it and,
+    // at the 1st, 2nd, 4th, 8th... refusal, prints one diagnostic line
+    // naming both controls' stable identities.
+    void record_layout_arrange_refusal(std::string_view arranged, std::string_view arranging) noexcept;
+    // `refusals` uses of an image identity the registry no longer holds
+    // (ImageResourceError::stale_image_id), refused: `operation` names the
+    // window call (a scoped patch, replace or update) or `draw` for a paint
+    // that drew it. Counts them and, each time the count reaches a new
+    // power of two, prints one diagnostic line naming the operation and the
+    // identity's value.
+    void record_stale_image_refusals(std::string_view operation, std::uint64_t image,
+                                     std::uint64_t refusals) noexcept;
     // Counts a missed housekeeping expectation and, rate-limited, prints
     // one telemetry line: `expected` and `observed` are in the
     // expectation's unit (nanoseconds, frames or rectangles).

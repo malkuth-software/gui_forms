@@ -2365,7 +2365,7 @@ Related types
 
    .. cpp:member:: std::string child
 
-      The stable identities of the child the pass placed and of the ancestor whose box it was placed in (the window's root control for its client area).
+      The stable identities of the child the pass placed and of the ancestor whose box it was placed in (the window's root control for its client area); for arrange_outside_slot, of the control arranged directly and of the control the pass was arranging.
 
    .. cpp:member:: std::string ancestor
 
@@ -3604,6 +3604,8 @@ Enumerations
    ``#include <gui_forms/layout/diagnostics/layout_diagnostics.hpp>``
 
    .. cpp:enumerator:: containing_block_not_parent
+
+   .. cpp:enumerator:: arrange_outside_slot
 
 .. cpp:namespace:: gui_forms
 

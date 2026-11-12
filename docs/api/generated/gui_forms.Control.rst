@@ -2226,7 +2226,7 @@ gui_forms::Control
 
       *Protected.*
 
-      Custom retained layout controls establish their own child slots after arranging only themselves. Calling the public base arrange would also run the default Dock/Anchor engine and create competing layout owners.
+      Custom retained layout controls establish their own child slots after arranging only themselves. Calling the public base arrange would also run the default Dock/Anchor engine and create competing layout owners. Refused like arrange when called on a control other than the one the window's layout pass is arranging.
 
    .. cpp:function:: virtual void on_paint_overlay(Painter& painter, Rect local_damage)
 

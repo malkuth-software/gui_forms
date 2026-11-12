@@ -2788,6 +2788,11 @@ void Control::notify_positioning_changed(const Control& child) {
 }
 
 void Control::arrange_self(Rect final_bounds) noexcept {
+    // Refused while the layout pass arranges another control (a custom
+    // layout arranging this child directly): nothing changes.
+    if (surface_root_ != nullptr && detail::SurfaceTreeAccess::refuse_arrange_outside_slot(*surface_root_, *this)) {
+        return;
+    }
     final_bounds.width = std::max(final_bounds.width, minimum_size.read().width);
     final_bounds.height = std::max(final_bounds.height, minimum_size.read().height);
     if (maximum_size.read().width > 0.0) {
@@ -4095,6 +4100,11 @@ LayoutDirection Control::effective_layout_direction() const noexcept {
 }
 
 void Control::arrange(Rect final_bounds) {
+    // Refused, changing nothing, while the layout pass arranges another
+    // control (SurfaceRoot::refuse_arrange_outside_slot).
+    if (surface_root_ != nullptr && detail::SurfaceTreeAccess::refuse_arrange_outside_slot(*surface_root_, *this)) {
+        return;
+    }
     arranged_by_dock_layout_ = true;
     arrange_self(final_bounds);
     if (children_.empty()) return;
