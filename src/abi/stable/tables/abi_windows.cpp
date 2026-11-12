@@ -98,7 +98,8 @@ std::uint32_t call_run_callback(const RunCallbacks& callbacks, const CallbackBin
     EventFields fields;
     gf_value& record = fields.append("reason", GF_VALUE_KIND_ENUMERATION, 0U, nullptr);
     record.signed_integer = static_cast<std::int64_t>(*reason);
-    const std::string_view text = close_reason_name(*reason);
+    // Valid only during the callback (EventFields::lend_text).
+    const std::string_view text = fields.lend_text(close_reason_name(*reason));
     record.text.data = text.data();
     record.text.size = text.size();
     fields.publish(event, false);

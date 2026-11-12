@@ -203,6 +203,15 @@ gf_value& EventFields::append(std::string_view name, gf_value_kind kind, gf_even
     return value;
 }
 
+std::string_view EventFields::lend_text(std::string_view text) {
+#if GUI_FORMS_CHECKED_BORROWS
+    const std::string_view lent = keep_text(text);
+    return lent;
+#else
+    return text;
+#endif
+}
+
 std::string_view EventFields::keep_text(std::string_view text) {
     if (texts_used_ == texts_.size()) {
         texts_.emplace_back();
@@ -543,14 +552,18 @@ void append_field(EventFields& fields, std::string_view name, bool value) {
 
 void append_field(EventFields& fields, std::string_view name, const std::string& value) {
     gf_value& record = fields.append(name, GF_VALUE_KIND_TEXT, GF_EVENT_FIELD_WRITABLE, &accepts_any);
-    record.text.data = value.data();
-    record.text.size = value.size();
+    // Valid only during the callback (EventFields::lend_text).
+    const std::string_view lent = fields.lend_text(value);
+    record.text.data = lent.data();
+    record.text.size = lent.size();
 }
 
 void append_field(EventFields& fields, std::string_view name, std::string_view value) {
     gf_value& record = fields.append(name, GF_VALUE_KIND_TEXT, 0U, nullptr);
-    record.text.data = value.data();
-    record.text.size = value.size();
+    // Valid only during the callback (EventFields::lend_text).
+    const std::string_view lent = fields.lend_text(value);
+    record.text.data = lent.data();
+    record.text.size = lent.size();
 }
 
 void append_field(EventFields& fields, std::string_view name, Point value) {
@@ -590,8 +603,10 @@ void append_field(EventFields& fields, std::string_view name, const BindingValue
     gf_value& record = fields.append(name, described.kind,
                                      GF_EVENT_FIELD_WRITABLE | GF_EVENT_FIELD_ANY_KIND, &accepts_any);
     record = described;
-    record.text.data = text.data();
-    record.text.size = text.size();
+    // Valid only during the callback (EventFields::lend_text).
+    const std::string_view lent = fields.lend_text(text);
+    record.text.data = lent.data();
+    record.text.size = lent.size();
 }
 
 void append_field(EventFields& fields, std::string_view name, const DockDragOutcome& value) {

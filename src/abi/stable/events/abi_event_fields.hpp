@@ -112,6 +112,13 @@ public:
                      EventFieldAccepts accepts);
     // Keeps a copy of text for the frame and returns a view of the copy.
     [[nodiscard]] std::string_view keep_text(std::string_view text);
+    // The text a text field lends the callback, valid only during the
+    // callback (the invoke). The plain build lends `text` itself (the
+    // payload's storage, which outlives the invoke's callbacks: zero copy);
+    // the checked build copies it through keep_text into the lent scratch,
+    // so it is scribbled and poisoned when the invoke returns and a caller
+    // that kept it reads poisoned memory.
+    [[nodiscard]] std::string_view lend_text(std::string_view text);
     // Records a collection's elements for the field just appended.
     void set_collection(const void* items, std::size_t count, EventElementReader reader) noexcept;
     // Lends object an identity for the frame: a control owned by a shared
@@ -289,8 +296,10 @@ void append_field(EventFields& fields, std::string_view name, Enumeration value)
     gf_value& record = fields.append(name, GF_VALUE_KIND_ENUMERATION, GF_EVENT_FIELD_WRITABLE,
                                      &accepts_enumeration<Enumeration>);
     record.signed_integer = number;
-    const std::string_view text = enumeration_name(fields, EnumerationChoices<Enumeration>::choices,
-                                                   EnumerationChoices<Enumeration>::flags, number);
+    const std::string_view name_text = enumeration_name(fields, EnumerationChoices<Enumeration>::choices,
+                                                        EnumerationChoices<Enumeration>::flags, number);
+    // Valid only during the callback (EventFields::lend_text).
+    const std::string_view text = fields.lend_text(name_text);
     record.text.data = text.data();
     record.text.size = text.size();
 }
