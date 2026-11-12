@@ -795,6 +795,11 @@ std::size_t paint_finish(const FinishFill& fill, double scale, FinishRect surfac
     return paint_rows<FinishKind::flat>(fill, scale, surface, area, destination, scratch);
 }
 
+std::uint8_t encode_linear(double linear) noexcept {
+    const std::uint8_t byte = encode(linear);
+    return byte;
+}
+
 std::uint64_t finish_effort_weight(FinishKind kind) noexcept {
     const FinishEffortWeights& weights = finish_effort_weights;
     switch (kind) {

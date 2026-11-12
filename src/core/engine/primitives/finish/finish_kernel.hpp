@@ -80,6 +80,11 @@ void reserve_finish_scratch(FinishScratch& scratch, std::uint32_t width);
 std::size_t paint_finish(const FinishFill& fill, double scale, FinishRect surface, FinishRect damage,
                          const PartRasterView& destination, FinishScratch& scratch) noexcept;
 
+// Linear light to an sRGB byte through the reference's 4097-step table
+// (entry i the byte for i / 4096; values outside [0, 1] clamped), which the
+// light planes' composite shares (panel_lamps.html builds the same table).
+[[nodiscard]] std::uint8_t encode_linear(double linear) noexcept;
+
 // The finishes' effort weights, in effort units per painted device pixel
 // (material_bake_policy.hpp), on the material weights' scale. A material's
 // finish layer is painted during its bake, so its weight is charged per
