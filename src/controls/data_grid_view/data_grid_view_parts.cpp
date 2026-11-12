@@ -68,8 +68,9 @@ Rect cell_inside(Rect cell) noexcept {
 }
 
 // The text's alignment across its box for a style's alignment; start when
-// none is set.
-PartTextAlignment text_alignment(std::optional<DataGridViewContentAlignment> alignment) noexcept {
+// none is set. Right to left the start is the cell's right edge, as
+// Windows Forms mirrors a cell's alignment under RightToLeft.
+PartTextAlignment reading_alignment(std::optional<DataGridViewContentAlignment> alignment) noexcept {
     if (!alignment) return PartTextAlignment::start;
     switch (*alignment) {
     case DataGridViewContentAlignment::top_center:
@@ -87,6 +88,15 @@ PartTextAlignment text_alignment(std::optional<DataGridViewContentAlignment> ali
     }
     // Validated styles hold only the enumerators above.
     return PartTextAlignment::start;
+}
+
+// As `grid` draws it: start and end exchange when it resolves right to left.
+PartTextAlignment text_alignment(std::optional<DataGridViewContentAlignment> alignment, const Control& grid) noexcept {
+    const bool mirrored = grid.effective_layout_direction() == LayoutDirection::right_to_left;
+    const PartTextAlignment reading = reading_alignment(alignment);
+    if (mirrored && reading == PartTextAlignment::start) return PartTextAlignment::end;
+    if (mirrored && reading == PartTextAlignment::end) return PartTextAlignment::start;
+    return reading;
 }
 
 // Where a line of text sits up and down in its content box.
@@ -779,15 +789,40 @@ DataGridView::GridLayout DataGridView::grid_layout() const {
     if (vertical) layout.vertical_bar = {width - bar, header_height, bar, layout.data.height};
     if (horizontal) layout.horizontal_bar = {0.0, height - bar, std::max(0.0, width - vertical_bar), bar};
     if (vertical && horizontal) layout.scroll_corner = {width - bar, height - bar, bar, bar};
+    // Right to left the grid mirrors whole, as Windows Forms' DataGridView
+    // does under RightToLeft: row headers and the vertical bar at the right
+    // edge are at the left, and columns run from the right (column_left).
+    layout.mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    if (layout.mirrored) {
+        const Rect frame = layout.client;
+        layout.data = horizontally_mirrored(layout.data, frame);
+        if (!layout.column_header_band.empty()) {
+            layout.column_header_band = horizontally_mirrored(layout.column_header_band, frame);
+        }
+        if (!layout.row_header_band.empty()) {
+            layout.row_header_band = horizontally_mirrored(layout.row_header_band, frame);
+        }
+        if (!layout.top_left.empty()) layout.top_left = horizontally_mirrored(layout.top_left, frame);
+        if (!layout.vertical_bar.empty()) layout.vertical_bar = horizontally_mirrored(layout.vertical_bar, frame);
+        if (!layout.horizontal_bar.empty()) layout.horizontal_bar = horizontally_mirrored(layout.horizontal_bar, frame);
+        if (!layout.scroll_corner.empty()) layout.scroll_corner = horizontally_mirrored(layout.scroll_corner, frame);
+    }
     return layout;
 }
 
 double DataGridView::column_left(std::size_t column, const GridLayout& layout) const noexcept {
-    // The columns shown before this one, in display order.
-    double x = layout.data.x - horizontal_offset_ * layout.scale;
+    // The columns shown before this one, in display order, from the data
+    // band's reading start: its left, or its right edge right to left.
+    const double frame_sum = layout.client.x * 2.0 + layout.client.width;
+    const double reading_start = layout.mirrored ? frame_sum - layout.data.x - layout.data.width : layout.data.x;
+    double x = reading_start - horizontal_offset_ * layout.scale;
     const std::size_t display = column < shown_indices_.size() ? shown_indices_[column] : shown_order_.size();
     for (std::size_t position = 0; position < display; ++position) {
         x += shown_width(shown_order_[position]) * layout.scale;
+    }
+    if (layout.mirrored) {
+        const double drawn = frame_sum - x - shown_width(column) * layout.scale;
+        return drawn;
     }
     return x;
 }
@@ -800,7 +835,8 @@ Rect DataGridView::column_header_bounds(std::size_t column, const GridLayout& la
 
 Rect DataGridView::row_header_bounds(DataGridViewRowPosition row, const GridLayout& layout) const {
     const double height = row_heights().height(row.value) * layout.scale;
-    const Rect bounds{0.0, layout.data.y + row_offset(row.value, layout), layout.row_header_band.width, height};
+    const Rect bounds{layout.row_header_band.x, layout.data.y + row_offset(row.value, layout),
+                      layout.row_header_band.width, height};
     return bounds;
 }
 
@@ -844,7 +880,10 @@ DataGridViewDisplayIndex DataGridView::order_target_at(double x, const GridLayou
     for (std::size_t position = 0; position < shown_order_.size(); ++position) {
         const std::size_t column = shown_order_[position];
         const double middle = column_left(column, layout) + columns_[column].width * layout.scale * 0.5;
-        if (middle < x) boundary = position + 1U;
+        // Before the pointer in reading order: to its left, or to its right
+        // right to left.
+        const bool before = layout.mirrored ? middle > x : middle < x;
+        if (before) boundary = position + 1U;
     }
     if (shown_order_.empty()) {
         const DataGridViewDisplayIndex none{0U};
@@ -980,11 +1019,15 @@ DataGridView::Parts DataGridView::grid_parts(const GridLayout& layout) const {
         const std::size_t from = display_indices_[*pressed_column_];
         const std::size_t target = (*order_target_).value;
         const std::size_t neighbour = display_order_[target];
-        double x = column_left(neighbour, layout);
-        if (target > from) x += columns_[neighbour].width * layout.scale;
+        // The neighbour's reading-start edge, or its reading end moving on:
+        // its left and right, exchanged right to left.
+        const double left = column_left(neighbour, layout);
+        const double right = left + columns_[neighbour].width * layout.scale;
+        const bool past = target > from;
+        const double x = past != layout.mirrored ? right : left;
         const double half = drop_indicator_half_width * layout.scale;
         const Rect bar{x - half, 0.0, half * 2.0, layout.column_header_band.height};
-        const Rect clip{layout.data.x, 0.0, layout.column_header_band.width, layout.column_header_band.height};
+        const Rect clip = layout.column_header_band;
         record.column_drop_indicator = visible_part(bar, clip);
     }
     return record;
@@ -1001,20 +1044,23 @@ DataGridView::RowParts DataGridView::row_parts(DataGridViewRowPosition row, cons
     // The row glyph sits at the header's start: the current row's arrow or
     // pencil, or the new row's star.
     if (is_current_row(row) || is_new_row(row)) {
-        const Rect lane{header.x + glyph_margin, header.y, glyph_side, header.height};
+        const Rect reading_lane{header.x + glyph_margin, header.y, glyph_side, header.height};
+        const Rect lane = layout.mirrored ? horizontally_mirrored(reading_lane, header) : reading_lane;
         record.row_glyph = visible_part(centred_square(lane, glyph_side), clip);
     }
     if (show_row_errors.read() && !row_error_text(row).empty()) {
         const double error_side = error_glyph_size * layout.scale;
-        const Rect lane{header.x + std::max(0.0, header.width - glyph_margin - error_side), header.y, error_side,
-                        header.height};
+        const Rect reading_lane{header.x + std::max(0.0, header.width - glyph_margin - error_side), header.y,
+                                error_side, header.height};
+        const Rect lane = layout.mirrored ? horizontally_mirrored(reading_lane, header) : reading_lane;
         record.row_error = visible_part(centred_square(lane, error_side), clip);
     }
     if (row_source_ == DataGridViewRowSource::unbound && row.value < rows.read().size() &&
         !rows.read()[row.value].header_text.empty()) {
         const double start = glyph_margin * 2.0 + glyph_side;
-        const Rect label{header.x + start, header.y, std::max(0.0, header.width - start - glyph_margin),
-                         std::max(0.0, header.height - 1.0)};
+        const Rect reading_label{header.x + start, header.y, std::max(0.0, header.width - start - glyph_margin),
+                                 std::max(0.0, header.height - 1.0)};
+        const Rect label = layout.mirrored ? horizontally_mirrored(reading_label, header) : reading_label;
         record.row_header_label = visible_part(label, clip);
     }
     if (row_headers_border_style.read() != DataGridViewHeaderBorderStyle::none) {
@@ -1140,7 +1186,7 @@ DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, 
             record.cell_content = visible_part(line, clip);
             if (kind == DataGridViewColumnKind::link) {
                 const std::optional<CellLink> link =
-                    cell_link(result.content.text, text_alignment(style.alignment), face, line);
+                    cell_link(result.content.text, text_alignment(style.alignment, *this), face, line);
                 if (link) {
                     record.cell_link = visible_part((*link).text, clip);
                     record.cell_link_underline = visible_part((*link).underline, clip);
@@ -1231,7 +1277,7 @@ DataGridView::ColumnParts DataGridView::column_parts(std::size_t column, const G
     if (!column_headers_visible.read()) return record;
     // Column headers scroll with the cells, between the row headers and the
     // grid's right edge.
-    const Rect clip{layout.data.x, 0.0, layout.column_header_band.width, layout.column_header_band.height};
+    const Rect clip = layout.column_header_band;
     const Rect header = column_header_bounds(column, layout);
     const double scale = layout.scale;
     record.column_header = visible_part(header, clip);
@@ -1242,17 +1288,22 @@ DataGridView::ColumnParts DataGridView::column_parts(std::size_t column, const G
     const Insets padding = content_padding(style, scale);
     const double glyph_lane = sorted ? sort_glyph_margin * scale : 0.0;
     const Rect padded = padded_rect(header, padding);
-    const Rect labelled{padded.x, padded.y, std::max(0.0, padded.width - glyph_lane), padded.height};
+    // The sort glyph's lane is at the header's reading end: its right, or
+    // its left right to left.
+    const double label_x = layout.mirrored ? padded.x + glyph_lane : padded.x;
+    const Rect labelled{label_x, padded.y, std::max(0.0, padded.width - glyph_lane), padded.height};
     const LinePlacement placement = line_placement(style.alignment);
     const double line_height =
         placement == LinePlacement::middle ? 0.0 : text_line_height((style.font ? effective_font(*style.font) : text_font(font.read())));
     record.column_label = visible_part(line_box(labelled, placement, line_height), clip);
     if (sorted) {
-        const Rect lane{header.x + header.width - sort_glyph_margin * scale, header.y,
-                        sort_glyph_size * scale, header.height};
+        const Rect reading_lane{header.x + header.width - sort_glyph_margin * scale, header.y,
+                                sort_glyph_size * scale, header.height};
+        const Rect lane = layout.mirrored ? horizontally_mirrored(reading_lane, header) : reading_lane;
         record.sort_glyph = visible_part(centred_square(lane, sort_glyph_size * scale), clip);
     }
-    const double edge = header.x + header.width;
+    // The divider and its grip are at the header's reading end.
+    const double edge = layout.mirrored ? header.x + 1.0 : header.x + header.width;
     if (column_headers_border_style.read() != DataGridViewHeaderBorderStyle::none) {
         record.column_divider = visible_part({edge - 1.0, header.y, 1.0, header.height}, clip);
     }
@@ -1443,7 +1494,9 @@ void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, cons
         // marks, their look the theme's (T4).
         PartMark mark = PartMark::asterisk;
         if (is_current_row(row)) {
-            mark = show_editing_icon.read() && is_current_row_dirty() ? PartMark::pencil : PartMark::arrow_right;
+            // The current row's arrow points into the row: leftward right to left.
+            const PartMark arrow = layout.mirrored ? PartMark::arrow_left : PartMark::arrow_right;
+            mark = show_editing_icon.read() && is_current_row_dirty() ? PartMark::pencil : arrow;
         }
         part.role = PartRole::glyph;
         part.bounds = parts.row_glyph.bounds;
@@ -1464,7 +1517,7 @@ void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, cons
         part.role = PartRole::label;
         part.bounds = parts.row_header_label.bounds;
         part.text = rows.read()[row.value].header_text;
-        part.alignment = text_alignment(style.alignment);
+        part.alignment = text_alignment(style.alignment, *this);
         part.authored_foreground = parts.row_header_label.authored_foreground;
         paint_part(painter, *this, part);
         part.authored_foreground.reset();
@@ -1524,7 +1577,7 @@ bool DataGridView::resolve_cell(DataGridViewRowPosition row, std::size_t column,
     resolved.visited = resolved.states.contains(visited_state);
     resolved.editing_text = editing_ && edit_kind_ == EditKind::text && is_current_cell(row, column);
     resolved.font = (style.font ? effective_font(*style.font) : text_font(font.read()));
-    resolved.alignment = text_alignment(style.alignment);
+    resolved.alignment = text_alignment(style.alignment, *this);
     const std::size_t text_begin = into.text.size();
     into.text.append(placed.content.text);
     resolved.text = DataGridViewCellsTextRange{text_begin, into.text.size()};
@@ -1601,7 +1654,7 @@ void DataGridView::paint_column_header(Painter& painter, std::size_t column, con
         part.role = PartRole::label;
         part.bounds = parts.column_label.bounds;
         part.text = definition.header_text;
-        part.alignment = text_alignment(style.alignment);
+        part.alignment = text_alignment(style.alignment, *this);
         part.authored_foreground = parts.column_label.authored_foreground;
         paint_part(painter, *this, part);
         part.authored_foreground.reset();
@@ -1679,7 +1732,7 @@ void DataGridView::on_paint(Painter& painter, Rect) {
         surface.bounds = grid.column_header_band.bounds;
         paint_part(painter, *this, surface);
         painter.save();
-        painter.clip_rect({layout.data.x, 0.0, layout.column_header_band.width, layout.column_header_band.height});
+        painter.clip_rect(layout.column_header_band);
         for (std::size_t display = first_display; display < display_end; ++display) {
             paint_column_header(painter, shown_order_[display], layout);
         }

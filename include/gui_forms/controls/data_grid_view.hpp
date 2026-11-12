@@ -1006,6 +1006,9 @@ private:
         Rect scroll_corner{};
         double row_height{};
         double scale{1.0};
+        // Right to left: the rectangles above are mirrored about `client`
+        // and columns run from the data band's right edge.
+        bool mirrored{};
     };
     // What a local point is over.
     enum class HitZone : std::uint8_t {

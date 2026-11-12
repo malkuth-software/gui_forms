@@ -311,3 +311,24 @@
 - (std::array<std::uint64_t, 13>)cpuAttributionSnapshot;
 - (MacCausalSnapshot)cpuCausalTraceSnapshot;
 @end
+
+// Link anchors. A static archive member is linked only when something
+// references one of its symbols, and an object file that holds only an
+// Objective-C category defines none a program refers to by name: a
+// program linking libgui_forms_host_macos.a directly would get
+// GUIFormsView without these categories and fail with an unrecognized
+// selector at run time. Each category unit defines its empty anchor, and
+// link_view_categories (macos_view.mm, the primary implementation, which
+// every program using GUIFormsView links) references all of them, so the
+// categories always come with the class. No linker flag (-ObjC,
+// -force_load) is needed. A new category unit adds its anchor here.
+namespace gui_forms::host::macos {
+void gui_forms_macos_view_scheduling_anchor() noexcept;
+void gui_forms_macos_view_drawing_anchor() noexcept;
+void gui_forms_macos_view_input_anchor() noexcept;
+void gui_forms_macos_view_accessibility_anchor() noexcept;
+void gui_forms_macos_view_diagnostics_anchor() noexcept;
+// References every anchor above; external so the compiler keeps it and
+// its references. Never needs to be called.
+void link_view_categories() noexcept;
+} // namespace gui_forms::host::macos

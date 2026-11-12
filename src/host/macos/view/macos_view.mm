@@ -241,6 +241,19 @@ void run_view_do_command_by_selector(GUIFormsView* object, SEL selector) {
 }
 } // namespace
 
+namespace gui_forms::host::macos {
+// Pulls in the category units' archive members (see the link anchors in
+// macos_view.hpp): without these references a program that links the host
+// archive directly gets GUIFormsView without its categories.
+void link_view_categories() noexcept {
+    gui_forms_macos_view_scheduling_anchor();
+    gui_forms_macos_view_drawing_anchor();
+    gui_forms_macos_view_input_anchor();
+    gui_forms_macos_view_accessibility_anchor();
+    gui_forms_macos_view_diagnostics_anchor();
+}
+} // namespace gui_forms::host::macos
+
 @implementation GUIFormsView
 
 - (instancetype)initWithModel:(std::unique_ptr<Window>)model
