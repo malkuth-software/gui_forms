@@ -13,6 +13,7 @@
 #include "../../../src/abi/stable/engine/abi_engine.hpp"
 #include "../../../src/abi/stable/registry/abi_registry.hpp"
 
+#include "gui_forms/binding.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/window.hpp"
@@ -382,7 +383,77 @@ void run() {
 
 } // namespace
 
-int main() {
+// A set_property callback that keeps the value's text past its call. Mode
+// `kept_set_text` reads the kept text after the set; under AddressSanitizer
+// the checked build poisoned the scratch it lent when the callback returned,
+// so the read is reported and the process ends before it prints "survived"
+// (registered only in the checked sanitizer tree, as the event fields'
+// kept_record is).
+struct KeptSetText final {
+    const char* text = nullptr;
+    std::uint64_t size = 0U;
+};
+
+gf_status GF_CALL keep_set_text(void* context, gf_object, std::uint64_t, const gf_value* value) {
+    KeptSetText& kept = *static_cast<KeptSetText*>(context);
+    if ((*value).kind == GF_VALUE_KIND_TEXT && (*value).text.size != 0U) {
+        kept.text = (*value).text.data;
+        kept.size = (*value).text.size;
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL no_kept_property(void*, gf_object, std::uint64_t, gf_value*) {
+    return GF_STATUS_NOT_FOUND;
+}
+
+void GF_CALL paint_nothing_kept(void*, gf_object, const gf_paint_target*) {}
+
+int kept_set_text_mode() {
+    gf_custom_controls_table custom{};
+    require_ok(gf_abi_get_table(GF_TABLE_CUSTOM_CONTROLS, GF_ABI_MAJOR, GF_ABI_MINOR, &custom, sizeof(custom)),
+               "custom controls table");
+    KeptSetText kept;
+    gf_custom_property property{};
+    property.name = text_view("note");
+    property.kind = GF_VALUE_KIND_TEXT;
+    gf_custom_control_spec spec{};
+    spec.struct_size = sizeof(gf_custom_control_spec);
+    spec.base = GF_CUSTOM_BASE_USER_CONTROL;
+    spec.property_size = sizeof(gf_custom_property);
+    spec.properties = &property;
+    spec.property_count = 1U;
+    spec.callbacks.struct_size = sizeof(gf_custom_control_callbacks);
+    spec.callbacks.context = &kept;
+    spec.callbacks.paint = &paint_nothing_kept;
+    spec.callbacks.get_property = &no_kept_property;
+    spec.callbacks.set_property = &keep_set_text;
+    gf_object object = 0U;
+    require_ok(custom.create(&spec, text_view("custom.kept"), &object), "create the kept-text control");
+    Control::Ptr control;
+    require_ok(abi1::registry().find_object(object, abi1::SlotIdentity{GF_TABLE_OBJECTS, 0U}, control),
+               "find the kept-text control");
+    (*control).set_property_value("note", BindingValue{std::string("a value kept past its call")});
+    if (kept.text == nullptr) {
+        std::cerr << "FAIL: no text was lent\n";
+        return 1;
+    }
+    // set_property returned: this read is the caller's defect the checked
+    // build exposes.
+    const char first = kept.text[0];
+    std::cout << "read " << static_cast<int>(first) << "\nsurvived\n";
+    return 0;
+}
+
+int main(int argc, char** argv) {
+    if (argc > 1 && std::string_view(argv[1]) == "kept_set_text") {
+        try {
+            return kept_set_text_mode();
+        } catch (const std::exception& error) {
+            std::cerr << "FAIL: " << error.what() << '\n';
+            return 1;
+        }
+    }
     try {
         run();
         gf_custom_controls_table custom{};

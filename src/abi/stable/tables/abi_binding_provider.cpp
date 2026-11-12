@@ -203,6 +203,10 @@ BindingWriteResult AbiBindingProvider::write_cell(std::size_t row, std::size_t c
     if (!lend_value(value, record)) {
         return BindingWriteResult{BindingWriteStatus::kind_mismatch, "the value has no C form a provider takes"};
     }
+    // The value's text is valid only during write_value.
+    const LentCallText lent(lent_texts_, std::string_view(record.text.data, static_cast<std::size_t>(record.text.size)));
+    record.text.data = lent.text().data();
+    record.text.size = lent.text().size();
     const detail::BorrowScope answer;
     std::uint32_t accepted = 0U;
     gf_utf8_view reason{};

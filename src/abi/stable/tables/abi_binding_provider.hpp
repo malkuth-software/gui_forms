@@ -6,6 +6,7 @@
 
 #include "gui_forms/c/gf_abi.h"
 
+#include "../events/abi_lent_scratch.hpp"
 #include "../failure/abi_failure.hpp"
 
 #include "gui_forms/binding/binding_provider/binding_provider.hpp"
@@ -51,6 +52,9 @@ private:
     BindingSchema schema_;
     gf_binding_provider_callbacks callbacks_{};
     std::uint64_t id_{};
+    // Scratch for the text write_cell lends write_value: checked builds copy
+    // and poison it after the callback, plain builds lend in place.
+    LentCallTexts lent_texts_;
 };
 
 // The id the next provider is given; never zero, never reused.

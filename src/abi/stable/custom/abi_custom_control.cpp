@@ -228,8 +228,11 @@ void CustomControlState::set(const Control& control, std::size_t index, const Bi
     if (!record_binding_value(value, record, text)) {
         throw std::invalid_argument("the value has no gf_value form");
     }
-    record.text.data = text.data();
-    record.text.size = text.size();
+    // The value's text is valid only during the callback: the checked build
+    // lends a scratch copy that is poisoned when set_property returns.
+    const LentCallText lent(lent_texts_, text);
+    record.text.data = lent.text().data();
+    record.text.size = lent.text().size();
     gf_status status = GF_STATUS_INTERNAL;
     {
         const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),

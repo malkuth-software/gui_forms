@@ -6,6 +6,7 @@
 #pragma once
 
 #include "gui_forms/c/gf_abi.h"
+#include "../events/abi_lent_scratch.hpp"
 
 #include "gui_forms/binding.hpp"
 #include "gui_forms/control.hpp"
@@ -122,6 +123,9 @@ private:
     bool direct_presentation_{};
     bool armed_{};
     bool revoked_{};
+    // The text set_property lends the callback (abi_lent_scratch.hpp): set
+    // is const, and the scratch is call-scope state, not the control's.
+    mutable LentCallTexts lent_texts_;
 };
 
 // The custom control over Base (ScrollableControl or UserControl). Its
