@@ -142,6 +142,7 @@
 #include "gui_forms/controls/user_control.hpp"
 #include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/controls/virtual_rows_view.hpp"
 #include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
@@ -154,7 +155,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 142> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 143> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -188,6 +189,7 @@ inline constexpr std::array<FormCatalogEntry, 142> form_catalog{{
     {"object_view", "ObjectView", "gui_forms/controls/object_view.hpp", &add_catalog_type<ObjectView>},
     {"list_view", "ListView", "gui_forms/controls/list_view.hpp", &add_catalog_type<ListView>},
     {"tree_list_view", "TreeListView", "gui_forms/controls/tree_list_view.hpp", &add_catalog_type<TreeListView>},
+    {"virtual_rows_view", "VirtualRowsView", "gui_forms/controls/virtual_rows_view.hpp", &add_catalog_type<VirtualRowsView>},
     {"data_grid_view", "DataGridView", "gui_forms/controls/data_grid_view.hpp", &add_catalog_type<DataGridView>},
     {"choice_group", "ChoiceGroup", "gui_forms/controls/choice_group.hpp", &add_catalog_type<ChoiceGroup>},
     {"breadcrumb_trail", "BreadcrumbTrail", "gui_forms/controls/breadcrumb_trail.hpp", &add_catalog_type<BreadcrumbTrail>},

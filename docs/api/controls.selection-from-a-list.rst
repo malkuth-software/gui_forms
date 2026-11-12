@@ -25,6 +25,8 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
      - A list of items shown as details rows, a list, small icons, large icons or tiles.
    * - :cpp:class:`TreeListView <gui_forms::TreeListView>`
      - A tree with tabular columns: nodes in a hierarchy, each with cells beside it.
+   * - :cpp:class:`VirtualRowsView <gui_forms::VirtualRowsView>`
+     - A list of a very large number of owner-drawn rows of varying height.
    * - :cpp:class:`DataGridView <gui_forms::DataGridView>`
      - A grid of typed columns over rows the grid owns, virtual rows or a binding source.
    * - :cpp:class:`ChoiceGroup <gui_forms::ChoiceGroup>`
@@ -46,6 +48,7 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
    generated/gui_forms.ObjectView
    generated/gui_forms.ListView
    generated/gui_forms.TreeListView
+   generated/gui_forms.VirtualRowsView
    generated/gui_forms.DataGridView
    generated/gui_forms.ChoiceGroup
    generated/gui_forms.BreadcrumbTrail
@@ -537,6 +540,28 @@ Related types
      - The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it.
    * - :cpp:class:`TreeViewShowExpandersCapability <gui_forms::TreeViewShowExpandersCapability>`
      - Whether expandable items draw their expander glyph.
+   * - :cpp:class:`VirtualRowDescription <gui_forms::VirtualRowDescription>`
+     - Text for one row's accessibility node (VirtualRowsCallbacks::describe).
+   * - :cpp:class:`VirtualRowIndex <gui_forms::VirtualRowIndex>`
+     - A row's position in a VirtualRowsView, from 0 to row_count() - 1.
+   * - :cpp:class:`VirtualRowMeasure <gui_forms::VirtualRowMeasure>`
+     - The view asks for one row's height (VirtualRowsCallbacks::measure).
+   * - :cpp:class:`VirtualRowPaint <gui_forms::VirtualRowPaint>`
+     - One row to draw (VirtualRowsCallbacks::paint).
+   * - :cpp:class:`VirtualRowsCallbacks <gui_forms::VirtualRowsCallbacks>`
+     - The application's row targets.
+   * - :cpp:class:`VirtualRowSelection <gui_forms::VirtualRowSelection>`
+     - A change of the selected row, after it happened.
+   * - :cpp:class:`VirtualRowsStatistics <gui_forms::VirtualRowsStatistics>`
+     - Work counters, for bounded-work checks and workload records.
+   * - :cpp:class:`VirtualRowsView::Parts <gui_forms::VirtualRowsView::Parts>`
+     - The anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`VirtualRowsView::RowParts <gui_forms::VirtualRowsView::RowParts>`
+     - One realized row's parts and states (the "row" item system).
+   * - :cpp:class:`VirtualRowsView::RowStates <gui_forms::VirtualRowsView::RowStates>`
+     -  
+   * - :cpp:class:`VirtualRowsView::States <gui_forms::VirtualRowsView::States>`
+     -  
 
 .. cpp:namespace:: gui_forms
 
@@ -5210,6 +5235,188 @@ Related types
 
       Default: ``{true}``.
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowDescription final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   Text for one row's accessibility node (VirtualRowsCallbacks::describe). The view clears both strings, keeping their storage, before each call; the handler writes the row's name (what a screen reader says first, kept short) and its value (the full text, or empty). Invalid UTF-8 is replaced by an empty string.
+
+   .. cpp:member:: VirtualRowIndex row
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: std::string value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowIndex final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   A row's position in a VirtualRowsView, from 0 to row_count() - 1. It is a position, not an identity: inserting or erasing rows before it moves the row to another position.
+
+   .. cpp:member:: std::size_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowMeasure final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   The view asks for one row's height (VirtualRowsCallbacks::measure). ``width`` is the content width in logical units: the viewport less the scroll bar. ``height`` holds the view's estimate on entry; the handler replaces it with the row's height in logical units at that width. A height that is not finite is ignored (the row stays estimated and is asked again when next shown); one outside [minimum_row_height, maximum_row_height] is held at the nearer bound.
+
+   .. cpp:member:: VirtualRowIndex row
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowPaint final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   One row to draw (VirtualRowsCallbacks::paint). ``painter`` is borrowed for the call only and is never null in a call; ``bounds`` is the row's rectangle in the view's local coordinates, logical units, and may reach past the viewport (the painter is clipped to it). The view has already painted the row's plate by role (transparent, hot or selected) and paints the focus cue over the handler's drawing. Right to left, ``mirrored`` is set and the row's reading start is bounds' right edge.
+
+   .. cpp:member:: Painter* painter
+
+   .. cpp:member:: VirtualRowIndex row
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: bool selected
+
+   .. cpp:member:: bool hot
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool mirrored
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowsCallbacks final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   The application's row targets. Each is a Delegate: one object and one member function, bound by the application, never owned by the view. A bound target must outlive the view, or be replaced (set_row_callbacks with empty delegates) before it is destroyed. An empty measure keeps every row at the estimate; an empty paint draws the plates only; an empty describe names each row by its position. The view calls the targets on its own thread: measure during layout and scrolling, paint during paint, describe while semantics are read. A target must not change the view's rows, callbacks or scroll; those calls throw std::logic_error while a target runs, and leave the view unchanged.
+
+   .. cpp:member:: Delegate<VirtualRowMeasure&> measure
+
+   .. cpp:member:: Delegate<VirtualRowPaint&> paint
+
+   .. cpp:member:: Delegate<VirtualRowDescription&> describe
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowSelection final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   A change of the selected row, after it happened. A row erased while selected reports ``current`` none.
+
+   .. cpp:member:: std::optional<VirtualRowIndex> previous
+
+   .. cpp:member:: std::optional<VirtualRowIndex> current
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowsStatistics final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   Work counters, for bounded-work checks and workload records. The totals only grow; the "last" figures describe the most recent settle (a layout or a scroll) and paint. index_runs walks the height index's leaves (O(runs)); the other fields are O(1).
+
+   .. cpp:member:: std::uint64_t rows_measured
+
+   .. cpp:member:: std::uint64_t rows_painted
+
+   .. cpp:member:: std::uint64_t rows_described
+
+   .. cpp:member:: std::uint64_t anchor_corrections
+
+   .. cpp:member:: std::uint64_t scroll_copies
+
+   .. cpp:member:: std::uint64_t scroll_repaints
+
+   .. cpp:member:: std::size_t last_settle_measured
+
+   .. cpp:member:: std::size_t last_settle_passes
+
+   .. cpp:member:: std::size_t last_paint_rows
+
+   .. cpp:member:: std::size_t index_runs
+
+   .. cpp:member:: std::size_t index_nodes
+
+   .. cpp:member:: std::size_t index_depth
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowsView::Parts final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   The anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry well
+
+   .. cpp:member:: PartGeometry vertical_scroll_bar
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowsView::RowParts final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   One realized row's parts and states (the "row" item system).
+
+   .. cpp:member:: PartGeometry row
+
+   .. cpp:member:: PartGeometry row_face
+
+   .. cpp:member:: PartGeometry row_focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowsView::RowStates final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   .. cpp:member:: bool selected
+
+   .. cpp:member:: bool hot
+
+   .. cpp:member:: bool current
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowsView::States final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
 Enumerations
 ------------
 
@@ -5688,6 +5895,20 @@ Enumerations
    .. cpp:enumerator:: ascending
 
    .. cpp:enumerator:: descending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: VirtualRowAlignment
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   .. cpp:enumerator:: start
+
+   .. cpp:enumerator:: center
+
+   .. cpp:enumerator:: end
+
+   .. cpp:enumerator:: nearest
 
 Functions, constants and aliases
 --------------------------------

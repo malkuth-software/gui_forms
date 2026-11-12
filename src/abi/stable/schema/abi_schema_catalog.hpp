@@ -142,6 +142,7 @@
 #include "gui_forms/controls/user_control.hpp"
 #include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/controls/virtual_rows_view.hpp"
 #include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
@@ -154,7 +155,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 142> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 143> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -188,6 +189,7 @@ inline constexpr std::array<SchemaCatalogEntry, 142> schema_catalog{{
     {"object_view", "ObjectView", &describe_type<ObjectView>, &create_type<ObjectView>, &is_exact_type<ObjectView>},
     {"list_view", "ListView", &describe_type<ListView>, &create_type<ListView>, &is_exact_type<ListView>},
     {"tree_list_view", "TreeListView", &describe_type<TreeListView>, &create_type<TreeListView>, &is_exact_type<TreeListView>},
+    {"virtual_rows_view", "VirtualRowsView", &describe_type<VirtualRowsView>, &create_type<VirtualRowsView>, &is_exact_type<VirtualRowsView>},
     {"data_grid_view", "DataGridView", &describe_type<DataGridView>, &create_type<DataGridView>, &is_exact_type<DataGridView>},
     {"choice_group", "ChoiceGroup", &describe_type<ChoiceGroup>, &create_type<ChoiceGroup>, &is_exact_type<ChoiceGroup>},
     {"breadcrumb_trail", "BreadcrumbTrail", &describe_type<BreadcrumbTrail>, &create_type<BreadcrumbTrail>, &is_exact_type<BreadcrumbTrail>},

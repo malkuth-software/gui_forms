@@ -983,6 +983,34 @@ Properties beyond every control's: none.
 | `column_width_changed` | `TreeListColumnWidthChange` |
 | `column_moved` | `TreeListColumnMove` |
 
+## `virtual_rows_view` (VirtualRowsView, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `vertical_scroll_bar` | track | `v_scroll_bar` |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Item system `row`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `row` | region |  |  |
+| `row_face` | face |  |  |
+| `row_focus` | focus |  |  |
+
+Item states: `selected`, `hot`, `current`, `disabled`, `focus_visible`.
+
+Properties beyond every control's: none.
+
+| Interaction | Payload |
+|---|---|
+| `selection_changed` | `VirtualRowSelection` |
+| `row_activated` | `VirtualRowIndex` |
+
 ## `data_grid_view` (DataGridView, control)
 
 | Part | Role | Reuses | Own states |
@@ -3643,7 +3671,6 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `selected_index_changed` | `std::optional<std::size_t>` |
 
 ## `up_down_base` (UpDownBase, control)
 

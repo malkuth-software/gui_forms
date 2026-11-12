@@ -528,6 +528,9 @@
     _ZGVZN9gui_forms15ThemeValidation*;
     _ZGVZN9gui_forms15ToolTipSettings*;
     _ZGVZN9gui_forms15UserThemeHeader*;
+    _ZGVZN9gui_forms15VirtualRowIndex*;
+    _ZGVZN9gui_forms15VirtualRowPaint*;
+    _ZGVZN9gui_forms15VirtualRowsView*;
     _ZGVZN9gui_forms15WindowChromeHit*;
     _ZGVZN9gui_forms15WindowFrameDrag*;
     _ZGVZN9gui_forms15WindowOverrides*;
@@ -716,6 +719,7 @@
     _ZGVZN9gui_forms17ToolStripItemSpec*;
     _ZGVZN9gui_forms17TreeListRowSource*;
     _ZGVZN9gui_forms17TreeListRowSplice*;
+    _ZGVZN9gui_forms17VirtualRowMeasure*;
     _ZGVZN9gui_forms17VisualInteraction*;
     _ZGVZN9gui_forms17WindowBandOptions*;
     _ZGVZN9gui_forms17XmlSourcePosition*;
@@ -903,6 +907,7 @@
     _ZGVZN9gui_forms19ToolStripDropTarget*;
     _ZGVZN9gui_forms19TreeExpansionChange*;
     _ZGVZN9gui_forms19TreeSelectionChange*;
+    _ZGVZN9gui_forms19VirtualRowSelection*;
     _ZGVZN9gui_forms19WindowBackdropGrant*;
     _ZGVZN9gui_forms20AnchoredOverlayLayer*;
     _ZGVZN9gui_forms20ApplicationResources*;
@@ -959,6 +964,7 @@
     _ZGVZN9gui_forms20TextMaskCancellation*;
     _ZGVZN9gui_forms20ThemeStructureTokens*;
     _ZGVZN9gui_forms20Utf8ValidationResult*;
+    _ZGVZN9gui_forms20VirtualRowsCallbacks*;
     _ZGVZN9gui_forms20WindowBandAppearance*;
     _ZGVZN9gui_forms20WindowCaptureOptions*;
     _ZGVZN9gui_forms20WorkspaceTransaction*;
@@ -1030,6 +1036,8 @@
     _ZGVZN9gui_forms21ThemeTypographyTokens*;
     _ZGVZN9gui_forms21ThreadExceptionDialog*;
     _ZGVZN9gui_forms21ThreadExceptionReport*;
+    _ZGVZN9gui_forms21VirtualRowDescription*;
+    _ZGVZN9gui_forms21VirtualRowsStatistics*;
     _ZGVZN9gui_forms21WindowBackdropRequest*;
     _ZGVZN9gui_forms22ApplicationModalResult*;
     _ZGVZN9gui_forms22ApplicationThemeConfig*;
@@ -1940,6 +1948,9 @@
     _ZGVZNK9gui_forms15ThemeValidation*;
     _ZGVZNK9gui_forms15ToolTipSettings*;
     _ZGVZNK9gui_forms15UserThemeHeader*;
+    _ZGVZNK9gui_forms15VirtualRowIndex*;
+    _ZGVZNK9gui_forms15VirtualRowPaint*;
+    _ZGVZNK9gui_forms15VirtualRowsView*;
     _ZGVZNK9gui_forms15WindowChromeHit*;
     _ZGVZNK9gui_forms15WindowFrameDrag*;
     _ZGVZNK9gui_forms15WindowOverrides*;
@@ -2128,6 +2139,7 @@
     _ZGVZNK9gui_forms17ToolStripItemSpec*;
     _ZGVZNK9gui_forms17TreeListRowSource*;
     _ZGVZNK9gui_forms17TreeListRowSplice*;
+    _ZGVZNK9gui_forms17VirtualRowMeasure*;
     _ZGVZNK9gui_forms17VisualInteraction*;
     _ZGVZNK9gui_forms17WindowBandOptions*;
     _ZGVZNK9gui_forms17XmlSourcePosition*;
@@ -2315,6 +2327,7 @@
     _ZGVZNK9gui_forms19ToolStripDropTarget*;
     _ZGVZNK9gui_forms19TreeExpansionChange*;
     _ZGVZNK9gui_forms19TreeSelectionChange*;
+    _ZGVZNK9gui_forms19VirtualRowSelection*;
     _ZGVZNK9gui_forms19WindowBackdropGrant*;
     _ZGVZNK9gui_forms20AnchoredOverlayLayer*;
     _ZGVZNK9gui_forms20ApplicationResources*;
@@ -2371,6 +2384,7 @@
     _ZGVZNK9gui_forms20TextMaskCancellation*;
     _ZGVZNK9gui_forms20ThemeStructureTokens*;
     _ZGVZNK9gui_forms20Utf8ValidationResult*;
+    _ZGVZNK9gui_forms20VirtualRowsCallbacks*;
     _ZGVZNK9gui_forms20WindowBandAppearance*;
     _ZGVZNK9gui_forms20WindowCaptureOptions*;
     _ZGVZNK9gui_forms20WorkspaceTransaction*;
@@ -2442,6 +2456,8 @@
     _ZGVZNK9gui_forms21ThemeTypographyTokens*;
     _ZGVZNK9gui_forms21ThreadExceptionDialog*;
     _ZGVZNK9gui_forms21ThreadExceptionReport*;
+    _ZGVZNK9gui_forms21VirtualRowDescription*;
+    _ZGVZNK9gui_forms21VirtualRowsStatistics*;
     _ZGVZNK9gui_forms21WindowBackdropRequest*;
     _ZGVZNK9gui_forms22ApplicationModalResult*;
     _ZGVZNK9gui_forms22ApplicationThemeConfig*;
@@ -3510,6 +3526,9 @@
     _ZN9gui_forms15ThemeValidation*;
     _ZN9gui_forms15ToolTipSettings*;
     _ZN9gui_forms15UserThemeHeader*;
+    _ZN9gui_forms15VirtualRowIndex*;
+    _ZN9gui_forms15VirtualRowPaint*;
+    _ZN9gui_forms15VirtualRowsView*;
     _ZN9gui_forms15WindowChromeHit*;
     _ZN9gui_forms15WindowFrameDrag*;
     _ZN9gui_forms15WindowOverrides*;
@@ -3792,6 +3811,7 @@
     _ZN9gui_forms17ToolStripItemSpec*;
     _ZN9gui_forms17TreeListRowSource*;
     _ZN9gui_forms17TreeListRowSplice*;
+    _ZN9gui_forms17VirtualRowMeasure*;
     _ZN9gui_forms17VisualInteraction*;
     _ZN9gui_forms17WindowBandOptions*;
     _ZN9gui_forms17XmlSourcePosition*;
@@ -4107,6 +4127,7 @@
     _ZN9gui_forms19ToolStripDropTarget*;
     _ZN9gui_forms19TreeExpansionChange*;
     _ZN9gui_forms19TreeSelectionChange*;
+    _ZN9gui_forms19VirtualRowSelection*;
     _ZN9gui_forms19WindowBackdropGrant*;
     _ZN9gui_forms19anatomy_defect_nameB*;
     _ZN9gui_forms19anatomy_defect_nameE*;
@@ -4251,6 +4272,7 @@
     _ZN9gui_forms20TextMaskCancellation*;
     _ZN9gui_forms20ThemeStructureTokens*;
     _ZN9gui_forms20Utf8ValidationResult*;
+    _ZN9gui_forms20VirtualRowsCallbacks*;
     _ZN9gui_forms20WindowBandAppearance*;
     _ZN9gui_forms20WindowCaptureOptions*;
     _ZN9gui_forms20WorkspaceTransaction*;
@@ -4388,6 +4410,8 @@
     _ZN9gui_forms21ThemeTypographyTokens*;
     _ZN9gui_forms21ThreadExceptionDialog*;
     _ZN9gui_forms21ThreadExceptionReport*;
+    _ZN9gui_forms21VirtualRowDescription*;
+    _ZN9gui_forms21VirtualRowsStatistics*;
     _ZN9gui_forms21WindowBackdropRequest*;
     _ZN9gui_forms21binding_value_to_boolB*;
     _ZN9gui_forms21binding_value_to_boolE*;
@@ -6012,6 +6036,9 @@
     _ZNK[RO]9gui_forms15ThemeValidation*;
     _ZNK[RO]9gui_forms15ToolTipSettings*;
     _ZNK[RO]9gui_forms15UserThemeHeader*;
+    _ZNK[RO]9gui_forms15VirtualRowIndex*;
+    _ZNK[RO]9gui_forms15VirtualRowPaint*;
+    _ZNK[RO]9gui_forms15VirtualRowsView*;
     _ZNK[RO]9gui_forms15WindowChromeHit*;
     _ZNK[RO]9gui_forms15WindowFrameDrag*;
     _ZNK[RO]9gui_forms15WindowOverrides*;
@@ -6200,6 +6227,7 @@
     _ZNK[RO]9gui_forms17ToolStripItemSpec*;
     _ZNK[RO]9gui_forms17TreeListRowSource*;
     _ZNK[RO]9gui_forms17TreeListRowSplice*;
+    _ZNK[RO]9gui_forms17VirtualRowMeasure*;
     _ZNK[RO]9gui_forms17VisualInteraction*;
     _ZNK[RO]9gui_forms17WindowBandOptions*;
     _ZNK[RO]9gui_forms17XmlSourcePosition*;
@@ -6387,6 +6415,7 @@
     _ZNK[RO]9gui_forms19ToolStripDropTarget*;
     _ZNK[RO]9gui_forms19TreeExpansionChange*;
     _ZNK[RO]9gui_forms19TreeSelectionChange*;
+    _ZNK[RO]9gui_forms19VirtualRowSelection*;
     _ZNK[RO]9gui_forms19WindowBackdropGrant*;
     _ZNK[RO]9gui_forms20AnchoredOverlayLayer*;
     _ZNK[RO]9gui_forms20ApplicationResources*;
@@ -6443,6 +6472,7 @@
     _ZNK[RO]9gui_forms20TextMaskCancellation*;
     _ZNK[RO]9gui_forms20ThemeStructureTokens*;
     _ZNK[RO]9gui_forms20Utf8ValidationResult*;
+    _ZNK[RO]9gui_forms20VirtualRowsCallbacks*;
     _ZNK[RO]9gui_forms20WindowBandAppearance*;
     _ZNK[RO]9gui_forms20WindowCaptureOptions*;
     _ZNK[RO]9gui_forms20WorkspaceTransaction*;
@@ -6514,6 +6544,8 @@
     _ZNK[RO]9gui_forms21ThemeTypographyTokens*;
     _ZNK[RO]9gui_forms21ThreadExceptionDialog*;
     _ZNK[RO]9gui_forms21ThreadExceptionReport*;
+    _ZNK[RO]9gui_forms21VirtualRowDescription*;
+    _ZNK[RO]9gui_forms21VirtualRowsStatistics*;
     _ZNK[RO]9gui_forms21WindowBackdropRequest*;
     _ZNK[RO]9gui_forms22ApplicationModalResult*;
     _ZNK[RO]9gui_forms22ApplicationThemeConfig*;
@@ -7424,6 +7456,9 @@
     _ZN[KRO]9gui_forms15ThemeValidation*;
     _ZN[KRO]9gui_forms15ToolTipSettings*;
     _ZN[KRO]9gui_forms15UserThemeHeader*;
+    _ZN[KRO]9gui_forms15VirtualRowIndex*;
+    _ZN[KRO]9gui_forms15VirtualRowPaint*;
+    _ZN[KRO]9gui_forms15VirtualRowsView*;
     _ZN[KRO]9gui_forms15WindowChromeHit*;
     _ZN[KRO]9gui_forms15WindowFrameDrag*;
     _ZN[KRO]9gui_forms15WindowOverrides*;
@@ -7612,6 +7647,7 @@
     _ZN[KRO]9gui_forms17ToolStripItemSpec*;
     _ZN[KRO]9gui_forms17TreeListRowSource*;
     _ZN[KRO]9gui_forms17TreeListRowSplice*;
+    _ZN[KRO]9gui_forms17VirtualRowMeasure*;
     _ZN[KRO]9gui_forms17VisualInteraction*;
     _ZN[KRO]9gui_forms17WindowBandOptions*;
     _ZN[KRO]9gui_forms17XmlSourcePosition*;
@@ -7799,6 +7835,7 @@
     _ZN[KRO]9gui_forms19ToolStripDropTarget*;
     _ZN[KRO]9gui_forms19TreeExpansionChange*;
     _ZN[KRO]9gui_forms19TreeSelectionChange*;
+    _ZN[KRO]9gui_forms19VirtualRowSelection*;
     _ZN[KRO]9gui_forms19WindowBackdropGrant*;
     _ZN[KRO]9gui_forms20AnchoredOverlayLayer*;
     _ZN[KRO]9gui_forms20ApplicationResources*;
@@ -7855,6 +7892,7 @@
     _ZN[KRO]9gui_forms20TextMaskCancellation*;
     _ZN[KRO]9gui_forms20ThemeStructureTokens*;
     _ZN[KRO]9gui_forms20Utf8ValidationResult*;
+    _ZN[KRO]9gui_forms20VirtualRowsCallbacks*;
     _ZN[KRO]9gui_forms20WindowBandAppearance*;
     _ZN[KRO]9gui_forms20WindowCaptureOptions*;
     _ZN[KRO]9gui_forms20WorkspaceTransaction*;
@@ -7926,6 +7964,8 @@
     _ZN[KRO]9gui_forms21ThemeTypographyTokens*;
     _ZN[KRO]9gui_forms21ThreadExceptionDialog*;
     _ZN[KRO]9gui_forms21ThreadExceptionReport*;
+    _ZN[KRO]9gui_forms21VirtualRowDescription*;
+    _ZN[KRO]9gui_forms21VirtualRowsStatistics*;
     _ZN[KRO]9gui_forms21WindowBackdropRequest*;
     _ZN[KRO]9gui_forms22ApplicationModalResult*;
     _ZN[KRO]9gui_forms22ApplicationThemeConfig*;
@@ -8836,6 +8876,9 @@
     _ZT[VIST]N9gui_forms15ThemeValidation*E;
     _ZT[VIST]N9gui_forms15ToolTipSettings*E;
     _ZT[VIST]N9gui_forms15UserThemeHeader*E;
+    _ZT[VIST]N9gui_forms15VirtualRowIndex*E;
+    _ZT[VIST]N9gui_forms15VirtualRowPaint*E;
+    _ZT[VIST]N9gui_forms15VirtualRowsView*E;
     _ZT[VIST]N9gui_forms15WindowChromeHit*E;
     _ZT[VIST]N9gui_forms15WindowFrameDrag*E;
     _ZT[VIST]N9gui_forms15WindowOverrides*E;
@@ -9024,6 +9067,7 @@
     _ZT[VIST]N9gui_forms17ToolStripItemSpec*E;
     _ZT[VIST]N9gui_forms17TreeListRowSource*E;
     _ZT[VIST]N9gui_forms17TreeListRowSplice*E;
+    _ZT[VIST]N9gui_forms17VirtualRowMeasure*E;
     _ZT[VIST]N9gui_forms17VisualInteraction*E;
     _ZT[VIST]N9gui_forms17WindowBandOptions*E;
     _ZT[VIST]N9gui_forms17XmlSourcePosition*E;
@@ -9211,6 +9255,7 @@
     _ZT[VIST]N9gui_forms19ToolStripDropTarget*E;
     _ZT[VIST]N9gui_forms19TreeExpansionChange*E;
     _ZT[VIST]N9gui_forms19TreeSelectionChange*E;
+    _ZT[VIST]N9gui_forms19VirtualRowSelection*E;
     _ZT[VIST]N9gui_forms19WindowBackdropGrant*E;
     _ZT[VIST]N9gui_forms20AnchoredOverlayLayer*E;
     _ZT[VIST]N9gui_forms20ApplicationResources*E;
@@ -9267,6 +9312,7 @@
     _ZT[VIST]N9gui_forms20TextMaskCancellation*E;
     _ZT[VIST]N9gui_forms20ThemeStructureTokens*E;
     _ZT[VIST]N9gui_forms20Utf8ValidationResult*E;
+    _ZT[VIST]N9gui_forms20VirtualRowsCallbacks*E;
     _ZT[VIST]N9gui_forms20WindowBandAppearance*E;
     _ZT[VIST]N9gui_forms20WindowCaptureOptions*E;
     _ZT[VIST]N9gui_forms20WorkspaceTransaction*E;
@@ -9338,6 +9384,8 @@
     _ZT[VIST]N9gui_forms21ThemeTypographyTokens*E;
     _ZT[VIST]N9gui_forms21ThreadExceptionDialog*E;
     _ZT[VIST]N9gui_forms21ThreadExceptionReport*E;
+    _ZT[VIST]N9gui_forms21VirtualRowDescription*E;
+    _ZT[VIST]N9gui_forms21VirtualRowsStatistics*E;
     _ZT[VIST]N9gui_forms21WindowBackdropRequest*E;
     _ZT[VIST]N9gui_forms22ApplicationModalResult*E;
     _ZT[VIST]N9gui_forms22ApplicationThemeConfig*E;
@@ -10248,6 +10296,9 @@
     _ZT[hvc]*9gui_forms15ThemeValidation*;
     _ZT[hvc]*9gui_forms15ToolTipSettings*;
     _ZT[hvc]*9gui_forms15UserThemeHeader*;
+    _ZT[hvc]*9gui_forms15VirtualRowIndex*;
+    _ZT[hvc]*9gui_forms15VirtualRowPaint*;
+    _ZT[hvc]*9gui_forms15VirtualRowsView*;
     _ZT[hvc]*9gui_forms15WindowChromeHit*;
     _ZT[hvc]*9gui_forms15WindowFrameDrag*;
     _ZT[hvc]*9gui_forms15WindowOverrides*;
@@ -10436,6 +10487,7 @@
     _ZT[hvc]*9gui_forms17ToolStripItemSpec*;
     _ZT[hvc]*9gui_forms17TreeListRowSource*;
     _ZT[hvc]*9gui_forms17TreeListRowSplice*;
+    _ZT[hvc]*9gui_forms17VirtualRowMeasure*;
     _ZT[hvc]*9gui_forms17VisualInteraction*;
     _ZT[hvc]*9gui_forms17WindowBandOptions*;
     _ZT[hvc]*9gui_forms17XmlSourcePosition*;
@@ -10623,6 +10675,7 @@
     _ZT[hvc]*9gui_forms19ToolStripDropTarget*;
     _ZT[hvc]*9gui_forms19TreeExpansionChange*;
     _ZT[hvc]*9gui_forms19TreeSelectionChange*;
+    _ZT[hvc]*9gui_forms19VirtualRowSelection*;
     _ZT[hvc]*9gui_forms19WindowBackdropGrant*;
     _ZT[hvc]*9gui_forms20AnchoredOverlayLayer*;
     _ZT[hvc]*9gui_forms20ApplicationResources*;
@@ -10679,6 +10732,7 @@
     _ZT[hvc]*9gui_forms20TextMaskCancellation*;
     _ZT[hvc]*9gui_forms20ThemeStructureTokens*;
     _ZT[hvc]*9gui_forms20Utf8ValidationResult*;
+    _ZT[hvc]*9gui_forms20VirtualRowsCallbacks*;
     _ZT[hvc]*9gui_forms20WindowBandAppearance*;
     _ZT[hvc]*9gui_forms20WindowCaptureOptions*;
     _ZT[hvc]*9gui_forms20WorkspaceTransaction*;
@@ -10750,6 +10804,8 @@
     _ZT[hvc]*9gui_forms21ThemeTypographyTokens*;
     _ZT[hvc]*9gui_forms21ThreadExceptionDialog*;
     _ZT[hvc]*9gui_forms21ThreadExceptionReport*;
+    _ZT[hvc]*9gui_forms21VirtualRowDescription*;
+    _ZT[hvc]*9gui_forms21VirtualRowsStatistics*;
     _ZT[hvc]*9gui_forms21WindowBackdropRequest*;
     _ZT[hvc]*9gui_forms22ApplicationModalResult*;
     _ZT[hvc]*9gui_forms22ApplicationThemeConfig*;
@@ -11660,6 +11716,9 @@
     _ZZN9gui_forms15ThemeValidation*;
     _ZZN9gui_forms15ToolTipSettings*;
     _ZZN9gui_forms15UserThemeHeader*;
+    _ZZN9gui_forms15VirtualRowIndex*;
+    _ZZN9gui_forms15VirtualRowPaint*;
+    _ZZN9gui_forms15VirtualRowsView*;
     _ZZN9gui_forms15WindowChromeHit*;
     _ZZN9gui_forms15WindowFrameDrag*;
     _ZZN9gui_forms15WindowOverrides*;
@@ -11848,6 +11907,7 @@
     _ZZN9gui_forms17ToolStripItemSpec*;
     _ZZN9gui_forms17TreeListRowSource*;
     _ZZN9gui_forms17TreeListRowSplice*;
+    _ZZN9gui_forms17VirtualRowMeasure*;
     _ZZN9gui_forms17VisualInteraction*;
     _ZZN9gui_forms17WindowBandOptions*;
     _ZZN9gui_forms17XmlSourcePosition*;
@@ -12035,6 +12095,7 @@
     _ZZN9gui_forms19ToolStripDropTarget*;
     _ZZN9gui_forms19TreeExpansionChange*;
     _ZZN9gui_forms19TreeSelectionChange*;
+    _ZZN9gui_forms19VirtualRowSelection*;
     _ZZN9gui_forms19WindowBackdropGrant*;
     _ZZN9gui_forms20AnchoredOverlayLayer*;
     _ZZN9gui_forms20ApplicationResources*;
@@ -12091,6 +12152,7 @@
     _ZZN9gui_forms20TextMaskCancellation*;
     _ZZN9gui_forms20ThemeStructureTokens*;
     _ZZN9gui_forms20Utf8ValidationResult*;
+    _ZZN9gui_forms20VirtualRowsCallbacks*;
     _ZZN9gui_forms20WindowBandAppearance*;
     _ZZN9gui_forms20WindowCaptureOptions*;
     _ZZN9gui_forms20WorkspaceTransaction*;
@@ -12162,6 +12224,8 @@
     _ZZN9gui_forms21ThemeTypographyTokens*;
     _ZZN9gui_forms21ThreadExceptionDialog*;
     _ZZN9gui_forms21ThreadExceptionReport*;
+    _ZZN9gui_forms21VirtualRowDescription*;
+    _ZZN9gui_forms21VirtualRowsStatistics*;
     _ZZN9gui_forms21WindowBackdropRequest*;
     _ZZN9gui_forms22ApplicationModalResult*;
     _ZZN9gui_forms22ApplicationThemeConfig*;
@@ -13072,6 +13136,9 @@
     _ZZNK9gui_forms15ThemeValidation*;
     _ZZNK9gui_forms15ToolTipSettings*;
     _ZZNK9gui_forms15UserThemeHeader*;
+    _ZZNK9gui_forms15VirtualRowIndex*;
+    _ZZNK9gui_forms15VirtualRowPaint*;
+    _ZZNK9gui_forms15VirtualRowsView*;
     _ZZNK9gui_forms15WindowChromeHit*;
     _ZZNK9gui_forms15WindowFrameDrag*;
     _ZZNK9gui_forms15WindowOverrides*;
@@ -13260,6 +13327,7 @@
     _ZZNK9gui_forms17ToolStripItemSpec*;
     _ZZNK9gui_forms17TreeListRowSource*;
     _ZZNK9gui_forms17TreeListRowSplice*;
+    _ZZNK9gui_forms17VirtualRowMeasure*;
     _ZZNK9gui_forms17VisualInteraction*;
     _ZZNK9gui_forms17WindowBandOptions*;
     _ZZNK9gui_forms17XmlSourcePosition*;
@@ -13447,6 +13515,7 @@
     _ZZNK9gui_forms19ToolStripDropTarget*;
     _ZZNK9gui_forms19TreeExpansionChange*;
     _ZZNK9gui_forms19TreeSelectionChange*;
+    _ZZNK9gui_forms19VirtualRowSelection*;
     _ZZNK9gui_forms19WindowBackdropGrant*;
     _ZZNK9gui_forms20AnchoredOverlayLayer*;
     _ZZNK9gui_forms20ApplicationResources*;
@@ -13503,6 +13572,7 @@
     _ZZNK9gui_forms20TextMaskCancellation*;
     _ZZNK9gui_forms20ThemeStructureTokens*;
     _ZZNK9gui_forms20Utf8ValidationResult*;
+    _ZZNK9gui_forms20VirtualRowsCallbacks*;
     _ZZNK9gui_forms20WindowBandAppearance*;
     _ZZNK9gui_forms20WindowCaptureOptions*;
     _ZZNK9gui_forms20WorkspaceTransaction*;
@@ -13574,6 +13644,8 @@
     _ZZNK9gui_forms21ThemeTypographyTokens*;
     _ZZNK9gui_forms21ThreadExceptionDialog*;
     _ZZNK9gui_forms21ThreadExceptionReport*;
+    _ZZNK9gui_forms21VirtualRowDescription*;
+    _ZZNK9gui_forms21VirtualRowsStatistics*;
     _ZZNK9gui_forms21WindowBackdropRequest*;
     _ZZNK9gui_forms22ApplicationModalResult*;
     _ZZNK9gui_forms22ApplicationThemeConfig*;

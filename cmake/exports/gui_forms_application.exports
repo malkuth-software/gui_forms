@@ -526,6 +526,9 @@ __ZGVZN9gui_forms15ThemeDefinition*
 __ZGVZN9gui_forms15ThemeValidation*
 __ZGVZN9gui_forms15ToolTipSettings*
 __ZGVZN9gui_forms15UserThemeHeader*
+__ZGVZN9gui_forms15VirtualRowIndex*
+__ZGVZN9gui_forms15VirtualRowPaint*
+__ZGVZN9gui_forms15VirtualRowsView*
 __ZGVZN9gui_forms15WindowChromeHit*
 __ZGVZN9gui_forms15WindowFrameDrag*
 __ZGVZN9gui_forms15WindowOverrides*
@@ -714,6 +717,7 @@ __ZGVZN9gui_forms17ThemeMotionTokens*
 __ZGVZN9gui_forms17ToolStripItemSpec*
 __ZGVZN9gui_forms17TreeListRowSource*
 __ZGVZN9gui_forms17TreeListRowSplice*
+__ZGVZN9gui_forms17VirtualRowMeasure*
 __ZGVZN9gui_forms17VisualInteraction*
 __ZGVZN9gui_forms17WindowBandOptions*
 __ZGVZN9gui_forms17XmlSourcePosition*
@@ -901,6 +905,7 @@ __ZGVZN9gui_forms19ThemeWindowBackdrop*
 __ZGVZN9gui_forms19ToolStripDropTarget*
 __ZGVZN9gui_forms19TreeExpansionChange*
 __ZGVZN9gui_forms19TreeSelectionChange*
+__ZGVZN9gui_forms19VirtualRowSelection*
 __ZGVZN9gui_forms19WindowBackdropGrant*
 __ZGVZN9gui_forms20AnchoredOverlayLayer*
 __ZGVZN9gui_forms20ApplicationResources*
@@ -957,6 +962,7 @@ __ZGVZN9gui_forms20TextDecorationChange*
 __ZGVZN9gui_forms20TextMaskCancellation*
 __ZGVZN9gui_forms20ThemeStructureTokens*
 __ZGVZN9gui_forms20Utf8ValidationResult*
+__ZGVZN9gui_forms20VirtualRowsCallbacks*
 __ZGVZN9gui_forms20WindowBandAppearance*
 __ZGVZN9gui_forms20WindowCaptureOptions*
 __ZGVZN9gui_forms20WorkspaceTransaction*
@@ -1028,6 +1034,8 @@ __ZGVZN9gui_forms21TaskDialogRadioButton*
 __ZGVZN9gui_forms21ThemeTypographyTokens*
 __ZGVZN9gui_forms21ThreadExceptionDialog*
 __ZGVZN9gui_forms21ThreadExceptionReport*
+__ZGVZN9gui_forms21VirtualRowDescription*
+__ZGVZN9gui_forms21VirtualRowsStatistics*
 __ZGVZN9gui_forms21WindowBackdropRequest*
 __ZGVZN9gui_forms22ApplicationModalResult*
 __ZGVZN9gui_forms22ApplicationThemeConfig*
@@ -1938,6 +1946,9 @@ __ZGVZNK9gui_forms15ThemeDefinition*
 __ZGVZNK9gui_forms15ThemeValidation*
 __ZGVZNK9gui_forms15ToolTipSettings*
 __ZGVZNK9gui_forms15UserThemeHeader*
+__ZGVZNK9gui_forms15VirtualRowIndex*
+__ZGVZNK9gui_forms15VirtualRowPaint*
+__ZGVZNK9gui_forms15VirtualRowsView*
 __ZGVZNK9gui_forms15WindowChromeHit*
 __ZGVZNK9gui_forms15WindowFrameDrag*
 __ZGVZNK9gui_forms15WindowOverrides*
@@ -2126,6 +2137,7 @@ __ZGVZNK9gui_forms17ThemeMotionTokens*
 __ZGVZNK9gui_forms17ToolStripItemSpec*
 __ZGVZNK9gui_forms17TreeListRowSource*
 __ZGVZNK9gui_forms17TreeListRowSplice*
+__ZGVZNK9gui_forms17VirtualRowMeasure*
 __ZGVZNK9gui_forms17VisualInteraction*
 __ZGVZNK9gui_forms17WindowBandOptions*
 __ZGVZNK9gui_forms17XmlSourcePosition*
@@ -2313,6 +2325,7 @@ __ZGVZNK9gui_forms19ThemeWindowBackdrop*
 __ZGVZNK9gui_forms19ToolStripDropTarget*
 __ZGVZNK9gui_forms19TreeExpansionChange*
 __ZGVZNK9gui_forms19TreeSelectionChange*
+__ZGVZNK9gui_forms19VirtualRowSelection*
 __ZGVZNK9gui_forms19WindowBackdropGrant*
 __ZGVZNK9gui_forms20AnchoredOverlayLayer*
 __ZGVZNK9gui_forms20ApplicationResources*
@@ -2369,6 +2382,7 @@ __ZGVZNK9gui_forms20TextDecorationChange*
 __ZGVZNK9gui_forms20TextMaskCancellation*
 __ZGVZNK9gui_forms20ThemeStructureTokens*
 __ZGVZNK9gui_forms20Utf8ValidationResult*
+__ZGVZNK9gui_forms20VirtualRowsCallbacks*
 __ZGVZNK9gui_forms20WindowBandAppearance*
 __ZGVZNK9gui_forms20WindowCaptureOptions*
 __ZGVZNK9gui_forms20WorkspaceTransaction*
@@ -2440,6 +2454,8 @@ __ZGVZNK9gui_forms21TaskDialogRadioButton*
 __ZGVZNK9gui_forms21ThemeTypographyTokens*
 __ZGVZNK9gui_forms21ThreadExceptionDialog*
 __ZGVZNK9gui_forms21ThreadExceptionReport*
+__ZGVZNK9gui_forms21VirtualRowDescription*
+__ZGVZNK9gui_forms21VirtualRowsStatistics*
 __ZGVZNK9gui_forms21WindowBackdropRequest*
 __ZGVZNK9gui_forms22ApplicationModalResult*
 __ZGVZNK9gui_forms22ApplicationThemeConfig*
@@ -3508,6 +3524,9 @@ __ZN9gui_forms15ThemeDefinition*
 __ZN9gui_forms15ThemeValidation*
 __ZN9gui_forms15ToolTipSettings*
 __ZN9gui_forms15UserThemeHeader*
+__ZN9gui_forms15VirtualRowIndex*
+__ZN9gui_forms15VirtualRowPaint*
+__ZN9gui_forms15VirtualRowsView*
 __ZN9gui_forms15WindowChromeHit*
 __ZN9gui_forms15WindowFrameDrag*
 __ZN9gui_forms15WindowOverrides*
@@ -3790,6 +3809,7 @@ __ZN9gui_forms17ThemeMotionTokens*
 __ZN9gui_forms17ToolStripItemSpec*
 __ZN9gui_forms17TreeListRowSource*
 __ZN9gui_forms17TreeListRowSplice*
+__ZN9gui_forms17VirtualRowMeasure*
 __ZN9gui_forms17VisualInteraction*
 __ZN9gui_forms17WindowBandOptions*
 __ZN9gui_forms17XmlSourcePosition*
@@ -4105,6 +4125,7 @@ __ZN9gui_forms19ThemeWindowBackdrop*
 __ZN9gui_forms19ToolStripDropTarget*
 __ZN9gui_forms19TreeExpansionChange*
 __ZN9gui_forms19TreeSelectionChange*
+__ZN9gui_forms19VirtualRowSelection*
 __ZN9gui_forms19WindowBackdropGrant*
 __ZN9gui_forms19anatomy_defect_nameB*
 __ZN9gui_forms19anatomy_defect_nameE*
@@ -4249,6 +4270,7 @@ __ZN9gui_forms20TextDecorationChange*
 __ZN9gui_forms20TextMaskCancellation*
 __ZN9gui_forms20ThemeStructureTokens*
 __ZN9gui_forms20Utf8ValidationResult*
+__ZN9gui_forms20VirtualRowsCallbacks*
 __ZN9gui_forms20WindowBandAppearance*
 __ZN9gui_forms20WindowCaptureOptions*
 __ZN9gui_forms20WorkspaceTransaction*
@@ -4386,6 +4408,8 @@ __ZN9gui_forms21TaskDialogRadioButton*
 __ZN9gui_forms21ThemeTypographyTokens*
 __ZN9gui_forms21ThreadExceptionDialog*
 __ZN9gui_forms21ThreadExceptionReport*
+__ZN9gui_forms21VirtualRowDescription*
+__ZN9gui_forms21VirtualRowsStatistics*
 __ZN9gui_forms21WindowBackdropRequest*
 __ZN9gui_forms21binding_value_to_boolB*
 __ZN9gui_forms21binding_value_to_boolE*
@@ -6010,6 +6034,9 @@ __ZNK[RO]9gui_forms15ThemeDefinition*
 __ZNK[RO]9gui_forms15ThemeValidation*
 __ZNK[RO]9gui_forms15ToolTipSettings*
 __ZNK[RO]9gui_forms15UserThemeHeader*
+__ZNK[RO]9gui_forms15VirtualRowIndex*
+__ZNK[RO]9gui_forms15VirtualRowPaint*
+__ZNK[RO]9gui_forms15VirtualRowsView*
 __ZNK[RO]9gui_forms15WindowChromeHit*
 __ZNK[RO]9gui_forms15WindowFrameDrag*
 __ZNK[RO]9gui_forms15WindowOverrides*
@@ -6198,6 +6225,7 @@ __ZNK[RO]9gui_forms17ThemeMotionTokens*
 __ZNK[RO]9gui_forms17ToolStripItemSpec*
 __ZNK[RO]9gui_forms17TreeListRowSource*
 __ZNK[RO]9gui_forms17TreeListRowSplice*
+__ZNK[RO]9gui_forms17VirtualRowMeasure*
 __ZNK[RO]9gui_forms17VisualInteraction*
 __ZNK[RO]9gui_forms17WindowBandOptions*
 __ZNK[RO]9gui_forms17XmlSourcePosition*
@@ -6385,6 +6413,7 @@ __ZNK[RO]9gui_forms19ThemeWindowBackdrop*
 __ZNK[RO]9gui_forms19ToolStripDropTarget*
 __ZNK[RO]9gui_forms19TreeExpansionChange*
 __ZNK[RO]9gui_forms19TreeSelectionChange*
+__ZNK[RO]9gui_forms19VirtualRowSelection*
 __ZNK[RO]9gui_forms19WindowBackdropGrant*
 __ZNK[RO]9gui_forms20AnchoredOverlayLayer*
 __ZNK[RO]9gui_forms20ApplicationResources*
@@ -6441,6 +6470,7 @@ __ZNK[RO]9gui_forms20TextDecorationChange*
 __ZNK[RO]9gui_forms20TextMaskCancellation*
 __ZNK[RO]9gui_forms20ThemeStructureTokens*
 __ZNK[RO]9gui_forms20Utf8ValidationResult*
+__ZNK[RO]9gui_forms20VirtualRowsCallbacks*
 __ZNK[RO]9gui_forms20WindowBandAppearance*
 __ZNK[RO]9gui_forms20WindowCaptureOptions*
 __ZNK[RO]9gui_forms20WorkspaceTransaction*
@@ -6512,6 +6542,8 @@ __ZNK[RO]9gui_forms21TaskDialogRadioButton*
 __ZNK[RO]9gui_forms21ThemeTypographyTokens*
 __ZNK[RO]9gui_forms21ThreadExceptionDialog*
 __ZNK[RO]9gui_forms21ThreadExceptionReport*
+__ZNK[RO]9gui_forms21VirtualRowDescription*
+__ZNK[RO]9gui_forms21VirtualRowsStatistics*
 __ZNK[RO]9gui_forms21WindowBackdropRequest*
 __ZNK[RO]9gui_forms22ApplicationModalResult*
 __ZNK[RO]9gui_forms22ApplicationThemeConfig*
@@ -7422,6 +7454,9 @@ __ZN[KRO]9gui_forms15ThemeDefinition*
 __ZN[KRO]9gui_forms15ThemeValidation*
 __ZN[KRO]9gui_forms15ToolTipSettings*
 __ZN[KRO]9gui_forms15UserThemeHeader*
+__ZN[KRO]9gui_forms15VirtualRowIndex*
+__ZN[KRO]9gui_forms15VirtualRowPaint*
+__ZN[KRO]9gui_forms15VirtualRowsView*
 __ZN[KRO]9gui_forms15WindowChromeHit*
 __ZN[KRO]9gui_forms15WindowFrameDrag*
 __ZN[KRO]9gui_forms15WindowOverrides*
@@ -7610,6 +7645,7 @@ __ZN[KRO]9gui_forms17ThemeMotionTokens*
 __ZN[KRO]9gui_forms17ToolStripItemSpec*
 __ZN[KRO]9gui_forms17TreeListRowSource*
 __ZN[KRO]9gui_forms17TreeListRowSplice*
+__ZN[KRO]9gui_forms17VirtualRowMeasure*
 __ZN[KRO]9gui_forms17VisualInteraction*
 __ZN[KRO]9gui_forms17WindowBandOptions*
 __ZN[KRO]9gui_forms17XmlSourcePosition*
@@ -7797,6 +7833,7 @@ __ZN[KRO]9gui_forms19ThemeWindowBackdrop*
 __ZN[KRO]9gui_forms19ToolStripDropTarget*
 __ZN[KRO]9gui_forms19TreeExpansionChange*
 __ZN[KRO]9gui_forms19TreeSelectionChange*
+__ZN[KRO]9gui_forms19VirtualRowSelection*
 __ZN[KRO]9gui_forms19WindowBackdropGrant*
 __ZN[KRO]9gui_forms20AnchoredOverlayLayer*
 __ZN[KRO]9gui_forms20ApplicationResources*
@@ -7853,6 +7890,7 @@ __ZN[KRO]9gui_forms20TextDecorationChange*
 __ZN[KRO]9gui_forms20TextMaskCancellation*
 __ZN[KRO]9gui_forms20ThemeStructureTokens*
 __ZN[KRO]9gui_forms20Utf8ValidationResult*
+__ZN[KRO]9gui_forms20VirtualRowsCallbacks*
 __ZN[KRO]9gui_forms20WindowBandAppearance*
 __ZN[KRO]9gui_forms20WindowCaptureOptions*
 __ZN[KRO]9gui_forms20WorkspaceTransaction*
@@ -7924,6 +7962,8 @@ __ZN[KRO]9gui_forms21TaskDialogRadioButton*
 __ZN[KRO]9gui_forms21ThemeTypographyTokens*
 __ZN[KRO]9gui_forms21ThreadExceptionDialog*
 __ZN[KRO]9gui_forms21ThreadExceptionReport*
+__ZN[KRO]9gui_forms21VirtualRowDescription*
+__ZN[KRO]9gui_forms21VirtualRowsStatistics*
 __ZN[KRO]9gui_forms21WindowBackdropRequest*
 __ZN[KRO]9gui_forms22ApplicationModalResult*
 __ZN[KRO]9gui_forms22ApplicationThemeConfig*
@@ -8834,6 +8874,9 @@ __ZT[VIST]N9gui_forms15ThemeDefinition*E
 __ZT[VIST]N9gui_forms15ThemeValidation*E
 __ZT[VIST]N9gui_forms15ToolTipSettings*E
 __ZT[VIST]N9gui_forms15UserThemeHeader*E
+__ZT[VIST]N9gui_forms15VirtualRowIndex*E
+__ZT[VIST]N9gui_forms15VirtualRowPaint*E
+__ZT[VIST]N9gui_forms15VirtualRowsView*E
 __ZT[VIST]N9gui_forms15WindowChromeHit*E
 __ZT[VIST]N9gui_forms15WindowFrameDrag*E
 __ZT[VIST]N9gui_forms15WindowOverrides*E
@@ -9022,6 +9065,7 @@ __ZT[VIST]N9gui_forms17ThemeMotionTokens*E
 __ZT[VIST]N9gui_forms17ToolStripItemSpec*E
 __ZT[VIST]N9gui_forms17TreeListRowSource*E
 __ZT[VIST]N9gui_forms17TreeListRowSplice*E
+__ZT[VIST]N9gui_forms17VirtualRowMeasure*E
 __ZT[VIST]N9gui_forms17VisualInteraction*E
 __ZT[VIST]N9gui_forms17WindowBandOptions*E
 __ZT[VIST]N9gui_forms17XmlSourcePosition*E
@@ -9209,6 +9253,7 @@ __ZT[VIST]N9gui_forms19ThemeWindowBackdrop*E
 __ZT[VIST]N9gui_forms19ToolStripDropTarget*E
 __ZT[VIST]N9gui_forms19TreeExpansionChange*E
 __ZT[VIST]N9gui_forms19TreeSelectionChange*E
+__ZT[VIST]N9gui_forms19VirtualRowSelection*E
 __ZT[VIST]N9gui_forms19WindowBackdropGrant*E
 __ZT[VIST]N9gui_forms20AnchoredOverlayLayer*E
 __ZT[VIST]N9gui_forms20ApplicationResources*E
@@ -9265,6 +9310,7 @@ __ZT[VIST]N9gui_forms20TextDecorationChange*E
 __ZT[VIST]N9gui_forms20TextMaskCancellation*E
 __ZT[VIST]N9gui_forms20ThemeStructureTokens*E
 __ZT[VIST]N9gui_forms20Utf8ValidationResult*E
+__ZT[VIST]N9gui_forms20VirtualRowsCallbacks*E
 __ZT[VIST]N9gui_forms20WindowBandAppearance*E
 __ZT[VIST]N9gui_forms20WindowCaptureOptions*E
 __ZT[VIST]N9gui_forms20WorkspaceTransaction*E
@@ -9336,6 +9382,8 @@ __ZT[VIST]N9gui_forms21TaskDialogRadioButton*E
 __ZT[VIST]N9gui_forms21ThemeTypographyTokens*E
 __ZT[VIST]N9gui_forms21ThreadExceptionDialog*E
 __ZT[VIST]N9gui_forms21ThreadExceptionReport*E
+__ZT[VIST]N9gui_forms21VirtualRowDescription*E
+__ZT[VIST]N9gui_forms21VirtualRowsStatistics*E
 __ZT[VIST]N9gui_forms21WindowBackdropRequest*E
 __ZT[VIST]N9gui_forms22ApplicationModalResult*E
 __ZT[VIST]N9gui_forms22ApplicationThemeConfig*E
@@ -10246,6 +10294,9 @@ __ZT[hvc]*9gui_forms15ThemeDefinition*
 __ZT[hvc]*9gui_forms15ThemeValidation*
 __ZT[hvc]*9gui_forms15ToolTipSettings*
 __ZT[hvc]*9gui_forms15UserThemeHeader*
+__ZT[hvc]*9gui_forms15VirtualRowIndex*
+__ZT[hvc]*9gui_forms15VirtualRowPaint*
+__ZT[hvc]*9gui_forms15VirtualRowsView*
 __ZT[hvc]*9gui_forms15WindowChromeHit*
 __ZT[hvc]*9gui_forms15WindowFrameDrag*
 __ZT[hvc]*9gui_forms15WindowOverrides*
@@ -10434,6 +10485,7 @@ __ZT[hvc]*9gui_forms17ThemeMotionTokens*
 __ZT[hvc]*9gui_forms17ToolStripItemSpec*
 __ZT[hvc]*9gui_forms17TreeListRowSource*
 __ZT[hvc]*9gui_forms17TreeListRowSplice*
+__ZT[hvc]*9gui_forms17VirtualRowMeasure*
 __ZT[hvc]*9gui_forms17VisualInteraction*
 __ZT[hvc]*9gui_forms17WindowBandOptions*
 __ZT[hvc]*9gui_forms17XmlSourcePosition*
@@ -10621,6 +10673,7 @@ __ZT[hvc]*9gui_forms19ThemeWindowBackdrop*
 __ZT[hvc]*9gui_forms19ToolStripDropTarget*
 __ZT[hvc]*9gui_forms19TreeExpansionChange*
 __ZT[hvc]*9gui_forms19TreeSelectionChange*
+__ZT[hvc]*9gui_forms19VirtualRowSelection*
 __ZT[hvc]*9gui_forms19WindowBackdropGrant*
 __ZT[hvc]*9gui_forms20AnchoredOverlayLayer*
 __ZT[hvc]*9gui_forms20ApplicationResources*
@@ -10677,6 +10730,7 @@ __ZT[hvc]*9gui_forms20TextDecorationChange*
 __ZT[hvc]*9gui_forms20TextMaskCancellation*
 __ZT[hvc]*9gui_forms20ThemeStructureTokens*
 __ZT[hvc]*9gui_forms20Utf8ValidationResult*
+__ZT[hvc]*9gui_forms20VirtualRowsCallbacks*
 __ZT[hvc]*9gui_forms20WindowBandAppearance*
 __ZT[hvc]*9gui_forms20WindowCaptureOptions*
 __ZT[hvc]*9gui_forms20WorkspaceTransaction*
@@ -10748,6 +10802,8 @@ __ZT[hvc]*9gui_forms21TaskDialogRadioButton*
 __ZT[hvc]*9gui_forms21ThemeTypographyTokens*
 __ZT[hvc]*9gui_forms21ThreadExceptionDialog*
 __ZT[hvc]*9gui_forms21ThreadExceptionReport*
+__ZT[hvc]*9gui_forms21VirtualRowDescription*
+__ZT[hvc]*9gui_forms21VirtualRowsStatistics*
 __ZT[hvc]*9gui_forms21WindowBackdropRequest*
 __ZT[hvc]*9gui_forms22ApplicationModalResult*
 __ZT[hvc]*9gui_forms22ApplicationThemeConfig*
@@ -11658,6 +11714,9 @@ __ZZN9gui_forms15ThemeDefinition*
 __ZZN9gui_forms15ThemeValidation*
 __ZZN9gui_forms15ToolTipSettings*
 __ZZN9gui_forms15UserThemeHeader*
+__ZZN9gui_forms15VirtualRowIndex*
+__ZZN9gui_forms15VirtualRowPaint*
+__ZZN9gui_forms15VirtualRowsView*
 __ZZN9gui_forms15WindowChromeHit*
 __ZZN9gui_forms15WindowFrameDrag*
 __ZZN9gui_forms15WindowOverrides*
@@ -11846,6 +11905,7 @@ __ZZN9gui_forms17ThemeMotionTokens*
 __ZZN9gui_forms17ToolStripItemSpec*
 __ZZN9gui_forms17TreeListRowSource*
 __ZZN9gui_forms17TreeListRowSplice*
+__ZZN9gui_forms17VirtualRowMeasure*
 __ZZN9gui_forms17VisualInteraction*
 __ZZN9gui_forms17WindowBandOptions*
 __ZZN9gui_forms17XmlSourcePosition*
@@ -12033,6 +12093,7 @@ __ZZN9gui_forms19ThemeWindowBackdrop*
 __ZZN9gui_forms19ToolStripDropTarget*
 __ZZN9gui_forms19TreeExpansionChange*
 __ZZN9gui_forms19TreeSelectionChange*
+__ZZN9gui_forms19VirtualRowSelection*
 __ZZN9gui_forms19WindowBackdropGrant*
 __ZZN9gui_forms20AnchoredOverlayLayer*
 __ZZN9gui_forms20ApplicationResources*
@@ -12089,6 +12150,7 @@ __ZZN9gui_forms20TextDecorationChange*
 __ZZN9gui_forms20TextMaskCancellation*
 __ZZN9gui_forms20ThemeStructureTokens*
 __ZZN9gui_forms20Utf8ValidationResult*
+__ZZN9gui_forms20VirtualRowsCallbacks*
 __ZZN9gui_forms20WindowBandAppearance*
 __ZZN9gui_forms20WindowCaptureOptions*
 __ZZN9gui_forms20WorkspaceTransaction*
@@ -12160,6 +12222,8 @@ __ZZN9gui_forms21TaskDialogRadioButton*
 __ZZN9gui_forms21ThemeTypographyTokens*
 __ZZN9gui_forms21ThreadExceptionDialog*
 __ZZN9gui_forms21ThreadExceptionReport*
+__ZZN9gui_forms21VirtualRowDescription*
+__ZZN9gui_forms21VirtualRowsStatistics*
 __ZZN9gui_forms21WindowBackdropRequest*
 __ZZN9gui_forms22ApplicationModalResult*
 __ZZN9gui_forms22ApplicationThemeConfig*
@@ -13070,6 +13134,9 @@ __ZZNK9gui_forms15ThemeDefinition*
 __ZZNK9gui_forms15ThemeValidation*
 __ZZNK9gui_forms15ToolTipSettings*
 __ZZNK9gui_forms15UserThemeHeader*
+__ZZNK9gui_forms15VirtualRowIndex*
+__ZZNK9gui_forms15VirtualRowPaint*
+__ZZNK9gui_forms15VirtualRowsView*
 __ZZNK9gui_forms15WindowChromeHit*
 __ZZNK9gui_forms15WindowFrameDrag*
 __ZZNK9gui_forms15WindowOverrides*
@@ -13258,6 +13325,7 @@ __ZZNK9gui_forms17ThemeMotionTokens*
 __ZZNK9gui_forms17ToolStripItemSpec*
 __ZZNK9gui_forms17TreeListRowSource*
 __ZZNK9gui_forms17TreeListRowSplice*
+__ZZNK9gui_forms17VirtualRowMeasure*
 __ZZNK9gui_forms17VisualInteraction*
 __ZZNK9gui_forms17WindowBandOptions*
 __ZZNK9gui_forms17XmlSourcePosition*
@@ -13445,6 +13513,7 @@ __ZZNK9gui_forms19ThemeWindowBackdrop*
 __ZZNK9gui_forms19ToolStripDropTarget*
 __ZZNK9gui_forms19TreeExpansionChange*
 __ZZNK9gui_forms19TreeSelectionChange*
+__ZZNK9gui_forms19VirtualRowSelection*
 __ZZNK9gui_forms19WindowBackdropGrant*
 __ZZNK9gui_forms20AnchoredOverlayLayer*
 __ZZNK9gui_forms20ApplicationResources*
@@ -13501,6 +13570,7 @@ __ZZNK9gui_forms20TextDecorationChange*
 __ZZNK9gui_forms20TextMaskCancellation*
 __ZZNK9gui_forms20ThemeStructureTokens*
 __ZZNK9gui_forms20Utf8ValidationResult*
+__ZZNK9gui_forms20VirtualRowsCallbacks*
 __ZZNK9gui_forms20WindowBandAppearance*
 __ZZNK9gui_forms20WindowCaptureOptions*
 __ZZNK9gui_forms20WorkspaceTransaction*
@@ -13572,6 +13642,8 @@ __ZZNK9gui_forms21TaskDialogRadioButton*
 __ZZNK9gui_forms21ThemeTypographyTokens*
 __ZZNK9gui_forms21ThreadExceptionDialog*
 __ZZNK9gui_forms21ThreadExceptionReport*
+__ZZNK9gui_forms21VirtualRowDescription*
+__ZZNK9gui_forms21VirtualRowsStatistics*
 __ZZNK9gui_forms21WindowBackdropRequest*
 __ZZNK9gui_forms22ApplicationModalResult*
 __ZZNK9gui_forms22ApplicationThemeConfig*
