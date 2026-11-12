@@ -10,11 +10,13 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <locale>
 #include <map>
 #include <optional>
 #include <poll.h>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -1551,10 +1553,17 @@ LinuxAccessibility::LinuxAccessibility(Display* display, ::Window native, Window
         static_cast<void>(atk_bridge_adaptor_init(nullptr, nullptr));
         bus_status_start();
     }
+    // A frame's index among the root's children is an AT-SPI int. Checked
+    // before anything is counted or made; a root made just above has no
+    // children, so a failure here never leaves a new root behind. The root's
+    // NodeData lives in its object, so `frames` stays valid below.
+    std::vector<AtkObject*>& frames = data(application_root).children;
+    if (frames.size() >= static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        throw std::length_error("LinuxAccessibility: the application root has too many windows");
+    }
     ++bridge_count;
     impl.frame = make_object(0);
     NodeData& frame = data(impl.frame);
-    std::vector<AtkObject*>& frames = data(application_root).children;
     frame.frame = true;
     frame.owner = impl_.get();
     frame.parent = application_root;
@@ -1634,9 +1643,12 @@ void accessibility_wait(int display_fd, int wake_fd, int milliseconds) {
     gint timeout = -1;
     const gboolean ready = g_main_context_prepare(context, &priority);
     int count = g_main_context_query(context, priority, &timeout, nullptr, 0);
-    std::vector<GPollFD> native(static_cast<std::size_t>(std::max(0, count)));
-    count = g_main_context_query(context, priority, &timeout, native.data(), static_cast<int>(native.size()));
-    if (count > static_cast<int>(native.size())) {
+    // The descriptor capacity stays the int it was counted as, so passing it
+    // back to GLib (query and check) narrows nothing.
+    const int capacity = std::max(0, count);
+    std::vector<GPollFD> native(static_cast<std::size_t>(capacity));
+    count = g_main_context_query(context, priority, &timeout, native.data(), capacity);
+    if (count > capacity) {
         g_main_context_release(context);
         return;
     }
@@ -1654,7 +1666,7 @@ void accessibility_wait(int display_fd, int wake_fd, int milliseconds) {
     for (std::size_t i = 0; i < native.size(); ++i) {
         native[i].revents = descriptors[i + 2].revents;
     }
-    const gboolean dispatch = g_main_context_check(context, priority, native.data(), static_cast<int>(native.size()));
+    const gboolean dispatch = g_main_context_check(context, priority, native.data(), capacity);
     if (dispatch) g_main_context_dispatch(context);
     g_main_context_release(context);
 }

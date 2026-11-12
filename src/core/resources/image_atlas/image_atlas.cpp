@@ -111,6 +111,11 @@ ImageAtlas::ImageAtlas(const std::shared_ptr<ApplicationResources>& resources, I
     staging_.resize(cell_bytes);
     const std::uint32_t pending_capacity = std::min(layout_.pending_fills, layout_.slot_count);
     if (pending_capacity != 0U) {
+        // The pending cells are at most slot_count of the grid's cells, so
+        // their bytes are at most image_bytes, checked above to fit a size.
+        if (cell_bytes == 0U || pending_capacity > image_bytes / cell_bytes) {
+            throw std::logic_error("ImageAtlas pending cells exceed the grid");
+        }
         pending_pixels_.resize(cell_bytes * pending_capacity);
         pending_free_.reserve(pending_capacity);
         for (std::uint32_t cell = pending_capacity; cell > 0U; --cell) {

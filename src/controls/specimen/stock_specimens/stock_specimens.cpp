@@ -28,6 +28,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -1805,8 +1806,9 @@ double stock_specimen_dominant_share(const WindowCapture& capture, std::uint32_t
     const std::size_t height = capture.pixel_height;
     const std::size_t inset = inset_pixels;
     if (width <= 2U * inset || height <= 2U * inset) return 1.0;
-    // Width and height come from 32-bit fields: their product with 4 fits
-    // a 64-bit size.
+    // The whole capture's bytes must fit a size; the inner region below is
+    // no larger, so its element count fits too.
+    if (height > std::numeric_limits<std::size_t>::max() / 4U / width) return 1.0;
     const std::size_t needed = width * height * 4U;
     if (capture.bgra.size() < needed) return 1.0;
     const std::size_t inner_width = width - 2U * inset;
