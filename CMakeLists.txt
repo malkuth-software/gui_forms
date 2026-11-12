@@ -4784,27 +4784,35 @@ if(GUI_FORMS_BUILD_TESTS)
                      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
 
     # Borrowed views (borrow sanitizer): `plain` uses fresh views and passes
-    # in both builds; in the checked build each stale mode must end the
-    # process with its report and never print "survived".
+    # in both builds; in the checked build each death mode must end the
+    # process with its report and never print "survived". The modes cover
+    # each fault on the child list, a collection read, a back link and a
+    # call-scope payload (tests/borrowed_view_tests.cpp), then stage 3.
     add_executable(gui_forms_borrowed_view_tests tests/borrowed_view_tests.cpp)
-    target_link_libraries(gui_forms_borrowed_view_tests PRIVATE gui_forms_controls gui_forms_core)
+    target_link_libraries(gui_forms_borrowed_view_tests PRIVATE gui_forms_controls gui_forms_core Threads::Threads)
     add_test(NAME gui_forms_borrowed_view_plain COMMAND gui_forms_borrowed_view_tests plain)
     set_tests_properties(gui_forms_borrowed_view_plain PROPERTIES PASS_REGULAR_EXPRESSION "borrowed views: ok")
     if(GUI_FORMS_CHECKED_BORROWS)
+        set(_gui_borrow_stale "a borrowed view was used after a structural change of its owner")
+        set(_gui_borrow_dead "a borrowed view was used after its owner was destroyed")
+        set(_gui_borrow_thread "a borrowed view was used on another thread than the one it was lent on")
+        set(_gui_borrow_range "a borrowed view was indexed past its end")
+        set(_gui_borrow_null "a null borrowed pointer was dereferenced")
         foreach(_gui_borrow_case IN ITEMS
-                "children|used after a structural change of its owner"
-                "back_link|used after a structural change of its owner"
-                "collection|used after a structural change of its owner"
-                "list_items|used after a structural change of its owner"
-                "owner_death|used after its owner was destroyed")
+                "children|stale" "owner_death|dead" "children_thread|thread" "children_range|range"
+                "collection|stale" "collection_death|dead" "collection_thread|thread" "collection_range|range"
+                "back_link|stale" "back_link_death|dead" "back_link_thread|thread" "back_link_null|null"
+                "payload_death|dead" "payload_thread|thread" "payload_range|range"
+                "list_items|stale" "text_store|stale" "layout_workspace|stale" "write_lease|stale"
+                "raster_death|dead")
             string(REPLACE "|" ";" _gui_borrow_fields "${_gui_borrow_case}")
             list(GET _gui_borrow_fields 0 _gui_borrow_mode)
-            list(GET _gui_borrow_fields 1 _gui_borrow_text)
-            # Each mode ends in fail_fast's abort (cmake/expect_fail_fast.cmake).
+            list(GET _gui_borrow_fields 1 _gui_borrow_fault)
+            # Each mode ends in fail_borrow's abort (cmake/expect_fail_fast.cmake).
             add_test(NAME gui_forms_borrowed_view_${_gui_borrow_mode}
                      COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_borrowed_view_tests>
                              -DMODE=${_gui_borrow_mode}
-                             "-DEXPECTED=GUI.Forms borrow sanitizer: a borrowed view was ${_gui_borrow_text}"
+                             "-DEXPECTED=GUI.Forms borrow sanitizer: ${_gui_borrow_${_gui_borrow_fault}}"
                              -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
         endforeach()
     endif()
