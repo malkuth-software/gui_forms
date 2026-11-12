@@ -126,6 +126,10 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
+    // TextBoxBase's hooks: the field's engine (null before
+    // initialize_control_tree), and the field's own select.
+    [[nodiscard]] detail::TextEditingEngine* editing_engine() const noexcept override;
+    void apply_selection(TextSelection selection) override;
 
 private:
     struct EditorChangeCallback final {

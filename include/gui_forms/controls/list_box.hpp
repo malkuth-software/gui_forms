@@ -37,7 +37,8 @@ public:
         return std::span<const std::size_t>(selected_.data(), selected_.size());
     }
     std::span<const std::size_t> selected_indices() const&& = delete;
-    [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept;
+    // selected_index() (the first selected item) and selected_index_changed
+    // are ListControl's; selected_index_changed follows selection_changed.
     void select_index(std::size_t index, bool extend = false, bool toggle = false);
     void clear_selection();
 

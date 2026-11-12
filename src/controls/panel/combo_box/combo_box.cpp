@@ -405,6 +405,7 @@ void ComboBox::match_editor_text() {
     }
     if (selected_index_ == found) return;
     selected_index_ = found;
+    static_cast<void>(record_selected_index(selected_index_));
     if (overlay_list_) {
         // Moving the list's row must not show the item's text over the
         // text the user is typing.
@@ -480,6 +481,7 @@ void ComboBox::written(const decltype(items)&, const CollectionEdit&) {
     }
     const bool selection_moved = edit_selection_ != selected_index_;
     selected_index_ = edit_selection_;
+    static_cast<void>(record_selected_index(selected_index_));
     const bool text_changed = selected_text() != edit_former_text_;
     refresh_open_rows({});
     if (!is_alive()) return;
@@ -515,6 +517,7 @@ void ComboBox::write_view(const decltype(selected_index)&, std::optional<std::si
     }
     if (selected_index_ == incoming) return;
     selected_index_ = incoming;
+    static_cast<void>(record_selected_index(selected_index_));
     if (overlay_list_) {
         synchronizing_list_ = true;
         const std::optional<std::size_t> row = row_of_item(incoming);

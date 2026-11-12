@@ -118,12 +118,9 @@ public:
     // The visual lines of the source as laid out at the box's width.
     [[nodiscard]] std::size_t visual_line_count();
 
-    [[nodiscard]] TextSelection selection() const noexcept;
-    // Throws std::out_of_range unless both offsets are grapheme boundaries.
-    void select(Utf8Offset anchor, Utf8Offset caret);
-    void select_all();
-    // The selected source.
-    [[nodiscard]] std::string selected_text() const;
+    // The selection, select, select_all and selected_text (the selected
+    // source) are TextBoxBase's, as are can_undo, undo, clear_undo_history
+    // and the clipboard (which holds the selected source).
 
     // The formatting at the selection, and the control bar's commands. Each
     // command edits the markup of the lines or text the selection covers as
@@ -149,19 +146,12 @@ public:
     // [](), the caret in the brackets.
     bool insert_link();
 
-    [[nodiscard]] bool can_undo() const noexcept;
     [[nodiscard]] bool can_redo() const noexcept;
-    bool undo();
     bool redo();
-    void clear_undo_history();
     // Replaces the selection with source text. False when read-only or past
     // the box's limits.
     bool replace_selection(std::string_view replacement);
     bool delete_selection();
-    // The clipboard holds the selected source.
-    bool copy();
-    bool cut();
-    bool paste();
 
     // Raised after the plain text changes, with the plain text.
     [[nodiscard]] Event<const std::string&>& text_changed() noexcept { return text_changed_; }
@@ -256,6 +246,9 @@ protected:
     void on_dispose() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override;
+    // TextBoxBase's hooks: the engine this box owns, and set_selection.
+    [[nodiscard]] detail::TextEditingEngine* editing_engine() const noexcept override;
+    void apply_selection(TextSelection selection) override;
 
 private:
     class EditingHost;

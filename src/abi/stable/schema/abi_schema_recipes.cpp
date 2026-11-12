@@ -102,6 +102,11 @@ public:
 class SampleTextBoxBase final : public TextBoxBase {
 public:
     explicit SampleTextBoxBase(StableId stable_id) : TextBoxBase(std::move(stable_id)) {}
+
+protected:
+    // A sample has no editing engine: the editing surface does nothing.
+    [[nodiscard]] detail::TextEditingEngine* editing_engine() const noexcept override { return nullptr; }
+    void apply_selection(TextSelection) override {}
 };
 
 class SampleListControl final : public ListControl {
@@ -112,6 +117,9 @@ public:
 class SampleUpDownBase final : public UpDownBase {
 public:
     explicit SampleUpDownBase(StableId stable_id) : UpDownBase(std::move(stable_id)) {}
+    // A sample has no steps.
+    void up_button() override {}
+    void down_button() override {}
 };
 
 } // namespace

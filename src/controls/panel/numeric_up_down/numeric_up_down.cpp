@@ -294,6 +294,18 @@ void NumericUpDown::commit_editor_text() {
     committing_ = false;
 }
 
+void NumericUpDown::up_button() {
+    require_mutable();
+    const double next = std::clamp(value.read() + increment.read(), minimum.read(), maximum.read());
+    if (next != value.read()) value = next;
+}
+
+void NumericUpDown::down_button() {
+    require_mutable();
+    const double next = std::clamp(value.read() - increment.read(), minimum.read(), maximum.read());
+    if (next != value.read()) value = next;
+}
+
 void NumericUpDown::step(int direction) {
     const double next = std::clamp(value.read() + static_cast<double>(direction) * increment.read(),
                                    minimum.read(), maximum.read());

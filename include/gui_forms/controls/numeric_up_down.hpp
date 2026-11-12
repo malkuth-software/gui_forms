@@ -33,6 +33,10 @@ public:
 
     // Sets both bounds; they must be finite and ordered (std::invalid_argument).
     void set_range(double lowest, double highest);
+    // Adds (up) or subtracts (down) the increment, within the range,
+    // raising value_changed when the value moves.
+    void up_button() override;
+    void down_button() override;
     [[nodiscard]] Event<double>& value_changed() noexcept { return value_changed_; }
 
     void arrange(Rect final_bounds) override;

@@ -288,28 +288,13 @@ void RichTextBox::on_scroll_position_changed() {
 
 // -- selection ------------------------------------------------------------------
 
-TextSelection RichTextBox::selection() const noexcept {
-    const TextSelection result = (*editing_).selection();
-    return result;
+detail::TextEditingEngine* RichTextBox::editing_engine() const noexcept {
+    detail::TextEditingEngine* const engine = editing_.get();
+    return engine;
 }
 
-void RichTextBox::select(Utf8Offset anchor, Utf8Offset caret) {
-    require_mutable();
-    const TextStore& store = (*editing_).store();
-    if (!store.is_grapheme_boundary(anchor) || !store.is_grapheme_boundary(caret)) {
-        throw std::out_of_range("RichTextBox selection must use grapheme boundaries");
-    }
-    set_selection({anchor, caret});
-}
-
-void RichTextBox::select_all() {
-    require_mutable();
-    set_selection({Utf8Offset(0U), (*editing_).store().utf8_size()});
-}
-
-std::string RichTextBox::selected_text() const {
-    const std::string result = (*editing_).selected_text();
-    return result;
+void RichTextBox::apply_selection(TextSelection selection) {
+    set_selection(selection);
 }
 
 void RichTextBox::set_selection(TextSelection selection, bool reveal) {
@@ -329,29 +314,14 @@ void RichTextBox::set_selection(TextSelection selection, bool reveal) {
 
 // -- editing --------------------------------------------------------------------
 
-bool RichTextBox::can_undo() const noexcept {
-    const bool result = (*editing_).can_undo();
-    return result;
-}
-
 bool RichTextBox::can_redo() const noexcept {
     const bool result = (*editing_).can_redo();
-    return result;
-}
-
-bool RichTextBox::undo() {
-    const bool result = (*editing_).undo();
     return result;
 }
 
 bool RichTextBox::redo() {
     const bool result = (*editing_).redo();
     return result;
-}
-
-void RichTextBox::clear_undo_history() {
-    require_mutable();
-    (*editing_).clear_history();
 }
 
 bool RichTextBox::replace_selection(std::string_view replacement) {
@@ -361,21 +331,6 @@ bool RichTextBox::replace_selection(std::string_view replacement) {
 
 bool RichTextBox::delete_selection() {
     const bool result = (*editing_).delete_selection();
-    return result;
-}
-
-bool RichTextBox::copy() {
-    const bool result = (*editing_).copy();
-    return result;
-}
-
-bool RichTextBox::cut() {
-    const bool result = (*editing_).cut();
-    return result;
-}
-
-bool RichTextBox::paste() {
-    const bool result = (*editing_).paste();
     return result;
 }
 

@@ -123,16 +123,6 @@ TextBox::~TextBox() {
     }
 }
 
-TextSelection TextBox::selection() const noexcept {
-    const TextSelection result = (*editing_).selection();
-    return result;
-}
-
-bool TextBox::can_undo() const noexcept {
-    const bool result = (*editing_).can_undo();
-    return result;
-}
-
 bool TextBox::can_redo() const noexcept {
     const bool result = (*editing_).can_redo();
     return result;
@@ -303,16 +293,6 @@ void TextBox::written(const decltype(font)&) {
     on_font_changed();
 }
 
-void TextBox::select(Utf8Offset anchor, Utf8Offset caret) {
-    require_mutable();
-    const TextStore& store = (*editing_).store();
-    if (!store.is_grapheme_boundary(anchor) ||
-        !store.is_grapheme_boundary(caret)) {
-        throw std::out_of_range("TextBox selection must use grapheme boundaries");
-    }
-    set_selection({anchor, caret});
-}
-
 Utf16Offset TextBox::utf16_offset(Utf8Offset position) const {
     const Utf16Offset result = (*editing_).store().utf16_offset(position);
     return result;
@@ -320,25 +300,6 @@ Utf16Offset TextBox::utf16_offset(Utf8Offset position) const {
 
 Utf8Offset TextBox::utf8_offset(Utf16Offset position) const {
     const Utf8Offset result = (*editing_).store().utf8_offset(position);
-    return result;
-}
-
-void TextBox::select_all() {
-    set_selection({Utf8Offset(0U), (*editing_).store().utf8_size()});
-}
-
-std::string TextBox::selected_text() const {
-    const std::string result = (*editing_).selected_text();
-    return result;
-}
-
-void TextBox::clear_undo_history() {
-    require_mutable();
-    (*editing_).clear_history();
-}
-
-bool TextBox::undo() {
-    const bool result = (*editing_).undo();
     return result;
 }
 
@@ -357,19 +318,13 @@ bool TextBox::delete_selection() {
     return result;
 }
 
-bool TextBox::copy() {
-    const bool result = (*editing_).copy();
-    return result;
+detail::TextEditingEngine* TextBox::editing_engine() const noexcept {
+    detail::TextEditingEngine* const engine = editing_.get();
+    return engine;
 }
 
-bool TextBox::cut() {
-    const bool result = (*editing_).cut();
-    return result;
-}
-
-bool TextBox::paste() {
-    const bool result = (*editing_).paste();
-    return result;
+void TextBox::apply_selection(TextSelection selection) {
+    set_selection(selection);
 }
 
 void TextBox::set_selection(TextSelection selection, bool reveal_caret) {

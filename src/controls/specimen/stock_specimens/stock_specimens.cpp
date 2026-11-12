@@ -143,6 +143,11 @@ public:
         if (registered == nullptr) return TextBoxBase::anatomy();
         return *registered;
     }
+
+protected:
+    // A sample has no editing engine: the editing surface does nothing.
+    [[nodiscard]] detail::TextEditingEngine* editing_engine() const noexcept override { return nullptr; }
+    void apply_selection(TextSelection) override {}
 };
 
 class SpecimenListControl final : public ListControl {
@@ -166,6 +171,9 @@ public:
         if (registered == nullptr) return UpDownBase::anatomy();
         return *registered;
     }
+    // A sample has no steps.
+    void up_button() override {}
+    void down_button() override {}
 };
 
 // Writes `value` to the property `name` where the instance has it and it
