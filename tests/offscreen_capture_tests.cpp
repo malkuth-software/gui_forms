@@ -13,6 +13,9 @@
 //   subject of its type, no row near-uniform at rest
 //   (stock_specimen_uniform_share) without its stated blank_reason, and
 //   every declared state of every subject shown and captured.
+// - ImageAtlas deferred fills in real pixels: a slot drawn and filled in the
+//   same paint presents its old pixels in that frame and the new ones in the
+//   next.
 
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
@@ -24,6 +27,10 @@
 #include "gui_forms/controls/check_box_values.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/stock_specimens.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/paint_framebuffer.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/resources/image_atlas/image_atlas.hpp"
 #include "gui_forms/rules/rule/rule.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
@@ -31,15 +38,18 @@
 #include "gui_forms/window/window.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -298,12 +308,123 @@ void stock_catalogue() {
 
 } // namespace
 
+// One opaque colour's premultiplied BGRA pixels for an 8 x 8 slot.
+std::vector<std::byte> solid_slot(std::uint8_t blue, std::uint8_t green, std::uint8_t red) {
+    std::vector<std::byte> pixels(8U * 8U * 4U, std::byte{0});
+    for (std::size_t at = 0U; at < pixels.size(); at += 4U) {
+        pixels[at] = std::byte{blue};
+        pixels[at + 1U] = std::byte{green};
+        pixels[at + 2U] = std::byte{red};
+        pixels[at + 3U] = std::byte{255U};
+    }
+    return pixels;
+}
+
+// Draws an atlas slot over its first 8 x 8 units at every paint; the first
+// paint after `refill` is set also fills the slot with it (a fill during a
+// paint, so deferred).
+class AtlasFrameProbe final : public Panel {
+public:
+    explicit AtlasFrameProbe(StableId id) : Panel(std::move(id)) {}
+
+    void on_paint(Painter& painter, Rect local_damage) override {
+        Panel::on_paint(painter, local_damage);
+        if (atlas == nullptr) return;
+        drawn = (*atlas).draw(painter, *this, slot, Rect{0.0, 0.0, 8.0, 8.0});
+        if (refill == nullptr) return;
+        const std::vector<std::byte>& pixels = *refill;
+        refill = nullptr;
+        fill_result = (*atlas).fill(slot, 32U, std::span<const std::byte>(pixels));
+    }
+
+    ImageAtlas* atlas{};
+    ImageAtlasSlot slot{};
+    const std::vector<std::byte>* refill{};
+    bool drawn{};
+    ImageAtlasError fill_result{ImageAtlasError::none};
+};
+
+// Paints `window` whole into a new framebuffer at scale 1 and returns the
+// pixel at (x, y) as B, G, R, A bytes.
+std::array<std::uint8_t, 4> presented_pixel(Window& window, Size size, std::size_t x, std::size_t y) {
+    const Rect whole{0.0, 0.0, size.width, size.height};
+    const std::unique_ptr<PaintFramebuffer> framebuffer = window.create_framebuffer(size, 1.0);
+    require(framebuffer != nullptr, "the attached window makes a framebuffer");
+    require((*framebuffer).begin(window.image_resources(), whole), "the framebuffer begins");
+    const std::optional<PaintReceipt> receipt = window.paint((*framebuffer).painter(), whole);
+    (*framebuffer).end();
+    require(receipt.has_value(), "the frame completes");
+    const std::span<std::byte> bytes = (*framebuffer).pixels();
+    const std::size_t offset = y * (*framebuffer).row_bytes() + x * 4U;
+    require(offset + 4U <= bytes.size(), "the pixel is inside the frame");
+    const std::array<std::uint8_t, 4> pixel{
+        static_cast<std::uint8_t>(bytes[offset]), static_cast<std::uint8_t>(bytes[offset + 1U]),
+        static_cast<std::uint8_t>(bytes[offset + 2U]), static_cast<std::uint8_t>(bytes[offset + 3U])};
+    return pixel;
+}
+
+// Whether each channel is within two steps of `wanted` (B, G, R, A).
+bool near_pixel(const std::array<std::uint8_t, 4>& pixel, const std::array<std::uint8_t, 4>& wanted) {
+    for (std::size_t channel = 0U; channel < 4U; ++channel) {
+        const unsigned value = pixel[channel];
+        const unsigned target = wanted[channel];
+        if (value + 2U < target || value > target + 2U) return false;
+    }
+    return true;
+}
+
+// A slot drawn and filled in the same paint: the fill is deferred, so that
+// frame presents the slot's old pixels (the paint replayed before the fill
+// was written); the fill is written when the paint ends and damages the
+// panel, and the next frame presents the new pixels.
+void atlas_deferred_fill_pixels() {
+    const std::unique_ptr<OffscreenRaster> raster = made_raster();
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("atlas-frames"));
+    const std::shared_ptr<AtlasFrameProbe> probe = std::make_shared<AtlasFrameProbe>(StableId("atlas-frames.probe"));
+    (*probe).set_bounds(Rect{20.0, 10.0, 40.0, 40.0});
+    (*root).add_child(probe);
+    const Size size{80.0, 60.0};
+    Window window(root, size);
+    OffscreenAttachment attached(*raster, window);
+
+    ImageAtlasLayout layout{};
+    layout.slot_width = 8U;
+    layout.slot_height = 8U;
+    layout.slot_count = 2U;
+    ImageAtlas atlas(window.resources(), layout);
+    const ImageAtlasSlot slot = atlas.acquire(1U).slot;
+    const std::vector<std::byte> red = solid_slot(0U, 0U, 255U);
+    const std::vector<std::byte> blue = solid_slot(255U, 0U, 0U);
+    require(atlas.fill(slot, 32U, std::span<const std::byte>(red)) == ImageAtlasError::none,
+            "the slot fills red outside a paint");
+    (*probe).atlas = &atlas;
+    (*probe).slot = slot;
+    (*probe).refill = &blue;
+    window.perform_layout();
+
+    const std::array<std::uint8_t, 4> old_colour{0U, 0U, 255U, 255U};
+    const std::array<std::uint8_t, 4> new_colour{255U, 0U, 0U, 255U};
+    const std::array<std::uint8_t, 4> first = presented_pixel(window, size, 24U, 14U);
+    require((*probe).drawn && (*probe).fill_result == ImageAtlasError::deferred,
+            "the probe drew the slot and its fill during the paint was deferred");
+    require(near_pixel(first, old_colour), "the frame that deferred the fill presents the slot's old pixels");
+    const ImageAtlasStatistics written = atlas.statistics();
+    require(written.deferred_fills == 1U && written.fills == 2U && written.pending_now == 0U,
+            "the deferred fill was written when the paint ended");
+    require(has_dirty((*probe).dirty(), Dirty::paint), "the written fill damaged the probe for the next frame");
+
+    const std::array<std::uint8_t, 4> second = presented_pixel(window, size, 24U, 14U);
+    require(near_pixel(second, new_colour), "the next frame presents the new pixels");
+    (*probe).atlas = nullptr;
+}
+
 int main() {
     raster_refusals();
     attachment_and_control_capture();
     specimen_states();
     stock_catalogue();
-    std::cout << "Offscreen capture: raster refusals, the attachment, control captures, specimen states and the "
-                 "stock catalogue passed\n";
+    atlas_deferred_fill_pixels();
+    std::cout << "Offscreen capture: raster refusals, the attachment, control captures, specimen states, the "
+                 "stock catalogue and atlas deferred-fill frames passed\n";
     return EXIT_SUCCESS;
 }
