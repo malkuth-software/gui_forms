@@ -1080,8 +1080,11 @@ gui_forms_verify_effects(gui_forms_controls
 # (with its private RackModulePanel and the sort kernels, F10) serve the File
 # Manager demoboard; their headers are lab/include/gui_forms_lab/<name>.hpp.
 # Always built with the tree; installed only with GUI_FORMS_INSTALL_LAB, as
-# GUIForms::Lab in its own export set. Its sources reach the controls
-# library's private helpers (src/controls), so it links that library.
+# GUIForms::Lab in its own export set and component. Its sources reach the
+# controls library's private helpers (src/controls), so it links that
+# library; installed, it names no GUI.Forms library (the SDK's linking rule,
+# as for the Gallery model): the program links GUIForms::Application or
+# GUIForms::Controls, so a process holds one engine.
 option(GUI_FORMS_INSTALL_LAB "Install the optional gui_forms_lab library (GUIForms::Lab)" OFF)
 add_library(gui_forms_lab STATIC
     lab/src/correspondence_view.cpp
@@ -1094,23 +1097,27 @@ target_include_directories(gui_forms_lab PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_include_directories(gui_forms_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controls)
-target_link_libraries(gui_forms_lab PUBLIC gui_forms_controls)
+target_link_libraries(gui_forms_lab PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
 set_target_properties(gui_forms_lab PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME Lab)
 add_library(GUIForms::Lab ALIAS gui_forms_lab)
 if(GUI_FORMS_INSTALL_LAB)
     install(TARGETS gui_forms_lab EXPORT GUIFormsLabTargets
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    install(DIRECTORY lab/include/gui_forms_lab DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT lab)
+    install(DIRECTORY lab/include/gui_forms_lab DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT lab)
     install(EXPORT GUIFormsLabTargets
             FILE GUIFormsLabTargets.cmake
             NAMESPACE GUIForms::
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms
+            COMPONENT lab)
 endif()
 
 # The demonstration controls (audit F9): EasingPreview, TypographySpecimen,
 # VisualInspectorView and VisualInspectorOverlay, which no product uses. They
 # serve the Gallery, the lab programs and their tests; headers are
-# demo/lab_controls/include/gui_forms_demo/<name>.hpp. Never installed.
+# demo/lab_controls/include/gui_forms_demo/<name>.hpp. Installed only with
+# the Gallery model (GUI_FORMS_INSTALL_GALLERY_MODEL), in the demo_controls
+# component, never with the core library; installed, it names no GUI.Forms
+# library, like the model.
 add_library(gui_forms_demo_controls STATIC
     demo/lab_controls/src/easing_preview.cpp
     demo/lab_controls/src/typography_specimen.cpp
@@ -1118,10 +1125,11 @@ add_library(gui_forms_demo_controls STATIC
 )
 target_include_directories(gui_forms_demo_controls PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/demo/lab_controls/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_include_directories(gui_forms_demo_controls PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controls)
-target_link_libraries(gui_forms_demo_controls PUBLIC gui_forms_controls)
-set_target_properties(gui_forms_demo_controls PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(gui_forms_demo_controls PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+set_target_properties(gui_forms_demo_controls PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME DemoControls)
 
 if(GUI_FORMS_BUILD_FORM_COMPILER)
     # The form compiler (stage FD5): a form document's C++ header, generated
@@ -1867,8 +1875,9 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # process holds one engine (the SDK's linking rule).
     target_link_libraries(gui_forms_gallery_model PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
     # The lab and demonstration controls its pages show (audit F9).
-    target_link_libraries(gui_forms_gallery_model PUBLIC
-        $<BUILD_INTERFACE:gui_forms_lab> $<BUILD_INTERFACE:gui_forms_demo_controls>)
+    # Installed, the model names GUIForms::Lab (GUI_FORMS_INSTALL_LAB) and
+    # GUIForms::DemoControls (installed beside it).
+    target_link_libraries(gui_forms_gallery_model PUBLIC gui_forms_lab gui_forms_demo_controls)
     # The Gallery's window (stage B): demo/gallery.form, compiled into
     # gallery_window.hpp, the GalleryWindow class bound to its GalleryModel
     # (demo/gallery_model.hpp); gallery_context.hpp includes it, so its
@@ -1996,6 +2005,13 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
                 EXPORT GUIFormsGalleryModelTargets
                 ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
         install(FILES demo/gallery.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gui_forms_gallery)
+        # The demonstration controls the pages show (audit F9), in their
+        # own component; the lab controls come from GUIForms::Lab.
+        install(TARGETS gui_forms_demo_controls
+                EXPORT GUIFormsGalleryModelTargets
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT demo_controls)
+        install(DIRECTORY demo/lab_controls/include/gui_forms_demo
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT demo_controls)
         install(EXPORT GUIFormsGalleryModelTargets
                 FILE GUIFormsGalleryModelTargets.cmake
                 NAMESPACE GUIForms::
@@ -2004,6 +2020,13 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
 endif()
 if(GUI_FORMS_INSTALL_GALLERY_MODEL AND NOT TARGET gui_forms_gallery_model)
     message(FATAL_ERROR "GUI_FORMS_INSTALL_GALLERY_MODEL needs GUI_FORMS_BUILD_GALLERY_MODEL")
+endif()
+# The installed Gallery model's pages show CorrespondenceView, ReviewCard and
+# InstrumentRack, which only the lab library installs (audit F9): no page is
+# dropped to make the install work.
+if(GUI_FORMS_INSTALL_GALLERY_MODEL AND NOT GUI_FORMS_INSTALL_LAB)
+    message(FATAL_ERROR "GUI_FORMS_INSTALL_GALLERY_MODEL needs GUI_FORMS_INSTALL_LAB=ON: the installed "
+                        "Gallery model links the lab controls (GUIForms::Lab) its pages show")
 endif()
 
 if(GUI_FORMS_BUILD_GALLERY)
