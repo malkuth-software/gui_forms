@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <span>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -45,6 +46,15 @@ constexpr std::string_view announcement_total = " in all";
 
 using input_control_detail::command_modifier;
 using input_control_detail::includes;
+
+// Writes value's decimal digits at the start of digits and returns their
+// count. The span carries its own length, so the end pointer is formed from
+// a length-bearing view; row_digits_capacity holds every 64-bit value.
+[[nodiscard]] std::size_t write_decimal(std::span<char> digits, std::size_t value) noexcept {
+    const std::to_chars_result written = std::to_chars(digits.data(), digits.data() + digits.size(), value);
+    const std::size_t length = static_cast<std::size_t>(written.ptr - digits.data());
+    return length;
+}
 
 [[nodiscard]] VirtualRowRange range_of(std::size_t first, std::size_t count) noexcept {
     const VirtualRowRange range{VirtualRowIndex{first}, count};
@@ -605,12 +615,11 @@ void VirtualRowsView::set_announces_appends(bool announce) {
 // a row still rename the live region, so each is announced.
 void VirtualRowsView::compose_announcement() {
     std::array<char, row_digits_capacity> digits{};
-    const std::to_chars_result appended =
-        std::to_chars(digits.data(), digits.data() + digits.size(), pending_appended_);
-    announcement_.assign(digits.data(), static_cast<std::size_t>(appended.ptr - digits.data()));
+    const std::size_t appended = write_decimal(digits, pending_appended_);
+    announcement_.assign(digits.data(), appended);
     announcement_.append(pending_appended_ == 1U ? announcement_one_row : announcement_rows);
-    const std::to_chars_result total = std::to_chars(digits.data(), digits.data() + digits.size(), row_count());
-    announcement_.append(digits.data(), static_cast<std::size_t>(total.ptr - digits.data()));
+    const std::size_t total = write_decimal(digits, row_count());
+    announcement_.append(digits.data(), total);
     announcement_.append(announcement_total);
     pending_appended_ = 0U;
 }
@@ -1261,8 +1270,7 @@ void VirtualRowsView::on_focus_changed(bool focused) {
 
 void VirtualRowsView::row_identity(std::size_t row, std::string& identity) const {
     std::array<char, row_digits_capacity> digits{};
-    const std::to_chars_result written = std::to_chars(digits.data(), digits.data() + digits.size(), row);
-    const std::size_t length = static_cast<std::size_t>(written.ptr - digits.data());
+    const std::size_t length = write_decimal(digits, row);
     identity.assign(stable_id().value());
     identity.append(row_segment);
     identity.append(digits.data(), length);
@@ -1335,9 +1343,8 @@ std::vector<SemanticNode> VirtualRowsView::semantic_virtual_children() const {
         if (!callbacks_.describe) {
             // Without a describe target a row is named by its position.
             std::array<char, row_digits_capacity> digits{};
-            const std::to_chars_result written =
-                std::to_chars(digits.data(), digits.data() + digits.size(), row + 1U);
-            node.name.assign(digits.data(), static_cast<std::size_t>(written.ptr - digits.data()));
+            const std::size_t length = write_decimal(digits, row + 1U);
+            node.name.assign(digits.data(), length);
         } else if (validate_utf8(description_.name).valid()) {
             node.name = description_.name;
         }
