@@ -11,12 +11,16 @@ the ABI and API seal, was declared done on 2026-11-08 (see the 0.5 notes).
 Everything since builds on the sealed interfaces additively. A change to a
 sealed interface needs a recorded owner decision.
 
-The package and the release tags still carry the 0.2 version number
-(`v0.2.N`, `find_package(GUIForms 0.2 ...)`). The stages 0.3 to 0.5 were
-not tagged separately. The version number moves when 1.0 (backend) is
-declared.
+The package version is 0.6 (owner, 2026-11-12): release tags are `v0.6.N`
+and consumers ask for `find_package(GUIForms 0.6 ...)`. Under the 0.2 number
+the series was tagged `v0.2.N`; the stages 0.3 to 0.5 were not tagged
+separately. Those tags are kept.
 
 ## Breaking changes
+
+- The package version moves from 0.2.0 to 0.6.0. `find_package(GUIForms
+  0.2 ...)` no longer finds it (the version file accepts the same minor
+  version only); ask for 0.6. The shared libraries keep `SOVERSION 0`.
 
 - **The default theme is GUI.Forms' own (`gui-forms`).** `default_theme()`,
   `default_theme_base`, `ApplicationConfig`'s default base,

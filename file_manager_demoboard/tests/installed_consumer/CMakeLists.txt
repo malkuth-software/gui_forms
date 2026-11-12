@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(GUIFormsInstalledConsumer LANGUAGES CXX)
 
-find_package(GUIForms 0.2 REQUIRED CONFIG)
+find_package(GUIForms 0.6 REQUIRED CONFIG)
 # CorrespondenceView and InstrumentRack are the lab library's (audit F9).
 # run_installed_consumer.cmake installs the SDK with GUI_FORMS_INSTALL_LAB=ON.
 if(NOT TARGET GUIForms::Lab)

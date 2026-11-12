@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(GUIFormsOwnedEventsReference LANGUAGES C CXX)
 
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS Controls)
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Controls)
 
 # Each program's window is a form document (forms/), generated at build time
 # into a gui_forms::Window subclass; a model header beside the program names
@@ -125,7 +125,7 @@ elseif(gallery_page_forms)
 endif()
 
 # The C ABI from C11: the CAbi component alone, no C++ target.
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS CAbi)
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS CAbi)
 add_executable(c_abi_consumer c_abi_consumer.c)
 set_target_properties(c_abi_consumer PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON NO_SYSTEM_FROM_IMPORTED TRUE)
 target_link_libraries(c_abi_consumer PRIVATE GUIForms::CAbi)
@@ -134,7 +134,7 @@ set_tests_properties(c_abi_consumer PROPERTIES TIMEOUT 15 PASS_REGULAR_EXPRESSIO
 
 # The conformance kit as a product's test runs it (CAbiConformance). The
 # installed examples run headless in CI, so without the window checks.
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS CAbiConformance)
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS CAbiConformance)
 add_executable(c_abi_conformance c_abi_conformance.c)
 set_target_properties(c_abi_conformance PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON NO_SYSTEM_FROM_IMPORTED TRUE)
 target_link_libraries(c_abi_conformance PRIVATE GUIForms::CAbiConformance)

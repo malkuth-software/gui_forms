@@ -6,7 +6,7 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
         message(FATAL_ERROR "GUI.Forms supports Apple silicon arm64 only")
     endif()
 endif()
-project(GUIForms VERSION 0.2.0 LANGUAGES C CXX)
+project(GUIForms VERSION 0.6.0 LANGUAGES C CXX)
 
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
    NOT CMAKE_CXX_COMPILER_VERSION MATCHES "^22\\.1\\.")
@@ -1346,7 +1346,7 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
         set_target_properties(gui_forms_file_manager_demoboard PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "File Manager Demoboard"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.file-manager-demoboard"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "File Manager Demoboard")
     endif()
@@ -2224,7 +2224,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_gallery PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Gallery"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.gallery"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Gallery"
         )
@@ -2242,7 +2242,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_vsync_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms VSync + Waterfall Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.vsync-waterfall-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms VSync + Waterfall Lab"
         )
@@ -2260,7 +2260,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_visual_inspector_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Visual Inspector Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.visual-inspector-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Visual Inspector Lab"
         )
@@ -2278,7 +2278,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_layered_material_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Layered Material Fidelity Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.layered-material-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Layered Material Fidelity Lab"
         )
@@ -2296,7 +2296,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_compositor_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Compositor Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.compositor-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Compositor Lab"
         )
@@ -2314,7 +2314,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_custom_chrome_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Custom Chrome Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.custom-chrome-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Custom Chrome Lab"
         )
@@ -2332,7 +2332,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_typography_scale_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Typography + Scale Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.typography-scale-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Typography + Scale Lab"
         )
@@ -2350,7 +2350,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_responsive_tracks_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Responsive Tracks Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.responsive-tracks-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Responsive Tracks Lab"
         )
@@ -2368,7 +2368,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_connected_controls_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Connected Controls Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.connected-controls-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Connected Controls Lab"
         )
@@ -2386,7 +2386,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_seam_proximity_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Physical Seam + Proximity Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.seam-proximity-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Physical Seam + Proximity Lab"
         )

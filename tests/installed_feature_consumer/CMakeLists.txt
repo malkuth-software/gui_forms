@@ -6,7 +6,7 @@
 # and HarfBuzz headers and shapes text with their static libraries.
 cmake_minimum_required(VERSION 3.25)
 project(GUIFormsInstalledFeatureConsumer LANGUAGES CXX)
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS
     Application TextMasks Audio AudioLoopTransport FreeType HarfBuzz)
 get_target_property(text_core GUIForms::TextMasks INTERFACE_GUI_FORMS_CORE_LINKAGE)
 if(NOT text_core STREQUAL "application")
