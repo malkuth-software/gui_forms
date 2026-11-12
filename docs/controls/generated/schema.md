@@ -3445,6 +3445,10 @@ Interactions beyond every control's: none.
 | `dashed_link` | link |  | hot, selected, invalid |
 | `lamp` | lamp |  | checked, invalid |
 | `marquee` | marquee |  |  |
+| `port_label` | label |  | hot, drop_accepted, drop_rejected |
+| `focus` | focus |  |  |
+| `knife` | marquee |  |  |
+| `link_preview` | link |  | drop_accepted, drop_rejected |
 
 States: `normal`, `hot`, `focused`, `focus_visible`, `selected`, `checked`, `enabled`, `disabled`, `invalid`, `drop_accepted`, `drop_rejected`.
 

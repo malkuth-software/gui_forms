@@ -20,6 +20,7 @@
 #include "gui_forms/controls/node_canvas.hpp"
 #include "gui_forms/controls/node_graph.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/event/delegate/delegate.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
@@ -28,6 +29,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
 
 #include <array>
 #include <cmath>
@@ -871,6 +873,90 @@ void subclass_overrides_raisers() {
     static_cast<void>(token);
 }
 
+// -- focus, previews and flow -----------------------------------------------------------------
+
+// The keyboard focus is drawn as the theme's focus ring: around the focused
+// node, then around the focused port, never without a visible cue.
+void focus_rings() {
+    Fixture fixture{};
+    NodeCanvas& canvas = *fixture.canvas;
+    fixture.paint();
+    require(canvas.statistics().focus_rings_painted == 0U, "an unfocused canvas draws no focus ring");
+    require((*fixture.window).request_focus(fixture.canvas), "the canvas takes focus");
+    fixture.key(PhysicalKey::right, Modifier::none);
+    const std::uint64_t before = canvas.statistics().focus_rings_painted;
+    fixture.paint();
+    const std::uint64_t node_rings = canvas.statistics().focus_rings_painted;
+    require(node_rings == before + 1U, "the focused node is ringed once");
+    fixture.key(PhysicalKey::enter, Modifier::none);
+    require(canvas.focused_port().has_value(), "Enter walks into the node's ports");
+    fixture.paint();
+    require(canvas.statistics().focus_rings_painted == node_rings + 1U, "the focused port takes the ring instead");
+    require(canvas.canvas_look().focus.stroke_width >= minimum_canvas_focus_width,
+            "the ring is at least the minimum width");
+}
+
+// The dragged link's preview: seeking over empty canvas, refused over a
+// port that cannot take it (an input of its own node), accepted once the
+// magnet captures a free input; no preview without a drag.
+void link_preview_states() {
+    Fixture fixture{};
+    NodeCanvas& canvas = *fixture.canvas;
+    fixture.paint();
+    require(!canvas.link_preview_state().has_value(), "no drag, no preview");
+    fixture.press(Point{296.0, 82.0}, Modifier::none);
+    fixture.glide(Point{296.0, 82.0}, Point{350.0, 280.0}, Modifier::none);
+    require(canvas.link_preview_state() == CanvasPreviewState::seeking, "over empty canvas the link seeks");
+    fixture.paint();
+    fixture.glide(Point{350.0, 280.0}, Point{200.0, 82.0}, Modifier::none);
+    require(canvas.link_preview_state() == CanvasPreviewState::refused,
+            "over its own node's input the link is refused");
+    fixture.paint();
+    fixture.glide(Point{200.0, 82.0}, Point{203.0, 209.0}, Modifier::none);
+    require(canvas.link_preview_state() == CanvasPreviewState::accepted, "captured by a free input it is accepted");
+    fixture.paint();
+    fixture.key(PhysicalKey::escape, Modifier::none);
+    fixture.release(Point{203.0, 209.0}, Modifier::none);
+    require(!canvas.link_preview_state().has_value(), "Escape ends the preview");
+}
+
+// The flow runs on the window's motion clock only while a flowing link is
+// shown and motion is allowed: marking a link starts it, a clock frame
+// advances it, reduced motion and unmarking stop it.
+void flow_starts_and_stops() {
+    Fixture fixture{};
+    NodeCanvas& canvas = *fixture.canvas;
+    MotionClock& clock = (*fixture.window).motion_clock();
+    fixture.paint();
+    require(!canvas.flow_running() && !clock.control_ambient(canvas), "with nothing flowing there are no frames");
+    require(canvas.set_link_flowing(fixture.link, true) && canvas.link_flowing(fixture.link), "the link flows");
+    require(!canvas.set_link_flowing(LinkId{99U, 1U}, true), "a stale link is refused");
+    fixture.paint();
+    require(canvas.flow_running() && canvas.statistics().flow_links_painted >= 1U,
+            "a shown flowing link enlists the flow and draws its marks");
+    static_cast<void>((*fixture.window).poll_frame_schedule(*(*fixture.window).next_wake()));
+    require(canvas.statistics().flow_frames == 1U, "a clock frame advances the flow");
+    fixture.paint();
+    require(canvas.flow_effect().counters().ticks > 0U, "the paint after a frame runs its ticks");
+
+    PresentationSettings settings = (*fixture.window).presentation_settings();
+    settings.reduced_motion = true;
+    (*fixture.window).set_presentation_settings(settings);
+    require(!canvas.flow_running(), "reduced motion stops the flow");
+    const std::uint64_t ticks = canvas.flow_effect().counters().ticks;
+    fixture.paint();
+    require(!canvas.flow_running() && canvas.flow_effect().counters().ticks == ticks,
+            "under reduced motion the marks stand still and nothing is enlisted");
+    settings.reduced_motion = false;
+    (*fixture.window).set_presentation_settings(settings);
+    fixture.paint();
+    require(canvas.flow_running(), "after reduced motion the next paint enlists it again");
+
+    require(canvas.set_link_flowing(fixture.link, false) && !canvas.link_flowing(fixture.link), "the link stops");
+    fixture.paint();
+    require(!canvas.flow_running() && !clock.control_ambient(canvas), "with nothing flowing the flow leaves the clock");
+}
+
 } // namespace
 
 int main() {
@@ -889,6 +975,9 @@ int main() {
     detach_mid_gesture();
     look_follows_the_theme();
     subclass_overrides_raisers();
+    focus_rings();
+    link_preview_states();
+    flow_starts_and_stops();
     std::cout << "gui_forms_node_canvas_tests passed\n";
     return 0;
 }

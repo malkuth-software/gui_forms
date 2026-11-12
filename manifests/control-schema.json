@@ -11644,7 +11644,11 @@
         {"name": "link", "role": "link", "composed_from": null, "states": ["hot", "selected", "invalid"]},
         {"name": "dashed_link", "role": "link", "composed_from": null, "states": ["hot", "selected", "invalid"]},
         {"name": "lamp", "role": "lamp", "composed_from": null, "states": ["checked", "invalid"]},
-        {"name": "marquee", "role": "marquee", "composed_from": null, "states": []}
+        {"name": "marquee", "role": "marquee", "composed_from": null, "states": []},
+        {"name": "port_label", "role": "label", "composed_from": null, "states": ["hot", "drop_accepted", "drop_rejected"]},
+        {"name": "focus", "role": "focus", "composed_from": null, "states": []},
+        {"name": "knife", "role": "marquee", "composed_from": null, "states": []},
+        {"name": "link_preview", "role": "link", "composed_from": null, "states": ["drop_accepted", "drop_rejected"]}
       ],
       "states": ["normal", "hot", "focused", "focus_visible", "selected", "checked", "enabled", "disabled", "invalid", "drop_accepted", "drop_rejected"],
       "custom_states": [],

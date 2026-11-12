@@ -30,10 +30,14 @@ inline constexpr std::size_t canvas_part_link = 7U;
 inline constexpr std::size_t canvas_part_dashed_link = 8U;
 inline constexpr std::size_t canvas_part_lamp = 9U;
 inline constexpr std::size_t canvas_part_marquee = 10U;
-inline constexpr std::size_t canvas_part_count = 11U;
+inline constexpr std::size_t canvas_part_port_label = 11U;
+inline constexpr std::size_t canvas_part_focus = 12U;
+inline constexpr std::size_t canvas_part_knife = 13U;
+inline constexpr std::size_t canvas_part_link_preview = 14U;
+inline constexpr std::size_t canvas_part_count = 15U;
 inline constexpr std::array<std::string_view, canvas_part_count> canvas_part_names{
-    "region", "grid_minor", "grid_major", "node",        "node_header", "node_selection",
-    "port",   "link",       "dashed_link", "lamp",       "marquee",
+    "region",  "grid_minor", "grid_major", "node",  "node_header", "node_selection", "port",         "link",
+    "dashed_link", "lamp",   "marquee",    "port_label", "focus",  "knife",          "link_preview",
 };
 
 // The table index of the anatomy part named `name`, or none for a part
@@ -132,6 +136,12 @@ inline constexpr std::size_t keyboard_link_tries = 16U;
     }
     // Automatic is resolved by effective_side; anything else stays put.
     return anchor;
+}
+
+// The flowing links' order: by slot, then generation.
+[[nodiscard]] inline bool link_before(LinkId left, LinkId right) noexcept {
+    if (left.index != right.index) return left.index < right.index;
+    return left.generation < right.generation;
 }
 
 [[nodiscard]] inline PortRef port_ref(std::uint32_t slot, const NodeRecord& node, std::size_t port) noexcept {

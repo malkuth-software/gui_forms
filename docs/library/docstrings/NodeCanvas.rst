@@ -54,6 +54,11 @@ focused_port
     The current port inside the focused node, or none.
 announcement
     The live region's current text.
+flow_running
+    Whether the flow is on the window's motion clock now.
+link_preview_state
+    The dragged link's preview state: seeking, accepted by the input that
+    captured it, or refused by the port under it; none without a drag.
 statistics
     Work counters: frames, nodes, links and ports painted, captions drawn
     and text too small to draw, index builds and in-place moves, gestures,
@@ -91,6 +96,13 @@ clear_grid_spacing
 canvas_look
     The theme's look the canvas paints from, resolved again only when its
     theme, colour scheme, contrast, classes or `back_color` change.
+set_link_flowing
+    Marks a link as carrying data: while it is shown, the theme's flow marks
+    travel along it (the link part's `flow`), on the window's motion clock
+    only while motion is neither reduced nor switched off. Refuses a stale
+    link; a removed link stops flowing.
+link_flowing
+    Whether a link is marked flowing.
 
 Notes
 -----
@@ -106,6 +118,12 @@ from the current output (arrows or a title's first letter choose the
 input, Enter connects), Delete removes the selection or a focused input's
 link, Ctrl+Z and Ctrl+Shift+Z undo and redo, Home frames the graph and F
 the selection.
+
+Each node, port and link is an item of the theme's `:item()` rules: a
+node's ID is its key, a port's is `<node key>.<port name>` with the class
+`socket-<socket type>`, and a link's is its key with its output's socket
+class, so a theme can colour ports and links by data type. Keyboard focus
+is drawn as the theme's focus ring around the focused node or port.
 
 A subclass may override the protected raisers (`on_selection_changed`,
 `on_link_connected`, `on_graph_edited`, `on_view_changed`,

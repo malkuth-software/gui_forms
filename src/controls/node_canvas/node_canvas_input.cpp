@@ -95,6 +95,7 @@ void NodeCanvas::settle_unplanned_gesture() {
     }
     gesture_ = NodeCanvasGesture::none;
     link_hit_.reset();
+    link_refused_ = false;
 }
 
 void NodeCanvas::start_gesture(NodeCanvasGesture gesture, const MouseEventArgs& arguments, Rect window_source,
@@ -105,6 +106,7 @@ void NodeCanvas::start_gesture(NodeCanvasGesture gesture, const MouseEventArgs& 
     current_view_ = arguments.location;
     pan_last_ = Point{window_source.x, window_source.y};
     link_hit_.reset();
+    link_refused_ = false;
     DragStart start{};
     start.key = static_cast<std::uint64_t>(gesture);
     start.source = window_source;
@@ -333,8 +335,13 @@ void NodeCanvas::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
         gesture_ = NodeCanvasGesture::none;
         gesture_planned_ = false;
         link_hit_.reset();
+        link_refused_ = false;
     }
     keyboard_link_ = false;
+    // The flow leaves the former window's clock, and its presentation
+    // changes stop reaching the canvas.
+    presentation_subscription_.disconnect();
+    former_window.motion_clock().withdraw_control_ambient(*this);
     Control::on_detaching_from_window(former_window);
 }
 
@@ -458,6 +465,14 @@ void NodeCanvas::preview_drag(const DragTrackerFrame& frame) {
         // The subject is the 2 x 2 square about the press: its centre is the
         // dangling end.
         current_view_ = Point{top_left.x + 1.0, top_left.y + 1.0};
+        // Uncaptured over a port other than its own: that port refuses it
+        // (the magnet captures every port that accepts).
+        link_refused_ = false;
+        if (!link_hit_.has_value()) {
+            const NodeCanvasHit under = hit_test(current_view_);
+            const bool own = under.node == link_from_.node && under.port == link_from_.port;
+            link_refused_ = under.kind == NodeCanvasHitKind::port && !own;
+        }
         invalidate(Dirty::paint);
         return;
     }
@@ -568,6 +583,7 @@ void NodeCanvas::finish_drag(const DragTrackerFrame& frame) {
     close_gesture_group(false);
     gesture_planned_ = false;
     link_hit_.reset();
+    link_refused_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 

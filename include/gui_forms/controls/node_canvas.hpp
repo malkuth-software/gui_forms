@@ -70,6 +70,20 @@
 // DragTracker is declared last so that it ends first. An editor the
 // application hands the canvas is its child until the edit ends.
 //
+// Items: each node, port and link is an item of the theme's `:item()`
+// rules. A node's ID is its key; a port's is "<node key>.<port name>" with
+// the class "socket-<socket type>"; a link's ID is its key with its output
+// port's socket class. The canvas resolves an item's look the first time
+// it shows the item after the canvas look changed, and keeps the parts the
+// item draws (one record per node with its ports, one per link).
+//
+// Flow: links the application marks flowing (set_link_flowing) carry the
+// theme's flow marks (LinkFlow, link_flow_effects.hpp), drawn over the
+// link layer in link_flow_mark_colour. The canvas enlists the effect on the
+// window's motion clock only while a flowing link is shown, the theme's
+// flow has marks and speed, and motion is neither reduced nor switched
+// off; otherwise the marks stand still and no frames run.
+//
 // Subclassing: the class is not final. Each event is raised through a
 // protected raiser (on_selection_changed, on_link_connected,
 // on_graph_edited, on_view_changed, on_palette_requested, on_edit_ended)
@@ -81,11 +95,14 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/link_flow_effects.hpp"
 #include "gui_forms/controls/link_router.hpp"
 #include "gui_forms/controls/node_graph.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/drag/drag_tracker/drag_tracker.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/scene/scene_view/scene_view.hpp"
 #include "gui_forms/scene/spatial_index/spatial_index.hpp"
 #include "gui_forms/theme/canvas_look/canvas_look.hpp"
@@ -103,6 +120,7 @@
 namespace gui_forms {
 
 class Painter;
+struct PresentationSettings;
 
 // -- values ------------------------------------------------------------------------
 
@@ -255,6 +273,10 @@ struct GUI_FORMS_API NodeCanvasStatistics final {
     std::uint64_t clicks_suppressed{};
     std::uint64_t key_presses_suppressed{};
     std::uint64_t level_transitions{};
+    std::uint64_t focus_rings_painted{};
+    std::uint64_t item_looks_resolved{};
+    std::uint64_t flow_frames{};
+    std::uint64_t flow_links_painted{};
     std::size_t last_frame_nodes{};
     std::size_t last_frame_links{};
     SceneDetailLevel level{SceneDetailLevel::full};
@@ -333,6 +355,20 @@ public:
     [[nodiscard]] const CanvasLook& canvas_look();
     void set_snap_to_grid(bool snap) noexcept { snap_ = snap; }
     [[nodiscard]] bool snap_to_grid() const noexcept { return snap_; }
+
+    // -- flow -------------------------------------------------------------------
+    // Marks `link` flowing or not; false (no change) for a stale link. A
+    // link that is removed stops flowing.
+    bool set_link_flowing(LinkId link, bool flowing);
+    [[nodiscard]] bool link_flowing(LinkId link) const noexcept;
+    // Whether the flow is enlisted on the window's motion clock now.
+    [[nodiscard]] bool flow_running() const noexcept;
+    // The flow's effect instance: its counters, for diagnostics and tests.
+    [[nodiscard]] const EffectInstance& flow_effect() const noexcept { return flow_; }
+    // The dragged link's preview state, or none while no link is dragged:
+    // seeking a port, captured by one that accepts it, or over a port that
+    // refuses it.
+    [[nodiscard]] std::optional<CanvasPreviewState> link_preview_state() const noexcept;
 
     // -- selection and focus ---------------------------------------------------
     [[nodiscard]] std::span<const NodeId> selection() const& noexcept {
@@ -457,6 +493,11 @@ protected:
     void on_key_up(KeyEventArgs& arguments) override;
     void on_context_menu_requested(ContextMenuRequest& request) override;
     void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
+    void on_attached_to_window() override;
+    // The flow's frame (MotionClock::enlist_control_ambient): its ticks due
+    // at `now` and the canvas invalidated; false when the canvas was not
+    // painted since its last frame.
+    bool on_ambient_frame(FrameTime now) override;
 
 private:
     // One magnet or keyboard-link candidate: a compatible free input.
@@ -528,7 +569,20 @@ private:
     void paint_node(Painter& painter, std::uint32_t slot, const NodeRecord& node);
     void paint_ports(Painter& painter, std::uint32_t slot, const NodeRecord& node);
     void paint_overlay(Painter& painter);
+    void paint_flow(Painter& painter);
     [[nodiscard]] CanvasPortState port_state(std::uint32_t slot, std::size_t port) const;
+    // Item looks (node_canvas_paint.cpp): the kept parts of a node (with
+    // its ports) or a link, resolved when stale, and copied into
+    // item_look_ for one paint_canvas_ call.
+    void resolve_node_look(std::uint32_t slot, const NodeRecord& node);
+    void resolve_link_look(std::uint32_t slot, const LinkRecord& link);
+    [[nodiscard]] const CanvasLook& node_look(std::uint32_t slot, const NodeRecord& node);
+    [[nodiscard]] const CanvasLook& port_look(std::uint32_t slot, const NodeRecord& node, std::size_t port);
+    [[nodiscard]] const CanvasLook& link_look(std::uint32_t slot, const LinkRecord& link);
+    // Flow motion (node_canvas_paint.cpp).
+    [[nodiscard]] bool flow_moves() const noexcept;
+    void update_flow_ambient(bool painting);
+    void on_presentation_changed(const PresentationSettings& settings);
 
     NodeGraph* graph_{};
     NodeCanvasCallbacks callbacks_{};
@@ -558,6 +612,59 @@ private:
     bool look_high_contrast_{};
     std::optional<Color> look_back_color_{};
     std::vector<std::string> look_classes_{};
+    // Bumped at each resolution of look_: an item record of another stamp
+    // is stale.
+    std::uint64_t look_stamp_{1U};
+    // The look one item paint call reads: look_ with the item's kept parts
+    // written over it (each call writes every field it reads).
+    CanvasLook item_look_{};
+
+    // A port's kept parts (its item look's port, label, lamp, focus and
+    // link preview records).
+    struct PortItemLook final {
+        std::array<CanvasArea, canvas_port_state_count> ports{};
+        std::array<Color, canvas_port_state_count> labels{};
+        std::array<CanvasArea, canvas_lamp_state_count> lamps{};
+        CanvasArea focus{};
+        std::array<CanvasLine, canvas_preview_state_count> previews{};
+    };
+    // A node's kept parts, and its ports' in port order; valid while
+    // `stamp` is look_stamp_, `generation` the node's and the port count
+    // the node's.
+    struct NodeItemLook final {
+        std::array<CanvasArea, canvas_node_state_count> nodes{};
+        std::array<CanvasArea, canvas_node_state_count> headers{};
+        std::array<Color, canvas_node_state_count> titles{};
+        CanvasArea selection{};
+        CanvasArea focus{};
+        std::vector<PortItemLook> ports{};
+        std::uint64_t stamp{};
+        std::uint32_t generation{};
+    };
+    // A link's kept parts, valid as a node's.
+    struct LinkItemLook final {
+        std::array<CanvasLine, canvas_link_state_count> links{};
+        std::array<CanvasLine, canvas_link_state_count> dashed_links{};
+        std::uint64_t stamp{};
+        std::uint32_t generation{};
+    };
+    // One record per node slot and per link slot, sized at the cache
+    // rebuilds (resized, so kept records survive a rebuild).
+    std::vector<NodeItemLook> node_looks_{};
+    std::vector<LinkItemLook> link_looks_{};
+    // Item resolution's scratch: the item ID and its one class.
+    std::string item_id_{};
+    std::vector<std::string> item_classes_{};
+
+    // The flow: the flowing links (sorted by slot), the effect and its
+    // snapshot (filled by paint_links, read by paint_flow), and the paint
+    // counts its frames compare.
+    std::vector<LinkId> flowing_{};
+    EffectInstance flow_{};
+    EffectView<NodeCanvas> flow_view_{};
+    std::uint64_t flow_paints_{};
+    std::uint64_t flow_paints_seen_{~std::uint64_t{0}};
+    SubscriptionToken presentation_subscription_{};
 
     // Caches keyed on the graph's revision (and the link style for links).
     LinkRouter router_{};
@@ -591,6 +698,8 @@ private:
     bool gesture_group_open_{};
     PortRef link_from_{};
     std::optional<std::uint32_t> link_hit_{};
+    // The dangling end is over a port that refuses the link (no target).
+    bool link_refused_{};
     std::optional<NodeId> pending_click_select_{};
     bool knife_finished_{};
     bool space_held_{};

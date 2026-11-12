@@ -622,6 +622,14 @@ Related types
 
    .. cpp:member:: std::uint64_t level_transitions
 
+   .. cpp:member:: std::uint64_t focus_rings_painted
+
+   .. cpp:member:: std::uint64_t item_looks_resolved
+
+   .. cpp:member:: std::uint64_t flow_frames
+
+   .. cpp:member:: std::uint64_t flow_links_painted
+
    .. cpp:member:: std::size_t last_frame_nodes
 
    .. cpp:member:: std::size_t last_frame_links

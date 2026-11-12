@@ -62,6 +62,16 @@ void append_decimal(std::string& text, std::uint64_t value) {
     return read;
 }
 
+// A flowing link whose record is gone (removed, or its slot reused).
+class StaleFlow final {
+public:
+    explicit StaleFlow(const NodeGraph& graph) noexcept : graph_(graph) {}
+    [[nodiscard]] bool operator()(LinkId link) const noexcept { return graph_.link(link) == nullptr; }
+
+private:
+    const NodeGraph& graph_;
+};
+
 // The events NodeCanvas adds to those of Control, in declaration order.
 constexpr std::array<InteractionDeclaration, 6> node_canvas_interactions{{
     {.name = "selection_changed", .payload = "NodeCanvasSelection", .mutable_payload = false},
@@ -302,6 +312,42 @@ const CanvasLook& NodeCanvas::canvas_look() {
     return look_;
 }
 
+// -- flow -----------------------------------------------------------------------------------
+
+bool NodeCanvas::set_link_flowing(LinkId link, bool flowing) {
+    if (graph_ == nullptr || in_callback_ || (*graph_).link(link) == nullptr) return false;
+    const std::vector<LinkId>::iterator place = std::lower_bound(flowing_.begin(), flowing_.end(), link, link_before);
+    const bool present = place != flowing_.end() && *place == link;
+    if (flowing && !present) flowing_.insert(place, link);
+    if (!flowing && present) flowing_.erase(place);
+    // The next paint fills the flow's snapshot and enlists or withdraws it.
+    invalidate(Dirty::paint);
+    return true;
+}
+
+bool NodeCanvas::link_flowing(LinkId link) const noexcept {
+    const bool present = std::binary_search(flowing_.begin(), flowing_.end(), link, link_before);
+    if (!present || graph_ == nullptr) return false;
+    return (*graph_).link(link) != nullptr;
+}
+
+bool NodeCanvas::flow_running() const noexcept {
+    const SurfaceRoot* const root = attached_surface_root();
+    if (root == nullptr) return false;
+    return (*root).motion_clock().control_ambient(*this);
+}
+
+std::optional<CanvasPreviewState> NodeCanvas::link_preview_state() const noexcept {
+    const bool linking = (gesture_ == NodeCanvasGesture::link && gesture_planned_) || keyboard_link_;
+    if (!linking) return std::nullopt;
+    if (keyboard_link_ && keyboard_target_ < candidates_.size()) return CanvasPreviewState::accepted;
+    if (!keyboard_link_ && link_hit_.has_value() && *link_hit_ < candidates_.size()) {
+        return CanvasPreviewState::accepted;
+    }
+    if (link_refused_) return CanvasPreviewState::refused;
+    return CanvasPreviewState::seeking;
+}
+
 // -- caches ---------------------------------------------------------------------------------
 
 bool NodeCanvas::fresh_caches() const noexcept {
@@ -379,6 +425,13 @@ void NodeCanvas::rebuild_node_cache() {
     overview_rects_.reserve(live_nodes);
     overview_selected_.reserve(live_nodes);
     candidate_flags_.assign(nodes.size(), 0U);
+    // Item looks: one record per slot, kept across rebuilds (a record
+    // checks its node's or link's generation before use).
+    node_looks_.resize(nodes.size());
+    link_looks_.resize(links.size());
+    // A removed link stops flowing.
+    const std::vector<LinkId>::iterator stale = std::remove_if(flowing_.begin(), flowing_.end(), StaleFlow(graph));
+    flowing_.erase(stale, flowing_.end());
     refresh_selection_flags();
     node_cache_revision_ = graph.revision();
 }
@@ -1320,6 +1373,13 @@ void NodeCanvas::publish_part_geometry(std::span<PartGeometry> geometry) const {
             break;
         }
     }
+    if (gesture_planned_ && gesture_ == NodeCanvasGesture::knife) {
+        bounds[canvas_part_knife] = Rect{std::min(press_view_.x, current_view_.x), std::min(press_view_.y, current_view_.y),
+                                         std::fabs(current_view_.x - press_view_.x),
+                                         std::fabs(current_view_.y - press_view_.y)};
+    }
+    if (focused_ && node == nullptr) bounds[canvas_part_focus] = client;
+    if (node != nullptr) bounds[canvas_part_focus] = inflated(bounds[canvas_part_node].value_or(client), canvas_focus_gap);
     const LinkRecord* link = graph_ != nullptr && selected_link_.has_value() ? (*graph_).link(*selected_link_) : nullptr;
     if (link != nullptr) {
         const WorldRect world = link_world_bounds((*selected_link_).index, *link);

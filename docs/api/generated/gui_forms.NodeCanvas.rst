@@ -70,6 +70,16 @@ gui_forms::NodeCanvas
          Whether moves snap to the grid (on by default; Ctrl inverts it during a
          drag).
 
+      **flow_running** : ``bool``, read-only
+         Whether the flow is on the window's motion clock now.
+
+      **flow_effect** : ``EffectInstance``, read-only
+         The flow's effect instance: its counters, for diagnostics and tests.
+
+      **link_preview_state** : ``std::optional<CanvasPreviewState>``, read-only
+         The dragged link's preview state: seeking, accepted by the input that
+         captured it, or refused by the port under it; none without a drag.
+
       **selection** : ``std::span<const NodeId>``, read-only
          The selected nodes, or a selected link. A press selects, Shift adds,
          Ctrl toggles; a drag on empty canvas draws a marquee that selects the
@@ -157,6 +167,8 @@ gui_forms::NodeCanvas
         - The grid's spacing in world units, which is also the snap cell of a move: the canvas's own when set, else the theme's (16 in the GUI.Forms theme).
       * - :cpp:func:`canvas_look <gui_forms::NodeCanvas::canvas_look>`
         - The theme's look the canvas paints from, resolved again only when its theme, colour scheme, contrast, classes or ``back_color`` change.
+      * - :cpp:func:`link_flowing <gui_forms::NodeCanvas::link_flowing>`
+        - Whether a link is marked flowing.
       * - :cpp:func:`selected <gui_forms::NodeCanvas::selected>`
         -  
       * - :cpp:func:`select_only <gui_forms::NodeCanvas::select_only>`
@@ -199,6 +211,8 @@ gui_forms::NodeCanvas
         - A port's anchor in local units, or none for a stale port.
       * - :cpp:func:`set_grid_spacing <gui_forms::NodeCanvas::set_grid_spacing>`
         - Sets the canvas's own spacing; refuses one that is not finite or is under one unit.
+      * - :cpp:func:`set_link_flowing <gui_forms::NodeCanvas::set_link_flowing>`
+        - Marks a link as carrying data: while it is shown, the theme's flow marks travel along it (the link part's ``flow``), on the window's motion clock only while motion is neither reduced nor switched off.
 
    .. rubric:: Notes
 
@@ -214,6 +228,12 @@ gui_forms::NodeCanvas
    input, Enter connects), Delete removes the selection or a focused input's
    link, Ctrl+Z and Ctrl+Shift+Z undo and redo, Home frames the graph and F
    the selection.
+
+   Each node, port and link is an item of the theme's ``:item()`` rules: a
+   node's ID is its key, a port's is ``<node key>.<port name>`` with the class
+   ``socket-<socket type>``, and a link's is its key with its output's socket
+   class, so a theme can colour ports and links by data type. Keyboard focus
+   is drawn as the theme's focus ring around the focused node or port.
 
    A subclass may override the protected raisers (``on_selection_changed``,
    ``on_link_connected``, ``on_graph_edited``, ``on_view_changed``,
@@ -295,6 +315,19 @@ gui_forms::NodeCanvas
    .. cpp:function:: void set_snap_to_grid(bool snap) noexcept
 
       Sets :cpp:func:`snap_to_grid <gui_forms::NodeCanvas::snap_to_grid>`; see the property's description above.
+
+   .. cpp:function:: bool flow_running() const noexcept
+
+      Whether the flow is on the window's motion clock now.
+
+   .. cpp:function:: const EffectInstance& flow_effect() const noexcept
+
+      The flow's effect instance: its counters, for diagnostics and tests.
+
+   .. cpp:function:: std::optional<CanvasPreviewState> link_preview_state() const noexcept
+
+      The dragged link's preview state: seeking, accepted by the input that
+      captured it, or refused by the port under it; none without a drag.
 
    .. cpp:function:: std::span<const NodeId> selection() const& noexcept
 
@@ -406,6 +439,10 @@ gui_forms::NodeCanvas
       The theme's look the canvas paints from, resolved again only when its
       theme, colour scheme, contrast, classes or ``back_color`` change.
 
+   .. cpp:function:: bool link_flowing(LinkId link) const noexcept
+
+      Whether a link is marked flowing.
+
    .. cpp:function:: bool selected(NodeId node) const noexcept
 
    .. cpp:function:: void select_only(NodeId node)
@@ -470,6 +507,13 @@ gui_forms::NodeCanvas
 
       Sets the canvas's own spacing; refuses one that is not finite or is
       under one unit.
+
+   .. cpp:function:: bool set_link_flowing(LinkId link, bool flowing)
+
+      Marks a link as carrying data: while it is shown, the theme's flow marks
+      travel along it (the link part's ``flow``), on the window's motion clock
+      only while motion is neither reduced nor switched off. Refuses a stale
+      link; a removed link stops flowing.
 
 
    .. rubric:: Extension points
@@ -572,6 +616,16 @@ gui_forms::NodeCanvas
 
       *Protected.*
 
+   .. cpp:function:: void on_attached_to_window() override
+
+      *Protected.*
+
+   .. cpp:function:: bool on_ambient_frame(FrameTime now) override
+
+      *Protected.*
+
+      The flow's frame (MotionClock::enlist_control_ambient): its ticks due at ``now`` and the canvas invalidated; false when the canvas was not painted since its last frame.
+
    .. cpp:member:: constexpr double default_grid_spacing
 
       World units between grid lines at level 0, and the snap grid's cell, until the theme's look (the region's grid-spacing) is resolved. Default: ``16.0``.
@@ -610,7 +664,7 @@ gui_forms::NodeCanvas
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 48 supported, 0 deferred, 0 excluded, 16 unclassified; 64 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 53 supported, 0 deferred, 0 excluded, 16 unclassified; 69 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -651,6 +705,14 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 48 s
      - supported
    * - property
      - GUI.Forms-only
+     - ``flow_effect``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flow_running``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``focused_node``
      - supported
    * - property
@@ -669,6 +731,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 48 s
      - GUI.Forms-only
      - ``link_index_statistics``
      - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``link_preview_state``
+     - supported
    * - property
      - GUI.Forms-only
      - ``link_style``
@@ -787,6 +853,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 48 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``link_flowing``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``link_to_nearest``
      - unclassified (untested)
    * - method
@@ -864,6 +934,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 48 s
    * - method
      - GUI.Forms-only
      - ``set_grid_spacing``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_link_flowing``
      - supported
    * - method
      - GUI.Forms-only

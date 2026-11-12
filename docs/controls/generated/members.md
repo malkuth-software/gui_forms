@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2083 | 13 | 367 | 4116 | 2188 |
+| 2088 | 13 | 367 | 4116 | 2193 |
 
 ## GUI.Forms types
 
@@ -138,7 +138,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `RibbonToolTip` | GUI.Forms-only | 15 | 0 | 0 | 0 | 15 |
 | `DrawingSurface` | GUI.Forms-only | 2 | 0 | 0 | 0 | 2 |
 | `RasterCanvas` | GUI.Forms-only | 8 | 0 | 0 | 1 | 9 |
-| `NodeCanvas` | GUI.Forms-only | 48 | 0 | 0 | 16 | 64 |
+| `NodeCanvas` | GUI.Forms-only | 53 | 0 | 0 | 16 | 69 |
 | `LiveSurface` | GUI.Forms-only | 10 | 0 | 0 | 0 | 10 |
 | `SubSurfaceHost` | GUI.Forms-only | 14 | 0 | 0 | 1 | 15 |
 | `MetricsView` | GUI.Forms-only | 1 | 0 | 0 | 0 | 1 |
