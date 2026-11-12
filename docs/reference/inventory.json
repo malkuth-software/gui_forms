@@ -344552,6 +344552,162 @@
       "enclosing_type": null
     },
     {
+      "id": "gui_forms::abi::ClassesTable",
+      "name": "ClassesTable",
+      "namespace": "gui_forms::abi",
+      "kind": "class",
+      "header": "gui_forms/c/gf_abi.hpp",
+      "source": "include/gui_forms/c/gf_abi.hpp",
+      "line": 2876,
+      "declaration": "class ClassesTable",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::abi::ClassesTable::ClassesTable|void () noexcept",
+          "name": "ClassesTable",
+          "type": "void () noexcept",
+          "namespace": "gui_forms::abi::ClassesTable",
+          "kind": "CXXConstructorDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "ClassesTable() noexcept",
+          "comment": "",
+          "header": "gui_forms/c/gf_abi.hpp",
+          "source": "include/gui_forms/c/gf_abi.hpp",
+          "line": 2878,
+          "page": "gui-forms-abi-classestable-classestable-void-noexcept-1cd47b6583.html"
+        },
+        {
+          "id": "gui_forms::abi::ClassesTable::negotiate|gf_status (ClassesTable &) noexcept",
+          "name": "negotiate",
+          "type": "gf_status (ClassesTable &) noexcept",
+          "namespace": "gui_forms::abi::ClassesTable",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "output",
+              "type": "ClassesTable &",
+              "declaration": "ClassesTable& output"
+            }
+          ],
+          "declaration": "[[nodiscard]] static gf_status negotiate(ClassesTable& output) noexcept",
+          "comment": "",
+          "header": "gui_forms/c/gf_abi.hpp",
+          "source": "include/gui_forms/c/gf_abi.hpp",
+          "line": 2882,
+          "page": "gui-forms-abi-classestable-negotiate-gf-status-classestable-noexcept-6e60f589d4.html"
+        },
+        {
+          "id": "gui_forms::abi::ClassesTable::adopt|ClassesTable (const gf_classes_table &) noexcept",
+          "name": "adopt",
+          "type": "ClassesTable (const gf_classes_table &) noexcept",
+          "namespace": "gui_forms::abi::ClassesTable",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "adopted_table",
+              "type": "const gf_classes_table &",
+              "declaration": "const gf_classes_table& adopted_table"
+            }
+          ],
+          "declaration": "[[nodiscard]] static ClassesTable adopt(const gf_classes_table& adopted_table) noexcept",
+          "comment": "",
+          "header": "gui_forms/c/gf_abi.hpp",
+          "source": "include/gui_forms/c/gf_abi.hpp",
+          "line": 2895,
+          "page": "gui-forms-abi-classestable-adopt-classestable-const-gf-classes-table-noexcept-2adca143d9.html"
+        },
+        {
+          "id": "gui_forms::abi::ClassesTable::c_table|const gf_classes_table &() const noexcept",
+          "name": "c_table",
+          "type": "const gf_classes_table &() const noexcept",
+          "namespace": "gui_forms::abi::ClassesTable",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] const gf_classes_table& c_table() const noexcept",
+          "comment": "",
+          "header": "gui_forms/c/gf_abi.hpp",
+          "source": "include/gui_forms/c/gf_abi.hpp",
+          "line": 2901,
+          "page": "gui-forms-abi-classestable-c-table-const-gf-classes-table-const-noexcept-1c5e10ae5e.html"
+        },
+        {
+          "id": "gui_forms::abi::ClassesTable::create|gf_status (const gf_class_header *, gf_utf8_view, void *, gf_object *) const noexcept",
+          "name": "create",
+          "type": "gf_status (const gf_class_header *, gf_utf8_view, void *, gf_object *) const noexcept",
+          "namespace": "gui_forms::abi::ClassesTable",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "table",
+              "type": "const gf_class_header *",
+              "declaration": "const gf_class_header* table"
+            },
+            {
+              "name": "stable_id",
+              "type": "gf_utf8_view",
+              "declaration": "gf_utf8_view stable_id"
+            },
+            {
+              "name": "instance",
+              "type": "void *",
+              "declaration": "void* instance"
+            },
+            {
+              "name": "object",
+              "type": "gf_object *",
+              "declaration": "gf_object* object"
+            }
+          ],
+          "declaration": "[[nodiscard]] gf_status create(const gf_class_header* table, gf_utf8_view stable_id, void* instance, gf_object* object) const noexcept",
+          "comment": "",
+          "header": "gui_forms/c/gf_abi.hpp",
+          "source": "include/gui_forms/c/gf_abi.hpp",
+          "line": 2903,
+          "page": "gui-forms-abi-classestable-create-gf-status-const-gf-class-header-gf-utf8-view-void-gf-object-const-noexcept-faebe46157.html"
+        },
+        {
+          "id": "gui_forms::abi::ClassesTable::base_raiser|gf_status (gf_class_id, uint32_t, gf_base_raiser *) const noexcept",
+          "name": "base_raiser",
+          "type": "gf_status (gf_class_id, uint32_t, gf_base_raiser *) const noexcept",
+          "namespace": "gui_forms::abi::ClassesTable",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "class_id",
+              "type": "gf_class_id",
+              "declaration": "gf_class_id class_id"
+            },
+            {
+              "name": "entry",
+              "type": "uint32_t",
+              "declaration": "uint32_t entry"
+            },
+            {
+              "name": "raiser",
+              "type": "gf_base_raiser *",
+              "declaration": "gf_base_raiser* raiser"
+            }
+          ],
+          "declaration": "[[nodiscard]] gf_status base_raiser(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser) const noexcept",
+          "comment": "",
+          "header": "gui_forms/c/gf_abi.hpp",
+          "source": "include/gui_forms/c/gf_abi.hpp",
+          "line": 2912,
+          "page": "gui-forms-abi-classestable-base-raiser-gf-status-gf-class-id-uint32-t-gf-base-raiser-const-noexcept-1835999f6c.html"
+        }
+      ],
+      "page": "gui-forms-abi-classestable-970ffc3133.html",
+      "enclosing_type": null
+    },
+    {
       "id": "gui_forms::abi::ControlsTable",
       "name": "ControlsTable",
       "namespace": "gui_forms::abi",
@@ -348585,7 +348741,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 2877,
+      "line": 2926,
       "declaration": "class ObjectReference",
       "comment": "",
       "access": "public",
@@ -348603,7 +348759,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2879,
+          "line": 2928,
           "page": "gui-forms-abi-objectreference-objectreference-void-noexcept-0b4d929fc2.html"
         },
         {
@@ -348629,7 +348785,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2880,
+          "line": 2929,
           "page": "gui-forms-abi-objectreference-objectreference-void-const-objectstable-gf-object-noexcept-dc8257fb6c.html"
         },
         {
@@ -348650,7 +348806,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2881,
+          "line": 2930,
           "page": "gui-forms-abi-objectreference-objectreference-void-const-objectreference-0e3740c3b6.html"
         },
         {
@@ -348671,7 +348827,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2882,
+          "line": 2931,
           "page": "gui-forms-abi-objectreference-operator-objectreference-const-objectreference-641d28d205.html"
         },
         {
@@ -348692,7 +348848,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2883,
+          "line": 2932,
           "page": "gui-forms-abi-objectreference-objectreference-void-objectreference-noexcept-064e4c6de4.html"
         },
         {
@@ -348713,7 +348869,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2887,
+          "line": 2936,
           "page": "gui-forms-abi-objectreference-operator-objectreference-objectreference-noexcept-4b0eeb8759.html"
         },
         {
@@ -348728,7 +348884,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2897,
+          "line": 2946,
           "page": "gui-forms-abi-objectreference-objectreference-void-noexcept-75b454d5b2.html"
         },
         {
@@ -348743,7 +348899,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2899,
+          "line": 2948,
           "page": "gui-forms-abi-objectreference-get-gf-object-const-noexcept-425fa49d0e.html"
         },
         {
@@ -348758,7 +348914,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2902,
+          "line": 2951,
           "page": "gui-forms-abi-objectreference-detach-gf-object-noexcept-6688766ad2.html"
         },
         {
@@ -348773,7 +348929,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2911,
+          "line": 2960,
           "page": "gui-forms-abi-objectreference-reset-gf-status-noexcept-071327f908.html"
         }
       ],
@@ -351370,7 +351526,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 2930,
+      "line": 2979,
       "declaration": "class SubscriptionReference",
       "comment": "",
       "access": "public",
@@ -351388,7 +351544,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2932,
+          "line": 2981,
           "page": "gui-forms-abi-subscriptionreference-subscriptionreference-void-noexcept-27137fbd06.html"
         },
         {
@@ -351414,7 +351570,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2933,
+          "line": 2982,
           "page": "gui-forms-abi-subscriptionreference-subscriptionreference-void-const-eventstable-gf-subscription-noexcept-089c861b08.html"
         },
         {
@@ -351435,7 +351591,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2935,
+          "line": 2984,
           "page": "gui-forms-abi-subscriptionreference-subscriptionreference-void-const-subscriptionreference-d0c4705207.html"
         },
         {
@@ -351456,7 +351612,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2936,
+          "line": 2985,
           "page": "gui-forms-abi-subscriptionreference-operator-subscriptionreference-const-subscriptionreference-cdc6cf6cff.html"
         },
         {
@@ -351477,7 +351633,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2937,
+          "line": 2986,
           "page": "gui-forms-abi-subscriptionreference-subscriptionreference-void-subscriptionreference-noexcept-db7eec1d53.html"
         },
         {
@@ -351498,7 +351654,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2942,
+          "line": 2991,
           "page": "gui-forms-abi-subscriptionreference-operator-subscriptionreference-subscriptionreference-noexcept-f668c6e2d6.html"
         },
         {
@@ -351513,7 +351669,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2952,
+          "line": 3001,
           "page": "gui-forms-abi-subscriptionreference-subscriptionreference-void-noexcept-691aa695c3.html"
         },
         {
@@ -351528,7 +351684,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2954,
+          "line": 3003,
           "page": "gui-forms-abi-subscriptionreference-get-gf-subscription-const-noexcept-0b29c04de3.html"
         },
         {
@@ -351543,7 +351699,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 2958,
+          "line": 3007,
           "page": "gui-forms-abi-subscriptionreference-reset-gf-status-noexcept-620b7924d3.html"
         }
       ],
