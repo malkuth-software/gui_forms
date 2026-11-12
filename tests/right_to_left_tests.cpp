@@ -112,6 +112,18 @@ void test_resolution_through_the_parent_chain() {
                 layout_direction_of(RightToLeft::no) == LayoutDirection::left_to_right &&
                 layout_direction_of(RightToLeft::inherit) == LayoutDirection::inherit,
             "the two spellings convert both ways");
+
+    // Owner ruling of 2026-11-11: right_to_left is the spelling the
+    // property grid shows and serialization writes; layout_direction is
+    // storage, hidden from both.
+    const std::optional<PropertyDescriptor> spelled = (*root).property_descriptor("right_to_left");
+    const std::optional<PropertyDescriptor> stored = (*root).property_descriptor("layout_direction");
+    require(spelled && (*spelled).browsable &&
+                (*spelled).serialization_visibility == PropertySerializationVisibility::visible,
+            "right_to_left is browsable and serialized");
+    require(stored && !(*stored).browsable &&
+                (*stored).serialization_visibility == PropertySerializationVisibility::hidden,
+            "layout_direction is hidden storage");
 }
 
 void test_change_event_scope_and_order() {

@@ -992,11 +992,13 @@ public:
     // callback). False by default, which keeps every existing container's
     // measure pass unchanged.
     [[nodiscard]] virtual bool measures_children_in_arrange() const noexcept;
-    // layout_direction is the authored inline direction, `inherit` by
-    // default (stage L, PLAN section 4): Windows Forms' RightToLeft, which
-    // the registry also publishes as `right_to_left` (No, Yes, Inherit;
-    // RightToLeft in layout_types.hpp). Writing it re-arranges and
-    // repaints every control whose resolved direction changes.
+    // layout_direction stores the authored inline direction, `inherit` by
+    // default (stage L, PLAN section 4): Windows Forms' RightToLeft. The
+    // registry, the property grid and forms spell it `right_to_left` (No,
+    // Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of
+    // 2026-11-11); the `layout_direction` name is hidden there and refused
+    // in forms. Writing it re-arranges and repaints every control whose
+    // resolved direction changes.
     // The direction this control lays out in: its own when not `inherit`,
     // otherwise the nearest ancestor's, and left to right at a root (the
     // top-level window's default, No). Kept resolved: a read walks nothing;

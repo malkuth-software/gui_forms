@@ -529,8 +529,41 @@ void test_string_escapes() {
 
 } // namespace
 
+// Owner ruling of 2026-11-11: a form writes Windows Forms' RightToLeft
+// as `right-to-left` (no, yes, inherit); `layout-direction`, its storage,
+// is refused (E820) with the spelling to write and the value mapping.
+void test_right_to_left_spelling() {
+    const FormSchema schema = sample_schema();
+    Workspace workspace{};
+    FormModel model{};
+    const std::string_view accepted = "user-control app.root {\n"
+                                      "  check-box app.a { right-to-left: yes; }\n"
+                                      "}\n";
+    require(build(workspace, accepted, schema, model) == FormModelOutcome::model_built,
+            "right-to-left: the RightToLeft spelling builds");
+    const FormProperty* spelled = find_property(model, schema, 1U, "right_to_left");
+    require(spelled != nullptr && std::get<PropertyEnumValue>((*spelled).value).name == "yes" &&
+                std::get<PropertyEnumValue>((*spelled).value).value == 1,
+            "right-to-left: `yes` is RightToLeft.Yes");
+    const std::string_view refused = "user-control app.root {\n"                          // 1
+                                     "  check-box app.b { layout-direction: right-to-left; }\n" // 2 E820
+                                     "}\n";
+    const std::array<ExpectedDiagnostic, 1> expected{{
+        {DiagnosticCode::form_property_renamed, 2U, 21U},
+    }};
+    require(build(workspace, refused, schema, model) == FormModelOutcome::refused,
+            "right-to-left: layout-direction is refused");
+    check_diagnostics(workspace, expected, "right-to-left: one E820 at the property");
+    const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
+    require(records.size() == 1U && records[0].detail.find("right-to-left") != std::string::npos &&
+                records[0].detail.find("left-to-right is no") != std::string::npos &&
+                records[0].detail.find("right-to-left is yes") != std::string::npos,
+            "right-to-left: the refusal names the spelling and the value mapping");
+}
+
 int main() {
     test_valid_document();
+    test_right_to_left_spelling();
     test_defects_reported_together();
     test_bindings();
     test_roots();
@@ -542,6 +575,6 @@ int main() {
         return 1;
     }
     std::cout << "form model: objects, values of every expressible kind, bindings, located defects, refusal, "
-                 "roots and string escapes passed\n";
+                 "roots, string escapes and the RightToLeft spelling passed\n";
     return 0;
 }

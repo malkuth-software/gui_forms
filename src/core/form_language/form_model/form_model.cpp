@@ -138,6 +138,21 @@ constexpr std::size_t maximum_value_tokens = 256U;
 // The prefix of a handler reference, which a form no longer admits (E816).
 constexpr std::string_view handler_prefix = "on-";
 
+// A registered name a form may not write because the language spells it
+// another way (E820): the name, and the detail the refusal gives, naming
+// the spelling to write and how its values map.
+struct RenamedProperty final {
+    std::string_view registered;
+    std::string_view detail;
+};
+
+// layout_direction is right_to_left's storage (owner ruling of
+// 2026-11-11): forms write Windows Forms' RightToLeft.
+constexpr std::array<RenamedProperty, 1> renamed_properties{{
+    {"layout_direction",
+     "write right-to-left instead: left-to-right is no, right-to-left is yes, inherit is inherit"},
+}};
+
 // The function a binding is written with, its '(' included (a function
 // token's text).
 constexpr std::string_view binding_function = "bind(";
@@ -667,6 +682,16 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
         if (!property && parent_type != nullptr) {
             property = descriptor_position((*parent_type).child_properties, *registered);
             provider = FormPropertyProvider::parent_type;
+        }
+    }
+    // A renamed property is refused with its new spelling (E820), whether
+    // or not the type still stores it under the old name.
+    if (registered) {
+        for (const RenamedProperty& renamed : renamed_properties) {
+            if (*registered != renamed.registered) continue;
+            report(DiagnosticCode::form_property_renamed, name_token, stable_id, written,
+                   std::string(renamed.detail));
+            return;
         }
     }
     // A handler reference is refused (E816); a property whose name begins

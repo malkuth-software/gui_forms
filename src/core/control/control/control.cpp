@@ -718,23 +718,21 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         return fore_color;
     }
     case RegisteredProperty::right_to_left: {
-        // Windows Forms' RightToLeft over the one stored direction: the
-        // same value as layout_direction, which stays the serialized and
-        // browsable spelling, so a form writes it once.
+        // Windows Forms' RightToLeft over the one stored direction
+        // (layout_direction): the browsable and serialized spelling (owner
+        // ruling of 2026-11-11), so a form and the property grid write it.
         PropertyDescriptor right_to_left;
         right_to_left.name = "right_to_left";
         right_to_left.kind = BindingValueKind::enumeration;
         right_to_left.category = "Appearance";
         right_to_left.description =
-            "Windows Forms' RightToLeft: no, yes, or inherit the parent's direction (layout_direction).";
+            "Windows Forms' RightToLeft: no, yes, or inherit the parent's direction.";
         right_to_left.default_value = BindingValue{PropertyEnumValue{
             "right_to_left", "inherit", 2}};
         right_to_left.invalidation_effects = Dirty::arrange | Dirty::paint |
             Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
         right_to_left.enumeration = right_to_left_property_enum();
         right_to_left.bindable = false;
-        right_to_left.browsable = false;
-        right_to_left.serialization_visibility = PropertySerializationVisibility::hidden;
         return right_to_left;
     }
     case RegisteredProperty::minimum_size: {
@@ -858,14 +856,19 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         layout_direction.name = "layout_direction";
         layout_direction.kind = BindingValueKind::enumeration;
         layout_direction.category = "Layout";
+        // Internal storage behind right_to_left (owner ruling of
+        // 2026-11-11): hidden from the property grid and serialization, and
+        // refused in forms, which write right_to_left (E820).
         layout_direction.description =
-            "Inline direction of child layout: inherited, left to right, or mirrored right to left.";
+            "The stored direction behind right_to_left: inherited, left to right, or mirrored right to left.";
         layout_direction.default_value = BindingValue{PropertyEnumValue{
             "layout_direction", "inherit", 0}};
         layout_direction.invalidation_effects = Dirty::arrange | Dirty::paint |
             Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
         layout_direction.enumeration = layout_direction_property_enum();
         layout_direction.bindable = false;
+        layout_direction.browsable = false;
+        layout_direction.serialization_visibility = PropertySerializationVisibility::hidden;
         return layout_direction;
     }
     case RegisteredProperty::tab_index: {
