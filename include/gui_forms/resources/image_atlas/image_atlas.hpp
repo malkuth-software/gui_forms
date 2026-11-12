@@ -45,7 +45,10 @@
 // the atlas's next acquire, fill, release or clear made outside a paint.
 // Applying one writes the image and damages the slot's users as an
 // immediate fill does; that damage belongs to the next frame. Until then the
-// slot keeps its previous pixels (an unfilled slot still draws nothing).
+// slot keeps its previous pixels (an unfilled slot still draws nothing, but
+// a control that draws it is remembered and repainted when the fill is
+// written, so the slot's first draw after a deferred fill is seen in the
+// next frame).
 // Releasing or replacing a slot drops its pending fill, and its handle goes
 // stale as always.
 //
@@ -199,6 +202,9 @@ struct GUI_FORMS_API ImageAtlasStatistics final {
     // over users_per_slot (also counted in user_overflows).
     std::uint64_t draw_refusals{};
     std::uint64_t user_overflows{};
+    // Draws of an unfilled slot whose user was remembered for its fill
+    // (also counted in draw_refusals).
+    std::uint64_t unfilled_draws{};
     // Controls asked to repaint because a slot they drew changed.
     std::uint64_t users_damaged{};
     std::uint32_t slots_in_use{};
@@ -260,9 +266,13 @@ public:
     // a fill repaints that part of `user` and a release or replacement
     // repaints `user` whole. A use of the slot. False, drawing nothing, for
     // a stale or unfilled slot, gone resources, or a user that would exceed
-    // users_per_slot: the caller draws its own fallback then. The
-    // destination is remembered as the union of where `user` drew the slot
-    // since the slot last changed.
+    // users_per_slot: the caller draws its own fallback then. A user that
+    // draws an unfilled slot (given, its fill pending or not yet made) is
+    // still remembered, so the slot's first fill repaints it: a fill
+    // deferred during the paint is written when that paint ends and damages
+    // the user, so the next frame draws the new pixels; an immediate fill
+    // damages it at once. The destination is remembered as the union of
+    // where `user` drew the slot since the slot last changed.
     bool draw(Painter& painter, Control& user, ImageAtlasSlot slot, Rect destination, double opacity = 1.0);
     // As draw, remembering no user: a change to the slot repaints nothing
     // drawn this way. For a painter that is not a control's paint (a

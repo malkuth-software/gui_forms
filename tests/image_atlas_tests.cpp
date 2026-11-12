@@ -360,6 +360,47 @@ void test_fill_deferred_during_paint() {
            "the panel is damaged where it drew the slot");
 }
 
+// A slot no control has drawn yet (A13): a panel draws it unfilled during a
+// paint (refused, so it would draw its fallback) and fills it there; the
+// deferred fill is written when the paint ends and repaints the panel where
+// it drew. Outside a paint, an unfilled draw followed by an immediate fill
+// damages the drawer at once.
+void test_first_draw_of_an_unfilled_slot() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("atlas.first"));
+    const std::shared_ptr<AtlasPanel> panel = std::make_shared<AtlasPanel>(StableId("atlas.first.panel"));
+    (*panel).set_bounds(Rect{30.0, 40.0, 50.0, 50.0});
+    (*root).add_child(panel);
+    Window window(root, Size{200.0, 140.0});
+    const std::shared_ptr<ApplicationResources> resources = window.resources();
+    ImageAtlas atlas(resources, layout_of(8U, 2U, ImageAtlasReplacement::least_recently_used));
+    const ImageAtlasSlot slot = atlas.acquire(1U).slot;
+    (*panel).atlas = &atlas;
+    (*panel).slot = slot;
+    window.perform_layout();
+    RegionPainter painter;
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 200.0, 140.0}));
+    expect(!(*panel).drawn, "the unfilled slot drew nothing");
+    expect((*panel).first_fill == ImageAtlasError::deferred, "the fill during the paint was deferred");
+    const ImageAtlasStatistics statistics = atlas.statistics();
+    expect(statistics.unfilled_draws == 1U && statistics.fills == 1U && statistics.users_damaged == 1U,
+           "the unfilled draw remembered the panel and the written fill damaged it");
+    expect(atlas.filled(slot) && image_byte(*resources, atlas, 4U, 4U) == 9U, "the fill was written");
+    expect(window.take_damage().bounds() == (Rect{30.0, 40.0, 8.0, 8.0}),
+           "the panel repaints where it drew the slot, for the next frame");
+
+    const std::shared_ptr<Panel> other = make_control<Panel>(StableId("atlas.first.other"));
+    (*other).set_bounds(Rect{100.0, 20.0, 50.0, 50.0});
+    (*root).add_child(other);
+    window.perform_layout();
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 200.0, 140.0}));
+    static_cast<void>(window.take_damage());
+    const ImageAtlasSlot second = atlas.acquire(2U).slot;
+    expect(!atlas.draw(painter, *other, second, Rect{2.0, 3.0, 8.0, 8.0}), "an unfilled slot draws nothing");
+    expect(fill_solid(atlas, second, 4U) == ImageAtlasError::none, "the slot fills outside a paint");
+    expect(window.take_damage().bounds() == (Rect{102.0, 23.0, 8.0, 8.0}),
+           "the immediate fill damages the control that drew the slot unfilled");
+}
+
 // Releasing a slot with a pending fill drops the fill; with no pending
 // cells a fill during a paint is refused.
 void test_pending_fill_dropped_or_refused() {
@@ -512,6 +553,7 @@ int main() {
     test_damage_scope();
     test_fill_deferred_during_paint();
     test_pending_fill_dropped_or_refused();
+    test_first_draw_of_an_unfilled_slot();
     test_no_counted_allocation_after_construction();
     test_refusals();
     std::cout << "image atlas tests passed\n";

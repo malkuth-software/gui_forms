@@ -567,12 +567,20 @@ bool ImageAtlas::draw(Painter& painter, Control& user, ImageAtlasSlot slot, Rect
         ++statistics_.draw_refusals;
         return false;
     }
-    if (slots_[slot.index].state != SlotState::filled || resources_.expired() || !destination.finite()) {
+    if (resources_.expired() || !destination.finite()) {
         ++statistics_.draw_refusals;
         return false;
     }
     if (!remember_user(slot.index, user, destination)) {
         ++statistics_.user_overflows;
+        ++statistics_.draw_refusals;
+        return false;
+    }
+    // An unfilled slot (given, its fill pending or not yet made) draws
+    // nothing, but the user is remembered: the fill, immediate or deferred,
+    // then repaints it where it would have drawn (A13).
+    if (slots_[slot.index].state != SlotState::filled) {
+        ++statistics_.unfilled_draws;
         ++statistics_.draw_refusals;
         return false;
     }
