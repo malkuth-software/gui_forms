@@ -172,7 +172,8 @@ SpecimenStateResult show_specimen_state(Control& control, AnatomyState state) {
     case AnatomyState::deactivated:
         return present(control, state);
     case AnatomyState::count:
-        break;
+        // The vocabulary's size, not a state: no control declares it.
+        return routed(SpecimenStateRoute::not_declared, std::string());
     }
     // A value outside the vocabulary: not a state any control declares.
     return routed(SpecimenStateRoute::not_declared, std::string());

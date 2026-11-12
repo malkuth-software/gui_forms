@@ -41,8 +41,12 @@ enum class TextImageRelation : std::uint8_t {
     case ContentAlignment::middle_right: return ContentAlignment::middle_left;
     case ContentAlignment::bottom_left: return ContentAlignment::bottom_right;
     case ContentAlignment::bottom_right: return ContentAlignment::bottom_left;
-    default: return alignment;
+    case ContentAlignment::top_center: return alignment;
+    case ContentAlignment::middle_center: return alignment;
+    case ContentAlignment::bottom_center: return alignment;
     }
+    // A value outside the enumeration is kept.
+    return alignment;
 }
 
 // `relation` with before and after exchanged along the line: image before
@@ -52,8 +56,12 @@ enum class TextImageRelation : std::uint8_t {
     switch (relation) {
     case TextImageRelation::image_before_text: return TextImageRelation::text_before_image;
     case TextImageRelation::text_before_image: return TextImageRelation::image_before_text;
-    default: return relation;
+    case TextImageRelation::overlay: return relation;
+    case TextImageRelation::image_above_text: return relation;
+    case TextImageRelation::text_above_image: return relation;
     }
+    // A value outside the enumeration is kept.
+    return relation;
 }
 
 namespace types {
