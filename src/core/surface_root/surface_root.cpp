@@ -49,4 +49,16 @@ DragEngine& SurfaceRoot::drag_engine() {
     return *drag_engine_;
 }
 
+SurfaceRoot::DamageCauseScope::DamageCauseScope(SurfaceRoot& root, InvalidationCause cause,
+                                                const Control* source) noexcept
+    : root_(&root), cause_(root.damage_cause_), source_(root.damage_source_) {
+    root.damage_cause_ = cause;
+    root.damage_source_ = source;
+}
+
+SurfaceRoot::DamageCauseScope::~DamageCauseScope() {
+    (*root_).damage_cause_ = cause_;
+    (*root_).damage_source_ = source_;
+}
+
 } // namespace gui_forms

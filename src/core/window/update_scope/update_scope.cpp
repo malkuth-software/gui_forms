@@ -1,6 +1,7 @@
 #include "gui_forms/window/update_scope/update_scope.hpp"
 
 #include "gui_forms/window/window.hpp"
+#include "../../surface_root/access/surface_handle_access.hpp"
 
 #include <utility>
 
@@ -34,7 +35,7 @@ void UpdateScope::abandon() noexcept {
 void UpdateScope::close() {
     if (window_) {
         SurfaceRoot* closing = std::exchange(window_, nullptr);
-        (*closing).leave_update_scope();
+        detail::SurfaceHandleAccess::leave_update_scope(*closing);
     }
 }
 

@@ -3,6 +3,7 @@
 #include "../primitives/material/image_variant.hpp"
 #include "../primitives/material/material_primitive.hpp"
 #include "slice_assembly.hpp"
+#include "../../surface_root/access/surface_engine_access.hpp"
 #include "../primitives/procedural/procedural_pattern.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
@@ -168,7 +169,7 @@ bool PartMotion::moving() const noexcept {
 }
 
 void PartMotion::on_step(const MotionStep& step) {
-    (*window_).engine_part_moved(record_, step.settled);
+    detail::SurfaceEngineAccess::part_moved(*window_, record_, step.settled);
 }
 
 EnginePartTable::EnginePartTable(const std::size_t item_record_cap) noexcept

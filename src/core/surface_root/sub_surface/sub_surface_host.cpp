@@ -1,6 +1,8 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 
 #include "gui_forms/window.hpp"
+#include "../access/surface_request_access.hpp"
+#include "../access/surface_forwarding_access.hpp"
 
 #include <algorithm>
 #include <array>
@@ -279,7 +281,7 @@ void SubSurfaceHost::adopt_content(std::unique_ptr<SubSurfaceContent>& content, 
     stop_thread();
     // A tooltip the old content asked for closes.
     SurfaceRoot* const root = attached_surface_root();
-    if (had_requests && root != nullptr) (*root).tool_tip_items_changed(*this);
+    if (had_requests && root != nullptr) detail::SurfaceRequestAccess::tool_tip_items_changed(*root, *this);
     content_ = std::move(content);
     opaque_ = opaque;
     redraw_requested_ = false;
@@ -597,9 +599,11 @@ void SubSurfaceHost::on_focus_changed(bool focused) {
     SubSurfaceFocusEntry entry = SubSurfaceFocusEntry::restore;
     SurfaceRoot* const root = attached_surface_root();
     if (focused && root != nullptr) {
-        if ((*root).last_focus_traversal_ == SurfaceRoot::FocusTraversal::forward) {
+        const detail::SurfaceForwardingAccess::FocusTraversal traversal =
+            detail::SurfaceForwardingAccess::last_focus_traversal(*root);
+        if (traversal == detail::SurfaceForwardingAccess::FocusTraversal::forward) {
             entry = SubSurfaceFocusEntry::first;
-        } else if ((*root).last_focus_traversal_ == SurfaceRoot::FocusTraversal::backward) {
+        } else if (traversal == detail::SurfaceForwardingAccess::FocusTraversal::backward) {
             entry = SubSurfaceFocusEntry::last;
         }
     }
@@ -692,11 +696,11 @@ void SubSurfaceHost::receive_request(const SubSurfaceRequest& request) {
         const Rect origin = absolute_bounds();
         const Rect anchor{origin.x + request.anchor.x, origin.y + request.anchor.y, request.anchor.width,
                           request.anchor.height};
-        (*window).show_requested_tool_tip(shared_from_this(), request_item_id(request.id), request.text, anchor,
-                                          request.duration);
+        detail::SurfaceRequestAccess::show_requested_tool_tip(*window, shared_from_this(), request_item_id(request.id),
+                                                              request.text, anchor, request.duration);
         return;
     }
-    (*window).tool_tip_items_changed(*this);
+    detail::SurfaceRequestAccess::tool_tip_items_changed(*window, *this);
 }
 
 void SubSurfaceHost::receive_alert(const SubSurfaceRequest& request) {
@@ -748,7 +752,7 @@ void SubSurfaceHost::receive_revoke(std::uint64_t id) {
     requests_.erase(found);
     ++request_statistics_.withdrawn;
     SurfaceRoot* const root = attached_surface_root();
-    if (root != nullptr) (*root).tool_tip_items_changed(*this);
+    if (root != nullptr) detail::SurfaceRequestAccess::tool_tip_items_changed(*root, *this);
 }
 
 void SubSurfaceHost::revoke_requests(SubSurfaceToolTipOrigin origin) {
@@ -767,7 +771,7 @@ void SubSurfaceHost::revoke_requests(SubSurfaceToolTipOrigin origin) {
     }
     requests_.erase(kept, requests_.end());
     SurfaceRoot* const root = attached_surface_root();
-    if (revoked && root != nullptr) (*root).tool_tip_items_changed(*this);
+    if (revoked && root != nullptr) detail::SurfaceRequestAccess::tool_tip_items_changed(*root, *this);
 }
 
 void SubSurfaceHost::answer(std::uint64_t id, SurfaceRequestResult result, HostDialogChoice choice) {
@@ -797,7 +801,7 @@ void SubSurfaceHost::continue_returned_key(const KeyEvent& event) {
         ++returned_keys_discarded_;
         return;
     }
-    static_cast<void>((*root).resume_unhandled_key(focused, event));
+    static_cast<void>(detail::SurfaceForwardingAccess::resume_unhandled_key(*root, focused, event));
 }
 
 void SubSurfaceHost::on_detaching_from_window(SurfaceRoot& former_window) noexcept {

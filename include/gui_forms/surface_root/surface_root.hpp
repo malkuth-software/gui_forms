@@ -48,10 +48,6 @@
 
 namespace gui_forms {
 
-namespace abi::detail {
-class Registry;
-} // namespace abi::detail
-
 class UpdateScope;
 class Timer;
 class BackgroundWorker;
@@ -84,9 +80,19 @@ class WindowAlerts;
 class SubSurfaceAlertRequester;
 class MessageBoxHelpRoute;
 class InteractionState;
-struct InteractionHoverWake;
-struct BandFlashWake;
 struct CaretBlinkSchedule;
+// SurfaceRoot's named capabilities (src/core/surface_root/access/).
+class SurfaceTreeAccess;
+class SurfaceLifetimeAccess;
+class SurfaceScheduleAccess;
+class SurfaceRequestAccess;
+class SurfaceForwardingAccess;
+class SurfaceApplicationAccess;
+class SurfaceHostAccess;
+class SurfaceResourceAccess;
+class SurfaceEngineAccess;
+class SurfaceHandleAccess;
+class SurfaceHelpAccess;
 
 // The WinForms mouse events raise_mouse_events offers the window's rules
 // before raising them (SurfaceRoot::offer_mouse_rules_). The rules library
@@ -1397,9 +1403,25 @@ protected:
     void release_tree() noexcept;
 
 private:
+    // Authority over the root's private state (B10). The derived roots are
+    // the root's owners and share its authority whole. Every other party,
+    // Control included, reaches the root through one of the named
+    // capabilities in src/core/surface_root/access/, each a set of static
+    // functions exposing only its group's operations, with its holders and
+    // its stale-use rule stated in its header.
     friend class Window;
     friend class SubSurface;
-    friend class SubSurfaceHost;
+    friend class detail::SurfaceTreeAccess;
+    friend class detail::SurfaceLifetimeAccess;
+    friend class detail::SurfaceScheduleAccess;
+    friend class detail::SurfaceRequestAccess;
+    friend class detail::SurfaceForwardingAccess;
+    friend class detail::SurfaceApplicationAccess;
+    friend class detail::SurfaceHostAccess;
+    friend class detail::SurfaceResourceAccess;
+    friend class detail::SurfaceEngineAccess;
+    friend class detail::SurfaceHandleAccess;
+    friend class detail::SurfaceHelpAccess;
     // Key and text forwarding to a warm Popup window (Window::
     // forward_input_to_popup_window): while set, dispatch_key and
     // dispatch_text offer each event to the model of slot
@@ -1409,10 +1431,6 @@ private:
     std::size_t key_forward_slot_{};
     [[nodiscard]] bool forward_to_popup(const KeyEvent& event);
     [[nodiscard]] bool forward_to_popup(const TextInputEvent& event);
-    // The C ABI's v0 show_tooltip, a program request like SubSurfaceHost's.
-    friend class abi::detail::Registry;
-    friend class SurfaceRoot;
-    friend class Control;
     // How the newest focus change came about, for a control that forwards
     // focus to another tree (SubSurfaceHost): through Tab, Shift+Tab, or
     // anything else (none).
@@ -1431,11 +1449,6 @@ private:
     std::thread::id root_thread_;
     std::shared_ptr<detail::DispatcherState> dispatcher_state_;
     Metrics metrics_;
-    friend class HostSession;
-    // Reaches joined windows through their lifetime records.
-    friend class Application;
-    friend class MotionClock;
-    friend struct detail::CaretBlinkSchedule;
     // Called through detail::CaretBlinkSchedule (the text controls' caret
     // blink): schedule_ui_timer's timer, except that it rests while this
     // window is occluded. It neither ticks nor holds a wake then, so a host
@@ -1455,20 +1468,6 @@ private:
     // request's next frame is due at `deadline`, the earliest effect's,
     // rather than one motion_frame_interval after the last.
     void set_motion_frame_deadline(FrameTime deadline) noexcept;
-    friend class Control;
-    friend class UpdateScope;
-    friend class Timer;
-    // Reads lifetime_ and frame_request_cancellations_: a timer waiting
-    // for its owner's paint holds no request, and stops instead of
-    // resuming when this window cancelled its requests meanwhile.
-    friend class AnimationTimer;
-    friend class detail::ToolTipPresenter;
-    // Uses request_tool_tip_wake for a toast's duration.
-    friend class detail::ToastPresenter;
-    friend class detail::PopupStandby;
-    friend class detail::SubSurfaceToolTipRequester;
-    friend class detail::WindowAlerts;
-    friend class detail::SubSurfaceAlertRequester;
     // Posts `outcome` to `answer` through this root's dispatcher; a target
     // released by then receives nothing.
     void deliver_request_answer(const std::weak_ptr<SurfaceRequestAnswer>& answer,
@@ -1547,6 +1546,8 @@ private:
     // hover (PointerSettings::native_hover) keeps it off.
     void sync_hover_wake();
     void interaction_hover_due(FrameTime now);
+    // The hover wake's target (window_interaction.cpp).
+    struct InteractionHoverWake;
     // Raises MouseHover on `control` when it is still eligible.
     void raise_mouse_hover(const Control::Ptr& control);
     // One hit test's answer and the state it was taken in (audit N81): one
@@ -1580,19 +1581,10 @@ private:
     // route). `arguments` is null for Click and DoubleClick. Returns whether
     // a rule consumed it; false without rules.
     bool offer_mouse_rules(detail::MouseRuleEvent event, Control& control, const MouseEventArgs* arguments);
-    friend struct detail::InteractionHoverWake;
-    friend class BackgroundWorker;
-    friend class ToolTip;
-    friend class RibbonToolTip;
-    friend class ErrorProvider;
-    friend class HelpProvider;
-    friend class detail::MessageBoxHelpRoute;
     // Called by HelpProvider: its fallback joins the window's help offers on
     // construction and leaves them on disposal.
     void add_help_fallback(detail::WindowHelpFallback& fallback);
     void remove_help_fallback(const detail::WindowHelpFallback& fallback) noexcept;
-    friend class ImageList;
-    friend class ApplicationResources;
     // Called by ApplicationResources for every window sharing it.
     // Shows `theme`, the resources' theme, or the fallback for the window's
     // scheme (scheme_theme).
@@ -1627,16 +1619,6 @@ private:
     static void commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles);
     void repaint_for_image_replacement();
     void repaint_for_image_removal();
-    friend class BindingSource;
-    friend class NotifyIcon;
-    friend class OpenFileDialog;
-    friend class SaveFileDialog;
-    friend class BindingContext;
-    friend class detail::OverlayAttachment;
-    friend class ThemeEngine;
-    // An effect's backdrop (EP-7) samples the backplane through the same
-    // engine calls a theme part uses, and joins its damage list.
-    friend class EffectInstance;
     // Called by ThemeEngine::paint for a part of `control`, which has an
     // inline style, under a theme with rules of its own: the first time,
     // writes W401 to the log and notes it (inline_with_theme_reported).
@@ -1745,7 +1727,6 @@ private:
     // Follows the pointer for the engine: a move inside the window damages
     // the hot parts reading the pointer.
     void note_engine_pointer(const PointerEvent& event);
-    friend class PartMotion;
     // Called by PartMotion (E7): one of a part's transition values stepped.
     // Its extent repaints on the control that recorded it; when the value
     // settled, the record's motion_unsettled follows its other values.
@@ -1786,7 +1767,6 @@ private:
     // its effect resumes: when the window is shown again, reduced motion
     // ends or the motion switch is turned on.
     void resume_engine_ambient();
-    friend class detail::AcceleratorAttachment;
 
     using ControlList = std::vector<Control::Ptr>;
     // Stable identity text to its control: looked up by string_view without
@@ -2423,15 +2403,10 @@ private:
     static constexpr std::size_t maximum_invalidation_causes = 256U;
     class DamageCauseScope final {
     public:
-        DamageCauseScope(SurfaceRoot& root, InvalidationCause cause, const Control* source) noexcept
-            : root_(&root), cause_(root.damage_cause_), source_(root.damage_source_) {
-            root.damage_cause_ = cause;
-            root.damage_source_ = source;
-        }
-        ~DamageCauseScope() {
-            (*root_).damage_cause_ = cause_;
-            (*root_).damage_source_ = source_;
-        }
+        // Puts `cause` and `source` in force until the scope ends, which
+        // restores those it found (surface_root.cpp).
+        DamageCauseScope(SurfaceRoot& root, InvalidationCause cause, const Control* source) noexcept;
+        ~DamageCauseScope();
         DamageCauseScope(const DamageCauseScope&) = delete;
         DamageCauseScope& operator=(const DamageCauseScope&) = delete;
 
@@ -2690,8 +2665,6 @@ private:
     // This window's state in its application run, while it is a ready
     // window of one (detail::attach_application_window); observed, never
     // owned. Empty for a window outside a run.
-    friend void detail::attach_application_window(SurfaceRoot& model,
-                                                  const std::shared_ptr<detail::ApplicationWindowState>& state) noexcept;
     std::weak_ptr<detail::ApplicationWindowState> application_window_{};
     // Whether backdrop_chain_ is the application's (set_backdrop_chain)
     // rather than the theme's.
@@ -2723,7 +2696,8 @@ private:
     // The flash wake: the phase changes, the strips are damaged, and the
     // next wake is armed while the flash still runs.
     void band_flash_due(FrameTime now);
-    friend struct detail::BandFlashWake;
+    // The flash wake's target (window_band.cpp).
+    struct BandFlashWake;
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.

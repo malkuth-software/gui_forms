@@ -328,6 +328,11 @@ struct PageDigest final {
 // values-and-spinners' property grid (its editor two controls more), and
 // so the same counts on states-and-diagnostics and
 // typography-and-inspection.
+// The RightToLeft spelling (owner ruling of 2026-11-11) replaces that
+// row with `right_to_left` (no, yes, inherit) in the Appearance category,
+// hiding `layout_direction`: values-and-spinners' grid moves the row, and
+// the same counts on states-and-diagnostics and typography-and-inspection
+// may move with its editor.
 // The owner's container rename (FlexPanel, GridPanel, BlockPanel,
 // FlowLayoutPanelCompat, TableLayoutPanelCompat) changed every page's
 // navigation sidebar (the layout pages' order and the compatibility page's

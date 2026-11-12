@@ -12,6 +12,7 @@
 #include <array>
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <cmath>
 #include <functional>
 #include <optional>
@@ -224,7 +225,10 @@ struct ContextMenu::Impl final {
             } else if (event.physical_key == PhysicalKey::up || event.physical_key == PhysicalKey::end) {
                 impl_.focus_edge(depth_, true);
             } else if (event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::right) {
-                static_cast<void>(impl_.navigate_root(event.physical_key == PhysicalKey::left ? -1 : 1));
+                // Toward the reading end moves on: Right left to right,
+                // Left right to left.
+                const std::uint32_t onward = impl_.right_to_left ? PhysicalKey::left : PhysicalKey::right;
+                static_cast<void>(impl_.navigate_root(event.physical_key == onward ? 1 : -1));
             } else if (event.physical_key == PhysicalKey::escape) {
                 impl_.close();
             } else {
@@ -422,8 +426,8 @@ struct ContextMenu::Impl final {
                 icon.states = states;
                 icon.image = item_.image;
                 const double icon_size = menu_icon_size * scale;
-                icon.bounds = {menu_icon_left * scale, std::floor((bounds.height - icon_size) * 0.5),
-                               icon_size, icon_size};
+                icon.bounds = row_side({menu_icon_left * scale, std::floor((bounds.height - icon_size) * 0.5),
+                                        icon_size, icon_size});
                 paint_part(painter, *this, icon);
             }
             if (checked) {
@@ -435,12 +439,12 @@ struct ContextMenu::Impl final {
                 // Centred on the row, in the icon gutter.
                 if (item_.kind == MenuItemKind::check) {
                     mark.mark = PartMark::check;
-                    mark.bounds = {7.0 * scale, std::floor((bounds.height - 14.0 * scale) * 0.5), 14.0 * scale,
-                                   14.0 * scale};
+                    mark.bounds = row_side({7.0 * scale, std::floor((bounds.height - 14.0 * scale) * 0.5),
+                                            14.0 * scale, 14.0 * scale});
                 } else {
                     mark.mark = PartMark::radio_dot;
-                    mark.bounds = {9.0 * scale, std::floor((bounds.height - 12.0 * scale) * 0.5), 12.0 * scale,
-                                   12.0 * scale};
+                    mark.bounds = row_side({9.0 * scale, std::floor((bounds.height - 12.0 * scale) * 0.5),
+                                            12.0 * scale, 12.0 * scale});
                 }
                 paint_part(painter, *this, mark);
             }
@@ -457,8 +461,15 @@ struct ContextMenu::Impl final {
             // A destructive command's red ink, provisionally an authored
             // colour until the theme has a text tone for it (asked).
             if (item_.command_state.destructive) label.authored_foreground = menu_ink(item_, style);
-            paint_text_part_at(painter, *this, label, {label_left, baseline},
-                               std::max(0.0, bounds.width - label_left));
+            const double label_width = std::max(0.0, bounds.width - label_left);
+            if (impl_.right_to_left) {
+                // Right-aligned against the gutter, which is on the right.
+                const Size label_size = painter.measure_text_utf8(display_text, font);
+                const double shown = std::min(label_size.width, label_width);
+                paint_text_part_at(painter, *this, label, {bounds.width - label_left - shown, baseline}, shown);
+            } else {
+                paint_text_part_at(painter, *this, label, {label_left, baseline}, label_width);
+            }
             if (!item_.command_state.shortcut.empty()) {
                 const FontSpec shortcut_font = effective_font(menu_shortcut_font());
                 const Size size = painter.measure_text_utf8(
@@ -473,21 +484,31 @@ struct ContextMenu::Impl final {
                 shortcut.measured_text = size;
                 // Right-aligned in the shortcut column, before the chevron's
                 // trailing space.
-                paint_text_part_at(painter, *this, shortcut,
-                                   {std::max(label_left + 4.0 * scale, bounds.width - size.width - menu_trailing * scale),
-                                    baseline},
-                                   size.width);
+                const double shortcut_x =
+                    std::max(label_left + 4.0 * scale, bounds.width - size.width - menu_trailing * scale);
+                const Rect column = row_side({shortcut_x, 0.0, size.width, bounds.height});
+                paint_text_part_at(painter, *this, shortcut, {column.x, baseline}, size.width);
             }
             if (item_.kind == MenuItemKind::submenu) {
                 PartPaint chevron;
                 chevron.family = ControlVisualRole::menu_item;
                 chevron.role = PartRole::disclosure;
-                chevron.mark = PartMark::chevron_right;
-                chevron.bounds = {bounds.width - 18.0 * scale, std::floor((bounds.height - 8.0 * scale) * 0.5),
-                                  8.0 * scale, 8.0 * scale};
+                chevron.mark = impl_.right_to_left ? PartMark::chevron_left : PartMark::chevron_right;
+                chevron.bounds = row_side({bounds.width - 18.0 * scale, std::floor((bounds.height - 8.0 * scale) * 0.5),
+                                           8.0 * scale, 8.0 * scale});
                 chevron.states = states;
                 paint_part(painter, *this, chevron);
             }
+        }
+
+        // A part laid out from the row's left, on the side it shows: the
+        // whole row mirrors for a right-to-left menu (gutter and marks at
+        // the right, shortcut column and chevron at the left).
+        [[nodiscard]] Rect row_side(Rect laid) const {
+            const Rect bounds = committed_arranged_bounds();
+            const Rect frame{0.0, 0.0, bounds.width, bounds.height};
+            const Rect side = impl_.right_to_left ? horizontally_mirrored(laid, frame) : laid;
+            return side;
         }
 
         void on_pointer(PointerEvent& event) override {
@@ -513,6 +534,10 @@ struct ContextMenu::Impl final {
 
         void on_key(KeyEvent& event) override {
             if (!focused_ || event.action != KeyAction::down) return;
+            // A right-to-left menu opens submenus to the left: Left opens
+            // one and Right closes it (WinForms' RightToLeft menus).
+            const std::uint32_t onward = impl_.right_to_left ? PhysicalKey::left : PhysicalKey::right;
+            const std::uint32_t backward = impl_.right_to_left ? PhysicalKey::right : PhysicalKey::left;
             if (event.physical_key == PhysicalKey::down) {
                 impl_.move_focus(depth_, index_, 1);
             } else if (event.physical_key == PhysicalKey::up) {
@@ -521,13 +546,13 @@ struct ContextMenu::Impl final {
                 impl_.focus_edge(depth_, false);
             } else if (event.physical_key == PhysicalKey::end) {
                 impl_.focus_edge(depth_, true);
-            } else if (event.physical_key == PhysicalKey::right) {
+            } else if (event.physical_key == onward) {
                 if (item_.kind == MenuItemKind::submenu) {
                     impl_.open_submenu(depth_, index_, true);
                 } else if (depth_ == 0U) {
                     static_cast<void>(impl_.navigate_root(1));
                 }
-            } else if (event.physical_key == PhysicalKey::left) {
+            } else if (event.physical_key == backward) {
                 impl_.close_submenu(depth_);
             } else if (event.physical_key == PhysicalKey::enter ||
                        event.physical_key == PhysicalKey::space) {
@@ -663,6 +688,7 @@ struct ContextMenu::Impl final {
         other_menu_opening = (*window).menu_opening().subscribe(
             owner, Delegate<>::bind<Impl, &Impl::on_other_menu_opening>(*this));
         owner_control = invoker;
+        right_to_left = (*invoker).effective_layout_direction() == LayoutDirection::right_to_left;
         invoker_theme = invoker_theme_override(invoker);
         const Size client = (*window).client_size();
         layer = make_control<MenuLayer>(
@@ -851,6 +877,7 @@ struct ContextMenu::Impl final {
     void reset_visual_state() noexcept {
         panels.clear();
         popup_mode = false;
+        right_to_left = false;
         focus_depth = 0U;
         layer.reset();
         owner_control.reset();
@@ -925,7 +952,10 @@ struct ContextMenu::Impl final {
         const double maximum_height = std::max(command_row_height + menu_border * 2.0,
                                                 area.height - 8.0);
         const double viewport = std::min(content, maximum_height);
-        const double x = std::clamp(requested_x, area.x + 4.0,
+        // A right-to-left root panel hangs left from its point: the point is
+        // its right edge (WinForms' RightToLeft context menus).
+        const double wanted_x = right_to_left && depth == 0U ? requested_x - panel_width : requested_x;
+        const double x = std::clamp(wanted_x, area.x + 4.0,
                                     std::max(area.x + 4.0, area_right - panel_width - 4.0));
         // A root panel overrunning the area's bottom flips above the point
         // when it fits there; a submenu, or a root panel fitting neither
@@ -1107,9 +1137,18 @@ struct ContextMenu::Impl final {
             const double wanted_width =
                 std::max(owner.preferred_width.read() * text_scale(), content_width(item.children));
             const double child_width = std::max(0.0, std::min(wanted_width, area.width - 8.0));
-            // Past the area's right edge the submenu flips to the left.
-            const bool flips = right_x + child_width + 4.0 > area.x + area.width;
-            const double x = flips ? parent.x - child_width + 3.0 : right_x;
+            // Past the area's right edge the submenu flips to the left; a
+            // right-to-left menu opens it to the left and flips it right
+            // past the area's left edge.
+            const double left_x = parent.x - child_width + 3.0;
+            double x = right_x;
+            if (right_to_left) {
+                const bool flips = left_x - 4.0 < area.x;
+                x = flips ? right_x : left_x;
+            } else {
+                const bool flips = right_x + child_width + 4.0 > area.x + area.width;
+                x = flips ? left_x : right_x;
+            }
             panels[depth].child_source_index = index;
             const std::uint64_t closes = close_count;
             // Its first row level with the row that opened it.
@@ -1277,6 +1316,9 @@ struct ContextMenu::Impl final {
     FocusScopeId focus_scope{};
     // The panels show in the owner's Popup windows (decided per show).
     bool popup_mode{};
+    // The invoker resolved right to left when the menu opened (decided per
+    // show): rows mirror, submenus open leftward and Left/Right swap.
+    bool right_to_left{};
     // The depth of the panel holding the menu's focus.
     std::size_t focus_depth{};
     // The Popup frames, made on first use and kept (warm) per depth.

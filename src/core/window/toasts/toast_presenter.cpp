@@ -1,4 +1,5 @@
 #include "toast_presenter.hpp"
+#include "../../surface_root/access/surface_schedule_access.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -95,7 +96,7 @@ std::uint64_t ToastPresenter::show(const Control::Ptr& owner, const Control::Ptr
     showing_ = std::move(showing);
     position();
     if (duration.count() > 0) {
-        wake_ = window_.request_tool_tip_wake(FrameClock::now() + duration, Wake{this});
+        wake_ = SurfaceScheduleAccess::request_tool_tip_wake(window_, FrameClock::now() + duration, Wake{this});
     }
     raise(replaced);
     return id;

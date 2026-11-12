@@ -3765,6 +3765,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: RightToLeft
+
+   ``#include <gui_forms/layout/types/layout_types.hpp>``
+
+   .. cpp:enumerator:: no
+
+   .. cpp:enumerator:: yes
+
+   .. cpp:enumerator:: inherit
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: SelfAlignment
 
    ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
@@ -4233,6 +4245,26 @@ Functions, constants and aliases
 .. cpp:function:: Size measure_available_size(const LayoutConstraint& constraint) noexcept
 
    The ``available`` argument of Control::measure(Size) for a constraint: a definite or at-most axis passes its extent, a content axis the practical unbounded extent.
+
+.. cpp:function:: constexpr RightToLeft right_to_left_of(LayoutDirection direction) noexcept
+
+   The RightToLeft spelling of an authored direction. A value outside the enumeration reads as inherit.
+
+.. cpp:function:: constexpr LayoutDirection layout_direction_of(RightToLeft value) noexcept
+
+   The authored direction a RightToLeft value stands for. A value outside the enumeration reads as inherit.
+
+.. cpp:function:: constexpr Rect horizontally_mirrored(Rect bounds, Rect frame) noexcept
+
+   ``bounds`` mirrored about the vertical centre line of ``frame``, both in the same coordinates: how a directional control places a part laid out left to right when it resolves right to left (Control:: effective_layout_direction). Mirroring twice gives ``bounds`` back.
+
+.. cpp:function:: constexpr Rect directed_rect(Rect laid, Rect frame, LayoutDirection direction) noexcept
+
+   ``laid`` as a control resolving ``direction`` places it: unchanged left to right, horizontally_mirrored in ``frame`` right to left. For geometry laid out left to right once and placed at output.
+
+.. cpp:function:: constexpr double directed_x(double x, Rect frame, LayoutDirection direction) noexcept
+
+   The left-to-right x of a point at ``x`` in ``frame`` placed by ``direction``: directed_rect's inverse for hit testing (a mirror is its own inverse).
 
 .. cpp:var:: constexpr double practical_unbounded_extent
 

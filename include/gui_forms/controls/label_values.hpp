@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/layout/types/layout_types.hpp"
+
 #include <cstdint>
 
 namespace gui_forms {
@@ -12,6 +14,18 @@ enum class HorizontalAlignment : std::uint8_t {
     center,
     far,
 };
+
+// The alignment a control resolving `direction` places: Windows Forms
+// mirrors a horizontal alignment under RightToLeft, so `near` is the right
+// edge and `far` the left in right to left (Control::
+// effective_layout_direction). A value outside the enumeration is kept.
+[[nodiscard]] constexpr HorizontalAlignment directed_alignment(HorizontalAlignment alignment,
+                                                               LayoutDirection direction) noexcept {
+    if (direction != LayoutDirection::right_to_left) return alignment;
+    if (alignment == HorizontalAlignment::near) return HorizontalAlignment::far;
+    if (alignment == HorizontalAlignment::far) return HorizontalAlignment::near;
+    return alignment;
+}
 
 enum class VerticalAlignment : std::uint8_t {
     near,

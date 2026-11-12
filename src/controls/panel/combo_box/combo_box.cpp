@@ -812,11 +812,15 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     well.key = PartKey{"well", {}, {}};
     paint_part(painter, *this, well);
     const double button_width = std::min(24.0, bounds.width);
+    // Laid out left to right; a combo box that resolves right to left
+    // mirrors every part, putting the button at the left (Windows Forms).
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
     PartPaint drop_down;
     drop_down.family = ControlVisualRole::choice;
     drop_down.role = PartRole::actuator;
     drop_down.bounds = {std::max(0.0, bounds.width - button_width), 1.0,
                         std::max(0.0, button_width - 1.0), std::max(0.0, bounds.height - 2.0)};
+    if (mirrored) drop_down.bounds = horizontally_mirrored(drop_down.bounds, bounds);
     drop_down.states = states;
     drop_down.key = PartKey{"drop_down", {}, {}};
     paint_part(painter, *this, drop_down);
@@ -824,6 +828,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     divider.family = ControlVisualRole::choice;
     divider.role = PartRole::divider;
     divider.bounds = {bounds.width - button_width - 0.5, 1.0, 1.0, std::max(0.0, bounds.height - 2.0)};
+    if (mirrored) divider.bounds = horizontally_mirrored(divider.bounds, bounds);
     divider.states = states;
     divider.key = PartKey{"divider", {}, {}};
     paint_part(painter, *this, divider);
@@ -838,6 +843,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     disclosure.role = PartRole::disclosure;
     disclosure.mark = dropped_down_ ? PartMark::arrow_up : PartMark::arrow_down;
     disclosure.bounds = {std::floor(center_x) - 4.0, square_top, 8.0, 8.0};
+    if (mirrored) disclosure.bounds = horizontally_mirrored(disclosure.bounds, bounds);
     disclosure.states = states;
     disclosure.authored_foreground = ink;
     disclosure.key = PartKey{"disclosure", {}, {}};
@@ -865,6 +871,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     content.text = field_text;
     content.font = field_font;
     content.bounds = {7.0, baseline - box_ascent, std::max(0.0, bounds.width - button_width - 10.0), box_height};
+    if (mirrored) content.bounds = horizontally_mirrored(content.bounds, bounds);
     content.authored_foreground = text_ink;
     content.key = PartKey{"content", {}, {}};
     paint_part(painter, *this, content);
@@ -890,7 +897,10 @@ void ComboBox::arrange(Rect final_bounds) {
     const double button_width = std::min(24.0, final_bounds.width);
     const Rect field{2.0, 2.0, std::max(0.0, final_bounds.width - button_width - 2.0),
                      std::max(0.0, final_bounds.height - 4.0)};
-    set_child_layout(editor_, field);
+    // Right of the button when the combo box resolves right to left.
+    const Rect frame{0.0, 0.0, final_bounds.width, final_bounds.height};
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    set_child_layout(editor_, mirrored ? horizontally_mirrored(field, frame) : field);
 }
 
 void ComboBox::on_pointer(PointerEvent& event) {
@@ -1113,10 +1123,12 @@ void ComboBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const double arrow_top = dropped_down_ ? std::floor(center_y) - 2.0
                                            : std::floor(center_y) - 1.0;
     const Rect arrow{std::floor(center_x) - 3.0, arrow_top, 7.0, 4.0};
-    record.content = PartGeometry::from_bounds(content);
-    record.divider = PartGeometry::from_bounds(divider);
-    record.drop_down = PartGeometry::from_bounds(button);
-    record.disclosure = PartGeometry::from_bounds(arrow);
+    // Mirrored as on_paint mirrors them.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    record.content = PartGeometry::from_bounds(mirrored ? horizontally_mirrored(content, bounds) : content);
+    record.divider = PartGeometry::from_bounds(mirrored ? horizontally_mirrored(divider, bounds) : divider);
+    record.drop_down = PartGeometry::from_bounds(mirrored ? horizontally_mirrored(button, bounds) : button);
+    record.disclosure = PartGeometry::from_bounds(mirrored ? horizontally_mirrored(arrow, bounds) : arrow);
     write_parts(anatomy(), scrollable_detail::part_fields, record.scrollable, geometry);
     write_parts(anatomy(), combo_box_extra_part_fields, record, geometry);
 }

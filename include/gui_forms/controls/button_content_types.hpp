@@ -30,6 +30,32 @@ enum class TextImageRelation : std::uint8_t {
     text_above_image,
 };
 
+// `alignment` with left and right exchanged: how Windows Forms places a
+// ContentAlignment in a control under RightToLeft. A value outside the
+// enumeration is kept.
+[[nodiscard]] constexpr ContentAlignment mirrored_content_alignment(ContentAlignment alignment) noexcept {
+    switch (alignment) {
+    case ContentAlignment::top_left: return ContentAlignment::top_right;
+    case ContentAlignment::top_right: return ContentAlignment::top_left;
+    case ContentAlignment::middle_left: return ContentAlignment::middle_right;
+    case ContentAlignment::middle_right: return ContentAlignment::middle_left;
+    case ContentAlignment::bottom_left: return ContentAlignment::bottom_right;
+    case ContentAlignment::bottom_right: return ContentAlignment::bottom_left;
+    default: return alignment;
+    }
+}
+
+// `relation` with before and after exchanged along the line: image before
+// text puts the image at the right under RightToLeft. The vertical
+// relations and overlay are kept.
+[[nodiscard]] constexpr TextImageRelation mirrored_text_image_relation(TextImageRelation relation) noexcept {
+    switch (relation) {
+    case TextImageRelation::image_before_text: return TextImageRelation::text_before_image;
+    case TextImageRelation::text_before_image: return TextImageRelation::image_before_text;
+    default: return relation;
+    }
+}
+
 namespace types {
 
 inline constexpr TypeTag<ContentAlignment> content_alignment{};

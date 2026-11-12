@@ -154,7 +154,9 @@ std::string DateTimePicker::formatted_value() const {
 DateTimePicker::HitPart DateTimePicker::part_at(Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
     if (!bounds.contains(absolute)) return HitPart::none;
-    const double local_x = absolute.x - bounds.x;
+    // In the left-to-right layout the parts are drawn mirrored from.
+    const Rect frame{0.0, 0.0, bounds.width, bounds.height};
+    const double local_x = directed_x(absolute.x - bounds.x, frame, effective_layout_direction());
     const double local_y = absolute.y - bounds.y;
     if (show_check_box.read() && local_x < 25.0) return HitPart::check;
     if (local_x >= bounds.width - 24.0) {
@@ -175,6 +177,10 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
+    // Laid out left to right; under RightToLeft every part is placed
+    // mirrored (directed_rect): the drop-down button, or the up-down pair,
+    // at the left and the check box at the right (Windows Forms).
+    const LayoutDirection direction = effective_layout_direction();
     const AnatomyStateSet states = anatomy_states();
     std::optional<Color> ink{};
     if (style_authored_) ink = style_.text;
@@ -196,6 +202,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     divider.role = PartRole::divider;
     divider.states = states;
     divider.bounds = {button_x - 0.5, 1.0, 1.0, button_height};
+    divider.bounds = directed_rect(divider.bounds, bounds, direction);
     if (show_up_down.read()) {
         const double middle = std::floor(bounds.height * 0.5);
         AnatomyStateSet up_states = states;
@@ -204,29 +211,35 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
         if (pressed_part_ == HitPart::arrow_down) down_states.insert(AnatomyState::pressed);
         button.states = up_states;
         button.bounds = {button_x, 1.0, std::max(0.0, button_width - 1.0), std::max(0.0, middle - 1.0)};
+        button.bounds = directed_rect(button.bounds, bounds, direction);
         paint_part(painter, *this, button);
         button.states = down_states;
         button.bounds = {button_x, middle, std::max(0.0, button_width - 1.0),
                          std::max(0.0, bounds.height - 1.0 - middle)};
+        button.bounds = directed_rect(button.bounds, bounds, direction);
         paint_part(painter, *this, button);
         paint_part(painter, *this, divider);
         PartPaint rule = divider;
         rule.bounds = {button_x, middle - 0.5, button_width, 1.0};
+        rule.bounds = directed_rect(rule.bounds, bounds, direction);
         paint_part(painter, *this, rule);
         // The 7 x 4 arrows above and below the middle rule, as the old
         // strokes stood.
         mark.states = up_states;
         mark.mark = PartMark::arrow_up;
         mark.bounds = {mark_left, middle - 8.0, 8.0, 8.0};
+        mark.bounds = directed_rect(mark.bounds, bounds, direction);
         paint_part(painter, *this, mark);
         mark.states = down_states;
         mark.mark = PartMark::arrow_down;
         mark.bounds = {mark_left, middle + 1.0, 8.0, 8.0};
+        mark.bounds = directed_rect(mark.bounds, bounds, direction);
         paint_part(painter, *this, mark);
     } else {
         button.states = states;
         if (pressed_part_ == HitPart::arrow_down) button.states.insert(AnatomyState::pressed);
         button.bounds = {button_x, 1.0, std::max(0.0, button_width - 1.0), button_height};
+        button.bounds = directed_rect(button.bounds, bounds, direction);
         paint_part(painter, *this, button);
         paint_part(painter, *this, divider);
         // The arrow flips and moves when the calendar is open, as the combo
@@ -236,6 +249,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
         mark.states = button.states;
         mark.mark = dropped_down_ ? PartMark::arrow_up : PartMark::arrow_down;
         mark.bounds = {mark_left, square_top, 8.0, 8.0};
+        mark.bounds = directed_rect(mark.bounds, bounds, direction);
         paint_part(painter, *this, mark);
     }
     double text_left = 7.0;
@@ -247,6 +261,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
         check.role = PartRole::well;
         check.states = states;
         check.bounds = {5.0, check_y, 14.0, 14.0};
+        check.bounds = directed_rect(check.bounds, bounds, direction);
         paint_part(painter, *this, check);
         if (checked.read()) {
             check.role = PartRole::indicator;
@@ -271,6 +286,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     const double box_ascent = std::max(field_font.size, box_height * 0.82);
     const double baseline = std::max(field_font.size, (bounds.height + field_font.size) * 0.5 - 1.0);
     content.bounds = {text_left, baseline - box_ascent, std::max(0.0, button_x - text_left - 3.0), box_height};
+    content.bounds = directed_rect(content.bounds, bounds, direction);
     content.measured_text = measured;
     paint_part(painter, *this, content);
     if (focused_ || dropped_down_) {
@@ -354,9 +370,11 @@ void DateTimePicker::open_drop_down() {
     const Rect picker = absolute_bounds();
     const double width = 286.0 * effective_text_scale();
     const double height = 260.0 * effective_text_scale();
-    const double requested_x =
-        drop_down_alignment.read() == DateTimeDropDownAlignment::right
-        ? picker.x + picker.width - width : picker.x;
+    // DropDownAlign mirrors under RightToLeft (Windows Forms): Left lines
+    // the calendar up with the picker's right edge.
+    const bool authored_right = drop_down_alignment.read() == DateTimeDropDownAlignment::right;
+    const bool right_aligned = authored_right != (effective_layout_direction() == LayoutDirection::right_to_left);
+    const double requested_x = right_aligned ? picker.x + picker.width - width : picker.x;
     const double x = std::clamp(
         requested_x, 0.0, std::max(0.0, client.width - width));
     const double below = picker.y + picker.height;
@@ -614,6 +632,8 @@ void DateTimePicker::publish_part_geometry(std::span<PartGeometry> geometry) con
     record.scrollable = panel.scrollable;
     record.face = panel.face;
     record.edge = panel.edge;
+    // Mirrored as on_paint places them.
+    const LayoutDirection direction = effective_layout_direction();
     const double button_width = std::min(24.0, bounds.width);
     const double button_x = std::max(0.0, bounds.width - button_width);
     const Rect button{button_x, 1.0, std::max(0.0, button_width - 1.0),
@@ -625,8 +645,8 @@ void DateTimePicker::publish_part_geometry(std::span<PartGeometry> geometry) con
         const Rect upper{button.x, button.y, button.width, std::max(0.0, middle - button.y)};
         const Rect lower{button.x, middle, button.width,
                          std::max(0.0, button.bottom() - middle)};
-        record.increment_arrow = PartGeometry::from_bounds(upper);
-        record.decrement_arrow = PartGeometry::from_bounds(lower);
+        record.increment_arrow = PartGeometry::from_bounds(directed_rect(upper, bounds, direction));
+        record.decrement_arrow = PartGeometry::from_bounds(directed_rect(lower, bounds, direction));
         if (pressed_part_ == HitPart::arrow_up) {
             record.increment_arrow.states.insert(AnatomyState::pressed);
         } else if (pressed_part_ == HitPart::arrow_down) {
@@ -636,27 +656,27 @@ void DateTimePicker::publish_part_geometry(std::span<PartGeometry> geometry) con
         // The chevron's two one-unit strokes span 8 x 4 about its centre.
         const double center_y = bounds.height * 0.5 + (dropped_down_ ? 2.0 : -1.0);
         const Rect chevron{center_x - 4.5, center_y - 2.5, 9.0, 5.0};
-        record.drop_down = PartGeometry::from_bounds(button);
-        record.disclosure = PartGeometry::from_bounds(chevron);
+        record.drop_down = PartGeometry::from_bounds(directed_rect(button, bounds, direction));
+        record.disclosure = PartGeometry::from_bounds(directed_rect(chevron, bounds, direction));
     }
     double text_left = 7.0;
     if (show_check_box.read()) {
         const double check_y = std::max(3.0, (bounds.height - 14.0) * 0.5);
         const Rect box{5.0, check_y, 14.0, 14.0};
-        record.well = PartGeometry::from_bounds(box);
+        record.well = PartGeometry::from_bounds(directed_rect(box, bounds, direction));
         if (pressed_part_ == HitPart::check) {
             record.well.states.insert(AnatomyState::pressed);
         }
         if (checked.read()) {
             // Two-unit strokes through (8, 7), (11, 10) and (17, 3.5) from the box top.
             const Rect mark{7.0, check_y + 2.5, 11.0, 8.5};
-            record.indicator = PartGeometry::from_bounds(mark);
+            record.indicator = PartGeometry::from_bounds(directed_rect(mark, bounds, direction));
         }
         text_left = 25.0;
     }
     const Rect content{text_left, 2.0, std::max(0.0, button_x - text_left - 3.0),
                        std::max(0.0, bounds.height - 4.0)};
-    record.content = PartGeometry::from_bounds(content);
+    record.content = PartGeometry::from_bounds(directed_rect(content, bounds, direction));
     write_parts(anatomy(), scrollable_detail::part_fields, record.scrollable, geometry);
     write_parts(anatomy(), date_time_picker_extra_part_fields, record, geometry);
 }

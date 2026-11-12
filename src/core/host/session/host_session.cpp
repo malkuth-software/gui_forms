@@ -2,6 +2,7 @@
 
 #include "gui_forms/window.hpp"
 #include "../../failure/fail_fast.hpp"
+#include "../../surface_root/access/surface_host_access.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -206,13 +207,13 @@ HostSession::HostSession(Window& window,
     : window_(&window), services_(services), ui_thread_(std::this_thread::get_id()) {
     snapshot_.capabilities = std::move(capabilities);
     // The window's non-opaque declaration is fixed from here (stage T5).
-    window.host_session_bound_ = true;
+    detail::SurfaceHostAccess::mark_session_bound(window);
     if (services_ != nullptr) {
-        if (window.host_services_ != nullptr && window.host_services_ != services_) {
+        if (window.host_services() != nullptr && window.host_services() != services_) {
             throw std::logic_error("GUI.Forms Window already has an active host service seam");
         }
         window.invalidate_cursor_interaction(CursorError::stale_window);
-        window.host_services_ = services_;
+        detail::SurfaceHostAccess::set_host_services(window, services_);
         // The window's corners as the host makes them, which its band
         // follows (owner, 2026-11-08).
         window.apply_corner_preference();
@@ -361,7 +362,7 @@ void HostSession::DispatchVisitor::operator()(
         settings.double_click_origin = payload.double_click_origin;
         settings.pointer = payload.pointer;
         settings.caret = payload.caret;
-        (*(*session).window_).set_host_presentation(settings);
+        detail::SurfaceHostAccess::set_host_presentation(*(*session).window_, settings);
     } else if constexpr (std::is_same_v<Payload, HostContextRequestEvent>) {
         (*result).handled = (*(*session).window_).dispatch_context_request(payload.origin, payload.position);
     } else if constexpr (std::is_same_v<Payload, HostHoverEvent>) {
@@ -513,7 +514,7 @@ void HostSession::shutdown() noexcept {
         (*window_).cancel_drag();
         (*window_).cancel_frame_requests();
         (*window_).shutdown_dispatcher();
-        if ((*window_).host_services_ == services_) (*window_).host_services_ = nullptr;
+        detail::SurfaceHostAccess::release_host_services(*window_, services_);
     }
     snapshot_.shutdown = true;
     snapshot_.phase = HostLifecyclePhase::shutdown;

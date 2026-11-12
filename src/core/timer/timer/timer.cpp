@@ -1,6 +1,7 @@
 #include "gui_forms/timer/timer/timer.hpp"
 
 #include "gui_forms/window.hpp"
+#include "../../surface_root/access/surface_lifetime_access.hpp"
 
 #include <array>
 #include <stdexcept>
@@ -8,7 +9,7 @@
 namespace gui_forms {
 
 Timer::Timer(Window& window, std::chrono::milliseconds interval)
-    : window_lifetime_(window.lifetime_), interval_(interval),
+    : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)), interval_(interval),
       callback_state_(std::make_shared<CallbackState>()) {
     if (interval_ < minimum_ui_timer_interval) {
         throw std::invalid_argument("GUI.Forms Timer interval must be at least 1 ms");

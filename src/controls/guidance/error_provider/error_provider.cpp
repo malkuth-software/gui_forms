@@ -7,6 +7,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "../../../core/surface_root/access/surface_lifetime_access.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
@@ -51,7 +52,7 @@ struct ErrorProvider::TargetBoundsObserver final {
 }
 
 ErrorProvider::ErrorProvider(Window& window)
-    : window_lifetime_(window.lifetime_),
+    : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)),
       provider_id_(next_error_provider_id.fetch_add(1U)) {
     window.verify_access("ErrorProvider construction");
     availability_subscription_ = window.control_availability_changed().subscribe(

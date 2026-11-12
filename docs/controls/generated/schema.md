@@ -12,9 +12,9 @@ typed records (`(*bar).parts().thumb`) and registers handlers through each type'
 (`(*button).clicked()`). An interaction's payload is the handler's argument types; *by
 reference* marks a payload the handler receives by mutable reference.
 
-Every control also has these properties: `accessible_description`, `accessible_name`, `align_self`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `focusable`, `fore_color`, `help`, `help_line`, `hit_test_transparent`, `justify_self`, `keywords`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
+Every control also has these properties: `accessible_description`, `accessible_name`, `align_self`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `focusable`, `fore_color`, `help`, `help_line`, `hit_test_transparent`, `justify_self`, `keywords`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `right_to_left`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
-Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`, `preview_key_down`, `key_down`, `key_press`, `key_up`.
+Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `right_to_left_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`, `preview_key_down`, `key_down`, `key_press`, `key_up`.
 
 ## Vocabulary
 
@@ -26,7 +26,7 @@ States: `normal`, `hot`, `pressed`, `captured`, `focused`, `focus_visible`, `pre
 
 Admitted custom states: `modified`, `pinned`.
 
-Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_down`, `arrow_left`, `arrow_right`, `chevron_down`, `chevron_right`, `close`, `grip_dots`, `dialog_launcher`, `more`, `overflow`, `customize`, `pin`, `dock_shape`, `underline`, `pencil`, `asterisk`, `error`, `search`, `information`, `warning`, `success`.
+Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_down`, `arrow_left`, `arrow_right`, `chevron_down`, `chevron_right`, `close`, `grip_dots`, `dialog_launcher`, `more`, `overflow`, `customize`, `pin`, `dock_shape`, `underline`, `pencil`, `asterisk`, `error`, `search`, `information`, `warning`, `success`, `chevron_left`.
 
 Engine inputs: `pointer_x`, `pointer_y`, `time_in_state`, `display_scale`, `text_scale`.
 

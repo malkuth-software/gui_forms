@@ -112,6 +112,65 @@ enum class LayoutDirection : std::uint8_t {
     right_to_left,
 };
 
+// Windows Forms' RightToLeft values, in its order (No, Yes, Inherit): the
+// vocabulary of Control's `right_to_left` property, which names the same
+// authored value as `layout_direction` (owner ruling of 2026-11-11). There
+// is one stored direction; these convert between the two spellings.
+enum class RightToLeft : std::uint8_t {
+    no,
+    yes,
+    inherit,
+};
+
+// The RightToLeft spelling of an authored direction. A value outside the
+// enumeration reads as inherit.
+[[nodiscard]] constexpr RightToLeft right_to_left_of(LayoutDirection direction) noexcept {
+    switch (direction) {
+    case LayoutDirection::left_to_right: return RightToLeft::no;
+    case LayoutDirection::right_to_left: return RightToLeft::yes;
+    case LayoutDirection::inherit:
+    default: return RightToLeft::inherit;
+    }
+}
+
+// The authored direction a RightToLeft value stands for. A value outside
+// the enumeration reads as inherit.
+[[nodiscard]] constexpr LayoutDirection layout_direction_of(RightToLeft value) noexcept {
+    switch (value) {
+    case RightToLeft::no: return LayoutDirection::left_to_right;
+    case RightToLeft::yes: return LayoutDirection::right_to_left;
+    case RightToLeft::inherit:
+    default: return LayoutDirection::inherit;
+    }
+}
+
+// `bounds` mirrored about the vertical centre line of `frame`, both in the
+// same coordinates: how a directional control places a part laid out left
+// to right when it resolves right to left (Control::
+// effective_layout_direction). Mirroring twice gives `bounds` back.
+[[nodiscard]] constexpr Rect horizontally_mirrored(Rect bounds, Rect frame) noexcept {
+    Rect mirrored = bounds;
+    mirrored.x = frame.x + frame.width - (bounds.x - frame.x) - bounds.width;
+    return mirrored;
+}
+
+// `laid` as a control resolving `direction` places it: unchanged left to
+// right, horizontally_mirrored in `frame` right to left. For geometry laid
+// out left to right once and placed at output.
+[[nodiscard]] constexpr Rect directed_rect(Rect laid, Rect frame, LayoutDirection direction) noexcept {
+    if (direction != LayoutDirection::right_to_left) return laid;
+    const Rect placed = horizontally_mirrored(laid, frame);
+    return placed;
+}
+
+// The left-to-right x of a point at `x` in `frame` placed by `direction`:
+// directed_rect's inverse for hit testing (a mirror is its own inverse).
+[[nodiscard]] constexpr double directed_x(double x, Rect frame, LayoutDirection direction) noexcept {
+    if (direction != LayoutDirection::right_to_left) return x;
+    const double laid = frame.x + frame.width - (x - frame.x);
+    return laid;
+}
+
 namespace types {
 
 inline constexpr TypeTag<LayoutDirection> layout_direction{};

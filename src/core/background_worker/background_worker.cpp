@@ -1,6 +1,7 @@
 #include "gui_forms/background_worker/background_worker.hpp"
 
 #include "../dispatcher/state/dispatcher_state.hpp"
+#include "../surface_root/access/surface_lifetime_access.hpp"
 
 #include "gui_forms/window.hpp"
 
@@ -135,7 +136,8 @@ void BackgroundWorkerTask::report_progress(int percent, BindingValue user_state)
 // -- worker ------------------------------------------------------------------
 
 BackgroundWorker::BackgroundWorker(Window& window)
-    : window_lifetime_(window.lifetime_), dispatcher_(window.dispatcher_state_),
+    : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)),
+      dispatcher_(detail::SurfaceLifetimeAccess::share_dispatcher(window)),
       target_(std::make_shared<detail::BackgroundWorkerTarget>()) {
     window.verify_access("BackgroundWorker construction");
     (*target_).owner = this;

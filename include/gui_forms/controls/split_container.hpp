@@ -123,6 +123,10 @@ private:
     [[nodiscard]] bool seam_draggable() const noexcept;
     [[nodiscard]] double axis_extent(Rect bounds) const noexcept;
     [[nodiscard]] double pointer_axis(Point point) const noexcept;
+    // Whether the panels sit side by side mirrored: a vertical splitter in a
+    // container resolving right to left puts Panel1 at the right, with the
+    // distance (and the drag, and Left/Right) measured from the right edge.
+    [[nodiscard]] bool mirrored_split() const noexcept;
     [[nodiscard]] double constrained_distance(double requested,
                                               double total_extent) const noexcept;
     [[nodiscard]] double effective_splitter_width() const noexcept;

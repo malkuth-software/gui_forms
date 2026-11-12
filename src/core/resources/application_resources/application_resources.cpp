@@ -6,6 +6,7 @@
 
 #include "../../theme/theme_compiler/control_inline_style.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
+#include "../../surface_root/access/surface_resource_access.hpp"
 
 #include <cstdio>
 
@@ -69,18 +70,18 @@ void ApplicationResources::set_theme(std::shared_ptr<const Theme> theme) {
     std::vector<detail::InlineRestyle> restyles{};
     std::vector<ThemeCompileDiagnostic> diagnostics{};
     for (SurfaceRoot* const window : windows_) {
-        if (!(*window).collect_inline_restyles(*theme, restyles, diagnostics)) {
+        if (!detail::SurfaceResourceAccess::collect_inline_restyles(*window, *theme, restyles, diagnostics)) {
             throw std::invalid_argument(detail::inline_restyle_refusal("application theme", diagnostics));
         }
     }
-    SurfaceRoot::commit_inline_restyles(restyles);
+    detail::SurfaceResourceAccess::commit_inline_restyles(restyles);
     theme_ = std::move(theme);
     program_theme_ = theme_;
     // A window's theme_changed handler may create or destroy windows; walk a
     // copy of the list and skip windows that left it meanwhile.
     const std::vector<SurfaceRoot*> windows = windows_;
     for (std::size_t index = 0U; index < windows.size(); ++index) {
-        if (listed(windows_, windows[index])) (*windows[index]).apply_theme(theme_);
+        if (listed(windows_, windows[index])) detail::SurfaceResourceAccess::apply_theme(*windows[index], theme_);
     }
 }
 
@@ -91,7 +92,7 @@ void ApplicationResources::set_automatic_colour_scheme(bool automatic) {
     // A handler of a window's change may create or destroy windows.
     const std::vector<SurfaceRoot*> windows = windows_;
     for (std::size_t index = 0U; index < windows.size(); ++index) {
-        if (listed(windows_, windows[index])) (*windows[index]).follow_host_colour_scheme(automatic);
+        if (listed(windows_, windows[index])) detail::SurfaceResourceAccess::follow_host_colour_scheme(*windows[index], automatic);
     }
 }
 
@@ -277,7 +278,7 @@ ImageLoadResult ApplicationResources::replace_png(ImageId image, std::span<const
     ImageLoadResult result = images_.replace_png(image, encoded);
     if (result) {
         for (std::size_t index = 0U; index < windows_.size(); ++index) {
-            (*windows_[index]).repaint_for_image_replacement();
+            detail::SurfaceResourceAccess::repaint_for_image_replacement(*windows_[index]);
         }
     }
     return result;
@@ -287,7 +288,7 @@ bool ApplicationResources::remove_image(ImageId image) {
     require_access("PNG resource removal");
     if (!images_.remove(image)) return false;
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
-        (*windows_[index]).repaint_for_image_removal();
+        detail::SurfaceResourceAccess::repaint_for_image_removal(*windows_[index]);
     }
     return true;
 }

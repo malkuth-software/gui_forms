@@ -385,6 +385,19 @@ public:
     [[nodiscard]] Event<bool>& enabled_changed() noexcept {
         return enabled_changed_;
     }
+    // Windows Forms' RightToLeftChanged: raised on every control whose
+    // resolved direction (effective_layout_direction) changes, by a write
+    // of its own or an ancestor's layout_direction (right_to_left) or by a
+    // reparenting; the payload is true when it now resolves right to left.
+    // Every affected control's resolved value is updated first; then the
+    // events run an ancestor before its descendants and siblings in painter
+    // order, each after that control is marked arrange, paint and hit-test
+    // dirty. A handler may write directions or move controls: the nested
+    // change announces its own controls, and a control it already
+    // announced is not announced again.
+    [[nodiscard]] Event<bool>& right_to_left_changed() noexcept {
+        return right_to_left_changed_;
+    }
     [[nodiscard]] Ptr parent() const noexcept { return parent_.lock(); }
     // Back to front (painter order, as the C ABI's insert_child and
     // child_at count): index 0 paints first, the last child paints on top.
@@ -858,7 +871,7 @@ public:
     void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 32U;
+    static constexpr std::size_t control_property_count = 33U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -979,11 +992,19 @@ public:
     // callback). False by default, which keeps every existing container's
     // measure pass unchanged.
     [[nodiscard]] virtual bool measures_children_in_arrange() const noexcept;
-    // layout_direction is the authored inline direction, `inherit` by
-    // default (stage L, PLAN section 4); writing it invalidates this
-    // subtree's arrangement.
+    // layout_direction stores the authored inline direction, `inherit` by
+    // default (stage L, PLAN section 4): Windows Forms' RightToLeft. The
+    // registry, the property grid and forms spell it `right_to_left` (No,
+    // Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of
+    // 2026-11-11); the `layout_direction` name is hidden there and refused
+    // in forms. Writing it re-arranges and repaints every control whose
+    // resolved direction changes.
     // The direction this control lays out in: its own when not `inherit`,
-    // otherwise the nearest ancestor's, and left to right at a root.
+    // otherwise the nearest ancestor's, and left to right at a root (the
+    // top-level window's default, No). Kept resolved: a read walks nothing;
+    // a write or a reparenting refreshes the affected subtree once.
+    // Directional controls (progress and scroll bars, track bars, up-downs,
+    // combo boxes, check boxes) mirror when it is right_to_left.
     [[nodiscard]] LayoutDirection effective_layout_direction() const noexcept;
     virtual void on_paint(Painter& painter, Rect local_damage);
     // Bounded decoration may paint outside arranged bounds without changing
@@ -1194,6 +1215,11 @@ protected:
     virtual void on_padding_changed();
     virtual void on_dock_changed();
     virtual void on_layout_direction_changed();
+    // Called on each control whose resolved direction changed, in the
+    // order right_to_left_changed() states, after its invalidation; the
+    // base raises right_to_left_changed. An override that keeps
+    // direction-dependent state drops it and calls the base.
+    virtual void on_right_to_left_changed();
     virtual void on_tab_index_changed();
     virtual void on_tab_stop_changed();
 
@@ -1641,6 +1667,12 @@ private:
         auto_size_mode_property_enum();
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
         layout_direction_property_enum();
+    [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
+        right_to_left_property_enum();
+    // The right_to_left property: layout_direction in RightToLeft's
+    // spelling. Setting it writes layout_direction.
+    [[nodiscard]] BindingValue right_to_left_property_value() const;
+    void set_right_to_left_property_value(const BindingValue& value);
     // The classes property: a collection of text, one item per class in
     // order. Setting it refuses an invalid name as the classes capability does.
     [[nodiscard]] BindingValue classes_property_value() const;
@@ -1708,7 +1740,7 @@ private:
     // The inherited values (audit N87), kept as of `generation`, a value of
     // the process-wide inherited-value generation (control.cpp), which
     // every write of an input advances: visible, enabled, cursor, colours,
-    // layout direction, ceremonial, a theme override, layout collapse, a
+    // ceremonial, a theme override, layout collapse, a
     // disposal and every change of a parent. A read whose generation is
     // older computes them again from the parent's, so a read costs one
     // step, not a walk to the root. `theme_override` is the nearest theme
@@ -1720,7 +1752,6 @@ private:
         std::optional<Color> back_color{};
         std::optional<Color> fore_color{};
         CursorKind cursor{CursorKind::arrow};
-        LayoutDirection direction{LayoutDirection::left_to_right};
         bool visible{};
         bool enabled{};
         bool ceremonial{};
@@ -1731,6 +1762,33 @@ private:
     // are not inherited here.
     bool stops_inherited_colours_{};
     [[nodiscard]] const InheritedValues& inherited_values() const noexcept;
+    // The resolved direction (effective_layout_direction), kept eagerly:
+    // refresh_resolved_direction updates it for a subtree whenever
+    // layout_direction is written or the control's ancestors change, so it
+    // is always the value the tree gives. announced_direction_ is the
+    // value the last right_to_left_changed told; the two differ only
+    // between a refresh and its announcement, or while a reparenting holds
+    // the announcement (holds_direction_announcement_: the removal from
+    // the previous parent announces nothing, the attachment announces the
+    // net change). A new control resolves left to right.
+    LayoutDirection resolved_direction_{LayoutDirection::left_to_right};
+    LayoutDirection announced_direction_{LayoutDirection::left_to_right};
+    bool holds_direction_announcement_{};
+    // How far refresh_resolved_direction walks: only below controls whose
+    // resolved value changed, or the whole subtree (a reparenting, whose
+    // held removal may have left descendants unannounced).
+    enum class DirectionWalk : std::uint8_t {
+        changed_branches,
+        whole_subtree,
+    };
+    // Refreshes resolved_direction_ for this control and its descendants,
+    // preorder on an explicit stack (no recursion per level), and appends
+    // each control whose resolved and announced values differ to
+    // `announcements`, in announcement order. Runs no callbacks.
+    void refresh_resolved_direction(DirectionWalk walk, std::vector<Ptr>& announcements);
+    // Invalidates and announces (on_right_to_left_changed) each control of
+    // `announcements` that is alive and still unannounced, in order.
+    static void announce_direction_changes(const std::vector<Ptr>& announcements);
     detail::LendingPointer<Window> window_{};
     detail::LendingPointer<SurfaceRoot> surface_root_{};
     // This control's slot in its surface root's control table while it is
@@ -1827,6 +1885,7 @@ private:
     Event<const std::string&> tool_tip_text_changed_;
     Event<bool> visible_changed_;
     Event<bool> enabled_changed_;
+    Event<bool> right_to_left_changed_;
     Event<bool> causes_validation_changed_;
     Event<bool> auto_size_changed_;
     Event<ControlValidationEvent&> validating_;
@@ -1940,6 +1999,7 @@ private:
         back_color,
         fore_color,
         focusable,
+        right_to_left,
     };
 
     // Control's table operations over the adapters below (study section
@@ -2047,6 +2107,8 @@ private:
                 return (*control).back_color_property_value();
             } else if constexpr (Property == RegisteredProperty::fore_color) {
                 return (*control).fore_color_property_value();
+            } else if constexpr (Property == RegisteredProperty::right_to_left) {
+                return (*control).right_to_left_property_value();
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);
@@ -2165,6 +2227,8 @@ private:
                 (*control).set_back_color_property_value(value);
             } else if constexpr (Property == RegisteredProperty::fore_color) {
                 (*control).set_fore_color_property_value(value);
+            } else if constexpr (Property == RegisteredProperty::right_to_left) {
+                (*control).set_right_to_left_property_value(value);
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);

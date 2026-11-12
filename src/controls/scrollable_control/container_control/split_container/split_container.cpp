@@ -88,7 +88,9 @@ public:
         DragProjection projection{};
         projection.axis = container.orientation.read() == Orientation::vertical ? DragAxis::x : DragAxis::y;
         projection.origin_value = container.pointer_start_distance_;
-        projection.scale = 1.0;
+        // Side by side under RightToLeft the distance runs from the right
+        // edge, so a drag to the left lengthens it.
+        projection.scale = container.mirrored_split() ? -1.0 : 1.0;
         // The constrained range is monotonic in the request, so its two ends
         // are the clamps of the smallest and largest requests.
         projection.minimum = container.constrained_distance(0.0, total);
@@ -281,8 +283,9 @@ SplitSeamSnapshot SplitContainer::splitter_seam_snapshot() const noexcept {
     result.transition_progress = grip.transition_progress();
     result.transition_active = grip.transition_active();
     if (orientation.read() == Orientation::vertical) {
-        result.visible_bounds = {effective_distance_, 0.0, visible,
-                                 committed_arranged_bounds().height};
+        const Rect laid{effective_distance_, 0.0, visible, committed_arranged_bounds().height};
+        const Rect frame{0.0, 0.0, committed_arranged_bounds().width, committed_arranged_bounds().height};
+        result.visible_bounds = mirrored_split() ? horizontally_mirrored(laid, frame) : laid;
     } else {
         result.visible_bounds = {0.0, effective_distance_,
                                  committed_arranged_bounds().width, visible};
@@ -441,16 +444,23 @@ void SplitContainer::arrange(Rect final_bounds) {
     const double hit_origin = std::clamp(
         effective_distance_ - splitter_geometry.read().hit_before, 0.0,
         std::max(0.0, total - hit_width));
+    // Side by side under RightToLeft, Panel1 is at the right and the
+    // distance runs from the right edge (Windows Forms): the layout is
+    // computed left to right and mirrored once here.
+    const bool mirrored = mirrored_split();
+    const double seam_offset = effective_distance_ - hit_origin;
     static_cast<SplitterGrip&>(*splitter_).set_visible_geometry(
-        effective_distance_ - hit_origin, visible_width);
+        mirrored ? hit_width - seam_offset - visible_width : seam_offset, visible_width);
     if (orientation.read() == Orientation::vertical) {
+        const Rect frame{0.0, 0.0, final_bounds.width, final_bounds.height};
+        const LayoutDirection direction = mirrored ? LayoutDirection::right_to_left : LayoutDirection::left_to_right;
         set_child_layout(first_panel_,
-            {0.0, 0.0, effective_distance_, final_bounds.height});
+            directed_rect({0.0, 0.0, effective_distance_, final_bounds.height}, frame, direction));
         set_child_layout(second_panel_,
-            {effective_distance_ + visible_width, 0.0, second_extent,
-             final_bounds.height});
+            directed_rect({effective_distance_ + visible_width, 0.0, second_extent,
+                           final_bounds.height}, frame, direction));
         set_child_layout(splitter_,
-            {hit_origin, 0.0, hit_width, final_bounds.height});
+            directed_rect({hit_origin, 0.0, hit_width, final_bounds.height}, frame, direction));
     } else {
         set_child_layout(first_panel_,
             {0.0, 0.0, final_bounds.width, effective_distance_});
@@ -544,8 +554,11 @@ void SplitContainer::on_key_preview(KeyEvent& event) {
     if (splitter_fixed.read() || first_collapsed_ || second_collapsed_) return;
     double delta{};
     if (orientation.read() == Orientation::vertical) {
-        if (event.physical_key == PhysicalKey::left) delta = -keyboard_increment.read();
-        else if (event.physical_key == PhysicalKey::right) delta = keyboard_increment.read();
+        // Left and Right move the seam that way; mirrored, Left lengthens
+        // the distance from the right edge.
+        const double toward_right = mirrored_split() ? -keyboard_increment.read() : keyboard_increment.read();
+        if (event.physical_key == PhysicalKey::left) delta = -toward_right;
+        else if (event.physical_key == PhysicalKey::right) delta = toward_right;
         else return;
     } else {
         if (event.physical_key == PhysicalKey::up) delta = -keyboard_increment.read();
@@ -678,8 +691,17 @@ double SplitContainer::axis_extent(Rect bounds) const noexcept {
 
 double SplitContainer::pointer_axis(Point point) const noexcept {
     const Rect absolute = absolute_bounds();
-    return orientation.read() == Orientation::vertical ? point.x - absolute.x
-                                                  : point.y - absolute.y;
+    if (orientation.read() != Orientation::vertical) return point.y - absolute.y;
+    // Mirrored, the distance is measured from the right edge.
+    const double from_left = point.x - absolute.x;
+    const double along = mirrored_split() ? absolute.width - from_left : from_left;
+    return along;
+}
+
+bool SplitContainer::mirrored_split() const noexcept {
+    const bool mirrored = orientation.read() == Orientation::vertical &&
+                          effective_layout_direction() == LayoutDirection::right_to_left;
+    return mirrored;
 }
 
 double SplitContainer::effective_splitter_width() const noexcept {
