@@ -616,3 +616,10 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
 }
 
 @end
+
+// This unit's link anchor (macos_view.hpp): referenced from
+// link_view_categories in macos_view.mm so that the archive member holding
+// the Input category is linked wherever GUIFormsView is.
+namespace gui_forms::host::macos {
+void gui_forms_macos_view_input_anchor() noexcept {}
+} // namespace gui_forms::host::macos

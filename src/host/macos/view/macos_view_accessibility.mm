@@ -133,3 +133,10 @@
 }
 
 @end
+
+// This unit's link anchor (macos_view.hpp): referenced from
+// link_view_categories in macos_view.mm so that the archive member holding
+// the Accessibility category is linked wherever GUIFormsView is.
+namespace gui_forms::host::macos {
+void gui_forms_macos_view_accessibility_anchor() noexcept {}
+} // namespace gui_forms::host::macos
