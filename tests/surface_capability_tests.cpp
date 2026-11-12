@@ -116,7 +116,7 @@ void test_tree_capability_follows_attachment() {
     require(!detail::SurfaceTreeAccess::in_lifecycle_notification(window),
             "a root outside an attach or detach notification must say so");
     (*root).add_child(child);
-    require((*child).attached_surface_root().get() == &window,
+    require((*child).attached_surface_root() == &window,
             "a child added through the tree capability must be attached to the root");
     static_cast<void>((*root).remove_child((*child).runtime_id()));
     require(!(*child).attached(), "a child removed through the tree capability must be detached");
