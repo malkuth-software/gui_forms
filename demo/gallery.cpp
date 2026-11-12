@@ -6,6 +6,16 @@
 #include "gallery_theme_package.hpp"
 
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/button_content_types.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view_row_order.hpp"
+#include "gui_forms/controls/material_panel.hpp"
+#include "gui_forms/controls/page_view.hpp"
+#include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/tab_control.hpp"
+#include "gui_forms/image_list/image_list/image_list.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include <algorithm>
 #include <array>

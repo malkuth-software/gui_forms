@@ -24,7 +24,7 @@ public:
 
     [[nodiscard]] SemanticFeedbackRecord emit(SemanticFeedbackKind kind);
     [[nodiscard]] std::span<const SemanticFeedbackRecord> records() const& noexcept {
-        return records_;
+        return std::span<const SemanticFeedbackRecord>(records_.data(), records_.size());
     }
     std::span<const SemanticFeedbackRecord> records() const&& = delete;
     [[nodiscard]] std::uint64_t dropped_record_count() const noexcept {

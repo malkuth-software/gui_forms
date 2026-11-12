@@ -1,4 +1,9 @@
 #include "pages.hpp"
+#include "gui_forms/controls/help_book.hpp"
+#include "gui_forms/controls/help_book_system.hpp"
+#include "gui_forms/controls/help_book_viewer.hpp"
+#include "gui_forms/help/help_contents/help_contents.hpp"
+#include "gui_forms/help/helpbook_section/helpbook_section.hpp"
 
 #include "help-book_form.hpp"
 

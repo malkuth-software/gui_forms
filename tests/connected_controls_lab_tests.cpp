@@ -1,6 +1,11 @@
 #include "connected_controls_lab.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstdlib>
 #include <exception>

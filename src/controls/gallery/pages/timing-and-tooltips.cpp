@@ -1,4 +1,9 @@
 #include "pages.hpp"
+#include "gui_forms/background_worker/background_worker.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
+#include "gui_forms/controls/scaled_panel.hpp"
+#include "gui_forms/controls/track_bar.hpp"
+#include "gui_forms/timer/timer/timer.hpp"
 
 #include "timing-and-tooltips_form.hpp"
 

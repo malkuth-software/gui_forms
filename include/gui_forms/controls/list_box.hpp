@@ -34,7 +34,7 @@ public:
     void set_item_stable_ids(std::vector<std::string> stable_ids);
     [[nodiscard]] std::string item_stable_id(std::size_t index) const;
     [[nodiscard]] std::span<const std::size_t> selected_indices() const& noexcept {
-        return selected_;
+        return std::span<const std::size_t>(selected_.data(), selected_.size());
     }
     std::span<const std::size_t> selected_indices() const&& = delete;
     [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept;

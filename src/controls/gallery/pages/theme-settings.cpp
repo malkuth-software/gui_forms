@@ -4,6 +4,8 @@
 #include "theme-settings_form.hpp"
 
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/scaled_group_box.hpp"
 
 #include <stdexcept>
 

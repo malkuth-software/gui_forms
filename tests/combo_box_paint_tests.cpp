@@ -3,7 +3,16 @@
 // the text as a TextBox's does (WinForms' ForeColor); with neither the
 // theme's editor text stands. The placeholder keeps the theme's muted text
 // and a disabled combo box the theme's disabled text.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/combo_box_values.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstdlib>
 #include <iostream>

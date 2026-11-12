@@ -46,7 +46,9 @@ public:
     // empty while the list is closed. Rows keep their item's identity: a
     // row's semantic ID ends in its item's index, and the selection is
     // always an index into items().
-    [[nodiscard]] std::span<const std::size_t> drop_down_items() const& noexcept { return rows_; }
+    [[nodiscard]] std::span<const std::size_t> drop_down_items() const& noexcept {
+        return std::span<const std::size_t>(rows_.data(), rows_.size());
+    }
     std::span<const std::size_t> drop_down_items() const&& = delete;
 
     [[nodiscard]] Event<std::optional<std::size_t>>& selected_index_changed() noexcept {

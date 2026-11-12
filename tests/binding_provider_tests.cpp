@@ -6,7 +6,24 @@
 // force under inserts, removes and changes, the published list changes
 // (moves among them) replayed against the view, and add_rows all or none.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/binding_provider/binding_provider.hpp"
+#include "gui_forms/binding/binding_schema/binding_schema.hpp"
+#include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/binding/binding_table/binding_table.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/binding/types/binding_contract_types.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
+#include "gui_forms/component/component/component.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/rules/rule_set/rule_set.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include "../src/core/binding/binding_view/binding_order_tree.hpp"
 

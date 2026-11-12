@@ -10,7 +10,24 @@
 #include "../../src/core/theme_language/syntax_tree/theme_syntax_tree.hpp"
 #include "../../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/form_binding/form_binding.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/grid_panel.hpp"
+#include "gui_forms/controls/group_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/user_control.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/layout/grid_span/grid_span.hpp"
+#include "gui_forms/plots/decimation/decimation_kernels.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <array>
 #include <cstddef>

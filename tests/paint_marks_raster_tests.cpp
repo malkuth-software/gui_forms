@@ -3,7 +3,12 @@
 // NaN gaps and dashes, the fill rules, markers, the conic gradient's
 // direction, the per-corner rounding, and the replay of a recording drawing
 // the same bytes as drawing directly.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_marks/paint_marks.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 #include "skia_raster.hpp"
 #include "../src/core/display/recording_painter/recording_painter.hpp"
 #include "../src/core/display/replay/replay_display_chunk.hpp"

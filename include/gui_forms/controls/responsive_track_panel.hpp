@@ -170,7 +170,7 @@ public:
     [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
 
     [[nodiscard]] std::span<const ResponsiveTrackSpec> track_specs() const& noexcept {
-        return track_specs_;
+        return std::span<const ResponsiveTrackSpec>(track_specs_.data(), track_specs_.size());
     }
     std::span<const ResponsiveTrackSpec> track_specs() const&& = delete;
     void set_track_specs(std::vector<ResponsiveTrackSpec> specs);

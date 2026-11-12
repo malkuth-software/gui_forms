@@ -1,4 +1,6 @@
 #include "support.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/panel.hpp"
 
 namespace gallery_pages_tests {
 

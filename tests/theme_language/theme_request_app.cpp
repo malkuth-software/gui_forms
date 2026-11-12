@@ -10,7 +10,13 @@
 //   GF_TEST_POLICY           refused or replaces, chosen before the window
 //                            (layered when unset).
 // Exit 0 when the request did what was expected.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/application/application.hpp"
+#include "gui_forms/application/user_themes/user_themes.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
 #include <cstdlib>

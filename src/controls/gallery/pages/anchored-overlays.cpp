@@ -1,4 +1,8 @@
 #include "pages.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/anchored_overlay_placement.hpp"
+#include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/text_box.hpp"
 
 #include "anchored-overlays_form.hpp"
 

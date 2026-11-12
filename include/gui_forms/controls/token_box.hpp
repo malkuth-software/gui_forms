@@ -51,7 +51,9 @@ public:
     void initialize_control_tree();
 
     // The tokens, first to last.
-    [[nodiscard]] std::span<const Token> tokens() const& noexcept { return tokens_; }
+    [[nodiscard]] std::span<const Token> tokens() const& noexcept {
+        return std::span<const Token>(tokens_.data(), tokens_.size());
+    }
     std::span<const Token> tokens() const&& = delete;
     // Adds a token after the last and returns its identity. The text is
     // trimmed of ASCII spaces; text that is not valid UTF-8, or empty once

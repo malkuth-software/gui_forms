@@ -1,4 +1,8 @@
 #include "support.hpp"
+#include "gui_forms/controls/block_panel.hpp"
+#include "gui_forms/controls/flex_panel.hpp"
+#include "gui_forms/controls/grid_panel.hpp"
+#include "gui_forms/controls/text_block.hpp"
 
 namespace gallery_pages_tests {
 

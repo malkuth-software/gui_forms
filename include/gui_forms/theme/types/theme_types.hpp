@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/theme/types/control_visual_types.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/surface_material.hpp"
 
@@ -45,53 +46,6 @@ struct GUI_FORMS_API BasicControlStyle final {
     }
 };
 
-// The recipe families a theme supplies. `tool_tip` (owner decision RB-38,
-// design language 12.9) is the face and edge of plain and enhanced
-// tooltips, beside `card` and `menu_item`. `link` and `visited_link` (owner
-// decision W-Q5) are a hyperlink's text, chosen by the link's visited flag;
-// hover keeps the normal link colour, and a link draws no plate. `notice`
-// (T4, W-4) is the face of an InfoBanner or a Toast; its severity is the
-// control's own custom state, exactly one of information, warning, success
-// and error, and its keyline takes the severity's colour. `badge` (T4, W-4)
-// is a Badge's count or dot chip, which has normal and disabled looks only.
-enum class ControlVisualRole : std::uint8_t {
-    window, panel, card, button, accent_button, command_button, choice,
-    editor, menu_item, selection, progress, tool_tip, link, visited_link,
-    notice, badge, count,
-};
-enum class ControlSurfaceState : std::uint8_t {
-    normal, hot, pressed, pending, invalid, disabled, deactivated, count,
-};
-enum class ControlVisualStatus : std::uint8_t { normal, pending, invalid };
-
-// A control's interaction state as it asks for its visual context
-// (Control::visual_context, audit A13): named fields, all false by default.
-struct GUI_FORMS_API VisualInteraction final {
-    bool hovered{};
-    bool pressed{};
-    bool selected{};
-    bool focused{};
-    bool defaulted{};
-};
-
-struct GUI_FORMS_API ControlVisualContext final {
-    ControlSurfaceState surface{ControlSurfaceState::normal};
-    bool selected{};
-    bool focused{};
-    bool defaulted{};
-    bool high_contrast{};
-    // The window prefers the dark colour scheme (PresentationSettings::
-    // colour_scheme, stage T4 phase 5). A theme with a derived dark variant
-    // resolves its dark records; high contrast wins over it.
-    bool dark{};
-    friend constexpr bool operator==(const ControlVisualContext& left,
-                                     const ControlVisualContext& right) noexcept {
-        return left.surface == right.surface &&
-               left.selected == right.selected && left.focused == right.focused &&
-               left.defaulted == right.defaulted &&
-               left.high_contrast == right.high_contrast && left.dark == right.dark;
-    }
-};
 // A text shadow (E9.6, CSS `text-shadow`): the text's glyphs, moved by
 // `offset` logical units (each axis within ±maximum_text_shadow_offset),
 // blurred by `blur_radius` (the shadows' blur-radius convention, 0 to

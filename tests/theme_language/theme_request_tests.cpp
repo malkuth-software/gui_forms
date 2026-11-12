@@ -9,7 +9,15 @@
 // theme_request_app.cpp and tests/abi/gf_abi_theme_request_app.c. Works in a
 // folder of its own under the system's temporary one.
 #include "../../src/runtime/user_themes/theme_files.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/application/user_themes/user_themes.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
 #include <chrono>

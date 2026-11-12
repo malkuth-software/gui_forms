@@ -352,7 +352,9 @@ public:
     explicit Ribbon(StableId stable_id);
     ~Ribbon() override;
 
-    [[nodiscard]] std::span<const RibbonTabSpec> tabs() const& noexcept { return tabs_; }
+    [[nodiscard]] std::span<const RibbonTabSpec> tabs() const& noexcept {
+        return std::span<const RibbonTabSpec>(tabs_.data(), tabs_.size());
+    }
     std::span<const RibbonTabSpec> tabs() const&& = delete;
     // Replaces the tabs, keeping the selection on the tab with the same ID
     // (or the first). Throws std::invalid_argument, keeping the previous tabs,
@@ -376,7 +378,9 @@ public:
     // that is not unique in the ribbon's ID namespace, or zero modes. Sets
     // keep their availability across a set_tabs by ID.
     void set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetSpec> sets = {});
-    [[nodiscard]] std::span<const RibbonTabSetSpec> tab_sets() const& noexcept { return tab_sets_; }
+    [[nodiscard]] std::span<const RibbonTabSetSpec> tab_sets() const& noexcept {
+        return std::span<const RibbonTabSetSpec>(tab_sets_.data(), tab_sets_.size());
+    }
     std::span<const RibbonTabSetSpec> tab_sets() const&& = delete;
     // A set's availability. Making a set active selects the tab of the set
     // last chosen by the user, if any, else its first tab; making it
@@ -430,7 +434,9 @@ public:
     // beside an application menu with other kinds (and set_application_menu
     // likewise for such items beside recent ones).
     static constexpr std::size_t maximum_recent_items = 50U;
-    [[nodiscard]] std::span<const RibbonRecentItem> recent_items() const& noexcept { return recent_items_; }
+    [[nodiscard]] std::span<const RibbonRecentItem> recent_items() const& noexcept {
+        return std::span<const RibbonRecentItem>(recent_items_.data(), recent_items_.size());
+    }
     std::span<const RibbonRecentItem> recent_items() const&& = delete;
     void set_recent_items(std::vector<RibbonRecentItem> items);
     // The two-pane menu's content control, null before its first opening.

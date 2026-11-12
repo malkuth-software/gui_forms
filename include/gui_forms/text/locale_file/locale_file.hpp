@@ -183,7 +183,9 @@ public:
     // Every field `over` gives replaces this layer's; the others stay. One
     // pass over both sorted layers.
     void merge_over(const LocaleLayer& over);
-    [[nodiscard]] std::span<const LocaleRecord> entries() const& noexcept { return records_; }
+    [[nodiscard]] std::span<const LocaleRecord> entries() const& noexcept {
+        return std::span<const LocaleRecord>(records_.data(), records_.size());
+    }
     std::span<const LocaleRecord> entries() const&& = delete;
     [[nodiscard]] std::size_t size() const noexcept { return records_.size(); }
     [[nodiscard]] bool empty() const noexcept { return records_.empty(); }

@@ -1,4 +1,8 @@
 #include "support.hpp"
+#include "gui_forms/controls/callout.hpp"
+#include "gui_forms/controls/lookup_combo_box.hpp"
+#include "gui_forms/controls/step_indicator.hpp"
+#include "gui_forms/controls/wizard.hpp"
 
 namespace gallery_pages_tests {
 

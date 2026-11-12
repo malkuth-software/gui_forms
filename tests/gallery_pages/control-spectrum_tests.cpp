@@ -1,4 +1,8 @@
 #include "page_tests.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/check_box_values.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/radio_button.hpp"
 
 namespace gallery_pages_tests {
 

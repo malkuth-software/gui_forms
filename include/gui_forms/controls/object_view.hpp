@@ -104,7 +104,7 @@ public:
                            std::vector<ObjectViewItem> items,
                            ObjectDetailsSort accepted_sort);
     [[nodiscard]] std::span<const ObjectDetailsColumn> details_columns() const& noexcept {
-        return details_columns_;
+        return std::span<const ObjectDetailsColumn>(details_columns_.data(), details_columns_.size());
     }
     std::span<const ObjectDetailsColumn> details_columns() const&& = delete;
     void set_details_column_width(const ObjectColumnId& column, double width);
@@ -113,7 +113,7 @@ public:
     [[nodiscard]] double horizontal_offset() const noexcept { return horizontal_offset_; }
     [[nodiscard]] ObjectDetailsPaintWork details_paint_work() const noexcept { return details_paint_work_; }
     [[nodiscard]] std::span<const std::string> selected_ids() const& noexcept {
-        return selected_ids_;
+        return std::span<const std::string>(selected_ids_.data(), selected_ids_.size());
     }
     std::span<const std::string> selected_ids() const&& = delete;
     void set_selected_ids(std::vector<std::string> stable_ids,

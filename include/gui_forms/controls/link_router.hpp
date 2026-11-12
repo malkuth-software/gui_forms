@@ -131,7 +131,9 @@ public:
     LinkRouteStatistics route(const NodeGraph& graph, const LinkRouterOptions& options);
 
     // The routes in link slot order; borrowed until the next route().
-    [[nodiscard]] std::span<const RoutedLink> routes() const& noexcept { return routes_; }
+    [[nodiscard]] std::span<const RoutedLink> routes() const& noexcept {
+        return std::span<const RoutedLink>(routes_.data(), routes_.size());
+    }
     std::span<const RoutedLink> routes() const&& = delete;
     [[nodiscard]] std::span<const WorldPoint> points(const RoutedLink& route) const noexcept;
     [[nodiscard]] std::span<const WorldPoint> drawn(const RoutedLink& route) const noexcept;

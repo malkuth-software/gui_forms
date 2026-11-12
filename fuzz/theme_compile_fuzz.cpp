@@ -16,7 +16,12 @@
 #include "../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../src/core/theme_language/selector/theme_selector.hpp"
 #include "../src/core/theme_language/source_text/theme_source_text.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
 #include "fuzz_standalone.hpp"
 
 #include <array>

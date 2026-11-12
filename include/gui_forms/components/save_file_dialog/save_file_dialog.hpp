@@ -39,11 +39,15 @@ public:
     ~SaveFileDialog() override;
 
     // The host filters parsed from filter.
-    [[nodiscard]] std::span<const HostFileDialogFilter> filters() const& noexcept { return filters_; }
+    [[nodiscard]] std::span<const HostFileDialogFilter> filters() const& noexcept {
+        return std::span<const HostFileDialogFilter>(filters_.data(), filters_.size());
+    }
     std::span<const HostFileDialogFilter> filters() const&& = delete;
 
     // The chosen path as a list of one, or none (Windows Forms' FileNames).
-    [[nodiscard]] std::span<const std::string> file_names() const& noexcept { return file_names_; }
+    [[nodiscard]] std::span<const std::string> file_names() const& noexcept {
+        return std::span<const std::string>(file_names_.data(), file_names_.size());
+    }
     std::span<const std::string> file_names() const&& = delete;
 
     // The host's answer to the last show_dialog.

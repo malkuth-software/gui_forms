@@ -1,5 +1,6 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/component/failures/component_failures.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "../drag_engine/drag_engine.hpp"
 #include "gui_forms/window.hpp"
 #include "requests/alert_route.hpp"

@@ -1,4 +1,6 @@
 #include "pages.hpp"
+#include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/expandable_sections.hpp"
 
 #include "choices-and-sections_form.hpp"
 #include "gui_forms_lab/review_card.hpp"

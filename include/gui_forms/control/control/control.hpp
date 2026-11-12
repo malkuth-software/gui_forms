@@ -14,13 +14,16 @@
 #include "gui_forms/display.hpp"
 #include "gui_forms/dispatcher.hpp"
 #include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/theme_rules/cascade_facts.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/semantics.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/types.hpp"
-#include "gui_forms/theme.hpp"
+#include "gui_forms/theme/theme/resolved_font.hpp"
+#include "gui_forms/theme/types/control_visual_types.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
@@ -51,6 +54,14 @@ class SurfaceRoot;
 class Control;
 class Painter;
 struct PartPaint;
+// The theme, named here and defined in gui_forms/theme.hpp: control.hpp
+// takes them by reference, pointer or shared pointer only, so a unit that
+// reads a theme includes the theme's headers itself.
+class Theme;
+struct ThemeRoleColours;
+class InlineStyleResult;
+struct ThemeCompileDiagnostic;
+class CompiledThemeRules;
 class ContainerControl;
 class CommandTarget;
 class ErrorProvider;
@@ -592,7 +603,7 @@ public:
     [[nodiscard]] std::optional<Color> ambient_fore_color() const noexcept;
     [[nodiscard]] std::span<const OwnerDecorationRecipe>
     owned_decorations() const& noexcept {
-        return owned_decorations_;
+        return std::span<const OwnerDecorationRecipe>(owned_decorations_.data(), owned_decorations_.size());
     }
     std::span<const OwnerDecorationRecipe> owned_decorations() const&& = delete;
     void set_owned_decorations(const OwnerDecorationRecipe* decorations,

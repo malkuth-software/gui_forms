@@ -3,7 +3,18 @@
 // properties through their cells or views, checks that a refusal leaves the
 // value unchanged, and checks the events a write raises.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/object_view.hpp"
+#include "gui_forms/controls/object_view_values.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/tree_view.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/image_list/image_list/image_list.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstdlib>
 #include <iostream>

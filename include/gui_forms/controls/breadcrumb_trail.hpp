@@ -27,12 +27,12 @@ public:
     void initialize_control_tree();
 
     [[nodiscard]] std::span<const BreadcrumbSegment> segments() const& noexcept {
-        return segments_;
+        return std::span<const BreadcrumbSegment>(segments_.data(), segments_.size());
     }
     std::span<const BreadcrumbSegment> segments() const&& = delete;
     void set_segments(std::vector<BreadcrumbSegment> segments);
     [[nodiscard]] std::span<const std::string> hidden_segment_ids() const& noexcept {
-        return hidden_segment_ids_;
+        return std::span<const std::string>(hidden_segment_ids_.data(), hidden_segment_ids_.size());
     }
     std::span<const std::string> hidden_segment_ids() const&& = delete;
 

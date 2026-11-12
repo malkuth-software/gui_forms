@@ -1,4 +1,11 @@
 #include "support.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/container_control.hpp"
+#include "gui_forms/controls/dock_site.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/split_container.hpp"
+#include "gui_forms/controls/user_control.hpp"
+#include "gui_forms/docking/types/dock_types.hpp"
 
 namespace gallery_pages_tests {
 

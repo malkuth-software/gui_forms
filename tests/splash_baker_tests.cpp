@@ -2,7 +2,13 @@
 // Part S, phase 2): what a snapshot copies, skips and refuses, and the
 // baker's queue, refusals, bounds and shutdown, with a fake raster.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 #include "../src/core/display/snapshot/display_snapshot.hpp"
 #include "../src/core/display/snapshot/splash_baker.hpp"
 

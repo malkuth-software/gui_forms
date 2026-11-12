@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/resources.hpp"
 #include "gui_forms/live_surface/frame/live_surface_frame.hpp"
 #if defined(GUI_FORMS_PREPARED_TEXT)

@@ -7,7 +7,13 @@
 // registered instruments control): `gallery-instrument` derives from
 // `user-control`.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/user_control.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 
 #include <memory>
 

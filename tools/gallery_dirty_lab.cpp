@@ -17,7 +17,11 @@
 
 #include "demo/gallery.hpp"
 #include "demo/gallery_page_specs.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <algorithm>
 #include <array>

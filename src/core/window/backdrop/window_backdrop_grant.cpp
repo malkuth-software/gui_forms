@@ -1,6 +1,7 @@
 // The window's backdrop request and grant (stage T5, compositor
 // cooperation; notes:planning/stages/T5-compositor/PLAN.md §2.3 and §2.4).
 #include "gui_forms/window.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
 
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"

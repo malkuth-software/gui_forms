@@ -1,4 +1,13 @@
 #include "pages.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/domain_up_down.hpp"
+#include "gui_forms/controls/h_scroll_bar.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
+#include "gui_forms/controls/progress_bar_values.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/track_bar.hpp"
 
 #include <cstddef>
 #include <optional>

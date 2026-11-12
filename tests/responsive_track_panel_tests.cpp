@@ -1,4 +1,19 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
+#include "gui_forms/binding/value/property_collection_value/property_collection_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/responsive_track_panel.hpp"
+#include "gui_forms/controls/responsive_track_panel_values.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cmath>
 #include <cstdlib>

@@ -43,7 +43,9 @@ public:
     bool commit(std::optional<Color> value, std::string_view source_id);
 
     // Recently committed colours, most recent first, without repeats.
-    [[nodiscard]] std::span<const Color> recent_colors() const& noexcept { return recent_; }
+    [[nodiscard]] std::span<const Color> recent_colors() const& noexcept {
+        return std::span<const Color>(recent_.data(), recent_.size());
+    }
     std::span<const Color> recent_colors() const&& = delete;
     void clear_recent_colors() noexcept { recent_.clear(); }
 

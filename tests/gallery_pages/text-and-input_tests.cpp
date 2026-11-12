@@ -1,4 +1,11 @@
 #include "support.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/masked_text_box.hpp"
+#include "gui_forms/controls/rich_text_box.hpp"
+#include "gui_forms/controls/search_field.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/token_box.hpp"
 
 namespace gallery_pages_tests {
 

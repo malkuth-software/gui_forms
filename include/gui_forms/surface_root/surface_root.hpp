@@ -1296,7 +1296,7 @@ public:
     // dropped_layout_diagnostics(). Clearing empties both. The span is
     // valid until the next layout pass or clear.
     [[nodiscard]] std::span<const LayoutDiagnostic> layout_diagnostics() const& noexcept {
-        return layout_diagnostics_;
+        return std::span<const LayoutDiagnostic>(layout_diagnostics_.data(), layout_diagnostics_.size());
     }
     [[nodiscard]] std::span<const LayoutDiagnostic> layout_diagnostics() const&& = delete;
     [[nodiscard]] std::uint64_t dropped_layout_diagnostics() const noexcept { return dropped_layout_diagnostics_; }

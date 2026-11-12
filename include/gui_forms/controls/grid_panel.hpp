@@ -145,7 +145,9 @@ public:
     // at other than its anchor, and a named span with children placed into
     // it by name is not removed. A span may lie past the explicit tracks.
     // The borrow lasts until the next span edit.
-    [[nodiscard]] std::span<const GridSpan> spans() const& noexcept { return spans_; }
+    [[nodiscard]] std::span<const GridSpan> spans() const& noexcept {
+        return std::span<const GridSpan>(spans_.data(), spans_.size());
+    }
     std::span<const GridSpan> spans() const&& = delete;
     [[nodiscard]] GridSpanOutcome define_span(const GridSpan& span);
     [[nodiscard]] GridSpanOutcome remove_span(std::string_view name);
@@ -186,7 +188,9 @@ public:
     // panel and last until its next arrange.
     [[nodiscard]] const GridLayoutWorkspace& layout_snapshot() const& noexcept { return arranged_; }
     const GridLayoutWorkspace& layout_snapshot() const&& = delete;
-    [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept { return arranged_ids_; }
+    [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept {
+        return std::span<const RuntimeId>(arranged_ids_.data(), arranged_ids_.size());
+    }
     std::span<const RuntimeId> laid_out_children() const&& = delete;
     // How the last arrange ended: `solved`, or the limit that refused it
     // (more than 65,536 children, or an implicit grid of more than

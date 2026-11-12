@@ -132,7 +132,9 @@ public:
     void put(HelpRecordEntry entry);
     // Every field `over` gives replaces this layer's; the others stay.
     void merge_over(const HelpRecordLayer& over);
-    [[nodiscard]] std::span<const HelpRecordEntry> entries() const& noexcept { return entries_; }
+    [[nodiscard]] std::span<const HelpRecordEntry> entries() const& noexcept {
+        return std::span<const HelpRecordEntry>(entries_.data(), entries_.size());
+    }
     std::span<const HelpRecordEntry> entries() const&& = delete;
     [[nodiscard]] std::size_t size() const noexcept { return entries_.size(); }
     [[nodiscard]] bool empty() const noexcept { return entries_.empty(); }

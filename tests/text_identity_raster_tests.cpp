@@ -1,4 +1,5 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 #include "skia_raster.hpp"
 #include "text_identity_scene.hpp"
 

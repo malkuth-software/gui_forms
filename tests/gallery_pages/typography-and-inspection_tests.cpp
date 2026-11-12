@@ -1,4 +1,6 @@
 #include "support.hpp"
+#include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/track_bar.hpp"
 
 #include "gui_forms_demo/typography_specimen.hpp"
 #include "gui_forms_demo/visual_inspector_view.hpp"

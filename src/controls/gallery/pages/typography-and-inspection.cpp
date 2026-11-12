@@ -1,4 +1,5 @@
 #include "pages.hpp"
+#include "gui_forms/controls/choice_group.hpp"
 
 #include "typography-and-inspection_form.hpp"
 

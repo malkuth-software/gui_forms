@@ -20,7 +20,14 @@
 // Renderer-neutral (gui_forms_core only); run in Release, sequential with
 // builds and other measurements.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "../tests/support/clip_tracking_painter.hpp"
 
 #include <chrono>

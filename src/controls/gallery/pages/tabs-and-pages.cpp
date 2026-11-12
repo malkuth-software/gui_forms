@@ -1,4 +1,15 @@
 #include "pages.hpp"
+#include "gui_forms/controls/navigation_pane.hpp"
+#include "gui_forms/controls/page_strip.hpp"
+#include "gui_forms/controls/page_strip_values.hpp"
+#include "gui_forms/controls/page_view.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
+#include "gui_forms/controls/tab_control.hpp"
+#include "gui_forms/controls/tab_control_values.hpp"
+#include "gui_forms/controls/tab_page.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/pages/page_set/page_set.hpp"
+#include "gui_forms/pages/types/page_set_types.hpp"
 
 #include "tabs-and-pages_form.hpp"
 

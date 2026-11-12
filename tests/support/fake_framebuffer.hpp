@@ -6,7 +6,10 @@
 // (premultiplied, the channel order chosen), so a test can tell what the
 // registry received. It draws nothing.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 
 #include <cmath>

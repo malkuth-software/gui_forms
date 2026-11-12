@@ -14,7 +14,12 @@
 #include "plain_panel_form.hpp"
 #include "sample_dialog_window.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/application/application.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <iostream>
 #include <memory>

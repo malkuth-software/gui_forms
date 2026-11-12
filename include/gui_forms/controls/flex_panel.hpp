@@ -75,7 +75,9 @@ public:
     // last until its next arrange.
     [[nodiscard]] const FlexLayoutWorkspace& layout_snapshot() const& noexcept { return arranged_; }
     const FlexLayoutWorkspace& layout_snapshot() const&& = delete;
-    [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept { return arranged_ids_; }
+    [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept {
+        return std::span<const RuntimeId>(arranged_ids_.data(), arranged_ids_.size());
+    }
     std::span<const RuntimeId> laid_out_children() const&& = delete;
 
     [[nodiscard]] Size measure(Size available) override;

@@ -7,7 +7,25 @@
 // control's help fields and HelpProvider as program values, the template
 // export, a user override read back, the way back and a translation.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/components/help_provider/help_provider.hpp"
+#include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/help_book.hpp"
+#include "gui_forms/controls/help_book_system.hpp"
+#include "gui_forms/controls/help_book_viewer.hpp"
+#include "gui_forms/controls/help_print.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/help/help_records/help_records.hpp"
+#include "gui_forms/help/helpbook_section/helpbook_section.hpp"
+#include "gui_forms/text/locale_file/locale_file.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
+#include "gui_forms/xml/types/xml_types.hpp"
 
 #include <cstdlib>
 #include <iostream>

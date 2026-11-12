@@ -7,7 +7,8 @@
 // the four layers and their precedence, the language rule for user files,
 // the way back, the template export and the rescue switch.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/xml/types/xml_types.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
 
 #include <cstdlib>

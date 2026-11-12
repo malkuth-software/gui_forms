@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gallery/context/gallery_context.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <memory>
 #include <string_view>

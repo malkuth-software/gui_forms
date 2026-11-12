@@ -12,7 +12,27 @@
 // and a page chosen from the list taking the last visible position while
 // the pages before it keep their places.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/page_strip.hpp"
+#include "gui_forms/controls/page_strip_values.hpp"
+#include "gui_forms/controls/page_view.hpp"
+#include "gui_forms/controls/page_view_values.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/image_list/image_list/image_list.hpp"
+#include "gui_forms/pages/page_set/page_set.hpp"
+#include "gui_forms/pages/types/page_set_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <cmath>

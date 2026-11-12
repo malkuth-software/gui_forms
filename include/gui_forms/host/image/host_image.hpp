@@ -34,7 +34,8 @@ struct GUI_FORMS_API HostImage final {
     std::vector<std::byte> pixels;
 
     [[nodiscard]] HostImageView view() const noexcept {
-        return {width, height, row_bytes, pixels};
+        const std::span<const std::byte> bytes(pixels.data(), pixels.size());
+        return {width, height, row_bytes, bytes};
     }
 };
 

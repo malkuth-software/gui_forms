@@ -1,4 +1,10 @@
 #include "pages.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/domain_up_down.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/property_grid.hpp"
+#include "gui_forms/inspection/inspection_types.hpp"
 
 #include "values-and-spinners_form.hpp"
 

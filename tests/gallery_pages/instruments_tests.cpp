@@ -1,4 +1,8 @@
 #include "support.hpp"
+#include "gui_forms/controls/dial.hpp"
+#include "gui_forms/controls/linear_gauge.hpp"
+#include "gui_forms/controls/radial_gauge.hpp"
+#include "gui_forms/controls/seven_segment_display.hpp"
 
 namespace gallery_pages_tests {
 

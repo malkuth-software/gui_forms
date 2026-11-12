@@ -3,7 +3,8 @@
 // without anyone writing its digest, a refused sheet's finding names its
 // line, and a name is escaped so the manifest stays JSON.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
 #include <cstddef>

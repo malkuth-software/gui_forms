@@ -153,11 +153,17 @@ enum class FlexSolveOutcome : std::uint8_t {
 // in order. Its storage grows only when the item count does.
 class GUI_FORMS_API FlexLayoutWorkspace final {
 public:
-    [[nodiscard]] std::span<const FlexItemResult> items() const& noexcept { return items_; }
+    [[nodiscard]] std::span<const FlexItemResult> items() const& noexcept {
+        return std::span<const FlexItemResult>(items_.data(), items_.size());
+    }
     std::span<const FlexItemResult> items() const&& = delete;
-    [[nodiscard]] std::span<const FlexLine> lines() const& noexcept { return lines_; }
+    [[nodiscard]] std::span<const FlexLine> lines() const& noexcept {
+        return std::span<const FlexLine>(lines_.data(), lines_.size());
+    }
     std::span<const FlexLine> lines() const&& = delete;
-    [[nodiscard]] std::span<const std::uint32_t> order() const& noexcept { return order_; }
+    [[nodiscard]] std::span<const std::uint32_t> order() const& noexcept {
+        return std::span<const std::uint32_t>(order_.data(), order_.size());
+    }
     std::span<const std::uint32_t> order() const&& = delete;
     // The content's extent: the longest line's main extent, and the lines'
     // cross sizes with the gaps between them; filled by each call.

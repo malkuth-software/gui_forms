@@ -1,4 +1,13 @@
 #include "pages.hpp"
+#include "gui_forms/controls/auto_complete.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/combo_box_values.hpp"
+#include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/masked_text_box.hpp"
+#include "gui_forms/controls/masked_text_provider.hpp"
+#include "gui_forms/controls/rich_text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/token_box.hpp"
 
 #include "text-and-input_form.hpp"
 

@@ -201,7 +201,9 @@ public:
     void initialize_control_tree();
 
     // -- columns -------------------------------------------------------------
-    [[nodiscard]] std::span<const TreeListColumn> columns() const& noexcept { return columns_; }
+    [[nodiscard]] std::span<const TreeListColumn> columns() const& noexcept {
+        return std::span<const TreeListColumn>(columns_.data(), columns_.size());
+    }
     std::span<const TreeListColumn> columns() const&& = delete;
     // Replaces the columns and resets the display order. Throws
     // std::invalid_argument for an empty or duplicate ID, invalid UTF-8, a
@@ -214,7 +216,9 @@ public:
     void set_column_width(std::size_t column, double width);
     // The columns in display order: column_order()[position] is the column
     // shown at that position.
-    [[nodiscard]] std::span<const std::size_t> column_order() const& noexcept { return column_order_; }
+    [[nodiscard]] std::span<const std::size_t> column_order() const& noexcept {
+        return std::span<const std::size_t>(column_order_.data(), column_order_.size());
+    }
     std::span<const std::size_t> column_order() const&& = delete;
     // Moves a column to a display position and raises column_moved. Throws
     // std::out_of_range for a column or position past the end and
@@ -223,7 +227,9 @@ public:
 
     // -- nodes ---------------------------------------------------------------
     // The nodes in the order given (model order), whatever the sort.
-    [[nodiscard]] std::span<const TreeListNode> nodes() const& noexcept { return nodes_; }
+    [[nodiscard]] std::span<const TreeListNode> nodes() const& noexcept {
+        return std::span<const TreeListNode>(nodes_.data(), nodes_.size());
+    }
     std::span<const TreeListNode> nodes() const&& = delete;
     // Replaces the nodes. Throws std::invalid_argument for an empty or
     // duplicate ID, invalid UTF-8, a depth sequence that is not a preorder

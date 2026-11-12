@@ -24,7 +24,19 @@
 #include "compositor_lab.hpp"
 #include "skia_raster.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/host/compositor/window_backdrop.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/backdrop/backdrop_chain.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <cstddef>

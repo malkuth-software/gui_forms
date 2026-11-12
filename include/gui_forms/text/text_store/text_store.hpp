@@ -39,7 +39,7 @@ public:
         return limits_;
     }
     [[nodiscard]] std::span<const TextStyleSpan> style_spans() const& noexcept {
-        return style_spans_;
+        return std::span<const TextStyleSpan>(style_spans_.data(), style_spans_.size());
     }
     std::span<const TextStyleSpan> style_spans() const&& = delete;
 

@@ -132,15 +132,17 @@ public:
 
     // The anonymous spans, in the order they were made; each is anchored at
     // a placed child's cell.
-    [[nodiscard]] std::span<const GridSpan> spans() const& noexcept { return spans_; }
+    [[nodiscard]] std::span<const GridSpan> spans() const& noexcept {
+        return std::span<const GridSpan>(spans_.data(), spans_.size());
+    }
     std::span<const GridSpan> spans() const&& = delete;
 
     [[nodiscard]] std::span<const TableLayoutStyle> column_styles() const& noexcept {
-        return column_styles_;
+        return std::span<const TableLayoutStyle>(column_styles_.data(), column_styles_.size());
     }
     std::span<const TableLayoutStyle> column_styles() const&& = delete;
     [[nodiscard]] std::span<const TableLayoutStyle> row_styles() const& noexcept {
-        return row_styles_;
+        return std::span<const TableLayoutStyle>(row_styles_.data(), row_styles_.size());
     }
     std::span<const TableLayoutStyle> row_styles() const&& = delete;
     void set_column_style(std::size_t column, TableLayoutStyle style);
@@ -165,11 +167,11 @@ public:
                                                      std::size_t row) const;
 
     [[nodiscard]] std::span<const double> column_widths() const& noexcept {
-        return column_widths_;
+        return std::span<const double>(column_widths_.data(), column_widths_.size());
     }
     std::span<const double> column_widths() const&& = delete;
     [[nodiscard]] std::span<const double> row_heights() const& noexcept {
-        return row_heights_;
+        return std::span<const double>(row_heights_.data(), row_heights_.size());
     }
     std::span<const double> row_heights() const&& = delete;
     [[nodiscard]] bool layout_overflowed() const noexcept {

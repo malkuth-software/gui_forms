@@ -72,7 +72,7 @@ public:
     }
     // Most recent first. The span is valid until the next edit.
     [[nodiscard]] std::span<const PageId> activation_history() const& noexcept {
-        const std::span<const PageId> history(history_);
+        const std::span<const PageId> history(history_.data(), history_.size());
         return history;
     }
     std::span<const PageId> activation_history() const&& = delete;

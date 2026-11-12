@@ -157,9 +157,13 @@ enum class BlockFlowSolveOutcome : std::uint8_t {
 // item or line count does.
 class GUI_FORMS_API BlockFlowLayoutWorkspace final {
 public:
-    [[nodiscard]] std::span<const BlockFlowItemResult> items() const& noexcept { return items_; }
+    [[nodiscard]] std::span<const BlockFlowItemResult> items() const& noexcept {
+        return std::span<const BlockFlowItemResult>(items_.data(), items_.size());
+    }
     std::span<const BlockFlowItemResult> items() const&& = delete;
-    [[nodiscard]] std::span<const BlockFlowLine> lines() const& noexcept { return lines_; }
+    [[nodiscard]] std::span<const BlockFlowLine> lines() const& noexcept {
+        return std::span<const BlockFlowLine>(lines_.data(), lines_.size());
+    }
     std::span<const BlockFlowLine> lines() const&& = delete;
     // The block end of the last line box or nonempty block, where the
     // content ends before its trailing margins.

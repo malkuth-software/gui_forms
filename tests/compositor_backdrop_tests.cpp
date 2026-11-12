@@ -4,7 +4,19 @@
 // order, the host's compositor reports through the session, and byte-stable
 // headless traces of a declared and an undeclared window through a
 // compositor stopping and starting and high contrast on and off.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/application/application.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/host/compositor/window_backdrop.hpp"
+#include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/host/windowing/host_windowing.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 #include "application/headless_application.hpp"
 

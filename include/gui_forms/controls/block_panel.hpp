@@ -109,7 +109,9 @@ public:
     // panel's storage until its next arrange.
     [[nodiscard]] const BlockFlowLayoutWorkspace& layout_snapshot() const& noexcept { return arranged_; }
     const BlockFlowLayoutWorkspace& layout_snapshot() const&& = delete;
-    [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept { return arranged_ids_; }
+    [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept {
+        return std::span<const RuntimeId>(arranged_ids_.data(), arranged_ids_.size());
+    }
     std::span<const RuntimeId> laid_out_children() const&& = delete;
     [[nodiscard]] BlockFlowSolveOutcome layout_outcome() const noexcept { return arranged_outcome_; }
 

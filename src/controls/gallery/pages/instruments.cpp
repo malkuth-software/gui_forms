@@ -1,4 +1,9 @@
 #include "pages.hpp"
+#include "gui_forms/controls/dial.hpp"
+#include "gui_forms/controls/linear_gauge.hpp"
+#include "gui_forms/controls/radial_gauge.hpp"
+#include "gui_forms/controls/range_control_values.hpp"
+#include "gui_forms/controls/seven_segment_display.hpp"
 
 #include "instruments_form.hpp"
 

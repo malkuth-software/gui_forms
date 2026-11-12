@@ -67,7 +67,9 @@ public:
     [[nodiscard]] RibbonGalleryForm form() const noexcept { return form_; }
 
     // -- model -----------------------------------------------------------
-    [[nodiscard]] std::span<const RibbonGalleryCategory> categories() const& noexcept { return categories_; }
+    [[nodiscard]] std::span<const RibbonGalleryCategory> categories() const& noexcept {
+        return std::span<const RibbonGalleryCategory>(categories_.data(), categories_.size());
+    }
     std::span<const RibbonGalleryCategory> categories() const&& = delete;
     [[nodiscard]] BorrowedSpan<RibbonGalleryItem> items() const& noexcept { return detail::lend_view(items_); }
     BorrowedSpan<RibbonGalleryItem> items() const&& = delete;

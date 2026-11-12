@@ -4,7 +4,19 @@
 // checks that a refusal leaves the value unchanged, and checks the order of
 // coupled writes.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/color_value_editor.hpp"
+#include "gui_forms/controls/date_time_picker.hpp"
+#include "gui_forms/controls/date_time_picker_values.hpp"
+#include "gui_forms/controls/date_time_value.hpp"
+#include "gui_forms/controls/flags_value_editor.hpp"
+#include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstdlib>
 #include <iostream>

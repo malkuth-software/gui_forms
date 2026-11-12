@@ -204,7 +204,9 @@ public:
     ~ListView() override;
     void initialize_control_tree();
 
-    [[nodiscard]] std::span<const ListViewColumn> columns() const& noexcept { return columns_; }
+    [[nodiscard]] std::span<const ListViewColumn> columns() const& noexcept {
+        return std::span<const ListViewColumn>(columns_.data(), columns_.size());
+    }
     std::span<const ListViewColumn> columns() const&& = delete;
     // Replaces the columns. Throws std::invalid_argument for an empty or
     // duplicate ID, invalid UTF-8, a width outside the minimum and maximum
@@ -237,7 +239,9 @@ public:
     // not collapse. set_groups throws std::invalid_argument for an empty or
     // repeated ID, invalid UTF-8, an unknown alignment, or more than
     // maximum_groups groups.
-    [[nodiscard]] std::span<const ListViewGroup> groups() const& noexcept { return groups_; }
+    [[nodiscard]] std::span<const ListViewGroup> groups() const& noexcept {
+        return std::span<const ListViewGroup>(groups_.data(), groups_.size());
+    }
     std::span<const ListViewGroup> groups() const&& = delete;
     void set_groups(std::vector<ListViewGroup> groups);
     // Whether the items are shown in groups now.

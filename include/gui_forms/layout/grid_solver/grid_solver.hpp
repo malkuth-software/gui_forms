@@ -188,11 +188,17 @@ enum class GridSolveOutcome : std::uint8_t {
 // order. Its storage grows only when the item or track count does.
 class GUI_FORMS_API GridLayoutWorkspace final {
 public:
-    [[nodiscard]] std::span<const GridItemResult> items() const& noexcept { return items_; }
+    [[nodiscard]] std::span<const GridItemResult> items() const& noexcept {
+        return std::span<const GridItemResult>(items_.data(), items_.size());
+    }
     std::span<const GridItemResult> items() const&& = delete;
-    [[nodiscard]] std::span<const GridTrack> columns() const& noexcept { return columns_; }
+    [[nodiscard]] std::span<const GridTrack> columns() const& noexcept {
+        return std::span<const GridTrack>(columns_.data(), columns_.size());
+    }
     std::span<const GridTrack> columns() const&& = delete;
-    [[nodiscard]] std::span<const GridTrack> rows() const& noexcept { return rows_; }
+    [[nodiscard]] std::span<const GridTrack> rows() const& noexcept {
+        return std::span<const GridTrack>(rows_.data(), rows_.size());
+    }
     std::span<const GridTrack> rows() const&& = delete;
     // How many implicit tracks precede the explicit grid on each axis
     // (from negative or out-of-range lines).
