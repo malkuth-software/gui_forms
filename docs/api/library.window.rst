@@ -332,7 +332,7 @@ Related types
 
    .. cpp:function:: std::string to_json() const
 
-      {"scope":"gui_forms_counted_paths","total":{...},"image_resources":{...},...} with allocations, releases, allocated_bytes and released_bytes in each object. The "scope" member names what is counted, so that a record carrying it is not read as a process figure.
+      {"scope":"gui_forms_counted_paths","total":{...},"image_resources":{...}, "image_atlas":{...},"effects":{...},"display_chunks":{...}, "damage_lists":{...},"text_layout":{...}}: every subsystem by name, in enumeration order, even at zero, with allocations, releases, allocated_bytes and released_bytes in each object. The "scope" member names what is counted, so that a record carrying it is not read as a process figure.
 
 
    .. rubric:: Methods
@@ -2449,6 +2449,12 @@ Enumerations
 
    .. cpp:enumerator:: effects
 
+   .. cpp:enumerator:: display_chunks
+
+   .. cpp:enumerator:: damage_lists
+
+   .. cpp:enumerator:: text_layout
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: BackdropOperationKind
@@ -2902,7 +2908,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::size_t allocation_subsystem_count
 
-   The number of AllocationSubsystem values. Value: ``3U``.
+   The number of AllocationSubsystem values. Value: ``6U``.
 
 .. cpp:namespace:: gui_forms
 

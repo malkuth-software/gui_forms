@@ -25,9 +25,12 @@ ImageAtlas : A counted subsystem that allocates nothing after construction.
 
 Notes
 -----
-Only GUI.Forms' counted paths are counted: the bytes the image registry holds
-for its images (`image_resources`), an image atlas's tables
-(`image_atlas`) and effect state storage (`effects`). GUI.Forms does not
+Only GUI.Forms' counted paths are counted, each under a named subsystem: the
+bytes the image registry holds for its images (`image_resources`), an image
+atlas's tables (`image_atlas`), effect state storage (`effects`), the command
+lists of display chunks and of the recording painter (`display_chunks`),
+damage rectangles and pending paint marks (`damage_lists`), and the paragraph
+layout's scratch (`text_layout`, once that code counts). GUI.Forms does not
 replace or hook the global `operator new`, so the program's allocations,
 other containers inside GUI.Forms, Skia, FreeType, HarfBuzz and the host
 toolkits are not counted. The figures are never the process total.

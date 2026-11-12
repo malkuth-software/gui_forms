@@ -5,6 +5,7 @@
 #include "gui_forms/allocation/counted_allocator/counted_allocator.hpp"
 #include "gui_forms/allocation/statistics/allocation_statistics.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
 
 #include <array>
 #include <cstddef>
@@ -157,14 +158,36 @@ void test_scope_is_per_thread() {
     expect(restarted.counted().total().allocations == 0U, "restart moves the start to now");
 }
 
+// A damage region's rectangles are counted under damage_lists.
+void test_damage_region_is_counted() {
+    const AllocationScope scope;
+    {
+        DamageRegion damage;
+        damage.add(Rect{0.0, 0.0, 10.0, 10.0});
+        damage.add(Rect{100.0, 100.0, 10.0, 10.0});
+    }
+    const AllocationCounts lists = scope.counted().of(AllocationSubsystem::damage_lists);
+    expect(lists.allocations >= 1U && lists.allocations == lists.releases &&
+               lists.allocated_bytes == lists.released_bytes,
+           "a damage region's storage is counted and released under damage_lists");
+}
+
 // The JSON form names its scope and every subsystem.
 void test_json_names_its_scope() {
     AllocationStatistics statistics{};
     statistics.subsystems[static_cast<std::size_t>(AllocationSubsystem::image_atlas)].allocations = 3U;
     const std::string json = statistics.to_json();
     expect(json.find("\"scope\":\"gui_forms_counted_paths\"") != std::string::npos, "the JSON names its scope");
-    expect(json.find("\"image_resources\":") != std::string::npos && json.find("\"effects\":") != std::string::npos,
-           "the JSON names every subsystem");
+    for (std::size_t index = 0U; index < allocation_subsystem_count; ++index) {
+        std::string member = "\"";
+        member += allocation_subsystem_name(static_cast<AllocationSubsystem>(index));
+        member += "\":{";
+        expect(json.find(member) != std::string::npos, "the JSON names every subsystem");
+    }
+    expect(allocation_subsystem_name(AllocationSubsystem::display_chunks) == "display_chunks" &&
+               allocation_subsystem_name(AllocationSubsystem::damage_lists) == "damage_lists" &&
+               allocation_subsystem_name(AllocationSubsystem::text_layout) == "text_layout",
+           "the added subsystems have their names");
     expect(json.find("\"image_atlas\":{\"allocations\":3,") != std::string::npos, "the JSON carries the counts");
     expect(allocation_subsystem_name(static_cast<AllocationSubsystem>(200U)) == "unknown",
            "an unknown subsystem is named unknown");
@@ -179,6 +202,7 @@ int main() {
     test_other_allocations_are_not_counted();
     test_counted_allocator();
     test_scope_is_per_thread();
+    test_damage_region_is_counted();
     test_json_names_its_scope();
     std::cout << "allocation statistics tests passed\n";
     return EXIT_SUCCESS;

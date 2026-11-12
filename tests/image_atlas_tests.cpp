@@ -1,8 +1,9 @@
 // ImageAtlas (demonstrator gap A6): fixed-size slots of one backing image
 // with generational handles, least-recently-used or caller replacement,
 // edge-repeating gutters, an image whose ImageId survives every fill, damage
-// limited to the controls that drew a changed slot, fills refused during a
-// paint, and no counted allocation after construction.
+// limited to the controls that drew a changed slot, fills deferred during a
+// paint and written when it ends, and no counted allocation after
+// construction.
 #include "gui_forms/allocation/statistics/allocation_statistics.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/panel.hpp"
@@ -292,7 +293,15 @@ void test_damage_scope() {
            "an expired user is skipped");
 }
 
-// A panel that draws a slot during its paint and tries to fill it there.
+// What AtlasPanel does to its slot during its paint, after drawing it.
+enum class PaintAction : std::uint8_t {
+    // Fills it twice (values 8, then 9).
+    fill_twice,
+    // Fills it, then releases it.
+    fill_then_release,
+};
+
+// A panel that draws a slot during its paint and fills it there.
 class AtlasPanel final : public Panel {
 public:
     explicit AtlasPanel(StableId id) : Panel(std::move(id)) {}
@@ -300,25 +309,38 @@ public:
     void on_paint(Painter& painter, Rect local_damage) override {
         Panel::on_paint(painter, local_damage);
         if (atlas == nullptr) return;
-        drawn = (*atlas).draw(painter, *this, slot, Rect{0.0, 0.0, 8.0, 8.0});
-        fill_during_paint = fill_solid(*atlas, slot, 8U);
+        ImageAtlas& target = *atlas;
+        atlas = nullptr;
+        drawn = target.draw(painter, *this, slot, Rect{0.0, 0.0, 8.0, 8.0});
+        first_fill = fill_solid(target, slot, 8U);
+        if (action == PaintAction::fill_twice) {
+            second_fill = fill_solid(target, slot, 9U);
+        } else {
+            released = target.release(slot);
+        }
     }
 
     ImageAtlas* atlas{};
     ImageAtlasSlot slot{};
+    PaintAction action{PaintAction::fill_twice};
     bool drawn{};
-    ImageAtlasError fill_during_paint{ImageAtlasError::none};
+    bool released{};
+    ImageAtlasError first_fill{ImageAtlasError::none};
+    ImageAtlasError second_fill{ImageAtlasError::none};
 };
 
-// A fill is refused while the window paints; drawn during the paint, the
-// panel is a user that a fill after the paint repaints.
-void test_fill_refused_during_paint() {
+// A fill during a paint is deferred, a second fill of the slot replaces the
+// pending one, and the pending fill is written when the paint ends: the
+// image holds the last pixels, and the panel, which drew the slot during
+// the paint, is damaged where it drew it for the next frame.
+void test_fill_deferred_during_paint() {
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("atlas.paint"));
     const std::shared_ptr<AtlasPanel> panel = std::make_shared<AtlasPanel>(StableId("atlas.paint.panel"));
     (*panel).set_bounds(Rect{30.0, 40.0, 50.0, 50.0});
     (*root).add_child(panel);
     Window window(root, Size{200.0, 140.0});
-    ImageAtlas atlas(window.resources(), layout_of(8U, 1U, ImageAtlasReplacement::least_recently_used));
+    const std::shared_ptr<ApplicationResources> resources = window.resources();
+    ImageAtlas atlas(resources, layout_of(8U, 1U, ImageAtlasReplacement::least_recently_used));
     const ImageAtlasSlot slot = atlas.acquire(1U).slot;
     expect(fill_solid(atlas, slot, 1U) == ImageAtlasError::none, "the slot fills outside a paint");
     (*panel).atlas = &atlas;
@@ -327,11 +349,53 @@ void test_fill_refused_during_paint() {
     RegionPainter painter;
     static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 200.0, 140.0}));
     expect((*panel).drawn, "the panel drew the slot during its paint");
-    expect((*panel).fill_during_paint == ImageAtlasError::painting, "a fill during the paint is refused");
-    (*panel).atlas = nullptr;
-    static_cast<void>(window.take_damage());
-    expect(fill_solid(atlas, slot, 2U) == ImageAtlasError::none, "the fill after the paint is accepted");
-    expect(window.take_damage().bounds() == (Rect{30.0, 40.0, 8.0, 8.0}), "the panel repaints where it drew");
+    expect((*panel).first_fill == ImageAtlasError::deferred && (*panel).second_fill == ImageAtlasError::deferred,
+           "fills during the paint are deferred");
+    const ImageAtlasStatistics statistics = atlas.statistics();
+    expect(statistics.deferred_fills == 2U && statistics.deferred_replacements == 1U && statistics.pending_now == 0U &&
+               statistics.fills == 2U,
+           "the second fill replaced the pending one, which was written when the paint ended");
+    expect(image_byte(*resources, atlas, 4U, 4U) == 9U, "the image holds the last fill's pixels");
+    expect(window.take_damage().bounds() == (Rect{30.0, 40.0, 8.0, 8.0}),
+           "the panel is damaged where it drew the slot");
+}
+
+// Releasing a slot with a pending fill drops the fill; with no pending
+// cells a fill during a paint is refused.
+void test_pending_fill_dropped_or_refused() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("atlas.drop"));
+    const std::shared_ptr<AtlasPanel> panel = std::make_shared<AtlasPanel>(StableId("atlas.drop.panel"));
+    (*panel).set_bounds(Rect{0.0, 0.0, 50.0, 50.0});
+    (*root).add_child(panel);
+    Window window(root, Size{200.0, 140.0});
+    const std::shared_ptr<ApplicationResources> resources = window.resources();
+    ImageAtlas atlas(resources, layout_of(8U, 2U, ImageAtlasReplacement::least_recently_used));
+    const ImageAtlasSlot slot = atlas.acquire(1U).slot;
+    expect(fill_solid(atlas, slot, 1U) == ImageAtlasError::none, "the slot fills outside a paint");
+    (*panel).atlas = &atlas;
+    (*panel).slot = slot;
+    (*panel).action = PaintAction::fill_then_release;
+    window.perform_layout();
+    RegionPainter painter;
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 200.0, 140.0}));
+    expect((*panel).first_fill == ImageAtlasError::deferred && (*panel).released,
+           "the fill was deferred and the slot released during the paint");
+    const ImageAtlasStatistics dropped = atlas.statistics();
+    expect(dropped.deferred_drops == 1U && dropped.pending_now == 0U && dropped.fills == 1U,
+           "the release dropped the pending fill");
+    expect(image_byte(*resources, atlas, 4U, 4U) == 1U, "the dropped fill never reached the image");
+
+    ImageAtlasLayout none = layout_of(8U, 1U, ImageAtlasReplacement::least_recently_used);
+    none.pending_fills = 0U;
+    ImageAtlas refusing(resources, none);
+    const ImageAtlasSlot only = refusing.acquire(2U).slot;
+    (*panel).atlas = &refusing;
+    (*panel).slot = only;
+    (*panel).action = PaintAction::fill_twice;
+    (*panel).invalidate(Dirty::paint);
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 200.0, 140.0}));
+    expect((*panel).first_fill == ImageAtlasError::painting, "with no pending cells a fill during a paint is refused");
+    expect(!refusing.filled(only), "the refused fill changed nothing");
 }
 
 // After construction, acquire, fill, draw and release allocate nothing on
@@ -344,8 +408,8 @@ void test_no_counted_allocation_after_construction() {
     ImageAtlas atlas(window.resources(), layout_of(4U, 8U, ImageAtlasReplacement::least_recently_used));
     const AllocationStatistics made = construction.counted();
     const AllocationCounts tables = made.of(AllocationSubsystem::image_atlas);
-    expect(tables.allocations == 6U && tables.releases == 1U,
-           "five tables and the zeroed image buffer, which is released");
+    expect(tables.allocations == 9U && tables.releases == 1U,
+           "eight tables and the zeroed image buffer, which is released");
     const AllocationCounts image = made.of(AllocationSubsystem::image_resources);
     expect(image.allocations == 1U && image.allocated_bytes == atlas.statistics().image_bytes,
            "the registry holds the backing image's pixels once");
@@ -359,7 +423,10 @@ void test_no_counted_allocation_after_construction() {
         expect(atlas.draw(painter, *root, acquired.slot, Rect{0.0, 0.0, 4.0, 4.0}), "each key draws");
         if (key % 3U == 0U) expect(atlas.release(acquired.slot), "every third key is released");
     }
-    expect(steady.counted().total().allocations == 0U, "the atlas allocates nothing counted after construction");
+    const AllocationStatistics after = steady.counted();
+    expect(after.of(AllocationSubsystem::image_atlas).allocations == 0U &&
+               after.of(AllocationSubsystem::image_resources).allocations == 0U,
+           "the atlas and its image allocate nothing after construction (damage lists are the window's)");
 }
 
 // Runs acquire on another thread and records whether it was refused (a
@@ -443,7 +510,8 @@ int main() {
     test_replacement_and_stale_handles();
     test_caller_replacement();
     test_damage_scope();
-    test_fill_refused_during_paint();
+    test_fill_deferred_during_paint();
+    test_pending_fill_dropped_or_refused();
     test_no_counted_allocation_after_construction();
     test_refusals();
     std::cout << "image atlas tests passed\n";

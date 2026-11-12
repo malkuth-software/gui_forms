@@ -16,8 +16,8 @@ gui_forms::ImageAtlas
    An :cpp:class:`ImageAtlas <gui_forms::ImageAtlas>` holds generated images that share a size, such as avatars,
    thumbnails or icons made at run time, in fixed-size slots of one image in the
    application's image registry. A program asks for a key's slot with :cpp:func:`acquire <gui_forms::ImageAtlas::acquire>`,
-   writes its pixels with :cpp:func:`fill <gui_forms::ImageAtlas::fill>` while it lays out or handles input, and draws it
-   with :cpp:func:`draw <gui_forms::ImageAtlas::draw>` during a control's paint. When a slot changes, only the controls
+   writes its pixels with :cpp:func:`fill <gui_forms::ImageAtlas::fill>`, and draws it with :cpp:func:`draw <gui_forms::ImageAtlas::draw>` during a control's
+   paint. When a slot changes, only the controls
    that drew it repaint. Use an :cpp:class:`ImageList <gui_forms::ImageList>` for images loaded from files under
    names, and a single registry image for one large picture.
 
@@ -72,6 +72,8 @@ gui_forms::ImageAtlas
         - Draws a slot without remembering a control, for a painter that is not a control's paint; a change to the slot repaints nothing drawn this way.
       * - :cpp:func:`source_rectangle <gui_forms::ImageAtlas::source_rectangle>`
         - The slot's rectangle in the backing image, inside its gutter; none for a stale handle.
+      * - :cpp:func:`apply_pending_fills <gui_forms::ImageAtlas::apply_pending_fills>`
+        - Writes the pending fills now, in deferral order, unless a window sharing the resources is painting or they are gone.
 
    .. seealso::
 
@@ -94,6 +96,16 @@ gui_forms::ImageAtlas
    use (acquire hits and draws) and replaces the least recently used key when
    every slot is taken. Under ``caller`` it never replaces; :cpp:func:`acquire <gui_forms::ImageAtlas::acquire>` answers
    ``full`` and the program releases a slot by its own policy.
+
+   Deferred fills: a fill made while a window sharing the resources is painting
+   (a row measured inside the paint's settle) is copied into a pending cell and
+   written when that paint ends, or earlier at the atlas's next :cpp:func:`acquire <gui_forms::ImageAtlas::acquire>`,
+   :cpp:func:`fill <gui_forms::ImageAtlas::fill>`, :cpp:func:`release <gui_forms::ImageAtlas::release>` or :cpp:func:`clear <gui_forms::ImageAtlas::clear>` outside a paint. Pending fills are written in
+   the order their slots were first deferred. A slot has at most one: a later
+   fill replaces the pending pixels and keeps its place. Releasing or replacing
+   the slot drops it. The layout's ``pending_fills`` sets how many cells exist
+   (one per slot by default); with none free, the fill is refused with
+   :cpp:enumerator:`ImageAtlasError::painting <gui_forms::ImageAtlasError::painting>`.
 
    Damage: a fill asks each control that drew the slot since it last changed to
    repaint the union of the rectangles where it drew it, then forgets them until
@@ -160,8 +172,8 @@ gui_forms::ImageAtlas
 
       Writes premultiplied BGRA pixels into a slot and repeats its edge pixels
       into the gutter. The controls that drew the slot repaint where they drew
-      it. It returns :cpp:enumerator:`ImageAtlasError::painting <gui_forms::ImageAtlasError::painting>`, changing nothing, while a
-      window sharing the resources is painting.
+      it. During a paint it returns :cpp:enumerator:`ImageAtlasError::deferred <gui_forms::ImageAtlasError::deferred>` and the pixels
+      are written when the paint ends.
 
    .. cpp:function:: bool release(ImageAtlasSlot slot)
 
@@ -187,3 +199,7 @@ gui_forms::ImageAtlas
    .. cpp:function:: std::optional<Rect> source_rectangle(ImageAtlasSlot slot) const noexcept
 
       The slot's rectangle in the backing image, inside its gutter; none for a stale handle.
+
+   .. cpp:function:: void apply_pending_fills() noexcept
+
+      Writes the pending fills now, in deferral order, unless a window sharing the resources is painting or they are gone. The resources call it when a paint ends; acquire, fill, release and clear call it first. Allocates nothing of the atlas's own; a user whose damage cannot be requested is counted in damage_failures.

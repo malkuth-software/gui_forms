@@ -24,6 +24,17 @@
 //   then counted under image_resources).
 // - effects: an effect instance's state storage (EffectInstance::attach),
 //   allocated at the program's alignment.
+// - display_chunks: the command lists of retained display chunks and of the
+//   recording painter that records them (detail::DisplayCommandList), with
+//   the copies a display snapshot makes. The commands' own members (shared
+//   rasters, strings, prepared text) are not counted.
+// - damage_lists: a DamageRegion's rectangles (every window's damage planes,
+//   the damage hosts take) and a window's pending localized paint marks
+//   (Control::invalidate(Rect)).
+// - text_layout: reserved for the paragraph layout's reused scratch (the
+//   public paragraph wrapping of branch claude/cp29-gap-paragraph-wrap);
+//   nothing counts under it until that code allocates through
+//   detail::CountedAllocator<..., AllocationSubsystem::text_layout>.
 //
 // Bytes are the bytes asked of operator new, without the allocator's own
 // overhead or rounding. A release is counted by the thread that releases,
@@ -54,10 +65,13 @@ enum class AllocationSubsystem : std::uint8_t {
     image_resources,
     image_atlas,
     effects,
+    display_chunks,
+    damage_lists,
+    text_layout,
 };
 
 // The number of AllocationSubsystem values.
-inline constexpr std::size_t allocation_subsystem_count = 3U;
+inline constexpr std::size_t allocation_subsystem_count = 6U;
 
 // The name of `subsystem` as the JSON form spells it; "unknown" for a value
 // outside the enumeration.
@@ -82,9 +96,11 @@ struct GUI_FORMS_API AllocationStatistics final {
     [[nodiscard]] AllocationCounts of(AllocationSubsystem subsystem) const noexcept;
     // The sum over every subsystem: still only GUI.Forms' counted paths.
     [[nodiscard]] AllocationCounts total() const noexcept;
-    // {"scope":"gui_forms_counted_paths","total":{...},"image_resources":{...},...}
-    // with allocations, releases, allocated_bytes and released_bytes in each
-    // object. The "scope" member names what is counted, so that a record
+    // {"scope":"gui_forms_counted_paths","total":{...},"image_resources":{...},
+    // "image_atlas":{...},"effects":{...},"display_chunks":{...},
+    // "damage_lists":{...},"text_layout":{...}}: every subsystem by name, in
+    // enumeration order, even at zero, with allocations, releases,
+    // allocated_bytes and released_bytes in each object. The "scope" member names what is counted, so that a record
     // carrying it is not read as a process figure.
     [[nodiscard]] std::string to_json() const;
 };

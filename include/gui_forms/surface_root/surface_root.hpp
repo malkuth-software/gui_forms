@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/allocation/counted_allocator/counted_allocator.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/window/update_scope/update_scope.hpp"
 
@@ -2593,11 +2594,14 @@ private:
     bool layout_deferred_list_failed_{};
     // A localized paint mark's damage (mark_paint_dirty), in the control's
     // client coordinates, placed in the window at the settle. In mark order.
+    // Counted under AllocationSubsystem::damage_lists.
     struct PendingLocalDamage final {
         detail::ControlSlot slot{};
         Rect local_damage{};
     };
-    std::vector<PendingLocalDamage> pending_local_damage_;
+    std::vector<PendingLocalDamage,
+                detail::CountedAllocator<PendingLocalDamage, AllocationSubsystem::damage_lists>>
+        pending_local_damage_;
     // The controls whose content regions await a gather (note_content_gather),
     // in note order; a control may appear more than once. gather_slots_ is
     // the gather's swapped-in copy, so a gather that notes again appends to

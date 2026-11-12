@@ -105,7 +105,7 @@ std::uint64_t composite_backplane_chunk(const DisplayChunk& chunk, Point origin,
     std::size_t depth = 0U;
     CompositeState state{origin, clip, 1.0};
     std::uint64_t skipped = 0U;
-    const std::vector<DisplayCommand>& commands = chunk.commands();
+    const DisplayCommandList& commands = chunk.commands();
     for (std::size_t index = 0U; index < commands.size(); ++index) {
         const DisplayCommand& command = commands[index];
         switch (command.operation) {

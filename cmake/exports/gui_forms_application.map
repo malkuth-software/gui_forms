@@ -1347,6 +1347,7 @@
     _ZGVZN9gui_forms6detail12ControlTable*;
     _ZGVZN9gui_forms6detail12PendingTouch*;
     _ZGVZN9gui_forms6detail13AscendingLess*;
+    _ZGVZN9gui_forms6detail14ImageAtlasLink*;
     _ZGVZN9gui_forms6detail14WindowLifetime*;
     _ZGVZN9gui_forms6detail15FailureBoundary*;
     _ZGVZN9gui_forms6detail15FailureSnapshot*;
@@ -2793,6 +2794,7 @@
     _ZGVZNK9gui_forms6detail12ControlTable*;
     _ZGVZNK9gui_forms6detail12PendingTouch*;
     _ZGVZNK9gui_forms6detail13AscendingLess*;
+    _ZGVZNK9gui_forms6detail14ImageAtlasLink*;
     _ZGVZNK9gui_forms6detail14WindowLifetime*;
     _ZGVZNK9gui_forms6detail15FailureBoundary*;
     _ZGVZNK9gui_forms6detail15FailureSnapshot*;
@@ -5355,6 +5357,7 @@
     _ZN9gui_forms6detail13dirty_reachesE*;
     _ZN9gui_forms6detail13fire_rule_tapB*;
     _ZN9gui_forms6detail13fire_rule_tapE*;
+    _ZN9gui_forms6detail14ImageAtlasLink*;
     _ZN9gui_forms6detail14WindowLifetime*;
     _ZN9gui_forms6detail15FailureBoundary*;
     _ZN9gui_forms6detail15FailureSnapshot*;
@@ -6949,6 +6952,7 @@
     _ZNK[RO]9gui_forms6detail12ControlTable*;
     _ZNK[RO]9gui_forms6detail12PendingTouch*;
     _ZNK[RO]9gui_forms6detail13AscendingLess*;
+    _ZNK[RO]9gui_forms6detail14ImageAtlasLink*;
     _ZNK[RO]9gui_forms6detail14WindowLifetime*;
     _ZNK[RO]9gui_forms6detail15FailureBoundary*;
     _ZNK[RO]9gui_forms6detail15FailureSnapshot*;
@@ -8395,6 +8399,7 @@
     _ZN[KRO]9gui_forms6detail12ControlTable*;
     _ZN[KRO]9gui_forms6detail12PendingTouch*;
     _ZN[KRO]9gui_forms6detail13AscendingLess*;
+    _ZN[KRO]9gui_forms6detail14ImageAtlasLink*;
     _ZN[KRO]9gui_forms6detail14WindowLifetime*;
     _ZN[KRO]9gui_forms6detail15FailureBoundary*;
     _ZN[KRO]9gui_forms6detail15FailureSnapshot*;
@@ -9841,6 +9846,7 @@
     _ZT[VIST]N9gui_forms6detail12ControlTable*E;
     _ZT[VIST]N9gui_forms6detail12PendingTouch*E;
     _ZT[VIST]N9gui_forms6detail13AscendingLess*E;
+    _ZT[VIST]N9gui_forms6detail14ImageAtlasLink*E;
     _ZT[VIST]N9gui_forms6detail14WindowLifetime*E;
     _ZT[VIST]N9gui_forms6detail15FailureBoundary*E;
     _ZT[VIST]N9gui_forms6detail15FailureSnapshot*E;
@@ -11287,6 +11293,7 @@
     _ZT[hvc]*9gui_forms6detail12ControlTable*;
     _ZT[hvc]*9gui_forms6detail12PendingTouch*;
     _ZT[hvc]*9gui_forms6detail13AscendingLess*;
+    _ZT[hvc]*9gui_forms6detail14ImageAtlasLink*;
     _ZT[hvc]*9gui_forms6detail14WindowLifetime*;
     _ZT[hvc]*9gui_forms6detail15FailureBoundary*;
     _ZT[hvc]*9gui_forms6detail15FailureSnapshot*;
@@ -12733,6 +12740,7 @@
     _ZZN9gui_forms6detail12ControlTable*;
     _ZZN9gui_forms6detail12PendingTouch*;
     _ZZN9gui_forms6detail13AscendingLess*;
+    _ZZN9gui_forms6detail14ImageAtlasLink*;
     _ZZN9gui_forms6detail14WindowLifetime*;
     _ZZN9gui_forms6detail15FailureBoundary*;
     _ZZN9gui_forms6detail15FailureSnapshot*;
@@ -14179,6 +14187,7 @@
     _ZZNK9gui_forms6detail12ControlTable*;
     _ZZNK9gui_forms6detail12PendingTouch*;
     _ZZNK9gui_forms6detail13AscendingLess*;
+    _ZZNK9gui_forms6detail14ImageAtlasLink*;
     _ZZNK9gui_forms6detail14WindowLifetime*;
     _ZZNK9gui_forms6detail15FailureBoundary*;
     _ZZNK9gui_forms6detail15FailureSnapshot*;

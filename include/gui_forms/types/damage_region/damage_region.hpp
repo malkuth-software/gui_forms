@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/allocation/counted_allocator/counted_allocator.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -29,7 +30,10 @@ public:
     [[nodiscard]] double area() const noexcept;
 
 private:
-    std::vector<Rect> rectangles_;
+    // Counted under AllocationSubsystem::damage_lists.
+    using RectangleList = std::vector<Rect, detail::CountedAllocator<Rect, AllocationSubsystem::damage_lists>>;
+
+    RectangleList rectangles_;
     std::uint64_t compaction_count_{};
     std::uint64_t collapse_count_{};
 };

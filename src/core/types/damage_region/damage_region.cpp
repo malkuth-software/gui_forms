@@ -15,7 +15,7 @@ void DamageRegion::add(Rect rect) {
     bool merged = true;
     while (merged) {
         merged = false;
-        for (std::vector<Rect>::iterator iterator = rectangles_.begin();
+        for (RectangleList::iterator iterator = rectangles_.begin();
              iterator != rectangles_.end(); ++iterator) {
             const Rect united = Rect::united(*iterator, rect);
             const double exact_union_area = (*iterator).area() + rect.area() -

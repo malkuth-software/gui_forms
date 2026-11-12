@@ -53,6 +53,9 @@ std::string_view allocation_subsystem_name(AllocationSubsystem subsystem) noexce
     case AllocationSubsystem::image_resources: return "image_resources";
     case AllocationSubsystem::image_atlas: return "image_atlas";
     case AllocationSubsystem::effects: return "effects";
+    case AllocationSubsystem::display_chunks: return "display_chunks";
+    case AllocationSubsystem::damage_lists: return "damage_lists";
+    case AllocationSubsystem::text_layout: return "text_layout";
     default: break;
     }
     return "unknown";

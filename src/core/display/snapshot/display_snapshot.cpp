@@ -85,7 +85,7 @@ DisplaySnapshotResult make_display_snapshot(const DisplayChunk& chunk, const Siz
         }
     }
 
-    std::vector<DisplayCommand> commands;
+    DisplayCommandList commands;
     commands.reserve(chunk.commands().size());
     for (const DisplayCommand& command : chunk.commands()) {
         DisplayCommand copy = command;

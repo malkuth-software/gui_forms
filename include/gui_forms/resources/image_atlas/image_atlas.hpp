@@ -19,8 +19,8 @@
 // and the destructor leaves nothing to remove. It observes the controls that
 // drew a slot (weak references) and never keeps one alive.
 //
-// Memory: every table, the staging cell and the key index are allocated by
-// the constructor, under AllocationSubsystem::image_atlas
+// Memory: every table, the staging cell, the pending-fill cells and the key
+// index are allocated by the constructor, under AllocationSubsystem::image_atlas
 // (allocation_statistics.hpp); acquire, fill, release, find and draw
 // allocate nothing of the atlas's own. A fill writes the backing image in
 // place (ImageRegistry::patch_bgra32_premultiplied_in_place), so the
@@ -32,11 +32,25 @@
 // check_access). Mutations check it and throw std::logic_error elsewhere;
 // the const reads and draw do not check and must not be called elsewhere.
 //
-// Order and reentrancy: fill is refused (painting) while any window sharing
-// the resources is painting, as a paint reads the image; fill a slot during
-// layout or input handling, as a row is measured, and draw it during paint.
-// Damage is requested through Control::invalidate on each user, in the order
-// they drew; no callback runs.
+// Deferred fills: a paint reads the image, so a fill made while any window
+// sharing the resources is painting (a row measured inside a settle the
+// paint runs) is not written then. Its pixels are copied into a pending cell
+// and fill returns ImageAtlasError::deferred. Each slot has at most one
+// pending fill: a later fill of the slot replaces the pending pixels and
+// keeps its place, so at most slot_count fills wait (pending_fills sets how
+// many cells exist; when they are all taken a further slot's fill is refused
+// with painting). Pending fills are applied, in the order their slots were
+// first deferred, when the paint that deferred them ends (the window's pass
+// completed or abandoned, before SurfaceRoot::paint returns), or earlier at
+// the atlas's next acquire, fill, release or clear made outside a paint.
+// Applying one writes the image and damages the slot's users as an
+// immediate fill does; that damage belongs to the next frame. Until then the
+// slot keeps its previous pixels (an unfilled slot still draws nothing).
+// Releasing or replacing a slot drops its pending fill, and its handle goes
+// stale as always.
+//
+// Order and reentrancy: damage is requested through Control::invalidate on
+// each user, in the order they drew; no callback runs.
 
 #include "gui_forms/allocation/counted_allocator/counted_allocator.hpp"
 #include "gui_forms/export/application_export.hpp"
@@ -54,7 +68,22 @@ namespace gui_forms {
 
 class ApplicationResources;
 class Control;
+class ImageAtlas;
 class Painter;
+
+namespace detail {
+
+// The resources' link to a live atlas, for applying its deferred fills when
+// a paint ends: the atlas holds it, the resources only observe it (a weak
+// reference), so an atlas destroyed first is skipped.
+struct GUI_FORMS_API ImageAtlasLink final {
+    ImageAtlas* atlas{};
+};
+
+} // namespace detail
+
+// ImageAtlasLayout::pending_fills: one pending cell for every slot.
+inline constexpr std::uint32_t image_atlas_pending_every_slot = 0xffffffffU;
 
 // A slot's handle: its index and the generation the slot had when the
 // handle was given. The slot's generation advances when it is released or
@@ -97,6 +126,11 @@ struct GUI_FORMS_API ImageAtlasLayout final {
     // user_overflows), so a later change never leaves its pixels stale.
     std::uint32_t users_per_slot{4U};
     ImageAtlasReplacement replacement{ImageAtlasReplacement::least_recently_used};
+    // Cells for fills deferred during a paint, each one slot's cell of
+    // pixels: image_atlas_pending_every_slot (or any value at least
+    // slot_count) gives one per slot, so no deferred fill is refused; 0
+    // refuses every fill during a paint (painting).
+    std::uint32_t pending_fills{image_atlas_pending_every_slot};
 };
 
 enum class ImageAtlasAcquireOutcome : std::uint8_t {
@@ -120,9 +154,13 @@ struct GUI_FORMS_API ImageAtlasAcquire final {
 
 enum class ImageAtlasError : std::uint8_t {
     none,
+    // Accepted during a paint: written when the paint ends (see Deferred
+    // fills above).
+    deferred,
     // The handle is not the slot's current one.
     stale_slot,
-    // A window sharing the resources is painting.
+    // A window sharing the resources is painting and no pending cell is
+    // free for the slot.
     painting,
     // The pixels are not slot_width x slot_height premultiplied BGRA rows
     // `source_row_bytes` apart.
@@ -140,8 +178,20 @@ struct GUI_FORMS_API ImageAtlasStatistics final {
     std::uint64_t replacements{};
     std::uint64_t full_refusals{};
     std::uint64_t releases{};
+    // Fills written to the image, immediately or when deferred ones apply.
     std::uint64_t fills{};
     std::uint64_t fill_refusals{};
+    // Fills deferred during a paint, pending fills a later fill of the same
+    // slot replaced, and pending fills dropped by a release or replacement.
+    std::uint64_t deferred_fills{};
+    std::uint64_t deferred_replacements{};
+    std::uint64_t deferred_drops{};
+    // Users that could not be asked to repaint when a deferred fill applied
+    // (the window's damage list could not grow): they show the old pixels
+    // until something else repaints them.
+    std::uint64_t damage_failures{};
+    // Fills waiting now.
+    std::uint32_t pending_now{};
     // Calls refused for a stale handle (fill, release, draw).
     std::uint64_t stale_rejections{};
     std::uint64_t draws{};
@@ -193,9 +243,10 @@ public:
     // `source_row_bytes` apart; the last row needs only its pixels) into
     // `slot` and its gutter. The controls that drew the slot are asked to
     // repaint where they drew it (Control::invalidate(Rect)) and forgotten
-    // until they draw it again; no other control repaints. A refusal
-    // changes nothing. std::logic_error on another thread or after the
-    // resources are gone.
+    // until they draw it again; no other control repaints. During a paint
+    // the write is deferred (ImageAtlasError::deferred). A refusal changes
+    // nothing. std::logic_error on another thread or after the resources are
+    // gone.
     ImageAtlasError fill(ImageAtlasSlot slot, std::uint64_t source_row_bytes, std::span<const std::byte> pixels);
     // Frees `slot` for another key: its handles go stale and its users
     // repaint whole. False, changing nothing, for a stale handle.
@@ -223,6 +274,13 @@ public:
 
     [[nodiscard]] ImageAtlasStatistics statistics() const noexcept;
 
+    // Writes the pending fills now, in deferral order, unless a window
+    // sharing the resources is painting or they are gone. The resources call
+    // it when a paint ends; acquire, fill, release and clear call it first.
+    // Allocates nothing of the atlas's own; a user whose damage cannot be
+    // requested is counted in damage_failures.
+    void apply_pending_fills() noexcept;
+
 private:
     static constexpr std::uint32_t no_slot = 0xffffffffU;
 
@@ -236,6 +294,8 @@ private:
         std::uint32_t newer{no_slot};
         std::uint32_t older{no_slot};
         std::uint32_t user_count{};
+        // The pending cell holding a deferred fill, or no_slot.
+        std::uint32_t pending_cell{no_slot};
         SlotState state{SlotState::free};
     };
 
@@ -284,9 +344,21 @@ private:
     // The slot's cell's top-left pixel in the backing image.
     [[nodiscard]] std::uint32_t cell_x(std::uint32_t slot) const noexcept;
     [[nodiscard]] std::uint32_t cell_y(std::uint32_t slot) const noexcept;
-    // Writes the caller's pixels into staging_'s centre and repeats the edges
-    // into its gutter.
-    void stage(std::uint64_t source_row_bytes, std::span<const std::byte> pixels) noexcept;
+    // Writes the caller's pixels into the centre of `cell` (one cell of
+    // premultiplied BGRA) and repeats the edges into its gutter.
+    void stage(std::byte* cell, std::uint64_t source_row_bytes, std::span<const std::byte> pixels) noexcept;
+    // Writes one staged cell into the slot's place in the image; false when
+    // the registry refuses.
+    [[nodiscard]] bool write_cell(ApplicationResources& resources, std::uint32_t slot, const std::byte* cell) noexcept;
+    // Copies the fill into the slot's pending cell (taking a free one if it
+    // has none); false when none is free.
+    [[nodiscard]] bool defer(std::uint32_t slot, std::uint64_t source_row_bytes,
+                             std::span<const std::byte> pixels) noexcept;
+    // Drops the slot's pending fill, if any.
+    void drop_pending(std::uint32_t slot) noexcept;
+    [[nodiscard]] std::byte* pending_cell_pixels(std::uint32_t cell) noexcept;
+    // Applies pending fills before an operation made outside a paint.
+    void settle_pending(const ApplicationResources& resources) noexcept;
 
     std::weak_ptr<ApplicationResources> resources_{};
     ImageAtlasLayout layout_{};
@@ -307,6 +379,15 @@ private:
     Table<std::uint32_t> free_{};
     // One cell of premultiplied BGRA, cell_width * cell_height * 4 bytes.
     Table<std::byte> staging_{};
+    // The pending cells, pending capacity * one cell of bytes; the free
+    // ones (popped from the back); and the slots with a pending fill in the
+    // order they were first deferred. Each holds at most the pending
+    // capacity, reserved by the constructor.
+    Table<std::byte> pending_pixels_{};
+    Table<std::uint32_t> pending_free_{};
+    Table<std::uint32_t> pending_order_{};
+    // Registered with the resources for apply_pending_fills.
+    std::shared_ptr<detail::ImageAtlasLink> link_{};
     ImageAtlasStatistics statistics_{};
 };
 

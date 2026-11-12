@@ -3,8 +3,8 @@ Many small images of one size kept in the slots of one backing image.
 An `ImageAtlas` holds generated images that share a size, such as avatars,
 thumbnails or icons made at run time, in fixed-size slots of one image in the
 application's image registry. A program asks for a key's slot with `acquire`,
-writes its pixels with `fill` while it lays out or handles input, and draws it
-with `draw` during a control's paint. When a slot changes, only the controls
+writes its pixels with `fill`, and draws it with `draw` during a control's
+paint. When a slot changes, only the controls
 that drew it repaint. Use an `ImageList` for images loaded from files under
 names, and a single registry image for one large picture.
 
@@ -41,8 +41,8 @@ find
 fill
     Writes premultiplied BGRA pixels into a slot and repeats its edge pixels
     into the gutter. The controls that drew the slot repaint where they drew
-    it. It returns `ImageAtlasError::painting`, changing nothing, while a
-    window sharing the resources is painting.
+    it. During a paint it returns `ImageAtlasError::deferred` and the pixels
+    are written when the paint ends.
 release
     Frees a slot for another key. Its handles go stale and the controls that
     drew it repaint whole.
@@ -71,6 +71,16 @@ Replacement: under `least_recently_used` the atlas keeps its own record of
 use (acquire hits and draws) and replaces the least recently used key when
 every slot is taken. Under `caller` it never replaces; `acquire` answers
 `full` and the program releases a slot by its own policy.
+
+Deferred fills: a fill made while a window sharing the resources is painting
+(a row measured inside the paint's settle) is copied into a pending cell and
+written when that paint ends, or earlier at the atlas's next `acquire`,
+`fill`, `release` or `clear` outside a paint. Pending fills are written in
+the order their slots were first deferred. A slot has at most one: a later
+fill replaces the pending pixels and keeps its place. Releasing or replacing
+the slot drops it. The layout's `pending_fills` sets how many cells exist
+(one per slot by default); with none free, the fill is refused with
+`ImageAtlasError::painting`.
 
 Damage: a fill asks each control that drew the slot since it last changed to
 repaint the union of the rectangles where it drew it, then forgets them until

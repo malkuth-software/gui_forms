@@ -1345,6 +1345,7 @@ __ZGVZN9gui_forms6detail12BorrowLender*
 __ZGVZN9gui_forms6detail12ControlTable*
 __ZGVZN9gui_forms6detail12PendingTouch*
 __ZGVZN9gui_forms6detail13AscendingLess*
+__ZGVZN9gui_forms6detail14ImageAtlasLink*
 __ZGVZN9gui_forms6detail14WindowLifetime*
 __ZGVZN9gui_forms6detail15FailureBoundary*
 __ZGVZN9gui_forms6detail15FailureSnapshot*
@@ -2791,6 +2792,7 @@ __ZGVZNK9gui_forms6detail12BorrowLender*
 __ZGVZNK9gui_forms6detail12ControlTable*
 __ZGVZNK9gui_forms6detail12PendingTouch*
 __ZGVZNK9gui_forms6detail13AscendingLess*
+__ZGVZNK9gui_forms6detail14ImageAtlasLink*
 __ZGVZNK9gui_forms6detail14WindowLifetime*
 __ZGVZNK9gui_forms6detail15FailureBoundary*
 __ZGVZNK9gui_forms6detail15FailureSnapshot*
@@ -5353,6 +5355,7 @@ __ZN9gui_forms6detail13dirty_reachesB*
 __ZN9gui_forms6detail13dirty_reachesE*
 __ZN9gui_forms6detail13fire_rule_tapB*
 __ZN9gui_forms6detail13fire_rule_tapE*
+__ZN9gui_forms6detail14ImageAtlasLink*
 __ZN9gui_forms6detail14WindowLifetime*
 __ZN9gui_forms6detail15FailureBoundary*
 __ZN9gui_forms6detail15FailureSnapshot*
@@ -6947,6 +6950,7 @@ __ZNK[RO]9gui_forms6detail12BorrowLender*
 __ZNK[RO]9gui_forms6detail12ControlTable*
 __ZNK[RO]9gui_forms6detail12PendingTouch*
 __ZNK[RO]9gui_forms6detail13AscendingLess*
+__ZNK[RO]9gui_forms6detail14ImageAtlasLink*
 __ZNK[RO]9gui_forms6detail14WindowLifetime*
 __ZNK[RO]9gui_forms6detail15FailureBoundary*
 __ZNK[RO]9gui_forms6detail15FailureSnapshot*
@@ -8393,6 +8397,7 @@ __ZN[KRO]9gui_forms6detail12BorrowLender*
 __ZN[KRO]9gui_forms6detail12ControlTable*
 __ZN[KRO]9gui_forms6detail12PendingTouch*
 __ZN[KRO]9gui_forms6detail13AscendingLess*
+__ZN[KRO]9gui_forms6detail14ImageAtlasLink*
 __ZN[KRO]9gui_forms6detail14WindowLifetime*
 __ZN[KRO]9gui_forms6detail15FailureBoundary*
 __ZN[KRO]9gui_forms6detail15FailureSnapshot*
@@ -9839,6 +9844,7 @@ __ZT[VIST]N9gui_forms6detail12BorrowLender*E
 __ZT[VIST]N9gui_forms6detail12ControlTable*E
 __ZT[VIST]N9gui_forms6detail12PendingTouch*E
 __ZT[VIST]N9gui_forms6detail13AscendingLess*E
+__ZT[VIST]N9gui_forms6detail14ImageAtlasLink*E
 __ZT[VIST]N9gui_forms6detail14WindowLifetime*E
 __ZT[VIST]N9gui_forms6detail15FailureBoundary*E
 __ZT[VIST]N9gui_forms6detail15FailureSnapshot*E
@@ -11285,6 +11291,7 @@ __ZT[hvc]*9gui_forms6detail12BorrowLender*
 __ZT[hvc]*9gui_forms6detail12ControlTable*
 __ZT[hvc]*9gui_forms6detail12PendingTouch*
 __ZT[hvc]*9gui_forms6detail13AscendingLess*
+__ZT[hvc]*9gui_forms6detail14ImageAtlasLink*
 __ZT[hvc]*9gui_forms6detail14WindowLifetime*
 __ZT[hvc]*9gui_forms6detail15FailureBoundary*
 __ZT[hvc]*9gui_forms6detail15FailureSnapshot*
@@ -12731,6 +12738,7 @@ __ZZN9gui_forms6detail12BorrowLender*
 __ZZN9gui_forms6detail12ControlTable*
 __ZZN9gui_forms6detail12PendingTouch*
 __ZZN9gui_forms6detail13AscendingLess*
+__ZZN9gui_forms6detail14ImageAtlasLink*
 __ZZN9gui_forms6detail14WindowLifetime*
 __ZZN9gui_forms6detail15FailureBoundary*
 __ZZN9gui_forms6detail15FailureSnapshot*
@@ -14177,6 +14185,7 @@ __ZZNK9gui_forms6detail12BorrowLender*
 __ZZNK9gui_forms6detail12ControlTable*
 __ZZNK9gui_forms6detail12PendingTouch*
 __ZZNK9gui_forms6detail13AscendingLess*
+__ZZNK9gui_forms6detail14ImageAtlasLink*
 __ZZNK9gui_forms6detail14WindowLifetime*
 __ZZNK9gui_forms6detail15FailureBoundary*
 __ZZNK9gui_forms6detail15FailureSnapshot*

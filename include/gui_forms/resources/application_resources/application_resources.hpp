@@ -29,6 +29,7 @@ struct ThemePackage;
 struct ThemeRequestReport;
 struct UserThemeFiles;
 struct UserThemeHeader;
+namespace detail { struct ImageAtlasLink; }
 
 // How a program admits user themes (T3 user themes, notes:planning/stages/
 // T3-theme-language/USER_THEMES.md section 4.3).
@@ -230,6 +231,13 @@ private:
     void require_access(const char* operation) const;
     // Whether any window sharing these resources is painting now.
     [[nodiscard]] bool painting() const noexcept;
+    // Observes an atlas for apply_deferred_image_fills (ImageAtlas's
+    // constructor). May throw std::bad_alloc, adding nothing.
+    void register_image_atlas(const std::shared_ptr<detail::ImageAtlasLink>& link);
+    // Called by a window when its paint pass ends (completed or abandoned):
+    // each live atlas writes its deferred fills unless another window is
+    // still painting; links of destroyed atlases are dropped. Never throws.
+    void apply_deferred_image_fills() noexcept;
     // Every surface root showing these resources: a Window, or a
     // SubSurface with resources of its own on its own thread.
     void attach(SurfaceRoot& root);
@@ -271,6 +279,9 @@ private:
     // detaches in its destructor. Bounded by the roots the program creates
     // on this thread.
     std::vector<SurfaceRoot*> windows_;
+    // The atlases made with these resources, observed; an expired link is an
+    // atlas already destroyed.
+    std::vector<std::weak_ptr<detail::ImageAtlasLink>> atlases_{};
 };
 
 } // namespace gui_forms

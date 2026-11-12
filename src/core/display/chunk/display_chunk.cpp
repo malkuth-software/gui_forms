@@ -20,7 +20,7 @@ struct OpenSave final {
 // One pass over the commands (DisplayOccluder states the rules), keeping
 // the open saves on a stack that is reserved once. An unbalanced recording
 // has no occluder.
-std::optional<DisplayOccluder> find_occluder(const std::vector<DisplayCommand>& commands) {
+std::optional<DisplayOccluder> find_occluder(const DisplayCommandList& commands) {
     std::optional<DisplayOccluder> found;
     std::vector<OpenSave> open;
     open.reserve(8U);
@@ -95,7 +95,7 @@ std::optional<DisplayOccluder> find_occluder(const std::vector<DisplayCommand>& 
 DisplayChunk::DisplayChunk(std::uint64_t generation,
                            PaintPlane plane,
                            Rect logical_bounds,
-                           std::vector<DisplayCommand> commands,
+                           DisplayCommandList commands,
                            std::optional<Rect> opaque_cover)
     : generation_(generation), plane_(plane), logical_bounds_(logical_bounds),
       commands_(std::move(commands)), opaque_cover_(opaque_cover), occluder_(find_occluder(commands_)) {}

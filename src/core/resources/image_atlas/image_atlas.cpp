@@ -107,7 +107,17 @@ ImageAtlas::ImageAtlas(const std::shared_ptr<ApplicationResources>& resources, I
     for (std::uint32_t slot = layout_.slot_count; slot > 0U; --slot) {
         free_.push_back(slot - 1U);
     }
-    staging_.resize(static_cast<std::size_t>(cell_width_) * cell_height_ * bytes_per_pixel);
+    const std::size_t cell_bytes = static_cast<std::size_t>(cell_width_) * cell_height_ * bytes_per_pixel;
+    staging_.resize(cell_bytes);
+    const std::uint32_t pending_capacity = std::min(layout_.pending_fills, layout_.slot_count);
+    if (pending_capacity != 0U) {
+        pending_pixels_.resize(cell_bytes * pending_capacity);
+        pending_free_.reserve(pending_capacity);
+        for (std::uint32_t cell = pending_capacity; cell > 0U; --cell) {
+            pending_free_.push_back(cell - 1U);
+        }
+        pending_order_.reserve(pending_capacity);
+    }
 
     // The transparent image, loaded from a zeroed buffer that lives for this
     // block only (counted under image_atlas, then released).
@@ -121,12 +131,25 @@ ImageAtlas::ImageAtlas(const std::shared_ptr<ApplicationResources>& resources, I
         throw std::runtime_error(message);
     }
     image_ = loaded.image;
+    // Registered last, so that a refusal above leaves nothing behind; a
+    // failed registration removes the image again.
+    try {
+        link_ = std::make_shared<detail::ImageAtlasLink>();
+        (*link_).atlas = this;
+        (*resources).register_image_atlas(link_);
+    } catch (...) {
+        static_cast<void>((*resources).remove_image(image_));
+        throw;
+    }
 }
 
 ImageAtlas::~ImageAtlas() {
     // Removing the image repaints every window sharing the resources, so no
     // user need be damaged here. Gone resources, or another thread, leave the
     // image to the registry's own teardown.
+    // The link dies with the atlas, so the resources skip it from now on;
+    // pending fills are dropped with the atlas.
+    if (link_ != nullptr) (*link_).atlas = nullptr;
     const std::shared_ptr<ApplicationResources> resources = resources_.lock();
     if (resources && (*resources).check_access()) {
         static_cast<void>((*resources).remove_image(image_));
@@ -249,6 +272,7 @@ void ImageAtlas::assign(std::uint32_t slot, std::uint64_t key) noexcept {
 }
 
 void ImageAtlas::retire(std::uint32_t slot) noexcept {
+    drop_pending(slot);
     SlotRecord& record = slots_[slot];
     erase_key(record.key);
     unlink(slot);
@@ -316,13 +340,12 @@ std::uint32_t ImageAtlas::cell_y(std::uint32_t slot) const noexcept {
     return y;
 }
 
-void ImageAtlas::stage(std::uint64_t source_row_bytes, std::span<const std::byte> pixels) noexcept {
+void ImageAtlas::stage(std::byte* cell, std::uint64_t source_row_bytes, std::span<const std::byte> pixels) noexcept {
     const std::size_t gutter = layout_.gutter;
     const std::size_t slot_width = layout_.slot_width;
     const std::size_t slot_height = layout_.slot_height;
     const std::size_t cell_row_bytes = static_cast<std::size_t>(cell_width_) * bytes_per_pixel;
     const std::size_t slot_row_bytes = slot_width * bytes_per_pixel;
-    std::byte* const cell = staging_.data();
     // The slot's rows, each with its first and last pixel repeated sideways.
     for (std::size_t row = 0U; row < slot_height; ++row) {
         std::byte* const line = cell + (row + gutter) * cell_row_bytes;
@@ -344,8 +367,89 @@ void ImageAtlas::stage(std::uint64_t source_row_bytes, std::span<const std::byte
     }
 }
 
+std::byte* ImageAtlas::pending_cell_pixels(std::uint32_t cell) noexcept {
+    const std::size_t cell_bytes = staging_.size();
+    std::byte* const pixels = pending_pixels_.data() + static_cast<std::size_t>(cell) * cell_bytes;
+    return pixels;
+}
+
+bool ImageAtlas::write_cell(ApplicationResources& resources, std::uint32_t slot, const std::byte* cell) noexcept {
+    const std::uint64_t cell_row_bytes = static_cast<std::uint64_t>(cell_width_) * bytes_per_pixel;
+    const ImageLoadResult written = resources.registry().patch_bgra32_premultiplied_in_place(
+        image_, cell_x(slot), cell_y(slot), cell_width_, cell_height_, cell_row_bytes,
+        std::span<const std::byte>(cell, staging_.size()));
+    const bool accepted = static_cast<bool>(written);
+    return accepted;
+}
+
+bool ImageAtlas::defer(std::uint32_t slot, std::uint64_t source_row_bytes,
+                       std::span<const std::byte> pixels) noexcept {
+    SlotRecord& record = slots_[slot];
+    if (record.pending_cell != no_slot) {
+        stage(pending_cell_pixels(record.pending_cell), source_row_bytes, pixels);
+        ++statistics_.deferred_replacements;
+        return true;
+    }
+    if (pending_free_.empty()) return false;
+    record.pending_cell = pending_free_.back();
+    pending_free_.pop_back();
+    // Reserved for the pending capacity, which bounds the slots waiting:
+    // never allocates.
+    pending_order_.push_back(slot);
+    stage(pending_cell_pixels(record.pending_cell), source_row_bytes, pixels);
+    ++statistics_.pending_now;
+    return true;
+}
+
+void ImageAtlas::drop_pending(std::uint32_t slot) noexcept {
+    SlotRecord& record = slots_[slot];
+    if (record.pending_cell == no_slot) return;
+    pending_free_.push_back(record.pending_cell);
+    record.pending_cell = no_slot;
+    Table<std::uint32_t>::iterator found = std::find(pending_order_.begin(), pending_order_.end(), slot);
+    if (found != pending_order_.end()) pending_order_.erase(found);
+    --statistics_.pending_now;
+    ++statistics_.deferred_drops;
+}
+
+void ImageAtlas::apply_pending_fills() noexcept {
+    if (pending_order_.empty()) return;
+    const std::shared_ptr<ApplicationResources> resources = resources_.lock();
+    if (!resources || (*resources).painting()) return;
+    // Taken in deferral order; each slot leaves the order before its users
+    // are damaged, so the order is consistent whatever a damage request does.
+    std::size_t next = 0U;
+    while (next < pending_order_.size()) {
+        const std::uint32_t slot = pending_order_[next];
+        ++next;
+        SlotRecord& record = slots_[slot];
+        const std::uint32_t cell = record.pending_cell;
+        record.pending_cell = no_slot;
+        pending_free_.push_back(cell);
+        --statistics_.pending_now;
+        if (!write_cell(*resources, slot, pending_cell_pixels(cell))) {
+            ++statistics_.fill_refusals;
+            continue;
+        }
+        record.state = SlotState::filled;
+        ++statistics_.fills;
+        try {
+            damage_users(slot, false);
+        } catch (...) {
+            ++statistics_.damage_failures;
+        }
+    }
+    pending_order_.clear();
+}
+
+void ImageAtlas::settle_pending(const ApplicationResources& resources) noexcept {
+    if (pending_order_.empty() || resources.painting()) return;
+    apply_pending_fills();
+}
+
 ImageAtlasAcquire ImageAtlas::acquire(std::uint64_t key) {
     const std::shared_ptr<ApplicationResources> resources = require_access("ImageAtlas acquire");
+    settle_pending(*resources);
     ImageAtlasAcquire result{};
     const std::uint32_t found = find_slot_index(key);
     if (found != no_slot) {
@@ -397,14 +501,11 @@ bool ImageAtlas::filled(ImageAtlasSlot slot) const noexcept {
 ImageAtlasError ImageAtlas::fill(ImageAtlasSlot slot, std::uint64_t source_row_bytes,
                                  std::span<const std::byte> pixels) {
     const std::shared_ptr<ApplicationResources> resources = require_access("ImageAtlas fill");
+    settle_pending(*resources);
     if (!current(slot)) {
         ++statistics_.stale_rejections;
         ++statistics_.fill_refusals;
         return ImageAtlasError::stale_slot;
-    }
-    if ((*resources).painting()) {
-        ++statistics_.fill_refusals;
-        return ImageAtlasError::painting;
     }
     // The last row needs only its pixels; check the span before multiplying
     // the caller's stride.
@@ -415,12 +516,16 @@ ImageAtlasError ImageAtlas::fill(ImageAtlasSlot slot, std::uint64_t source_row_b
         ++statistics_.fill_refusals;
         return ImageAtlasError::invalid_pixels;
     }
-    stage(source_row_bytes, pixels);
-    const std::uint64_t cell_row_bytes = static_cast<std::uint64_t>(cell_width_) * bytes_per_pixel;
-    const ImageLoadResult written = (*resources).registry().patch_bgra32_premultiplied_in_place(
-        image_, cell_x(slot.index), cell_y(slot.index), cell_width_, cell_height_, cell_row_bytes,
-        std::span<const std::byte>(staging_.data(), staging_.size()));
-    if (!written) {
+    if ((*resources).painting()) {
+        if (!defer(slot.index, source_row_bytes, pixels)) {
+            ++statistics_.fill_refusals;
+            return ImageAtlasError::painting;
+        }
+        ++statistics_.deferred_fills;
+        return ImageAtlasError::deferred;
+    }
+    stage(staging_.data(), source_row_bytes, pixels);
+    if (!write_cell(*resources, slot.index, staging_.data())) {
         ++statistics_.fill_refusals;
         return ImageAtlasError::registry_refused;
     }
@@ -432,6 +537,7 @@ ImageAtlasError ImageAtlas::fill(ImageAtlasSlot slot, std::uint64_t source_row_b
 
 bool ImageAtlas::release(ImageAtlasSlot slot) {
     const std::shared_ptr<ApplicationResources> resources = require_access("ImageAtlas release");
+    settle_pending(*resources);
     if (!current(slot)) {
         ++statistics_.stale_rejections;
         return false;
@@ -447,6 +553,7 @@ bool ImageAtlas::release(ImageAtlasSlot slot) {
 
 void ImageAtlas::clear() {
     const std::shared_ptr<ApplicationResources> resources = require_access("ImageAtlas clear");
+    settle_pending(*resources);
     for (std::uint32_t index = 0U; index < slots_.size(); ++index) {
         if (slots_[index].state == SlotState::free) continue;
         const ImageAtlasSlot slot{index, slots_[index].generation};
@@ -507,7 +614,10 @@ ImageAtlasStatistics ImageAtlas::statistics() const noexcept {
                          static_cast<std::uint64_t>(users_.capacity()) * sizeof(UserRecord) +
                          static_cast<std::uint64_t>(keys_.capacity()) * sizeof(KeyEntry) +
                          static_cast<std::uint64_t>(free_.capacity()) * sizeof(std::uint32_t) +
-                         static_cast<std::uint64_t>(staging_.capacity());
+                         static_cast<std::uint64_t>(staging_.capacity()) +
+                         static_cast<std::uint64_t>(pending_pixels_.capacity()) +
+                         static_cast<std::uint64_t>(pending_free_.capacity()) * sizeof(std::uint32_t) +
+                         static_cast<std::uint64_t>(pending_order_.capacity()) * sizeof(std::uint32_t);
     return result;
 }
 

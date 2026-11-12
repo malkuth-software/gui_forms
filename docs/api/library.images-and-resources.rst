@@ -252,6 +252,10 @@ Related types
 
       Default: ``{ImageAtlasReplacement::least_recently_used}``.
 
+   .. cpp:member:: std::uint32_t pending_fills
+
+      Cells for fills deferred during a paint, each one slot's cell of pixels: image_atlas_pending_every_slot (or any value at least slot_count) gives one per slot, so no deferred fill is refused; 0 refuses every fill during a paint (painting). Default: ``{image_atlas_pending_every_slot}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ImageAtlasSlot final
@@ -284,7 +288,25 @@ Related types
 
    .. cpp:member:: std::uint64_t fills
 
+      Fills written to the image, immediately or when deferred ones apply.
+
    .. cpp:member:: std::uint64_t fill_refusals
+
+   .. cpp:member:: std::uint64_t deferred_fills
+
+      Fills deferred during a paint, pending fills a later fill of the same slot replaced, and pending fills dropped by a release or replacement.
+
+   .. cpp:member:: std::uint64_t deferred_replacements
+
+   .. cpp:member:: std::uint64_t deferred_drops
+
+   .. cpp:member:: std::uint64_t damage_failures
+
+      Users that could not be asked to repaint when a deferred fill applied (the window's damage list could not grow): they show the old pixels until something else repaints them.
+
+   .. cpp:member:: std::uint32_t pending_now
+
+      Fills waiting now.
 
    .. cpp:member:: std::uint64_t stale_rejections
 
@@ -689,6 +711,8 @@ Enumerations
 
    .. cpp:enumerator:: none
 
+   .. cpp:enumerator:: deferred
+
    .. cpp:enumerator:: stale_slot
 
    .. cpp:enumerator:: painting
@@ -851,6 +875,14 @@ Functions, constants and aliases
 .. cpp:function:: bool icon_identifier_valid(std::string_view identifier) noexcept
 
    Whether ``identifier`` is an icon identifier: segments of ASCII lowercase letters, digits and dashes, each beginning with a letter or digit, joined by ``.`` (as the locale keys), at most 128 bytes in all; for example ``toolbar.save`` or ``check-mark``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+
+.. cpp:var:: constexpr std::uint32_t image_atlas_pending_every_slot
+
+   ImageAtlasLayout::pending_fills: one pending cell for every slot. Value: ``0xffffffffU``.
 
 .. cpp:namespace:: gui_forms
 
