@@ -63,6 +63,12 @@ public:
         root.mark_subtree_dirty(control, dirty);
     }
     static void mark_child_layout_slot(SurfaceRoot& root, Control& control) { root.mark_child_layout_slot(control); }
+    // SurfaceRoot::refuse_arrange_outside_slot: Control::arrange and
+    // arrange_self ask it first and change nothing when it refuses.
+    [[nodiscard]] static bool refuse_arrange_outside_slot(SurfaceRoot& root, const Control& control) noexcept {
+        const bool refused = root.refuse_arrange_outside_slot(control);
+        return refused;
+    }
     static void change_paint_plane(SurfaceRoot& root, Control& control, PaintPlane plane) {
         root.change_paint_plane(control, plane);
     }

@@ -26,6 +26,7 @@
 #include <cmath>
 #include <exception>
 #include <functional>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -386,6 +387,17 @@ bool regions_nest(const Control& first, const Control& second) noexcept {
     return nest;
 }
 
+// Marks the control the layout pass is arranging, for the life of its
+// arrange and on_layout calls (SurfaceRoot::refuse_arrange_outside_slot):
+// it restores the mark it found on every exit. It borrows the window's
+// mark field.
+struct ArrangingMark final {
+    const Control*& control;
+    const Control* previous_control{};
+
+    ~ArrangingMark() { control = previous_control; }
+};
+
 // Marks the control whose display chunk is being recorded, for the theme
 // engine (T2 E6), for the life of one recording: it restores the marks it
 // found on every exit. It borrows the window's two mark fields.
@@ -516,7 +528,14 @@ ImageLoadResult SurfaceRoot::replace_png(ImageId image,
     require_root_thread("PNG resource replacement");
     // Repaints every window sharing the registry, this one included.
     ImageLoadResult result = (*resources_).replace_png(image, encoded);
+    note_image_refusal("replace_png", image, result);
     return result;
+}
+
+void SurfaceRoot::note_image_refusal(std::string_view operation, ImageId image,
+                                     const ImageLoadResult& result) noexcept {
+    if (result.error != ImageResourceError::stale_image_id) return;
+    metrics_.record_stale_image_refusals(operation, image.value, 1U);
 }
 
 void SurfaceRoot::repaint_for_image_replacement() {
@@ -543,6 +562,7 @@ ImageLoadResult SurfaceRoot::replace_bgra32_premultiplied(
     }
     ImageLoadResult result = (*resources_).registry().replace_bgra32_premultiplied(
         image, width, height, row_bytes, pixels);
+    note_image_refusal("replace_bgra32_premultiplied", image, result);
     if (result) {
         mark_dirty(consumer, Dirty::paint | Dirty::semantics);
     }
@@ -560,6 +580,7 @@ ImageLoadResult SurfaceRoot::update_bgra32_premultiplied(
     }
     ImageLoadResult result = (*resources_).registry().update_bgra32_premultiplied(
         image, width, height, row_bytes, pixels);
+    note_image_refusal("update_bgra32_premultiplied", image, result);
     if (result) {
         mark_dirty(consumer, Dirty::paint | Dirty::semantics);
     }
@@ -578,6 +599,7 @@ ImageLoadResult SurfaceRoot::patch_bgra32_premultiplied(
     }
     ImageLoadResult result = (*resources_).registry().patch_bgra32_premultiplied(
         image, x, y, width, height, source_row_bytes, pixels);
+    note_image_refusal("patch_bgra32_premultiplied", image, result);
     if (result) {
         mark_paint_dirty(consumer, local_damage);
     }
@@ -593,6 +615,7 @@ ImageLoadResult SurfaceRoot::replace_png(ImageId image,
             "scoped PNG replacement requires an attached consumer");
     }
     ImageLoadResult result = (*resources_).registry().replace_png(image, encoded);
+    note_image_refusal("replace_png", image, result);
     if (result) {
         mark_dirty(consumer, Dirty::paint | Dirty::semantics);
     }
@@ -4550,22 +4573,29 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
         const Rect old_arranged = (*control).arranged_bounds_;
         (*control).clear_dirty(Dirty::arrange | Dirty::hit_test);
         (*control).arranged_by_dock_layout_ = false;
-        try {
-            (*control).arrange(final_bounds);
-        } catch (...) {
-            (*control).dirty_ |= Dirty::arrange | Dirty::hit_test;
-            (*control).subtree_dirty_ |= Dirty::arrange | Dirty::hit_test;
-            throw;
-        }
-        ++callbacks;
-        if (!(*control).is_alive() || (*control).surface_root_ != this) {
-            if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
-            return;
-        }
-        (*control).on_layout();
-        if (!(*control).is_alive() || (*control).surface_root_ != this) {
-            if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
-            return;
+        {
+            // While the control arranges, arranging any other control of
+            // this window is refused: the descent below places each child
+            // from its published slot, and would undo it.
+            const ArrangingMark arranging{layout_arranging_, layout_arranging_};
+            layout_arranging_ = control.get();
+            try {
+                (*control).arrange(final_bounds);
+            } catch (...) {
+                (*control).dirty_ |= Dirty::arrange | Dirty::hit_test;
+                (*control).subtree_dirty_ |= Dirty::arrange | Dirty::hit_test;
+                throw;
+            }
+            ++callbacks;
+            if (!(*control).is_alive() || (*control).surface_root_ != this) {
+                if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
+                return;
+            }
+            (*control).on_layout();
+            if (!(*control).is_alive() || (*control).surface_root_ != this) {
+                if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
+                return;
+            }
         }
         // The resize registration (reduced M0.4): asked again whenever the
         // size changes, which costs one pass over the children that arrange
@@ -4691,6 +4721,24 @@ void SurfaceRoot::record_layout_diagnostic(LayoutDiagnostic diagnostic) {
         return;
     }
     layout_diagnostics_.push_back(std::move(diagnostic));
+}
+
+bool SurfaceRoot::refuse_arrange_outside_slot(const Control& control) noexcept {
+    if (layout_arranging_ == nullptr || layout_arranging_ == &control) return false;
+    const Control& arranging = *layout_arranging_;
+    metrics_.record_layout_arrange_refusal(control.stable_id().value(), arranging.stable_id().value());
+    try {
+        LayoutDiagnostic diagnostic{};
+        diagnostic.code = LayoutDiagnosticCode::arrange_outside_slot;
+        diagnostic.severity = layout_diagnostic_severity(diagnostic.code);
+        diagnostic.child = std::string(control.stable_id().value());
+        diagnostic.ancestor = std::string(arranging.stable_id().value());
+        record_layout_diagnostic(std::move(diagnostic));
+    } catch (const std::bad_alloc&) {
+        // Counted above; only the record is lost.
+        ++dropped_layout_diagnostics_;
+    }
+    return true;
 }
 
 void SurfaceRoot::note_containing_block(const Control& child, const Control& ancestor) {
@@ -5114,6 +5162,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             (*control).clear_dirty(Dirty::paint);
             detail::RecordingPainter recorder(text_metrics_provider_, DeviceScale{scale()});
             recorder.inherit_caches((*control).display_chunk_);
+            recorder.refuse_stale_images(image_resources());
             // Declared after the recorder it names, so it is destroyed
             // first and the mark never outlives it.
             const RecordingMark mark{recording_control_, recording_painter_, recording_control_,
@@ -5151,6 +5200,10 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                                                       logical_bounds);
             note_display_chunk_change(*control, had_chunk);
             if (recorder.group_refusals() > 0U) metrics_.record_paint_group_refusals(recorder.group_refusals());
+            if (recorder.stale_image_draws() > 0U) {
+                metrics_.record_stale_image_refusals("draw", recorder.first_stale_image().value,
+                                                     recorder.stale_image_draws());
+            }
             ++chunks_rebuilt;
             consumed_invalidations += invalidated ? 1U : 0U;
         } else {

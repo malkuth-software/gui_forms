@@ -305,6 +305,14 @@ Related types
 
    .. cpp:function:: void record_paint_group_refusals(std::uint64_t refusals) noexcept
 
+   .. cpp:function:: void record_layout_arrange_refusal(std::string_view arranged, std::string_view arranging) noexcept
+
+      A control arranged while the layout pass was arranging another (LayoutDiagnosticCode::arrange_outside_slot), refused. Counts it and, at the 1st, 2nd, 4th, 8th... refusal, prints one diagnostic line naming both controls' stable identities.
+
+   .. cpp:function:: void record_stale_image_refusals(std::string_view operation, std::uint64_t image, std::uint64_t refusals) noexcept
+
+      ``refusals`` uses of an image identity the registry no longer holds (ImageResourceError::stale_image_id), refused: ``operation`` names the window call (a scoped patch, replace or update) or ``draw`` for a paint that drew it. Counts them and, each time the count reaches a new power of two, prints one diagnostic line naming the operation and the identity's value.
+
    .. cpp:function:: void record_expectation_miss(HousekeepingExpectation expectation, std::uint64_t expected, std::uint64_t observed) noexcept
 
       Counts one missed housekeeping expectation and prints a rate-limited telemetry record.
@@ -627,6 +635,14 @@ Related types
    .. cpp:member:: std::uint64_t paint_group_refusals
 
       Paint groups begun deeper than maximum_paint_group_depth, drawn without isolation (Painter::begin_group).
+
+   .. cpp:member:: std::uint64_t layout_arrange_refusals
+
+      Arrangements refused because the layout pass was arranging another control (LayoutDiagnosticCode::arrange_outside_slot): a custom layout that arranged a child directly instead of set_child_layout.
+
+   .. cpp:member:: std::uint64_t stale_image_refusals
+
+      Uses of a stale image identity refused: a window's scoped patch, replace or update given one, and draws recorded with one (counted when the control's paint is recorded, and drawn as nothing). A replace or a generation-advancing patch returns the identity that replaces the one passed in.
 
    .. cpp:member:: std::uint64_t bundled_font_lookups_without_source
 

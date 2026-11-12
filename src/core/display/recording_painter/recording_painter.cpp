@@ -521,7 +521,16 @@ TextResolutionStatus RecordingPainter::fill_cluster_advances_utf8(
     return status;
 }
 
+bool RecordingPainter::refuses_image(ImageId image) noexcept {
+    if (images_ == nullptr || image.value == 0U) return false;
+    if ((*images_).find(image).has_value()) return false;
+    if (stale_image_draws_ == 0U) first_stale_image_ = image;
+    stale_image_draws_ = stale_image_draws_ + 1U;
+    return true;
+}
+
 void RecordingPainter::draw_image(ImageId image, Rect destination, double opacity) {
+    if (refuses_image(image)) return;
     DisplayCommand command;
     command.operation = DisplayOperation::draw_image;
     command.rect = destination;
@@ -628,6 +637,7 @@ void RecordingPainter::draw_part_raster_scaled(const std::shared_ptr<const PartR
 
 void RecordingPainter::draw_image_region(ImageId image, Rect source,
                                           Rect destination, double opacity) {
+    if (refuses_image(image)) return;
     DisplayCommand command;
     command.operation = DisplayOperation::draw_image_region;
     command.first = {source.x, source.y};
@@ -641,6 +651,7 @@ void RecordingPainter::draw_image_region(ImageId image, Rect source,
 void RecordingPainter::draw_image_region_sampled(
     ImageId image, Rect source, Rect destination, ImageSampling sampling,
     double opacity) {
+    if (refuses_image(image)) return;
     DisplayCommand command;
     command.operation = DisplayOperation::draw_image_region_sampled;
     command.first = {source.x, source.y};
@@ -655,6 +666,7 @@ void RecordingPainter::draw_image_region_sampled(
 void RecordingPainter::fill_image_pattern(
     ImageId image, Size source_pixel_size, Rect destination,
     Size logical_tile_size, ImagePatternWrap wrap, double opacity) {
+    if (refuses_image(image)) return;
     DisplayCommand command;
     command.operation = DisplayOperation::fill_image_pattern;
     command.first = {source_pixel_size.width, source_pixel_size.height};

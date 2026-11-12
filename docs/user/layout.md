@@ -369,6 +369,11 @@ In `arrange`, call `arrange_self(final_bounds)` to commit your own geometry,
 then `set_child_layout(child, rect)` to assign each child's layout slot.
 Calling the child's `set_bounds` changes its authored `requested_bounds`,
 even during arrangement; it is not a layout-slot assignment.
+Do not call a child's `arrange` yourself: the layout pass arranges each
+child from its slot afterwards, so a direct arrangement would be undone.
+While the pass arranges your control, arranging any other control of the
+window is refused, changes nothing, records an `arrange_outside_slot` error
+in `layout_diagnostics()` and counts in `layout_arrange_refusals`.
 
 Declare the layout effects of your properties with `invalidate_declared`
 (see [Update scopes and dirtiness](update-scopes-and-dirtiness)), so that

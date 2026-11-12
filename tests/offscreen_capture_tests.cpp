@@ -15,7 +15,8 @@
 //   every declared state of every subject shown and captured.
 // - ImageAtlas deferred fills in real pixels: a slot drawn and filled in the
 //   same paint presents its old pixels in that frame and the new ones in the
-//   next.
+//   next; the same for a slot drawn and filled during Window::capture_window,
+//   which paints as a paint does.
 
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
@@ -418,13 +419,77 @@ void atlas_deferred_fill_pixels() {
     (*probe).atlas = nullptr;
 }
 
+// The capture's pixel at (x, y) as B, G, R, A bytes.
+std::array<std::uint8_t, 4> captured_pixel(const WindowCapture& capture, std::uint32_t x, std::uint32_t y) {
+    require(x < capture.pixel_width && y < capture.pixel_height, "the pixel is inside the capture");
+    const std::uint32_t packed = pixel_at(capture, x, y);
+    const std::array<std::uint8_t, 4> pixel{
+        static_cast<std::uint8_t>(packed & 0xFFU), static_cast<std::uint8_t>((packed >> 8U) & 0xFFU),
+        static_cast<std::uint8_t>((packed >> 16U) & 0xFFU), static_cast<std::uint8_t>((packed >> 24U) & 0xFFU)};
+    return pixel;
+}
+
+// atlas_deferred_fill_pixels through capture_window: the window paints
+// while the capture records and replays, so the probe's fill is deferred,
+// the capture shows the slot's old pixels, the fill is written when the
+// capture ends and damages the probe, and the next capture shows the new
+// pixels.
+void atlas_deferred_fill_capture() {
+    const std::unique_ptr<OffscreenRaster> raster = made_raster();
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("atlas-capture"));
+    const std::shared_ptr<AtlasFrameProbe> probe = std::make_shared<AtlasFrameProbe>(StableId("atlas-capture.probe"));
+    (*probe).set_bounds(Rect{20.0, 10.0, 40.0, 40.0});
+    (*root).add_child(probe);
+    const Size size{80.0, 60.0};
+    Window window(root, size);
+    OffscreenAttachment attached(*raster, window);
+
+    ImageAtlasLayout layout{};
+    layout.slot_width = 8U;
+    layout.slot_height = 8U;
+    layout.slot_count = 2U;
+    ImageAtlas atlas(window.resources(), layout);
+    const ImageAtlasSlot slot = atlas.acquire(1U).slot;
+    const std::vector<std::byte> red = solid_slot(0U, 0U, 255U);
+    const std::vector<std::byte> blue = solid_slot(255U, 0U, 0U);
+    require(atlas.fill(slot, 32U, std::span<const std::byte>(red)) == ImageAtlasError::none,
+            "the slot fills red outside a capture");
+    (*probe).atlas = &atlas;
+    (*probe).slot = slot;
+    (*probe).refill = &blue;
+    window.perform_layout();
+
+    WindowCaptureOptions options{};
+    options.scale = 1.0;
+    const std::array<std::uint8_t, 4> old_colour{0U, 0U, 255U, 255U};
+    const std::array<std::uint8_t, 4> new_colour{255U, 0U, 0U, 255U};
+    const std::optional<WindowCapture> first = window.capture_window(options);
+    require(first.has_value(), "the first capture completes");
+    require((*probe).drawn && (*probe).fill_result == ImageAtlasError::deferred,
+            "the probe drew the slot and its fill during the capture was deferred");
+    require(near_pixel(captured_pixel(*first, 24U, 14U), old_colour),
+            "the capture that deferred the fill shows the slot's old pixels");
+    const ImageAtlasStatistics written = atlas.statistics();
+    require(written.deferred_fills == 1U && written.fills == 2U && written.pending_now == 0U,
+            "the deferred fill was written when the capture ended");
+    require(has_dirty((*probe).dirty(), Dirty::paint), "the written fill damaged the probe for the next frame");
+
+    // A capture is refused while the window paints: this one completing
+    // shows the first capture ended its paint.
+    const std::optional<WindowCapture> second = window.capture_window(options);
+    require(second.has_value(), "the second capture completes");
+    require(near_pixel(captured_pixel(*second, 24U, 14U), new_colour), "the next capture shows the new pixels");
+    (*probe).atlas = nullptr;
+}
+
 int main() {
     raster_refusals();
     attachment_and_control_capture();
     specimen_states();
     stock_catalogue();
     atlas_deferred_fill_pixels();
+    atlas_deferred_fill_capture();
     std::cout << "Offscreen capture: raster refusals, the attachment, control captures, specimen states, the "
-                 "stock catalogue and atlas deferred-fill frames passed\n";
+                 "stock catalogue and atlas deferred-fill frames and captures passed\n";
     return EXIT_SUCCESS;
 }

@@ -964,6 +964,16 @@ public:
     [[nodiscard]] bool should_serialize_child_property(const Control& child, std::string_view name) const;
 
     [[nodiscard]] virtual Size measure(Size available);
+    // Places this control and, by default, its docked and anchored
+    // children. The window's layout pass calls it; a program may call it on
+    // a detached control, or on an attached one outside a pass. While the
+    // pass arranges one control, arranging any other control of that window
+    // (a custom layout calling a child's arrange) is refused: Control::arrange
+    // and arrange_self then change nothing, and the window records
+    // LayoutDiagnosticCode::arrange_outside_slot and counts it in
+    // MetricsSnapshot::layout_arrange_refusals. A custom layout arranges
+    // only itself (arrange_self) and publishes each child's slot with
+    // set_child_layout; the pass then arranges the child in that slot.
     virtual void arrange(Rect final_bounds);
     // The measure entry layout solvers call (stage L). It answers from this
     // control's measure cache when an entry was stored under exactly this
@@ -1476,6 +1486,8 @@ protected:
     // Custom retained layout controls establish their own child slots after
     // arranging only themselves. Calling the public base arrange would also
     // run the default Dock/Anchor engine and create competing layout owners.
+    // Refused like arrange when called on a control other than the one the
+    // window's layout pass is arranging.
     void arrange_self(Rect final_bounds) noexcept;
     // Framework chrome is recorded after application paint. Descendant replay
     // and hit testing are clipped to the local child viewport, letting a

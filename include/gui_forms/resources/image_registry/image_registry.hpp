@@ -51,6 +51,11 @@ public:
     [[nodiscard]] ImageLoadResult update_bgra32_premultiplied(
         ImageId image, std::uint32_t width, std::uint32_t height,
         std::uint64_t row_bytes, std::span<const std::byte> pixels);
+    // Writes the pixels of a rectangle of a premultiplied BGRA image.
+    // Returns the identity that replaces `image`: its generation advanced,
+    // so `image` is stale from then on and every later call naming it
+    // returns stale_image_id, as the replacements' old identities do. Keep
+    // the returned identity. Refusals change nothing.
     [[nodiscard]] ImageLoadResult patch_bgra32_premultiplied(
         ImageId image, std::uint32_t x, std::uint32_t y,
         std::uint32_t width, std::uint32_t height,

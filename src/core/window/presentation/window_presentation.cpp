@@ -131,6 +131,18 @@ void SurfaceRoot::set_framebuffer_painter(Painter* const painter) {
     backplane_framebuffer_scale_ = 0.0;
 }
 
+SurfaceRoot::CapturePaintLease::CapturePaintLease(SurfaceRoot& root) noexcept : root_(root) {
+    root_.in_paint_ = true;
+}
+
+SurfaceRoot::CapturePaintLease::~CapturePaintLease() {
+    root_.in_paint_ = false;
+    // Fills an image atlas deferred during the capture, then the input
+    // deferred during it, as paint's end does (neither throws).
+    if (root_.resources_) (*root_.resources_).apply_deferred_image_fills();
+    root_.schedule_deferred_input_drain();
+}
+
 // Four stages: validate the request; record the subtree's planes into one
 // display chunk; replay that chunk into an offscreen framebuffer; copy the
 // pixels into the image registry as premultiplied BGRA.
@@ -147,6 +159,8 @@ std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr&
     // Record: the subtree's planes, each in order, into one command list in
     // the subtree's own coordinates, its materials baked at the snapshot's
     // scale.
+    // Painting from here to the return, as paint is for its pass.
+    const CapturePaintLease painting(*this);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
@@ -211,6 +225,8 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
     if (window_bounds.empty() || !window_bounds.finite()) return std::nullopt;
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
     if (!framebuffer) return std::nullopt;
+    // Painting from here to the return, as paint is for its pass.
+    const CapturePaintLease painting(*this);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
@@ -293,6 +309,8 @@ std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& co
     const Size logical{area.width, area.height};
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
     if (!framebuffer) return std::nullopt;
+    // Painting from here to the return, as paint is for its pass.
+    const CapturePaintLease painting(*this);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;

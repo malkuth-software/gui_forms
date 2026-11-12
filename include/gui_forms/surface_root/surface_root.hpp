@@ -600,6 +600,8 @@ public:
     // ceil(height * scale) pixels and one copy of them into the registry;
     // chunks the replay had to rebuild are marked for the next real paint.
     // The image lives until release_control_snapshot or the window's end.
+    // The window is painting while it records and replays, as
+    // capture_window says.
     [[nodiscard]] std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale);
     // The whole window as it presents itself (owner request 2026-11-09):
     // its backplane (the theme's window material, cleared where a
@@ -617,7 +619,12 @@ public:
     // framebuffer refuses. Cost: one replay of the window into
     // ceil(width * scale) by ceil(height * scale) pixels and one copy of
     // them; chunks the replay had to rebuild are marked for the next real
-    // paint. On the UI thread (std::logic_error elsewhere).
+    // paint. While it records and replays, the window is painting, as in
+    // paint: an ImageAtlas fill made by a paint callback is deferred and
+    // written when the capture ends (so the capture shows the slot's old
+    // pixels and the next paint or capture the new ones), and input
+    // dispatched meanwhile is deferred. On the UI thread (std::logic_error
+    // elsewhere).
     [[nodiscard]] std::optional<WindowCapture> capture_window(const WindowCaptureOptions& options = {});
     // One control and its descendants as the window presents them (owner
     // request 2026-11-11, the theme palette): after any pending layout, the
@@ -634,7 +641,8 @@ public:
     // area, for a scale outside (0, 8] or a refused margin, or when the
     // framebuffer refuses. Cost: one replay of the subtree into the area's
     // device pixels and one copy of them; chunks the replay had to rebuild
-    // are marked for the next real paint. On the UI thread
+    // are marked for the next real paint. The window is painting while it
+    // records and replays, as capture_window says. On the UI thread
     // (std::logic_error elsewhere).
     [[nodiscard]] std::optional<WindowCapture> capture_control(const Control::Ptr& control,
                                                              const ControlCaptureOptions& options = {});
@@ -942,6 +950,19 @@ public:
     [[nodiscard]] ImageLoadResult load_bgra32_premultiplied(
         std::uint32_t width, std::uint32_t height, std::uint64_t row_bytes,
         std::span<const std::byte> pixels);
+    // The replacements, the live update and the patch below take an image
+    // identity from this window's registry. A replace returns the identity
+    // that replaces `image`: its generation advanced, so `image` is stale
+    // from then on, and every later patch, replace, update or draw naming
+    // it is refused. patch_bgra32_premultiplied advances the generation the
+    // same way; ImageRegistry::patch_bgra32_premultiplied_in_place (used by
+    // ImageAtlas) keeps it. update_bgra32_premultiplied keeps the identity.
+    // A call given a stale identity returns stale_image_id and changes
+    // nothing; the window counts it in MetricsSnapshot::stale_image_refusals
+    // and prints a diagnostic line (Metrics::record_stale_image_refusals). A
+    // control's paint that draws a stale identity is recorded without the
+    // draw and counted there too. Keep the returned identity in place of the
+    // one passed in.
     [[nodiscard]] ImageLoadResult replace_png(ImageId image,
                                                std::span<const std::byte> encoded);
     [[nodiscard]] ImageLoadResult replace_png(ImageId image,
@@ -955,6 +976,11 @@ public:
         ImageId image, std::uint32_t width, std::uint32_t height,
         std::uint64_t row_bytes, std::span<const std::byte> pixels,
         Control& consumer);
+    // Writes the pixels of a rectangle of `image` (premultiplied BGRA) and
+    // damages `local_damage` of `consumer`, an attached control of this
+    // window. Returns the identity that replaces `image`, whose generation
+    // advanced: `image` is stale afterwards and refused, counted, if used
+    // again. Throws std::invalid_argument for a consumer not attached here.
     [[nodiscard]] ImageLoadResult patch_bgra32_premultiplied(
         ImageId image, std::uint32_t x, std::uint32_t y,
         std::uint32_t width, std::uint32_t height,
@@ -1686,6 +1712,9 @@ private:
     static void commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles);
     void repaint_for_image_replacement();
     void repaint_for_image_removal();
+    // Counts `result` in stale_image_refusals, with its diagnostic line,
+    // when it refused `image` as stale_image_id; `operation` names the call.
+    void note_image_refusal(std::string_view operation, ImageId image, const ImageLoadResult& result) noexcept;
     // Called by ThemeEngine::paint for a part of `control`, which has an
     // inline style, under a theme with rules of its own: the first time,
     // writes W401 to the log and notes it (inline_with_theme_reported).
@@ -2185,6 +2214,12 @@ private:
     // resolution to its parent is remembered and not recorded.
     void note_containing_block(const Control& child, const Control& ancestor);
     void record_layout_diagnostic(LayoutDiagnostic diagnostic);
+    // Whether `control` may not be arranged now: true while the layout pass
+    // is arranging (arrange and on_layout) a control other than `control`,
+    // after recording arrange_outside_slot and counting it in
+    // layout_arrange_refusals. A diagnostic that cannot be stored for want
+    // of memory is counted in dropped_layout_diagnostics.
+    [[nodiscard]] bool refuse_arrange_outside_slot(const Control& control) noexcept;
     // Marks the ancestors of a control whose layout became dirty, up to and
     // including the first layout boundary (Control::size_depends_on_content):
     // measure and arrange below the boundary, arrange only at it.
@@ -2507,6 +2542,10 @@ private:
     const Control* damage_source_{};
     const Control* scroll_translating_{};
     Point scroll_translation_{};
+    // The control the layout pass is arranging (its arrange and on_layout),
+    // null outside them. Observing: the pass holds the control's strong
+    // reference for the call.
+    const Control* layout_arranging_{};
     // Whether `control`'s current recorded paint draws nothing (a layer
     // that only holds other controls). False when it has no current record.
     [[nodiscard]] bool records_no_paint(const Control& control) const noexcept;
@@ -2682,6 +2721,22 @@ private:
     std::vector<LayoutDiagnostic> layout_diagnostics_{};
     std::uint64_t dropped_layout_diagnostics_{};
     bool in_paint_{};
+    // Holds in_paint_ for an offscreen capture's recording and replay
+    // (capture_window, capture_control, snapshot_control), as paint holds
+    // it for its pass. Begun only while in_paint_ is false. Its end clears
+    // in_paint_, writes the image atlas fills deferred meanwhile and
+    // schedules the input deferred meanwhile, as paint's end does; it never
+    // throws.
+    class CapturePaintLease final {
+    public:
+        explicit CapturePaintLease(SurfaceRoot& root) noexcept;
+        ~CapturePaintLease();
+        CapturePaintLease(const CapturePaintLease&) = delete;
+        CapturePaintLease& operator=(const CapturePaintLease&) = delete;
+
+    private:
+        SurfaceRoot& root_;
+    };
     // Paint-pass scratch, reused by every pass so that a frame allocates
     // nothing once they have grown to the window's size (paint_rectangles
     // is not reentrant: in_paint_ guards both). paint_checkpoints_ holds,
