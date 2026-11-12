@@ -51,7 +51,13 @@ public:
     /// std::invalid_argument; resources made on another thread are
     /// std::logic_error. The window takes the resources' current theme.
     Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources);
-    ~Window();
+    // Virtual: a generated form class derives from Window and holds its
+    // controls in members, and is owned through a Window pointer
+    // (std::unique_ptr<Window>). A non-virtual destructor skipped the form's
+    // members there, so each of their controls, and the whole tree through
+    // the root's, outlived the window (an undefined deletion, seen as a
+    // leaked Gallery under LeakSanitizer).
+    virtual ~Window();
     Window(const Window&) = delete;
     Window& operator=(const Window&) = delete;
 
