@@ -73,3 +73,25 @@ message(STATUS "${run_output}")
 if(NOT run_result EQUAL 0)
     message(FATAL_ERROR "gf_abi_csharp: the C# checks failed (${run_result})")
 endif()
+
+# The class tables (C ABI 1.3): GuiForms.Forms, its source generator and the
+# generated hook cases, against the same library.
+execute_process(COMMAND "${PYTHON}" -B "${SOURCE_DIR}/tools/abi_class_tables.py" --check
+                RESULT_VARIABLE classes_check_result)
+if(NOT classes_check_result EQUAL 0)
+    message(FATAL_ERROR "gf_abi_csharp: the generated class tables are stale")
+endif()
+execute_process(
+    COMMAND "${DOTNET}" build "${SOURCE_DIR}/tests/abi/csharp/GuiForms.Forms.Tests/GuiForms.Forms.Tests.csproj"
+        --nologo --configuration Release --source "${WORK_DIR}/empty_source" --output "${WORK_DIR}/forms-bin"
+        -p:GfIntermediateRoot=${WORK_DIR}/obj
+    RESULT_VARIABLE forms_build_result OUTPUT_VARIABLE forms_build_output ERROR_VARIABLE forms_build_output)
+if(NOT forms_build_result EQUAL 0)
+    message(FATAL_ERROR "gf_abi_csharp: the GuiForms.Forms build failed:\n${forms_build_output}")
+endif()
+execute_process(COMMAND "${DOTNET}" "${WORK_DIR}/forms-bin/GuiForms.Forms.Tests.dll"
+                RESULT_VARIABLE forms_run_result OUTPUT_VARIABLE forms_run_output ERROR_VARIABLE forms_run_output)
+message(STATUS "${forms_run_output}")
+if(NOT forms_run_result EQUAL 0)
+    message(FATAL_ERROR "gf_abi_csharp: the GuiForms.Forms checks failed (${forms_run_result})")
+endif()

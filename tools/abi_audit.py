@@ -214,7 +214,7 @@ def parse_directives(text: str, declarations: Declarations, findings: list[Findi
             if constant is not None:
                 declarations.constants.append(constant)
             continue
-        if re.fullmatch(r"#(ifndef|define)\s+GUI_FORMS_C_GF_ABI_H|#endif|#include <stdint\.h>", stripped):
+        if re.fullmatch(r"#(ifndef|define)\s+GUI_FORMS_C_GF_ABI(_CLASSES)?_H|#endif|#include <stdint\.h>", stripped):
             continue
         findings.append(Finding("dialect", f"directive outside the header dialect: {stripped}"))
     return "\n".join(kept)
@@ -377,6 +377,35 @@ def parse_statement(statement: str, declarations: Declarations, findings: list[F
         findings.append(Finding("calling-convention", f"function without GF_CALL: {statement}"))
         return
     findings.append(Finding("dialect", f"declaration outside the header dialect: {statement}"))
+
+
+# The headers gf_abi.h includes, each once, by the include line it spells:
+# their text is read in its place (since 1.3, the class tables).
+INCLUDED_HEADERS: tuple[str, ...] = ("gui_forms/c/gf_abi_classes.h",)
+
+
+def splice_includes(text: str, header: Path, findings: list[Finding]) -> tuple[str, list[str]]:
+    """Replace each admitted include line with the included header's text.
+
+    The included header lives beside gf_abi.h; it is part of the audited
+    interface, so its records, constants and slots enter the manifest. Any
+    other quoted include is outside the dialect (parse_directives reports it).
+    """
+    spliced: list[str] = []
+    included: list[str] = []
+    line: str = ""
+    for line in text.split("\n"):
+        found: re.Match[str] | None = re.fullmatch(r'\s*#include "([\w/.]+)"\s*', line)
+        if found is None or found.group(1) not in INCLUDED_HEADERS:
+            spliced.append(line)
+            continue
+        path: Path = header.parent / Path(found.group(1)).name
+        if found.group(1) in included or not path.exists():
+            findings.append(Finding("dialect", f"#include \"{found.group(1)}\": included twice or missing"))
+            continue
+        included.append(found.group(1))
+        spliced.append(path.read_text(encoding="utf-8"))
+    return "\n".join(spliced), included
 
 
 def parse_header(text: str, findings: list[Finding]) -> Declarations:
@@ -552,6 +581,13 @@ def build_records(declarations: Declarations, layouts: dict[str, dict[str, Layou
         kind: str = "record"
         if record.name.endswith("_table"):
             kind = "table"
+        elif record.name.endswith("_hooks"):
+            # A class table segment (since 1.3): entries only appended.
+            kind = "segment"
+        elif record.members and record.members[0].name == "header" and record.members[0].type is not None and \
+                record.members[0].type.spelling() == "gf_class_header":
+            # A class table (since 1.3): segment pointers only appended.
+            kind = "class"
         elif record.members and record.members[0].name == "struct_size":
             kind = "extensible"
         entries.append({"name": record.name, "kind": kind, "size": layout.size, "align": layout.align,
@@ -599,6 +635,45 @@ def check_tables(declarations: Declarations, records: list[dict[str, object]],
             findings.append(Finding("table", f"{constant_name}: no matching gf_*_table record"))
 
 
+def check_class_tables(records: list[dict[str, object]], constants: dict[str, Constant],
+                       findings: list[Finding]) -> None:
+    """The class tables' layout rules (decisions/ABI_CLASS_TABLES_DECISION.md in projects)."""
+    record: dict[str, object]
+    for record in records:
+        kind: object = record["kind"]
+        if kind not in ("segment", "class"):
+            continue
+        name: str = str(record["name"])
+        fields: list[dict[str, object]] = record["fields"]  # type: ignore[assignment]
+        stem: str = name[len("gf_"):].rsplit("_", 1)[0]
+        if f"GF_CLASS_{stem.upper()}" not in constants:
+            findings.append(Finding("class-table", f"{name}: no GF_CLASS_{stem.upper()} constant"))
+        entry: dict[str, object]
+        if kind == "segment":
+            header: list[tuple[object, object]] = [(entry["name"], entry["type"]) for entry in fields[:2]]
+            if header != [("struct_size", "uint32_t"), ("class_id", "gf_class_id")]:
+                findings.append(Finding("class-table", f"{name}: a segment begins with uint32_t struct_size, "
+                                                       "gf_class_id class_id"))
+            for entry in fields[2:]:
+                if entry["type"] != "gf_hook_entry":
+                    findings.append(Finding("class-table", f"{name}.{entry['name']}: a segment holds only "
+                                                           "gf_hook_entry entries after its header"))
+            continue
+        for entry in fields[1:]:
+            if re.fullmatch(r"const gf_\w+_hooks\*", str(entry["type"])) is None:
+                findings.append(Finding("class-table", f"{name}.{entry['name']}: a class table holds only "
+                                                       "segment pointers after its header"))
+    seen: dict[int, str] = {}
+    constant: Constant
+    for constant in constants.values():
+        if not constant.name.startswith("GF_CLASS_"):
+            continue
+        if constant.value in seen:
+            findings.append(Finding("class-table", f"{constant.name} and {seen[constant.value]} share the value "
+                                                   f"{constant.value}"))
+        seen[constant.value] = constant.name
+
+
 def previous_since(previous: dict[str, object] | None) -> dict[str, str]:
     """Map 'table.slot' to the version that added it, from the last manifest."""
     since: dict[str, str] = {}
@@ -618,7 +693,9 @@ def previous_since(previous: dict[str, object] | None) -> dict[str, str]:
 
 def build_manifest(header: Path, include: Path, clang: str, previous: dict[str, object] | None,
                    findings: list[Finding]) -> dict[str, object]:
-    text: str = header.read_text(encoding="utf-8")
+    text: str = ""
+    included: list[str] = []
+    text, included = splice_includes(header.read_text(encoding="utf-8"), header, findings)
     declarations: Declarations = parse_header(text, findings)
     if findings:
         # A header outside the dialect is not compiled: its findings are the result.
@@ -643,6 +720,7 @@ def build_manifest(header: Path, include: Path, clang: str, previous: dict[str, 
     if major == 0:
         findings.append(Finding("version", "GF_ABI_MAJOR and GF_ABI_MINOR must be defined"))
     check_tables(declarations, records, constants, findings)
+    check_class_tables(records, constants, findings)
     names: set[str] = set()
     record: dict[str, object]
     for record in records:
@@ -687,6 +765,7 @@ def build_manifest(header: Path, include: Path, clang: str, previous: dict[str, 
         "format": MANIFEST_FORMAT,
         "generator": "tools/abi_audit.py extract",
         "header": relative,
+        "includes": ["include/" + name for name in included],
         "abi": {"major": major, "minor": minor},
         "targets": list(TARGETS),
         "constants": constant_entries,

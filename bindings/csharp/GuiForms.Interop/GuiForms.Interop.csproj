@@ -16,4 +16,8 @@
     <NoWarn>$(NoWarn);CS8981;IDE1006</NoWarn>
     <RootNamespace>GuiForms.Interop</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- GuiForms.Forms' hook entries record their failures (CallbackFailure.record). -->
+    <InternalsVisibleTo Include="GuiForms.Forms" />
+  </ItemGroup>
 </Project>

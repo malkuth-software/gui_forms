@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The source generator a program deriving from GuiForms.Forms classes
+       references as an analyzer: it registers each class's overridden hooks,
+       so a class table carries entries only for them. Roslyn comes from the
+       SDK's own compiler directory (no package reference: the build stays
+       offline), so the generator targets the SDK's runtime. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <RootNamespace>GuiForms.Forms.Generators</RootNamespace>
+    <GfRoslynDirectory>$(RoslynTargetsPath)/bincore</GfRoslynDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CodeAnalysis">
+      <HintPath>$(GfRoslynDirectory)/Microsoft.CodeAnalysis.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp">
+      <HintPath>$(GfRoslynDirectory)/Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

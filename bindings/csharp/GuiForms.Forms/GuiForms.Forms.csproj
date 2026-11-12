@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- GUI.Forms classes for C#: Windows Forms' protected On* hooks as virtuals
+       over the C ABI's class tables (gf_abi_classes.h). The files under
+       Generated/ come from manifests/abi/class_tables.json through
+       tools/abi_class_tables.py; the rest is the hand-written creation, hook
+       frame and table layer. A program that derives from these classes also
+       references GuiForms.Forms.Generators as an analyzer, so only the hooks it
+       overrides get entries (the others stay null and cost nothing). No package
+       references: it builds offline from the SDK alone. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- The generated names are the C names, so the classes read 1:1 against the header. -->
+    <NoWarn>$(NoWarn);CS8981;IDE1006</NoWarn>
+    <RootNamespace>GuiForms.Forms</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../GuiForms.Interop/GuiForms.Interop.csproj" />
+    <!-- The scalar aliases (gf_status, gf_object, gf_class_id...) are per assembly. -->
+    <Compile Include="../GuiForms.Interop/Generated/Aliases.g.cs" Link="Aliases.g.cs" />
+  </ItemGroup>
+</Project>
