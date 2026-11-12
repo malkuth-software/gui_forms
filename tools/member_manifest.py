@@ -846,6 +846,24 @@ def manual_rows(previous: Mapping) -> dict[tuple[str, str, str, str], dict]:
     return kept
 
 
+def previous_raisers(previous: Mapping) -> dict[tuple[str, str, str, str], dict]:
+    """The raiser fields a committed manifest carries, by row key, whatever the row's basis.
+
+    A hook row's ``raiser`` (``{"cpp": "Class::on_x_changed", "interaction":
+    name or null}``) names the C++ raiser behind it; tools/abi_class_tables.py
+    gives each such row an entry in its class's segment. It is written by
+    hand, so a regeneration keeps it as it keeps a manual status.
+    """
+    found: dict[tuple[str, str, str, str], dict] = {}
+    for entry in previous.get("controls", []):
+        key_type: str = entry.get("type") or ("winforms:" + entry.get("winforms", ""))
+        for row in entry.get("members", []):
+            if "raiser" in row:
+                found[(key_type, row.get("kind", ""), row.get("winforms") or "", row.get("gui_forms") or "")] = \
+                    row["raiser"]
+    return found
+
+
 def previous_winforms(previous: Mapping) -> dict[str, list[WinFormsMember]]:
     """The Windows Forms rows a committed manifest carries, by declaring type."""
     found: dict[str, dict[tuple[str, str], WinFormsMember]] = {}
@@ -871,6 +889,7 @@ def previous_winforms(previous: Mapping) -> dict[str, list[WinFormsMember]]:
 def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], previous: Mapping,
                    provenance: Mapping) -> dict:
     kept: dict[tuple[str, str, str, str], dict] = manual_rows(previous)
+    raisers: dict[tuple[str, str, str, str], dict] = previous_raisers(previous)
     controls: list[dict] = []
     covered: set[str] = set()
 
@@ -882,6 +901,9 @@ def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], p
                 row.pop(name, None)
                 if name in manual:
                     row[name] = manual[name]
+        raiser: dict | None = raisers.get(key)
+        if raiser is not None:
+            row["raiser"] = raiser
         return row
 
     for type_name in model.order:

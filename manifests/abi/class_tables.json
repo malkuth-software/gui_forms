@@ -1,0 +1,791 @@
+{
+  "format": 1,
+  "generator": "tools/abi_class_tables.py",
+  "notes": [
+    "Append-only (decisions/ABI_CLASS_TABLES_DECISION.md in the projects repository): class ids are never renumbered or reused, a segment's entries and a class table's segments are only appended. The generator appends; it fails when a raiser named here disappears.",
+    "entries[].index is the entry's position in its segment, the entry argument of classes.base_raiser."
+  ],
+  "classes": [
+    {
+      "id": 1,
+      "name": "Component",
+      "since": "1.3"
+    },
+    {
+      "id": 2,
+      "name": "Control",
+      "since": "1.3"
+    },
+    {
+      "id": 3,
+      "name": "ButtonBase",
+      "since": "1.3"
+    },
+    {
+      "id": 4,
+      "name": "Button",
+      "since": "1.3"
+    },
+    {
+      "id": 5,
+      "name": "LinkLabel",
+      "since": "1.3"
+    },
+    {
+      "id": 6,
+      "name": "Label",
+      "since": "1.3"
+    },
+    {
+      "id": 7,
+      "name": "ScrollableControl",
+      "since": "1.3"
+    },
+    {
+      "id": 8,
+      "name": "Panel",
+      "since": "1.3"
+    },
+    {
+      "id": 9,
+      "name": "PictureBox",
+      "since": "1.3"
+    },
+    {
+      "id": 10,
+      "name": "RangeControl",
+      "since": "1.3"
+    },
+    {
+      "id": 11,
+      "name": "ProgressBar",
+      "since": "1.3"
+    },
+    {
+      "id": 12,
+      "name": "SweepScope",
+      "since": "1.3"
+    },
+    {
+      "id": 13,
+      "name": "ListControl",
+      "since": "1.3"
+    },
+    {
+      "id": 14,
+      "name": "ListBox",
+      "since": "1.3"
+    },
+    {
+      "id": 15,
+      "name": "CheckBox",
+      "since": "1.3"
+    },
+    {
+      "id": 16,
+      "name": "RadioButton",
+      "since": "1.3"
+    },
+    {
+      "id": 17,
+      "name": "TrackBar",
+      "since": "1.3"
+    },
+    {
+      "id": 18,
+      "name": "GroupBox",
+      "since": "1.3"
+    },
+    {
+      "id": 19,
+      "name": "MaterialPanel",
+      "since": "1.3"
+    },
+    {
+      "id": 20,
+      "name": "Card",
+      "since": "1.3"
+    },
+    {
+      "id": 21,
+      "name": "ContainerControl",
+      "since": "1.3"
+    },
+    {
+      "id": 22,
+      "name": "UserControl",
+      "since": "1.3"
+    },
+    {
+      "id": 23,
+      "name": "PageStrip",
+      "since": "1.3"
+    },
+    {
+      "id": 24,
+      "name": "PageView",
+      "since": "1.3"
+    },
+    {
+      "id": 25,
+      "name": "NavigationPane",
+      "since": "1.3"
+    },
+    {
+      "id": 26,
+      "name": "DockSite",
+      "since": "1.3"
+    },
+    {
+      "id": 27,
+      "name": "DockNavigator",
+      "since": "1.3"
+    },
+    {
+      "id": 28,
+      "name": "ScaledPanel",
+      "since": "1.3"
+    },
+    {
+      "id": 29,
+      "name": "ScrollBar",
+      "since": "1.3"
+    },
+    {
+      "id": 30,
+      "name": "ToolStrip",
+      "since": "1.3"
+    },
+    {
+      "id": 31,
+      "name": "GaugeBase",
+      "since": "1.3"
+    },
+    {
+      "id": 32,
+      "name": "Dial",
+      "since": "1.3"
+    },
+    {
+      "id": 33,
+      "name": "RasterCanvas",
+      "since": "1.3"
+    },
+    {
+      "id": 34,
+      "name": "TextBoxBase",
+      "since": "1.3"
+    },
+    {
+      "id": 35,
+      "name": "UpDownBase",
+      "since": "1.3"
+    },
+    {
+      "id": 36,
+      "name": "MaskedTextBox",
+      "since": "1.3"
+    },
+    {
+      "id": 37,
+      "name": "ComboBox",
+      "since": "1.3"
+    },
+    {
+      "id": 38,
+      "name": "DataGridView",
+      "since": "1.3"
+    },
+    {
+      "id": 39,
+      "name": "NumericUpDown",
+      "since": "1.3"
+    },
+    {
+      "id": 40,
+      "name": "DateTimePicker",
+      "since": "1.3"
+    }
+  ],
+  "segments": [
+    {
+      "class": "Control",
+      "since": "1.3",
+      "entries": [
+        {
+          "index": 0,
+          "name": "on_auto_size_changed",
+          "raiser": "Control::on_auto_size_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 1,
+          "name": "on_back_color_changed",
+          "raiser": "Control::on_back_color_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 2,
+          "name": "on_causes_validation_changed",
+          "raiser": "Control::on_causes_validation_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 3,
+          "name": "on_cursor_changed",
+          "raiser": "Control::on_cursor_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 4,
+          "name": "on_dock_changed",
+          "raiser": "Control::on_dock_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 5,
+          "name": "on_enabled_changed",
+          "raiser": "Control::on_enabled_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 6,
+          "name": "on_fore_color_changed",
+          "raiser": "Control::on_fore_color_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 7,
+          "name": "on_margin_changed",
+          "raiser": "Control::on_margin_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 8,
+          "name": "on_padding_changed",
+          "raiser": "Control::on_padding_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 9,
+          "name": "on_right_to_left_changed",
+          "raiser": "Control::on_right_to_left_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 10,
+          "name": "on_tab_index_changed",
+          "raiser": "Control::on_tab_index_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 11,
+          "name": "on_tab_stop_changed",
+          "raiser": "Control::on_tab_stop_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 12,
+          "name": "on_visible_changed",
+          "raiser": "Control::on_visible_changed",
+          "since": "1.3"
+        }
+      ]
+    },
+    {
+      "class": "MaskedTextBox",
+      "since": "1.3",
+      "entries": [
+        {
+          "index": 0,
+          "name": "on_mask_changed",
+          "raiser": "MaskedTextBox::on_mask_changed",
+          "since": "1.3"
+        }
+      ]
+    },
+    {
+      "class": "PictureBox",
+      "since": "1.3",
+      "entries": [
+        {
+          "index": 0,
+          "name": "on_size_mode_changed",
+          "raiser": "PictureBox::on_size_mode_changed",
+          "since": "1.3"
+        }
+      ]
+    },
+    {
+      "class": "ComboBox",
+      "since": "1.3",
+      "entries": [
+        {
+          "index": 0,
+          "name": "on_drop_down_style_changed",
+          "raiser": "ComboBox::on_drop_down_style_changed",
+          "since": "1.3"
+        }
+      ]
+    },
+    {
+      "class": "DataGridView",
+      "since": "1.3",
+      "entries": [
+        {
+          "index": 0,
+          "name": "on_allow_user_to_delete_rows_changed",
+          "raiser": "DataGridView::on_allow_user_to_delete_rows_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 1,
+          "name": "on_allow_user_to_order_columns_changed",
+          "raiser": "DataGridView::on_allow_user_to_order_columns_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 2,
+          "name": "on_allow_user_to_resize_columns_changed",
+          "raiser": "DataGridView::on_allow_user_to_resize_columns_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 3,
+          "name": "on_allow_user_to_resize_rows_changed",
+          "raiser": "DataGridView::on_allow_user_to_resize_rows_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 4,
+          "name": "on_alternating_rows_default_cell_style_changed",
+          "raiser": "DataGridView::on_alternating_rows_default_cell_style_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 5,
+          "name": "on_auto_size_columns_mode_changed",
+          "raiser": "DataGridView::on_auto_size_columns_mode_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 6,
+          "name": "on_auto_size_rows_mode_changed",
+          "raiser": "DataGridView::on_auto_size_rows_mode_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 7,
+          "name": "on_background_color_changed",
+          "raiser": "DataGridView::on_background_color_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 8,
+          "name": "on_border_style_changed",
+          "raiser": "DataGridView::on_border_style_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 9,
+          "name": "on_cell_border_style_changed",
+          "raiser": "DataGridView::on_cell_border_style_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 10,
+          "name": "on_column_headers_border_style_changed",
+          "raiser": "DataGridView::on_column_headers_border_style_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 11,
+          "name": "on_column_headers_default_cell_style_changed",
+          "raiser": "DataGridView::on_column_headers_default_cell_style_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 12,
+          "name": "on_column_headers_height_changed",
+          "raiser": "DataGridView::on_column_headers_height_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 13,
+          "name": "on_default_cell_style_changed",
+          "raiser": "DataGridView::on_default_cell_style_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 14,
+          "name": "on_edit_mode_changed",
+          "raiser": "DataGridView::on_edit_mode_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 15,
+          "name": "on_grid_color_changed",
+          "raiser": "DataGridView::on_grid_color_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 16,
+          "name": "on_multi_select_changed",
+          "raiser": "DataGridView::on_multi_select_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 17,
+          "name": "on_read_only_changed",
+          "raiser": "DataGridView::on_read_only_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 18,
+          "name": "on_row_headers_border_style_changed",
+          "raiser": "DataGridView::on_row_headers_border_style_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 19,
+          "name": "on_row_headers_default_cell_style_changed",
+          "raiser": "DataGridView::on_row_headers_default_cell_style_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 20,
+          "name": "on_row_headers_width_changed",
+          "raiser": "DataGridView::on_row_headers_width_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 21,
+          "name": "on_rows_default_cell_style_changed",
+          "raiser": "DataGridView::on_rows_default_cell_style_changed",
+          "since": "1.3"
+        }
+      ]
+    },
+    {
+      "class": "CheckBox",
+      "since": "1.3",
+      "entries": [
+        {
+          "index": 0,
+          "name": "on_appearance_changed",
+          "raiser": "CheckBox::on_appearance_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 1,
+          "name": "on_checked_changed",
+          "raiser": "CheckBox::on_checked_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 2,
+          "name": "on_check_state_changed",
+          "raiser": "CheckBox::on_check_state_changed",
+          "since": "1.3"
+        }
+      ]
+    },
+    {
+      "class": "RadioButton",
+      "since": "1.3",
+      "entries": [
+        {
+          "index": 0,
+          "name": "on_checked_changed",
+          "raiser": "RadioButton::on_checked_changed",
+          "since": "1.3"
+        }
+      ]
+    },
+    {
+      "class": "RangeControl",
+      "since": "1.3",
+      "entries": [
+        {
+          "index": 0,
+          "name": "on_value_changed",
+          "raiser": "RangeControl::on_value_changed",
+          "since": "1.3"
+        }
+      ]
+    },
+    {
+      "class": "NumericUpDown",
+      "since": "1.3",
+      "entries": [
+        {
+          "index": 0,
+          "name": "on_value_changed",
+          "raiser": "NumericUpDown::on_value_changed",
+          "since": "1.3"
+        }
+      ]
+    },
+    {
+      "class": "DateTimePicker",
+      "since": "1.3",
+      "entries": [
+        {
+          "index": 0,
+          "name": "on_format_changed",
+          "raiser": "DateTimePicker::on_format_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 1,
+          "name": "on_value_changed",
+          "raiser": "DateTimePicker::on_value_changed",
+          "since": "1.3"
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "class": "ButtonBase",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "Button",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "LinkLabel",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "Label",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "PictureBox",
+      "since": "1.3",
+      "segments": [
+        "Control",
+        "PictureBox"
+      ]
+    },
+    {
+      "class": "ProgressBar",
+      "since": "1.3",
+      "segments": [
+        "Control",
+        "RangeControl"
+      ]
+    },
+    {
+      "class": "SweepScope",
+      "since": "1.3",
+      "segments": [
+        "Control",
+        "RangeControl"
+      ]
+    },
+    {
+      "class": "ListBox",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "CheckBox",
+      "since": "1.3",
+      "segments": [
+        "Control",
+        "CheckBox"
+      ]
+    },
+    {
+      "class": "RadioButton",
+      "since": "1.3",
+      "segments": [
+        "Control",
+        "RadioButton"
+      ]
+    },
+    {
+      "class": "RangeControl",
+      "since": "1.3",
+      "segments": [
+        "Control",
+        "RangeControl"
+      ]
+    },
+    {
+      "class": "TrackBar",
+      "since": "1.3",
+      "segments": [
+        "Control",
+        "RangeControl"
+      ]
+    },
+    {
+      "class": "Panel",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "GroupBox",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "MaterialPanel",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "Card",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "ContainerControl",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "UserControl",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "PageStrip",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "PageView",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "NavigationPane",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "DockSite",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "DockNavigator",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "ScaledPanel",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "ScrollableControl",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "ScrollBar",
+      "since": "1.3",
+      "segments": [
+        "Control",
+        "RangeControl"
+      ]
+    },
+    {
+      "class": "ToolStrip",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "GaugeBase",
+      "since": "1.3",
+      "segments": [
+        "Control",
+        "RangeControl"
+      ]
+    },
+    {
+      "class": "Dial",
+      "since": "1.3",
+      "segments": [
+        "Control",
+        "RangeControl"
+      ]
+    },
+    {
+      "class": "RasterCanvas",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "TextBoxBase",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "ListControl",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    },
+    {
+      "class": "UpDownBase",
+      "since": "1.3",
+      "segments": [
+        "Control"
+      ]
+    }
+  ]
+}

@@ -972,16 +972,31 @@ VALUE_KINDS: dict[str, str] = {
 }
 
 
+RECIPES: Path = ROOT / "src" / "abi" / "stable" / "schema" / "abi_schema_recipes.hpp"
+
+
+def not_made_from_stable_id() -> set[str]:
+    """Classes a stable id alone does not make (abstract bases, controls that
+    need another object): abi_schema_recipes.hpp gives each its own
+    describe_type, and classes.create refuses them."""
+    text: str = RECIPES.read_text(encoding="utf-8")
+    return set(re.findall(r"template <> void describe_type<(\w+)>", text))
+
+
 def test_cases(model: Model) -> tuple[list[Case], list[str]]:
+    """One case per entry, on the segment's own class when classes.create
+    makes it, else on the first class table in ledger order that does."""
     cases: list[Case] = []
     skipped: list[str] = []
+    refused: set[str] = not_made_from_stable_id()
     segment: str = ""
     raisers: list[Raiser] = []
     for segment, raisers in model.raisers.items():
         holder: str | None = None
         name: str = ""
-        for name in model.creatable:
-            if segment in table_segments(model, name):
+        candidates: list[str] = [segment] + model.creatable if segment in model.creatable else list(model.creatable)
+        for name in candidates:
+            if name not in refused and segment in table_segments(model, name):
                 holder = name
                 break
         raiser: Raiser
