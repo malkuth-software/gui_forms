@@ -85,9 +85,10 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           ("application", "platform", "host")),
     Group("window", "Window, scheduling and dispatch",
           "The retained window model, update scopes, damage, frame scheduling, "
-          "the UI-thread dispatcher, per-window instrumentation and each "
-          "thread's shadow frames.",
-          ("window", "surface_root", "scheduler", "dispatcher", "display", "dirty", "metrics", "diagnostics", "capture")),
+          "the UI-thread dispatcher, per-window instrumentation, the counters "
+          "of GUI.Forms' own allocations and each thread's shadow frames.",
+          ("window", "surface_root", "scheduler", "dispatcher", "display", "dirty", "metrics", "allocation",
+           "diagnostics", "capture")),
     Group("control-and-component", "Control and component",
           "The base classes every control and nonvisual component derives from, "
           "with layout, docking, anchoring and validation vocabularies (layout "
@@ -146,7 +147,8 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "for its own files, such as saved docking layouts.",
           ("xml",)),
     Group("images-and-resources", "Images and resources",
-          "The window-owned image registry, its PNG resource records, and "
+          "The window-owned image registry, its PNG resource records, the "
+          "image atlas of fixed-size slots, and "
           "SHA-256 (one-shot and streaming) for resource and theme package "
           "integrity.",
           ("resources", "integrity")),

@@ -7,6 +7,7 @@
 #include "../../theme/theme_compiler/control_inline_style.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../surface_root/access/surface_resource_access.hpp"
+#include "gui_forms/resources/image_atlas/image_atlas.hpp"
 
 #include <cstdio>
 
@@ -40,6 +41,34 @@ void ApplicationResources::require_access(const char* operation) const {
     message += operation;
     message += " off the UI thread";
     throw std::logic_error(message);
+}
+
+bool ApplicationResources::painting() const noexcept {
+    for (std::size_t index = 0U; index < windows_.size(); ++index) {
+        if (detail::SurfaceResourceAccess::painting(*windows_[index])) return true;
+    }
+    return false;
+}
+
+void ApplicationResources::register_image_atlas(const std::shared_ptr<detail::ImageAtlasLink>& link) {
+    require_access("image atlas registration");
+    // Expired links are reused before the list grows.
+    for (std::size_t index = 0U; index < atlases_.size(); ++index) {
+        if (atlases_[index].expired()) {
+            atlases_[index] = link;
+            return;
+        }
+    }
+    atlases_.push_back(link);
+}
+
+void ApplicationResources::apply_deferred_image_fills() noexcept {
+    if (atlases_.empty() || painting()) return;
+    for (std::size_t index = 0U; index < atlases_.size(); ++index) {
+        const std::shared_ptr<detail::ImageAtlasLink> link = atlases_[index].lock();
+        if (!link || (*link).atlas == nullptr) continue;
+        (*(*link).atlas).apply_pending_fills();
+    }
 }
 
 void ApplicationResources::attach(SurfaceRoot& window) {

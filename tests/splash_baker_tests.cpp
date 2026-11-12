@@ -45,7 +45,7 @@ DisplayCommand fill_command(Rect rect, Color color) {
     return command;
 }
 
-DisplayChunk chunk_of(std::vector<DisplayCommand> commands) {
+DisplayChunk chunk_of(DisplayCommandList commands) {
     DisplayChunk chunk(7U, PaintPlane::overlay, Rect{0.0, 0.0, 10.0, 6.0}, std::move(commands));
     return chunk;
 }
@@ -67,7 +67,7 @@ void test_snapshot_skips_and_copies() {
     raster.scalar = 1.0;
     raster.part_raster = source;
 
-    std::vector<DisplayCommand> commands;
+    DisplayCommandList commands;
     commands.push_back(fill);
     commands.push_back(raster);
     const DisplayChunk chunk = chunk_of(std::move(commands));
@@ -76,7 +76,7 @@ void test_snapshot_skips_and_copies() {
     const DisplaySnapshot& snapshot = *made.snapshot;
     require(snapshot.device_extent().width == 20U && snapshot.device_extent().height == 12U,
             "the extent is the logical size at the scale");
-    const std::vector<DisplayCommand>& copied = snapshot.chunk().commands();
+    const DisplayCommandList& copied = snapshot.chunk().commands();
     require(copied.size() == 2U, "every command is copied");
     require(copied[0].retained_cache == nullptr, "the retained draw cache is skipped");
     require(chunk.commands()[0].retained_cache != nullptr, "the recording keeps its cache");
@@ -94,7 +94,7 @@ void test_snapshot_skips_and_copies() {
 void test_snapshot_refusals() {
     DisplayCommand image{};
     image.operation = DisplayOperation::draw_image;
-    std::vector<DisplayCommand> with_image;
+    DisplayCommandList with_image;
     with_image.push_back(fill_command(Rect{0.0, 0.0, 1.0, 1.0}, Color{0, 0, 0, 255}));
     with_image.push_back(image);
     const DisplaySnapshotResult images = make_display_snapshot(chunk_of(std::move(with_image)), Size{10.0, 6.0},
@@ -103,7 +103,7 @@ void test_snapshot_refusals() {
 
     DisplayCommand live{};
     live.operation = DisplayOperation::draw_live_surface;
-    std::vector<DisplayCommand> with_live;
+    DisplayCommandList with_live;
     with_live.push_back(live);
     const DisplaySnapshotResult lives = make_display_snapshot(chunk_of(std::move(with_live)), Size{10.0, 6.0},
                                                               DeviceScale{1.0});
@@ -112,7 +112,7 @@ void test_snapshot_refusals() {
 
     DisplayCommand prepared{};
     prepared.operation = DisplayOperation::draw_prepared_text;
-    std::vector<DisplayCommand> with_prepared;
+    DisplayCommandList with_prepared;
     with_prepared.push_back(prepared);
     const DisplaySnapshotResult texts = make_display_snapshot(chunk_of(std::move(with_prepared)), Size{10.0, 6.0},
                                                               DeviceScale{1.0});
@@ -121,7 +121,7 @@ void test_snapshot_refusals() {
 
     const DisplaySnapshotResult empty = make_display_snapshot(chunk_of({}), Size{10.0, 6.0}, DeviceScale{1.0});
     require(empty.snapshot == nullptr && empty.refusal == DisplaySnapshotRefusal::empty, "no commands is empty");
-    std::vector<DisplayCommand> one;
+    DisplayCommandList one;
     one.push_back(fill_command(Rect{0.0, 0.0, 1.0, 1.0}, Color{0, 0, 0, 255}));
     const DisplaySnapshotResult zero = make_display_snapshot(chunk_of(one), Size{0.0, 6.0}, DeviceScale{1.0});
     require(zero.refusal == DisplaySnapshotRefusal::empty, "a zero extent is empty");
@@ -188,7 +188,7 @@ private:
 };
 
 std::shared_ptr<const DisplaySnapshot> small_snapshot() {
-    std::vector<DisplayCommand> one;
+    DisplayCommandList one;
     one.push_back(fill_command(Rect{0.0, 0.0, 4.0, 3.0}, Color{0, 0, 255, 255}));
     DisplaySnapshotResult made = make_display_snapshot(chunk_of(std::move(one)), Size{4.0, 3.0}, DeviceScale{1.0});
     require(made.snapshot != nullptr, "the small snapshot is made");

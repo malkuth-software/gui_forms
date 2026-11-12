@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/allocation/counted_allocator/counted_allocator.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/display.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
@@ -135,5 +136,10 @@ struct DisplayCommand final {
     std::shared_ptr<const DisplayMarks> marks{};
     LayoutAuthority prepared_authority{};
 };
+
+// A display chunk's commands, and the recording painter's list they are
+// recorded into: counted under AllocationSubsystem::display_chunks
+// (allocation_statistics.hpp).
+using DisplayCommandList = std::vector<DisplayCommand, CountedAllocator<DisplayCommand, AllocationSubsystem::display_chunks>>;
 
 } // namespace gui_forms::detail

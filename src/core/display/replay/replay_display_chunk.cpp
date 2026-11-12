@@ -246,7 +246,7 @@ bool state_only(const DisplayOperation operation) noexcept {
 
 std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& painter, const Rect clip) {
     const std::optional<DisplayOccluder>& occluder = chunk.occluder();
-    const std::vector<DisplayCommand>& commands = chunk.commands();
+    const DisplayCommandList& commands = chunk.commands();
     if (!occluder || (*occluder).command == 0U || clip.empty()) {
         return replay_display_chunk(chunk, painter);
     }

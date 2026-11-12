@@ -50,7 +50,7 @@ void RecordingPainter::inherit_caches(std::shared_ptr<const DisplayChunk> previo
     material_ordinal_ = 0U;
     previous_ = std::move(previous);
     if (!previous_) return;
-    const std::vector<DisplayCommand>& commands = (*previous_).commands();
+    const DisplayCommandList& commands = (*previous_).commands();
     for (std::size_t index = 0; index < commands.size(); ++index) {
         const DisplayCommand& command = commands[index];
         if (command.operation == DisplayOperation::draw_text_utf8 &&

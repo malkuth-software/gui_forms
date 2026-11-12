@@ -83,6 +83,7 @@
     _ZGVZN9gui_forms10GridMargin*;
     _ZGVZN9gui_forms10HScrollBar*;
     _ZGVZN9gui_forms10HelpTarget*;
+    _ZGVZN9gui_forms10ImageAtlas*;
     _ZGVZN9gui_forms10InfoBanner*;
     _ZGVZN9gui_forms10KeyBinding*;
     _ZGVZN9gui_forms10KeyGesture*;
@@ -400,6 +401,7 @@
     _ZGVZN9gui_forms14HostHoverEvent*;
     _ZGVZN9gui_forms14HostScaleEvent*;
     _ZGVZN9gui_forms14HostTrayIconId*;
+    _ZGVZN9gui_forms14ImageAtlasSlot*;
     _ZGVZN9gui_forms14ItemCheckEvent*;
     _ZGVZN9gui_forms14KeyStateChange*;
     _ZGVZN9gui_forms14LineBoxMetrics*;
@@ -454,6 +456,7 @@
     _ZGVZN9gui_forms14TreeListColumn*;
     _ZGVZN9gui_forms14UserThemeFiles*;
     _ZGVZN9gui_forms14XmlWriteResult*;
+    _ZGVZN9gui_forms15AllocationScope*;
     _ZGVZN9gui_forms15AnatomyStateSet*;
     _ZGVZN9gui_forms15AnimationSample*;
     _ZGVZN9gui_forms15AvailableExtent*;
@@ -550,6 +553,7 @@
     _ZGVZN9gui_forms15WindowOverrides*;
     _ZGVZN9gui_forms15XmlWriteOptions*;
     _ZGVZN9gui_forms16AcceleratorToken*;
+    _ZGVZN9gui_forms16AllocationCounts*;
     _ZGVZN9gui_forms16AuthoredGradient*;
     _ZGVZN9gui_forms16BackgroundWorker*;
     _ZGVZN9gui_forms16BindingNavigator*;
@@ -596,6 +600,7 @@
     _ZGVZN9gui_forms16HostDialogResult*;
     _ZGVZN9gui_forms16HostDisplayEvent*;
     _ZGVZN9gui_forms16HostTrayMenuItem*;
+    _ZGVZN9gui_forms16ImageAtlasLayout*;
     _ZGVZN9gui_forms16ImagePatchRegion*;
     _ZGVZN9gui_forms16ItemContentPaint*;
     _ZGVZN9gui_forms16LayoutConstraint*;
@@ -690,6 +695,7 @@
     _ZGVZN9gui_forms17HostServiceStatus*;
     _ZGVZN9gui_forms17HostShutdownEvent*;
     _ZGVZN9gui_forms17HostTrayIconEvent*;
+    _ZGVZN9gui_forms17ImageAtlasAcquire*;
     _ZGVZN9gui_forms17ImageResourceView*;
     _ZGVZN9gui_forms17InlineStyleResult*;
     _ZGVZN9gui_forms17KeyPressEventArgs*;
@@ -929,6 +935,7 @@
     _ZGVZN9gui_forms19TreeSelectionChange*;
     _ZGVZN9gui_forms19VirtualRowSelection*;
     _ZGVZN9gui_forms19WindowBackdropGrant*;
+    _ZGVZN9gui_forms20AllocationStatistics*;
     _ZGVZN9gui_forms20AnchoredOverlayLayer*;
     _ZGVZN9gui_forms20ApplicationResources*;
     _ZGVZN9gui_forms20AuthoredGradientStop*;
@@ -965,6 +972,7 @@
     _ZGVZN9gui_forms20HostWindowFrameEvent*;
     _ZGVZN9gui_forms20HostWindowKindTraits*;
     _ZGVZN9gui_forms20HostWindowStateEvent*;
+    _ZGVZN9gui_forms20ImageAtlasStatistics*;
     _ZGVZN9gui_forms20InstrumentModuleSpec*;
     _ZGVZN9gui_forms20MaterialColourFilter*;
     _ZGVZN9gui_forms20MaterialColourMatrix*;
@@ -1349,6 +1357,7 @@
     _ZGVZN9gui_forms6detail12ControlTable*;
     _ZGVZN9gui_forms6detail12PendingTouch*;
     _ZGVZN9gui_forms6detail13AscendingLess*;
+    _ZGVZN9gui_forms6detail14ImageAtlasLink*;
     _ZGVZN9gui_forms6detail14WindowLifetime*;
     _ZGVZN9gui_forms6detail15FailureBoundary*;
     _ZGVZN9gui_forms6detail15FailureSnapshot*;
@@ -1531,6 +1540,7 @@
     _ZGVZNK9gui_forms10GridMargin*;
     _ZGVZNK9gui_forms10HScrollBar*;
     _ZGVZNK9gui_forms10HelpTarget*;
+    _ZGVZNK9gui_forms10ImageAtlas*;
     _ZGVZNK9gui_forms10InfoBanner*;
     _ZGVZNK9gui_forms10KeyBinding*;
     _ZGVZNK9gui_forms10KeyGesture*;
@@ -1848,6 +1858,7 @@
     _ZGVZNK9gui_forms14HostHoverEvent*;
     _ZGVZNK9gui_forms14HostScaleEvent*;
     _ZGVZNK9gui_forms14HostTrayIconId*;
+    _ZGVZNK9gui_forms14ImageAtlasSlot*;
     _ZGVZNK9gui_forms14ItemCheckEvent*;
     _ZGVZNK9gui_forms14KeyStateChange*;
     _ZGVZNK9gui_forms14LineBoxMetrics*;
@@ -1902,6 +1913,7 @@
     _ZGVZNK9gui_forms14TreeListColumn*;
     _ZGVZNK9gui_forms14UserThemeFiles*;
     _ZGVZNK9gui_forms14XmlWriteResult*;
+    _ZGVZNK9gui_forms15AllocationScope*;
     _ZGVZNK9gui_forms15AnatomyStateSet*;
     _ZGVZNK9gui_forms15AnimationSample*;
     _ZGVZNK9gui_forms15AvailableExtent*;
@@ -1998,6 +2010,7 @@
     _ZGVZNK9gui_forms15WindowOverrides*;
     _ZGVZNK9gui_forms15XmlWriteOptions*;
     _ZGVZNK9gui_forms16AcceleratorToken*;
+    _ZGVZNK9gui_forms16AllocationCounts*;
     _ZGVZNK9gui_forms16AuthoredGradient*;
     _ZGVZNK9gui_forms16BackgroundWorker*;
     _ZGVZNK9gui_forms16BindingNavigator*;
@@ -2044,6 +2057,7 @@
     _ZGVZNK9gui_forms16HostDialogResult*;
     _ZGVZNK9gui_forms16HostDisplayEvent*;
     _ZGVZNK9gui_forms16HostTrayMenuItem*;
+    _ZGVZNK9gui_forms16ImageAtlasLayout*;
     _ZGVZNK9gui_forms16ImagePatchRegion*;
     _ZGVZNK9gui_forms16ItemContentPaint*;
     _ZGVZNK9gui_forms16LayoutConstraint*;
@@ -2138,6 +2152,7 @@
     _ZGVZNK9gui_forms17HostServiceStatus*;
     _ZGVZNK9gui_forms17HostShutdownEvent*;
     _ZGVZNK9gui_forms17HostTrayIconEvent*;
+    _ZGVZNK9gui_forms17ImageAtlasAcquire*;
     _ZGVZNK9gui_forms17ImageResourceView*;
     _ZGVZNK9gui_forms17InlineStyleResult*;
     _ZGVZNK9gui_forms17KeyPressEventArgs*;
@@ -2377,6 +2392,7 @@
     _ZGVZNK9gui_forms19TreeSelectionChange*;
     _ZGVZNK9gui_forms19VirtualRowSelection*;
     _ZGVZNK9gui_forms19WindowBackdropGrant*;
+    _ZGVZNK9gui_forms20AllocationStatistics*;
     _ZGVZNK9gui_forms20AnchoredOverlayLayer*;
     _ZGVZNK9gui_forms20ApplicationResources*;
     _ZGVZNK9gui_forms20AuthoredGradientStop*;
@@ -2413,6 +2429,7 @@
     _ZGVZNK9gui_forms20HostWindowFrameEvent*;
     _ZGVZNK9gui_forms20HostWindowKindTraits*;
     _ZGVZNK9gui_forms20HostWindowStateEvent*;
+    _ZGVZNK9gui_forms20ImageAtlasStatistics*;
     _ZGVZNK9gui_forms20InstrumentModuleSpec*;
     _ZGVZNK9gui_forms20MaterialColourFilter*;
     _ZGVZNK9gui_forms20MaterialColourMatrix*;
@@ -2797,6 +2814,7 @@
     _ZGVZNK9gui_forms6detail12ControlTable*;
     _ZGVZNK9gui_forms6detail12PendingTouch*;
     _ZGVZNK9gui_forms6detail13AscendingLess*;
+    _ZGVZNK9gui_forms6detail14ImageAtlasLink*;
     _ZGVZNK9gui_forms6detail14WindowLifetime*;
     _ZGVZNK9gui_forms6detail15FailureBoundary*;
     _ZGVZNK9gui_forms6detail15FailureSnapshot*;
@@ -3031,6 +3049,7 @@
     _ZN9gui_forms10GridMargin*;
     _ZN9gui_forms10HScrollBar*;
     _ZN9gui_forms10HelpTarget*;
+    _ZN9gui_forms10ImageAtlas*;
     _ZN9gui_forms10InfoBanner*;
     _ZN9gui_forms10KeyBinding*;
     _ZN9gui_forms10KeyGesture*;
@@ -3408,6 +3427,7 @@
     _ZN9gui_forms14HostHoverEvent*;
     _ZN9gui_forms14HostScaleEvent*;
     _ZN9gui_forms14HostTrayIconId*;
+    _ZN9gui_forms14ImageAtlasSlot*;
     _ZN9gui_forms14ItemCheckEvent*;
     _ZN9gui_forms14KeyStateChange*;
     _ZN9gui_forms14LineBoxMetrics*;
@@ -3508,6 +3528,7 @@
     _ZN9gui_forms14theme_language18package_sha256_hexE*;
     _ZN9gui_forms14xml_error_nameB*;
     _ZN9gui_forms14xml_error_nameE*;
+    _ZN9gui_forms15AllocationScope*;
     _ZN9gui_forms15AnatomyStateSet*;
     _ZN9gui_forms15AnimationSample*;
     _ZN9gui_forms15AvailableExtent*;
@@ -3642,6 +3663,7 @@
     _ZN9gui_forms15valid_date_timeB*;
     _ZN9gui_forms15valid_date_timeE*;
     _ZN9gui_forms16AcceleratorToken*;
+    _ZN9gui_forms16AllocationCounts*;
     _ZN9gui_forms16AuthoredGradient*;
     _ZN9gui_forms16BackgroundWorker*;
     _ZN9gui_forms16BindingNavigator*;
@@ -3688,6 +3710,7 @@
     _ZN9gui_forms16HostDialogResult*;
     _ZN9gui_forms16HostDisplayEvent*;
     _ZN9gui_forms16HostTrayMenuItem*;
+    _ZN9gui_forms16ImageAtlasLayout*;
     _ZN9gui_forms16ImagePatchRegion*;
     _ZN9gui_forms16ItemContentPaint*;
     _ZN9gui_forms16LayoutConstraint*;
@@ -3842,6 +3865,7 @@
     _ZN9gui_forms17HostServiceStatus*;
     _ZN9gui_forms17HostShutdownEvent*;
     _ZN9gui_forms17HostTrayIconEvent*;
+    _ZN9gui_forms17ImageAtlasAcquire*;
     _ZN9gui_forms17ImageResourceView*;
     _ZN9gui_forms17InlineStyleResult*;
     _ZN9gui_forms17KeyPressEventArgs*;
@@ -4303,6 +4327,7 @@
     _ZN9gui_forms19validate_parametersE*;
     _ZN9gui_forms19wcag_contrast_ratioB*;
     _ZN9gui_forms19wcag_contrast_ratioE*;
+    _ZN9gui_forms20AllocationStatistics*;
     _ZN9gui_forms20AnchoredOverlayLayer*;
     _ZN9gui_forms20ApplicationResources*;
     _ZN9gui_forms20AuthoredGradientStop*;
@@ -4339,6 +4364,7 @@
     _ZN9gui_forms20HostWindowFrameEvent*;
     _ZN9gui_forms20HostWindowKindTraits*;
     _ZN9gui_forms20HostWindowStateEvent*;
+    _ZN9gui_forms20ImageAtlasStatistics*;
     _ZN9gui_forms20InstrumentModuleSpec*;
     _ZN9gui_forms20MaterialColourFilter*;
     _ZN9gui_forms20MaterialColourMatrix*;
@@ -4502,6 +4528,8 @@
     _ZN9gui_forms21VirtualRowDescription*;
     _ZN9gui_forms21VirtualRowsStatistics*;
     _ZN9gui_forms21WindowBackdropRequest*;
+    _ZN9gui_forms21allocation_statisticsB*;
+    _ZN9gui_forms21allocation_statisticsE*;
     _ZN9gui_forms21binding_value_to_boolB*;
     _ZN9gui_forms21binding_value_to_boolE*;
     _ZN9gui_forms21colour_role_from_nameB*;
@@ -4895,6 +4923,8 @@
     _ZN9gui_forms25ResponsiveTrackResolution*;
     _ZN9gui_forms25TreeListColumnWidthChange*;
     _ZN9gui_forms25WindowFrameDragStatistics*;
+    _ZN9gui_forms25allocation_subsystem_nameB*;
+    _ZN9gui_forms25allocation_subsystem_nameE*;
     _ZN9gui_forms25binding_value_to_unsignedB*;
     _ZN9gui_forms25binding_value_to_unsignedE*;
     _ZN9gui_forms25box_shadow_visual_outsetsB*;
@@ -5070,6 +5100,8 @@
     _ZN9gui_forms28register_sweep_scope_effectsE*;
     _ZN9gui_forms28surface_material_resize_bandB*;
     _ZN9gui_forms28surface_material_resize_bandE*;
+    _ZN9gui_forms28thread_allocation_statisticsB*;
+    _ZN9gui_forms28thread_allocation_statisticsE*;
     _ZN9gui_forms28window_backdrop_support_nameB*;
     _ZN9gui_forms28window_backdrop_support_nameE*;
     _ZN9gui_forms28window_band_appearance_validB*;
@@ -5361,14 +5393,19 @@
     _ZN9gui_forms6detail12ControlTable*;
     _ZN9gui_forms6detail12PendingTouch*;
     _ZN9gui_forms6detail13AscendingLess*;
+    _ZN9gui_forms6detail13count_releaseB*;
+    _ZN9gui_forms6detail13count_releaseE*;
     _ZN9gui_forms6detail13dirty_reachesB*;
     _ZN9gui_forms6detail13dirty_reachesE*;
     _ZN9gui_forms6detail13fire_rule_tapB*;
     _ZN9gui_forms6detail13fire_rule_tapE*;
+    _ZN9gui_forms6detail14ImageAtlasLink*;
     _ZN9gui_forms6detail14WindowLifetime*;
     _ZN9gui_forms6detail15FailureBoundary*;
     _ZN9gui_forms6detail15FailureSnapshot*;
     _ZN9gui_forms6detail16BorrowOwnerState*;
+    _ZN9gui_forms6detail16count_allocationB*;
+    _ZN9gui_forms6detail16count_allocationE*;
     _ZN9gui_forms6detail16straight_channelB*;
     _ZN9gui_forms6detail16straight_channelE*;
     _ZN9gui_forms6detail17BundledFamilyFace*;
@@ -5693,6 +5730,7 @@
     _ZNK[RO]9gui_forms10GridMargin*;
     _ZNK[RO]9gui_forms10HScrollBar*;
     _ZNK[RO]9gui_forms10HelpTarget*;
+    _ZNK[RO]9gui_forms10ImageAtlas*;
     _ZNK[RO]9gui_forms10InfoBanner*;
     _ZNK[RO]9gui_forms10KeyBinding*;
     _ZNK[RO]9gui_forms10KeyGesture*;
@@ -6010,6 +6048,7 @@
     _ZNK[RO]9gui_forms14HostHoverEvent*;
     _ZNK[RO]9gui_forms14HostScaleEvent*;
     _ZNK[RO]9gui_forms14HostTrayIconId*;
+    _ZNK[RO]9gui_forms14ImageAtlasSlot*;
     _ZNK[RO]9gui_forms14ItemCheckEvent*;
     _ZNK[RO]9gui_forms14KeyStateChange*;
     _ZNK[RO]9gui_forms14LineBoxMetrics*;
@@ -6064,6 +6103,7 @@
     _ZNK[RO]9gui_forms14TreeListColumn*;
     _ZNK[RO]9gui_forms14UserThemeFiles*;
     _ZNK[RO]9gui_forms14XmlWriteResult*;
+    _ZNK[RO]9gui_forms15AllocationScope*;
     _ZNK[RO]9gui_forms15AnatomyStateSet*;
     _ZNK[RO]9gui_forms15AnimationSample*;
     _ZNK[RO]9gui_forms15AvailableExtent*;
@@ -6160,6 +6200,7 @@
     _ZNK[RO]9gui_forms15WindowOverrides*;
     _ZNK[RO]9gui_forms15XmlWriteOptions*;
     _ZNK[RO]9gui_forms16AcceleratorToken*;
+    _ZNK[RO]9gui_forms16AllocationCounts*;
     _ZNK[RO]9gui_forms16AuthoredGradient*;
     _ZNK[RO]9gui_forms16BackgroundWorker*;
     _ZNK[RO]9gui_forms16BindingNavigator*;
@@ -6206,6 +6247,7 @@
     _ZNK[RO]9gui_forms16HostDialogResult*;
     _ZNK[RO]9gui_forms16HostDisplayEvent*;
     _ZNK[RO]9gui_forms16HostTrayMenuItem*;
+    _ZNK[RO]9gui_forms16ImageAtlasLayout*;
     _ZNK[RO]9gui_forms16ImagePatchRegion*;
     _ZNK[RO]9gui_forms16ItemContentPaint*;
     _ZNK[RO]9gui_forms16LayoutConstraint*;
@@ -6300,6 +6342,7 @@
     _ZNK[RO]9gui_forms17HostServiceStatus*;
     _ZNK[RO]9gui_forms17HostShutdownEvent*;
     _ZNK[RO]9gui_forms17HostTrayIconEvent*;
+    _ZNK[RO]9gui_forms17ImageAtlasAcquire*;
     _ZNK[RO]9gui_forms17ImageResourceView*;
     _ZNK[RO]9gui_forms17InlineStyleResult*;
     _ZNK[RO]9gui_forms17KeyPressEventArgs*;
@@ -6539,6 +6582,7 @@
     _ZNK[RO]9gui_forms19TreeSelectionChange*;
     _ZNK[RO]9gui_forms19VirtualRowSelection*;
     _ZNK[RO]9gui_forms19WindowBackdropGrant*;
+    _ZNK[RO]9gui_forms20AllocationStatistics*;
     _ZNK[RO]9gui_forms20AnchoredOverlayLayer*;
     _ZNK[RO]9gui_forms20ApplicationResources*;
     _ZNK[RO]9gui_forms20AuthoredGradientStop*;
@@ -6575,6 +6619,7 @@
     _ZNK[RO]9gui_forms20HostWindowFrameEvent*;
     _ZNK[RO]9gui_forms20HostWindowKindTraits*;
     _ZNK[RO]9gui_forms20HostWindowStateEvent*;
+    _ZNK[RO]9gui_forms20ImageAtlasStatistics*;
     _ZNK[RO]9gui_forms20InstrumentModuleSpec*;
     _ZNK[RO]9gui_forms20MaterialColourFilter*;
     _ZNK[RO]9gui_forms20MaterialColourMatrix*;
@@ -6959,6 +7004,7 @@
     _ZNK[RO]9gui_forms6detail12ControlTable*;
     _ZNK[RO]9gui_forms6detail12PendingTouch*;
     _ZNK[RO]9gui_forms6detail13AscendingLess*;
+    _ZNK[RO]9gui_forms6detail14ImageAtlasLink*;
     _ZNK[RO]9gui_forms6detail14WindowLifetime*;
     _ZNK[RO]9gui_forms6detail15FailureBoundary*;
     _ZNK[RO]9gui_forms6detail15FailureSnapshot*;
@@ -7141,6 +7187,7 @@
     _ZN[KRO]9gui_forms10GridMargin*;
     _ZN[KRO]9gui_forms10HScrollBar*;
     _ZN[KRO]9gui_forms10HelpTarget*;
+    _ZN[KRO]9gui_forms10ImageAtlas*;
     _ZN[KRO]9gui_forms10InfoBanner*;
     _ZN[KRO]9gui_forms10KeyBinding*;
     _ZN[KRO]9gui_forms10KeyGesture*;
@@ -7458,6 +7505,7 @@
     _ZN[KRO]9gui_forms14HostHoverEvent*;
     _ZN[KRO]9gui_forms14HostScaleEvent*;
     _ZN[KRO]9gui_forms14HostTrayIconId*;
+    _ZN[KRO]9gui_forms14ImageAtlasSlot*;
     _ZN[KRO]9gui_forms14ItemCheckEvent*;
     _ZN[KRO]9gui_forms14KeyStateChange*;
     _ZN[KRO]9gui_forms14LineBoxMetrics*;
@@ -7512,6 +7560,7 @@
     _ZN[KRO]9gui_forms14TreeListColumn*;
     _ZN[KRO]9gui_forms14UserThemeFiles*;
     _ZN[KRO]9gui_forms14XmlWriteResult*;
+    _ZN[KRO]9gui_forms15AllocationScope*;
     _ZN[KRO]9gui_forms15AnatomyStateSet*;
     _ZN[KRO]9gui_forms15AnimationSample*;
     _ZN[KRO]9gui_forms15AvailableExtent*;
@@ -7608,6 +7657,7 @@
     _ZN[KRO]9gui_forms15WindowOverrides*;
     _ZN[KRO]9gui_forms15XmlWriteOptions*;
     _ZN[KRO]9gui_forms16AcceleratorToken*;
+    _ZN[KRO]9gui_forms16AllocationCounts*;
     _ZN[KRO]9gui_forms16AuthoredGradient*;
     _ZN[KRO]9gui_forms16BackgroundWorker*;
     _ZN[KRO]9gui_forms16BindingNavigator*;
@@ -7654,6 +7704,7 @@
     _ZN[KRO]9gui_forms16HostDialogResult*;
     _ZN[KRO]9gui_forms16HostDisplayEvent*;
     _ZN[KRO]9gui_forms16HostTrayMenuItem*;
+    _ZN[KRO]9gui_forms16ImageAtlasLayout*;
     _ZN[KRO]9gui_forms16ImagePatchRegion*;
     _ZN[KRO]9gui_forms16ItemContentPaint*;
     _ZN[KRO]9gui_forms16LayoutConstraint*;
@@ -7748,6 +7799,7 @@
     _ZN[KRO]9gui_forms17HostServiceStatus*;
     _ZN[KRO]9gui_forms17HostShutdownEvent*;
     _ZN[KRO]9gui_forms17HostTrayIconEvent*;
+    _ZN[KRO]9gui_forms17ImageAtlasAcquire*;
     _ZN[KRO]9gui_forms17ImageResourceView*;
     _ZN[KRO]9gui_forms17InlineStyleResult*;
     _ZN[KRO]9gui_forms17KeyPressEventArgs*;
@@ -7987,6 +8039,7 @@
     _ZN[KRO]9gui_forms19TreeSelectionChange*;
     _ZN[KRO]9gui_forms19VirtualRowSelection*;
     _ZN[KRO]9gui_forms19WindowBackdropGrant*;
+    _ZN[KRO]9gui_forms20AllocationStatistics*;
     _ZN[KRO]9gui_forms20AnchoredOverlayLayer*;
     _ZN[KRO]9gui_forms20ApplicationResources*;
     _ZN[KRO]9gui_forms20AuthoredGradientStop*;
@@ -8023,6 +8076,7 @@
     _ZN[KRO]9gui_forms20HostWindowFrameEvent*;
     _ZN[KRO]9gui_forms20HostWindowKindTraits*;
     _ZN[KRO]9gui_forms20HostWindowStateEvent*;
+    _ZN[KRO]9gui_forms20ImageAtlasStatistics*;
     _ZN[KRO]9gui_forms20InstrumentModuleSpec*;
     _ZN[KRO]9gui_forms20MaterialColourFilter*;
     _ZN[KRO]9gui_forms20MaterialColourMatrix*;
@@ -8407,6 +8461,7 @@
     _ZN[KRO]9gui_forms6detail12ControlTable*;
     _ZN[KRO]9gui_forms6detail12PendingTouch*;
     _ZN[KRO]9gui_forms6detail13AscendingLess*;
+    _ZN[KRO]9gui_forms6detail14ImageAtlasLink*;
     _ZN[KRO]9gui_forms6detail14WindowLifetime*;
     _ZN[KRO]9gui_forms6detail15FailureBoundary*;
     _ZN[KRO]9gui_forms6detail15FailureSnapshot*;
@@ -8589,6 +8644,7 @@
     _ZT[VIST]N9gui_forms10GridMargin*E;
     _ZT[VIST]N9gui_forms10HScrollBar*E;
     _ZT[VIST]N9gui_forms10HelpTarget*E;
+    _ZT[VIST]N9gui_forms10ImageAtlas*E;
     _ZT[VIST]N9gui_forms10InfoBanner*E;
     _ZT[VIST]N9gui_forms10KeyBinding*E;
     _ZT[VIST]N9gui_forms10KeyGesture*E;
@@ -8906,6 +8962,7 @@
     _ZT[VIST]N9gui_forms14HostHoverEvent*E;
     _ZT[VIST]N9gui_forms14HostScaleEvent*E;
     _ZT[VIST]N9gui_forms14HostTrayIconId*E;
+    _ZT[VIST]N9gui_forms14ImageAtlasSlot*E;
     _ZT[VIST]N9gui_forms14ItemCheckEvent*E;
     _ZT[VIST]N9gui_forms14KeyStateChange*E;
     _ZT[VIST]N9gui_forms14LineBoxMetrics*E;
@@ -8960,6 +9017,7 @@
     _ZT[VIST]N9gui_forms14TreeListColumn*E;
     _ZT[VIST]N9gui_forms14UserThemeFiles*E;
     _ZT[VIST]N9gui_forms14XmlWriteResult*E;
+    _ZT[VIST]N9gui_forms15AllocationScope*E;
     _ZT[VIST]N9gui_forms15AnatomyStateSet*E;
     _ZT[VIST]N9gui_forms15AnimationSample*E;
     _ZT[VIST]N9gui_forms15AvailableExtent*E;
@@ -9056,6 +9114,7 @@
     _ZT[VIST]N9gui_forms15WindowOverrides*E;
     _ZT[VIST]N9gui_forms15XmlWriteOptions*E;
     _ZT[VIST]N9gui_forms16AcceleratorToken*E;
+    _ZT[VIST]N9gui_forms16AllocationCounts*E;
     _ZT[VIST]N9gui_forms16AuthoredGradient*E;
     _ZT[VIST]N9gui_forms16BackgroundWorker*E;
     _ZT[VIST]N9gui_forms16BindingNavigator*E;
@@ -9102,6 +9161,7 @@
     _ZT[VIST]N9gui_forms16HostDialogResult*E;
     _ZT[VIST]N9gui_forms16HostDisplayEvent*E;
     _ZT[VIST]N9gui_forms16HostTrayMenuItem*E;
+    _ZT[VIST]N9gui_forms16ImageAtlasLayout*E;
     _ZT[VIST]N9gui_forms16ImagePatchRegion*E;
     _ZT[VIST]N9gui_forms16ItemContentPaint*E;
     _ZT[VIST]N9gui_forms16LayoutConstraint*E;
@@ -9196,6 +9256,7 @@
     _ZT[VIST]N9gui_forms17HostServiceStatus*E;
     _ZT[VIST]N9gui_forms17HostShutdownEvent*E;
     _ZT[VIST]N9gui_forms17HostTrayIconEvent*E;
+    _ZT[VIST]N9gui_forms17ImageAtlasAcquire*E;
     _ZT[VIST]N9gui_forms17ImageResourceView*E;
     _ZT[VIST]N9gui_forms17InlineStyleResult*E;
     _ZT[VIST]N9gui_forms17KeyPressEventArgs*E;
@@ -9435,6 +9496,7 @@
     _ZT[VIST]N9gui_forms19TreeSelectionChange*E;
     _ZT[VIST]N9gui_forms19VirtualRowSelection*E;
     _ZT[VIST]N9gui_forms19WindowBackdropGrant*E;
+    _ZT[VIST]N9gui_forms20AllocationStatistics*E;
     _ZT[VIST]N9gui_forms20AnchoredOverlayLayer*E;
     _ZT[VIST]N9gui_forms20ApplicationResources*E;
     _ZT[VIST]N9gui_forms20AuthoredGradientStop*E;
@@ -9471,6 +9533,7 @@
     _ZT[VIST]N9gui_forms20HostWindowFrameEvent*E;
     _ZT[VIST]N9gui_forms20HostWindowKindTraits*E;
     _ZT[VIST]N9gui_forms20HostWindowStateEvent*E;
+    _ZT[VIST]N9gui_forms20ImageAtlasStatistics*E;
     _ZT[VIST]N9gui_forms20InstrumentModuleSpec*E;
     _ZT[VIST]N9gui_forms20MaterialColourFilter*E;
     _ZT[VIST]N9gui_forms20MaterialColourMatrix*E;
@@ -9855,6 +9918,7 @@
     _ZT[VIST]N9gui_forms6detail12ControlTable*E;
     _ZT[VIST]N9gui_forms6detail12PendingTouch*E;
     _ZT[VIST]N9gui_forms6detail13AscendingLess*E;
+    _ZT[VIST]N9gui_forms6detail14ImageAtlasLink*E;
     _ZT[VIST]N9gui_forms6detail14WindowLifetime*E;
     _ZT[VIST]N9gui_forms6detail15FailureBoundary*E;
     _ZT[VIST]N9gui_forms6detail15FailureSnapshot*E;
@@ -10037,6 +10101,7 @@
     _ZT[hvc]*9gui_forms10GridMargin*;
     _ZT[hvc]*9gui_forms10HScrollBar*;
     _ZT[hvc]*9gui_forms10HelpTarget*;
+    _ZT[hvc]*9gui_forms10ImageAtlas*;
     _ZT[hvc]*9gui_forms10InfoBanner*;
     _ZT[hvc]*9gui_forms10KeyBinding*;
     _ZT[hvc]*9gui_forms10KeyGesture*;
@@ -10354,6 +10419,7 @@
     _ZT[hvc]*9gui_forms14HostHoverEvent*;
     _ZT[hvc]*9gui_forms14HostScaleEvent*;
     _ZT[hvc]*9gui_forms14HostTrayIconId*;
+    _ZT[hvc]*9gui_forms14ImageAtlasSlot*;
     _ZT[hvc]*9gui_forms14ItemCheckEvent*;
     _ZT[hvc]*9gui_forms14KeyStateChange*;
     _ZT[hvc]*9gui_forms14LineBoxMetrics*;
@@ -10408,6 +10474,7 @@
     _ZT[hvc]*9gui_forms14TreeListColumn*;
     _ZT[hvc]*9gui_forms14UserThemeFiles*;
     _ZT[hvc]*9gui_forms14XmlWriteResult*;
+    _ZT[hvc]*9gui_forms15AllocationScope*;
     _ZT[hvc]*9gui_forms15AnatomyStateSet*;
     _ZT[hvc]*9gui_forms15AnimationSample*;
     _ZT[hvc]*9gui_forms15AvailableExtent*;
@@ -10504,6 +10571,7 @@
     _ZT[hvc]*9gui_forms15WindowOverrides*;
     _ZT[hvc]*9gui_forms15XmlWriteOptions*;
     _ZT[hvc]*9gui_forms16AcceleratorToken*;
+    _ZT[hvc]*9gui_forms16AllocationCounts*;
     _ZT[hvc]*9gui_forms16AuthoredGradient*;
     _ZT[hvc]*9gui_forms16BackgroundWorker*;
     _ZT[hvc]*9gui_forms16BindingNavigator*;
@@ -10550,6 +10618,7 @@
     _ZT[hvc]*9gui_forms16HostDialogResult*;
     _ZT[hvc]*9gui_forms16HostDisplayEvent*;
     _ZT[hvc]*9gui_forms16HostTrayMenuItem*;
+    _ZT[hvc]*9gui_forms16ImageAtlasLayout*;
     _ZT[hvc]*9gui_forms16ImagePatchRegion*;
     _ZT[hvc]*9gui_forms16ItemContentPaint*;
     _ZT[hvc]*9gui_forms16LayoutConstraint*;
@@ -10644,6 +10713,7 @@
     _ZT[hvc]*9gui_forms17HostServiceStatus*;
     _ZT[hvc]*9gui_forms17HostShutdownEvent*;
     _ZT[hvc]*9gui_forms17HostTrayIconEvent*;
+    _ZT[hvc]*9gui_forms17ImageAtlasAcquire*;
     _ZT[hvc]*9gui_forms17ImageResourceView*;
     _ZT[hvc]*9gui_forms17InlineStyleResult*;
     _ZT[hvc]*9gui_forms17KeyPressEventArgs*;
@@ -10883,6 +10953,7 @@
     _ZT[hvc]*9gui_forms19TreeSelectionChange*;
     _ZT[hvc]*9gui_forms19VirtualRowSelection*;
     _ZT[hvc]*9gui_forms19WindowBackdropGrant*;
+    _ZT[hvc]*9gui_forms20AllocationStatistics*;
     _ZT[hvc]*9gui_forms20AnchoredOverlayLayer*;
     _ZT[hvc]*9gui_forms20ApplicationResources*;
     _ZT[hvc]*9gui_forms20AuthoredGradientStop*;
@@ -10919,6 +10990,7 @@
     _ZT[hvc]*9gui_forms20HostWindowFrameEvent*;
     _ZT[hvc]*9gui_forms20HostWindowKindTraits*;
     _ZT[hvc]*9gui_forms20HostWindowStateEvent*;
+    _ZT[hvc]*9gui_forms20ImageAtlasStatistics*;
     _ZT[hvc]*9gui_forms20InstrumentModuleSpec*;
     _ZT[hvc]*9gui_forms20MaterialColourFilter*;
     _ZT[hvc]*9gui_forms20MaterialColourMatrix*;
@@ -11303,6 +11375,7 @@
     _ZT[hvc]*9gui_forms6detail12ControlTable*;
     _ZT[hvc]*9gui_forms6detail12PendingTouch*;
     _ZT[hvc]*9gui_forms6detail13AscendingLess*;
+    _ZT[hvc]*9gui_forms6detail14ImageAtlasLink*;
     _ZT[hvc]*9gui_forms6detail14WindowLifetime*;
     _ZT[hvc]*9gui_forms6detail15FailureBoundary*;
     _ZT[hvc]*9gui_forms6detail15FailureSnapshot*;
@@ -11485,6 +11558,7 @@
     _ZZN9gui_forms10GridMargin*;
     _ZZN9gui_forms10HScrollBar*;
     _ZZN9gui_forms10HelpTarget*;
+    _ZZN9gui_forms10ImageAtlas*;
     _ZZN9gui_forms10InfoBanner*;
     _ZZN9gui_forms10KeyBinding*;
     _ZZN9gui_forms10KeyGesture*;
@@ -11802,6 +11876,7 @@
     _ZZN9gui_forms14HostHoverEvent*;
     _ZZN9gui_forms14HostScaleEvent*;
     _ZZN9gui_forms14HostTrayIconId*;
+    _ZZN9gui_forms14ImageAtlasSlot*;
     _ZZN9gui_forms14ItemCheckEvent*;
     _ZZN9gui_forms14KeyStateChange*;
     _ZZN9gui_forms14LineBoxMetrics*;
@@ -11856,6 +11931,7 @@
     _ZZN9gui_forms14TreeListColumn*;
     _ZZN9gui_forms14UserThemeFiles*;
     _ZZN9gui_forms14XmlWriteResult*;
+    _ZZN9gui_forms15AllocationScope*;
     _ZZN9gui_forms15AnatomyStateSet*;
     _ZZN9gui_forms15AnimationSample*;
     _ZZN9gui_forms15AvailableExtent*;
@@ -11952,6 +12028,7 @@
     _ZZN9gui_forms15WindowOverrides*;
     _ZZN9gui_forms15XmlWriteOptions*;
     _ZZN9gui_forms16AcceleratorToken*;
+    _ZZN9gui_forms16AllocationCounts*;
     _ZZN9gui_forms16AuthoredGradient*;
     _ZZN9gui_forms16BackgroundWorker*;
     _ZZN9gui_forms16BindingNavigator*;
@@ -11998,6 +12075,7 @@
     _ZZN9gui_forms16HostDialogResult*;
     _ZZN9gui_forms16HostDisplayEvent*;
     _ZZN9gui_forms16HostTrayMenuItem*;
+    _ZZN9gui_forms16ImageAtlasLayout*;
     _ZZN9gui_forms16ImagePatchRegion*;
     _ZZN9gui_forms16ItemContentPaint*;
     _ZZN9gui_forms16LayoutConstraint*;
@@ -12092,6 +12170,7 @@
     _ZZN9gui_forms17HostServiceStatus*;
     _ZZN9gui_forms17HostShutdownEvent*;
     _ZZN9gui_forms17HostTrayIconEvent*;
+    _ZZN9gui_forms17ImageAtlasAcquire*;
     _ZZN9gui_forms17ImageResourceView*;
     _ZZN9gui_forms17InlineStyleResult*;
     _ZZN9gui_forms17KeyPressEventArgs*;
@@ -12331,6 +12410,7 @@
     _ZZN9gui_forms19TreeSelectionChange*;
     _ZZN9gui_forms19VirtualRowSelection*;
     _ZZN9gui_forms19WindowBackdropGrant*;
+    _ZZN9gui_forms20AllocationStatistics*;
     _ZZN9gui_forms20AnchoredOverlayLayer*;
     _ZZN9gui_forms20ApplicationResources*;
     _ZZN9gui_forms20AuthoredGradientStop*;
@@ -12367,6 +12447,7 @@
     _ZZN9gui_forms20HostWindowFrameEvent*;
     _ZZN9gui_forms20HostWindowKindTraits*;
     _ZZN9gui_forms20HostWindowStateEvent*;
+    _ZZN9gui_forms20ImageAtlasStatistics*;
     _ZZN9gui_forms20InstrumentModuleSpec*;
     _ZZN9gui_forms20MaterialColourFilter*;
     _ZZN9gui_forms20MaterialColourMatrix*;
@@ -12751,6 +12832,7 @@
     _ZZN9gui_forms6detail12ControlTable*;
     _ZZN9gui_forms6detail12PendingTouch*;
     _ZZN9gui_forms6detail13AscendingLess*;
+    _ZZN9gui_forms6detail14ImageAtlasLink*;
     _ZZN9gui_forms6detail14WindowLifetime*;
     _ZZN9gui_forms6detail15FailureBoundary*;
     _ZZN9gui_forms6detail15FailureSnapshot*;
@@ -12933,6 +13015,7 @@
     _ZZNK9gui_forms10GridMargin*;
     _ZZNK9gui_forms10HScrollBar*;
     _ZZNK9gui_forms10HelpTarget*;
+    _ZZNK9gui_forms10ImageAtlas*;
     _ZZNK9gui_forms10InfoBanner*;
     _ZZNK9gui_forms10KeyBinding*;
     _ZZNK9gui_forms10KeyGesture*;
@@ -13250,6 +13333,7 @@
     _ZZNK9gui_forms14HostHoverEvent*;
     _ZZNK9gui_forms14HostScaleEvent*;
     _ZZNK9gui_forms14HostTrayIconId*;
+    _ZZNK9gui_forms14ImageAtlasSlot*;
     _ZZNK9gui_forms14ItemCheckEvent*;
     _ZZNK9gui_forms14KeyStateChange*;
     _ZZNK9gui_forms14LineBoxMetrics*;
@@ -13304,6 +13388,7 @@
     _ZZNK9gui_forms14TreeListColumn*;
     _ZZNK9gui_forms14UserThemeFiles*;
     _ZZNK9gui_forms14XmlWriteResult*;
+    _ZZNK9gui_forms15AllocationScope*;
     _ZZNK9gui_forms15AnatomyStateSet*;
     _ZZNK9gui_forms15AnimationSample*;
     _ZZNK9gui_forms15AvailableExtent*;
@@ -13400,6 +13485,7 @@
     _ZZNK9gui_forms15WindowOverrides*;
     _ZZNK9gui_forms15XmlWriteOptions*;
     _ZZNK9gui_forms16AcceleratorToken*;
+    _ZZNK9gui_forms16AllocationCounts*;
     _ZZNK9gui_forms16AuthoredGradient*;
     _ZZNK9gui_forms16BackgroundWorker*;
     _ZZNK9gui_forms16BindingNavigator*;
@@ -13446,6 +13532,7 @@
     _ZZNK9gui_forms16HostDialogResult*;
     _ZZNK9gui_forms16HostDisplayEvent*;
     _ZZNK9gui_forms16HostTrayMenuItem*;
+    _ZZNK9gui_forms16ImageAtlasLayout*;
     _ZZNK9gui_forms16ImagePatchRegion*;
     _ZZNK9gui_forms16ItemContentPaint*;
     _ZZNK9gui_forms16LayoutConstraint*;
@@ -13540,6 +13627,7 @@
     _ZZNK9gui_forms17HostServiceStatus*;
     _ZZNK9gui_forms17HostShutdownEvent*;
     _ZZNK9gui_forms17HostTrayIconEvent*;
+    _ZZNK9gui_forms17ImageAtlasAcquire*;
     _ZZNK9gui_forms17ImageResourceView*;
     _ZZNK9gui_forms17InlineStyleResult*;
     _ZZNK9gui_forms17KeyPressEventArgs*;
@@ -13779,6 +13867,7 @@
     _ZZNK9gui_forms19TreeSelectionChange*;
     _ZZNK9gui_forms19VirtualRowSelection*;
     _ZZNK9gui_forms19WindowBackdropGrant*;
+    _ZZNK9gui_forms20AllocationStatistics*;
     _ZZNK9gui_forms20AnchoredOverlayLayer*;
     _ZZNK9gui_forms20ApplicationResources*;
     _ZZNK9gui_forms20AuthoredGradientStop*;
@@ -13815,6 +13904,7 @@
     _ZZNK9gui_forms20HostWindowFrameEvent*;
     _ZZNK9gui_forms20HostWindowKindTraits*;
     _ZZNK9gui_forms20HostWindowStateEvent*;
+    _ZZNK9gui_forms20ImageAtlasStatistics*;
     _ZZNK9gui_forms20InstrumentModuleSpec*;
     _ZZNK9gui_forms20MaterialColourFilter*;
     _ZZNK9gui_forms20MaterialColourMatrix*;
@@ -14199,6 +14289,7 @@
     _ZZNK9gui_forms6detail12ControlTable*;
     _ZZNK9gui_forms6detail12PendingTouch*;
     _ZZNK9gui_forms6detail13AscendingLess*;
+    _ZZNK9gui_forms6detail14ImageAtlasLink*;
     _ZZNK9gui_forms6detail14WindowLifetime*;
     _ZZNK9gui_forms6detail15FailureBoundary*;
     _ZZNK9gui_forms6detail15FailureSnapshot*;

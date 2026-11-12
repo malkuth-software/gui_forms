@@ -158,7 +158,7 @@ private:
         const DisplayCommand& recorded, const std::vector<std::size_t>& previous_indices,
         std::size_t& ordinal) const;
 
-    std::vector<DisplayCommand> commands_;
+    DisplayCommandList commands_;
     // inherit_caches: the replaced chunk, the indices of its horizontal text
     // and box-shadow commands in recording order, and how many of each this
     // recording has recorded so far.

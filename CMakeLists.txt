@@ -479,7 +479,9 @@ add_library(gui_forms_core STATIC
     src/core/metrics/snapshot/metrics_snapshot.cpp
     src/core/visual_inspection/snapshot/visual_inspection_snapshot.cpp
     src/core/window/inspection/window_visual_inspection.cpp
+    src/core/allocation/statistics/allocation_statistics.cpp
     src/core/resources/image_registry/image_registry.cpp
+    src/core/resources/image_atlas/image_atlas.cpp
     src/core/resources/application_resources/application_resources.cpp
     src/runtime/user_themes/theme_files.cpp
     src/runtime/user_themes/user_themes.cpp
@@ -4979,6 +4981,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_shared_resources_tests tests/shared_resources_tests.cpp)
     target_link_libraries(gui_forms_shared_resources_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_shared_resources_tests COMMAND gui_forms_shared_resources_tests)
+    add_executable(gui_forms_image_atlas_tests tests/image_atlas_tests.cpp)
+    target_link_libraries(gui_forms_image_atlas_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_image_atlas_tests COMMAND gui_forms_image_atlas_tests)
+    add_executable(gui_forms_allocation_statistics_tests tests/allocation_statistics_tests.cpp)
+    target_link_libraries(gui_forms_allocation_statistics_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_allocation_statistics_tests COMMAND gui_forms_allocation_statistics_tests)
     add_executable(gui_forms_dock_floating_tests tests/dock_floating_tests.cpp)
     target_link_libraries(gui_forms_dock_floating_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_dock_floating_tests COMMAND gui_forms_dock_floating_tests)

@@ -38,7 +38,7 @@ std::shared_ptr<const DisplaySnapshot> red_half(double scale) {
     fill.operation = DisplayOperation::fill_rect;
     fill.rect = Rect{0.0, 0.0, 5.0, 4.0};
     fill.color = Color{255, 0, 0, 255};
-    std::vector<DisplayCommand> commands;
+    DisplayCommandList commands;
     commands.push_back(fill);
     DisplayChunk chunk(1U, PaintPlane::overlay, Rect{0.0, 0.0, 10.0, 4.0}, std::move(commands));
     DisplaySnapshotResult made = make_display_snapshot(chunk, Size{10.0, 4.0}, DeviceScale{scale});

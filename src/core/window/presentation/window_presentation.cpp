@@ -4,6 +4,7 @@
 
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/window.hpp"
 
 #include "../../display/chunk/display_chunk.hpp"
@@ -393,6 +394,8 @@ void SurfaceRoot::abandon_paint(std::uint64_t generation_before) {
     dirty_after_render_ = true;
     in_paint_ = false;
     ++paint_leases_abandoned_;
+    // Fills an image atlas deferred during the pass (never throws).
+    if (resources_) (*resources_).apply_deferred_image_fills();
     update_display_cache_metrics();
     if (!root_ || !(*root_).is_alive()) {
         abandon_deferred_input();
@@ -917,6 +920,9 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
                           static_cast<std::uint64_t>(painted.size()), full_window);
     update_display_cache_metrics();
 
+    // Fills an image atlas deferred during the pass: written now that the
+    // pass is over, their damage requests the next frame (never throws).
+    if (resources_) (*resources_).apply_deferred_image_fills();
     schedule_deferred_input_drain();
     return PaintReceipt{lease_revision, lease_epoch};
 }
