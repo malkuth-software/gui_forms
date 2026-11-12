@@ -216,10 +216,8 @@ std::string_view EventFields::keep_text(std::string_view text) {
     if (texts_used_ == texts_.size()) {
         texts_.emplace_back();
     }
-    std::string& kept_storage = texts_[texts_used_];
-    kept_storage.assign(text);
+    const std::string_view kept = texts_[texts_used_].assign(text);
     texts_used_ = texts_used_ + 1U;
-    const std::string_view kept = kept_storage;
     return kept;
 }
 
@@ -288,17 +286,27 @@ void EventFields::publish(gf_event& event, bool single_argument) {
     records_.clear();
     records_.reserve(fields_.size());
 #if GUI_FORMS_CHECKED_BORROWS
-    // Room to record every region release() retires: a name and a value
-    // per field, the texts and the records.
-    retired_.reserve(fields_.size() * 2U + texts_used_ + 1U);
+    // Room to record every region release() retires: one value per field
+    // (names and texts are blocks that keep their own poisoned state, so
+    // texts kept after publish need no room here). Reserved before any
+    // field is lent; a failure leaves nothing lent.
+    retired_.reserve(retired_.size() + fields_.size());
+    while (name_blocks_.size() < fields_.size()) {
+        name_blocks_.emplace_back();
+    }
 #endif
     std::vector<EventFields*>& frames = active_frames();
     detail::reserve_one_more(frames);
     std::size_t index = 0U;
     for (index = 0U; index < fields_.size(); ++index) {
         gf_event_field record{};
-        record.name.data = names_[index].data();
-        record.name.size = names_[index].size();
+#if GUI_FORMS_CHECKED_BORROWS
+        const std::string_view name = name_blocks_[index].assign(names_[index]);
+#else
+        const std::string_view name = names_[index];
+#endif
+        record.name.data = name.data();
+        record.name.size = name.size();
         record.kind = fields_[index].kind;
         record.flags = fields_[index].flags;
         record.value = &values_[index];
@@ -336,6 +344,12 @@ namespace {
 // so a kept record shows garbage rather than the old values.
 constexpr unsigned char retired_scratch_byte = 0xA5U;
 
+// retire_lent_scratch poisons each gf_value whole: that needs whole
+// AddressSanitizer granules, which a pointer-aligned record of 8-byte
+// multiples in a deque block is.
+static_assert(sizeof(gf_value) % 8U == 0U && alignof(gf_value) % 8U == 0U,
+              "a gf_value spans whole 8-byte granules");
+
 } // namespace
 
 void EventFields::retire_region(void* address, std::size_t size) noexcept {
@@ -357,16 +371,15 @@ void EventFields::retire_region(void* address, std::size_t size) noexcept {
 
 void EventFields::retire_lent_scratch() noexcept {
     std::size_t index = 0U;
-    // The characters only, never a string's own fields: poisoning stays
-    // inside [data, data + size), which the string reads only to copy out.
-    for (index = 0U; index < fields_.size(); ++index) {
-        std::string& name = names_[index];
-        retire_region(name.data(), name.size());
+    // Names and texts are whole granule blocks, poisonable however short.
+    // A gf_value is pointer-aligned and a multiple of 8 bytes in a deque
+    // block, so each value is whole granules too.
+    for (index = 0U; index < fields_.size() && index < name_blocks_.size(); ++index) {
+        name_blocks_[index].retire();
         retire_region(&values_[index], sizeof(gf_value));
     }
     for (index = 0U; index < texts_used_; ++index) {
-        std::string& text = texts_[index];
-        retire_region(text.data(), text.size());
+        texts_[index].retire();
     }
     // The records are scribbled only: release() clears records_ next, and
     // the library's own vector annotation then poisons them where it is on.

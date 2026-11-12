@@ -356,6 +356,10 @@ if(GUI_FORMS_BUILD_TESTS)
                  COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_abi_custom_paint> -DMODE=kept_set_text
                          "-DEXPECTED=AddressSanitizer: use-after-poison"
                          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
+        add_test(NAME gui_forms_abi_custom_kept_short_set_text
+                 COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_abi_custom_paint> -DMODE=kept_short_set_text
+                         "-DEXPECTED=AddressSanitizer: use-after-poison"
+                         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
     endif()
     add_test(NAME gui_forms_abi_event_catalog_current
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_event_catalog.py --check)

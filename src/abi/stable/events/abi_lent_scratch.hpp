@@ -13,12 +13,21 @@
 // set_property that sets another property) never overwrites the text its
 // caller is still reading. The slots live in a deque, whose elements never
 // move. One thread: the owner's.
+//
+// Each lent text sits in its own LentTextBlock: a heap block that starts on
+// an AddressSanitizer granule (8 bytes) and spans whole granules. ASan
+// shadow describes a granule only as "the first k bytes addressable", so a
+// region that starts or ends inside a live granule (a short text in a
+// std::string's inline buffer) cannot be poisoned; a whole block can.
 
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 
 #include <cstddef>
 #include <cstring>
 #include <deque>
+#include <limits>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -37,62 +46,108 @@
 
 namespace gui_forms::abi1 {
 
+// One lent text in a heap block of whole granules. assign() copies a text in
+// (reclaiming the block first), retire() scribbles the whole block and, under
+// AddressSanitizer, poisons it, and the next assign() or the destructor
+// unpoisons it. new char[] returns the allocation's own start (no array
+// cookie for a trivial type) at __STDCPP_DEFAULT_NEW_ALIGNMENT__, at least
+// one granule. Neither copied nor moved: views into it are lent out.
+class LentTextBlock final {
+public:
+    LentTextBlock() = default;
+    LentTextBlock(const LentTextBlock&) = delete;
+    LentTextBlock& operator=(const LentTextBlock&) = delete;
+    ~LentTextBlock() { reclaim(); }
+
+    // Copies text into the block, growing it to a granule multiple (at
+    // least one granule) when it is too small; returns the copy. Throws
+    // std::length_error when the rounded size overflows and std::bad_alloc
+    // when growing fails; either leaves the block reclaimed and unchanged.
+    [[nodiscard]] std::string_view assign(std::string_view text) {
+        reclaim();
+        if (bytes_ == nullptr || text.size() > capacity_) {
+            const std::size_t wanted = text.size() > granule ? text.size() : granule;
+            if (wanted > std::numeric_limits<std::size_t>::max() - (granule - 1U)) {
+                throw std::length_error("lent text too long");
+            }
+            const std::size_t rounded = (wanted + (granule - 1U)) / granule * granule;
+            std::unique_ptr<char[]> grown = std::make_unique_for_overwrite<char[]>(rounded);
+            bytes_ = std::move(grown);
+            capacity_ = rounded;
+        }
+        if (!text.empty()) {
+            std::memcpy(bytes_.get(), text.data(), text.size());
+        }
+        size_ = text.size();
+        const std::string_view copy(bytes_.get(), size_);
+        return copy;
+    }
+    // Scribbles the whole block and poisons it; a block never assigned has
+    // nothing to retire.
+    void retire() noexcept {
+        if (bytes_ == nullptr || poisoned_) {
+            return;
+        }
+        std::memset(bytes_.get(), retired_byte, capacity_);
+#if defined(GUI_FORMS_LENT_SCRATCH_POISONED)
+        ASAN_POISON_MEMORY_REGION(bytes_.get(), capacity_);
+#endif
+        poisoned_ = true;
+    }
+    // Unpoisons the block if the last retire() poisoned it.
+    void reclaim() noexcept {
+        if (!poisoned_) {
+            return;
+        }
+#if defined(GUI_FORMS_LENT_SCRATCH_POISONED)
+        ASAN_UNPOISON_MEMORY_REGION(bytes_.get(), capacity_);
+#endif
+        poisoned_ = false;
+    }
+
+private:
+    // AddressSanitizer's shadow granule, in bytes.
+    static constexpr std::size_t granule = 8U;
+    // What a retired block reads as when nothing poisons it.
+    static constexpr unsigned char retired_byte = 0xA5U;
+
+    // bytes_[0, size_) is the text, [size_, capacity_) spare; capacity_ is
+    // a granule multiple, 0 only while bytes_ is null.
+    std::unique_ptr<char[]> bytes_;
+    std::size_t capacity_ = 0U;
+    std::size_t size_ = 0U;
+    bool poisoned_ = false;
+};
+
 #if GUI_FORMS_CHECKED_BORROWS
 class LentCallTexts final {
 public:
     LentCallTexts() = default;
     LentCallTexts(const LentCallTexts&) = delete;
     LentCallTexts& operator=(const LentCallTexts&) = delete;
-    // Unpoisons every retired slot before the strings are released.
-    ~LentCallTexts() {
-        std::size_t index = 0U;
-        for (index = 0U; index < slots_.size(); ++index) reclaim(slots_[index]);
-    }
 
     // Copies `text` into the next slot and returns the copy; pair with
     // retire() when the callback returns (LentCallText does).
     [[nodiscard]] std::string_view lend(std::string_view text) {
-        if (depth_ == slots_.size()) slots_.emplace_back();
-        Slot& slot = slots_[depth_];
-        reclaim(slot);
-        slot.text.assign(text);
+        if (depth_ == slots_.size()) {
+            slots_.emplace_back();
+        }
+        const std::string_view lent = slots_[depth_].assign(text);
         depth_ = depth_ + 1U;
-        const std::string_view lent = slot.text;
         return lent;
     }
-    // Ends the innermost lend: scribbles its characters and poisons them.
+    // Ends the innermost lend: scribbles its block and poisons it.
     void retire() noexcept {
-        if (depth_ == 0U) return;
+        if (depth_ == 0U) {
+            return;
+        }
         depth_ = depth_ - 1U;
-        Slot& slot = slots_[depth_];
-        if (slot.text.empty()) return;
-        std::memset(slot.text.data(), retired_byte, slot.text.size());
-#if defined(GUI_FORMS_LENT_SCRATCH_POISONED)
-        ASAN_POISON_MEMORY_REGION(slot.text.data(), slot.text.size());
-#endif
-        slot.poisoned_size = slot.text.size();
+        slots_[depth_].retire();
     }
 
 private:
-    struct Slot final {
-        std::string text{};
-        // The characters poisoned at the last retire, unpoisoned before the
-        // string is touched again; 0 when none.
-        std::size_t poisoned_size{};
-    };
-
-    // What a retired slot reads as when nothing poisons it.
-    static constexpr unsigned char retired_byte = 0xA5U;
-
-    static void reclaim(Slot& slot) noexcept {
-        if (slot.poisoned_size == 0U) return;
-#if defined(GUI_FORMS_LENT_SCRATCH_POISONED)
-        ASAN_UNPOISON_MEMORY_REGION(slot.text.data(), slot.poisoned_size);
-#endif
-        slot.poisoned_size = 0U;
-    }
-
-    std::deque<Slot> slots_;
+    // slots_[0, depth_) are lent now, the rest retired or spare.
+    std::deque<LentTextBlock> slots_;
     std::size_t depth_ = 0U;
 };
 #else

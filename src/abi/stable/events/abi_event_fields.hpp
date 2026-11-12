@@ -38,6 +38,7 @@
 #include "gui_forms/c/gf_abi.h"
 
 #include "../registry/abi_registry.hpp"
+#include "abi_lent_scratch.hpp"
 #include "../values/abi_values.hpp"
 
 #include "gui_forms/binding.hpp"
@@ -181,10 +182,12 @@ private:
     // Stable pooled storage: a deque keeps its elements in place as it
     // grows, and release() keeps them. names_[i] and values_[i] belong to
     // fields_[i] for i < fields_.size(); entries past that are spare.
-    // texts_[0, texts_used_) are this emission's texts, the rest spare.
+    // texts_[0, texts_used_) are this emission's texts, the rest spare;
+    // each sits in its own granule block (abi_lent_scratch.hpp) so the
+    // checked build can poison even a short one.
     std::deque<std::string> names_;
     std::deque<gf_value> values_;
-    std::deque<std::string> texts_;
+    std::deque<LentTextBlock> texts_;
     std::size_t texts_used_ = 0U;
     std::vector<Field> fields_;
     std::vector<gf_event_field> records_;
@@ -198,7 +201,8 @@ private:
         std::size_t size = 0U;
     };
     // Scribbles and poisons this emission's names, values, texts and
-    // records (before release() empties the fields); records each region.
+    // records (before release() empties the fields); records each value
+    // region (the name and text blocks keep their own state).
     void retire_lent_scratch() noexcept;
     // Unpoisons every recorded region and forgets them.
     void reclaim_lent_scratch() noexcept;
@@ -206,6 +210,9 @@ private:
     // are scribbled but left unpoisoned (retiring allocates nothing).
     void retire_region(void* address, std::size_t size) noexcept;
     std::vector<RetiredRegion> retired_;
+    // The names publish() lends, copied out of names_ into granule blocks:
+    // name_blocks_[i] is fields_[i]'s for i < fields_.size().
+    std::deque<LentTextBlock> name_blocks_;
 #endif
 };
 

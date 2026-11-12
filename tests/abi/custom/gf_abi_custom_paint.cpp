@@ -388,7 +388,8 @@ void run() {
 // the checked build poisoned the scratch it lent when the callback returned,
 // so the read is reported and the process ends before it prints "survived"
 // (registered only in the checked sanitizer tree, as the event fields'
-// kept_record is).
+// kept_record is). Mode `kept_short_set_text` lends a 2-byte text, shorter
+// than one ASan granule, which the scratch must still poison.
 struct KeptSetText final {
     const char* text = nullptr;
     std::uint64_t size = 0U;
@@ -409,7 +410,7 @@ gf_status GF_CALL no_kept_property(void*, gf_object, std::uint64_t, gf_value*) {
 
 void GF_CALL paint_nothing_kept(void*, gf_object, const gf_paint_target*) {}
 
-int kept_set_text_mode() {
+int kept_set_text_mode(const std::string& lent_text) {
     gf_custom_controls_table custom{};
     require_ok(gf_abi_get_table(GF_TABLE_CUSTOM_CONTROLS, GF_ABI_MAJOR, GF_ABI_MINOR, &custom, sizeof(custom)),
                "custom controls table");
@@ -433,7 +434,7 @@ int kept_set_text_mode() {
     Control::Ptr control;
     require_ok(abi1::registry().find_object(object, abi1::SlotIdentity{GF_TABLE_OBJECTS, 0U}, control),
                "find the kept-text control");
-    (*control).set_property_value("note", BindingValue{std::string("a value kept past its call")});
+    (*control).set_property_value("note", BindingValue{lent_text});
     if (kept.text == nullptr) {
         std::cerr << "FAIL: no text was lent\n";
         return 1;
@@ -446,9 +447,11 @@ int kept_set_text_mode() {
 }
 
 int main(int argc, char** argv) {
-    if (argc > 1 && std::string_view(argv[1]) == "kept_set_text") {
+    if (argc > 1 && (std::string_view(argv[1]) == "kept_set_text" || std::string_view(argv[1]) == "kept_short_set_text")) {
+        const bool short_text = std::string_view(argv[1]) == "kept_short_set_text";
+        const std::string lent_text = short_text ? std::string("ok") : std::string("a value kept past its call");
         try {
-            return kept_set_text_mode();
+            return kept_set_text_mode(lent_text);
         } catch (const std::exception& error) {
             std::cerr << "FAIL: " << error.what() << '\n';
             return 1;
