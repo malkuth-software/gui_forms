@@ -2211,7 +2211,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 208 supported, 0 deferred, 12 excluded, 337 unclassified; 200 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 209 supported, 0 deferred, 12 excluded, 336 unclassified; 200 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4181,7 +4181,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 208 supp
    * - method
      - GUI.Forms-only
      - ``on_detaching_from_window``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``on_drag``

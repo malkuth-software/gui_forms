@@ -1,8 +1,9 @@
 /* The Gallery's trees-and-object-views page (stage FD, phase FD6.3): one
    project fixture shown by a BreadcrumbTrail with a view-mode ChoiceGroup,
    a TreeView of folders, an ObjectView of the selected folder's children,
-   a CorrespondenceView ledger of its files, a DataGridView of the files and
-   a TreeListView of the whole tree. gui_forms_add_form() compiles this
+   a CorrespondenceView ledger of its files, a DataGridView of the files,
+   a TreeListView of the whole tree and, apart from the fixture, a
+   VirtualRowsView of a seeded message history. gui_forms_add_form() compiles this
    document into tree-and-object-views_form.hpp at build time.
 
    gallery.tree.document is a declared boundary only: the page moves its
@@ -12,7 +13,7 @@
    items and Value, the views' cell sizes and modes, every event handler
    and the status line's reports. */
 scaled-panel gallery.tree.document {
-  design-size: 1000 1240;
+  design-size: 1000 1560;
 
   label gallery.tree-and-object-views.heading {
     text: "TREES AND OBJECT VIEWS";
@@ -99,6 +100,24 @@ scaled-panel gallery.tree.document {
       text-wrapping: word;
       vertical-alignment: near;
       bounds: 680 36 228 140;
+    }
+  }
+
+  scaled-group-box gallery.tree.messages-group {
+    text: "VirtualRowsView · 4,000 seeded messages of varying height, measured only as they are shown";
+    design-size: 930 300;
+    bounds: 24 1232 930 300;
+    classes: "paper" "group-caption";
+    virtual-rows-view gallery.tree.messages {
+      accessible-name: "Message history";
+      bounds: 18 36 640 248;
+    }
+    label gallery.tree.messages.note {
+      text: "Every row starts at an estimated height and is measured when it first comes near the view; the rows on screen keep their place while those above are measured. Up, Down, Page Up, Page Down, Home and End move the selection; Enter activates it.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 680 36 228 200;
     }
   }
 

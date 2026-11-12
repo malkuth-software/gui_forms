@@ -378,7 +378,7 @@
       "purpose": "A very large number of owner-drawn rows of varying height on a height index: estimated heights refined lazily as rows are shown, scroll anchoring, only visible rows measured, painted and described.",
       "winforms": "GUI.Forms-only",
       "status": "provisional",
-      "gallery_page": null,
+      "gallery_page": "tree-and-object-views",
       "doc": "api/generated/gui_forms.VirtualRowsView.rst"
     },
     {

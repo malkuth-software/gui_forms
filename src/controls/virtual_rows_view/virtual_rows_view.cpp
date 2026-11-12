@@ -708,6 +708,7 @@ void VirtualRowsView::on_paint(Painter& painter, Rect) {
         painter.clip_rect(viewport_);
         VirtualRowPaint request{};
         request.painter = &painter;
+        request.view = this;
         request.enabled = effectively_enabled();
         request.mirrored = mirrored_;
         PartPaint plate;
@@ -725,6 +726,7 @@ void VirtualRowsView::on_paint(Painter& painter, Rect) {
             paint_part(painter, *this, plate);
             request.row = VirtualRowIndex{row};
             request.bounds = bounds;
+            request.states = states;
             request.selected = states.contains(AnatomyState::selected);
             request.hot = states.contains(AnatomyState::hot);
             request.focused = states.contains(AnatomyState::current);

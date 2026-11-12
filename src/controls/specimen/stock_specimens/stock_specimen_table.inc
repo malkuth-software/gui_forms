@@ -34,7 +34,7 @@
     {"object_view", "Selection from a list", Size{360.0, 180.0}, "Object view", &make_object_view, nullptr, ""},
     {"list_view", "Selection from a list", Size{360.0, 180.0}, "List view", &make_list_view, nullptr, ""},
     {"tree_list_view", "Selection from a list", Size{360.0, 180.0}, "Tree list view", &make_tree_list_view, nullptr, ""},
-    {"virtual_rows_view", "Selection from a list", Size{240.0, 144.0}, "Virtual rows view", &make_plain<VirtualRowsView>, nullptr, ""},
+    {"virtual_rows_view", "Selection from a list", Size{300.0, 180.0}, "Virtual rows view", &make_virtual_rows_view, nullptr, ""},
     {"data_grid_view", "Selection from a list", Size{380.0, 160.0}, "Data grid view", &make_data_grid_view, nullptr, ""},
     {"choice_group", "Selection from a list", Size{288.0, 32.0}, "Choice group", &make_choice_group, nullptr, ""},
     {"breadcrumb_trail", "Selection from a list", Size{320.0, 30.0}, "Breadcrumb trail", &make_breadcrumb_trail, nullptr, ""},
