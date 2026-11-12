@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <span>
@@ -63,6 +64,11 @@ struct GUI_FORMS_API IconDeclaration final {
 // joined by `.` (as the locale keys), at most 128 bytes in all; for
 // example `toolbar.save` or `check-mark`.
 [[nodiscard]] GUI_FORMS_API bool icon_identifier_valid(std::string_view identifier) noexcept;
+
+namespace engine_light {
+class LightPlaneCache;
+struct LightPlanes;
+} // namespace engine_light
 
 // The image registry and the theme of an application (stage DK decision 8),
 // shared by every Window constructed with it. In those windows an ImageId
@@ -208,6 +214,21 @@ public:
     // theme is selected; nullopt for an identifier not registered.
     [[nodiscard]] std::optional<ImageId> program_icon(std::string_view identifier) const noexcept;
 
+    // Baked light planes (engine/light_planes) for the parts of these
+    // windows that composite them (PartPaint::light_planes, such as an
+    // IndicatorLamp's lens named by its light_planes property), read from
+    // `directory` the first time each is asked for and kept
+    // (LightPlaneCache). An empty path, the default, holds none, so every
+    // such part draws its theme's look. A new directory forgets the bakes
+    // read so far and repaints every sharing window. On the UI thread
+    // (std::logic_error elsewhere).
+    void set_light_plane_directory(std::filesystem::path directory);
+    // The bake named `name` (`<directory>/<name>.f32`), or null when no
+    // directory is set or the bake is missing, defective or not a name
+    // (LightPlaneCache::lend). Throws std::bad_alloc when a read's storage
+    // cannot be had. On the UI thread (std::logic_error elsewhere).
+    [[nodiscard]] std::shared_ptr<const engine_light::LightPlanes> lend_light_planes(std::string_view name);
+
     // The windows currently sharing these resources.
     [[nodiscard]] std::size_t window_count() const noexcept { return windows_.size(); }
 
@@ -282,6 +303,8 @@ private:
     // The atlases made with these resources, observed; an expired link is an
     // atlas already destroyed.
     std::vector<std::weak_ptr<detail::ImageAtlasLink>> atlases_{};
+    // The light-plane bakes, null while no directory is set. Owned.
+    std::unique_ptr<engine_light::LightPlaneCache> light_planes_{};
 };
 
 } // namespace gui_forms

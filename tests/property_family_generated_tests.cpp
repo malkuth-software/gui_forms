@@ -288,6 +288,14 @@ void test_button_properties() {
         expect(raises == 1, "Button.selected: an equal write raises nothing");
         static_cast<void>(token);
     }
+    {
+        const bool sample = true;
+        (*control).danger = sample;
+        expect((*control).danger.read() == sample, "Button.danger: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("danger");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Button.danger: the table reads the cell");
+    }
 }
 
 void test_button_base_properties() {
@@ -1206,6 +1214,22 @@ void test_indicator_lamp_properties() {
         const std::optional<BindingValue> by_name = (*control).property_value("text");
         expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
                "IndicatorLamp.text: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"dialog_ok_up"};
+        (*control).light_planes = sample;
+        expect((*control).light_planes.read() == sample, "IndicatorLamp.light_planes: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("light_planes");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "IndicatorLamp.light_planes: the table reads the cell");
+    }
+    {
+        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10, 20, 30)};
+        (*control).lamp_color = sample;
+        expect((*control).lamp_color.read() == sample, "IndicatorLamp.lamp_color: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("lamp_color");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<Color>>::to_binding(sample),
+               "IndicatorLamp.lamp_color: the table reads the cell");
     }
 }
 

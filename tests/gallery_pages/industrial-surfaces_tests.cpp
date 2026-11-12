@@ -9,13 +9,16 @@
 namespace gallery_pages_tests {
 
 // The industrial-surfaces page (skeudoindustrial surfaces, phase 5): its
-// finish and glint swatches, the lamps' status line (no bakes are shipped,
-// so it says where they are made), the Lamps check box, and the industrial
+// finish and glint swatches, the lamps (IndicatorLamps naming their bakes,
+// each with its colour; a lamp whose bake is missing shows the theme's
+// lens), their status line (no bakes are shipped, so it says where they
+// are made), the Lamps check box that switches them, and the industrial
 // theme over the GOST paints, put on the preview group and taken off; the
 // preview's indicator lamps (Start and Stop switch Running, the Coolant
 // check box its flow lamp, and none is hit) and its danger key.
-// Compositing the lamps is covered by gui_forms_engine_light_planes_tests,
-// and the industrial package's compile by gui_forms_theme_gost_palette_tests.
+// Compositing the lamps is covered by gui_forms_engine_light_planes_tests
+// and the baked lens by gui_forms_indicator_lamp_tests, and the industrial
+// package's compile by gui_forms_theme_gost_palette_tests.
 void test_industrial_surfaces(gui_forms::Window& window) {
     select_page(window, "industrial-surfaces");
     require(window.find("gallery.industrial-surfaces.heading") != nullptr,
@@ -27,18 +30,31 @@ void test_industrial_surfaces(gui_forms::Window& window) {
 
     const std::shared_ptr<Label> bakes = std::dynamic_pointer_cast<Label>(window.find("gallery.industrial.bakes"));
     require(bakes != nullptr && !(*bakes).text.read().empty(), "the lamps' status line says what is shown");
-    const bool baked = window.find("gallery.industrial.lamp.dialog_ok") != nullptr;
+    const std::shared_ptr<IndicatorLamp> ok_lamp =
+        std::dynamic_pointer_cast<IndicatorLamp>(window.find("gallery.industrial.lamp.dialog_ok"));
+    const std::shared_ptr<IndicatorLamp> clear_lamp =
+        std::dynamic_pointer_cast<IndicatorLamp>(window.find("gallery.industrial.lamp.indicator_clear"));
+    require(ok_lamp != nullptr && clear_lamp != nullptr, "the page places its lamps as indicator lamps");
+    if (ok_lamp == nullptr || clear_lamp == nullptr) return;
+    require((*ok_lamp).light_planes.read() == "dialog_ok_up" && (*clear_lamp).light_planes.read() == "indicator_clear_up",
+            "each lamp names its bake");
+    require((*ok_lamp).lamp_color.read().has_value() && (*ok_lamp).lamp_color.read() != (*clear_lamp).lamp_color.read(),
+            "each lamp carries its own colour, so one bake serves every colour");
+    const bool baked = (*ok_lamp).light_planes_shown();
     require(baked || (*bakes).text.read().find("No light-plane bakes") != std::string::npos,
             "without bakes the status line says where they are made");
 
     const std::shared_ptr<CheckBox> lamps = std::dynamic_pointer_cast<CheckBox>(window.find("gallery.industrial.lamps"));
     require(lamps != nullptr && !(*lamps).checked.read(), "the lamps start out");
+    require((*ok_lamp).state.read() == IndicatorLampState::off, "and dark");
     click(window, lamps);
     window.perform_layout();
-    require((*lamps).checked.read(), "the Lamps check box switches them on");
+    require((*lamps).checked.read() && (*ok_lamp).state.read() == IndicatorLampState::on &&
+                (*clear_lamp).state.read() == IndicatorLampState::on,
+            "the Lamps check box switches them on");
     click(window, lamps);
     window.perform_layout();
-    require(!(*lamps).checked.read(), "and off");
+    require(!(*lamps).checked.read() && (*ok_lamp).state.read() == IndicatorLampState::off, "and off");
 
     const std::shared_ptr<ScaledGroupBox> preview =
         std::dynamic_pointer_cast<ScaledGroupBox>(window.find("gallery.industrial.preview"));

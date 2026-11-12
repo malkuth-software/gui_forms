@@ -1,6 +1,8 @@
 #include "gui_forms/controls/indicator_lamp.hpp"
 
 #include "gui_forms/engine/light_planes/light_planes.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
@@ -90,6 +92,26 @@ ControlVisualRole lit_family(IndicatorLampState state) noexcept {
     return family;
 }
 
+// The largest rectangle of `bake`'s aspect inside `box`: at its start (its
+// end when `mirrored`) and centred across, its top on a whole unit. Empty
+// at the box's origin for an empty bake or box.
+Rect bake_rect(const engine_light::LightPlanes& bake, Rect box, bool mirrored) noexcept {
+    if (bake.width == 0U || bake.height == 0U || !(box.width > 0.0) || !(box.height > 0.0)) {
+        return Rect{box.x, box.y, 0.0, 0.0};
+    }
+    const double aspect = static_cast<double>(bake.height) / static_cast<double>(bake.width);
+    double width = box.width;
+    double height = width * aspect;
+    if (height > box.height) {
+        height = box.height;
+        width = height / aspect;
+    }
+    const double left = mirrored ? box.x + box.width - width : box.x;
+    const double top = box.y + std::floor((box.height - height) * 0.5);
+    const Rect fitted{left, top, width, height};
+    return fitted;
+}
+
 } // namespace
 
 IndicatorLamp::IndicatorLamp(StableId stable_id, std::string initial_text) : Control(std::move(stable_id)) {
@@ -111,6 +133,30 @@ bool IndicatorLamp::changing() const noexcept {
     return running;
 }
 
+std::shared_ptr<const engine_light::LightPlanes> IndicatorLamp::shown_bake() const {
+    const std::string& name = light_planes.read();
+    if (name.empty()) return nullptr;
+    const SurfaceRoot* const root = attached_surface_root();
+    if (root == nullptr) return nullptr;
+    if (part_visual_context(*this, base_anatomy_states()).high_contrast) return nullptr;
+    const std::shared_ptr<ApplicationResources> resources = (*root).resources();
+    if (!resources) return nullptr;
+    std::shared_ptr<const engine_light::LightPlanes> bake = (*resources).lend_light_planes(name);
+    return bake;
+}
+
+bool IndicatorLamp::light_planes_shown() const {
+    const bool shown = shown_bake() != nullptr;
+    return shown;
+}
+
+engine_light::LampColour IndicatorLamp::lit_colour() const noexcept {
+    if (lit_state_ == IndicatorLampState::error) return engine_light::lamp_red;
+    const std::optional<Color> chosen = lamp_color.read();
+    if (chosen) return engine_light::lamp_colour_from_srgb(*chosen);
+    return engine_light::lamp_amber;
+}
+
 FontSpec IndicatorLamp::legend_font() const noexcept {
     const FontSpec font = text_font(effective_theme().structure().typography.control);
     return font;
@@ -124,7 +170,9 @@ bool IndicatorLamp::reduced_motion() const noexcept {
 
 // A lens alone fills the shorter side of the client area; beside a legend
 // the bezel is legend_bezel_side, or the client height when that is less.
-IndicatorLamp::Placement IndicatorLamp::placement() const {
+// A baked lens is the bake's aspect fitted in the client area without a
+// legend, else in the bezel's square, and the bezel is the same rectangle.
+IndicatorLamp::Placement IndicatorLamp::placement(const engine_light::LightPlanes* bake) const {
     const Rect client = client_rectangle();
     Placement placed;
     const bool legend = !text.read().empty();
@@ -136,6 +184,11 @@ IndicatorLamp::Placement IndicatorLamp::placement() const {
     placed.bezel = Rect{left, top, side, side};
     const double ring = std::min(bezel_ring, side * 0.25);
     placed.lens = Rect{left + ring, top + ring, std::max(0.0, side - 2.0 * ring), std::max(0.0, side - 2.0 * ring)};
+    if (bake != nullptr) {
+        const Rect box = legend ? placed.bezel : client;
+        placed.lens = bake_rect(*bake, box, mirrored);
+        placed.bezel = placed.lens;
+    }
     if (!legend) return placed;
     const double label_width = std::max(0.0, client.width - side - legend_gap);
     const double label_left = mirrored ? client.x : client.x + side + legend_gap;
@@ -162,8 +215,25 @@ Size IndicatorLamp::measure(Size available) {
 
 void IndicatorLamp::on_paint(Painter& painter, Rect) {
     change_timer_.note_painted();
-    const Placement placed = placement();
+    std::shared_ptr<const engine_light::LightPlanes> bake = shown_bake();
+    const Placement placed = placement(bake.get());
     const AnatomyStateSet states = base_anatomy_states();
+    if (bake) {
+        paint_baked_lens(painter, placed, states, std::move(bake));
+    } else {
+        paint_theme_lens(painter, placed, states);
+    }
+    if (text.read().empty()) return;
+    PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = with_lit_state(states, state.read()),
+                    .family = ControlVisualRole::panel};
+    label.text = lend_paint_text(text.read());
+    label.font = legend_font();
+    label.alignment = effective_layout_direction() == LayoutDirection::right_to_left ? PartTextAlignment::end
+                                                                                     : PartTextAlignment::start;
+    paint_part(painter, *this, label);
+}
+
+void IndicatorLamp::paint_theme_lens(Painter& painter, const Placement& placed, AnatomyStateSet states) {
     PartPaint bezel{.role = PartRole::well, .bounds = placed.bezel, .states = with_lit_state(states, state.read()),
                     .family = ControlVisualRole::panel};
     bezel.corner_radius = placed.bezel.width * 0.5;
@@ -183,6 +253,10 @@ void IndicatorLamp::on_paint(Painter& painter, Rect) {
         lit_lens.family = lit_family(lit_state_);
         // The lit lens keeps its own record, so the dark lens's stays.
         lit_lens.key = PartKey{"lens", "lit", {}};
+        // The application's lamp colour fills the lit lens (on only: an
+        // error keeps the theme's error colour).
+        const std::optional<Color> chosen = lamp_color.read();
+        if (chosen && lit_state_ == IndicatorLampState::on) lit_lens.authored_background = *chosen;
         painter.begin_group(PaintGroup{.bounds = placed.lens, .opacity = std::min(1.0, power_)});
         painter.save();
         painter.clip_rounded_rect(placed.lens, radius);
@@ -190,14 +264,24 @@ void IndicatorLamp::on_paint(Painter& painter, Rect) {
         painter.restore();
         painter.end_group();
     }
-    if (text.read().empty()) return;
-    PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = with_lit_state(states, state.read()),
-                    .family = ControlVisualRole::panel};
-    label.text = lend_paint_text(text.read());
-    label.font = legend_font();
-    label.alignment = effective_layout_direction() == LayoutDirection::right_to_left ? PartTextAlignment::end
-                                                                                     : PartTextAlignment::start;
-    paint_part(painter, *this, label);
+}
+
+// One part, the lens, lit by the bake at the current power (0 shows the
+// lamp dark in the room's light). It carries the lit states and family
+// while lit, so that the recipe that stands in for a bake that cannot be
+// shown (no raster of its size) still tells lit from dark.
+void IndicatorLamp::paint_baked_lens(Painter& painter, const Placement& placed, AnatomyStateSet states,
+                                     std::shared_ptr<const engine_light::LightPlanes> bake) {
+    const bool lit_now = power_ > 0.0 && lit(lit_state_);
+    PartPaint lens{.role = PartRole::indicator, .bounds = placed.lens,
+                   .states = lit_now ? with_lit_state(states, lit_state_) : states,
+                   .family = lit_now ? lit_family(lit_state_) : ControlVisualRole::choice};
+    lens.key = PartKey{"lens", {}, {}};
+    const double power = lit_now ? std::min(1.0, power_) : 0.0;
+    lens.light_planes = PartLightPlanes{.planes = std::move(bake),
+                                        .drive = engine_light::LampDrive{lit_colour(), power},
+                                        .raster = &baked_lens_};
+    paint_part(painter, *this, lens);
 }
 
 // A lamp takes no input: the pointer reaches whatever lies beneath it.
@@ -225,7 +309,8 @@ AnatomyStateSet IndicatorLamp::anatomy_states() const {
 }
 
 void IndicatorLamp::publish_part_geometry(std::span<PartGeometry> geometry) const {
-    const Placement placed = placement();
+    const std::shared_ptr<const engine_light::LightPlanes> bake = shown_bake();
+    const Placement placed = placement(bake.get());
     Parts record;
     record.region = PartGeometry::from_bounds(client_rectangle());
     record.bezel = PartGeometry::from_bounds(placed.bezel);
@@ -283,6 +368,7 @@ AnimationTickResult IndicatorLamp::ChangeTick::operator()(FrameTime now) const {
 void IndicatorLamp::on_detached_from_window() noexcept {
     Control::on_detached_from_window();
     change_timer_.stop();
+    baked_lens_.release();
     // A lamp warming or cooling while away shows its end state when shown
     // again.
     power_ = engine_light::lamp_power(lit(state.read()), engine_light::lamp_strike_seconds, true);
@@ -341,6 +427,43 @@ const PropertyDescriptor& describe_indicator_lamp_text() {
     return descriptor;
 }
 
+PropertyDescriptor indicator_lamp_light_planes_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "light_planes";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "The baked light planes the lens is composited from, by name.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_indicator_lamp_light_planes() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        indicator_lamp_light_planes_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor indicator_lamp_lamp_color_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "lamp_color";
+    descriptor.kind = BindingValueKind::color;
+    descriptor.category = "Appearance";
+    descriptor.description = "The colour the lens lights in while on.";
+    descriptor.default_value = BindingValue{};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.nullable = true;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_indicator_lamp_lamp_color() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        indicator_lamp_lamp_color_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 PropertyType PropertyValueTraits<IndicatorLampState>::type() {
@@ -363,7 +486,7 @@ IndicatorLampState PropertyValueTraits<IndicatorLampState>::from_binding(const B
 }
 
 const std::array<PropertyEntry, IndicatorLamp::indicator_lamp_property_count>& IndicatorLamp::indicator_lamp_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 2U> own{{
+    static constexpr std::array<PropertyEntry, 4U> own{{
         {"state", &describe_indicator_lamp_state,
          &read_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::state), &IndicatorLamp::state>,
          &write_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::state), &IndicatorLamp::state>,
@@ -372,6 +495,16 @@ const std::array<PropertyEntry, IndicatorLamp::indicator_lamp_property_count>& I
         {"text", &describe_indicator_lamp_text,
          &read_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::text), &IndicatorLamp::text>,
          &write_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::text), &IndicatorLamp::text>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"light_planes", &describe_indicator_lamp_light_planes,
+         &read_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::light_planes), &IndicatorLamp::light_planes>,
+         &write_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::light_planes), &IndicatorLamp::light_planes>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"lamp_color", &describe_indicator_lamp_lamp_color,
+         &read_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::lamp_color), &IndicatorLamp::lamp_color>,
+         &write_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::lamp_color), &IndicatorLamp::lamp_color>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};
@@ -395,6 +528,25 @@ void IndicatorLamp::prepare_write(const decltype(text)&, std::string& incoming) 
 
 void IndicatorLamp::written(const decltype(text)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+void IndicatorLamp::prepare_write(const decltype(light_planes)&, std::string& incoming) {
+    require_mutable();
+    if (!incoming.empty() && !engine_light::light_plane_name_valid(incoming)) {
+        throw std::invalid_argument("IndicatorLamp light_planes must name a bake: lower-case letters, digits and '_'");
+    }
+}
+
+void IndicatorLamp::written(const decltype(light_planes)&) {
+    invalidate(Dirty::measure | Dirty::paint);
+}
+
+void IndicatorLamp::prepare_write(const decltype(lamp_color)&, std::optional<Color>&) {
+    require_mutable();
+}
+
+void IndicatorLamp::written(const decltype(lamp_color)&) {
+    invalidate(Dirty::paint);
 }
 
 // property_codemod end IndicatorLamp

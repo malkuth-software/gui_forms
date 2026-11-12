@@ -233,6 +233,10 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`IndicatorLampCapabilities <gui_forms::IndicatorLampCapabilities>`
      - Every IndicatorLamp capability, in the order the declaring class takes them.
+   * - :cpp:class:`IndicatorLampLampColorCapability <gui_forms::IndicatorLampLampColorCapability>`
+     - The colour the lens lights in while on, as sRGB, or empty for the theme's.
+   * - :cpp:class:`IndicatorLampLightPlanesCapability <gui_forms::IndicatorLampLightPlanesCapability>`
+     - The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise).
    * - :cpp:class:`IndicatorLampStateChoiceCapability <gui_forms::IndicatorLampStateChoiceCapability>`
      - Whether the lamp is off, on or showing an error.
    * - :cpp:class:`IndicatorLampTextCapability <gui_forms::IndicatorLampTextCapability>`
@@ -1885,7 +1889,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Declaring>, public IndicatorLampTextCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Declaring>, public IndicatorLampTextCapability<Declaring>, public IndicatorLampLightPlanesCapability<Declaring>, public IndicatorLampLampColorCapability<Declaring>
 
    ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
 
@@ -1901,6 +1905,44 @@ Related types
    .. cpp:member:: std::string text
 
       The legend beside the lens, which also names the lamp to assistive technology; empty for a lens alone. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string light_planes
+
+      The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise). With the bake present the lens takes its aspect and whole look, its body included, and the bezel gives way; without it, and in forced high contrast, the theme's lens is drawn.
+
+   .. cpp:member:: std::optional<Color> lamp_color
+
+      The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampLampColorCapability
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(IndicatorLampLampColorCapability& capability, std::optional<Color> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampLightPlanesCapability
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise). With the bake present the lens takes its aspect and whole look, its body included, and the bezel gives way; without it, and in forced high contrast, the theme's lens is drawn.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(IndicatorLampLightPlanesCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, IndicatorLampLightPlanesCapability<Declaring>> light_planes
 
 .. cpp:namespace:: gui_forms
 

@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2036 | 13 | 367 | 4110 | 2135 |
+| 2041 | 13 | 367 | 4108 | 2138 |
 
 ## GUI.Forms types
 
@@ -17,7 +17,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Control` | `Control` | 231 | 0 | 12 | 312 | 198 |
 | `Component` | `Component` | 9 | 0 | 0 | 11 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 37 | 22 |
-| `Button` | `Button` | 6 | 0 | 0 | 10 | 9 |
+| `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
 | `DropDownButton` | `ToolStripSplitButton` | 6 | 0 | 0 | 18 | 5 |
 | `LinkLabel` | `LinkLabel` | 1 | 0 | 0 | 17 | 0 |
 | `CommandBar` | `ToolStrip` | 5 | 0 | 2 | 71 | 3 |
@@ -29,7 +29,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Label` | `Label` | 7 | 0 | 1 | 36 | 9 |
 | `TextBlock` | GUI.Forms-only | 3 | 0 | 0 | 7 | 10 |
 | `Badge` | GUI.Forms-only | 3 | 0 | 0 | 4 | 7 |
-| `IndicatorLamp` | GUI.Forms-only | 1 | 0 | 0 | 5 | 6 |
+| `IndicatorLamp` | GUI.Forms-only | 4 | 0 | 0 | 5 | 9 |
 | `InfoBanner` | GUI.Forms-only | 3 | 0 | 0 | 5 | 8 |
 | `EmptyState` | GUI.Forms-only | 2 | 0 | 0 | 3 | 5 |
 | `Toast` | GUI.Forms-only | 4 | 0 | 0 | 1 | 5 |
@@ -303,5 +303,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1633 |
-| `untested` | 901 |
+| `untested` | 899 |
 | `w-open` | 5 |

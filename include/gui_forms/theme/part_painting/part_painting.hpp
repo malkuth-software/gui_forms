@@ -2,6 +2,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/engine/light_planes/light_planes.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
@@ -9,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string_view>
 
@@ -144,6 +146,18 @@ struct GUI_FORMS_API PartProfile final {
     Color flare_colour{};
     double edge_shadow{};
     Color edge_shadow_colour{};
+};
+
+// A part composited from baked light planes (skeudoindustrial surfaces;
+// engine/light_planes): the bake, the one drive every lamp of it takes, and
+// the composite its control keeps between paints. See
+// PartPaint::light_planes.
+struct GUI_FORMS_API PartLightPlanes final {
+    std::shared_ptr<const engine_light::LightPlanes> planes{};
+    engine_light::LampDrive drive{};
+    // The control's kept composite (a member of the control), borrowed for
+    // the call; with none the part takes its recipe.
+    engine_light::LightPlaneRaster* raster{};
 };
 
 // PartPaint::text is lent for one paint call (borrow sanitizer study,
@@ -315,6 +329,18 @@ struct GUI_FORMS_API PartPaint final {
     // The arc and needle roles' angles (PartArc), or none, when neither
     // draws. Every other role ignores them.
     std::optional<PartArc> arc{};
+    // The baked light planes the part is composited from (PartLightPlanes),
+    // or none. Such a part is drawn as the bake's light, room · R +
+    // Σ colour · power · L_i toned (engine_light::composite_light_planes),
+    // stretched over `bounds` at the window's scale, in place of its recipe
+    // and of any primitive a rule would choose: the bake carries the part's
+    // whole look, its body included. The composite is transparent where the
+    // bake's coverage is 0, so its light never reaches past the part; a
+    // part with a corner radius is clipped to that shape as well. The
+    // recipe draws the part instead in forced high contrast, where the
+    // role's colours stand, and when no raster of the part's size can be
+    // made (ornament gives way first).
+    std::optional<PartLightPlanes> light_planes{};
 };
 
 // The theme context a part's states select: hot, pressed or captured,

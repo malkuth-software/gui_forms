@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/engine/light_planes/light_planes.hpp"
 #include "gui_forms/controls/indicator_lamp_values.hpp"
 #include "gui_forms/controls/indicator_lamp_capabilities.hpp"
 
@@ -32,6 +33,16 @@ namespace gui_forms {
 // To assistive technology a lamp is static text named by its accessible
 // name or else its legend, with its state as the value ("on", "off" or
 // "error"), so the state never rests on colour alone.
+//
+// A lamp may show baked light (skeudoindustrial surfaces): its lens is
+// then composited from the bake its light_planes property names, read
+// through its window's resources (ApplicationResources::
+// set_light_plane_directory), with every lamp of the bake lit in
+// lamp_color at the warm-up's power, so one bake serves every colour. The
+// bake carries the lens's whole look, its body included: the lens takes the
+// bake's aspect (the largest such rectangle in the client area without a
+// legend, else in the bezel's square), and the bezel gives way. Without the
+// bake, and in forced high contrast, the theme's lens is drawn.
 class GUI_FORMS_API IndicatorLamp final : public Control, public IndicatorLampCapabilities<IndicatorLamp> {
 public:
     explicit IndicatorLamp(StableId stable_id, std::string text = {});
@@ -43,6 +54,9 @@ public:
     }
     // Whether a warm-up or cool-down is running.
     [[nodiscard]] bool changing() const noexcept;
+    // Whether the lens is composited from its bake now: light_planes names
+    // one that the window's resources hold, outside forced high contrast.
+    [[nodiscard]] bool light_planes_shown() const;
     // The value the lamp reports to assistive technology for `state`.
     [[nodiscard]] static std::string_view state_name(IndicatorLampState state) noexcept;
 
@@ -82,7 +96,20 @@ private:
         Rect lens{};
         Rect label{};
     };
-    [[nodiscard]] Placement placement() const;
+    // `bake`, when not null, is the bake the lens is composited from.
+    [[nodiscard]] Placement placement(const engine_light::LightPlanes* bake) const;
+    // The bake light_planes names, from the window's resources; null when
+    // none is named or held, outside a window, or in forced high contrast.
+    [[nodiscard]] std::shared_ptr<const engine_light::LightPlanes> shown_bake() const;
+    // The lit lamp's colour at unit power: lamp red for an error, else
+    // lamp_color, else lamp amber.
+    [[nodiscard]] engine_light::LampColour lit_colour() const noexcept;
+    // The lens drawn as the theme's: the dark lens, then the lit lens over
+    // it at the current power, clipped to the lens.
+    void paint_theme_lens(Painter& painter, const Placement& placed, AnatomyStateSet states);
+    // The lens composited from `bake` at the current power.
+    void paint_baked_lens(Painter& painter, const Placement& placed, AnatomyStateSet states,
+                          std::shared_ptr<const engine_light::LightPlanes> bake);
     [[nodiscard]] FontSpec legend_font() const noexcept;
     [[nodiscard]] bool reduced_motion() const noexcept;
     // Starts the change to the state just written: at once, or a warm-up or
@@ -99,21 +126,30 @@ private:
     std::optional<FrameTime> changed_at_{};
     double cooling_from_{};
     AnimationTimer change_timer_;
+    // The baked lens's last composite, kept between paints; released when
+    // the lamp leaves its window.
+    engine_light::LightPlaneRaster baked_lens_{};
     // property_codemod begin IndicatorLamp (tools/property_families/indicator_lamp.json; generated, do not edit)
 public:
     // IndicatorLamp's property table: Control's entries, then its own.
-    static constexpr std::size_t indicator_lamp_property_count = Control::control_property_count + 2U;
+    static constexpr std::size_t indicator_lamp_property_count = Control::control_property_count + 4U;
     [[nodiscard]] static const std::array<PropertyEntry, indicator_lamp_property_count>& indicator_lamp_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
 private:
     friend struct IndicatorLampStateChoiceCapability<IndicatorLamp>;
     friend struct IndicatorLampTextCapability<IndicatorLamp>;
+    friend struct IndicatorLampLightPlanesCapability<IndicatorLamp>;
+    friend struct IndicatorLampLampColorCapability<IndicatorLamp>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(state)& cell, IndicatorLampState& incoming);
     void written(const decltype(state)& cell);
     void prepare_write(const decltype(text)& cell, std::string& incoming);
     void written(const decltype(text)& cell);
+    void prepare_write(const decltype(light_planes)& cell, std::string& incoming);
+    void written(const decltype(light_planes)& cell);
+    void prepare_write(const decltype(lamp_color)& cell, std::optional<Color>& incoming);
+    void written(const decltype(lamp_color)& cell);
     // property_codemod end IndicatorLamp
 };
 
