@@ -1,7 +1,6 @@
 // Application-scope windowing on AppKit (stage DK phase W0, decisions 6 and
-// 7): run_macos_application and the run's HostWindowing, which the window
-// delegates reach through the mac_run_* functions
-// (macos_window_delegates.hpp).
+// 7). Included inside macos_host.mm's gui_forms::host namespace after the
+// native request helpers; it defines run_macos_application.
 //
 // Desktop units: AppKit screen coordinates are points (logical units) with
 // the origin at the bottom left of the primary screen. Frames, the pointer
@@ -13,30 +12,6 @@
 // runtime window that closed is released from the main queue after the
 // close has unwound (dispatch_async_f), so no view is released inside one of
 // its own events.
-
-#include "macos_host_private.hpp"
-#include "macos_bundled_fonts.hpp"
-#include "macos_main_work.hpp"
-#include "macos_values.hpp"
-#include "macos_window_delegates.hpp"
-#include "macos_window_requests.hpp"
-#include "../view/macos_view.hpp"
-
-namespace gui_forms::host {
-
-class StableWindowIdEquals final {
-public:
-    explicit StableWindowIdEquals(std::string_view stable_id) noexcept
-        : stable_id_(stable_id) {}
-
-    bool operator()(const MacApplicationWindow& candidate) const noexcept
-    {
-        return candidate.stable_id == stable_id_;
-    }
-
-private:
-    std::string_view stable_id_;
-};
 
 namespace {
 double desktop_top() {
@@ -905,5 +880,3 @@ int run_macos_application(std::vector<MacApplicationWindow> windows,
     }
     return exitCode;
 }
-
-} // namespace gui_forms::host

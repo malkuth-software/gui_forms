@@ -2,33 +2,15 @@
 // a borderless non-activating panel at the floating level that ignores the
 // mouse, centred on the main screen, shown before Application::create. Its
 // view keeps one CGImage of the last frame, painted by paint_splashscreen
-// into a CPU raster with the bundle's fonts.
-
-#include "macos_host_private.hpp"
-#include "macos_bundled_fonts.hpp"
+// into a CPU raster with the bundle's fonts. Included by macos_host.mm at
+// global scope (Objective-C classes cannot be declared in a namespace).
 
 #include <pthread.h>
 
 @interface GUIFormsSplashView : NSView
 // The frame to draw (retained by the view), or null.
 - (void)setFrameImage:(CGImageRef)image;
-// The bodies of this class's native entries (the AppKit overrides below):
-// each entry calls its answer through the fail-fast boundary
-// (call_failing_fast).
-- (void)answerDrawRect:(NSRect)dirtyRect;
-- (void)answerDealloc;
 @end
-
-namespace {
-// The named targets the fail-fast boundary (call_failing_fast) calls for
-// GUIFormsSplashView's native entries: each sends the entry's answer message.
-void run_splash_view_draw_rect(GUIFormsSplashView* object, NSRect dirtyRect) {
-    [object answerDrawRect:dirtyRect];
-}
-void run_splash_view_dealloc(__unsafe_unretained GUIFormsSplashView* object) {
-    [object answerDealloc];
-}
-} // namespace
 
 @implementation GUIFormsSplashView {
     CGImageRef _frameImage;
@@ -45,10 +27,6 @@ void run_splash_view_dealloc(__unsafe_unretained GUIFormsSplashView* object) {
 }
 
 - (void)drawRect:(NSRect)dirtyRect {
-    gui_forms::detail::call_failing_fast("macos.splash_view.drawRect:", &run_splash_view_draw_rect, self, dirtyRect);
-}
-
-- (void)answerDrawRect:(NSRect)dirtyRect {
     static_cast<void>(dirtyRect);
     if (_frameImage == nullptr) return;
     CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
@@ -56,10 +34,6 @@ void run_splash_view_dealloc(__unsafe_unretained GUIFormsSplashView* object) {
 }
 
 - (void)dealloc {
-    gui_forms::detail::call_failing_fast("macos.splash_view.dealloc", &run_splash_view_dealloc, self);
-}
-
-- (void)answerDealloc {
     if (_frameImage != nullptr) CGImageRelease(_frameImage);
     _frameImage = nullptr;
 }

@@ -1,11 +1,8 @@
 #include "linux_accessibility.hpp"
-
 #include "../../../core/failure/fail_fast.hpp"
-
 #include <atk/atk.h>
 #include <atk-bridge.h>
 #include <gio/gio.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -18,7 +15,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
 namespace gui_forms::host::linux_detail {
 namespace {
 // Every function in this file runs on the UI thread: ATK entry points are
@@ -68,21 +64,11 @@ struct NodeData {
     // holds just {0}.
     std::vector<std::size_t> character_starts{0U};
 };
-// The instance layout of every published object type: GObject allocates
-// and zero-fills it; instance_init creates `data`, finalize deletes it.
-struct NativeAccessible {
-    AtkObject parent;
-    NodeData* data;
-};
-NodeData& data(gpointer object) {
-    NativeAccessible& accessible = *static_cast<NativeAccessible*>(object);
-    return *accessible.data;
-}
+struct NativeAccessible { AtkObject parent; NodeData* data; };
+NodeData& data(gpointer object) { return *(*static_cast<NativeAccessible*>(object)).data; }
 AtkObject* application_root = nullptr;
 std::size_t bridge_count = 0;
-AtkObject* root_object() {
-    return application_root;
-}
+AtkObject* root_object() { return application_root; }
 
 // The session bus's accessibility status, org.a11y.Status on org.a11y.Bus
 // at /org/a11y/bus (audit N103): while neither IsEnabled nor
@@ -115,16 +101,14 @@ bool bus_status_listening() {
 // its value.
 void read_bus_status(GVariant* properties) {
     gboolean value = FALSE;
-    if (g_variant_lookup(properties, "IsEnabled", "b", &value)) {
-        bus_status.is_enabled = value != FALSE;
-    }
+    if (g_variant_lookup(properties, "IsEnabled", "b", &value)) bus_status.is_enabled = value != FALSE;
     if (g_variant_lookup(properties, "ScreenReaderEnabled", "b", &value)) {
         bus_status.screen_reader_enabled = value != FALSE;
     }
 }
 // PropertiesChanged: (s a{sv} as).
 void answer_bus_status_changed(GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*,
-                               GVariant* parameters, gpointer) {
+                        GVariant* parameters, gpointer) {
     const gchar* changed_interface = nullptr;
     GVariant* changed = nullptr;
     GVariant* invalidated = nullptr;
@@ -133,11 +117,8 @@ void answer_bus_status_changed(GDBusConnection*, const gchar*, const gchar*, con
     g_variant_unref(changed);
     g_variant_unref(invalidated);
 }
-void bus_status_changed(GDBusConnection* unnamed_0, const gchar* unnamed_1, const gchar* unnamed_2,
-                        const gchar* unnamed_3, const gchar* unnamed_4, GVariant* parameters,
-                        gpointer unnamed_6) {
-    gui_forms::detail::call_failing_fast("linux.atk.bus_status_changed", &answer_bus_status_changed, unnamed_0,
-                                         unnamed_1, unnamed_2, unnamed_3, unnamed_4, parameters, unnamed_6);
+void bus_status_changed(GDBusConnection* unnamed_0, const gchar* unnamed_1, const gchar* unnamed_2, const gchar* unnamed_3, const gchar* unnamed_4, GVariant* parameters, gpointer unnamed_6) {
+    gui_forms::detail::call_failing_fast("linux.atk.bus_status_changed", &answer_bus_status_changed, unnamed_0, unnamed_1, unnamed_2, unnamed_3, unnamed_4, parameters, unnamed_6);
 }
 // GetAll's reply: (a{sv}). A failed or cancelled read keeps the status.
 void answer_bus_status_received(GObject* source, GAsyncResult* result, gpointer) {
@@ -154,8 +135,7 @@ void answer_bus_status_received(GObject* source, GAsyncResult* result, gpointer)
     g_variant_unref(reply);
 }
 void bus_status_received(GObject* source, GAsyncResult* result, gpointer unnamed_2) {
-    gui_forms::detail::call_failing_fast("linux.atk.bus_status_received", &answer_bus_status_received, source,
-                                         result, unnamed_2);
+    gui_forms::detail::call_failing_fast("linux.atk.bus_status_received", &answer_bus_status_received, source, result, unnamed_2);
 }
 // The session bus, once connected: subscribes to the status and reads it.
 void answer_bus_status_connected(GObject*, GAsyncResult* result, gpointer) {
@@ -174,14 +154,12 @@ void answer_bus_status_connected(GObject*, GAsyncResult* result, gpointer) {
     bus_status.subscription = g_dbus_connection_signal_subscribe(
         connection, bus_status_name, "org.freedesktop.DBus.Properties", "PropertiesChanged", bus_status_path,
         bus_status_interface, G_DBUS_SIGNAL_FLAGS_NONE, bus_status_changed, nullptr, nullptr);
-    GVariant* const arguments = g_variant_new("(s)", bus_status_interface);
     g_dbus_connection_call(connection, bus_status_name, bus_status_path, "org.freedesktop.DBus.Properties", "GetAll",
-                           arguments, G_VARIANT_TYPE("(a{sv})"), G_DBUS_CALL_FLAGS_NO_AUTO_START, -1,
-                           bus_status.cancellable, bus_status_received, nullptr);
+                           g_variant_new("(s)", bus_status_interface), G_VARIANT_TYPE("(a{sv})"),
+                           G_DBUS_CALL_FLAGS_NO_AUTO_START, -1, bus_status.cancellable, bus_status_received, nullptr);
 }
 void bus_status_connected(GObject* unnamed_0, GAsyncResult* result, gpointer unnamed_2) {
-    gui_forms::detail::call_failing_fast("linux.atk.bus_status_connected", &answer_bus_status_connected, unnamed_0,
-                                         result, unnamed_2);
+    gui_forms::detail::call_failing_fast("linux.atk.bus_status_connected", &answer_bus_status_connected, unnamed_0, result, unnamed_2);
 }
 void bus_status_start() {
     if (bus_status.cancellable != nullptr) return;
@@ -194,26 +172,19 @@ void bus_status_stop() {
     if (bus_status.cancellable == nullptr) return;
     g_cancellable_cancel(bus_status.cancellable);
     if (bus_status.connection != nullptr) {
-        if (bus_status.subscription != 0U) {
-            g_dbus_connection_signal_unsubscribe(bus_status.connection, bus_status.subscription);
-        }
+        if (bus_status.subscription != 0U) g_dbus_connection_signal_unsubscribe(bus_status.connection, bus_status.subscription);
         g_object_unref(bus_status.connection);
     }
     g_object_unref(bus_status.cancellable);
     bus_status = AccessibilityBusStatus{};
 }
-const gchar* toolkit_name() {
-    return "GUI.Forms";
-}
-const gchar* toolkit_version() {
-    return "0.2";
-}
+const gchar* toolkit_name() { return "GUI.Forms"; }
+const gchar* toolkit_version() { return "0.2"; }
 
 AtkRole native_role(SemanticRole role) {
     switch (role) {
     case SemanticRole::button: return ATK_ROLE_PUSH_BUTTON;
-    case SemanticRole::check_box:
-    case SemanticRole::check_list_item: return ATK_ROLE_CHECK_BOX;
+    case SemanticRole::check_box: case SemanticRole::check_list_item: return ATK_ROLE_CHECK_BOX;
     // ATK has no switch role; GTK publishes its switch as a toggle button.
     case SemanticRole::toggle_switch: return ATK_ROLE_TOGGLE_BUTTON;
     case SemanticRole::radio_button: return ATK_ROLE_RADIO_BUTTON;
@@ -236,8 +207,7 @@ AtkRole native_role(SemanticRole role) {
     case SemanticRole::tab_group: return ATK_ROLE_PAGE_TAB_LIST;
     case SemanticRole::menu_bar: return ATK_ROLE_MENU_BAR;
     case SemanticRole::menu: return ATK_ROLE_MENU;
-    case SemanticRole::menu_item:
-    case SemanticRole::menu_bar_item: return ATK_ROLE_MENU_ITEM;
+    case SemanticRole::menu_item: case SemanticRole::menu_bar_item: return ATK_ROLE_MENU_ITEM;
     case SemanticRole::tool_tip: return ATK_ROLE_TOOL_TIP;
     case SemanticRole::separator: return ATK_ROLE_SEPARATOR;
     case SemanticRole::link: return ATK_ROLE_LINK;
@@ -285,26 +255,16 @@ AtkRole native_role(SemanticRole role) {
 // The semantic states and the ATK states that publish them. The semantic
 // enabled state is both ATK's enabled and sensitive, and visible is both
 // visible and showing, as GTK publishes them.
-struct StateMapping final {
-    SemanticState source;
-    AtkStateType target;
-};
+struct StateMapping final { SemanticState source; AtkStateType target; };
 constexpr StateMapping state_mappings[] = {
-    {SemanticState::enabled, ATK_STATE_ENABLED},
-    {SemanticState::enabled, ATK_STATE_SENSITIVE},
-    {SemanticState::visible, ATK_STATE_VISIBLE},
-    {SemanticState::visible, ATK_STATE_SHOWING},
-    {SemanticState::focusable, ATK_STATE_FOCUSABLE},
-    {SemanticState::focused, ATK_STATE_FOCUSED},
-    {SemanticState::selected, ATK_STATE_SELECTED},
-    {SemanticState::checked, ATK_STATE_CHECKED},
-    {SemanticState::mixed, ATK_STATE_INDETERMINATE},
-    {SemanticState::expanded, ATK_STATE_EXPANDED},
-    {SemanticState::busy, ATK_STATE_BUSY},
-    {SemanticState::read_only, ATK_STATE_READ_ONLY},
+    {SemanticState::enabled, ATK_STATE_ENABLED}, {SemanticState::enabled, ATK_STATE_SENSITIVE},
+    {SemanticState::visible, ATK_STATE_VISIBLE}, {SemanticState::visible, ATK_STATE_SHOWING},
+    {SemanticState::focusable, ATK_STATE_FOCUSABLE}, {SemanticState::focused, ATK_STATE_FOCUSED},
+    {SemanticState::selected, ATK_STATE_SELECTED}, {SemanticState::checked, ATK_STATE_CHECKED},
+    {SemanticState::mixed, ATK_STATE_INDETERMINATE}, {SemanticState::expanded, ATK_STATE_EXPANDED},
+    {SemanticState::busy, ATK_STATE_BUSY}, {SemanticState::read_only, ATK_STATE_READ_ONLY},
     {SemanticState::invalid, ATK_STATE_INVALID_ENTRY},
-    {SemanticState::checkable, ATK_STATE_CHECKABLE},
-    {SemanticState::multiselectable, ATK_STATE_MULTISELECTABLE}};
+    {SemanticState::checkable, ATK_STATE_CHECKABLE}, {SemanticState::multiselectable, ATK_STATE_MULTISELECTABLE}};
 
 // The ATK states of a live node, one bit per AtkStateType.
 using StateBits = std::uint64_t;
@@ -415,33 +375,19 @@ void answer_finalize(GObject* object) {
 void finalize(GObject* object) {
     gui_forms::detail::call_failing_fast("linux.atk.finalize", &answer_finalize, object);
 }
-const gchar* answer_name(AtkObject* object) {
-    const gchar* const result = data(object).node.name.c_str();
-    return result;
-}
+const gchar* answer_name(AtkObject* object) { return data(object).node.name.c_str(); }
 const gchar* name(AtkObject* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.name", &answer_name, object);
 }
-const gchar* answer_description(AtkObject* object) {
-    const gchar* const result = data(object).node.description.c_str();
-    return result;
-}
+const gchar* answer_description(AtkObject* object) { return data(object).node.description.c_str(); }
 const gchar* description(AtkObject* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.description", &answer_description, object);
 }
-AtkObject* answer_parent(AtkObject* object) {
-    const NodeData& value = data(object);
-    AtkObject* const result = value.live ? value.parent : nullptr;
-    return result;
-}
+AtkObject* answer_parent(AtkObject* object) { return data(object).live ? data(object).parent : nullptr; }
 AtkObject* parent(AtkObject* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.parent", &answer_parent, object);
 }
-gint answer_index_in_parent(AtkObject* object) {
-    const NodeData& value = data(object);
-    const gint result = value.live ? value.index : -1;
-    return result;
-}
+gint answer_index_in_parent(AtkObject* object) { return data(object).live ? data(object).index : -1; }
 gint index_in_parent(AtkObject* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.index_in_parent", &answer_index_in_parent, object);
 }
@@ -451,9 +397,7 @@ gint index_in_parent(AtkObject* object) {
 void publish_on_query(AtkObject* object);
 gint answer_child_count(AtkObject* object) {
     publish_on_query(object);
-    const NodeData& value = data(object);
-    const gint result = value.live ? static_cast<gint>(value.children.size()) : 0;
-    return result;
+    return data(object).live ? static_cast<gint>(data(object).children.size()) : 0;
 }
 gint child_count(AtkObject* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.child_count", &answer_child_count, object);
@@ -461,10 +405,8 @@ gint child_count(AtkObject* object) {
 AtkObject* answer_child_at(AtkObject* object, gint index) {
     publish_on_query(object);
     const NodeData& value = data(object);
-    if (!value.live || index < 0 || static_cast<std::size_t>(index) >= value.children.size()) return nullptr;
-    AtkObject* const child = value.children[index];
-    AtkObject* const referenced = ATK_OBJECT(g_object_ref(child));
-    return referenced;
+    if (!value.live || index < 0 || static_cast<std::size_t>(index) >= value.children.size()) { return nullptr; }
+    return ATK_OBJECT(g_object_ref(value.children[index]));
 }
 AtkObject* child_at(AtkObject* object, gint index) {
     return gui_forms::detail::call_failing_fast("linux.atk.child_at", &answer_child_at, object, index);
@@ -483,10 +425,7 @@ AtkRole role(AtkObject* object) {
 AtkStateSet* answer_states(AtkObject* object) {
     AtkStateSet* result = atk_state_set_new();
     const NodeData& value = data(object);
-    if (!value.live) {
-        atk_state_set_add_state(result, ATK_STATE_DEFUNCT);
-        return result;
-    }
+    if (!value.live) { atk_state_set_add_state(result, ATK_STATE_DEFUNCT); return result; }
     const StateBits bits = state_bits(value.node);
     for (int state = 0; state < static_cast<int>(ATK_STATE_LAST_DEFINED); ++state) {
         const AtkStateType type = static_cast<AtkStateType>(state);
@@ -504,9 +443,9 @@ AtkObject* panel_object(const NodeData& value);
 AtkRelationSet* answer_relations(AtkObject* object) {
     AtkRelationSet* set = atk_relation_set_new();
     const NodeData& value = data(object);
-    if (!value.live || value.node.controlled_panel.empty()) return set;
+    if (!value.live || value.node.controlled_panel.empty()) { return set; }
     AtkObject* panel = panel_object(value);
-    if (panel != nullptr) atk_relation_set_add_relation_by_type(set, ATK_RELATION_CONTROLLER_FOR, panel);
+    if (panel != nullptr) { atk_relation_set_add_relation_by_type(set, ATK_RELATION_CONTROLLER_FOR, panel); }
     return set;
 }
 AtkRelationSet* relations(AtkObject* object) {
@@ -521,8 +460,7 @@ AtkAttributeSet* add_attribute(AtkAttributeSet* set, const char* name, const cha
     AtkAttribute* attribute = g_new(AtkAttribute, 1);
     (*attribute).name = g_strdup(name);
     (*attribute).value = g_strdup(text);
-    AtkAttributeSet* const result = g_slist_prepend(set, attribute);
-    return result;
+    return g_slist_prepend(set, attribute);
 }
 AtkAttributeSet* add_count(AtkAttributeSet* set, const char* name, const std::optional<std::size_t>& number) {
     if (!number) return set;
@@ -533,7 +471,7 @@ AtkAttributeSet* add_count(AtkAttributeSet* set, const char* name, const std::op
 AtkAttributeSet* answer_attributes(AtkObject* object) {
     const NodeData& value = data(object);
     AtkAttributeSet* set = nullptr;
-    if (!value.live) return set;
+    if (!value.live) { return set; }
     const SemanticNode& node = value.node;
     if (node.position_in_set && node.set_size) {
         set = add_count(set, "setsize", node.set_size);
@@ -564,16 +502,10 @@ void announce_live_region(AtkObject* object, const std::string& text) {
 }
 void class_init(gpointer raw, gpointer) noexcept {
     AtkObjectClass& object = *static_cast<AtkObjectClass*>(raw);
-    object.get_name = name;
-    object.get_description = description;
-    object.get_parent = parent;
-    object.get_index_in_parent = index_in_parent;
-    object.get_n_children = child_count;
-    object.ref_child = child_at;
-    object.get_role = role;
-    object.ref_state_set = states;
-    object.get_attributes = attributes;
-    object.ref_relation_set = relations;
+    object.get_name = name; object.get_description = description; object.get_parent = parent;
+    object.get_index_in_parent = index_in_parent; object.get_n_children = child_count;
+    object.ref_child = child_at; object.get_role = role; object.ref_state_set = states;
+    object.get_attributes = attributes; object.ref_relation_set = relations;
     (*G_OBJECT_CLASS(raw)).finalize = finalize;
 }
 void answer_instance_init(GTypeInstance* instance, gpointer) {
@@ -583,18 +515,13 @@ void instance_init(GTypeInstance* instance, gpointer unnamed_1) {
     gui_forms::detail::call_failing_fast("linux.atk.instance_init", &answer_instance_init, instance, unnamed_1);
 }
 gboolean perform(gpointer object, SemanticAction action, const std::string& value = {});
-gint answer_action_count(AtkAction* object) {
-    const gint count = static_cast<gint>(data(object).actions.size());
-    return count;
-}
+gint answer_action_count(AtkAction* object) { return static_cast<gint>(data(object).actions.size()); }
 gint action_count(AtkAction* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.action_count", &answer_action_count, object);
 }
 const gchar* answer_action_name(AtkAction* object, gint index) {
     const std::vector<SemanticAction>& actions = data(object).actions;
-    if (index < 0 || static_cast<std::size_t>(index) >= actions.size()) return nullptr;
-    const gchar* const result = semantic_action_name(actions[index]);
-    return result;
+    return index >= 0 && static_cast<std::size_t>(index) < actions.size() ? semantic_action_name(actions[index]) : nullptr;
 }
 const gchar* action_name(AtkAction* object, gint index) {
     return gui_forms::detail::call_failing_fast("linux.atk.action_name", &answer_action_name, object, index);
@@ -607,110 +534,78 @@ const gchar* answer_action_keybinding(AtkAction* object, gint index) {
     return value.keybinding.c_str();
 }
 const gchar* action_keybinding(AtkAction* object, gint index) {
-    return gui_forms::detail::call_failing_fast("linux.atk.action_keybinding", &answer_action_keybinding, object,
-                                                index);
+    return gui_forms::detail::call_failing_fast("linux.atk.action_keybinding", &answer_action_keybinding, object, index);
 }
 gboolean answer_do_action(AtkAction* object, gint index) {
     const std::vector<SemanticAction>& actions = data(object).actions;
-    if (index < 0 || static_cast<std::size_t>(index) >= actions.size()) return false;
+    if (index < 0 || static_cast<std::size_t>(index) >= actions.size()) { return false; }
     const SemanticAction action = actions[index];
-    const gboolean result = perform(object, action);
-    return result;
+    return perform(object, action);
 }
 gboolean do_action(AtkAction* object, gint index) {
     return gui_forms::detail::call_failing_fast("linux.atk.do_action", &answer_do_action, object, index);
 }
 void action_init(gpointer raw, gpointer) noexcept {
     AtkActionIface& face = *static_cast<AtkActionIface*>(raw);
-    face.get_n_actions = action_count;
-    face.get_name = action_name;
-    face.get_localized_name = action_name;
-    face.do_action = do_action;
-    face.get_keybinding = action_keybinding;
+    face.get_n_actions = action_count; face.get_name = action_name; face.get_localized_name = action_name;
+    face.do_action = do_action; face.get_keybinding = action_keybinding;
 }
 void extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates);
 gboolean answer_contains(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
-    gint left = 0;
-    gint top = 0;
-    gint width = 0;
-    gint height = 0;
-    extents(object, &left, &top, &width, &height, coordinates);
-    const bool inside = x >= left && y >= top && x < left + width && y < top + height;
-    return inside;
+    gint left = 0, top = 0, width = 0, height = 0; extents(object, &left, &top, &width, &height, coordinates);
+    return x >= left && y >= top && x < left + width && y < top + height;
 }
 gboolean contains(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
     return gui_forms::detail::call_failing_fast("linux.atk.contains", &answer_contains, object, x, y, coordinates);
 }
 AtkObject* at_point(AtkComponent* object, gint x, gint y, AtkCoordType coordinates);
-// The deepest object at the point, last child first (the topmost), with a
-// new reference; null outside `object`.
 AtkObject* answer_at_point(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
     const NodeData& value = data(object);
     for (std::size_t i = value.children.size(); i > 0; --i) {
         AtkObject* child = value.children[i - 1];
         if (contains(ATK_COMPONENT(child), x, y, coordinates)) {
             AtkObject* deepest = at_point(ATK_COMPONENT(child), x, y, coordinates);
-            if (deepest) return deepest;
-            AtkObject* const referenced = ATK_OBJECT(g_object_ref(child));
-            return referenced;
+            return deepest ? deepest : ATK_OBJECT(g_object_ref(child));
         }
     }
-    if (!contains(object, x, y, coordinates)) return nullptr;
-    AtkObject* const itself = ATK_OBJECT(g_object_ref(object));
-    return itself;
+    return contains(object, x, y, coordinates) ? ATK_OBJECT(g_object_ref(object)) : nullptr;
 }
 AtkObject* at_point(AtkComponent* object, gint x, gint y, AtkCoordType coordinates) {
     return gui_forms::detail::call_failing_fast("linux.atk.at_point", &answer_at_point, object, x, y, coordinates);
 }
-gboolean answer_focus(AtkComponent* object) {
-    const gboolean result = perform(object, SemanticAction::focus);
-    return result;
-}
+gboolean answer_focus(AtkComponent* object) { return perform(object, SemanticAction::focus); }
 gboolean focus(AtkComponent* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.focus", &answer_focus, object);
 }
-AtkLayer answer_layer(AtkComponent*) {
-    return ATK_LAYER_WIDGET;
-}
+AtkLayer answer_layer(AtkComponent*) { return ATK_LAYER_WIDGET; }
 AtkLayer layer(AtkComponent* unnamed_0) {
     return gui_forms::detail::call_failing_fast("linux.atk.layer", &answer_layer, unnamed_0);
 }
 void component_init(gpointer raw, gpointer) noexcept {
     AtkComponentIface& face = *static_cast<AtkComponentIface*>(raw);
-    face.get_extents = extents;
-    face.contains = contains;
-    face.ref_accessible_at_point = at_point;
-    face.grab_focus = focus;
-    face.get_layer = layer;
+    face.get_extents = extents; face.contains = contains; face.ref_accessible_at_point = at_point;
+    face.grab_focus = focus; face.get_layer = layer;
 }
 // A node without a numeric value reads as 0 with no range; its meaning is
 // the text.
 void answer_value_and_text(AtkValue* object, gdouble* value, gchar** text) {
-    if (value) *value = data(object).node.numeric_value.value_or(0);
-    if (text) *text = g_strdup(data(object).node.value.c_str());
+    if (value) { *value = data(object).node.numeric_value.value_or(0); }
+    if (text) { *text = g_strdup(data(object).node.value.c_str()); }
 }
 void value_and_text(AtkValue* object, gdouble* value, gchar** text) {
     gui_forms::detail::call_failing_fast("linux.atk.value_and_text", &answer_value_and_text, object, value, text);
 }
 AtkRange* answer_range(AtkValue* object) {
     const SemanticNode& node = data(object).node;
-    if (!node.minimum_value || !node.maximum_value) return nullptr;
-    AtkRange* const result = atk_range_new(*node.minimum_value, *node.maximum_value, nullptr);
-    return result;
+    return node.minimum_value && node.maximum_value ? atk_range_new(*node.minimum_value, *node.maximum_value, nullptr) : nullptr;
 }
 AtkRange* range(AtkValue* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.range", &answer_range, object);
 }
-// Sends `value` as the node's new value in the classic locale, with every
-// significant digit of a double.
 void answer_set_value(AtkValue* object, gdouble value) {
-    if (!std::isfinite(value) || !data(object).node.numeric_value) return;
-    std::ostringstream text;
-    text.imbue(std::locale::classic());
-    text.precision(17);
-    text << value;
-    const std::string formatted = text.str();
-    static_cast<void>(perform(object, SemanticAction::set_value, formatted));
+    if (!std::isfinite(value) || !data(object).node.numeric_value) { return; }
+    std::ostringstream text; text.imbue(std::locale::classic()); text.precision(17); text << value;
+    static_cast<void>(perform(object, SemanticAction::set_value, text.str()));
 }
 void set_value(AtkValue* object, gdouble value) {
     gui_forms::detail::call_failing_fast("linux.atk.set_value", &answer_set_value, object, value);
@@ -725,9 +620,7 @@ gdouble increment(AtkValue* object) {
 }
 void value_init(gpointer raw, gpointer) noexcept {
     AtkValueIface& face = *static_cast<AtkValueIface*>(raw);
-    face.get_value_and_text = value_and_text;
-    face.get_range = range;
-    face.set_value = set_value;
+    face.get_value_and_text = value_and_text; face.get_range = range; face.set_value = set_value;
     face.get_increment = increment;
 }
 // Text on the A-T1 core (A-L3). AT-SPI counts characters (Unicode scalar
@@ -795,23 +688,17 @@ gchar* character_substring(const NodeData& node, gint first, gint last) {
     gchar* copy = g_strndup(node.node.value.c_str() + low, high - low);
     return copy;
 }
-// Characters start..end, clamped to the value; a negative end means the
-// end of the text.
 gchar* answer_text(AtkText* object, gint start, gint end) {
     const NodeData& node = data(object);
     const gint count = character_count(node);
     start = std::clamp(start, 0, count);
     end = end < 0 ? count : std::clamp(end, start, count);
-    gchar* const result = character_substring(node, start, end);
-    return result;
+    return character_substring(node, start, end);
 }
 gchar* text(AtkText* object, gint start, gint end) {
     return gui_forms::detail::call_failing_fast("linux.atk.text", &answer_text, object, start, end);
 }
-gint answer_text_count(AtkText* object) {
-    const gint count = character_count(data(object));
-    return count;
-}
+gint answer_text_count(AtkText* object) { return character_count(data(object)); }
 gint text_count(AtkText* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.text_count", &answer_text_count, object);
 }
@@ -819,8 +706,7 @@ gunichar answer_character(AtkText* object, gint offset) {
     const NodeData& node = data(object);
     if (offset < 0 || offset >= character_count(node)) return 0;
     const std::size_t byte = node.character_starts[static_cast<std::size_t>(offset)];
-    const gunichar result = g_utf8_get_char(node.node.value.c_str() + byte);
-    return result;
+    return g_utf8_get_char(node.node.value.c_str() + byte);
 }
 gunichar character(AtkText* object, gint offset) {
     return gui_forms::detail::call_failing_fast("linux.atk.character", &answer_character, object, offset);
@@ -829,9 +715,7 @@ gunichar character(AtkText* object, gint offset) {
 gint answer_caret_offset(AtkText* object) {
     const NodeData& node = data(object);
     if (!node.live || !node.node.text_selection) return 0;
-    const std::size_t caret = (*node.node.text_selection).caret.value();
-    const gint result = character_offset(node, caret);
-    return result;
+    return character_offset(node, (*node.node.text_selection).caret.value());
 }
 gint caret_offset(AtkText* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.caret_offset", &answer_caret_offset, object);
@@ -841,15 +725,14 @@ gint answer_selection_count(AtkText* object) {
     const NodeData& node = data(object);
     if (!node.live || !node.node.text_selection) return 0;
     const SemanticTextSelection selection = *node.node.text_selection;
-    const gint count = selection.anchor == selection.caret ? 0 : 1;
-    return count;
+    return selection.anchor == selection.caret ? 0 : 1;
 }
 gint selection_count(AtkText* object) {
     return gui_forms::detail::call_failing_fast("linux.atk.selection_count", &answer_selection_count, object);
 }
 gchar* answer_selection_text(AtkText* object, gint number, gint* start, gint* end) {
-    if (start) *start = 0;
-    if (end) *end = 0;
+    if (start) { *start = 0; }
+    if (end) { *end = 0; }
     if (number != 0 || selection_count(object) == 0) return nullptr;
     const NodeData& node = data(object);
     const SemanticTextSelection selection = *node.node.text_selection;
@@ -857,14 +740,12 @@ gchar* answer_selection_text(AtkText* object, gint number, gint* start, gint* en
     const std::size_t high = std::max(selection.anchor.value(), selection.caret.value());
     const gint first = character_offset(node, low);
     const gint last = character_offset(node, high);
-    if (start) *start = first;
-    if (end) *end = last;
-    gchar* const result = character_substring(node, first, last);
-    return result;
+    if (start) { *start = first; }
+    if (end) { *end = last; }
+    return character_substring(node, first, last);
 }
 gchar* selection_text(AtkText* object, gint number, gint* start, gint* end) {
-    return gui_forms::detail::call_failing_fast("linux.atk.selection_text", &answer_selection_text, object, number,
-                                                start, end);
+    return gui_forms::detail::call_failing_fast("linux.atk.selection_text", &answer_selection_text, object, number, start, end);
 }
 // Defined after LinuxAccessibility::Impl: these reach the window.
 gboolean set_caret(AtkText* object, gint offset);
@@ -872,24 +753,16 @@ gboolean add_selection(AtkText* object, gint start, gint end);
 gboolean remove_selection(AtkText* object, gint number);
 gboolean set_selection(AtkText* object, gint number, gint start, gint end);
 gchar* string_at(AtkText* object, gint offset, AtkTextGranularity granularity, gint* start, gint* end);
-void character_extents(AtkText* object, gint offset, gint* x, gint* y, gint* width, gint* height,
-                       AtkCoordType coordinates);
+void character_extents(AtkText* object, gint offset, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates);
 gint offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordinates);
 void text_init(gpointer raw, gpointer) noexcept {
     AtkTextIface& face = *static_cast<AtkTextIface*>(raw);
-    face.get_text = text;
-    face.get_character_count = text_count;
-    face.get_character_at_offset = character;
-    face.get_caret_offset = caret_offset;
-    face.set_caret_offset = set_caret;
-    face.get_n_selections = selection_count;
-    face.get_selection = selection_text;
-    face.add_selection = add_selection;
-    face.remove_selection = remove_selection;
-    face.set_selection = set_selection;
+    face.get_text = text; face.get_character_count = text_count; face.get_character_at_offset = character;
+    face.get_caret_offset = caret_offset; face.set_caret_offset = set_caret;
+    face.get_n_selections = selection_count; face.get_selection = selection_text;
+    face.add_selection = add_selection; face.remove_selection = remove_selection; face.set_selection = set_selection;
     face.get_string_at_offset = string_at;
-    face.get_character_extents = character_extents;
-    face.get_offset_at_point = offset_at_point;
+    face.get_character_extents = character_extents; face.get_offset_at_point = offset_at_point;
 }
 
 // Whether byte `index` of `bytes` continues a character (a UTF-8
@@ -898,11 +771,6 @@ bool continues_character(const std::string& bytes, std::size_t index) {
     if (index >= bytes.size()) return false;
     const bool continuation = (static_cast<unsigned char>(bytes[index]) & 0xC0U) == 0x80U;
     return continuation;
-}
-// The character count of `bytes`, which is valid UTF-8.
-gint utf8_character_count(const std::string& bytes) {
-    const glong count = g_utf8_strlen(bytes.c_str(), static_cast<gssize>(bytes.size()));
-    return static_cast<gint>(count);
 }
 // Announces a text node's change from `before` to `after` (A-L3): the
 // replaced span as text-remove then text-insert (the common prefix and
@@ -915,13 +783,10 @@ void announce_text(AtkObject* object, const std::string& before, const std::opti
         std::size_t prefix = 0U;
         while (prefix < shorter && before[prefix] == after[prefix]) ++prefix;
         // The prefix ends where a character starts in both texts.
-        while (prefix > 0U && (continues_character(before, prefix) || continues_character(after, prefix))) {
-            --prefix;
-        }
+        while (prefix > 0U && (continues_character(before, prefix) || continues_character(after, prefix))) --prefix;
         // The suffix does not overlap the prefix in the shorter text.
         std::size_t suffix = 0U;
-        while (suffix < shorter - prefix &&
-               before[before.size() - 1U - suffix] == after[after.size() - 1U - suffix]) {
+        while (suffix < shorter - prefix && before[before.size() - 1U - suffix] == after[after.size() - 1U - suffix]) {
             ++suffix;
         }
         // The suffix starts where a character starts; its bytes are the same
@@ -931,93 +796,66 @@ void announce_text(AtkObject* object, const std::string& before, const std::opti
         const std::string removed = before.substr(prefix, before.size() - suffix - prefix);
         const std::string inserted = after.substr(prefix, after.size() - suffix - prefix);
         if (!removed.empty()) {
-            const gint length = utf8_character_count(removed);
+            const gint length = static_cast<gint>(g_utf8_strlen(removed.c_str(), static_cast<gssize>(removed.size())));
             g_signal_emit_by_name(object, "text-remove", position, length, removed.c_str());
         }
         if (!inserted.empty()) {
-            const gint length = utf8_character_count(inserted);
+            const gint length = static_cast<gint>(g_utf8_strlen(inserted.c_str(), static_cast<gssize>(inserted.size())));
             g_signal_emit_by_name(object, "text-insert", position, length, inserted.c_str());
         }
     }
     if (now) {
         const gint caret = character_offset(after, (*now).caret.value());
         const gint previous = was ? character_offset(before, (*was).caret.value()) : -1;
-        if (caret != previous) g_signal_emit_by_name(object, "text-caret-moved", caret);
+        if (caret != previous) { g_signal_emit_by_name(object, "text-caret-moved", caret); }
     }
     const bool selected_before = was && (*was).anchor != (*was).caret;
     const bool selected_now = now && (*now).anchor != (*now).caret;
-    if ((selected_before || selected_now) && was != now) g_signal_emit_by_name(object, "text-selection-changed");
+    if ((selected_before || selected_now) && was != now) { g_signal_emit_by_name(object, "text-selection-changed"); }
 }
 void answer_set_contents(AtkEditableText* object, const gchar* value) {
-    if (!value || !g_utf8_validate(value, -1, nullptr)) return;
-    static_cast<void>(perform(object, SemanticAction::set_value, value));
+    if (value && g_utf8_validate(value, -1, nullptr)) { static_cast<void>(perform(object, SemanticAction::set_value, value)); }
 }
 void set_contents(AtkEditableText* object, const gchar* value) {
     gui_forms::detail::call_failing_fast("linux.atk.set_contents", &answer_set_contents, object, value);
 }
-void editable_init(gpointer raw, gpointer) noexcept {
-    AtkEditableTextIface& face = *static_cast<AtkEditableTextIface*>(raw);
-    face.set_text_contents = set_contents;
-}
-// The object type implementing the interfaces `flags` names (always
-// Component), registered the first time it is asked for. Types are never
-// unregistered; the map holds one entry per flag combination used.
-GType object_type(unsigned flags) {
-    static std::map<unsigned, GType> types;
-    const std::map<unsigned, GType>::const_iterator found = types.find(flags);
-    if (found != types.end()) return (*found).second;
-    const std::string name = "GUIFormsAccessible" + std::to_string(flags);
-    const GType type = g_type_register_static_simple(ATK_TYPE_OBJECT, name.c_str(), sizeof(AtkObjectClass),
-                                                     class_init, sizeof(NativeAccessible), instance_init,
-                                                     static_cast<GTypeFlags>(0));
-    // Each GInterfaceInfo names its init function directly, where the
-    // native boundary check (tools/check_native_boundaries.py) finds it.
-    const GInterfaceInfo component_info{component_init, nullptr, nullptr};
-    g_type_add_interface_static(type, ATK_TYPE_COMPONENT, &component_info);
-    if (flags & action_interface) {
-        const GInterfaceInfo action_info{action_init, nullptr, nullptr};
-        g_type_add_interface_static(type, ATK_TYPE_ACTION, &action_info);
-    }
-    if (flags & value_interface) {
-        const GInterfaceInfo value_info{value_init, nullptr, nullptr};
-        g_type_add_interface_static(type, ATK_TYPE_VALUE, &value_info);
-    }
-    if (flags & text_interface) {
-        const GInterfaceInfo text_info{text_init, nullptr, nullptr};
-        g_type_add_interface_static(type, ATK_TYPE_TEXT, &text_info);
-        const GInterfaceInfo editable_info{editable_init, nullptr, nullptr};
-        g_type_add_interface_static(type, ATK_TYPE_EDITABLE_TEXT, &editable_info);
-    }
-    types.emplace(flags, type);
-    return type;
-}
-// A new object of the type for `flags`; the caller owns its one reference.
+void editable_init(gpointer raw, gpointer) noexcept { (*static_cast<AtkEditableTextIface*>(raw)).set_text_contents = set_contents; }
 AtkObject* make_object(unsigned flags) {
-    const GType type = object_type(flags);
-    AtkObject* const object = ATK_OBJECT(g_object_new(type, nullptr));
-    return object;
+    static std::map<unsigned, GType> types;
+    std::map<unsigned, GType>::const_iterator found = types.find(flags);
+    GType type;
+    if (found == types.end()) {
+        const std::string name = "GUIFormsAccessible" + std::to_string(flags);
+        type = g_type_register_static_simple(ATK_TYPE_OBJECT, name.c_str(), sizeof(AtkObjectClass), class_init,
+                                             sizeof(NativeAccessible), instance_init, static_cast<GTypeFlags>(0));
+        const GInterfaceInfo component{component_init, nullptr, nullptr}; g_type_add_interface_static(type, ATK_TYPE_COMPONENT, &component);
+        if (flags & action_interface) { const GInterfaceInfo face{action_init, nullptr, nullptr}; g_type_add_interface_static(type, ATK_TYPE_ACTION, &face); }
+        if (flags & value_interface) { const GInterfaceInfo face{value_init, nullptr, nullptr}; g_type_add_interface_static(type, ATK_TYPE_VALUE, &face); }
+        if (flags & text_interface) {
+            const GInterfaceInfo face{text_init, nullptr, nullptr}; g_type_add_interface_static(type, ATK_TYPE_TEXT, &face);
+            const GInterfaceInfo editable{editable_init, nullptr, nullptr}; g_type_add_interface_static(type, ATK_TYPE_EDITABLE_TEXT, &editable);
+        }
+        types.emplace(flags, type);
+    } else { type = (*found).second; }
+    return ATK_OBJECT(g_object_new(type, nullptr));
 }
 // Announces a parent's changed children: children-changed::remove for each
 // former child that is gone, at its former index, then children-changed::add
 // for each new child, at its index. Both lists hold objects that are still
 // referenced.
-void announce_children(AtkObject* parent, const std::vector<AtkObject*>& previous,
-                       const std::vector<AtkObject*>& current) {
+void announce_children(AtkObject* parent, const std::vector<AtkObject*>& previous, const std::vector<AtkObject*>& current) {
     for (std::size_t index = 0; index < previous.size(); ++index) {
-        const bool gone = std::find(current.begin(), current.end(), previous[index]) == current.end();
-        if (!gone) continue;
-        const guint position = static_cast<guint>(index);
-        g_signal_emit_by_name(parent, "children-changed::remove", position, previous[index], nullptr);
+        if (std::find(current.begin(), current.end(), previous[index]) == current.end()) {
+            g_signal_emit_by_name(parent, "children-changed::remove", static_cast<guint>(index), previous[index], nullptr);
+        }
     }
     for (std::size_t index = 0; index < current.size(); ++index) {
-        const bool added = std::find(previous.begin(), previous.end(), current[index]) == previous.end();
-        if (!added) continue;
-        const guint position = static_cast<guint>(index);
-        g_signal_emit_by_name(parent, "children-changed::add", position, current[index], nullptr);
+        if (std::find(previous.begin(), previous.end(), current[index]) == previous.end()) {
+            g_signal_emit_by_name(parent, "children-changed::add", static_cast<guint>(index), current[index], nullptr);
+        }
     }
 }
-} // namespace
-
+}
 struct LinuxAccessibility::Impl {
     Display* display = nullptr;
     ::Window native{};
@@ -1040,10 +878,7 @@ struct LinuxAccessibility::Impl {
     // Marks `object` dead: it answers as defunct and no longer reaches the
     // model. The caller still holds its reference.
     static void retire_data(NodeData& node) {
-        node.live = false;
-        node.owner = nullptr;
-        node.children.clear();
-        node.parent = nullptr;
+        node.live = false; node.owner = nullptr; node.children.clear(); node.parent = nullptr;
     }
     // Publishes `node` as child `index` of `parent`. `owner_control` is the
     // runtime identity of the nearest control at or above `parent`, which
@@ -1073,42 +908,32 @@ struct LinuxAccessibility::Impl {
         }
         const bool created = found == objects.end();
         AtkObject* object = created ? make_object(flags) : (*found).second;
-        if (created) {
-            objects.emplace(key, object);
-            atk_object_set_accessible_id(object, node.stable_id.c_str());
-        }
+        if (created) { objects.emplace(key, object); atk_object_set_accessible_id(object, node.stable_id.c_str()); }
         NodeData& value = data(object);
-        // The published node before this update, for the announcements below.
         const StateBits old_states = created ? StateBits{0} : state_bits(value.node);
-        const std::string old_value = value.node.value;
-        const std::string old_name = value.node.name;
+        const std::string old_value = value.node.value, old_name = value.node.name;
         const SemanticNode* const published = created ? nullptr : &value.node;
         const bool announce = semantic_announcement_due(published, node);
         const std::optional<SemanticTextSelection> old_selection = value.node.text_selection;
         std::vector<AtkObject*> previous = std::move(value.children);
         value.children.clear();
-        value.flags = flags;
-        value.owner = this;
-        value.key = key;
-        value.node = node;
-        value.live = true;
+        value.flags = flags; value.owner = this; value.key = key; value.node = node; value.live = true;
         if (created || old_value != node.value) index_characters(value.node.value, value.character_starts);
         order_actions(node.actions, value.actions);
         value.keybinding.clear();
         if (!node.access_key.empty()) {
-            gchar* lowered = g_utf8_strdown(node.access_key.c_str(), -1);
-            value.keybinding = std::string("<Alt>") + lowered + ";;";
-            g_free(lowered);
+            gchar* key = g_utf8_strdown(node.access_key.c_str(), -1);
+            value.keybinding = std::string("<Alt>") + key + ";;";
+            g_free(key);
         }
-        value.parent = parent;
-        value.index = index;
+        value.parent = parent; value.index = index;
         data(parent).children.push_back(object);
-        if (!created && old_name != node.name) g_object_notify(G_OBJECT(object), "accessible-name");
+        if (!created && old_name != node.name) { g_object_notify(G_OBJECT(object), "accessible-name"); }
         // The rule every host shares (semantic_announcement_due): a known
         // live region announces a new name, a new one (a toast) only when it
         // announces on appearance.
         if (announce) announce_live_region(object, node.name);
-        if (!created && old_value != node.value) g_object_notify(G_OBJECT(object), "accessible-value");
+        if (!created && old_value != node.value) { g_object_notify(G_OBJECT(object), "accessible-value"); }
         const StateBits new_states = state_bits(value.node);
         if (!created && old_states != new_states) {
             for (int state = 0; state < static_cast<int>(ATK_STATE_LAST_DEFINED); ++state) {
@@ -1122,22 +947,18 @@ struct LinuxAccessibility::Impl {
             announce_text(object, old_value, old_selection, node.value, node.text_selection);
         }
         const std::uint64_t child_owner = key.control;
-        for (std::size_t i = 0; i < child_nodes.size(); ++i) {
-            sync(child_nodes[i], object, static_cast<int>(i), child_owner);
-        }
+        for (std::size_t i = 0; i < child_nodes.size(); ++i) { sync(child_nodes[i], object, static_cast<int>(i), child_owner); }
         announce_children(object, previous, value.children);
     }
     void update() {
-        if (model == nullptr) return;
-        if ((*model).semantic_generation() == generation && published) return;
+        if (model == nullptr) { return; }
+        if ((*model).semantic_generation() == generation && published) { return; }
         // Not const: sync moves each node's children out of it.
         SemanticSnapshot snapshot = (*model).semantic_snapshot();
-        if (generation == snapshot.generation && published) return;
+        if (generation == snapshot.generation && published) { return; }
         generation = snapshot.generation;
         published = true;
-        for (const std::pair<const NodeKey, AtkObject*>& entry : objects) {
-            data(entry.second).live = false;
-        }
+        for (const std::pair<const NodeKey, AtkObject*>& entry : objects) { data(entry.second).live = false; }
         NodeData& frame_data = data(frame);
         std::vector<AtkObject*> previous = std::move(frame_data.children);
         frame_data.children.clear();
@@ -1146,17 +967,11 @@ struct LinuxAccessibility::Impl {
         // taken to X pixels when a client asks for extents (pixel_scale).
         frame_data.node.bounds = (*model).content_rect();
         frame_data.node.states = SemanticState::enabled | SemanticState::visible;
-        for (std::size_t i = 0; i < snapshot.roots.size(); ++i) {
-            sync(snapshot.roots[i], frame, static_cast<int>(i), 0U);
-        }
+        for (std::size_t i = 0; i < snapshot.roots.size(); ++i) { sync(snapshot.roots[i], frame, static_cast<int>(i), 0U); }
         announce_children(frame, previous, frame_data.children);
-        std::map<NodeKey, AtkObject*>::iterator i = objects.begin();
-        while (i != objects.end()) {
+        for (std::map<NodeKey, AtkObject*>::iterator i = objects.begin(); i != objects.end();) {
             AtkObject* object = (*i).second;
-            if (data(object).live) {
-                ++i;
-                continue;
-            }
+            if (data(object).live) { ++i; continue; }
             retire_data(data(object));
             retired.push_back(object);
             i = objects.erase(i);
@@ -1175,15 +990,14 @@ struct LinuxAccessibility::Impl {
         }
     }
 };
-
 namespace {
 // The live object whose node has the stable identity `value` names as its
 // panel, or none.
 AtkObject* panel_object(const NodeData& value) {
-    if (value.owner == nullptr) return nullptr;
+    if (value.owner == nullptr) { return nullptr; }
     for (const std::pair<const NodeKey, AtkObject*>& entry : (*value.owner).objects) {
         const NodeData& candidate = data(entry.second);
-        if (candidate.live && candidate.node.stable_id == value.node.controlled_panel) return entry.second;
+        if (candidate.live && candidate.node.stable_id == value.node.controlled_panel) { return entry.second; }
     }
     return nullptr;
 }
@@ -1196,15 +1010,13 @@ AtkObject* panel_object(const NodeData& value) {
 gboolean perform(gpointer object, SemanticAction action, const std::string& value) {
     AtkObject* const accessible = ATK_OBJECT(object);
     NodeData& node = data(accessible);
-    if (!node.live || node.owner == nullptr || (*node.owner).model == nullptr) return false;
+    if (!node.live || node.owner == nullptr || (*node.owner).model == nullptr) { return false; }
     LinuxAccessibility::Impl& owner = *node.owner;
     g_object_ref(accessible);
     gboolean result = false;
     owner.update();
     if (node.live && node.owner != nullptr && owner.model != nullptr) {
-        if (action == SemanticAction::focus) {
-            XSetInputFocus(owner.display, owner.native, RevertToParent, CurrentTime);
-        }
+        if (action == SemanticAction::focus) { XSetInputFocus(owner.display, owner.native, RevertToParent, CurrentTime); }
         // Copied: the action may run a nested main loop whose update
         // replaces this node's data.
         const std::string virtual_child = node.key.virtual_child;
@@ -1225,7 +1037,7 @@ gboolean perform(gpointer object, SemanticAction action, const std::string& valu
 // The scale from `node`'s logical units to X pixels: its window's, or 1
 // for an object with no window.
 double pixel_scale(const NodeData& node) {
-    if (!node.owner) return 1.0;
+    if (!node.owner) { return 1.0; }
     const double scale = (*node.owner).scale;
     return scale;
 }
@@ -1234,35 +1046,29 @@ double pixel_scale(const NodeData& node) {
 // pixels: the window's place on the screen, the client origin itself, or
 // minus the place of `node`'s parent.
 void coordinate_origin(const NodeData& node, AtkCoordType coordinates, int& left, int& top) {
-    left = 0;
-    top = 0;
+    left = 0; top = 0;
     if (node.owner && coordinates == ATK_XY_SCREEN) {
-        const LinuxAccessibility::Impl& owner = *node.owner;
-        const ::Window root = DefaultRootWindow(owner.display);
         ::Window child{};
-        XTranslateCoordinates(owner.display, owner.native, root, 0, 0, &left, &top, &child);
+        XTranslateCoordinates((*node.owner).display, (*node.owner).native, DefaultRootWindow((*node.owner).display), 0, 0, &left, &top, &child);
     } else if (node.parent && coordinates == ATK_XY_PARENT) {
         const double scale = pixel_scale(node);
         const Rect parent = data(node.parent).node.bounds;
-        left = -static_cast<int>(parent.x * scale);
-        top = -static_cast<int>(parent.y * scale);
+        left = -static_cast<int>(parent.x * scale); top = -static_cast<int>(parent.y * scale);
     }
 }
 void answer_extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
     const NodeData& node = data(object);
-    int left = 0;
-    int top = 0;
+    int left = 0, top = 0;
     coordinate_origin(node, coordinates, left, top);
     const double scale = pixel_scale(node);
     const Rect bounds = node.node.bounds;
-    if (x) *x = left + static_cast<int>(bounds.x * scale);
-    if (y) *y = top + static_cast<int>(bounds.y * scale);
-    if (width) *width = node.live ? static_cast<int>(bounds.width * scale) : 0;
-    if (height) *height = node.live ? static_cast<int>(bounds.height * scale) : 0;
+    if (x) { *x = left + static_cast<int>(bounds.x * scale); }
+    if (y) { *y = top + static_cast<int>(bounds.y * scale); }
+    if (width) { *width = node.live ? static_cast<int>(bounds.width * scale) : 0; }
+    if (height) { *height = node.live ? static_cast<int>(bounds.height * scale) : 0; }
 }
 void extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
-    gui_forms::detail::call_failing_fast("linux.atk.extents", &answer_extents, object, x, y, width, height,
-                                         coordinates);
+    gui_forms::detail::call_failing_fast("linux.atk.extents", &answer_extents, object, x, y, width, height, coordinates);
 }
 
 // -- editable text through the window (A-L3) ---------------------------------
@@ -1314,8 +1120,7 @@ gboolean select_text(AtkText* object, gint anchor, gint caret) {
         const std::optional<std::size_t> caret_byte = byte_offset(node, caret);
         if (node.live && node.owner != nullptr && anchor_byte && caret_byte) {
             const RuntimeId control{node.key.control};
-            const SemanticTextSelection selection{.anchor = Utf8Offset(*anchor_byte),
-                                                  .caret = Utf8Offset(*caret_byte)};
+            const SemanticTextSelection selection{.anchor = Utf8Offset(*anchor_byte), .caret = Utf8Offset(*caret_byte)};
             const SemanticTextResult moved = (*owner.model).set_semantic_text_selection(control, selection);
             result = moved == SemanticTextResult::done ? TRUE : FALSE;
             owner.update();
@@ -1339,8 +1144,7 @@ gboolean answer_add_selection(AtkText* object, gint start, gint end) {
     return result;
 }
 gboolean add_selection(AtkText* object, gint start, gint end) {
-    return gui_forms::detail::call_failing_fast("linux.atk.add_selection", &answer_add_selection, object, start,
-                                                end);
+    return gui_forms::detail::call_failing_fast("linux.atk.add_selection", &answer_add_selection, object, start, end);
 }
 // Removing the selection leaves the caret where it was.
 gboolean answer_remove_selection(AtkText* object, gint number) {
@@ -1350,8 +1154,7 @@ gboolean answer_remove_selection(AtkText* object, gint number) {
     return result;
 }
 gboolean remove_selection(AtkText* object, gint number) {
-    return gui_forms::detail::call_failing_fast("linux.atk.remove_selection", &answer_remove_selection, object,
-                                                number);
+    return gui_forms::detail::call_failing_fast("linux.atk.remove_selection", &answer_remove_selection, object, number);
 }
 gboolean answer_set_selection(AtkText* object, gint number, gint start, gint end) {
     if (number != 0) return FALSE;
@@ -1359,8 +1162,7 @@ gboolean answer_set_selection(AtkText* object, gint number, gint start, gint end
     return result;
 }
 gboolean set_selection(AtkText* object, gint number, gint start, gint end) {
-    return gui_forms::detail::call_failing_fast("linux.atk.set_selection", &answer_set_selection, object, number,
-                                                start, end);
+    return gui_forms::detail::call_failing_fast("linux.atk.set_selection", &answer_set_selection, object, number, start, end);
 }
 // The span of `granularity` around byte `byte` of `value`, from the owner's
 // layout: a grapheme, a word (between consecutive word starts), a visual
@@ -1374,19 +1176,15 @@ bool granularity_span(const SemanticTextLayout& layout, const std::string& value
     case ATK_TEXT_GRANULARITY_CHAR:
         for (const SemanticTextGrapheme& grapheme : layout.graphemes) {
             if (grapheme.range.start.value() <= byte && byte < grapheme.range.end.value()) {
-                low = grapheme.range.start.value();
-                high = grapheme.range.end.value();
+                low = grapheme.range.start.value(); high = grapheme.range.end.value();
                 return true;
             }
         }
         return false;
     case ATK_TEXT_GRANULARITY_WORD:
         for (std::size_t index = 0U; index + 1U < layout.word_starts.size(); ++index) {
-            const std::size_t start = layout.word_starts[index].value();
-            const std::size_t next = layout.word_starts[index + 1U].value();
-            if (start <= byte && byte < next) {
-                low = start;
-                high = next;
+            if (layout.word_starts[index].value() <= byte && byte < layout.word_starts[index + 1U].value()) {
+                low = layout.word_starts[index].value(); high = layout.word_starts[index + 1U].value();
                 return true;
             }
         }
@@ -1397,8 +1195,7 @@ bool granularity_span(const SemanticTextLayout& layout, const std::string& value
             const bool last = index + 1U == layout.lines.size();
             const std::size_t next = last ? value.size() : layout.lines[index + 1U].range.start.value();
             if (start <= byte && (byte < next || (last && byte == next))) {
-                low = start;
-                high = next;
+                low = start; high = next;
                 return true;
             }
         }
@@ -1420,75 +1217,63 @@ bool granularity_span(const SemanticTextLayout& layout, const std::string& value
 // The span's text, newly allocated; an empty string with offsets -1 when
 // there is no span (as for a sentence).
 gchar* answer_string_at(AtkText* object, gint offset, AtkTextGranularity granularity, gint* start, gint* end) {
-    if (start) *start = -1;
-    if (end) *end = -1;
+    if (start) { *start = -1; }
+    if (end) { *end = -1; }
     AtkObject* const accessible = ATK_OBJECT(object);
     g_object_ref(accessible);
     gchar* result = nullptr;
     if (fetch_text_layout(accessible)) {
         const NodeData& node = data(accessible);
-        const SemanticTextLayout& layout = (*node.owner).text_layout;
         const std::string& value = node.node.value;
         const std::optional<std::size_t> byte = byte_offset(node, offset);
-        std::size_t low = 0U;
-        std::size_t high = 0U;
-        const bool spanned = byte && granularity_span(layout, value, *byte, granularity, low, high);
-        if (spanned) {
+        std::size_t low = 0U, high = 0U;
+        if (byte && granularity_span((*node.owner).text_layout, value, *byte, granularity, low, high)) {
             const gint first = character_offset(node, low);
             const gint last = character_offset(node, high);
-            if (start) *start = first;
-            if (end) *end = last;
+            if (start) { *start = first; }
+            if (end) { *end = last; }
             result = character_substring(node, first, last);
         }
     }
     g_object_unref(accessible);
-    if (result == nullptr) result = g_strdup("");
+    if (result == nullptr) { result = g_strdup(""); }
     return result;
 }
 gchar* string_at(AtkText* object, gint offset, AtkTextGranularity granularity, gint* start, gint* end) {
-    return gui_forms::detail::call_failing_fast("linux.atk.string_at", &answer_string_at, object, offset,
-                                                granularity, start, end);
+    return gui_forms::detail::call_failing_fast("linux.atk.string_at", &answer_string_at, object, offset, granularity, start, end);
 }
 // A character's box: the box of the grapheme it belongs to. All four are -1
 // at the end of the text or when the layout cannot be read.
-void answer_character_extents(AtkText* object, gint offset, gint* x, gint* y, gint* width, gint* height,
-                              AtkCoordType coordinates) {
-    if (x) *x = -1;
-    if (y) *y = -1;
-    if (width) *width = -1;
-    if (height) *height = -1;
+void answer_character_extents(AtkText* object, gint offset, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
+    if (x) { *x = -1; }
+    if (y) { *y = -1; }
+    if (width) { *width = -1; }
+    if (height) { *height = -1; }
     AtkObject* const accessible = ATK_OBJECT(object);
     g_object_ref(accessible);
     if (fetch_text_layout(accessible)) {
         const NodeData& node = data(accessible);
-        const SemanticTextLayout& layout = (*node.owner).text_layout;
         const std::optional<std::size_t> byte = byte_offset(node, offset);
-        std::size_t low = 0U;
-        std::size_t high = 0U;
-        const bool spanned =
-            byte && granularity_span(layout, node.node.value, *byte, ATK_TEXT_GRANULARITY_CHAR, low, high);
-        if (spanned) {
-            for (const SemanticTextGrapheme& grapheme : layout.graphemes) {
+        std::size_t low = 0U, high = 0U;
+        if (byte && granularity_span((*node.owner).text_layout, node.node.value, *byte, ATK_TEXT_GRANULARITY_CHAR, low, high)) {
+            for (const SemanticTextGrapheme& grapheme : (*node.owner).text_layout.graphemes) {
                 if (grapheme.range.start.value() != low) continue;
-                int left = 0;
-                int top = 0;
+                int left = 0, top = 0;
                 coordinate_origin(node, coordinates, left, top);
                 const double scale = pixel_scale(node);
                 const Rect box = grapheme.bounds;
-                if (x) *x = left + static_cast<int>(std::lround(box.x * scale));
-                if (y) *y = top + static_cast<int>(std::lround(box.y * scale));
-                if (width) *width = static_cast<int>(std::lround(box.width * scale));
-                if (height) *height = static_cast<int>(std::lround(box.height * scale));
+                if (x) { *x = left + static_cast<int>(std::lround(box.x * scale)); }
+                if (y) { *y = top + static_cast<int>(std::lround(box.y * scale)); }
+                if (width) { *width = static_cast<int>(std::lround(box.width * scale)); }
+                if (height) { *height = static_cast<int>(std::lround(box.height * scale)); }
                 break;
             }
         }
     }
     g_object_unref(accessible);
 }
-void character_extents(AtkText* object, gint offset, gint* x, gint* y, gint* width, gint* height,
-                       AtkCoordType coordinates) {
-    gui_forms::detail::call_failing_fast("linux.atk.character_extents", &answer_character_extents, object, offset,
-                                         x, y, width, height, coordinates);
+void character_extents(AtkText* object, gint offset, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
+    gui_forms::detail::call_failing_fast("linux.atk.character_extents", &answer_character_extents, object, offset, x, y, width, height, coordinates);
 }
 // The first character of the grapheme whose box holds the point, or -1.
 gint answer_offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordinates) {
@@ -1497,8 +1282,7 @@ gint answer_offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordi
     gint result = -1;
     if (fetch_text_layout(accessible)) {
         const NodeData& node = data(accessible);
-        int left = 0;
-        int top = 0;
+        int left = 0, top = 0;
         coordinate_origin(node, coordinates, left, top);
         // X pixels back to logical units.
         const double scale = pixel_scale(node);
@@ -1506,9 +1290,7 @@ gint answer_offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordi
         const double client_y = static_cast<double>(y - top) / scale;
         for (const SemanticTextGrapheme& grapheme : (*node.owner).text_layout.graphemes) {
             const Rect box = grapheme.bounds;
-            const bool within_x = client_x >= box.x && client_x < box.x + box.width;
-            const bool within_y = client_y >= box.y && client_y < box.y + box.height;
-            if (within_x && within_y) {
+            if (client_x >= box.x && client_x < box.x + box.width && client_y >= box.y && client_y < box.y + box.height) {
                 result = character_offset(node, grapheme.range.start.value());
                 break;
             }
@@ -1518,8 +1300,7 @@ gint answer_offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordi
     return result;
 }
 gint offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordinates) {
-    return gui_forms::detail::call_failing_fast("linux.atk.offset_at_point", &answer_offset_at_point, object, x, y,
-                                                coordinates);
+    return gui_forms::detail::call_failing_fast("linux.atk.offset_at_point", &answer_offset_at_point, object, x, y, coordinates);
 }
 void publish_on_query(AtkObject* object) {
     NodeData& value = data(object);
@@ -1529,43 +1310,27 @@ void publish_on_query(AtkObject* object) {
     owner.update();
 }
 } // namespace
-
 LinuxAccessibility::LinuxAccessibility(Display* display, ::Window native, Window& model, const std::string& title)
     : impl_(std::make_unique<Impl>()) {
-    Impl& impl = *impl_;
-    impl.display = display;
-    impl.native = native;
-    impl.model = &model;
+    (*impl_).display = display; (*impl_).native = native; (*impl_).model = &model;
     if (!application_root) {
-        // The first window starts the process-wide bridge and its root.
-        application_root = make_object(0);
-        NodeData& root = data(application_root);
-        root.application = true;
-        root.node.name = title;
+        application_root = make_object(0); data(application_root).application = true;
+        data(application_root).node.name = title;
         AtkUtilClass* util = ATK_UTIL_CLASS(g_type_class_ref(ATK_TYPE_UTIL));
-        (*util).get_root = root_object;
-        (*util).get_toolkit_name = toolkit_name;
-        (*util).get_toolkit_version = toolkit_version;
+        (*util).get_root = root_object; (*util).get_toolkit_name = toolkit_name; (*util).get_toolkit_version = toolkit_version;
         g_type_class_unref(util);
         static_cast<void>(atk_bridge_adaptor_init(nullptr, nullptr));
         bus_status_start();
     }
     ++bridge_count;
-    impl.frame = make_object(0);
-    NodeData& frame = data(impl.frame);
-    std::vector<AtkObject*>& frames = data(application_root).children;
-    frame.frame = true;
-    frame.owner = impl_.get();
-    frame.parent = application_root;
-    frame.index = static_cast<int>(frames.size());
-    frame.node.name = title;
-    frames.push_back(impl.frame);
-    g_signal_emit_by_name(application_root, "children-changed::add", frame.index, impl.frame, nullptr);
+    (*impl_).frame = make_object(0);
+    NodeData& frame = data((*impl_).frame); frame.frame = true; frame.owner = impl_.get(); frame.parent = application_root;
+    frame.index = static_cast<int>(data(application_root).children.size()); frame.node.name = title;
+    data(application_root).children.push_back((*impl_).frame);
+    g_signal_emit_by_name(application_root, "children-changed::add", frame.index, (*impl_).frame, nullptr);
     // No snapshot yet: the first client query publishes the tree.
 }
-LinuxAccessibility::~LinuxAccessibility() {
-    detach();
-}
+LinuxAccessibility::~LinuxAccessibility() { detach(); }
 void LinuxAccessibility::set_scale(double scale) {
     if (!std::isfinite(scale) || scale <= 0.0) return;
     (*impl_).scale = scale;
@@ -1578,36 +1343,23 @@ void LinuxAccessibility::set_title(const std::string& title) {
     g_object_notify(G_OBJECT((*impl_).frame), "accessible-name");
 }
 void LinuxAccessibility::detach() {
-    Impl& impl = *impl_;
-    if (!impl.model) return;
-    impl.model = nullptr;
-    for (const std::pair<const NodeKey, AtkObject*>& entry : impl.objects) {
+    if (!(*impl_).model) { return; }
+    (*impl_).model = nullptr;
+    for (const std::pair<const NodeKey, AtkObject*>& entry : (*impl_).objects) {
         Impl::retire_data(data(entry.second));
-        impl.retired.push_back(entry.second);
+        (*impl_).retired.push_back(entry.second);
     }
-    impl.objects.clear();
-    impl.release_retired();
-    NodeData& frame = data(impl.frame);
-    frame.live = false;
-    frame.owner = nullptr;
-    frame.children.clear();
+    (*impl_).objects.clear();
+    (*impl_).release_retired();
+    NodeData& frame = data((*impl_).frame); frame.live = false; frame.owner = nullptr; frame.children.clear();
     std::vector<AtkObject*>& frames = data(application_root).children;
-    const std::vector<AtkObject*>::iterator kept_end = std::remove(frames.begin(), frames.end(), impl.frame);
-    frames.erase(kept_end, frames.end());
-    g_signal_emit_by_name(application_root, "children-changed::remove", frame.index, impl.frame, nullptr);
-    for (std::size_t i = 0; i < frames.size(); ++i) {
-        data(frames[i]).index = static_cast<int>(i);
-    }
-    frame.parent = nullptr;
-    g_object_unref(impl.frame);
-    impl.frame = nullptr;
-    --bridge_count;
-    if (bridge_count == 0) {
-        // The last window stops the process-wide bridge and its root.
+    frames.erase(std::remove(frames.begin(), frames.end(), (*impl_).frame), frames.end());
+    g_signal_emit_by_name(application_root, "children-changed::remove", frame.index, (*impl_).frame, nullptr);
+    for (std::size_t i = 0; i < frames.size(); ++i) { data(frames[i]).index = static_cast<int>(i); }
+    frame.parent = nullptr; g_object_unref((*impl_).frame); (*impl_).frame = nullptr;
+    if (--bridge_count == 0) {
         bus_status_stop();
-        atk_bridge_adaptor_cleanup();
-        g_object_unref(application_root);
-        application_root = nullptr;
+        atk_bridge_adaptor_cleanup(); g_object_unref(application_root); application_root = nullptr;
     }
 }
 void LinuxAccessibility::update() {
@@ -1617,44 +1369,24 @@ void LinuxAccessibility::update() {
     (*impl_).update();
 }
 void accessibility_dispatch() {
-    for (int i = 0; i < 16 && g_main_context_pending(nullptr); ++i) {
-        g_main_context_iteration(nullptr, false);
-    }
+    for (int i = 0; i < 16 && g_main_context_pending(nullptr); ++i) { g_main_context_iteration(nullptr, false); }
 }
-// One iteration of the default main context that also wakes on the display
-// connection and the host's wake descriptor: prepare, query its descriptors
-// (twice: once for the count), poll all of them for at most `milliseconds`
-// (negative: the context's own timeout) or not at all when a source is
-// ready, then check and dispatch.
 void accessibility_wait(int display_fd, int wake_fd, int milliseconds) {
     GMainContext* context = g_main_context_default();
-    if (!g_main_context_acquire(context)) return;
-    gint priority = 0;
-    gint timeout = -1;
+    if (!g_main_context_acquire(context)) { return; }
+    gint priority = 0, timeout = -1;
     const gboolean ready = g_main_context_prepare(context, &priority);
     int count = g_main_context_query(context, priority, &timeout, nullptr, 0);
     std::vector<GPollFD> native(static_cast<std::size_t>(std::max(0, count)));
     count = g_main_context_query(context, priority, &timeout, native.data(), static_cast<int>(native.size()));
-    if (count > static_cast<int>(native.size())) {
-        g_main_context_release(context);
-        return;
-    }
-    // The display and wake descriptors first, then the context's, in order.
+    if (count > static_cast<int>(native.size())) { g_main_context_release(context); return; }
     std::vector<pollfd> descriptors{{display_fd, POLLIN, 0}, {wake_fd, POLLIN, 0}};
-    for (const GPollFD& descriptor : native) {
-        const pollfd entry{descriptor.fd, static_cast<short>(descriptor.events), 0};
-        descriptors.push_back(entry);
-    }
-    int wait = timeout;
-    if (milliseconds >= 0 && timeout < 0) wait = milliseconds;
-    if (milliseconds >= 0 && timeout >= 0) wait = std::min(milliseconds, timeout);
-    if (ready) wait = 0;
+    for (const GPollFD& descriptor : native) { descriptors.push_back({descriptor.fd, static_cast<short>(descriptor.events), 0}); }
+    int wait = milliseconds < 0 ? timeout : timeout < 0 ? milliseconds : std::min(milliseconds, timeout);
+    if (ready) { wait = 0; }
     static_cast<void>(poll(descriptors.data(), descriptors.size(), wait));
-    for (std::size_t i = 0; i < native.size(); ++i) {
-        native[i].revents = descriptors[i + 2].revents;
-    }
-    const gboolean dispatch = g_main_context_check(context, priority, native.data(), static_cast<int>(native.size()));
-    if (dispatch) g_main_context_dispatch(context);
+    for (std::size_t i = 0; i < native.size(); ++i) { native[i].revents = descriptors[i + 2].revents; }
+    if (g_main_context_check(context, priority, native.data(), static_cast<int>(native.size()))) { g_main_context_dispatch(context); }
     g_main_context_release(context);
 }
-} // namespace gui_forms::host::linux_detail
+}

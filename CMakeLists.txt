@@ -1474,22 +1474,6 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     find_library(GUI_FORMS_UNIFORMTYPEIDENTIFIERS UniformTypeIdentifiers REQUIRED)
     add_library(gui_forms_host_macos STATIC
         src/host/macos/application/macos_host.mm
-        src/host/macos/application/macos_application_run.mm
-        src/host/macos/application/macos_window_delegates.mm
-        src/host/macos/application/macos_window_requests.mm
-        src/host/macos/application/macos_main_work.mm
-        src/host/macos/application/macos_values.mm
-        src/host/macos/application/macos_bundled_fonts.mm
-        src/host/macos/application/macos_splashscreen.mm
-        src/host/macos/application/live_surface_damage.cpp
-        src/host/macos/view/macos_view.mm
-        src/host/macos/view/macos_view_scheduling.mm
-        src/host/macos/view/macos_view_drawing.mm
-        src/host/macos/view/macos_view_input.mm
-        src/host/macos/view/macos_view_accessibility.mm
-        src/host/macos/view/macos_view_diagnostics.mm
-        src/host/macos/accessibility/macos_accessibility_element.mm
-        src/host/macos/accessibility/macos_accessibility_text.mm
         src/host/macos/application/application_menu.mm
         src/host/macos/services/appkit_host_services.mm
         src/host/macos/services/appkit_clipboard_image.mm
@@ -3576,8 +3560,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_live_surface_tests tests/live_surface_tests.cpp)
     target_link_libraries(gui_forms_live_surface_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_live_surface_tests COMMAND gui_forms_live_surface_tests)
-    add_executable(gui_forms_opaque_live_surface_tests tests/opaque_live_surface_tests.cpp
-        src/host/macos/application/live_surface_damage.cpp)
+    add_executable(gui_forms_opaque_live_surface_tests tests/opaque_live_surface_tests.cpp)
     target_link_libraries(gui_forms_opaque_live_surface_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_opaque_live_surface_tests COMMAND gui_forms_opaque_live_surface_tests)
 
