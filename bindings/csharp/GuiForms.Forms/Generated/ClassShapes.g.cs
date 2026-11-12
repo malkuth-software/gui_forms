@@ -81,6 +81,8 @@ internal static unsafe class ClassShapes
             return build_list_control(overridden);
         case Constants.GF_CLASS_UP_DOWN_BASE:
             return build_up_down_base(overridden);
+        case Constants.GF_CLASS_NODE_CANVAS:
+            return build_node_canvas(overridden);
         default:
             throw new ArgumentOutOfRangeException(nameof(class_id), class_id, "no class table has this class id");
         }
@@ -716,6 +718,28 @@ internal static unsafe class ClassShapes
         (*table).header.abi_minor = Constants.GF_ABI_MINOR;
         (*table).header.class_id = Constants.GF_CLASS_UP_DOWN_BASE;
         (*table).header.segment_count = 1u;
+        (*table).header.release = &ClassObjects.release_instance;
+        return &(*table).header;
+    }
+
+    private static gf_class_header* build_node_canvas(HookSet overridden)
+    {
+        nuint size = (nuint)(sizeof(gf_node_canvas_class) + sizeof(gf_control_hooks) + sizeof(gf_node_canvas_hooks));
+        byte* block = (byte*)NativeMemory.AllocZeroed(size);
+        gf_node_canvas_class* table = (gf_node_canvas_class*)block;
+        byte* next = block + sizeof(gf_node_canvas_class);
+        gf_control_hooks* control = (gf_control_hooks*)next;
+        next += sizeof(gf_control_hooks);
+        Control.fill_control_segment(control, overridden);
+        (*table).control = control;
+        gf_node_canvas_hooks* node_canvas = (gf_node_canvas_hooks*)next;
+        next += sizeof(gf_node_canvas_hooks);
+        NodeCanvas.fill_node_canvas_segment(node_canvas, overridden);
+        (*table).node_canvas = node_canvas;
+        (*table).header.struct_size = (uint)sizeof(gf_class_header);
+        (*table).header.abi_minor = Constants.GF_ABI_MINOR;
+        (*table).header.class_id = Constants.GF_CLASS_NODE_CANVAS;
+        (*table).header.segment_count = 2u;
         (*table).header.release = &ClassObjects.release_instance;
         return &(*table).header;
     }

@@ -3435,31 +3435,18 @@ Interactions beyond every control's: none.
 | Part | Role | Reuses | Own states |
 |---|---|---|---|
 | `region` | region |  |  |
-| `well` | well |  |  |
 | `grid_minor` | grid_minor |  |  |
 | `grid_major` | grid_major |  |  |
-| `connector` | series |  |  |
-| `marquee` | focus |  |  |
-| `knife` | trace |  |  |
-| `drop` | drop |  |  |
-| `focus` | focus |  |  |
-
-States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
-
-Item system `node`:
-
-| Part | Role | Reuses | Own states |
-|---|---|---|---|
-| `node` | region |  |  |
-| `node_face` | face |  |  |
+| `node` | node |  | hot, selected, disabled |
+| `node_header` | header |  | hot, selected, disabled |
 | `node_selection` | selection |  |  |
-| `node_caption` | caption |  |  |
-| `port` | marker |  |  |
-| `port_label` | label |  |  |
-| `lamp` | indicator |  |  |
-| `node_focus` | focus |  |  |
+| `port` | port |  | hot, drop_accepted, drop_rejected |
+| `link` | link |  | hot, selected, invalid |
+| `dashed_link` | link |  | hot, selected, invalid |
+| `lamp` | lamp |  | checked, invalid |
+| `marquee` | marquee |  |  |
 
-Item states: `selected`, `hot`, `current`, `disabled`, `focus_visible`.
+States: `normal`, `hot`, `focused`, `focus_visible`, `selected`, `checked`, `enabled`, `disabled`, `invalid`, `drop_accepted`, `drop_rejected`.
 
 Properties beyond every control's: none.
 

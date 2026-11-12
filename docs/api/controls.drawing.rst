@@ -70,14 +70,6 @@ Related types
      -  
    * - :cpp:class:`NodeBodyPaint <gui_forms::NodeBodyPaint>`
      - The application's drawing of a node's body at full detail: ``body`` is the area below the caption in local units, at ``zoom`` view units per world unit.
-   * - :cpp:class:`NodeCanvas::NodeParts <gui_forms::NodeCanvas::NodeParts>`
-     - One visible node's parts and states (the "node" item system).
-   * - :cpp:class:`NodeCanvas::NodeStates <gui_forms::NodeCanvas::NodeStates>`
-     -  
-   * - :cpp:class:`NodeCanvas::Parts <gui_forms::NodeCanvas::Parts>`
-     - The anatomy, as dot members (see Control::Parts).
-   * - :cpp:class:`NodeCanvas::States <gui_forms::NodeCanvas::States>`
-     -  
    * - :cpp:class:`NodeCanvasCallbacks <gui_forms::NodeCanvasCallbacks>`
      - Named targets (Delegates: a function, or a member of an object the application keeps alive while the canvas holds the target).
    * - :cpp:class:`NodeCanvasHit <gui_forms::NodeCanvasHit>`
@@ -515,88 +507,6 @@ Related types
       Default: ``{1.0}``.
 
    .. cpp:member:: AnatomyStateSet states
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: NodeCanvas::NodeParts final
-
-   ``#include <gui_forms/controls/node_canvas.hpp>``
-
-   One visible node's parts and states (the "node" item system). A node has many ports and lamps; ``port``, ``port_label`` and ``lamp`` give the first one's geometry.
-
-   .. cpp:member:: PartGeometry node
-
-   .. cpp:member:: PartGeometry node_face
-
-   .. cpp:member:: PartGeometry node_selection
-
-   .. cpp:member:: PartGeometry node_caption
-
-   .. cpp:member:: PartGeometry port
-
-   .. cpp:member:: PartGeometry port_label
-
-   .. cpp:member:: PartGeometry lamp
-
-   .. cpp:member:: PartGeometry node_focus
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: NodeCanvas::NodeStates final
-
-   ``#include <gui_forms/controls/node_canvas.hpp>``
-
-   .. cpp:member:: bool selected
-
-   .. cpp:member:: bool hot
-
-   .. cpp:member:: bool current
-
-   .. cpp:member:: bool disabled
-
-   .. cpp:member:: bool focus_visible
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: NodeCanvas::Parts final
-
-   ``#include <gui_forms/controls/node_canvas.hpp>``
-
-   The anatomy, as dot members (see Control::Parts). The marquee, knife and drop parts are present only during their gestures.
-
-   .. cpp:member:: PartGeometry region
-
-   .. cpp:member:: PartGeometry well
-
-   .. cpp:member:: PartGeometry grid_minor
-
-   .. cpp:member:: PartGeometry grid_major
-
-   .. cpp:member:: PartGeometry connector
-
-   .. cpp:member:: PartGeometry marquee
-
-   .. cpp:member:: PartGeometry knife
-
-   .. cpp:member:: PartGeometry drop
-
-   .. cpp:member:: PartGeometry focus
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: NodeCanvas::States final
-
-   ``#include <gui_forms/controls/node_canvas.hpp>``
-
-   .. cpp:member:: bool normal
-
-   .. cpp:member:: bool enabled
-
-   .. cpp:member:: bool disabled
-
-   .. cpp:member:: bool focused
-
-   .. cpp:member:: bool focus_visible
 
 .. cpp:namespace:: gui_forms
 

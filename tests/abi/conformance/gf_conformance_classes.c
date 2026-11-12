@@ -1055,6 +1055,84 @@ static void class_direct_29(gf_kit* kit) {
                      GF_STATUS_OK);
 }
 
+/* NodeCanvas NodeCanvas::on_edit_ended: a direct base. */
+static void class_direct_30(gf_kit* kit) {
+    gf_node_canvas_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_NODE_CANVAS;
+    table.header.segment_count = 2u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "NodeCanvas NodeCanvas::on_edit_ended", GF_CLASS_NODE_CANVAS, 0u, "edit_ended", "edit_ended",
+                     GF_STATUS_OK);
+}
+
+/* NodeCanvas NodeCanvas::on_graph_edited: a direct base. */
+static void class_direct_31(gf_kit* kit) {
+    gf_node_canvas_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_NODE_CANVAS;
+    table.header.segment_count = 2u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "NodeCanvas NodeCanvas::on_graph_edited", GF_CLASS_NODE_CANVAS, 1u, "graph_edited", "graph_edited",
+                     GF_STATUS_OK);
+}
+
+/* NodeCanvas NodeCanvas::on_link_connected: a direct base. */
+static void class_direct_32(gf_kit* kit) {
+    gf_node_canvas_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_NODE_CANVAS;
+    table.header.segment_count = 2u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "NodeCanvas NodeCanvas::on_link_connected", GF_CLASS_NODE_CANVAS, 2u, "link_connected", "link_connected",
+                     GF_STATUS_OK);
+}
+
+/* NodeCanvas NodeCanvas::on_palette_requested: a direct base. */
+static void class_direct_33(gf_kit* kit) {
+    gf_node_canvas_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_NODE_CANVAS;
+    table.header.segment_count = 2u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "NodeCanvas NodeCanvas::on_palette_requested", GF_CLASS_NODE_CANVAS, 3u, "palette_requested", "palette_requested",
+                     GF_STATUS_OK);
+}
+
+/* NodeCanvas NodeCanvas::on_selection_changed: a direct base. */
+static void class_direct_34(gf_kit* kit) {
+    gf_node_canvas_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_NODE_CANVAS;
+    table.header.segment_count = 2u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "NodeCanvas NodeCanvas::on_selection_changed", GF_CLASS_NODE_CANVAS, 4u, "selection_changed", "selection_changed",
+                     GF_STATUS_OK);
+}
+
+/* NodeCanvas NodeCanvas::on_view_changed: a direct base. */
+static void class_direct_35(gf_kit* kit) {
+    gf_node_canvas_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_NODE_CANVAS;
+    table.header.segment_count = 2u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "NodeCanvas NodeCanvas::on_view_changed", GF_CLASS_NODE_CANVAS, 5u, "view_changed", "view_changed",
+                     GF_STATUS_OK);
+}
+
 /* The refusals, base_raiser, a direct base call and base from another thread. */
 static void class_refusals(gf_kit* kit) {
     gf_control_hooks segment;
@@ -1190,5 +1268,11 @@ void gf_kit_classes(gf_kit* kit) {
     class_direct_27(kit);
     class_direct_28(kit);
     class_direct_29(kit);
+    class_direct_30(kit);
+    class_direct_31(kit);
+    class_direct_32(kit);
+    class_direct_33(kit);
+    class_direct_34(kit);
+    class_direct_35(kit);
     class_refusals(kit);
 }

@@ -20,6 +20,7 @@
 #include "gui_forms/controls/list_control.hpp"
 #include "gui_forms/controls/material_panel.hpp"
 #include "gui_forms/controls/navigation_pane.hpp"
+#include "gui_forms/controls/node_canvas.hpp"
 #include "gui_forms/controls/page_strip.hpp"
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/controls/panel.hpp"
@@ -424,6 +425,36 @@ gf_status GF_CALL base_date_time_picker_on_value_changed(gf_object self, gf_even
     return ran;
 }
 
+gf_status GF_CALL base_node_canvas_on_edit_ended(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_NODE_CANVAS, 0U});
+    return ran;
+}
+
+gf_status GF_CALL base_node_canvas_on_graph_edited(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_NODE_CANVAS, 1U});
+    return ran;
+}
+
+gf_status GF_CALL base_node_canvas_on_link_connected(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_NODE_CANVAS, 2U});
+    return ran;
+}
+
+gf_status GF_CALL base_node_canvas_on_palette_requested(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_NODE_CANVAS, 3U});
+    return ran;
+}
+
+gf_status GF_CALL base_node_canvas_on_selection_changed(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_NODE_CANVAS, 4U});
+    return ran;
+}
+
+gf_status GF_CALL base_node_canvas_on_view_changed(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_NODE_CANVAS, 5U});
+    return ran;
+}
+
 namespace {
 
 using ButtonBaseLayers = ControlHooksLayer<BridgeState<ButtonBase>>;
@@ -524,6 +555,9 @@ constexpr std::array<gf_class_id, 1> list_control_segments{GF_CLASS_CONTROL};
 
 using UpDownBaseLayers = ControlHooksLayer<BridgeState<UpDownBase>>;
 constexpr std::array<gf_class_id, 1> up_down_base_segments{GF_CLASS_CONTROL};
+
+using NodeCanvasLayers = NodeCanvasHooksLayer<ControlHooksLayer<BridgeState<NodeCanvas>>>;
+constexpr std::array<gf_class_id, 2> node_canvas_segments{GF_CLASS_CONTROL, GF_CLASS_NODE_CANVAS};
 
 constexpr std::array<gf_base_raiser, 43> control_base_raisers{
     &base_control_on_auto_size_changed,
@@ -631,7 +665,16 @@ constexpr std::array<gf_base_raiser, 2> date_time_picker_base_raisers{
     &base_date_time_picker_on_value_changed,
 };
 
-constexpr std::array<ClassDescription, 33> descriptions{{
+constexpr std::array<gf_base_raiser, 6> node_canvas_base_raisers{
+    &base_node_canvas_on_edit_ended,
+    &base_node_canvas_on_graph_edited,
+    &base_node_canvas_on_link_connected,
+    &base_node_canvas_on_palette_requested,
+    &base_node_canvas_on_selection_changed,
+    &base_node_canvas_on_view_changed,
+};
+
+constexpr std::array<ClassDescription, 34> descriptions{{
     {GF_CLASS_BUTTON_BASE, "button_base", std::span<const gf_class_id>(button_base_segments),
      &create_bridge<ButtonBaseLayers>},
     {GF_CLASS_BUTTON, "button", std::span<const gf_class_id>(button_segments),
@@ -698,6 +741,8 @@ constexpr std::array<ClassDescription, 33> descriptions{{
      &create_bridge<ListControlLayers>},
     {GF_CLASS_UP_DOWN_BASE, "up_down_base", std::span<const gf_class_id>(up_down_base_segments),
      &create_bridge<UpDownBaseLayers>},
+    {GF_CLASS_NODE_CANVAS, "node_canvas", std::span<const gf_class_id>(node_canvas_segments),
+     &create_bridge<NodeCanvasLayers>},
 }};
 
 } // namespace
@@ -739,6 +784,9 @@ gf_base_raiser find_base_raiser(gf_class_id class_id, std::uint32_t entry) noexc
         break;
     case GF_CLASS_DATE_TIME_PICKER:
         segment = std::span<const gf_base_raiser>(date_time_picker_base_raisers);
+        break;
+    case GF_CLASS_NODE_CANVAS:
+        segment = std::span<const gf_base_raiser>(node_canvas_base_raisers);
         break;
     default:
         // A class with no segment has no base function.

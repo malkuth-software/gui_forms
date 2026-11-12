@@ -1,8 +1,9 @@
 // NodeCanvas through the CPU renderer (OffscreenRaster with the bundled
-// faces): the grid draws lines across the well, a node's face, a link and a
-// port marker each paint a colour other than the well's, and an empty view
-// paints only the well and grid. Every colour comes from the theme's parts,
-// so the checks compare pixels with each other, never with literals.
+// faces): the grid draws lines across the canvas region, a node, a link and
+// a port disc each paint a colour other than the region's, and an empty
+// view paints only the region and grid. Every colour comes from the theme's
+// canvas look (canvas_look.hpp), so the checks compare pixels with each
+// other, never with literals.
 
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
 #include "gui_forms/control/control/control.hpp"
@@ -104,13 +105,13 @@ void node_canvas_pixels() {
             "the canvas is captured at scale 1");
     const WindowCapture& capture = *picture;
 
-    // (165, 138) is open well: off every node, link and grid multiple.
-    const std::uint32_t well = pixel_at(capture, 165U, 138U);
-    require((well >> 24U) == 255U, "the well is opaque");
-    require(colours_along(capture, 270U, 0U, 400U) >= 2U, "the grid draws lines across the well");
-    require(pixel_at(capture, 78U, 100U) != well, "a node's face differs from the well");
-    require(pixel_at(capture, 165U, 82U) != well, "the link is drawn between the nodes");
-    require(pixel_at(capture, 126U, 82U) != well, "the output's port marker is drawn");
+    // (165, 138) is open region: off every node, link and grid multiple.
+    const std::uint32_t region = pixel_at(capture, 165U, 138U);
+    require((region >> 24U) == 255U, "the region is opaque");
+    require(colours_along(capture, 270U, 0U, 400U) >= 2U, "the grid draws lines across the region");
+    require(pixel_at(capture, 78U, 100U) != region, "a node's face differs from the region");
+    require(pixel_at(capture, 165U, 82U) != region, "the link is drawn between the nodes");
+    require(pixel_at(capture, 126U, 82U) != region, "the output's port disc is drawn");
     require((*canvas).statistics().frames_painted >= 1U && (*canvas).statistics().nodes_painted >= 2U,
             "the capture painted the canvas");
 
@@ -123,13 +124,13 @@ void node_canvas_pixels() {
                               pixel_at(*selected, 78U, 100U) != plain_face;
     require(edge_changed, "a selected node is drawn differently");
 
-    // Looking away: only the well and the grid remain.
+    // Looking away: only the region and the grid remain.
     // 4992 is a multiple of the grid spacing, so the lines stay where they
-    // were and (78, 100), off every line, shows the well.
+    // were and (78, 100), off every line, shows the region.
     require((*canvas).set_view(SceneViewTransform{WorldPoint{4992.0, 4992.0}, 1.0}), "look away");
     const std::optional<WindowCapture> empty = attached.capture_window(whole);
     require(empty.has_value() && (*canvas).visible_nodes().empty(), "an empty view is captured");
-    require(pixel_at(*empty, 78U, 100U) == well, "where the node was, an empty view shows the well");
+    require(pixel_at(*empty, 78U, 100U) == region, "where the node was, an empty view shows the region");
 }
 
 } // namespace

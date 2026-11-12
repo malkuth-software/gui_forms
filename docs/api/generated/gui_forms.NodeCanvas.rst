@@ -7,7 +7,7 @@ gui_forms::NodeCanvas
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: NodeCanvas final : public Control
+.. cpp:class:: NodeCanvas : public Control
 
    ``#include <gui_forms/controls/node_canvas.hpp>``
 
@@ -20,8 +20,10 @@ gui_forms::NodeCanvas
    lies in view, at a level of detail chosen from the zoom with hysteresis:
    an overview of plain rectangles, silhouettes, compact nodes with ports, and
    full nodes with captions, port labels and the application's own body
-   drawing. Every colour comes from the theme's parts. It is a GUI.Forms
-   control; Windows Forms has no equivalent.
+   drawing. Every colour, line and the grid come from the theme's canvas look
+   (``canvas_look.hpp``, the ``node-canvas`` parts): a ``blue``, ``green`` or ``grey``
+   class picks a grid variant. It is a GUI.Forms control; Windows Forms has no
+   equivalent.
 
    *Status:* provisional.
 
@@ -64,10 +66,6 @@ gui_forms::NodeCanvas
 
       **router_options** : ``LinkRouterOptions``
 
-      **grid_spacing** : ``double``
-         The grid's spacing in world units, which is also the snap cell of a
-         move.
-
       **snap_to_grid** : ``bool``
          Whether moves snap to the grid (on by default; Ctrl inverts it during a
          drag).
@@ -107,10 +105,6 @@ gui_forms::NodeCanvas
       **node_index_statistics** : ``SpatialIndexStatistics``, read-only
 
       **link_index_statistics** : ``SpatialIndexStatistics``, read-only
-
-      **parts** : ``Parts``, read-only
-
-      **states** : ``States``, read-only
 
    :Events:
 
@@ -157,6 +151,12 @@ gui_forms::NodeCanvas
         -  
       * - :cpp:func:`reveal_node <gui_forms::NodeCanvas::reveal_node>`
         - Reveals the node (pans the least that shows it whole, if it fits).
+      * - :cpp:func:`clear_grid_spacing <gui_forms::NodeCanvas::clear_grid_spacing>`
+        - Returns to the theme's spacing.
+      * - :cpp:func:`grid_spacing <gui_forms::NodeCanvas::grid_spacing>`
+        - The grid's spacing in world units, which is also the snap cell of a move: the canvas's own when set, else the theme's (16 in the GUI.Forms theme).
+      * - :cpp:func:`canvas_look <gui_forms::NodeCanvas::canvas_look>`
+        - The theme's look the canvas paints from, resolved again only when its theme, colour scheme, contrast, classes or ``back_color`` change.
       * - :cpp:func:`selected <gui_forms::NodeCanvas::selected>`
         -  
       * - :cpp:func:`select_only <gui_forms::NodeCanvas::select_only>`
@@ -197,6 +197,8 @@ gui_forms::NodeCanvas
         - Writes into ``out`` the links whose drawn path crosses the local segment from-to and returns how many cross (more than written when ``out`` is short).
       * - :cpp:func:`port_view_anchor <gui_forms::NodeCanvas::port_view_anchor>`
         - A port's anchor in local units, or none for a stale port.
+      * - :cpp:func:`set_grid_spacing <gui_forms::NodeCanvas::set_grid_spacing>`
+        - Sets the canvas's own spacing; refuses one that is not finite or is under one unit.
 
    .. rubric:: Notes
 
@@ -212,6 +214,11 @@ gui_forms::NodeCanvas
    input, Enter connects), Delete removes the selection or a focused input's
    link, Ctrl+Z and Ctrl+Shift+Z undo and redo, Home frames the graph and F
    the selection.
+
+   A subclass may override the protected raisers (``on_selection_changed``,
+   ``on_link_connected``, ``on_graph_edited``, ``on_view_changed``,
+   ``on_palette_requested``, ``on_edit_ended``) and call the base, which raises
+   the event; the C and C# class tables reach the same raisers.
 
    Accessibility has no flow relations yet: an input port names its source in
    its text.
@@ -280,15 +287,6 @@ gui_forms::NodeCanvas
 
    .. cpp:function:: void set_router_options(const LinkRouterOptions& options)
 
-   .. cpp:function:: double grid_spacing() const noexcept
-
-      The grid's spacing in world units, which is also the snap cell of a
-      move.
-
-   .. cpp:function:: bool set_grid_spacing(double spacing)
-
-      Sets :cpp:func:`grid_spacing <gui_forms::NodeCanvas::grid_spacing>`; see the property's description above.
-
    .. cpp:function:: bool snap_to_grid() const noexcept
 
       Whether moves snap to the grid (on by default; Ctrl inverts it during a
@@ -344,10 +342,6 @@ gui_forms::NodeCanvas
 
    .. cpp:function:: const SpatialIndexStatistics& link_index_statistics() const noexcept
 
-   .. cpp:function:: Parts parts() const
-
-   .. cpp:function:: States states() const
-
 
    .. rubric:: Events
 
@@ -396,6 +390,21 @@ gui_forms::NodeCanvas
    .. cpp:function:: void reveal_node(NodeId node)
 
       Reveals the node (pans the least that shows it whole, if it fits).
+
+   .. cpp:function:: void clear_grid_spacing()
+
+      Returns to the theme's spacing.
+
+   .. cpp:function:: double grid_spacing()
+
+      The grid's spacing in world units, which is also the snap cell of a
+      move: the canvas's own when set, else the theme's (16 in the GUI.Forms
+      theme).
+
+   .. cpp:function:: const CanvasLook& canvas_look()
+
+      The theme's look the canvas paints from, resolved again only when its
+      theme, colour scheme, contrast, classes or ``back_color`` change.
 
    .. cpp:function:: bool selected(NodeId node) const noexcept
 
@@ -457,6 +466,11 @@ gui_forms::NodeCanvas
 
       A port's anchor in local units, or none for a stale port.
 
+   .. cpp:function:: bool set_grid_spacing(double spacing)
+
+      Sets the canvas's own spacing; refuses one that is not finite or is
+      under one unit.
+
 
    .. rubric:: Extension points
 
@@ -478,21 +492,41 @@ gui_forms::NodeCanvas
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
+      node_canvas_anatomy(): the theme's canvas anatomy (canvas_look.hpp).
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
-   .. cpp:function:: std::size_t realized_item_count() const override
+   .. cpp:function:: virtual void on_selection_changed(const NodeCanvasSelection& arguments)
 
-   .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
+      *Protected.*
 
-   .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+      The raisers (per event): each base raises its event with ``arguments``.
+
+   .. cpp:function:: virtual void on_link_connected(const NodeLinkConnected& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_graph_edited(const NodeGraphEdited& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_view_changed(const SceneViewTransform& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_palette_requested(const NodePaletteRequest& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_edit_ended(const NodeEditEnded& arguments)
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
 
-   .. cpp:function:: void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override
-
-      *Protected.*
+      The anatomy's parts (region, the grid levels and the canvas-wide marquee over the client area or the gesture; node, node_header, node_selection, port and lamp for the focused node; link and dashed_link for the selected link).
 
    .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
 
@@ -540,7 +574,7 @@ gui_forms::NodeCanvas
 
    .. cpp:member:: constexpr double default_grid_spacing
 
-      World units between grid lines at level 0, and the snap grid's cell. Default: ``16.0``.
+      World units between grid lines at level 0, and the snap grid's cell, until the theme's look (the region's grid-spacing) is resolved. Default: ``16.0``.
 
    .. cpp:member:: constexpr double caption_height
 
@@ -574,13 +608,9 @@ gui_forms::NodeCanvas
 
       The most points one link's drawn path holds (longer routes are cut). Default: ``1024U``.
 
-   .. cpp:member:: constexpr std::size_t port_buckets
-
-      The socket-type buckets of the port markers: a type's bucket is its number modulo this, selecting the accent ramp entry and the shape. Default: ``8U``.
-
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 0 supported, 0 deferred, 0 excluded, 55 unclassified; 55 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 48 supported, 0 deferred, 0 excluded, 16 unclassified; 64 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -594,19 +624,19 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``announcement``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``callbacks``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``detail_level``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``detail_thresholds``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``drag_statistics``
@@ -614,31 +644,27 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``edited_node``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``editing``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``focused_node``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``focused_port``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``gesture``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``graph``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``grid_spacing``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``link_index_statistics``
@@ -650,7 +676,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``node_index_statistics``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``router_options``
@@ -662,31 +688,31 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``selection``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``snap_to_grid``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``statistics``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``view``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``visible_nodes``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``zoom_range``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``edit_ended``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``graph_edited``
@@ -694,27 +720,35 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - event
      - GUI.Forms-only
      - ``link_connected``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``palette_requested``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``selection_changed``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``view_changed``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``add_to_selection``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``begin_edit``
-     - unclassified (untested)
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``canvas_look``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_grid_spacing``
+     - supported
    * - method
      - GUI.Forms-only
      - ``clear_selection``
@@ -722,31 +756,35 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - method
      - GUI.Forms-only
      - ``connect_ports``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``cut_links``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``delete_selection``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``end_edit``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``frame_all``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``frame_selection``
      - unclassified (untested)
    * - method
      - GUI.Forms-only
+     - ``grid_spacing``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``hit_test``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``link_to_nearest``
@@ -754,27 +792,51 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - method
      - GUI.Forms-only
      - ``links_crossing``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``move_selection``
      - unclassified (untested)
    * - method
      - GUI.Forms-only
-     - ``pan_by``
+     - ``on_edit_ended``
      - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_graph_edited``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_link_connected``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_palette_requested``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_selection_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_view_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``pan_by``
+     - supported
    * - method
      - GUI.Forms-only
      - ``port_view_anchor``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``redo``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``refresh``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``reveal_node``
@@ -786,7 +848,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - method
      - GUI.Forms-only
      - ``select_in_rect``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``select_link``
@@ -794,11 +856,15 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - method
      - GUI.Forms-only
      - ``select_only``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``selected``
-     - unclassified (untested)
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_grid_spacing``
+     - supported
    * - method
      - GUI.Forms-only
      - ``toggle_selection``
@@ -806,8 +872,8 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - method
      - GUI.Forms-only
      - ``undo``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``zoom_about``
-     - unclassified (untested)
+     - supported

@@ -8,8 +8,10 @@ meets through two spatial indexes (nodes and links), and paints only what
 lies in view, at a level of detail chosen from the zoom with hysteresis:
 an overview of plain rectangles, silhouettes, compact nodes with ports, and
 full nodes with captions, port labels and the application's own body
-drawing. Every colour comes from the theme's parts. It is a GUI.Forms
-control; Windows Forms has no equivalent.
+drawing. Every colour, line and the grid come from the theme's canvas look
+(`canvas_look.hpp`, the `node-canvas` parts): a `blue`, `green` or `grey`
+class picks a grid variant. It is a GUI.Forms control; Windows Forms has no
+equivalent.
 
 Parameters
 ----------
@@ -39,9 +41,6 @@ detail_level
 link_style
     ``soft`` curves leave and enter along each port's edge; ``routed`` links
     take the link router's obstacle-avoiding routes.
-grid_spacing
-    The grid's spacing in world units, which is also the snap cell of a
-    move.
 snap_to_grid
     Whether moves snap to the grid (on by default; Ctrl inverts it during a
     drag).
@@ -78,6 +77,21 @@ palette_requested
 edit_ended
     Raised after an edit ends, with whether it was committed or cancelled.
 
+Methods
+-------
+grid_spacing
+    The grid's spacing in world units, which is also the snap cell of a
+    move: the canvas's own when set, else the theme's (16 in the GUI.Forms
+    theme).
+set_grid_spacing
+    Sets the canvas's own spacing; refuses one that is not finite or is
+    under one unit.
+clear_grid_spacing
+    Returns to the theme's spacing.
+canvas_look
+    The theme's look the canvas paints from, resolved again only when its
+    theme, colour scheme, contrast, classes or `back_color` change.
+
 Notes
 -----
 A gesture is one undo step: a move drag, a detach and its reconnection, an
@@ -92,6 +106,11 @@ from the current output (arrows or a title's first letter choose the
 input, Enter connects), Delete removes the selection or a focused input's
 link, Ctrl+Z and Ctrl+Shift+Z undo and redo, Home frames the graph and F
 the selection.
+
+A subclass may override the protected raisers (`on_selection_changed`,
+`on_link_connected`, `on_graph_edited`, `on_view_changed`,
+`on_palette_requested`, `on_edit_ended`) and call the base, which raises
+the event; the C and C# class tables reach the same raisers.
 
 Accessibility has no flow relations yet: an input port names its source in
 its text.

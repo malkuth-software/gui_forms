@@ -99,6 +99,7 @@ typedef uint32_t gf_class_id;
 #define GF_CLASS_DATA_GRID_VIEW 38u
 #define GF_CLASS_NUMERIC_UP_DOWN 39u
 #define GF_CLASS_DATE_TIME_PICKER 40u
+#define GF_CLASS_NODE_CANVAS 41u
 
 /* Runs the C++ raiser below the class table for the object self, which
  * emits the event to the subscribers; event is the one the entry received
@@ -343,6 +344,24 @@ typedef struct gf_date_time_picker_hooks {
     gf_hook_entry on_value_changed;
 } gf_date_time_picker_hooks;
 
+/* NodeCanvas's raisers (GF_CLASS_NODE_CANVAS). */
+typedef struct gf_node_canvas_hooks {
+    uint32_t struct_size;
+    gf_class_id class_id;
+    /* NodeCanvas::on_edit_ended: where edit_ended happens; base raises edit_ended; the event's fields are its NodeEditEnded. Since 1.3. */
+    gf_hook_entry on_edit_ended;
+    /* NodeCanvas::on_graph_edited: where graph_edited happens; base raises graph_edited; the event's fields are its NodeGraphEdited. Since 1.3. */
+    gf_hook_entry on_graph_edited;
+    /* NodeCanvas::on_link_connected: where link_connected happens; base raises link_connected; the event's fields are its NodeLinkConnected. Since 1.3. */
+    gf_hook_entry on_link_connected;
+    /* NodeCanvas::on_palette_requested: where palette_requested happens; base raises palette_requested; the event's fields are its NodePaletteRequest. Since 1.3. */
+    gf_hook_entry on_palette_requested;
+    /* NodeCanvas::on_selection_changed: where selection_changed happens; base raises selection_changed; the event's fields are its NodeCanvasSelection. Since 1.3. */
+    gf_hook_entry on_selection_changed;
+    /* NodeCanvas::on_view_changed: where view_changed happens; base raises view_changed; the event's fields are its SceneViewTransform. Since 1.3. */
+    gf_hook_entry on_view_changed;
+} gf_node_canvas_hooks;
+
 /* A class table for ButtonBase (GF_CLASS_BUTTON_BASE): header.segment_count is 1. */
 typedef struct gf_button_base_class {
     gf_class_header header;
@@ -550,6 +569,13 @@ typedef struct gf_up_down_base_class {
     gf_class_header header;
     const gf_control_hooks* control;
 } gf_up_down_base_class;
+
+/* A class table for NodeCanvas (GF_CLASS_NODE_CANVAS): header.segment_count is 2. */
+typedef struct gf_node_canvas_class {
+    gf_class_header header;
+    const gf_control_hooks* control;
+    const gf_node_canvas_hooks* node_canvas;
+} gf_node_canvas_class;
 
 /*
  * GF_TABLE_CLASSES (since 1.3): objects made from class tables.

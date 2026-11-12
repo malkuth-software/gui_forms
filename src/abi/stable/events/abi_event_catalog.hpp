@@ -80,6 +80,8 @@
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/month_calendar.hpp"
 #include "gui_forms/controls/navigation_pane.hpp"
+#include "gui_forms/controls/node_canvas.hpp"
+#include "gui_forms/controls/node_graph.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/controls/object_view.hpp"
 #include "gui_forms/controls/object_view_values.hpp"
@@ -139,6 +141,8 @@
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/pages/types/page_set_types.hpp"
+#include "gui_forms/scene/scene_view/scene_view.hpp"
+#include "gui_forms/scene/world_geometry/world_geometry.hpp"
 #include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
 #include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 #include "gui_forms/surface_material/procedural_fill/procedural_fill.hpp"
@@ -682,6 +686,38 @@ struct EnumerationChoices<Modifier> {
 };
 
 template <>
+struct EnumerationChoices<NodeEditEnd> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"commit", static_cast<std::int64_t>(NodeEditEnd::commit)},
+        {"cancel", static_cast<std::int64_t>(NodeEditEnd::cancel)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<NodeEditPart> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"body", static_cast<std::int64_t>(NodeEditPart::body)},
+        {"caption", static_cast<std::int64_t>(NodeEditPart::caption)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<NodeGraphEditKind> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 7> choices{{
+        {"moved", static_cast<std::int64_t>(NodeGraphEditKind::moved)},
+        {"connected", static_cast<std::int64_t>(NodeGraphEditKind::connected)},
+        {"disconnected", static_cast<std::int64_t>(NodeGraphEditKind::disconnected)},
+        {"removed", static_cast<std::int64_t>(NodeGraphEditKind::removed)},
+        {"undone", static_cast<std::int64_t>(NodeGraphEditKind::undone)},
+        {"redone", static_cast<std::int64_t>(NodeGraphEditKind::redone)},
+        {"edited", static_cast<std::int64_t>(NodeGraphEditKind::edited)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<ObjectSortDirection> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 2> choices{{
@@ -1053,6 +1089,7 @@ void append_field(EventFields& fields, std::string_view name, const KeyGesture& 
 void append_field(EventFields& fields, std::string_view name, const KeyPressEventArgs& value);
 void read_field(EventFields& fields, std::string_view name, KeyPressEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const KeyStateChange& value);
+void append_field(EventFields& fields, std::string_view name, const LinkId& value);
 void append_field(EventFields& fields, std::string_view name, const ListSelectionChange& value);
 void append_field(EventFields& fields, std::string_view name, const ListViewColumnClick& value);
 void append_field(EventFields& fields, std::string_view name, const ListViewColumnWidthChange& value);
@@ -1082,6 +1119,12 @@ void append_field(EventFields& fields, std::string_view name, const MouseEventAr
 void read_field(EventFields& fields, std::string_view name, MouseEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const NavigationPaneOptionsRequest& value);
 void append_field(EventFields& fields, std::string_view name, const NavigationPaneState& value);
+void append_field(EventFields& fields, std::string_view name, const NodeCanvasSelection& value);
+void append_field(EventFields& fields, std::string_view name, const NodeEditEnded& value);
+void append_field(EventFields& fields, std::string_view name, const NodeGraphEdited& value);
+void append_field(EventFields& fields, std::string_view name, const NodeId& value);
+void append_field(EventFields& fields, std::string_view name, const NodeLinkConnected& value);
+void append_field(EventFields& fields, std::string_view name, const NodePaletteRequest& value);
 void append_field(EventFields& fields, std::string_view name, const NotifyIconClick& value);
 void append_field(EventFields& fields, std::string_view name, const ObjectColumnId& value);
 void append_field(EventFields& fields, std::string_view name, const ObjectContextRequest& value);
@@ -1105,6 +1148,8 @@ void append_field(EventFields& fields, std::string_view name, const PlotQuery& v
 void append_field(EventFields& fields, std::string_view name, const PlotViewRanges& value);
 void append_field(EventFields& fields, std::string_view name, const PointerEvent& value);
 void append_field(EventFields& fields, std::string_view name, const PointerSettings& value);
+void append_field(EventFields& fields, std::string_view name, const PortIndex& value);
+void append_field(EventFields& fields, std::string_view name, const PortRef& value);
 void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value);
 void append_field(EventFields& fields, std::string_view name, const PreviewKeyDownEventArgs& value);
 void read_field(EventFields& fields, std::string_view name, PreviewKeyDownEventArgs& value);
@@ -1129,6 +1174,7 @@ void append_field(EventFields& fields, std::string_view name, const RibbonToolTi
 void append_field(EventFields& fields, std::string_view name, const RibbonToolTipEvent& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonToolTipHelpRequest& value);
 void append_field(EventFields& fields, std::string_view name, const RuntimeId& value);
+void append_field(EventFields& fields, std::string_view name, const SceneViewTransform& value);
 void append_field(EventFields& fields, std::string_view name, const ScrollEvent& value);
 void read_field(EventFields& fields, std::string_view name, ScrollEvent& value);
 void append_field(EventFields& fields, std::string_view name, const SemanticFeedbackRecord& value);
@@ -1166,6 +1212,7 @@ void append_field(EventFields& fields, std::string_view name, const VirtualRowSe
 void append_field(EventFields& fields, std::string_view name, const WindowBackdropGrant& value);
 void append_field(EventFields& fields, std::string_view name, const WizardPageChangingEvent& value);
 void read_field(EventFields& fields, std::string_view name, WizardPageChangingEvent& value);
+void append_field(EventFields& fields, std::string_view name, const WorldPoint& value);
 
 inline void append_field(EventFields& fields, std::string_view name, const BackgroundWorkerCompleted& value) {
     const EventFieldPrefix prefix = fields.enter(name);
@@ -2016,6 +2063,13 @@ inline void append_field(EventFields& fields, std::string_view name, const KeySt
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const LinkId& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "index", value.index);
+    append_field(fields, "generation", value.generation);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const ListSelectionChange& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "previous", value.previous);
@@ -2305,6 +2359,51 @@ inline void append_field(EventFields& fields, std::string_view name, const Navig
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const NodeCanvasSelection& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "nodes", value.nodes);
+    append_field(fields, "link", value.link);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodeEditEnded& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "node", value.node);
+    append_field(fields, "part", value.part);
+    append_field(fields, "end", value.end);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodeGraphEdited& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "kind", value.kind);
+    append_field(fields, "revision", value.revision);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodeId& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "index", value.index);
+    append_field(fields, "generation", value.generation);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodeLinkConnected& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "link", value.link);
+    append_field(fields, "from", value.from);
+    append_field(fields, "to", value.to);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodePaletteRequest& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "world", value.world);
+    append_field(fields, "local", value.local);
+    append_field(fields, "from", value.from);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const NotifyIconClick& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "button", value.button);
@@ -2488,6 +2587,18 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     append_field(fields, "hover_height", value.hover_height);
     append_field(fields, "hover_origin", value.hover_origin);
     append_field(fields, "native_hover", value.native_hover);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PortIndex& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PortRef& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "node", value.node);
+    append_field(fields, "port", value.port);
     fields.leave(prefix);
 }
 
@@ -2692,6 +2803,13 @@ inline void append_field(EventFields& fields, std::string_view name, const Ribbo
 inline void append_field(EventFields& fields, std::string_view name, const RuntimeId& value) {
     // An identity: the field is its one value.
     append_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const SceneViewTransform& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "origin", value.origin);
+    append_field(fields, "zoom", value.zoom);
+    fields.leave(prefix);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const ScrollEvent& value) {
@@ -2988,6 +3106,13 @@ inline void read_field(EventFields& fields, std::string_view name, WizardPageCha
     read_field(fields, "from", value.from);
     read_field(fields, "to", value.to);
     read_field(fields, "cancel", value.cancel);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const WorldPoint& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "x", value.x);
+    append_field(fields, "y", value.y);
     fields.leave(prefix);
 }
 
@@ -4147,6 +4272,15 @@ inline SubscriptionToken connect_breadcrumb_trail_edit_completion_requested(Comp
     return token;
 }
 
+inline SubscriptionToken connect_node_canvas_edit_ended(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).edit_ended(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_color_value_editor_edit_failed(Component& source, const EventSink& sink) {
     ColorValueEditor* typed = dynamic_cast<ColorValueEditor*>(&source);
     if (typed == nullptr) {
@@ -4319,6 +4453,15 @@ inline SubscriptionToken connect_binding_format(Component& source, const EventSi
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).format(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_node_canvas_graph_edited(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).graph_edited(), sink);
     return token;
 }
 
@@ -4645,6 +4788,15 @@ inline SubscriptionToken connect_rich_text_box_link_clicked(Component& source, c
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).link_clicked(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_node_canvas_link_connected(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).link_connected(), sink);
     return token;
 }
 
@@ -4978,6 +5130,15 @@ inline SubscriptionToken connect_ribbon_color_picker_palette_open_changed(Compon
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).palette_open_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_node_canvas_palette_requested(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).palette_requested(), sink);
     return token;
 }
 
@@ -5507,6 +5668,15 @@ inline SubscriptionToken connect_list_view_selection_changed(Component& source, 
     return token;
 }
 
+inline SubscriptionToken connect_node_canvas_selection_changed(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_plot_view_selection_changed(Component& source, const EventSink& sink) {
     PlotView* typed = dynamic_cast<PlotView*>(&source);
     if (typed == nullptr) {
@@ -5988,6 +6158,15 @@ inline SubscriptionToken connect_task_dialog_verification_changed(Component& sou
     return token;
 }
 
+inline SubscriptionToken connect_node_canvas_view_changed(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).view_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_plot_view_view_changed(Component& source, const EventSink& sink) {
     PlotView* typed = dynamic_cast<PlotView*>(&source);
     if (typed == nullptr) {
@@ -6025,7 +6204,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 332> event_connectors{{
+inline constexpr std::array<EventConnector, 338> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6153,6 +6332,7 @@ inline constexpr std::array<EventConnector, 332> event_connectors{{
     {"edit_cancelled", "BreadcrumbTrail", &connect_breadcrumb_trail_edit_cancelled},
     {"edit_committed", "BreadcrumbTrail", &connect_breadcrumb_trail_edit_committed},
     {"edit_completion_requested", "BreadcrumbTrail", &connect_breadcrumb_trail_edit_completion_requested},
+    {"edit_ended", "NodeCanvas", &connect_node_canvas_edit_ended},
     {"edit_failed", "ColorValueEditor", &connect_color_value_editor_edit_failed},
     {"edit_failed", "PropertyGrid", &connect_property_grid_edit_failed},
     {"edit_started", "BreadcrumbTrail", &connect_breadcrumb_trail_edit_started},
@@ -6172,6 +6352,7 @@ inline constexpr std::array<EventConnector, 332> event_connectors{{
     {"focus_observed", "Control", &connect_control_focus_observed},
     {"focused_control_changed", "Window", &connect_window_focused_control_changed},
     {"format", "Binding", &connect_binding_format},
+    {"graph_edited", "NodeCanvas", &connect_node_canvas_graph_edited},
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
     {"help_requested", "Control", &connect_control_help_requested},
     {"help_requested", "HelpProvider", &connect_help_provider_help_requested},
@@ -6206,6 +6387,7 @@ inline constexpr std::array<EventConnector, 332> event_connectors{{
     {"legend_toggled", "PlotView", &connect_plot_view_legend_toggled},
     {"link_activated", "HelpBook", &connect_help_book_link_activated},
     {"link_clicked", "RichTextBox", &connect_rich_text_box_link_clicked},
+    {"link_connected", "NodeCanvas", &connect_node_canvas_link_connected},
     {"list_changed", "BindingSource", &connect_binding_source_list_changed},
     {"loaded", "UserControl", &connect_user_control_loaded},
     {"mask_changed", "MaskedTextBox", &connect_masked_text_box_mask_changed},
@@ -6243,6 +6425,7 @@ inline constexpr std::array<EventConnector, 332> event_connectors{{
     {"page_pin_requested", "PageStrip", &connect_page_strip_page_pin_requested},
     {"pairing_missed", "SubSurfaceHost", &connect_sub_surface_host_pairing_missed},
     {"palette_open_changed", "RibbonColorPicker", &connect_ribbon_color_picker_palette_open_changed},
+    {"palette_requested", "NodeCanvas", &connect_node_canvas_palette_requested},
     {"parse", "Binding", &connect_binding_parse},
     {"placement_changed", "QuickAccessToolbar", &connect_quick_access_toolbar_placement_changed},
     {"point_picked", "PlotView", &connect_plot_view_point_picked},
@@ -6301,6 +6484,7 @@ inline constexpr std::array<EventConnector, 332> event_connectors{{
     {"selection_changed", "TreeView", &connect_tree_view_selection_changed},
     {"selection_changed", "DataGridView", &connect_data_grid_view_selection_changed},
     {"selection_changed", "ListView", &connect_list_view_selection_changed},
+    {"selection_changed", "NodeCanvas", &connect_node_canvas_selection_changed},
     {"selection_changed", "PlotView", &connect_plot_view_selection_changed},
     {"selection_changed", "RibbonGallery", &connect_ribbon_gallery_selection_changed},
     {"selection_changed", "TreeListView", &connect_tree_list_view_selection_changed},
@@ -6354,6 +6538,7 @@ inline constexpr std::array<EventConnector, 332> event_connectors{{
     {"value_committed", "PropertyList", &connect_property_list_value_committed},
     {"value_committed", "ValueBar", &connect_value_bar_value_committed},
     {"verification_changed", "TaskDialog", &connect_task_dialog_verification_changed},
+    {"view_changed", "NodeCanvas", &connect_node_canvas_view_changed},
     {"view_changed", "PlotView", &connect_plot_view_view_changed},
     {"visibility_changed", "RibbonToolTip", &connect_ribbon_tool_tip_visibility_changed},
     {"visibility_changed", "ToolTip", &connect_tool_tip_visibility_changed},

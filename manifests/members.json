@@ -633,7 +633,6 @@
       {"kind": "method", "winforms": null, "gui_forms": "clear_image", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "clear_style", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "clear_visual_recipes", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "method", "winforms": null, "gui_forms": "face_layer", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": "Control.OnFontChanged", "scope": "admitted", "gui_forms": "on_font_changed", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": "Control.OnTextChanged", "scope": "admitted", "gui_forms": "on_text_changed", "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "perform_click", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
@@ -648,15 +647,11 @@
       {"kind": "event", "winforms": "MouseDoubleClick", "scope": "admitted", "gui_forms": "mouse_double_click", "status": "supported", "basis": "test", "evidence": "tests/mouse_event_order_tests.cpp"},
       {"kind": "method", "winforms": "NotifyDefault", "scope": "admitted", "gui_forms": "notify_default", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": "PerformClick", "scope": "admitted", "gui_forms": "perform_click", "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "danger", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "danger_glow", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/danger_key_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "danger_glowing", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/danger_key_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "flat_border_width", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "visual_style", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "event", "winforms": null, "gui_forms": "dialog_result_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "selected_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/property_family_generated_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "button_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "method", "winforms": null, "gui_forms": "danger_glow_level", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
+      {"kind": "method", "winforms": null, "gui_forms": "button_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "DropDownButton", "winforms": "ToolStripSplitButton", "gui_forms_base": "Button", "winforms_base": "ToolStripDropDownItem", "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp", "members": [
       {"kind": "constructor", "winforms": "ToolStripSplitButton", "scope": "admitted", "overloads": 7, "gui_forms": "DropDownButton", "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},
@@ -1074,14 +1069,6 @@
       {"kind": "property", "winforms": null, "gui_forms": "show_zero", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "showing", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "badge_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
-    ]},
-    {"type": "IndicatorLamp", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
-      {"kind": "property", "winforms": null, "gui_forms": "changing", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/indicator_lamp_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "power", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/indicator_lamp_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "state", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "indicator_lamp_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "method", "winforms": null, "gui_forms": "state_name", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "InfoBanner", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "action", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp"},
@@ -1844,7 +1831,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "sort_items", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "splice_virtual_items", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/list_view_tests.cpp"}
     ]},
-    {"type": "TreeListView", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/damage_rectangles_tests.cpp", "members": [
+    {"type": "TreeListView", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "column_order", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "columns", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "current_id", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
@@ -4296,7 +4283,6 @@
       {"kind": "property", "winforms": null, "gui_forms": "focused_port", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "gesture", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "graph", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_raster_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "grid_spacing", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "link_index_statistics", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "link_style", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "node_index_statistics", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
@@ -4316,6 +4302,8 @@
       {"kind": "event", "winforms": null, "gui_forms": "view_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "add_to_selection", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "begin_edit", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "canvas_look", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "clear_grid_spacing", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "clear_selection", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "connect_ports", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "cut_links", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
@@ -4323,10 +4311,17 @@
       {"kind": "method", "winforms": null, "gui_forms": "end_edit", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "frame_all", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "frame_selection", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "grid_spacing", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "hit_test", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "link_to_nearest", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "links_crossing", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "move_selection", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "on_edit_ended", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it", "raiser": {"cpp": "NodeCanvas::on_edit_ended", "interaction": "edit_ended", "kind": "interaction"}},
+      {"kind": "method", "winforms": null, "gui_forms": "on_graph_edited", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp", "raiser": {"cpp": "NodeCanvas::on_graph_edited", "interaction": "graph_edited", "kind": "interaction"}},
+      {"kind": "method", "winforms": null, "gui_forms": "on_link_connected", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp", "raiser": {"cpp": "NodeCanvas::on_link_connected", "interaction": "link_connected", "kind": "interaction"}},
+      {"kind": "method", "winforms": null, "gui_forms": "on_palette_requested", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it", "raiser": {"cpp": "NodeCanvas::on_palette_requested", "interaction": "palette_requested", "kind": "interaction"}},
+      {"kind": "method", "winforms": null, "gui_forms": "on_selection_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp", "raiser": {"cpp": "NodeCanvas::on_selection_changed", "interaction": "selection_changed", "kind": "interaction"}},
+      {"kind": "method", "winforms": null, "gui_forms": "on_view_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp", "raiser": {"cpp": "NodeCanvas::on_view_changed", "interaction": "view_changed", "kind": "interaction"}},
       {"kind": "method", "winforms": null, "gui_forms": "pan_by", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "port_view_anchor", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "redo", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
@@ -4337,6 +4332,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "select_link", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "select_only", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_raster_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "selected", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "set_grid_spacing", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "toggle_selection", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "undo", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "zoom_about", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"}

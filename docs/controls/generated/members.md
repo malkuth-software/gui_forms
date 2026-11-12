@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2080 | 13 | 367 | 4121 | 2190 |
+| 2083 | 13 | 367 | 4116 | 2188 |
 
 ## GUI.Forms types
 
@@ -16,8 +16,8 @@ Every GUI.Forms control and every property, event and method on each, against it
 |---|---|---|---|---|---|---|
 | `Control` | `Control` | 231 | 0 | 12 | 312 | 198 |
 | `Component` | `Component` | 9 | 0 | 0 | 11 | 11 |
-| `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 37 | 22 |
-| `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
+| `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 36 | 21 |
+| `Button` | `Button` | 6 | 0 | 0 | 6 | 5 |
 | `DropDownButton` | `ToolStripSplitButton` | 6 | 0 | 0 | 18 | 5 |
 | `LinkLabel` | `LinkLabel` | 1 | 0 | 0 | 17 | 0 |
 | `CommandBar` | `ToolStrip` | 5 | 0 | 2 | 71 | 3 |
@@ -29,7 +29,6 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Label` | `Label` | 7 | 0 | 1 | 36 | 9 |
 | `TextBlock` | GUI.Forms-only | 3 | 0 | 0 | 7 | 10 |
 | `Badge` | GUI.Forms-only | 3 | 0 | 0 | 4 | 7 |
-| `IndicatorLamp` | GUI.Forms-only | 3 | 0 | 0 | 3 | 6 |
 | `InfoBanner` | GUI.Forms-only | 3 | 0 | 0 | 5 | 8 |
 | `EmptyState` | GUI.Forms-only | 2 | 0 | 0 | 3 | 5 |
 | `Toast` | GUI.Forms-only | 4 | 0 | 0 | 1 | 5 |
@@ -139,7 +138,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `RibbonToolTip` | GUI.Forms-only | 15 | 0 | 0 | 0 | 15 |
 | `DrawingSurface` | GUI.Forms-only | 2 | 0 | 0 | 0 | 2 |
 | `RasterCanvas` | GUI.Forms-only | 8 | 0 | 0 | 1 | 9 |
-| `NodeCanvas` | GUI.Forms-only | 40 | 0 | 0 | 15 | 55 |
+| `NodeCanvas` | GUI.Forms-only | 48 | 0 | 0 | 16 | 64 |
 | `LiveSurface` | GUI.Forms-only | 10 | 0 | 0 | 0 | 10 |
 | `SubSurfaceHost` | GUI.Forms-only | 14 | 0 | 0 | 1 | 15 |
 | `MetricsView` | GUI.Forms-only | 1 | 0 | 0 | 0 | 1 |
@@ -304,5 +303,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1633 |
-| `untested` | 912 |
+| `untested` | 907 |
 | `w-open` | 5 |

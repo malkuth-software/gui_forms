@@ -14,10 +14,10 @@
 //   its s * 4^k spacings at a time, cross-faded (select_grid_level), and
 //   the level of detail (SceneDetailLevel) follows the zoom with
 //   hysteresis; text under 6 view units is not drawn;
-// - nodes, ports and lamps, painted through the theme's parts (the anatomy
-//   below), never literal colours: a port's fill is the theme's accent ramp
-//   at its socket type and its marker shape follows the type too, so
-//   colour is never the only cue;
+// - nodes, ports and lamps, painted through the theme's canvas look
+//   (gui_forms/theme/canvas_look: node_canvas_anatomy's parts, resolved
+//   once into a CanvasLook and again only when the theme, colour scheme,
+//   contrast or classes change), never literal colours;
 // - links as soft cubic curves (soft_link_cubic) or routed by LinkRouter
 //   (NodeLinkStyle::routed), and magnetic link drags through DragTracker:
 //   compatible free inputs near the press are the magnet's targets (snap
@@ -69,6 +69,15 @@
 // canvas is refused while it runs (calls return without effect). The
 // DragTracker is declared last so that it ends first. An editor the
 // application hands the canvas is its child until the edit ends.
+//
+// Subclassing: the class is not final. Each event is raised through a
+// protected raiser (on_selection_changed, on_link_connected,
+// on_graph_edited, on_view_changed, on_palette_requested, on_edit_ended)
+// whose base raises the event; an override that calls the base keeps the
+// event, and C and C# reach the raisers through the class tables. A raiser
+// runs after its change, outside the canvas's callback scope, so it may use
+// the canvas; it may also detach or destroy it, and the canvas checks that
+// it is still alive before it continues.
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
@@ -79,6 +88,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/scene/scene_view/scene_view.hpp"
 #include "gui_forms/scene/spatial_index/spatial_index.hpp"
+#include "gui_forms/theme/canvas_look/canvas_look.hpp"
 
 #include <array>
 #include <cstddef>
@@ -252,9 +262,10 @@ struct GUI_FORMS_API NodeCanvasStatistics final {
 
 // -- the control -----------------------------------------------------------------------
 
-class GUI_FORMS_API NodeCanvas final : public Control {
+class GUI_FORMS_API NodeCanvas : public Control {
 public:
-    // World units between grid lines at level 0, and the snap grid's cell.
+    // World units between grid lines at level 0, and the snap grid's cell,
+    // until the theme's look (the region's grid-spacing) is resolved.
     static constexpr double default_grid_spacing = 16.0;
     // A node's caption band, world units (the body lies below it).
     static constexpr double caption_height = 24.0;
@@ -269,9 +280,6 @@ public:
     static constexpr double smallest_text = 6.0;
     // The most points one link's drawn path holds (longer routes are cut).
     static constexpr std::size_t maximum_link_points = 1024U;
-    // The socket-type buckets of the port markers: a type's bucket is its
-    // number modulo this, selecting the accent ramp entry and the shape.
-    static constexpr std::size_t port_buckets = 8U;
 
     explicit NodeCanvas(StableId stable_id);
     ~NodeCanvas() override;
@@ -313,9 +321,16 @@ public:
     [[nodiscard]] NodeLinkStyle link_style() const noexcept { return link_style_; }
     void set_router_options(const LinkRouterOptions& options);
     [[nodiscard]] const LinkRouterOptions& router_options() const noexcept { return router_options_; }
-    // World units; false (no change) unless finite and at least 1.
+    // World units; false (no change) unless finite and at least 1. The
+    // spacing set here wins over the theme's grid-spacing for both the
+    // drawn grid and the snap; clear_grid_spacing returns to the theme's.
     bool set_grid_spacing(double spacing);
-    [[nodiscard]] double grid_spacing() const noexcept { return grid_spacing_; }
+    void clear_grid_spacing();
+    // The grid's spacing: the one set, else the theme's (resolving the look
+    // when the canvas is in a window), else default_grid_spacing.
+    [[nodiscard]] double grid_spacing();
+    // The look the last paint used (resolved on demand), for inspection.
+    [[nodiscard]] const CanvasLook& canvas_look();
     void set_snap_to_grid(bool snap) noexcept { snap_ = snap; }
     [[nodiscard]] bool snap_to_grid() const noexcept { return snap_; }
 
@@ -413,58 +428,24 @@ public:
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
     bool on_semantic_child_action(std::string_view stable_id, SemanticAction action,
                                   std::string_view value) override;
+    // node_canvas_anatomy(): the theme's canvas anatomy (canvas_look.hpp).
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
-    [[nodiscard]] std::size_t realized_item_count() const override;
-    [[nodiscard]] std::string realized_item_stable_id(std::size_t item) const override;
-    [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
-
-    // The anatomy, as dot members (see Control::Parts). The marquee, knife
-    // and drop parts are present only during their gestures.
-    struct GUI_FORMS_API Parts final {
-        PartGeometry region;
-        PartGeometry well;
-        PartGeometry grid_minor;
-        PartGeometry grid_major;
-        PartGeometry connector;
-        PartGeometry marquee;
-        PartGeometry knife;
-        PartGeometry drop;
-        PartGeometry focus;
-    };
-    struct GUI_FORMS_API States final {
-        bool normal{};
-        bool enabled{};
-        bool disabled{};
-        bool focused{};
-        bool focus_visible{};
-    };
-    // One visible node's parts and states (the "node" item system). A node
-    // has many ports and lamps; `port`, `port_label` and `lamp` give the
-    // first one's geometry.
-    struct GUI_FORMS_API NodeParts final {
-        PartGeometry node;
-        PartGeometry node_face;
-        PartGeometry node_selection;
-        PartGeometry node_caption;
-        PartGeometry port;
-        PartGeometry port_label;
-        PartGeometry lamp;
-        PartGeometry node_focus;
-    };
-    struct GUI_FORMS_API NodeStates final {
-        bool selected{};
-        bool hot{};
-        bool current{};
-        bool disabled{};
-        bool focus_visible{};
-    };
-    [[nodiscard]] Parts parts() const;
-    [[nodiscard]] States states() const;
 
 protected:
+    // The raisers (per event): each base raises its event with `arguments`.
+    virtual void on_selection_changed(const NodeCanvasSelection& arguments);
+    virtual void on_link_connected(const NodeLinkConnected& arguments);
+    virtual void on_graph_edited(const NodeGraphEdited& arguments);
+    virtual void on_view_changed(const SceneViewTransform& arguments);
+    virtual void on_palette_requested(const NodePaletteRequest& arguments);
+    virtual void on_edit_ended(const NodeEditEnded& arguments);
+
+    // The anatomy's parts (region, the grid levels and the canvas-wide
+    // marquee over the client area or the gesture; node, node_header,
+    // node_selection, port and lamp for the focused node; link and
+    // dashed_link for the selected link).
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
-    void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override;
     void on_mouse_down(MouseEventArgs& arguments) override;
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_up(MouseEventArgs& arguments) override;
@@ -487,8 +468,6 @@ private:
     struct CandidateNearer final {
         bool operator()(const LinkCandidate& left, const LinkCandidate& right) const noexcept;
     };
-    // The colours a frame resolves once from the theme's parts.
-    struct FrameInks;
     // Marks the canvas as running an application callback for the scope's
     // life (refusing reentrant mutation), restoring the previous mark.
     class CallbackScope;
@@ -543,13 +522,13 @@ private:
     void request_palette(Point local, std::optional<PortRef> from);
 
     // Painting (node_canvas_paint.cpp).
-    void resolve_inks(FrameInks& inks) const;
-    void paint_grid(Painter& painter, const FrameInks& inks) const;
-    void paint_links(Painter& painter, const FrameInks& inks);
-    void paint_nodes(Painter& painter, const FrameInks& inks);
+    void ensure_look();
+    void paint_links(Painter& painter);
+    void paint_nodes(Painter& painter);
     void paint_node(Painter& painter, std::uint32_t slot, const NodeRecord& node);
-    void paint_ports(Painter& painter, const FrameInks& inks);
-    void paint_overlay(Painter& painter, const FrameInks& inks);
+    void paint_ports(Painter& painter, std::uint32_t slot, const NodeRecord& node);
+    void paint_overlay(Painter& painter);
+    [[nodiscard]] CanvasPortState port_state(std::uint32_t slot, std::size_t port) const;
 
     NodeGraph* graph_{};
     NodeCanvasCallbacks callbacks_{};
@@ -564,8 +543,21 @@ private:
     SceneDetailLevel level_{SceneDetailLevel::full};
     NodeLinkStyle link_style_{NodeLinkStyle::soft};
     LinkRouterOptions router_options_{};
-    double grid_spacing_{default_grid_spacing};
+    std::optional<double> grid_spacing_set_{};
     bool snap_{true};
+
+    // The theme's look and what it was resolved for: the theme and rule
+    // sets (by address), the colour scheme and contrast, the classes and the
+    // authored back_color (which replaces the region's colour). Compared at
+    // each paint (no allocation unless they changed).
+    CanvasLook look_{};
+    bool look_resolved_{};
+    const Theme* look_theme_{};
+    const CompiledThemeRules* look_inline_rules_{};
+    bool look_dark_{};
+    bool look_high_contrast_{};
+    std::optional<Color> look_back_color_{};
+    std::vector<std::string> look_classes_{};
 
     // Caches keyed on the graph's revision (and the link style for links).
     LinkRouter router_{};
@@ -580,8 +572,6 @@ private:
     // for the in-place index updates of a drag.
     std::vector<std::uint32_t> node_link_start_{};
     std::vector<std::uint32_t> node_links_{};
-    // "node-<slot>-<generation>" per slot: the engine part keys' items.
-    std::vector<std::string> node_items_{};
 
     // Selection: identities, and one flag per node slot.
     std::vector<NodeId> selection_{};
@@ -627,8 +617,6 @@ private:
     std::vector<LinkId> crossing_{};
     std::vector<Rect> overview_rects_{};
     std::vector<Rect> overview_selected_{};
-    std::array<std::vector<Point>, port_buckets> port_centres_{};
-    std::array<std::vector<Point>, port_buckets> dimmed_centres_{};
     std::string announcement_{};
     std::string text_{};
 

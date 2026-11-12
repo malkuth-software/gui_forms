@@ -40,6 +40,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -776,6 +777,100 @@ void detach_mid_gesture() {
     require(fixture.graph.end_undo_group().status == GraphStatus::no_group, "no group is left open");
 }
 
+// -- the theme's look -------------------------------------------------------------------------
+
+// The canvas paints from the theme's canvas look: the grid spacing is the
+// theme's (16 in the GUI.Forms theme) until the canvas sets its own, and a
+// class names a grid variant the next resolution reads.
+void look_follows_the_theme() {
+    Fixture fixture{};
+    NodeCanvas& canvas = *fixture.canvas;
+    require(canvas.grid_spacing() == 16.0 && canvas.canvas_look().grid.spacing == 16.0,
+            "the grid spacing is the theme's");
+    require(canvas.set_grid_spacing(32.0) && canvas.grid_spacing() == 32.0 && canvas.canvas_look().grid.spacing == 32.0,
+            "the canvas's own spacing replaces the theme's");
+    require(!canvas.set_grid_spacing(0.0) && canvas.grid_spacing() == 32.0, "a spacing under one unit is refused");
+    canvas.clear_grid_spacing();
+    require(canvas.grid_spacing() == 16.0, "clearing it brings the theme's back");
+    const Color paper = canvas.canvas_look().background.fill;
+    canvas.classes = {"blue"};
+    const Color blue = canvas.canvas_look().background.fill;
+    require(blue != paper, "the blue class is the blue grid variant");
+    canvas.classes = std::vector<std::string>{};
+    require(canvas.canvas_look().background.fill == paper, "without the class the paper variant returns");
+    fixture.paint();
+    require(canvas.statistics().frames_painted >= 1U && canvas.statistics().ports_painted >= 4U,
+            "the look paints every port");
+}
+
+// -- subclassing ------------------------------------------------------------------------------
+
+// The Windows Forms pattern on NodeCanvas: a subclass overrides the
+// raisers, sees each event's arguments, and calls the base, which raises
+// the event to subscribers. `raised` counts the subscriber's calls, so the
+// counts before and after the base call show the base raises.
+class RaisingCanvas final : public NodeCanvas {
+public:
+    RaisingCanvas(StableId stable_id, const std::size_t& raised) : NodeCanvas(std::move(stable_id)), raised_(raised) {}
+    std::size_t selections{};
+    std::size_t views{};
+    std::size_t edits{};
+    std::size_t connections{};
+    std::size_t raised_before_base{};
+    std::size_t raised_after_base{};
+
+protected:
+    void on_selection_changed(const NodeCanvasSelection& arguments) override {
+        ++selections;
+        raised_before_base = raised_;
+        NodeCanvas::on_selection_changed(arguments);
+        raised_after_base = raised_;
+    }
+    void on_view_changed(const SceneViewTransform& arguments) override {
+        ++views;
+        NodeCanvas::on_view_changed(arguments);
+    }
+    void on_graph_edited(const NodeGraphEdited& arguments) override {
+        ++edits;
+        NodeCanvas::on_graph_edited(arguments);
+    }
+    void on_link_connected(const NodeLinkConnected& arguments) override {
+        ++connections;
+        NodeCanvas::on_link_connected(arguments);
+    }
+
+private:
+    const std::size_t& raised_;
+};
+
+void subclass_overrides_raisers() {
+    NodeGraph graph{};
+    NodeSpec mix = spec_of("mix", "Mix", 200.0, 50.0);
+    mix.ports.push_back(port_of("out", PortDirection::output, PortSide::right));
+    NodeSpec out = spec_of("out", "Out", 200.0, 180.0);
+    out.ports.push_back(port_of("in", PortDirection::input, PortSide::left));
+    const NodeId b = graph.add_node(mix).node;
+    const NodeId c = graph.add_node(out).node;
+    std::size_t raised = 0U;
+    const std::shared_ptr<RaisingCanvas> canvas = make_control<RaisingCanvas>(StableId("canvas"), raised);
+    (*canvas).set_graph(&graph);
+    Window window(canvas, Size{400.0, 300.0});
+    window.set_active(true);
+    window.perform_layout();
+    const SubscriptionToken token = (*canvas).selection_changed().subscribe(CountSelections(raised));
+
+    (*canvas).select_only(b);
+    require((*canvas).selections == 1U && (*canvas).raised_before_base == 0U && (*canvas).raised_after_base == 1U &&
+                raised == 1U,
+            "the override runs first and the base raises selection_changed");
+    require((*canvas).set_view(SceneViewTransform{WorldPoint{10.0, 0.0}, 1.0}) && (*canvas).views == 1U,
+            "a view change runs on_view_changed");
+    const GraphResult joined = (*canvas).connect_ports(PortRef{b, PortIndex{0U}}, PortRef{c, PortIndex{0U}});
+    require(joined.status == GraphStatus::ok && (*canvas).connections == 1U && (*canvas).edits >= 1U,
+            "a connection runs on_link_connected and on_graph_edited");
+    static_cast<void>(token);
+}
+
 } // namespace
 
 int main() {
@@ -792,6 +887,8 @@ int main() {
     accessibility();
     edit_host();
     detach_mid_gesture();
+    look_follows_the_theme();
+    subclass_overrides_raisers();
     std::cout << "gui_forms_node_canvas_tests passed\n";
     return 0;
 }

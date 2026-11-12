@@ -15,6 +15,7 @@
 #include "gui_forms/controls/data_grid_view.hpp"
 #include "gui_forms/controls/date_time_picker.hpp"
 #include "gui_forms/controls/masked_text_box.hpp"
+#include "gui_forms/controls/node_canvas.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/controls/picture_box.hpp"
 #include "gui_forms/controls/radio_button.hpp"
@@ -99,6 +100,12 @@ gf_status GF_CALL base_range_control_on_value_changed(gf_object self, gf_event* 
 gf_status GF_CALL base_numeric_up_down_on_value_changed(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_date_time_picker_on_format_changed(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_date_time_picker_on_value_changed(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_node_canvas_on_edit_ended(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_node_canvas_on_graph_edited(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_node_canvas_on_link_connected(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_node_canvas_on_palette_requested(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_node_canvas_on_selection_changed(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_node_canvas_on_view_changed(gf_object self, gf_event* event) noexcept;
 
 // Control's raisers (GF_CLASS_CONTROL).
 template <typename Base>
@@ -1470,6 +1477,138 @@ protected:
         case 1U:
             Base::on_value_changed();
             break;
+        default:
+            run = HookRun::no_segment;
+            break;
+        }
+        return run;
+    }
+};
+
+// NodeCanvas's raisers (GF_CLASS_NODE_CANVAS).
+template <typename Base>
+class NodeCanvasHooksLayer : public Base {
+public:
+    using Base::Base;
+
+protected:
+    void on_edit_ended(const NodeEditEnded& arguments) override {
+        const HookKey hook{GF_CLASS_NODE_CANVAS, 0U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "edit_ended", &base_node_canvas_on_edit_ended, arguments);
+        if (!entered) {
+            Base::on_edit_ended(arguments);
+        }
+    }
+
+    void on_graph_edited(const NodeGraphEdited& arguments) override {
+        const HookKey hook{GF_CLASS_NODE_CANVAS, 1U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "graph_edited", &base_node_canvas_on_graph_edited, arguments);
+        if (!entered) {
+            Base::on_graph_edited(arguments);
+        }
+    }
+
+    void on_link_connected(const NodeLinkConnected& arguments) override {
+        const HookKey hook{GF_CLASS_NODE_CANVAS, 2U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "link_connected", &base_node_canvas_on_link_connected, arguments);
+        if (!entered) {
+            Base::on_link_connected(arguments);
+        }
+    }
+
+    void on_palette_requested(const NodePaletteRequest& arguments) override {
+        const HookKey hook{GF_CLASS_NODE_CANVAS, 3U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "palette_requested", &base_node_canvas_on_palette_requested, arguments);
+        if (!entered) {
+            Base::on_palette_requested(arguments);
+        }
+    }
+
+    void on_selection_changed(const NodeCanvasSelection& arguments) override {
+        const HookKey hook{GF_CLASS_NODE_CANVAS, 4U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "selection_changed", &base_node_canvas_on_selection_changed, arguments);
+        if (!entered) {
+            Base::on_selection_changed(arguments);
+        }
+    }
+
+    void on_view_changed(const SceneViewTransform& arguments) override {
+        const HookKey hook{GF_CLASS_NODE_CANVAS, 5U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "view_changed", &base_node_canvas_on_view_changed, arguments);
+        if (!entered) {
+            Base::on_view_changed(arguments);
+        }
+    }
+
+    // Runs the raiser below this layer for one of NodeCanvas's hooks; another
+    // class's hook goes to the layers further in.
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
+        if (hook.class_id != GF_CLASS_NODE_CANVAS) {
+            const HookRun inner = Base::run_layer_base(hook, arguments);
+            return inner;
+        }
+        HookRun run = HookRun::ran;
+        switch (hook.entry) {
+        case 0U: {
+            const NodeEditEnded* given = static_cast<const NodeEditEnded*>(arguments.constant_value);
+            NodeEditEnded made{};
+            const NodeEditEnded& used = given != nullptr ? *given : made;
+            Base::on_edit_ended(used);
+            break;
+        }
+        case 1U: {
+            const NodeGraphEdited* given = static_cast<const NodeGraphEdited*>(arguments.constant_value);
+            NodeGraphEdited made{};
+            const NodeGraphEdited& used = given != nullptr ? *given : made;
+            Base::on_graph_edited(used);
+            break;
+        }
+        case 2U: {
+            const NodeLinkConnected* given = static_cast<const NodeLinkConnected*>(arguments.constant_value);
+            NodeLinkConnected made{};
+            const NodeLinkConnected& used = given != nullptr ? *given : made;
+            Base::on_link_connected(used);
+            break;
+        }
+        case 3U: {
+            const NodePaletteRequest* given = static_cast<const NodePaletteRequest*>(arguments.constant_value);
+            NodePaletteRequest made{};
+            const NodePaletteRequest& used = given != nullptr ? *given : made;
+            Base::on_palette_requested(used);
+            break;
+        }
+        case 4U: {
+            const NodeCanvasSelection* given = static_cast<const NodeCanvasSelection*>(arguments.constant_value);
+            NodeCanvasSelection made{};
+            const NodeCanvasSelection& used = given != nullptr ? *given : made;
+            Base::on_selection_changed(used);
+            break;
+        }
+        case 5U: {
+            const SceneViewTransform* given = static_cast<const SceneViewTransform*>(arguments.constant_value);
+            SceneViewTransform made{};
+            const SceneViewTransform& used = given != nullptr ? *given : made;
+            Base::on_view_changed(used);
+            break;
+        }
         default:
             run = HookRun::no_segment;
             break;

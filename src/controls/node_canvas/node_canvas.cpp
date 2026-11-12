@@ -1,6 +1,7 @@
 // NodeCanvas's model side: construction, the view, selection and focus, the
 // graph operations, the revision-keyed caches (the two spatial indexes and
-// the per-frame storage), hit testing, editing, semantics and the anatomy.
+// the per-frame storage), hit testing, editing, semantics, the raisers and
+// the published part geometry of the theme's canvas anatomy.
 // Input is in node_canvas_input.cpp and painting in node_canvas_paint.cpp.
 
 #include "gui_forms/controls/node_canvas.hpp"
@@ -60,83 +61,6 @@ void append_decimal(std::string& text, std::uint64_t value) {
     const std::size_t read = static_cast<std::size_t>(parsed.ptr - text.data());
     return read;
 }
-
-constexpr std::array<PartField<NodeCanvas::Parts>, 9> node_canvas_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
-     .member = &NodeCanvas::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
-     .member = &NodeCanvas::Parts::well},
-    {.declaration = {.name = "grid_minor", .role = PartRole::grid_minor, .composed_from = {}},
-     .member = &NodeCanvas::Parts::grid_minor},
-    {.declaration = {.name = "grid_major", .role = PartRole::grid_major, .composed_from = {}},
-     .member = &NodeCanvas::Parts::grid_major},
-    // The links: a series of curves (no connector role exists yet).
-    {.declaration = {.name = "connector", .role = PartRole::series, .composed_from = {}},
-     .member = &NodeCanvas::Parts::connector},
-    {.declaration = {.name = "marquee", .role = PartRole::focus, .composed_from = {}},
-     .member = &NodeCanvas::Parts::marquee},
-    {.declaration = {.name = "knife", .role = PartRole::trace, .composed_from = {}},
-     .member = &NodeCanvas::Parts::knife},
-    {.declaration = {.name = "drop", .role = PartRole::drop, .composed_from = {}},
-     .member = &NodeCanvas::Parts::drop},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
-     .member = &NodeCanvas::Parts::focus},
-}};
-
-constexpr std::array<StateField<NodeCanvas::States>, 5> node_canvas_state_fields{{
-    {.state = AnatomyState::normal, .member = &NodeCanvas::States::normal},
-    {.state = AnatomyState::enabled, .member = &NodeCanvas::States::enabled},
-    {.state = AnatomyState::disabled, .member = &NodeCanvas::States::disabled},
-    {.state = AnatomyState::focused, .member = &NodeCanvas::States::focused},
-    {.state = AnatomyState::focus_visible, .member = &NodeCanvas::States::focus_visible},
-}};
-
-constexpr std::array<PartField<NodeCanvas::NodeParts>, 8> node_canvas_node_part_fields{{
-    {.declaration = {.name = "node", .role = PartRole::region, .composed_from = {}},
-     .member = &NodeCanvas::NodeParts::node},
-    {.declaration = {.name = "node_face", .role = PartRole::face, .composed_from = {}},
-     .member = &NodeCanvas::NodeParts::node_face},
-    {.declaration = {.name = "node_selection", .role = PartRole::selection, .composed_from = {}},
-     .member = &NodeCanvas::NodeParts::node_selection},
-    {.declaration = {.name = "node_caption", .role = PartRole::caption, .composed_from = {}},
-     .member = &NodeCanvas::NodeParts::node_caption},
-    // A port's marker (no port role exists yet).
-    {.declaration = {.name = "port", .role = PartRole::marker, .composed_from = {}},
-     .member = &NodeCanvas::NodeParts::port},
-    {.declaration = {.name = "port_label", .role = PartRole::label, .composed_from = {}},
-     .member = &NodeCanvas::NodeParts::port_label},
-    {.declaration = {.name = "lamp", .role = PartRole::indicator, .composed_from = {}},
-     .member = &NodeCanvas::NodeParts::lamp},
-    {.declaration = {.name = "node_focus", .role = PartRole::focus, .composed_from = {}},
-     .member = &NodeCanvas::NodeParts::node_focus},
-}};
-
-constexpr std::array<StateField<NodeCanvas::NodeStates>, 5> node_canvas_node_state_fields{{
-    {.state = AnatomyState::selected, .member = &NodeCanvas::NodeStates::selected},
-    {.state = AnatomyState::hot, .member = &NodeCanvas::NodeStates::hot},
-    {.state = AnatomyState::current, .member = &NodeCanvas::NodeStates::current},
-    {.state = AnatomyState::disabled, .member = &NodeCanvas::NodeStates::disabled},
-    {.state = AnatomyState::focus_visible, .member = &NodeCanvas::NodeStates::focus_visible},
-}};
-
-constexpr std::array<PartDeclaration, 9> node_canvas_parts = part_declarations(node_canvas_part_fields);
-constexpr std::array<AnatomyState, 5> node_canvas_states = state_declarations(node_canvas_state_fields);
-constexpr std::array<PartDeclaration, 8> node_canvas_node_parts = part_declarations(node_canvas_node_part_fields);
-constexpr std::array<AnatomyState, 5> node_canvas_node_states = state_declarations(node_canvas_node_state_fields);
-
-constexpr ItemSystemIndex node_system{0U};
-
-constexpr std::array<ItemSystemDeclaration, 1> node_canvas_item_systems{{
-    {.name = "node", .parts = node_canvas_node_parts, .states = node_canvas_node_states, .custom_states = {}},
-}};
-
-constexpr ControlAnatomy node_canvas_anatomy{
-    .control_id = "node_canvas",
-    .parts = node_canvas_parts,
-    .states = node_canvas_states,
-    .custom_states = {},
-    .item_systems = node_canvas_item_systems,
-};
 
 // The events NodeCanvas adds to those of Control, in declaration order.
 constexpr std::array<InteractionDeclaration, 6> node_canvas_interactions{{
@@ -264,7 +188,7 @@ bool NodeCanvas::set_view(const SceneViewTransform& view) {
     view_ = held;
     if (editor_ != nullptr) invalidate(Dirty::arrange);
     invalidate(Dirty::paint | Dirty::semantics);
-    view_changed_.emit(view_);
+    on_view_changed(view_);
     return true;
 }
 
@@ -352,9 +276,30 @@ void NodeCanvas::set_router_options(const LinkRouterOptions& options) {
 
 bool NodeCanvas::set_grid_spacing(double spacing) {
     if (!std::isfinite(spacing) || spacing < 1.0) return false;
-    grid_spacing_ = spacing;
+    grid_spacing_set_ = spacing;
+    if (look_resolved_) look_.grid.spacing = spacing;
     invalidate(Dirty::paint);
     return true;
+}
+
+void NodeCanvas::clear_grid_spacing() {
+    if (!grid_spacing_set_.has_value()) return;
+    grid_spacing_set_.reset();
+    // The theme's spacing comes back with the next resolution.
+    look_resolved_ = false;
+    invalidate(Dirty::paint);
+}
+
+double NodeCanvas::grid_spacing() {
+    if (grid_spacing_set_.has_value()) return *grid_spacing_set_;
+    if (attached_surface_root() != nullptr) ensure_look();
+    if (look_resolved_) return look_.grid.spacing;
+    return default_grid_spacing;
+}
+
+const CanvasLook& NodeCanvas::canvas_look() {
+    ensure_look();
+    return look_;
 }
 
 // -- caches ---------------------------------------------------------------------------------
@@ -393,14 +338,12 @@ void NodeCanvas::rebuild_node_cache() {
     const std::span<const NodeRecord> nodes = graph.node_slots();
     const std::span<const LinkRecord> links = graph.link_slots();
     entries_.resize(std::max(nodes.size(), links.size()));
-    std::array<std::size_t, port_buckets> bucket_ports{};
     std::size_t live_nodes = 0U;
     for (std::size_t slot = 0U; slot < nodes.size(); ++slot) {
         const NodeRecord& node = nodes[slot];
         entries_[slot] = SpatialEntry{node.bounds, node.live};
         if (!node.live) continue;
         ++live_nodes;
-        for (const PortRecord& port : node.ports) ++bucket_ports[port_bucket(port.socket_type)];
     }
     node_index_.build(std::span<const SpatialEntry>(entries_.data(), nodes.size()), SpatialIndexOptions{});
     ++statistics_.node_index_builds;
@@ -429,26 +372,12 @@ void NodeCanvas::rebuild_node_cache() {
         }
     }
 
-    // The engine part keys' items, one string per slot, rewritten in place.
-    node_items_.resize(nodes.size());
-    for (std::size_t slot = 0U; slot < nodes.size(); ++slot) {
-        std::string& item = node_items_[slot];
-        item.assign("node-");
-        append_decimal(item, slot);
-        item.push_back('-');
-        append_decimal(item, nodes[slot].generation);
-    }
-
     // Per-frame storage: every query writes into whole-graph buffers, so a
     // frame never truncates and never allocates.
     query_.assign(std::max(nodes.size(), links.size()), 0U);
     visible_nodes_.reserve(live_nodes);
     overview_rects_.reserve(live_nodes);
     overview_selected_.reserve(live_nodes);
-    for (std::size_t bucket = 0U; bucket < port_buckets; ++bucket) {
-        port_centres_[bucket].reserve(bucket_ports[bucket]);
-        dimmed_centres_[bucket].reserve(bucket_ports[bucket]);
-    }
     candidate_flags_.assign(nodes.size(), 0U);
     refresh_selection_flags();
     node_cache_revision_ = graph.revision();
@@ -622,7 +551,7 @@ bool NodeCanvas::selected(NodeId node) const noexcept {
 void NodeCanvas::emit_selection() {
     invalidate(Dirty::paint | Dirty::semantics);
     const NodeCanvasSelection change{selection_.size(), selected_link_};
-    selection_changed_.emit(change);
+    on_selection_changed(change);
 }
 
 void NodeCanvas::after_edit(NodeGraphEditKind kind) {
@@ -630,7 +559,7 @@ void NodeCanvas::after_edit(NodeGraphEditKind kind) {
     invalidate(Dirty::paint | Dirty::semantics);
     if (graph_ == nullptr) return;
     const NodeGraphEdited edited{kind, (*graph_).revision()};
-    graph_edited_.emit(edited);
+    on_graph_edited(edited);
 }
 
 void NodeCanvas::set_announcement(std::string_view text) {
@@ -823,7 +752,7 @@ GraphResult NodeCanvas::connect_ports(PortRef from, PortRef to) {
     ++statistics_.connections_made;
     after_edit(NodeGraphEditKind::connected);
     const NodeLinkConnected connected{result.link, from, to};
-    link_connected_.emit(connected);
+    on_link_connected(connected);
     return result;
 }
 
@@ -1135,7 +1064,7 @@ void NodeCanvas::end_edit(NodeEditEnd end) {
     }
     after_edit(NodeGraphEditKind::edited);
     const NodeEditEnded ended{edit_node_, edit_part_, end};
-    edit_ended_.emit(ended);
+    on_edit_ended(ended);
     if (!is_alive()) return;
     SurfaceRoot* root = attached_surface_root();
     if (root != nullptr) static_cast<void>((*root).request_focus(shared_from_this()));
@@ -1320,10 +1249,36 @@ bool NodeCanvas::on_semantic_child_action(std::string_view stable_id_text, Seman
     return true;
 }
 
+// -- raisers --------------------------------------------------------------------------------
+
+void NodeCanvas::on_selection_changed(const NodeCanvasSelection& arguments) {
+    selection_changed_.emit(arguments);
+}
+
+void NodeCanvas::on_link_connected(const NodeLinkConnected& arguments) {
+    link_connected_.emit(arguments);
+}
+
+void NodeCanvas::on_graph_edited(const NodeGraphEdited& arguments) {
+    graph_edited_.emit(arguments);
+}
+
+void NodeCanvas::on_view_changed(const SceneViewTransform& arguments) {
+    view_changed_.emit(arguments);
+}
+
+void NodeCanvas::on_palette_requested(const NodePaletteRequest& arguments) {
+    palette_requested_.emit(arguments);
+}
+
+void NodeCanvas::on_edit_ended(const NodeEditEnded& arguments) {
+    edit_ended_.emit(arguments);
+}
+
 // -- anatomy --------------------------------------------------------------------------------
 
 const ControlAnatomy& NodeCanvas::anatomy() const noexcept {
-    return node_canvas_anatomy;
+    return node_canvas_anatomy();
 }
 
 void NodeCanvas::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
@@ -1332,102 +1287,51 @@ void NodeCanvas::append_interactions(std::vector<InteractionDeclaration>& intera
 }
 
 void NodeCanvas::publish_part_geometry(std::span<PartGeometry> geometry) const {
+    // By name: the anatomy is the theme's, and its order is its own.
     const Rect client = client_rectangle();
-    Parts record;
-    record.region = PartGeometry::from_bounds(client);
-    record.well = PartGeometry::from_bounds(client);
-    record.well.authored_background = back_color.read();
-    record.grid_minor = PartGeometry::from_bounds(client);
-    record.grid_major = PartGeometry::from_bounds(client);
-    if (graph_ != nullptr && (*graph_).link_count() > 0U) record.connector = PartGeometry::from_bounds(client);
+    std::array<std::optional<Rect>, canvas_part_count> bounds{};
+    bounds[canvas_part_region] = client;
+    bounds[canvas_part_grid_minor] = client;
+    bounds[canvas_part_grid_major] = client;
     if (gesture_planned_ && gesture_ == NodeCanvasGesture::marquee) {
-        const Rect marquee{std::min(press_view_.x, current_view_.x), std::min(press_view_.y, current_view_.y),
-                           std::fabs(current_view_.x - press_view_.x), std::fabs(current_view_.y - press_view_.y)};
-        record.marquee = PartGeometry::from_bounds(marquee);
+        bounds[canvas_part_marquee] = Rect{std::min(press_view_.x, current_view_.x), std::min(press_view_.y, current_view_.y),
+                                           std::fabs(current_view_.x - press_view_.x),
+                                           std::fabs(current_view_.y - press_view_.y)};
     }
-    if (gesture_planned_ && gesture_ == NodeCanvasGesture::knife) {
-        const Rect knife{std::min(press_view_.x, current_view_.x), std::min(press_view_.y, current_view_.y),
-                         std::fabs(current_view_.x - press_view_.x), std::fabs(current_view_.y - press_view_.y)};
-        record.knife = PartGeometry::from_bounds(knife);
-    }
-    if (gesture_ == NodeCanvasGesture::link && link_hit_.has_value() && *link_hit_ < candidates_.size()) {
-        const Point at = candidates_[*link_hit_].view_anchor;
-        record.drop = PartGeometry::from_bounds(Rect{at.x - drop_ring / 2.0, at.y - drop_ring / 2.0, drop_ring, drop_ring});
-    }
-    if (focused_) record.focus = PartGeometry::from_bounds(client);
-    write_parts(anatomy(), node_canvas_part_fields, record, geometry);
-}
-
-NodeCanvas::Parts NodeCanvas::parts() const {
-    const PartGeometryBuffer published = published_part_geometry();
-    Parts record;
-    read_parts(anatomy(), node_canvas_part_fields, published.parts(), record);
-    return record;
-}
-
-NodeCanvas::States NodeCanvas::states() const {
-    States record;
-    read_states(node_canvas_state_fields, anatomy_states(), record);
-    return record;
-}
-
-std::size_t NodeCanvas::realized_item_count() const {
-    return visible_nodes_.size();
-}
-
-std::string NodeCanvas::realized_item_stable_id(std::size_t item) const {
-    if (item >= visible_nodes_.size()) throw std::out_of_range("NodeCanvas realized item past the end");
-    std::string identity;
-    node_identity(visible_nodes_[item], identity);
-    return identity;
-}
-
-AnatomyStateSet NodeCanvas::realized_item_anatomy_states(std::size_t item) const {
-    if (item >= visible_nodes_.size()) throw std::out_of_range("NodeCanvas realized item past the end");
-    AnatomyStateSet states;
-    node_states_into(visible_nodes_[item], states);
-    return states;
-}
-
-void NodeCanvas::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
-    NodeParts record;
-    if (item < visible_nodes_.size() && graph_ != nullptr) {
-        const std::uint32_t slot = visible_nodes_[item];
-        const std::span<const NodeRecord> slots = (*graph_).node_slots();
-        if (slot < slots.size() && slots[slot].live) {
-            const NodeRecord& node = slots[slot];
-            const Rect whole = view_.rect_to_view(node.bounds);
-            const double caption = std::min(caption_height * view_.zoom, whole.height);
-            AnatomyStateSet states;
-            node_states_into(slot, states);
-            record.node = PartGeometry::from_bounds(whole);
-            record.node_face = PartGeometry::from_bounds(whole);
-            if (states.contains(AnatomyState::selected)) {
-                record.node_selection = PartGeometry::from_bounds(inflated(whole, selection_outset * view_.zoom));
-            }
-            record.node_caption = PartGeometry::from_bounds(Rect{whole.x, whole.y, whole.width, caption});
-            if (!node.ports.empty()) {
-                const Point anchor = view_.to_view(port_world(node, node.ports.front()));
-                const double size = std::max(smallest_port_marker, port_marker_size * view_.zoom);
-                record.port = PartGeometry::from_bounds(Rect{anchor.x - size / 2.0, anchor.y - size / 2.0, size, size});
-                const double label_height = port_label_size * view_.zoom * 1.4;
-                record.port_label = PartGeometry::from_bounds(
-                    Rect{anchor.x + port_label_gap * view_.zoom, anchor.y - label_height / 2.0,
-                         port_label_width * view_.zoom, label_height});
-            }
-            for (const PortRecord& port : node.ports) {
-                if (port.direction != PortDirection::output) continue;
-                const Point anchor = view_.to_view(port_world(node, port));
-                const double size = lamp_size * view_.zoom;
-                record.lamp = PartGeometry::from_bounds(
-                    Rect{anchor.x - lamp_inset * view_.zoom - size / 2.0, anchor.y - size / 2.0, size, size});
-                break;
-            }
-            if (states.contains(AnatomyState::focus_visible)) record.node_focus = PartGeometry::from_bounds(whole);
+    const NodeRecord* node = graph_ != nullptr && focused_node_.has_value() ? (*graph_).node(*focused_node_) : nullptr;
+    if (node != nullptr) {
+        const Rect whole = view_.rect_to_view((*node).bounds);
+        const double header = std::min(caption_height * view_.zoom, whole.height);
+        bounds[canvas_part_node] = whole;
+        bounds[canvas_part_node_header] = Rect{whole.x, whole.y, whole.width, header};
+        if (selected(*focused_node_)) {
+            bounds[canvas_part_node_selection] = inflated(whole, selection_outset * view_.zoom);
+        }
+        if (!(*node).ports.empty()) {
+            const Point anchor = view_.to_view(port_world(*node, (*node).ports.front()));
+            const double radius = port_radius(view_.zoom);
+            bounds[canvas_part_port] = Rect{anchor.x - radius, anchor.y - radius, 2.0 * radius, 2.0 * radius};
+        }
+        for (const PortRecord& port : (*node).ports) {
+            if (port.direction != PortDirection::output) continue;
+            const Point centre = lamp_centre(*node, port, view_.zoom, view_);
+            const double radius = lamp_radius(view_.zoom);
+            bounds[canvas_part_lamp] = Rect{centre.x - radius, centre.y - radius, 2.0 * radius, 2.0 * radius};
+            break;
         }
     }
-    const ItemSystemDeclaration& system = anatomy().item_systems[node_system.value];
-    write_item_parts(system, node_canvas_node_part_fields, record, geometry);
+    const LinkRecord* link = graph_ != nullptr && selected_link_.has_value() ? (*graph_).link(*selected_link_) : nullptr;
+    if (link != nullptr) {
+        const WorldRect world = link_world_bounds((*selected_link_).index, *link);
+        bounds[canvas_part_link] = view_.rect_to_view(world);
+    }
+    const std::span<const PartDeclaration> parts = anatomy().parts;
+    const std::size_t count = std::min(parts.size(), geometry.size());
+    for (std::size_t index = 0U; index < count; ++index) {
+        const std::optional<std::size_t> known = canvas_part_index(parts[index].name);
+        if (!known.has_value() || !bounds[*known].has_value()) continue;
+        geometry[index] = PartGeometry::from_bounds(*bounds[*known]);
+    }
 }
 
 } // namespace gui_forms

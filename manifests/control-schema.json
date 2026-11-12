@@ -11635,34 +11635,20 @@
       "kind": "control",
       "parts": [
         {"name": "region", "role": "region", "composed_from": null, "states": []},
-        {"name": "well", "role": "well", "composed_from": null, "states": []},
         {"name": "grid_minor", "role": "grid_minor", "composed_from": null, "states": []},
         {"name": "grid_major", "role": "grid_major", "composed_from": null, "states": []},
-        {"name": "connector", "role": "series", "composed_from": null, "states": []},
-        {"name": "marquee", "role": "focus", "composed_from": null, "states": []},
-        {"name": "knife", "role": "trace", "composed_from": null, "states": []},
-        {"name": "drop", "role": "drop", "composed_from": null, "states": []},
-        {"name": "focus", "role": "focus", "composed_from": null, "states": []}
+        {"name": "node", "role": "node", "composed_from": null, "states": ["hot", "selected", "disabled"]},
+        {"name": "node_header", "role": "header", "composed_from": null, "states": ["hot", "selected", "disabled"]},
+        {"name": "node_selection", "role": "selection", "composed_from": null, "states": []},
+        {"name": "port", "role": "port", "composed_from": null, "states": ["hot", "drop_accepted", "drop_rejected"]},
+        {"name": "link", "role": "link", "composed_from": null, "states": ["hot", "selected", "invalid"]},
+        {"name": "dashed_link", "role": "link", "composed_from": null, "states": ["hot", "selected", "invalid"]},
+        {"name": "lamp", "role": "lamp", "composed_from": null, "states": ["checked", "invalid"]},
+        {"name": "marquee", "role": "marquee", "composed_from": null, "states": []}
       ],
-      "states": ["normal", "enabled", "disabled", "focused", "focus_visible"],
+      "states": ["normal", "hot", "focused", "focus_visible", "selected", "checked", "enabled", "disabled", "invalid", "drop_accepted", "drop_rejected"],
       "custom_states": [],
-      "item_systems": [
-        {
-          "name": "node",
-          "parts": [
-            {"name": "node", "role": "region", "composed_from": null, "states": []},
-            {"name": "node_face", "role": "face", "composed_from": null, "states": []},
-            {"name": "node_selection", "role": "selection", "composed_from": null, "states": []},
-            {"name": "node_caption", "role": "caption", "composed_from": null, "states": []},
-            {"name": "port", "role": "marker", "composed_from": null, "states": []},
-            {"name": "port_label", "role": "label", "composed_from": null, "states": []},
-            {"name": "lamp", "role": "indicator", "composed_from": null, "states": []},
-            {"name": "node_focus", "role": "focus", "composed_from": null, "states": []}
-          ],
-          "states": ["selected", "hot", "current", "disabled", "focus_visible"],
-          "custom_states": []
-        }
-      ],
+      "item_systems": [],
       "properties": [
         {"name": "accessible_description", "kind": "text", "category": "Accessibility", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "accessible_name", "kind": "text", "category": "Accessibility", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},

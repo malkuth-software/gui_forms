@@ -226,6 +226,10 @@ Types
      -  
    * - :cpp:class:`gf_navigation_pane_class <gf_navigation_pane_class>`
      -  
+   * - :cpp:class:`gf_node_canvas_class <gf_node_canvas_class>`
+     -  
+   * - :cpp:class:`gf_node_canvas_hooks <gf_node_canvas_hooks>`
+     -  
    * - :cpp:class:`gf_numeric_up_down_hooks <gf_numeric_up_down_hooks>`
      -  
    * - :cpp:class:`gf_objects_table <gf_objects_table>`
@@ -3031,6 +3035,40 @@ Types
    .. cpp:member:: gf_class_header header
 
    .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_node_canvas_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_node_canvas_hooks* node_canvas
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_node_canvas_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_edit_ended
+
+   .. cpp:member:: gf_hook_entry on_graph_edited
+
+   .. cpp:member:: gf_hook_entry on_link_connected
+
+   .. cpp:member:: gf_hook_entry on_palette_requested
+
+   .. cpp:member:: gf_hook_entry on_selection_changed
+
+   .. cpp:member:: gf_hook_entry on_view_changed
 
 .. cpp:namespace:: 0
 

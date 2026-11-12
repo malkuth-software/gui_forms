@@ -1,12 +1,14 @@
-// NodeCanvas's painting (node graph spec sections 3 and 4): the well and
-// the world grid, the visible links, the visible nodes by level of detail,
-// the ports in batches by socket type, the lamps, and the gesture overlay.
-// Every colour comes from the theme: a part painted through paint_part
-// (keyed by its anatomy name, and for a node's parts by the node's item, so
-// `node-canvas::part(...)` rules reach it), or an ink resolved once per
-// frame from a named part for the batched marks. Nothing here changes the
-// graph, and nothing allocates per node: the visible sets and the marker
-// batches use storage sized at the cache rebuilds.
+// NodeCanvas's painting (node graph spec sections 3 and 4): the canvas
+// background and world grid, the visible links, the visible nodes by level
+// of detail with their ports and lamps, and the gesture overlay. Every
+// colour, line and the grid come from the theme's canvas look
+// (canvas_look.hpp): resolved once into look_ (ensure_look) and again only
+// when the theme, colour scheme, contrast, classes or back_color change,
+// then painted each frame with the paint_canvas_ functions. Port labels and
+// the keyboard focus cues, which the canvas anatomy has no part for, are
+// painted through paint_part by role. Nothing here changes the graph, and
+// nothing allocates per node: the visible sets use storage sized at the
+// cache rebuilds.
 
 #include "gui_forms/controls/node_canvas.hpp"
 
@@ -22,6 +24,7 @@
 #include <cmath>
 #include <cstdint>
 #include <span>
+#include <string>
 
 namespace gui_forms {
 
@@ -29,59 +32,78 @@ using namespace node_canvas_detail;
 
 namespace {
 
-// A dimmed port's alpha (a link drag dims ports that cannot take it).
-constexpr std::uint8_t dimmed_alpha = 60U;
-constexpr double preview_width = 2.0;
-constexpr double knife_width = 2.0;
+// Where a title's baseline sits below the middle of its band, as a share of
+// the font size (about half the cap height).
+constexpr double title_baseline_share = 0.35;
+// The overview's silhouettes, the node state's fill.
+constexpr std::size_t node_rest = static_cast<std::size_t>(CanvasNodeState::normal);
+constexpr std::size_t node_chosen = static_cast<std::size_t>(CanvasNodeState::selected);
 
-// A rule's ink as paint_part draws rules: the border's colour, else the
-// muted text's.
-[[nodiscard]] Color rule_ink(const ControlVisualRecipe& recipe) noexcept {
-    if (recipe.material.border) return (*recipe.material.border).color;
-    return recipe.muted_text;
+// A node's look state from its anatomy states: disabled first, then
+// selected, then under the pointer.
+[[nodiscard]] CanvasNodeState canvas_node_state(const AnatomyStateSet& states) noexcept {
+    if (states.contains(AnatomyState::disabled)) return CanvasNodeState::disabled;
+    if (states.contains(AnatomyState::selected)) return CanvasNodeState::selected;
+    if (states.contains(AnatomyState::hot)) return CanvasNodeState::hot;
+    return CanvasNodeState::normal;
 }
 
-// A surface's flat ink: its first fill's colour, else its text colour.
-[[nodiscard]] Color face_ink(const ControlVisualRecipe& recipe) noexcept {
-    if (recipe.material.fills.empty()) return recipe.text;
-    return recipe.material.fills.front().color;
+[[nodiscard]] CanvasLampState canvas_lamp_state(PortLamp lamp) noexcept {
+    switch (lamp) {
+    case PortLamp::on: return CanvasLampState::on;
+    case PortLamp::error: return CanvasLampState::error;
+    default: break;
+    }
+    return CanvasLampState::off;
 }
 
-[[nodiscard]] Color with_alpha(Color colour, std::uint8_t alpha) noexcept {
-    colour.alpha = alpha;
-    return colour;
-}
-
-[[nodiscard]] Rect grown(Rect rect, double margin) noexcept {
-    const Rect bigger{rect.x - margin, rect.y - margin, rect.width + 2.0 * margin, rect.height + 2.0 * margin};
-    return bigger;
-}
-
-[[nodiscard]] PartKey control_key(std::string_view part) noexcept {
-    const PartKey key{part, {}, {}};
-    return key;
-}
-
-[[nodiscard]] PartKey node_key(std::string_view part, std::string_view item) noexcept {
-    const PartKey key{part, item, {}};
-    return key;
+[[nodiscard]] bool same_classes(std::span<const std::string> current, const std::vector<std::string>& kept) noexcept {
+    if (current.size() != kept.size()) return false;
+    for (std::size_t index = 0U; index < current.size(); ++index) {
+        if (current[index] != kept[index]) return false;
+    }
+    return true;
 }
 
 } // namespace
 
+void NodeCanvas::ensure_look() {
+    const Theme& theme = effective_theme();
+    const CompiledThemeRules* const inline_rules = inline_style_rules();
+    const ControlVisualContext context = visual_context();
+    const std::span<const std::string> current_classes = classes.read();
+    const std::optional<Color> authored = back_color.read();
+    const bool unchanged = look_resolved_ && look_theme_ == &theme && look_inline_rules_ == inline_rules &&
+                           look_dark_ == context.dark && look_high_contrast_ == context.high_contrast &&
+                           look_back_color_ == authored && same_classes(current_classes, look_classes_);
+    if (unchanged) return;
+    // Each part resolves in its own states over the canvas's colour scheme
+    // and contrast; the control's own interaction state is not the parts'.
+    ControlVisualContext scheme{};
+    scheme.dark = context.dark;
+    scheme.high_contrast = context.high_contrast;
+    look_ = resolve_canvas_look(theme, *this, scheme);
+    // back_color is the per-control override of the region's colour, as
+    // VirtualRowsView's is of its well; high contrast keeps the plate.
+    if (authored.has_value() && !context.high_contrast) look_.background.fill = *authored;
+    if (grid_spacing_set_.has_value()) look_.grid.spacing = *grid_spacing_set_;
+    look_theme_ = &theme;
+    look_inline_rules_ = inline_rules;
+    look_dark_ = context.dark;
+    look_high_contrast_ = context.high_contrast;
+    look_back_color_ = authored;
+    look_classes_.assign(current_classes.begin(), current_classes.end());
+    look_resolved_ = true;
+}
+
 void NodeCanvas::on_paint(Painter& painter, Rect) {
     ++statistics_.frames_painted;
     const Rect client = client_rectangle();
-    // The well first, untranslated and unclipped, so that paint_part can
-    // report an opaque cover. back_color is the per-control override of the
-    // theme's ground, as VirtualRowsView's is.
-    PartPaint well;
-    well.family = ControlVisualRole::editor;
-    well.role = PartRole::well;
-    well.bounds = client;
-    well.authored_background = back_color.read();
-    well.key = control_key(well_part);
-    paint_part(painter, *this, well);
+    ensure_look();
+    // The background first, untranslated and unclipped: the region, the
+    // texture and the grid anchored at world (0, 0).
+    const CanvasView canvas_view{view_.to_view(WorldPoint{0.0, 0.0}), view_.zoom};
+    paint_canvas_background(painter, look_, client, canvas_view);
     visible_nodes_.clear();
     visible_links_.clear();
     if (graph_ == nullptr) return;
@@ -91,12 +113,8 @@ void NodeCanvas::on_paint(Painter& painter, Rect) {
     level_ = level;
     statistics_.level = level;
 
-    FrameInks inks{};
-    resolve_inks(inks);
     painter.save();
     painter.clip_rect(client);
-    paint_grid(painter, inks);
-
     // The visible nodes, in slot order: later slots on top, as hit testing
     // assumes.
     const SpatialQueryResult found = node_index_.query(view_.rect_to_world(client), SpatialQueryMode::intersecting,
@@ -104,10 +122,9 @@ void NodeCanvas::on_paint(Painter& painter, Rect) {
     for (std::size_t index = 0U; index < found.written; ++index) visible_nodes_.push_back(query_[index]);
     std::sort(visible_nodes_.begin(), visible_nodes_.end());
 
-    paint_links(painter, inks);
-    paint_nodes(painter, inks);
-    paint_ports(painter, inks);
-    paint_overlay(painter, inks);
+    paint_links(painter);
+    paint_nodes(painter);
+    paint_overlay(painter);
     painter.restore();
 
     // With no node to carry the focus cue, the canvas itself shows it.
@@ -122,61 +139,20 @@ void NodeCanvas::on_paint(Painter& painter, Rect) {
         focus.role = PartRole::focus;
         focus.bounds = client;
         focus.states.insert(AnatomyState::focus_visible);
-        focus.key = control_key(focus_part);
         paint_part(painter, *this, focus);
     }
     statistics_.last_frame_nodes = visible_nodes_.size();
     painted_lamp_revision_ = (*graph_).lamp_revision();
 }
 
-void NodeCanvas::resolve_inks(FrameInks& inks) const {
-    const Theme& theme = effective_theme();
-    const AnatomyStateSet plain{};
-    AnatomyStateSet chosen{};
-    chosen.insert(AnatomyState::selected);
-    const ControlVisualContext plain_context = part_visual_context(*this, plain);
-    const ControlVisualContext chosen_context = part_visual_context(*this, chosen);
-    const ResolvedControlRecipe minor =
-        theme.resolve(*this, ControlVisualRole::editor, plain_context, plain, grid_minor_part);
-    inks.grid_minor = rule_ink(minor.recipe());
-    const ResolvedControlRecipe major =
-        theme.resolve(*this, ControlVisualRole::editor, plain_context, plain, grid_major_part);
-    inks.grid_major = rule_ink(major.recipe());
-    const ResolvedControlRecipe face = theme.resolve(*this, ControlVisualRole::card, plain_context, plain, node_face_part);
-    inks.node_fill = face_ink(face.recipe());
-    const ResolvedControlRecipe plate =
-        theme.resolve(*this, ControlVisualRole::selection, chosen_context, chosen, node_selection_part);
-    inks.node_selected_fill = face_ink(plate.recipe());
-    inks.selection = inks.node_selected_fill;
-    const ResolvedControlRecipe port = theme.resolve(*this, ControlVisualRole::editor, plain_context, plain, port_part);
-    inks.port_edge = port.recipe().glyph;
-    const ResolvedControlRecipe knife = theme.resolve(*this, ControlVisualRole::editor, plain_context, plain, knife_part);
-    inks.knife = knife.recipe().glyph;
-    const ResolvedControlRecipe connector =
-        theme.resolve(*this, ControlVisualRole::selection, chosen_context, chosen, connector_part);
-    inks.preview = connector.recipe().glyph;
-    // The socket types' colours: the theme's accent ramp, one entry per
-    // bucket (the bucket's marker shape is the second cue).
-    for (std::size_t bucket = 0U; bucket < port_buckets; ++bucket) {
-        inks.sockets[bucket] = theme.accent(AccentIndex{static_cast<std::uint8_t>(bucket)});
-    }
-}
-
-void NodeCanvas::paint_grid(Painter& painter, const FrameInks& inks) const {
-    // One level of the s * 4^k grid, its minor lines faded across the band,
-    // so the zoom crosses levels without a pop (select_grid_level).
-    const GridLevel level = select_grid_level(grid_spacing_, view_.zoom, grid_band);
-    const Point origin = view_.to_view(WorldPoint{0.0, 0.0});
-    const GridPattern pattern = grid_pattern_at_level(level, origin, inks.grid_minor, inks.grid_major, 1.0);
-    painter.fill_grid_pattern(client_rectangle(), pattern);
-}
-
-void NodeCanvas::paint_links(Painter& painter, const FrameInks& inks) {
+void NodeCanvas::paint_links(Painter& painter) {
     const NodeGraph& graph = *graph_;
     const std::span<const LinkRecord> links = graph.link_slots();
-    const double width = std::clamp(link_width_world * view_.zoom, link_width_minimum, link_width_maximum);
-    // Strokes reach half their width (and the halo) past their paths.
-    const double reach = (width + selected_link_halo) / view_.zoom;
+    // Strokes reach half their width and their halo past their paths.
+    const std::size_t selected_state = static_cast<std::size_t>(CanvasLinkState::selected);
+    const CanvasLine& widest = look_.links[selected_state];
+    const double reach_view = std::max(link_width_maximum, widest.width) / 2.0 + widest.halo_width;
+    const double reach = reach_view / view_.zoom;
     const WorldRect area = world_rect_inflated(view_.rect_to_world(client_rectangle()), reach);
     const SpatialQueryResult found = link_index_.query(area, SpatialQueryMode::intersecting,
                                                        std::span<std::uint32_t>(query_.data(), query_.size()));
@@ -188,38 +164,25 @@ void NodeCanvas::paint_links(Painter& painter, const FrameInks& inks) {
     for (const std::uint32_t slot : visible_links_) {
         if (slot >= links.size() || !links[slot].live) continue;
         const LinkRecord& link = links[slot];
-        const PortRecord* from_port = graph.port(link.from);
-        if (from_port == nullptr) continue;
         const std::size_t count = link_path(slot, link, segments, points);
         if (count < 2U) continue;
         statistics_.link_points_flattened += count;
         const std::span<const Point> path(link_points_.data(), count);
-        StrokeStyle style{};
-        style.color = inks.sockets[port_bucket((*from_port).socket_type)];
-        style.width = width;
-        style.join = StrokeJoin::round;
-        style.cap = StrokeCap::round;
         const LinkId id{slot, link.generation};
-        if (selected_link_.has_value() && *selected_link_ == id) {
-            StrokeStyle halo = style;
-            halo.color = inks.selection;
-            halo.width = width + selected_link_halo;
-            painter.stroke_polyline(path, halo);
-        }
-        painter.stroke_polyline(path, style);
+        const bool chosen = selected_link_.has_value() && *selected_link_ == id;
+        const CanvasLinkState state = chosen ? CanvasLinkState::selected : CanvasLinkState::normal;
+        paint_canvas_link(painter, look_, path, state, CanvasLinkStyle::plain);
         ++painted;
     }
     statistics_.links_painted += painted;
     statistics_.last_frame_links = painted;
 }
 
-void NodeCanvas::paint_nodes(Painter& painter, const FrameInks& inks) {
-    for (std::vector<Point>& centres : port_centres_) centres.clear();
-    for (std::vector<Point>& centres : dimmed_centres_) centres.clear();
+void NodeCanvas::paint_nodes(Painter& painter) {
     const std::span<const NodeRecord> slots = (*graph_).node_slots();
     if (level_ == SceneDetailLevel::overview) {
-        // Silhouettes only: two batched fills in the face's and the
-        // selection's inks.
+        // Silhouettes only: two batched fills in the resting and the
+        // selected node's colours.
         overview_rects_.clear();
         overview_selected_.clear();
         for (const std::uint32_t slot : visible_nodes_) {
@@ -232,9 +195,10 @@ void NodeCanvas::paint_nodes(Painter& painter, const FrameInks& inks) {
                 overview_rects_.push_back(rect);
             }
         }
-        painter.fill_rects(std::span<const Rect>(overview_rects_.data(), overview_rects_.size()), inks.node_fill);
+        painter.fill_rects(std::span<const Rect>(overview_rects_.data(), overview_rects_.size()),
+                           look_.nodes[node_rest].fill);
         painter.fill_rects(std::span<const Rect>(overview_selected_.data(), overview_selected_.size()),
-                           inks.node_selected_fill);
+                           look_.nodes[node_chosen].fill);
         statistics_.nodes_painted += visible_nodes_.size();
         return;
     }
@@ -249,130 +213,45 @@ void NodeCanvas::paint_node(Painter& painter, std::uint32_t slot, const NodeReco
     const Rect rect = view_.rect_to_view(node.bounds);
     AnatomyStateSet states;
     node_states_into(slot, states);
-    const std::string_view item = slot < node_items_.size() ? std::string_view(node_items_[slot]) : std::string_view{};
+    const CanvasNodeState state = canvas_node_state(states);
     const double zoom = view_.zoom;
-    PartPaint part;
-    part.states = states;
-    part.corner_radius = node_corner_radius * zoom;
-    if (states.contains(AnatomyState::selected)) {
-        part.role = PartRole::selection;
-        part.family = ControlVisualRole::selection;
-        part.bounds = grown(rect, selection_outset * zoom);
-        part.key = node_key(node_selection_part, item);
-        paint_part(painter, *this, part);
-    }
-    part.role = PartRole::face;
-    part.family = ControlVisualRole::card;
-    part.bounds = rect;
-    part.key = node_key(node_face_part, item);
-    paint_part(painter, *this, part);
-    part.corner_radius.reset();
+    if (states.contains(AnatomyState::selected)) paint_canvas_node_selection(painter, look_, rect);
     if (level_ == SceneDetailLevel::silhouette) {
+        // The body alone: no header, ports, text or body callback.
+        paint_canvas_node(painter, look_, rect, 0.0, state);
         if (states.contains(AnatomyState::focus_visible)) {
-            part.role = PartRole::focus;
-            part.key = node_key(node_focus_part, item);
-            paint_part(painter, *this, part);
+            PartPaint cue;
+            cue.role = PartRole::focus;
+            cue.family = ControlVisualRole::editor;
+            cue.bounds = rect;
+            cue.states.insert(AnatomyState::focus_visible);
+            paint_part(painter, *this, cue);
         }
         return;
     }
 
-    // The caption band and its title.
+    // The body with its header band, then the title in the header's ink,
+    // clipped to the band less the corners.
     const double caption = std::min(caption_height * zoom, rect.height);
-    const Rect band{rect.x, rect.y, rect.width, caption};
+    paint_canvas_node(painter, look_, rect, caption, state);
     const double title_size = caption_text_size * zoom;
     if (title_size >= smallest_text) {
+        const double inset = node_corner_radius * zoom;
+        const Rect band{rect.x + inset, rect.y, std::max(0.0, rect.width - 2.0 * inset), caption};
         FontSpec base{};
         base.size = title_size;
-        part.role = PartRole::caption;
-        part.bounds = Rect{band.x + node_corner_radius * zoom, band.y, std::max(0.0, band.width - 2.0 * node_corner_radius * zoom),
-                           band.height};
-        part.font = effective_font(base);
-        part.text = lend_paint_text(node.title);
-        part.key = node_key(node_caption_part, item);
-        paint_part(painter, *this, part);
-        part.text = {};
+        const FontSpec font = effective_font(base);
+        const Point baseline{band.x, band.y + band.height / 2.0 + title_baseline_share * title_size};
+        painter.save();
+        painter.clip_rect(band);
+        painter.draw_text_utf8(baseline, node.title, font, look_.titles[static_cast<std::size_t>(state)]);
+        painter.restore();
         ++statistics_.captions_drawn;
     } else {
         ++statistics_.text_skipped_small;
     }
 
-    // Ports into the batches (painted after every node, so a port on an
-    // edge is never covered by its neighbour's face), lamps beside outputs,
-    // and at full detail the port labels.
-    const bool dimming = gesture_ == NodeCanvasGesture::link && gesture_planned_;
-    const bool full = level_ == SceneDetailLevel::full;
-    const double label_size = port_label_size * zoom;
-    const bool labels = full && label_size >= smallest_text;
-    if (full && label_size < smallest_text) ++statistics_.text_skipped_small;
-    FontSpec label_base{};
-    label_base.size = label_size;
-    const FontSpec label_font = effective_font(label_base);
-    for (std::size_t port = 0U; port < node.ports.size(); ++port) {
-        const PortRecord& record = node.ports[port];
-        const Point anchor = view_.to_view(port_world(node, record));
-        const std::size_t bucket = port_bucket(record.socket_type);
-        bool dim = false;
-        if (dimming) {
-            // Only the magnet's candidates take the dragged link.
-            dim = true;
-            const bool flagged = slot < candidate_flags_.size() && candidate_flags_[slot] != 0U;
-            for (std::size_t at = 0U; at < candidates_.size() && flagged && dim; ++at) {
-                const PortRef candidate = candidates_[at].port;
-                if (candidate.node.index == slot && candidate.port.value == port) dim = false;
-            }
-        }
-        if (dim) {
-            dimmed_centres_[bucket].push_back(anchor);
-        } else {
-            port_centres_[bucket].push_back(anchor);
-        }
-        ++statistics_.ports_painted;
-        if (record.direction == PortDirection::output) {
-            const double size = lamp_size * zoom;
-            const double inward = effective_side(record) == PortSide::left ? lamp_inset * zoom : -lamp_inset * zoom;
-            part.role = PartRole::indicator;
-            part.family = ControlVisualRole::editor;
-            part.bounds = Rect{anchor.x + inward - size / 2.0, anchor.y - size / 2.0, size, size};
-            part.states = AnatomyStateSet{};
-            if (record.lamp == PortLamp::on) part.states.insert(AnatomyState::checked);
-            if (record.lamp == PortLamp::error) part.states.insert(AnatomyState::invalid);
-            part.key = node_key(lamp_part, item);
-            paint_part(painter, *this, part);
-            part.states = states;
-            ++statistics_.lamps_painted;
-        }
-        if (labels) {
-            // Inputs label to the inside of a left edge, outputs to the
-            // inside of a right edge; a label never leaves its node.
-            const double gap = port_label_gap * zoom;
-            const double height = label_size * 1.4;
-            const bool leading = effective_side(record) != PortSide::right;
-            const double width = std::max(0.0, rect.width / 2.0 - gap);
-            part.role = PartRole::label;
-            part.family = ControlVisualRole::card;
-            part.bounds = leading ? Rect{anchor.x + gap, anchor.y - height / 2.0, width, height}
-                                  : Rect{anchor.x - gap - width, anchor.y - height / 2.0, width, height};
-            part.alignment = leading ? PartTextAlignment::start : PartTextAlignment::end;
-            part.font = label_font;
-            part.text = lend_paint_text(record.name);
-            part.key = node_key(port_label_part, item);
-            paint_part(painter, *this, part);
-            part.text = {};
-            part.alignment = PartTextAlignment::start;
-        }
-        if (focused_node_.has_value() && (*focused_node_).index == slot && focused_port_.has_value() &&
-            (*focused_port_).value == port && states.contains(AnatomyState::focus_visible)) {
-            const double ring = std::max(smallest_port_marker, port_marker_size * zoom) + 6.0;
-            PartPaint cue;
-            cue.role = PartRole::focus;
-            cue.family = ControlVisualRole::editor;
-            cue.bounds = Rect{anchor.x - ring / 2.0, anchor.y - ring / 2.0, ring, ring};
-            cue.states.insert(AnatomyState::focus_visible);
-            paint_part(painter, *this, cue);
-        }
-    }
-
-    if (full) {
+    if (level_ == SceneDetailLevel::full) {
         const Rect body{rect.x, rect.y + caption, rect.width, std::max(0.0, rect.height - caption)};
         if (callbacks_.paint_body && body.width > 0.0 && body.height > 0.0) {
             NodeBodyPaint request{};
@@ -390,55 +269,112 @@ void NodeCanvas::paint_node(Painter& painter, std::uint32_t slot, const NodeReco
             painter.restore();
         }
     }
+    // Ports over the body (and the body callback), so a port on the edge is
+    // never covered by its own node.
+    paint_ports(painter, slot, node);
     if (states.contains(AnatomyState::focus_visible) && !focused_port_.has_value()) {
-        part.role = PartRole::focus;
-        part.family = ControlVisualRole::editor;
-        part.bounds = rect;
-        part.key = node_key(node_focus_part, item);
-        paint_part(painter, *this, part);
+        PartPaint cue;
+        cue.role = PartRole::focus;
+        cue.family = ControlVisualRole::editor;
+        cue.bounds = rect;
+        cue.states.insert(AnatomyState::focus_visible);
+        paint_part(painter, *this, cue);
     }
 }
 
-void NodeCanvas::paint_ports(Painter& painter, const FrameInks& inks) {
-    if (level_ != SceneDetailLevel::compact && level_ != SceneDetailLevel::full) return;
-    const double size = std::max(smallest_port_marker, port_marker_size * view_.zoom);
-    for (std::size_t bucket = 0U; bucket < port_buckets; ++bucket) {
-        MarkerStyle style{};
-        style.shape = port_shapes[bucket];
-        style.size = size;
-        style.fill = inks.sockets[bucket];
-        style.edge = inks.port_edge;
-        style.edge_width = 1.0;
-        const std::vector<Point>& shown = port_centres_[bucket];
-        if (!shown.empty()) painter.draw_markers(std::span<const Point>(shown.data(), shown.size()), style);
-        const std::vector<Point>& dimmed = dimmed_centres_[bucket];
-        if (dimmed.empty()) continue;
-        style.fill = with_alpha(style.fill, dimmed_alpha);
-        style.edge = with_alpha(style.edge, dimmed_alpha);
-        painter.draw_markers(std::span<const Point>(dimmed.data(), dimmed.size()), style);
+CanvasPortState NodeCanvas::port_state(std::uint32_t slot, std::size_t port) const {
+    const bool linking = (gesture_ == NodeCanvasGesture::link && gesture_planned_) || keyboard_link_;
+    if (!linking) return CanvasPortState::normal;
+    // The dragged link's own end, and the input it is captured by, are hot.
+    if (link_from_.node.index == slot && link_from_.port.value == port) return CanvasPortState::hot;
+    std::optional<std::size_t> target{};
+    if (keyboard_link_ && keyboard_target_ < candidates_.size()) target = keyboard_target_;
+    if (!keyboard_link_ && link_hit_.has_value() && *link_hit_ < candidates_.size()) target = *link_hit_;
+    if (target.has_value()) {
+        const PortRef captured = candidates_[*target].port;
+        if (captured.node.index == slot && captured.port.value == port) return CanvasPortState::hot;
+    }
+    // The magnet's candidates take the link; any other port refuses it.
+    // Candidates are looked up only on flagged nodes.
+    const bool flagged = slot < candidate_flags_.size() && candidate_flags_[slot] != 0U;
+    if (flagged) {
+        for (const LinkCandidate& candidate : candidates_) {
+            if (candidate.port.node.index == slot && candidate.port.port.value == port) {
+                return CanvasPortState::drop_accepted;
+            }
+        }
+    }
+    return CanvasPortState::drop_rejected;
+}
+
+void NodeCanvas::paint_ports(Painter& painter, std::uint32_t slot, const NodeRecord& node) {
+    // Ports, lamps beside outputs, and at full detail the port labels.
+    const double zoom = view_.zoom;
+    const double radius = port_radius(zoom);
+    const double lamp = lamp_radius(zoom);
+    const bool full = level_ == SceneDetailLevel::full;
+    const double label_size = port_label_size * zoom;
+    const bool labels = full && label_size >= smallest_text;
+    if (full && label_size < smallest_text) ++statistics_.text_skipped_small;
+    FontSpec label_base{};
+    label_base.size = label_size;
+    const FontSpec label_font = effective_font(label_base);
+    const Rect rect = view_.rect_to_view(node.bounds);
+    const Window* const host = attached_window();
+    const bool node_focus_cue = focused_node_.has_value() && (*focused_node_).index == slot && focused_ &&
+                                host != nullptr && (*host).focus_cue_visible();
+    for (std::size_t port = 0U; port < node.ports.size(); ++port) {
+        const PortRecord& record = node.ports[port];
+        const Point anchor = view_.to_view(port_world(node, record));
+        paint_canvas_port(painter, look_, anchor, radius, port_state(slot, port));
+        ++statistics_.ports_painted;
+        if (record.direction == PortDirection::output) {
+            const Point centre = lamp_centre(node, record, zoom, view_);
+            paint_canvas_lamp(painter, look_, centre, lamp, canvas_lamp_state(record.lamp));
+            ++statistics_.lamps_painted;
+        }
+        if (labels) {
+            // Inputs label to the inside of a left edge, outputs to the
+            // inside of a right edge; a label never leaves its node.
+            const double gap = port_label_gap * zoom;
+            const double height = label_size * 1.4;
+            const bool leading = effective_side(record) != PortSide::right;
+            const double width = std::max(0.0, rect.width / 2.0 - gap);
+            PartPaint label;
+            label.role = PartRole::label;
+            label.family = ControlVisualRole::card;
+            label.bounds = leading ? Rect{anchor.x + gap, anchor.y - height / 2.0, width, height}
+                                   : Rect{anchor.x - gap - width, anchor.y - height / 2.0, width, height};
+            label.alignment = leading ? PartTextAlignment::start : PartTextAlignment::end;
+            label.font = label_font;
+            label.text = lend_paint_text(record.name);
+            paint_part(painter, *this, label);
+        }
+        if (node_focus_cue && focused_port_.has_value() && (*focused_port_).value == port) {
+            const double ring = 2.0 * radius + 6.0;
+            PartPaint cue;
+            cue.role = PartRole::focus;
+            cue.family = ControlVisualRole::editor;
+            cue.bounds = Rect{anchor.x - ring / 2.0, anchor.y - ring / 2.0, ring, ring};
+            cue.states.insert(AnatomyState::focus_visible);
+            paint_part(painter, *this, cue);
+        }
     }
 }
 
-void NodeCanvas::paint_overlay(Painter& painter, const FrameInks& inks) {
+void NodeCanvas::paint_overlay(Painter& painter) {
     const bool linking = (gesture_ == NodeCanvasGesture::link && gesture_planned_) || keyboard_link_;
     if (gesture_planned_ && gesture_ == NodeCanvasGesture::marquee) {
-        PartPaint marquee;
-        marquee.role = PartRole::focus;
-        marquee.family = ControlVisualRole::editor;
-        marquee.bounds = Rect{std::min(press_view_.x, current_view_.x), std::min(press_view_.y, current_view_.y),
-                              std::fabs(current_view_.x - press_view_.x), std::fabs(current_view_.y - press_view_.y)};
-        marquee.states.insert(AnatomyState::focus_visible);
-        marquee.key = control_key(marquee_part);
-        paint_part(painter, *this, marquee);
+        const Rect marquee{std::min(press_view_.x, current_view_.x), std::min(press_view_.y, current_view_.y),
+                           std::fabs(current_view_.x - press_view_.x), std::fabs(current_view_.y - press_view_.y)};
+        paint_canvas_marquee(painter, look_, marquee);
         return;
     }
     if (gesture_planned_ && gesture_ == NodeCanvasGesture::knife) {
+        // The knife cuts: an invalid dashed link along the stroke.
         const std::array<Point, 2> stroke{press_view_, current_view_};
-        StrokeStyle style{};
-        style.color = inks.knife;
-        style.width = knife_width;
-        style.cap = StrokeCap::round;
-        painter.stroke_polyline(std::span<const Point>(stroke.data(), stroke.size()), style);
+        paint_canvas_link(painter, look_, std::span<const Point>(stroke.data(), stroke.size()), CanvasLinkState::invalid,
+                          CanvasLinkStyle::dashed);
         return;
     }
     if (!linking || graph_ == nullptr) return;
@@ -465,20 +401,13 @@ void NodeCanvas::paint_overlay(Painter& painter, const FrameInks& inks) {
                                              end, end_edge, SoftLinkShape{});
     const std::size_t count =
         flatten_scene_cubic(cubic, 24U, view_, std::span<Point>(link_points_.data(), link_points_.size()));
-    StrokeStyle style{};
-    style.color = inks.preview;
-    style.width = preview_width;
-    style.cap = StrokeCap::round;
-    painter.stroke_polyline(std::span<const Point>(link_points_.data(), count), style);
+    // The preview: a hot link, solid once captured, dashed while it dangles.
+    const CanvasLinkStyle style = target.has_value() ? CanvasLinkStyle::plain : CanvasLinkStyle::dashed;
+    paint_canvas_link(painter, look_, std::span<const Point>(link_points_.data(), count), CanvasLinkState::hot, style);
     if (!target.has_value()) return;
+    // The drop target: the accepting port's area, ringed larger.
     const Point at = view_.to_view(end);
-    PartPaint drop;
-    drop.role = PartRole::drop;
-    drop.family = ControlVisualRole::editor;
-    drop.bounds = Rect{at.x - drop_ring / 2.0, at.y - drop_ring / 2.0, drop_ring, drop_ring};
-    drop.states.insert(AnatomyState::drop_accepted);
-    drop.key = control_key(drop_part);
-    paint_part(painter, *this, drop);
+    paint_canvas_port(painter, look_, at, drop_ring / 2.0, CanvasPortState::drop_accepted);
 }
 
 } // namespace gui_forms

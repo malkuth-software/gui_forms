@@ -1386,6 +1386,180 @@ internal sealed class Direct28 : ButtonBase
     }
 }
 
+/// <summary>NodeCanvas overriding OnEditEnded, raised by a direct call.</summary>
+internal sealed class Direct29 : NodeCanvas
+{
+    private readonly HookLog log;
+
+    public Direct29(HookLog log)
+        : base("kit.forms.direct-29")
+    {
+        this.log = log;
+    }
+
+    protected override void OnEditEnded(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnEditEnded(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnEditEnded(EventArgs.Empty);
+    }
+}
+
+/// <summary>NodeCanvas overriding OnGraphEdited, raised by a direct call.</summary>
+internal sealed class Direct30 : NodeCanvas
+{
+    private readonly HookLog log;
+
+    public Direct30(HookLog log)
+        : base("kit.forms.direct-30")
+    {
+        this.log = log;
+    }
+
+    protected override void OnGraphEdited(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnGraphEdited(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnGraphEdited(EventArgs.Empty);
+    }
+}
+
+/// <summary>NodeCanvas overriding OnLinkConnected, raised by a direct call.</summary>
+internal sealed class Direct31 : NodeCanvas
+{
+    private readonly HookLog log;
+
+    public Direct31(HookLog log)
+        : base("kit.forms.direct-31")
+    {
+        this.log = log;
+    }
+
+    protected override void OnLinkConnected(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnLinkConnected(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnLinkConnected(EventArgs.Empty);
+    }
+}
+
+/// <summary>NodeCanvas overriding OnPaletteRequested, raised by a direct call.</summary>
+internal sealed class Direct32 : NodeCanvas
+{
+    private readonly HookLog log;
+
+    public Direct32(HookLog log)
+        : base("kit.forms.direct-32")
+    {
+        this.log = log;
+    }
+
+    protected override void OnPaletteRequested(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnPaletteRequested(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnPaletteRequested(EventArgs.Empty);
+    }
+}
+
+/// <summary>NodeCanvas overriding OnSelectionChanged, raised by a direct call.</summary>
+internal sealed class Direct33 : NodeCanvas
+{
+    private readonly HookLog log;
+
+    public Direct33(HookLog log)
+        : base("kit.forms.direct-33")
+    {
+        this.log = log;
+    }
+
+    protected override void OnSelectionChanged(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnSelectionChanged(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnSelectionChanged(EventArgs.Empty);
+    }
+}
+
+/// <summary>NodeCanvas overriding OnViewChanged, raised by a direct call.</summary>
+internal sealed class Direct34 : NodeCanvas
+{
+    private readonly HookLog log;
+
+    public Direct34(HookLog log)
+        : base("kit.forms.direct-34")
+    {
+        this.log = log;
+    }
+
+    protected override void OnViewChanged(EventArgs e)
+    {
+        log.marks.Add('B');
+        if (log.mode == OverrideMode.suppress)
+        {
+            return;
+        }
+        base.OnViewChanged(e);
+        log.marks.Add('A');
+    }
+
+    /// <summary>The hook called directly, as Windows Forms allows.</summary>
+    public void raise_directly()
+    {
+        OnViewChanged(EventArgs.Empty);
+    }
+}
+
 /// <summary>A subclass that overrides nothing: its table carries no entry.</summary>
 internal sealed class PlainCase : ButtonBase
 {
@@ -1447,6 +1621,12 @@ internal static unsafe class ClassHookTests
         run_direct26(check);
         run_direct27(check);
         run_direct28(check);
+        run_direct29(check);
+        run_direct30(check);
+        run_direct31(check);
+        run_direct32(check);
+        run_direct33(check);
+        run_direct34(check);
         check(!ClassTables.has_entry(typeof(PlainCase), HookKeys.control_on_auto_size_changed), "a class that overrides nothing has no entry");
         check(ClassTables.has_entry(typeof(Case0), HookKeys.control_on_auto_size_changed), "an overridden hook has its entry");
     }
@@ -2648,6 +2828,96 @@ internal static unsafe class ClassHookTests
             HookLog log = new HookLog();
             using Direct28 control = new Direct28(log);
             using SubscriptionScope scope = SubscriptionScope.subscribe(control, "validating", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct29(Action<bool, string> check)
+    {
+        string label = "NodeCanvas.OnEditEnded";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct29 control = new Direct29(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "edit_ended", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct30(Action<bool, string> check)
+    {
+        string label = "NodeCanvas.OnGraphEdited";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct30 control = new Direct30(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "graph_edited", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct31(Action<bool, string> check)
+    {
+        string label = "NodeCanvas.OnLinkConnected";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct31 control = new Direct31(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "link_connected", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct32(Action<bool, string> check)
+    {
+        string label = "NodeCanvas.OnPaletteRequested";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct32 control = new Direct32(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "palette_requested", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct33(Action<bool, string> check)
+    {
+        string label = "NodeCanvas.OnSelectionChanged";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct33 control = new Direct33(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "selection_changed", log);
+            log.mode = mode;
+            control.raise_directly();
+            string expected = mode == OverrideMode.around ? "BSA" : "B";
+            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + ", got " + log.text);
+        }
+    }
+
+    private static void run_direct34(Action<bool, string> check)
+    {
+        string label = "NodeCanvas.OnViewChanged";
+        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })
+        {
+            HookLog log = new HookLog();
+            using Direct34 control = new Direct34(log);
+            using SubscriptionScope scope = SubscriptionScope.subscribe(control, "view_changed", log);
             log.mode = mode;
             control.raise_directly();
             string expected = mode == OverrideMode.around ? "BSA" : "B";

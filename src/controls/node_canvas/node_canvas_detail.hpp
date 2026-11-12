@@ -1,44 +1,55 @@
 #pragma once
 
 // NodeCanvas's private vocabulary shared by its three sources (the model
-// and caches, the input, the painting): part names, the frame's resolved
-// inks, port geometry and the callback scope. Nothing here is public.
+// and caches, the input, the painting): the canvas anatomy's part table,
+// port and lamp geometry and the callback scope. Nothing here is public.
 
 #include "gui_forms/controls/node_canvas.hpp"
 #include "gui_forms/scene/scene_view/scene_view.hpp"
-#include "gui_forms/types/paint_marks/paint_marks.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string_view>
 
 namespace gui_forms::node_canvas_detail {
 
-// The anatomy's part names (node_canvas.cpp declares them): the names a
-// theme's `node-canvas::part(...)` rules match through each part's key.
-inline constexpr std::string_view region_part = "region";
-inline constexpr std::string_view well_part = "well";
-inline constexpr std::string_view grid_minor_part = "grid_minor";
-inline constexpr std::string_view grid_major_part = "grid_major";
-inline constexpr std::string_view connector_part = "connector";
-inline constexpr std::string_view marquee_part = "marquee";
-inline constexpr std::string_view knife_part = "knife";
-inline constexpr std::string_view drop_part = "drop";
-inline constexpr std::string_view focus_part = "focus";
-inline constexpr std::string_view node_part = "node";
-inline constexpr std::string_view node_face_part = "node_face";
-inline constexpr std::string_view node_selection_part = "node_selection";
-inline constexpr std::string_view node_caption_part = "node_caption";
-inline constexpr std::string_view port_part = "port";
-inline constexpr std::string_view port_label_part = "port_label";
-inline constexpr std::string_view lamp_part = "lamp";
-inline constexpr std::string_view node_focus_part = "node_focus";
+// The theme's canvas anatomy (node_canvas_anatomy, canvas_look.hpp) by
+// part name: the index of each part in this file's own table, which
+// publish_part_geometry maps onto the anatomy's order by name.
+inline constexpr std::size_t canvas_part_region = 0U;
+inline constexpr std::size_t canvas_part_grid_minor = 1U;
+inline constexpr std::size_t canvas_part_grid_major = 2U;
+inline constexpr std::size_t canvas_part_node = 3U;
+inline constexpr std::size_t canvas_part_node_header = 4U;
+inline constexpr std::size_t canvas_part_node_selection = 5U;
+inline constexpr std::size_t canvas_part_port = 6U;
+inline constexpr std::size_t canvas_part_link = 7U;
+inline constexpr std::size_t canvas_part_dashed_link = 8U;
+inline constexpr std::size_t canvas_part_lamp = 9U;
+inline constexpr std::size_t canvas_part_marquee = 10U;
+inline constexpr std::size_t canvas_part_count = 11U;
+inline constexpr std::array<std::string_view, canvas_part_count> canvas_part_names{
+    "region", "grid_minor", "grid_major", "node",        "node_header", "node_selection",
+    "port",   "link",       "dashed_link", "lamp",       "marquee",
+};
+
+// The table index of the anatomy part named `name`, or none for a part
+// this canvas does not publish.
+[[nodiscard]] inline std::optional<std::size_t> canvas_part_index(std::string_view name) noexcept {
+    for (std::size_t index = 0U; index < canvas_part_count; ++index) {
+        if (canvas_part_names[index] == name) return index;
+    }
+    return std::nullopt;
+}
 
 // Geometry in world units (zoomed with the scene) unless named view.
 inline constexpr double node_corner_radius = 6.0;
 inline constexpr double port_marker_size = 9.0;
 inline constexpr double smallest_port_marker = 3.0;
+inline constexpr double smallest_lamp = 2.0;
 inline constexpr double lamp_size = 6.0;
 inline constexpr double lamp_inset = 12.0;
 inline constexpr double caption_text_size = 12.0;
@@ -68,21 +79,6 @@ inline constexpr double snap_bounds_cells = 65536.0;
 // The keyboard link and link_to_nearest try at most this many candidates.
 inline constexpr std::size_t keyboard_link_tries = 16U;
 
-// The grid's levels (select_grid_level's band).
-inline constexpr GridLevelBand grid_band{12.0, 48.0};
-
-// The shapes of the port buckets: filled shapes first (a bucket's shape
-// and its accent colour both name the socket type).
-inline constexpr std::array<MarkerShape, NodeCanvas::port_buckets> port_shapes{
-    MarkerShape::circle,        MarkerShape::square,        MarkerShape::diamond,     MarkerShape::triangle_up,
-    MarkerShape::triangle_right, MarkerShape::triangle_down, MarkerShape::triangle_left, MarkerShape::plus,
-};
-
-[[nodiscard]] inline std::size_t port_bucket(std::uint16_t socket_type) noexcept {
-    const std::size_t bucket = static_cast<std::size_t>(socket_type) % NodeCanvas::port_buckets;
-    return bucket;
-}
-
 // The side a port sits on: its own, or for an automatic port the side its
 // direction faces (outputs right, inputs left), as the link router's soft
 // style does.
@@ -109,6 +105,35 @@ inline constexpr std::array<MarkerShape, NodeCanvas::port_buckets> port_shapes{
     return anchor;
 }
 
+// A port's disc radius at `zoom`, view units (never under half the
+// smallest marker, so a port stays findable when zoomed out).
+[[nodiscard]] inline double port_radius(double zoom) noexcept {
+    const double size = std::max(smallest_port_marker, port_marker_size * zoom);
+    return size / 2.0;
+}
+
+[[nodiscard]] inline double lamp_radius(double zoom) noexcept {
+    const double size = std::max(smallest_lamp, lamp_size * zoom);
+    return size / 2.0;
+}
+
+// An output's lamp: inside the node, lamp_inset world units in from the
+// port along its edge's inward normal, in view units.
+[[nodiscard]] inline Point lamp_centre(const NodeRecord& node, const PortRecord& port, double zoom,
+                                       const SceneViewTransform& view) noexcept {
+    const Point anchor = view.to_view(port_world(node, port));
+    const double inset = lamp_inset * zoom;
+    switch (effective_side(port)) {
+    case PortSide::left: return Point{anchor.x + inset, anchor.y};
+    case PortSide::right: return Point{anchor.x - inset, anchor.y};
+    case PortSide::top: return Point{anchor.x, anchor.y + inset};
+    case PortSide::bottom: return Point{anchor.x, anchor.y - inset};
+    default: break;
+    }
+    // Automatic is resolved by effective_side; anything else stays put.
+    return anchor;
+}
+
 [[nodiscard]] inline PortRef port_ref(std::uint32_t slot, const NodeRecord& node, std::size_t port) noexcept {
     const PortRef ref{NodeId{slot, node.generation}, PortIndex{static_cast<std::uint16_t>(port)}};
     return ref;
@@ -117,20 +142,6 @@ inline constexpr std::array<MarkerShape, NodeCanvas::port_buckets> port_shapes{
 } // namespace gui_forms::node_canvas_detail
 
 namespace gui_forms {
-
-// The colours one frame resolves from the theme's parts (each once per
-// frame, never per node).
-struct NodeCanvas::FrameInks final {
-    Color grid_minor{};
-    Color grid_major{};
-    Color node_fill{};
-    Color node_selected_fill{};
-    Color selection{};
-    Color port_edge{};
-    Color knife{};
-    Color preview{};
-    std::array<Color, port_buckets> sockets{};
-};
 
 class NodeCanvas::CallbackScope final {
 public:

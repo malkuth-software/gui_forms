@@ -56,4 +56,10 @@ public static class HookKeys
     public static readonly HookKey check_box_on_check_state_changed = new HookKey(Constants.GF_CLASS_CHECK_BOX, 2u);
     public static readonly HookKey radio_button_on_checked_changed = new HookKey(Constants.GF_CLASS_RADIO_BUTTON, 0u);
     public static readonly HookKey range_control_on_value_changed = new HookKey(Constants.GF_CLASS_RANGE_CONTROL, 0u);
+    public static readonly HookKey node_canvas_on_edit_ended = new HookKey(Constants.GF_CLASS_NODE_CANVAS, 0u);
+    public static readonly HookKey node_canvas_on_graph_edited = new HookKey(Constants.GF_CLASS_NODE_CANVAS, 1u);
+    public static readonly HookKey node_canvas_on_link_connected = new HookKey(Constants.GF_CLASS_NODE_CANVAS, 2u);
+    public static readonly HookKey node_canvas_on_palette_requested = new HookKey(Constants.GF_CLASS_NODE_CANVAS, 3u);
+    public static readonly HookKey node_canvas_on_selection_changed = new HookKey(Constants.GF_CLASS_NODE_CANVAS, 4u);
+    public static readonly HookKey node_canvas_on_view_changed = new HookKey(Constants.GF_CLASS_NODE_CANVAS, 5u);
 }

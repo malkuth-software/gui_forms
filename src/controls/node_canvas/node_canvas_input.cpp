@@ -344,7 +344,7 @@ void NodeCanvas::request_palette(Point local, std::optional<PortRef> from) {
     request.local = local;
     request.from = from;
     ++statistics_.palette_requests;
-    palette_requested_.emit(request);
+    on_palette_requested(request);
 }
 
 // -- drag targets -----------------------------------------------------------------------------
@@ -394,10 +394,11 @@ void NodeCanvas::plan_drag(DragPlan& plan) {
 void NodeCanvas::plan_move(DragPlan& plan) {
     // The snap grid is the world grid: bounds anchored at a far multiple of
     // the spacing, so the tracker's cells line up with world multiples.
-    const double cell = grid_spacing_ * view_.zoom;
-    const double far = -grid_spacing_ * snap_bounds_cells;
+    const double spacing = grid_spacing();
+    const double cell = spacing * view_.zoom;
+    const double far = -spacing * snap_bounds_cells;
     const Point corner = point_to_window(view_.to_view(WorldPoint{far, far}));
-    const double side = 2.0 * grid_spacing_ * snap_bounds_cells * view_.zoom;
+    const double side = 2.0 * spacing * snap_bounds_cells * view_.zoom;
     plan.kind = DragKind::placement;
     plan.placement.bounds = Rect{corner.x, corner.y, side, side};
     plan.placement.grid = Size{cell, cell};
@@ -518,7 +519,7 @@ void NodeCanvas::finish_link(const DragTrackerFrame& frame) {
         ++statistics_.gestures_cancelled;
     }
     after_edit(connected.has_value() ? NodeGraphEditKind::connected : NodeGraphEditKind::disconnected);
-    if (connected.has_value()) link_connected_.emit(*connected);
+    if (connected.has_value()) on_link_connected(*connected);
     if (palette_at.has_value() && is_alive()) request_palette(*palette_at, link_from_);
 }
 
@@ -757,7 +758,8 @@ bool NodeCanvas::handle_navigation_key(std::uint32_t key, Modifier modifiers) {
         const Point direction = arrow_direction(key);
         if (command) {
             // Ctrl+arrows move the selection one grid cell: one step each.
-            const WorldPoint delta{direction.x * grid_spacing_, direction.y * grid_spacing_};
+            const double spacing = grid_spacing();
+            const WorldPoint delta{direction.x * spacing, direction.y * spacing};
             static_cast<void>(move_selection(delta));
             return true;
         }
