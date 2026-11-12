@@ -76,7 +76,12 @@ finding:
 ```text
 python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz
 python3 -B tools/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard
+python3 -B tools/export_annotations.py check
 ```
+
+The third fails on a public declaration under `include/gui_forms/` that lacks
+its library's export macro (`GUI_FORMS_API`); `python3 -B
+tools/export_annotations.py apply` adds the missing ones.
 
 `stx_skia/` and every third-party source (FreeType, HarfBuzz, libunibreak,
 md4c, SheenBidi, the Unicode data) live in the stx repository since

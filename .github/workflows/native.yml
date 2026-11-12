@@ -132,6 +132,8 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
           python3 -B -m unittest discover -s tools/layout_oracle -p test_layout_oracle.py
           python3 -B ../template_harness/harness/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard fuzz
+          # Every public declaration carries its library's export macro.
+          python3 -B tools/export_annotations.py check
           python3 -B -m unittest discover -s tools -p test_check_test_registration.py
           python3 -B tools/check_test_registration.py
   # Documentation-only pull requests (owner, 2026-11-09): when every changed
