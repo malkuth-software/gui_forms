@@ -81,7 +81,8 @@ Only the rows meeting the viewport are painted and described, and only
 those within half a viewport of it are measured. A change of the content
 width forgets the measured heights, since wrapped rows change height with
 it. Scrolling by whole device pixels moves the painted pixels instead of
-repainting them when ``back_color`` is an opaque colour.
+repainting them when the view's background is opaque: the theme's ground
+for the view's surface, or ``back_color``, which overrides it per control.
 
 Rows appended between two layouts are announced once, at the next layout,
 with their count and the new total; screen readers speak the live region

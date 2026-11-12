@@ -49,12 +49,23 @@ public:
     void restore() override {}
     void translate(Point) override {}
     void clip_rect(Rect) override {}
-    void fill_rect(Rect, Color) override {}
+    void fill_rect(Rect, Color color) override { fills.push_back(color); }
+    void fill_rounded_rect(Rect, double, Color color) override { fills.push_back(color); }
     void stroke_rect(Rect, Color, double) override {}
     void draw_line(Point, Point, Color, double) override {}
     void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
     void draw_image(ImageId, Rect, double) override {}
+
+    // Every fill's colour, in order (the background test reads them).
+    std::vector<Color> fills;
 };
+
+bool contains_colour(const std::vector<Color>& colours, Color wanted) {
+    for (const Color& colour : colours) {
+        if (colour == wanted) return true;
+    }
+    return false;
+}
 
 // A fixed linear congruential sequence, so a failure reproduces.
 struct Sequence final {
@@ -542,6 +553,25 @@ void refusals_and_reentrancy() {
     require(!children.empty() && children[0].name == "1", "without a describe target rows are named by position");
 }
 
+// The background is the theme's well for the view's surface, painted
+// through the theme engine, with back_color as the per-control override of
+// its ground (published on the well part and painted there).
+void themed_background() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 100U);
+    Window window(view, {400.0, 300.0});
+    window.perform_layout();
+    require(!(*view).parts().well.authored_background, "without back_color the theme's ground stands");
+    const Color override_colour = Color::rgba(12, 34, 56);
+    (*view).back_color = override_colour;
+    window.perform_layout();
+    RecordingPainter painter;
+    (*view).on_paint(painter, (*view).client_rectangle());
+    require((*view).parts().well.authored_background == std::optional<Color>(override_colour) &&
+                contains_colour(painter.fills, override_colour),
+            "back_color overrides the well's ground and is painted through it");
+}
+
 // Follow tail: at the end, appended rows keep the view at the end; a scroll
 // away stops following, so appended rows leave the content still, and a
 // return to the end resumes. Without follow_tail a view at the end keeps
@@ -664,9 +694,10 @@ int main() {
     accessibility();
     right_to_left();
     refusals_and_reentrancy();
+    themed_background();
     follow_tail();
     append_announcements();
     std::cout << "VirtualRowsView: refinement invariants, anchor stability, scrolling to an index, a million rows "
-                 "with bounded work, keyboard, accessibility, right to left, refusals, follow tail and append announcements passed\n";
+                 "with bounded work, keyboard, accessibility, right to left, refusals, the themed background, follow tail and append announcements passed\n";
     return 0;
 }

@@ -695,14 +695,13 @@ void VirtualRowsView::on_paint(Painter& painter, Rect) {
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.bounds = client_;
+    // back_color is the per-control override of the theme's ground, as
+    // DataGridView's background colour is. paint_part reports the cover
+    // when the resolved well (the theme's material, or back_color over it
+    // outside high contrast) is opaque, and only then can a scroll move the
+    // painted pixels (scroll_content needs the cover).
+    well.authored_background = back_color.read();
     paint_part(painter, *this, well);
-    // An opaque back colour covers the viewport, which lets a scroll move
-    // the painted pixels (scroll_content needs the cover).
-    const std::optional<Color> background = back_color.read();
-    if (background.has_value() && (*background).alpha == 255U && !viewport_.empty()) {
-        painter.fill_rect(viewport_, *background);
-        report_opaque_cover(painter, viewport_);
-    }
     std::size_t painted = 0U;
     if (!viewport_.empty() && first_realized_ < end_realized_) {
         painter.save();
@@ -986,6 +985,7 @@ void VirtualRowsView::publish_part_geometry(std::span<PartGeometry> geometry) co
     Parts record;
     record.region = PartGeometry::from_bounds(client_);
     record.well = PartGeometry::from_bounds(client_);
+    record.well.authored_background = back_color.read();
     if (bar_shown_) record.vertical_scroll_bar = PartGeometry::from_bounds(bar_);
     record.focus = PartGeometry::from_bounds(client_);
     write_parts(anatomy(), virtual_rows_view_part_fields, record, geometry);
