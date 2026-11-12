@@ -31,10 +31,11 @@
 // evaluation state, not document state: it is neither recorded nor saved.
 //
 // Documents (save and load): the versioned text format described above
-// NodeGraph::save, with stable text keys for nodes. load validates the whole
-// document before changing anything and names the byte, line and column of
-// the first error; it accepts exactly the bytes save writes, so load then
-// save reproduces every accepted document byte for byte.
+// NodeGraph::save, with stable text keys for nodes and stable text IDs for
+// links. load validates the whole document before changing anything and
+// names the byte, line and column of the first error. It tolerates harmless
+// spelling variants and save writes the canonical form, so for every
+// document save wrote, load then save reproduces it byte for byte.
 //
 // Nothing here recurses: graphs are runtime-shaped data, and every walk is a
 // loop over the slot arrays. Socket-type conversion and frames arrive with
@@ -184,7 +185,11 @@ struct GUI_FORMS_API NodeRecord final {
 };
 
 // A link slot, as NodeRecord.
+// `key` is the link's stable text ID (the node key rules), unique among the
+// live links, kept by documents and by undo, so a link keeps its ID when
+// undo or redo reattaches it.
 struct GUI_FORMS_API LinkRecord final {
+    std::string key{};
     PortRef from{};
     PortRef to{};
     std::uint32_t generation{};
@@ -211,7 +216,7 @@ enum class GraphStatus : std::uint8_t {
     // More than maximum_node_ports ports or maximum_node_properties
     // properties, or the slot index range is full.
     capacity,
-    // add_node's key names a live node already.
+    // add_node's key names a live node already, or connect's ID a live link.
     duplicate_key,
     // remove_property's name is not one of the node's properties.
     missing_property,
@@ -287,33 +292,35 @@ enum class GraphLoadError : std::uint8_t {
     bad_header,
     // A version other than graph_document_version.
     unsupported_version,
-    // The input ends before the document does (every proper prefix of a
-    // document is refused with this, at the input's end).
+    // The input ends before the document does (every prefix of a document
+    // that ends before the semicolon of "end;" is refused with this, at the
+    // input's end).
     truncated,
-    // A byte outside a quoted text that the format never uses there (a tab,
-    // a carriage return, another control byte, a byte above 0x7E).
+    // A byte outside a quoted text or comment that the format never uses
+    // there (a control byte other than tab and line end, a carriage return
+    // not before a line feed, a byte above 0x7E).
     unexpected_character,
     // The line does not have the format's shape at this byte (a missing
-    // space, colon, semicolon or brace, a field out of order, data after
-    // "end;").
+    // colon, semicolon, brace or arrow, a field out of order or repeated, a
+    // second statement on one line, data after "end;").
     syntax,
     // A document-level line that is not node, link or end, or a node after
     // the first link.
     unknown_statement,
-    // A node key that is empty, too long or has a byte keys never use.
+    // A node key or link ID that is empty, too long or has a byte keys
+    // never use.
     bad_key,
     // Not a number, not finite, or outside its field's range (a negative
     // size, an offset outside 0 to 1, a socket type or port above 65535).
     bad_number,
-    // A number or an escape not written the one way save writes it.
-    non_canonical,
     // A quoted text with an unknown escape or a raw control byte.
     bad_text,
     // A direction or side that is not one of the format's words.
     bad_word,
     // A property name that is malformed, reserved, or repeated in its node.
     bad_property,
-    // A node key already used by an earlier node.
+    // A node key already used by an earlier node, or a link ID by an
+    // earlier link.
     duplicate_key,
     // A link names a key no node has.
     unknown_node,
@@ -379,8 +386,12 @@ public:
     // Not recorded for undo and not saved (evaluation state).
     [[nodiscard]] GraphResult set_port_lamp(PortRef port, PortLamp lamp);
     // Links `from` (an output) to `to` (an input of another node, which has
-    // no link yet).
+    // no link yet). The first form names the link "l.<n>" from a counter
+    // that only increases (past every "l.<n>" a load read), skipping IDs in
+    // use, so no ID is handed out twice in a graph's life; the second takes
+    // the caller's ID.
     [[nodiscard]] GraphResult connect(PortRef from, PortRef to);
+    [[nodiscard]] GraphResult connect(PortRef from, PortRef to, std::string_view key);
     [[nodiscard]] GraphResult disconnect(LinkId link);
 
     // -- undo ---------------------------------------------------------------------
@@ -409,8 +420,9 @@ public:
     [[nodiscard]] std::size_t undo_bytes() const noexcept { return undo_bytes_; }
 
     // -- documents ----------------------------------------------------------------
-    // The document, version 1. ASCII outside quoted texts, one statement per
-    // line, every line ending in "\n", indentation four spaces:
+    // The document, version 1, as save writes it (the canonical form): ASCII
+    // outside quoted texts, one statement or field per line, every line
+    // ending in "\n", fields indented four spaces:
     //
     //     gui-forms-graph 1;
     //     node noise {
@@ -426,13 +438,13 @@ public:
     //         bounds: 360 60 100 60;
     //         port: input left 0.5 3 "a";
     //     }
-    //     link noise:0 -> mix:0;
+    //     link l.1 noise:0 -> mix:0;
     //     end;
     //
     // - Nodes in slot order, then links in slot order, then "end;", which
-    //   makes every truncation detectable. Runtime identities are not saved;
-    //   a link is named by its ends, "<key>:<port index>", and its input end
-    //   is its stable identity (an input takes one link).
+    //   makes every truncation detectable. Runtime identities are not saved:
+    //   a node is named by its key, a link by its ID, and a link's ends by
+    //   "<node key>:<port index>".
     // - In a node: kind, title, bounds (x y width height), then its ports in
     //   order (direction, side, offset, socket type, name), then its
     //   properties in order. Lamps are evaluation state and are not saved.
@@ -441,12 +453,28 @@ public:
     // - Texts are quoted; the escapes are \\, \", \n, \t, \r, and \xHH
     //   (lowercase hex) for every other byte below 0x20 and for 0x7F. Bytes
     //   from 0x80 are written as they are (UTF-8 is not checked).
-    // - Unknown fields: a node line `<name>: "<text>";` whose name is not a
-    //   field word is a property, kept verbatim, in order, and written back
-    //   unchanged, so a later version's quoted node fields survive a version
-    //   1 edit. Any other unknown line is refused: in a node with the error
-    //   of its first wrong byte, at document level with unknown_statement.
-    //   A later version that changes meaning raises graph_document_version.
+    //
+    // What load also accepts (all normalised by the next save): spaces and
+    // tabs anywhere between tokens and at line starts and ends; blank lines;
+    // comments, from "#" outside a text to the end of its line (a whole line
+    // or after a statement); CRLF line ends; no line end after "end;";
+    // numbers in any std::from_chars spelling ("60.0", "6e1", "007"); \xHH
+    // in either case for any byte. What stays fixed, and is refused with
+    // its position: one field or statement per line, every keyword,
+    // colon, semicolon, brace and arrow, kind, title and bounds first and in
+    // that order, ports before properties.
+    //
+    // The guarantee: for every document save wrote, load then save
+    // reproduces it byte for byte, and undoing every operation since a load
+    // saves the loaded document's canonical bytes.
+    //
+    // Unknown fields: a node line `<name>: "<text>";` whose name is not a
+    // field word is a property, kept, in order, and written back, so a later
+    // version's quoted node fields survive a version 1 edit. Any other
+    // unknown line is refused: in a node with the error of its first wrong
+    // byte, at document level with unknown_statement. A later version that
+    // changes meaning (for example a move to the form syntax, with a
+    // converter) raises graph_document_version.
 
     // Writes the document into `storage`. Measures first: storage shorter
     // than the document is refused with storage_too_small and left
@@ -467,6 +495,8 @@ public:
     [[nodiscard]] const NodeRecord* node(NodeId node) const noexcept;
     // The live node with this key, or a stale identity (O(log n)).
     [[nodiscard]] NodeId find_node(std::string_view key) const noexcept;
+    // The live link with this ID, or a stale identity (O(log n)).
+    [[nodiscard]] LinkId find_link(std::string_view key) const noexcept;
     // The node's named property, or null. Borrowed until the next operation.
     [[nodiscard]] const NodeProperty* property(NodeId node, std::string_view name) const noexcept;
     [[nodiscard]] const LinkRecord* link(LinkId link) const noexcept;
@@ -508,8 +538,6 @@ private:
         UndoOperation operation{UndoOperation::add_node};
         NodeId node{};
         LinkId link{};
-        PortRef from{};
-        PortRef to{};
         // add_node and connect: the reused slot's generation before, and
         // whether the slot was appended instead.
         std::uint32_t generation_before{};
@@ -533,7 +561,8 @@ private:
         std::size_t record_count{};
         std::size_t bytes{};
     };
-    // A link remove_node took with it.
+    // A link record kept in the log (with its ID): one remove_node took with
+    // it, one disconnect removed, or, while undone, one connect made.
     struct RemovedLink final {
         std::uint32_t index{};
         LinkRecord record{};
@@ -548,10 +577,8 @@ private:
     [[nodiscard]] bool live(NodeId node) const noexcept;
     [[nodiscard]] bool live(LinkId link) const noexcept;
     void advance() noexcept;
-    void free_link(std::uint32_t index) noexcept;
-    [[nodiscard]] std::size_t key_position(std::string_view key) const noexcept;
-    void insert_key(std::uint32_t index) noexcept;
-    void erase_key(std::uint32_t index) noexcept;
+    [[nodiscard]] GraphStatus check_link(PortRef from, PortRef to) const noexcept;
+    [[nodiscard]] GraphResult install_link(PortRef from, PortRef to, std::string& key);
     [[nodiscard]] bool recording() const noexcept { return undo_limits_.maximum_steps > 0U; }
     [[nodiscard]] bool group_step_open() const noexcept { return group_depth_ > 0U && group_step_open_; }
     void prepare_record(std::size_t nodes, std::size_t links, std::size_t moves, std::size_t texts);
@@ -564,6 +591,8 @@ private:
     void reapply(const UndoRecord& record) noexcept;
     void detach_node(std::uint32_t index, NodeRecord& keep) noexcept;
     void attach_node(std::uint32_t index, NodeRecord& kept) noexcept;
+    void detach_link(std::uint32_t index, LinkRecord& keep) noexcept;
+    void attach_link(std::uint32_t index, LinkRecord& kept) noexcept;
 
     std::vector<NodeRecord> nodes_{};
     std::vector<LinkRecord> links_{};
@@ -575,6 +604,10 @@ private:
     // Live node slots ordered by key, for find_node and duplicate checks.
     // Its capacity grows with the slots, so undo and redo never allocate.
     std::vector<std::uint32_t> key_order_{};
+    // Live link slots ordered by ID, as key_order_.
+    std::vector<std::uint32_t> link_key_order_{};
+    // The next automatic link ID's number ("l.<n>"); never decreases.
+    std::uint64_t next_link_number_{1U};
     std::size_t live_nodes_{};
     std::size_t live_links_{};
     std::uint64_t revision_{1U};

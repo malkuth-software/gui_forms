@@ -312,7 +312,9 @@ Related types
 
    ``#include <gui_forms/controls/node_graph.hpp>``
 
-   A link slot, as NodeRecord.
+   A link slot, as NodeRecord. ``key`` is the link's stable text ID (the node key rules), unique among the live links, kept by documents and by undo, so a link keeps its ID when undo or redo reattaches it.
+
+   .. cpp:member:: std::string key
 
    .. cpp:member:: PortRef from
 
@@ -487,7 +489,9 @@ Related types
 
    .. cpp:function:: GraphResult connect(PortRef from, PortRef to)
 
-      Links ``from`` (an output) to ``to`` (an input of another node, which has no link yet).
+      Links ``from`` (an output) to ``to`` (an input of another node, which has no link yet). The first form names the link "l.<n>" from a counter that only increases (past every "l.<n>" a load read), skipping IDs in use, so no ID is handed out twice in a graph's life; the second takes the caller's ID.
+
+   .. cpp:function:: GraphResult connect(PortRef from, PortRef to, std::string_view key)
 
    .. cpp:function:: GraphResult disconnect(LinkId link)
 
@@ -522,6 +526,10 @@ Related types
    .. cpp:function:: NodeId find_node(std::string_view key) const noexcept
 
       The live node with this key, or a stale identity (O(log n)).
+
+   .. cpp:function:: LinkId find_link(std::string_view key) const noexcept
+
+      The live link with this ID, or a stale identity (O(log n)).
 
    .. cpp:function:: const NodeProperty* property(NodeId node, std::string_view name) const noexcept
 
@@ -1467,8 +1475,6 @@ Enumerations
    .. cpp:enumerator:: bad_key
 
    .. cpp:enumerator:: bad_number
-
-   .. cpp:enumerator:: non_canonical
 
    .. cpp:enumerator:: bad_text
 

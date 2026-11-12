@@ -91,7 +91,7 @@ constexpr std::string_view sample_document = "gui-forms-graph 1;\n"
                                              "    bounds: 360 60 100 60;\n"
                                              "    port: input left 0.5 3 \"a\";\n"
                                              "}\n"
-                                             "link noise:0 -> mix:0;\n"
+                                             "link l.1 noise:0 -> mix:0;\n"
                                              "end;\n";
 
 // A document using every kind of text and number the format writes:
@@ -115,9 +115,105 @@ constexpr std::string_view rich_document = "gui-forms-graph 1;\n"
                                            "    port: input bottom 0.3333333333333333 2 \"in\";\n"
                                            "    port: input left 0.5 2 \"in\";\n"
                                            "}\n"
-                                           "link a.1:1 -> b_2:1;\n"
-                                           "link a.1:0 -> b_2:0;\n"
+                                           "link wire-a a.1:1 -> b_2:1;\n"
+                                           "link l.7 a.1:0 -> b_2:0;\n"
                                            "end;\n";
+
+// The sample with every tolerated variant: comments (whole lines, after
+// statements, containing quotes and "end;"), blank lines, tabs, extra and
+// missing spaces, CRLF line ends, non-canonical numbers, \xHH escapes in
+// both cases, and comments after "end;". Its last line is not a comment, so
+// the document up to that line loads (to the sample's graph) and the whole
+// is refused.
+constexpr std::string_view variant_document = "# a node graph\r\n"
+                                              "\n"
+                                              "gui-forms-graph   01 ;  # version one\n"
+                                              "node\tnoise{\n"
+                                              "  kind:\"noise_texture\";\r\n"
+                                              "\t\ttitle : \"\\x4Eo\\x69se\" ;\n"
+                                              "\n"
+                                              "    # \"quoted\" end; in a comment\n"
+                                              "    bounds: 1.2e2 40.000 100 6e1;\n"
+                                              "    port: output   right .5e0 003 \"color\";\n"
+                                              "scale:\"5.0\";\n"
+                                              "}  # noise\n"
+                                              "node mix {\n"
+                                              "    kind: \"mix_color\";\n"
+                                              "    title: \"Mix\";\n"
+                                              "    bounds: 360 60 100 60;\n"
+                                              "    port: input left 0.50 3 \"a\";\n"
+                                              "}\n"
+                                              "\n"
+                                              "link l.1 noise : 0 ->mix:0;\n"
+                                              "end;  # done\r\n"
+                                              "# trailing comment\n"
+                                              "\n"
+                                              "end of nothing? no: this line is a comment only if it starts with #\n";
+
+void tolerant_load() {
+    // The last line of variant_document is not a comment: refused after end.
+    NodeGraph graph;
+    const GraphLoadResult refused = graph.load(variant_document);
+    const std::size_t extra = variant_document.find("end of nothing");
+    require(refused.error == GraphLoadError::syntax && refused.offset == extra,
+            "a line after end that is not blank or a comment is refused");
+    const std::string_view variant = variant_document.substr(0U, extra);
+    const GraphLoadResult result = graph.load(variant);
+    if (result.error != GraphLoadError::ok) {
+        std::cerr << "node-graph-history-tests: variant refused: " << graph_load_error_name(result.error) << " at "
+                  << result.line << ':' << result.column << '\n';
+    }
+    require(result.error == GraphLoadError::ok, "every tolerated variant loads");
+    require(saved(graph) == sample_document, "and saves the canonical sample");
+    const std::string_view no_line_end = sample_document.substr(0U, sample_document.size() - 1U);
+    require(graph.load(no_line_end).error == GraphLoadError::ok && saved(graph) == sample_document,
+            "the last line may lack its line end");
+    std::string crlf{};
+    for (const char byte : sample_document) {
+        if (byte == '\n') crlf.push_back('\r');
+        crlf.push_back(byte);
+    }
+    require(graph.load(crlf).error == GraphLoadError::ok && saved(graph) == sample_document, "CRLF loads");
+}
+
+void link_ids() {
+    NodeGraph graph;
+    const NodeId a = add(graph, "a", 0.0, 0.0);
+    const NodeId b = add(graph, "b", 200.0, 0.0);
+    const NodeId c = add(graph, "c", 400.0, 0.0);
+    const LinkId ab = join(graph, a, b);
+    require((*graph.link(ab)).key == "l.1" && graph.find_link("l.1") == ab, "an automatic ID");
+    const GraphResult named = graph.connect(PortRef{b, PortIndex{1U}}, PortRef{c, PortIndex{0U}}, "feed");
+    require(named.status == GraphStatus::ok && graph.find_link("feed") == named.link, "a chosen ID");
+    require(graph.disconnect(named.link).status == GraphStatus::ok && !(graph.find_link("feed") == named.link),
+            "a disconnected link's ID is free");
+    require(graph.connect(PortRef{a, PortIndex{1U}}, PortRef{c, PortIndex{0U}}, "l.1").status ==
+                GraphStatus::duplicate_key,
+            "a live ID is refused");
+    require(graph.connect(PortRef{a, PortIndex{1U}}, PortRef{c, PortIndex{0U}}, "bad id").status ==
+                GraphStatus::invalid_argument,
+            "a malformed ID is refused");
+    require(graph.undo().status == GraphStatus::ok && graph.find_link("feed") == named.link,
+            "undo reattaches the link with its ID");
+    require(graph.redo().status == GraphStatus::ok && graph.undo().status == GraphStatus::ok, "and redo detaches it");
+    require(graph.remove_node(b).status == GraphStatus::ok && graph.link_count() == 0U, "b takes both links");
+    require(graph.undo().status == GraphStatus::ok && graph.find_link("l.1") == ab &&
+                graph.find_link("feed") == named.link,
+            "undoing the removal keeps both IDs");
+    const NodeId d = add(graph, "d", 600.0, 0.0);
+    const GraphResult second = graph.connect(PortRef{c, PortIndex{1U}}, PortRef{d, PortIndex{0U}});
+    require(second.status == GraphStatus::ok && (*graph.link(second.link)).key == "l.2",
+            "automatic IDs count on");
+
+    NodeGraph loaded;
+    require(loaded.load(rich_document).error == GraphLoadError::ok, "the rich document loads");
+    require(loaded.link(loaded.find_link("wire-a")) != nullptr && loaded.link(loaded.find_link("l.7")) != nullptr,
+            "loaded links keep their IDs");
+    const NodeId a1 = loaded.find_node("a.1");
+    const NodeId extra = loaded.add_node(spec_of("extra", 0.0, 0.0)).node;
+    const GraphResult next = loaded.connect(PortRef{a1, PortIndex{1U}}, PortRef{extra, PortIndex{0U}});
+    require(next.status == GraphStatus::ok && (*loaded.link(next.link)).key == "l.8", "the automatic counter starts past every loaded l.<n>");
+}
 
 void sample_format() {
     NodeGraph graph;
@@ -567,29 +663,33 @@ Malformed malformed(std::string document, GraphLoadError error, std::string mark
 }
 
 void malformed_documents() {
+    const std::string_view link_line = "link l.1 noise:0 -> mix:0";
     std::vector<Malformed> cases{};
     cases.push_back(malformed("", GraphLoadError::truncated, "", 0U));
     cases.push_back(malformed(sample_with("gui-forms-graph", "gui-forms-graf"), GraphLoadError::bad_header,
-                              "graf", 3U));
+                              "gui-forms-graf", 0U));
     cases.push_back(malformed(sample_with("graph 1;", "graph 2;"), GraphLoadError::unsupported_version, "2;", 0U));
-    cases.push_back(malformed(sample_with("graph 1;", "graph 01;"), GraphLoadError::non_canonical, "01;", 0U));
     cases.push_back(malformed(sample_with("graph 1;", "graph x;"), GraphLoadError::bad_number, "x;", 0U));
+    cases.push_back(malformed(sample_with("graph 1;", "graph 1"), GraphLoadError::syntax, "\nnode noise", 0U));
     cases.push_back(malformed(sample_with("node mix", "frame mix"), GraphLoadError::unknown_statement, "frame", 0U));
-    cases.push_back(malformed(sample_with("node mix", "\tnode mix"), GraphLoadError::unexpected_character, "\t", 0U));
-    cases.push_back(malformed(sample_with("end;\n", "end;\r\n"), GraphLoadError::unexpected_character, "\r", 0U));
+    cases.push_back(malformed(sample_with("node mix", "\x01node mix"), GraphLoadError::unexpected_character,
+                              "\x01", 0U));
+    cases.push_back(malformed(sample_with("node mix", "node mix\r"), GraphLoadError::unexpected_character, "\r",
+                              0U));
     cases.push_back(malformed(sample_with("node mix", "node m!x"), GraphLoadError::syntax, "!x", 0U));
     cases.push_back(malformed(sample_with("node mix", std::string("node ") + std::string(65U, 'k')),
                               GraphLoadError::bad_key, "kkk", 0U));
     cases.push_back(malformed(sample_with("    kind: \"mix_color\";\n", ""), GraphLoadError::syntax,
                               "title: \"Mix\"", 0U));
+    cases.push_back(malformed(sample_with("\"Mix\";", "\"Mix\""), GraphLoadError::syntax, "\"Mix\"", 5U));
+    cases.push_back(malformed(sample_with("    bounds: 360", "}\n    bounds: 360"), GraphLoadError::syntax,
+                              "}\n    bounds: 360", 0U));
+    cases.push_back(malformed(sample_with("}\nlink", "} link"), GraphLoadError::syntax, "link l.1", 0U));
     cases.push_back(malformed(sample_with("360 60 100 60", "360 60 -100 60"), GraphLoadError::bad_number, "-100",
                               0U));
-    cases.push_back(malformed(sample_with("360 60 100 60", "360 60.0 100 60"), GraphLoadError::non_canonical,
-                              "60.0", 0U));
     cases.push_back(malformed(sample_with("360 60 100 60", "360 inf 100 60"), GraphLoadError::bad_number, "inf",
                               0U));
-    cases.push_back(malformed(sample_with("360 60 100 60", "360 60  100 60"), GraphLoadError::bad_number,
-                              "60  100", 3U));
+    cases.push_back(malformed(sample_with("360 60 100 60", "360 60 100"), GraphLoadError::bad_number, "100;", 3U));
     cases.push_back(malformed(sample_with("left 0.5 3", "left 1.5 3"), GraphLoadError::bad_number, "1.5", 0U));
     cases.push_back(malformed(sample_with("left 0.5 3", "left 0.5 65536"), GraphLoadError::bad_number, "65536",
                               0U));
@@ -604,27 +704,35 @@ void malformed_documents() {
                                           "    scale: \"5.0\";\n    port: output right 0.5 3 \"late\";\n"),
                               GraphLoadError::syntax, "port: output right 0.5 3 \"late\"", 0U));
     cases.push_back(malformed(sample_with("\"5.0\"", "\"5\\q\""), GraphLoadError::bad_text, "\\q", 0U));
-    cases.push_back(malformed(sample_with("\"5.0\"", "\"\\x41\""), GraphLoadError::non_canonical, "\\x41", 0U));
-    cases.push_back(malformed(sample_with("\"5.0\"", "\"\\x0a\""), GraphLoadError::non_canonical, "\\x0a", 0U));
-    cases.push_back(malformed(sample_with("\"5.0\"", "\"\\x1F\""), GraphLoadError::non_canonical, "\\x1F", 0U));
     cases.push_back(malformed(sample_with("\"5.0\"", "\"\\x1g\""), GraphLoadError::bad_text, "\\x1g", 0U));
     cases.push_back(malformed(sample_with("\"5.0\"", "\"5\x01\""), GraphLoadError::bad_text, "\x01", 0U));
     cases.push_back(malformed(sample_with("\"5.0\";\n}", "\"5.0;\n}"), GraphLoadError::bad_text, "\n}", 0U));
     cases.push_back(malformed(sample_with("node mix", "node noise"), GraphLoadError::duplicate_key,
                               "noise {\n    kind: \"mix", 0U));
-    cases.push_back(malformed(sample_with("link noise:0 -> mix:0", "link noise:0 -> max:0"),
-                              GraphLoadError::unknown_node, "max:0", 0U));
-    cases.push_back(malformed(sample_with("link noise:0 -> mix:0", "link noise:0 -> mix:1"),
-                              GraphLoadError::bad_port, "mix:1", 4U));
-    cases.push_back(malformed(sample_with("link noise:0 -> mix:0", "link mix:0 -> noise:0"),
-                              GraphLoadError::wrong_direction, "link mix", 5U));
-    cases.push_back(malformed(sample_with("link noise:0 -> mix:0", "link noise:0 -> noise:0"),
-                              GraphLoadError::same_node, "-> noise", 3U));
-    cases.push_back(malformed(sample_with("link noise:0 -> mix:0;\n", "link noise:0 -> mix:0;\nlink noise:0 -> mix:0;\n"),
+    cases.push_back(malformed(sample_with(link_line, "link l!1 noise:0 -> mix:0"), GraphLoadError::bad_key, "!1",
+                              0U));
+    cases.push_back(malformed(sample_with(link_line, "link noise:0 -> mix:0"), GraphLoadError::bad_key,
+                              ":0 -> mix:0", 0U));
+    cases.push_back(malformed(sample_with(link_line, "link l.1 noise:0 -> max:0"), GraphLoadError::unknown_node,
+                              "max:0", 0U));
+    cases.push_back(malformed(sample_with(link_line, "link l.1 noise:0 -> mix:1"), GraphLoadError::bad_port,
+                              "mix:1", 4U));
+    cases.push_back(malformed(sample_with(link_line, "link l.1 mix:0 -> noise:0"), GraphLoadError::wrong_direction,
+                              "link l.1 mix", 9U));
+    cases.push_back(malformed(sample_with(link_line, "link l.1 noise:0 -> noise:0"), GraphLoadError::same_node,
+                              "-> noise", 3U));
+    cases.push_back(malformed(sample_with(link_line, "link l.1 noise:0 => mix:0"), GraphLoadError::syntax, "=>",
+                              0U));
+    cases.push_back(malformed(sample_with("link l.1 noise:0 -> mix:0;\n",
+                                          "link l.1 noise:0 -> mix:0;\nlink l.2 noise:0 -> mix:0;\n"),
                               GraphLoadError::occupied, "mix:0;\nend", 0U));
+    cases.push_back(malformed(sample_with("link l.1 noise:0 -> mix:0;\n",
+                                          "link l.1 noise:0 -> mix:0;\nlink l.1 noise:0 -> mix:0;\n"),
+                              GraphLoadError::duplicate_key, "l.1 noise:0 -> mix:0;\nend", 0U));
     cases.push_back(malformed(sample_with("end;\n", "node late {\n"), GraphLoadError::unknown_statement,
                               "node late", 0U));
     cases.push_back(malformed(sample_with("end;\n", "end;\nmore"), GraphLoadError::syntax, "more", 0U));
+    cases.push_back(malformed(sample_with("end;\n", "end; end;\n"), GraphLoadError::syntax, "end;\n", 0U));
     cases.push_back(malformed(sample_with("end;\n", ""), GraphLoadError::truncated, "", 0U));
     std::string many_ports(sample_document);
     {
@@ -634,10 +742,9 @@ void malformed_documents() {
         }
         const std::size_t at = many_ports.find("    port: input left 0.5 3 \"a\";\n");
         many_ports.replace(at, 32U, ports);
-        cases.push_back(malformed(many_ports, GraphLoadError::limit, "", 0U));
-        const std::size_t limit_line = many_ports.find("    port: input left 0.5 3 \"p\";\n") + 256U * 32U;
-        cases.back().marker.clear();
-        cases.back().shift = limit_line;
+        // The 257th port line, at its first token.
+        const std::size_t limit_token = many_ports.find("    port: input left 0.5 3 \"p\";\n") + 256U * 32U + 4U;
+        cases.push_back(malformed(many_ports, GraphLoadError::limit, "", limit_token));
     }
     std::string many_properties(sample_document);
     {
@@ -647,7 +754,7 @@ void malformed_documents() {
         }
         const std::size_t at = many_properties.find("    scale: \"5.0\";\n");
         many_properties.replace(at, 18U, properties);
-        cases.push_back(malformed(many_properties, GraphLoadError::limit, "    p1256", 0U));
+        cases.push_back(malformed(many_properties, GraphLoadError::limit, "p1256", 0U));
     }
     cases.push_back(malformed(sample_with("\"5.0\"", "\"" + std::string(maximum_graph_text_bytes + 1U, 'v') + "\""),
                               GraphLoadError::limit, "\"vvv", 0U));
@@ -694,14 +801,23 @@ void malformed_documents() {
             "the undo log survived the refusals");
 }
 
+// Every prefix that ends before the semicolon of "end;" is truncated, at its
+// end; the prefixes from that semicolon on load (only blank lines and
+// comments follow).
 void truncated_documents() {
     NodeGraph graph;
-    const std::array<std::string_view, 2> documents{sample_document, rich_document};
+    const std::string_view variant = variant_document.substr(0U, variant_document.find("end of nothing"));
+    const std::array<std::string_view, 3> documents{sample_document, rich_document, variant};
     for (const std::string_view document : documents) {
+        const std::size_t semicolon = document.rfind("end;") + 3U;
         for (std::size_t length = 0U; length < document.size(); ++length) {
             const GraphLoadResult result = graph.load(document.substr(0U, length));
-            require(result.error == GraphLoadError::truncated && result.offset == length,
-                    "every proper prefix of a document is truncated, at its end");
+            if (length <= semicolon) {
+                require(result.error == GraphLoadError::truncated && result.offset == length,
+                        "every prefix cut before the end is truncated, at its end");
+            } else {
+                require(result.error == GraphLoadError::ok, "a prefix past \"end;\" loads");
+            }
         }
         require(graph.load(document).error == GraphLoadError::ok, "the whole document loads");
     }
@@ -806,6 +922,8 @@ void chains_and_cycles() {
 
 int main() {
     sample_format();
+    tolerant_load();
+    link_ids();
     every_byte_round_trips();
     every_inverse();
     grouping();

@@ -1,5 +1,6 @@
 #include "gui_forms/controls/node_graph.hpp"
 
+#include "node_graph_room.hpp"
 #include "node_graph_text.hpp"
 
 #include <algorithm>
@@ -13,24 +14,29 @@
 #include <utility>
 #include <vector>
 
-// The node graph's document, version 1 (format in node_graph.hpp, above
-// NodeGraph::save). save measures, then writes into the caller's storage.
-// load runs in three phases:
+// The node graph's document, version 1 (format, tolerated variants and the
+// round-trip guarantee in node_graph.hpp, above NodeGraph::save). save
+// measures, then writes the canonical form into the caller's storage. load
+// runs in three phases:
 //   1. read: one pass over the bytes, line by line, into a ParsedDocument
 //      (node records in document order, links by key text), refusing the
-//      first malformed byte; the parse is a loop, never recursive;
-//   2. resolve: keys sorted once (duplicates), links looked up by key and
-//      checked as connect checks them, port occupancy in one flat array;
+//      first wrong byte; spaces, tabs, blank lines, comments and CRLF are
+//      skipped between tokens; the parse is a loop, never recursive;
+//   2. resolve: node keys and link IDs sorted once (duplicates), links
+//      looked up by key and checked as connect checks them, port occupancy
+//      in one flat array;
 //   3. install: storage reserved, then the graph's arrays replaced by moves
 //      that cannot fail.
-// Phases 1 and 2 touch only work storage, bounded by the document's own size
-// and by maximum_document_nodes and maximum_document_links; a refusal at
-// either leaves the graph and its undo log untouched.
+// Phases 1 and 2 touch only work storage, bounded by the document's size and
+// by maximum_document_nodes and maximum_document_links; a refusal at either
+// leaves the graph and its undo log untouched.
 
 namespace gui_forms {
 namespace {
 
-constexpr std::string_view document_header = "gui-forms-graph ";
+using node_graph_room::require_room;
+
+constexpr std::string_view header_word = "gui-forms-graph";
 
 std::string_view direction_word(PortDirection direction) noexcept {
     switch (direction) {
@@ -49,14 +55,6 @@ std::string_view side_word(PortSide side) noexcept {
     case PortSide::automatic: return "automatic";
     }
     return "automatic";
-}
-
-// Whether a byte may appear outside a quoted text: printable ASCII and the
-// line end.
-bool format_byte(char byte) noexcept {
-    const unsigned char value = static_cast<unsigned char>(byte);
-    const bool printable = value >= 0x20U && value <= 0x7EU;
-    return printable || byte == '\n';
 }
 
 // -- writing ----------------------------------------------------------------------
@@ -95,7 +93,7 @@ public:
         bytes(std::string_view(digits.data(), count));
     }
 
-    // A quoted text with the format's escapes.
+    // A quoted text with the canonical escapes.
     void quoted(std::string_view text) noexcept {
         constexpr std::string_view hex = "0123456789abcdef";
         byte('"');
@@ -168,7 +166,8 @@ void write_node(const NodeRecord& node, DocumentWriter& writer) noexcept {
 
 void write_document(std::span<const NodeRecord> nodes, std::span<const LinkRecord> links,
                     DocumentWriter& writer) noexcept {
-    writer.bytes(document_header);
+    writer.bytes(header_word);
+    writer.byte(' ');
     writer.whole(graph_document_version);
     writer.bytes(";\n");
     for (const NodeRecord& node : nodes) {
@@ -177,6 +176,8 @@ void write_document(std::span<const NodeRecord> nodes, std::span<const LinkRecor
     for (const LinkRecord& link : links) {
         if (!link.live) continue;
         writer.bytes("link ");
+        writer.bytes(link.key);
+        writer.byte(' ');
         writer.bytes(nodes[link.from.node.index].key);
         writer.byte(':');
         writer.whole(link.from.port.value);
@@ -194,13 +195,16 @@ void write_document(std::span<const NodeRecord> nodes, std::span<const LinkRecor
 // The range a number field admits.
 enum class NumberRange : std::uint8_t { any, non_negative, unit };
 
-// A link as read: its ends by key text (views of the document) and port
-// index, with the byte offsets errors name; resolve fills the node slots.
+// A link as read: its ID (owned, moved into the graph at install), its ends
+// by key text (views of the document) and port index, and the byte offsets
+// errors name; resolve fills the node slots.
 struct ParsedLink final {
+    std::string id{};
     std::string_view from_key{};
     std::string_view to_key{};
     std::uint32_t from_port{};
     std::uint32_t to_port{};
+    std::size_t id_offset{};
     std::size_t from_key_offset{};
     std::size_t from_port_offset{};
     std::size_t to_key_offset{};
@@ -216,12 +220,17 @@ struct ParsedDocument final {
     // Per node: the byte offset of its key, for duplicate_key.
     std::vector<std::size_t> key_offsets{};
     std::vector<ParsedLink> links{};
-    // Node indices ordered by key (resolve fills it; install keeps it).
+    // Node indices ordered by key and link indices ordered by ID (resolve
+    // fills them; install keeps them).
     std::vector<std::uint32_t> order{};
+    std::vector<std::uint32_t> link_order{};
 };
 
-// A cursor over the document. Each read either advances past what it read
-// and returns ok, or records the failing byte's offset and returns the error.
+bool space_byte(char byte) noexcept { return byte == ' ' || byte == '\t'; }
+
+// A cursor over the document. Each read skips the spaces before its token,
+// then either advances past what it read and returns ok, or records the
+// failing byte's offset and returns the error.
 class DocumentReader final {
 public:
     explicit DocumentReader(std::string_view text) noexcept : text_(text) {}
@@ -231,18 +240,8 @@ public:
     [[nodiscard]] bool at_end() const noexcept { return offset_ >= text_.size(); }
     [[nodiscard]] char peek() const noexcept { return text_[offset_]; }
 
-    [[nodiscard]] bool starts_with(std::string_view expected) const noexcept {
-        const std::string_view rest = text_.substr(offset_);
-        const bool starts = rest.size() >= expected.size() && rest.substr(0U, expected.size()) == expected;
-        return starts;
-    }
-
-    // Whether the rest of the input is a proper prefix of `expected`: the
-    // document was cut inside it.
-    [[nodiscard]] bool cut_inside(std::string_view expected) const noexcept {
-        const std::string_view rest = text_.substr(offset_);
-        const bool cut = rest.size() < expected.size() && expected.substr(0U, rest.size()) == rest;
-        return cut;
+    void skip_space() noexcept {
+        while (offset_ < text_.size() && space_byte(text_[offset_])) ++offset_;
     }
 
     GraphLoadError fail(GraphLoadError error, std::size_t at) noexcept {
@@ -250,14 +249,60 @@ public:
         return error;
     }
 
-    // `mismatch` names a wrong byte the format uses; a byte it never uses
-    // outside texts is unexpected_character.
+    // `mismatch` names a wrong byte the format uses (a line end included);
+    // a byte it never uses outside texts and comments is
+    // unexpected_character, and a carriage return ending the input is a cut
+    // line end (truncated).
     GraphLoadError mismatch_at(std::size_t at, GraphLoadError mismatch) noexcept {
-        const GraphLoadError error = format_byte(text_[at]) ? mismatch : GraphLoadError::unexpected_character;
-        return fail(error, at);
+        const char byte = text_[at];
+        if (byte == '\r' && at + 1U == text_.size()) return fail(GraphLoadError::truncated, text_.size());
+        const unsigned char code = static_cast<unsigned char>(byte);
+        const bool printable = code >= 0x20U && code <= 0x7EU;
+        const bool line_end = byte == '\n' || (byte == '\r' && at + 1U < text_.size() && text_[at + 1U] == '\n');
+        const bool known = printable || byte == '\t' || line_end;
+        return fail(known ? mismatch : GraphLoadError::unexpected_character, at);
     }
 
-    GraphLoadError literal(std::string_view expected, GraphLoadError mismatch) noexcept {
+    // Spaces, an optional comment, and one line end ("\n" or "\r\n").
+    GraphLoadError line_end() noexcept {
+        skip_space();
+        if (offset_ < text_.size() && text_[offset_] == '#') {
+            while (offset_ < text_.size() && text_[offset_] != '\n') ++offset_;
+            // A comment's "\r\n" ends it: step back onto the carriage return.
+            if (offset_ < text_.size() && text_[offset_ - 1U] == '\r') --offset_;
+        }
+        if (offset_ >= text_.size()) return fail(GraphLoadError::truncated, text_.size());
+        if (text_[offset_] == '\n') {
+            ++offset_;
+            return GraphLoadError::ok;
+        }
+        if (text_[offset_] == '\r' && offset_ + 1U < text_.size() && text_[offset_ + 1U] == '\n') {
+            offset_ += 2U;
+            return GraphLoadError::ok;
+        }
+        return mismatch_at(offset_, GraphLoadError::syntax);
+    }
+
+    // Blank and comment-only lines, then the spaces starting the next line.
+    // Stops at the input's end without an error.
+    GraphLoadError blank_lines() noexcept {
+        while (true) {
+            skip_space();
+            if (offset_ >= text_.size()) return GraphLoadError::ok;
+            const char byte = text_[offset_];
+            if (byte != '#' && byte != '\n' && byte != '\r') return GraphLoadError::ok;
+            const GraphLoadError ended = line_end();
+            if (ended == GraphLoadError::truncated) {
+                // A comment or line end cut by the input's end.
+                offset_ = text_.size();
+                return GraphLoadError::ok;
+            }
+            if (ended != GraphLoadError::ok) return ended;
+        }
+    }
+
+    GraphLoadError punctuation(std::string_view expected, GraphLoadError mismatch) noexcept {
+        skip_space();
         for (std::size_t index = 0U; index < expected.size(); ++index) {
             const std::size_t at = offset_ + index;
             if (at >= text_.size()) return fail(GraphLoadError::truncated, text_.size());
@@ -267,38 +312,52 @@ public:
         return GraphLoadError::ok;
     }
 
-    // A run of key bytes, 1 to maximum_graph_key_bytes long.
-    GraphLoadError key(std::string_view& out) noexcept {
+    // A run of key bytes (keywords, keys, IDs, names, words); `empty` names
+    // a missing run.
+    GraphLoadError word(std::string_view& out, GraphLoadError empty) noexcept {
+        skip_space();
         const std::size_t start = offset_;
         std::size_t at = start;
         while (at < text_.size() && node_graph_text::key_byte(text_[at])) ++at;
         if (at >= text_.size()) return fail(GraphLoadError::truncated, text_.size());
-        const std::size_t length = at - start;
-        if (length == 0U) return mismatch_at(start, GraphLoadError::bad_key);
-        if (length > maximum_graph_key_bytes) return fail(GraphLoadError::bad_key, start);
-        out = text_.substr(start, length);
-        offset_ = at;
-        return GraphLoadError::ok;
-    }
-
-    // The bytes up to the next space, semicolon or line end.
-    GraphLoadError token(std::string_view& out, GraphLoadError empty) noexcept {
-        const std::size_t start = offset_;
-        std::size_t at = start;
-        while (at < text_.size()) {
-            const char byte = text_[at];
-            if (byte == ' ' || byte == ';' || byte == '\n') break;
-            if (!format_byte(byte)) return fail(GraphLoadError::unexpected_character, at);
-            ++at;
-        }
-        if (at >= text_.size()) return fail(GraphLoadError::truncated, text_.size());
-        if (at == start) return fail(empty, start);
+        if (at == start) return mismatch_at(start, empty);
         out = text_.substr(start, at - start);
         offset_ = at;
         return GraphLoadError::ok;
     }
 
+    // A node key or link ID: a word of at most maximum_graph_key_bytes.
+    GraphLoadError key(std::string_view& out) noexcept {
+        skip_space();
+        const std::size_t start = offset_;
+        const GraphLoadError read = word(out, GraphLoadError::bad_key);
+        if (read != GraphLoadError::ok) return read;
+        if (out.size() > maximum_graph_key_bytes) return fail(GraphLoadError::bad_key, start);
+        return GraphLoadError::ok;
+    }
+
+    // The bytes up to the next space, semicolon, comment or line end.
+    GraphLoadError token(std::string_view& out, GraphLoadError empty) noexcept {
+        skip_space();
+        const std::size_t start = offset_;
+        std::size_t at = start;
+        while (at < text_.size()) {
+            const char byte = text_[at];
+            if (space_byte(byte) || byte == ';' || byte == '#' || byte == '\n' || byte == '\r') break;
+            const unsigned char code = static_cast<unsigned char>(byte);
+            if (code < 0x20U || code > 0x7EU) return fail(GraphLoadError::unexpected_character, at);
+            ++at;
+        }
+        if (at >= text_.size()) return fail(GraphLoadError::truncated, text_.size());
+        if (at == start) return mismatch_at(start, empty);
+        out = text_.substr(start, at - start);
+        offset_ = at;
+        return GraphLoadError::ok;
+    }
+
+    // Any std::from_chars spelling of a finite double in `range`.
     GraphLoadError real(double& out, NumberRange range) noexcept {
+        skip_space();
         const std::size_t start = offset_;
         std::string_view text{};
         const GraphLoadError read = token(text, GraphLoadError::bad_number);
@@ -312,16 +371,13 @@ public:
         const bool in_range = range == NumberRange::any || (range == NumberRange::non_negative && value >= 0.0) ||
                               (range == NumberRange::unit && value >= 0.0 && value <= 1.0);
         if (!in_range) return fail(GraphLoadError::bad_number, start);
-        std::array<char, 32> canonical{};
-        const std::to_chars_result written =
-            std::to_chars(canonical.data(), canonical.data() + canonical.size(), value);
-        const std::size_t count = static_cast<std::size_t>(written.ptr - canonical.data());
-        if (std::string_view(canonical.data(), count) != text) return fail(GraphLoadError::non_canonical, start);
         out = value;
         return GraphLoadError::ok;
     }
 
+    // A decimal integer up to `maximum` (leading zeros allowed).
     GraphLoadError whole(std::uint32_t& out, std::uint32_t maximum) noexcept {
+        skip_space();
         const std::size_t start = offset_;
         std::string_view text{};
         const GraphLoadError read = token(text, GraphLoadError::bad_number);
@@ -332,11 +388,6 @@ public:
         if (parsed.ec != std::errc{} || parsed.ptr != last || value > maximum) {
             return fail(GraphLoadError::bad_number, start);
         }
-        std::array<char, 16> canonical{};
-        const std::to_chars_result written =
-            std::to_chars(canonical.data(), canonical.data() + canonical.size(), value);
-        const std::size_t count = static_cast<std::size_t>(written.ptr - canonical.data());
-        if (std::string_view(canonical.data(), count) != text) return fail(GraphLoadError::non_canonical, start);
         out = value;
         return GraphLoadError::ok;
     }
@@ -344,8 +395,9 @@ public:
     // A quoted text, decoded into `out` (at most maximum_graph_text_bytes).
     // May throw std::bad_alloc while `out` grows.
     GraphLoadError quoted(std::string& out) {
+        skip_space();
         const std::size_t start = offset_;
-        const GraphLoadError opened = literal("\"", GraphLoadError::syntax);
+        const GraphLoadError opened = punctuation("\"", GraphLoadError::syntax);
         if (opened != GraphLoadError::ok) return opened;
         out.clear();
         while (true) {
@@ -371,7 +423,8 @@ public:
     }
 
 private:
-    // One escape at offset_ (a backslash), in its canonical form only.
+    // One escape at offset_ (a backslash): \\, \", \n, \t, \r, or \xHH in
+    // either case for any byte.
     GraphLoadError escape(char& decoded) noexcept {
         const std::size_t start = offset_;
         if (start + 1U >= text_.size()) return fail(GraphLoadError::truncated, text_.size());
@@ -393,16 +446,12 @@ private:
                 } else if (hex >= 'a' && hex <= 'f') {
                     value = static_cast<std::uint32_t>(hex - 'a') + 10U;
                 } else if (hex >= 'A' && hex <= 'F') {
-                    return fail(GraphLoadError::non_canonical, start);
+                    value = static_cast<std::uint32_t>(hex - 'A') + 10U;
                 } else {
                     return fail(GraphLoadError::bad_text, start);
                 }
                 code = code * 16U + value;
             }
-            // save writes \xHH only for control bytes without a short escape.
-            const bool short_escape = code == 0x0AU || code == 0x09U || code == 0x0DU;
-            const bool control = code < 0x20U || code == 0x7FU;
-            if (!control || short_escape) return fail(GraphLoadError::non_canonical, start);
             decoded = static_cast<char>(code);
             offset_ = start + 4U;
             return GraphLoadError::ok;
@@ -419,10 +468,11 @@ private:
 };
 
 // A word from `words`, written as its index.
-GraphLoadError read_word(DocumentReader& reader, std::span<const std::string_view> words, std::size_t& out) {
+GraphLoadError read_choice(DocumentReader& reader, std::span<const std::string_view> words, std::size_t& out) {
+    reader.skip_space();
     const std::size_t start = reader.offset();
     std::string_view text{};
-    const GraphLoadError read = reader.token(text, GraphLoadError::bad_word);
+    const GraphLoadError read = reader.word(text, GraphLoadError::bad_word);
     if (read != GraphLoadError::ok) return read;
     for (std::size_t index = 0U; index < words.size(); ++index) {
         if (words[index] != text) continue;
@@ -438,22 +488,25 @@ constexpr std::array<std::string_view, 5> side_words{"left", "right", "top", "bo
 constexpr std::array<PortSide, 5> sides{PortSide::left, PortSide::right, PortSide::top, PortSide::bottom,
                                         PortSide::automatic};
 
-// "port: " has been read.
+// The end of a statement or field line: its semicolon and line end.
+GraphLoadError field_end(DocumentReader& reader) {
+    GraphLoadError error = reader.punctuation(";", GraphLoadError::syntax);
+    if (error == GraphLoadError::ok) error = reader.line_end();
+    return error;
+}
+
+// "port" has been read.
 GraphLoadError read_port(DocumentReader& reader, PortRecord& port) {
-    GraphLoadError error = GraphLoadError::ok;
+    GraphLoadError error = reader.punctuation(":", GraphLoadError::syntax);
     std::size_t direction = 0U;
     std::size_t side = 0U;
     std::uint32_t socket = 0U;
-    error = read_word(reader, direction_words, direction);
-    if (error == GraphLoadError::ok) error = reader.literal(" ", GraphLoadError::syntax);
-    if (error == GraphLoadError::ok) error = read_word(reader, side_words, side);
-    if (error == GraphLoadError::ok) error = reader.literal(" ", GraphLoadError::syntax);
+    if (error == GraphLoadError::ok) error = read_choice(reader, direction_words, direction);
+    if (error == GraphLoadError::ok) error = read_choice(reader, side_words, side);
     if (error == GraphLoadError::ok) error = reader.real(port.offset, NumberRange::unit);
-    if (error == GraphLoadError::ok) error = reader.literal(" ", GraphLoadError::syntax);
     if (error == GraphLoadError::ok) error = reader.whole(socket, 65535U);
-    if (error == GraphLoadError::ok) error = reader.literal(" ", GraphLoadError::syntax);
     if (error == GraphLoadError::ok) error = reader.quoted(port.name);
-    if (error == GraphLoadError::ok) error = reader.literal(";\n", GraphLoadError::syntax);
+    if (error == GraphLoadError::ok) error = field_end(reader);
     if (error != GraphLoadError::ok) return error;
     port.direction = directions[direction];
     port.side = sides[side];
@@ -461,160 +514,214 @@ GraphLoadError read_port(DocumentReader& reader, PortRecord& port) {
     return GraphLoadError::ok;
 }
 
-// "    " has been read; a property line follows.
-GraphLoadError read_property(DocumentReader& reader, std::vector<NodeProperty>& properties) {
-    const std::size_t start = reader.offset();
-    std::string_view name{};
-    GraphLoadError error = reader.key(name);
-    if (error == GraphLoadError::bad_key) return reader.fail(GraphLoadError::bad_property, start);
-    if (error != GraphLoadError::ok) return error;
+// A property's name (starting at `start`) has been read.
+GraphLoadError read_property(DocumentReader& reader, std::string_view name, std::size_t start,
+                             std::vector<NodeProperty>& properties) {
     if (!node_graph_text::valid_property_name(name)) return reader.fail(GraphLoadError::bad_property, start);
     for (const NodeProperty& earlier : properties) {
         if (std::string_view(earlier.name) == name) return reader.fail(GraphLoadError::bad_property, start);
     }
     NodeProperty property{};
     property.name.assign(name);
-    error = reader.literal(": ", GraphLoadError::syntax);
+    GraphLoadError error = reader.punctuation(":", GraphLoadError::syntax);
     if (error == GraphLoadError::ok) error = reader.quoted(property.value);
-    if (error == GraphLoadError::ok) error = reader.literal(";\n", GraphLoadError::syntax);
+    if (error == GraphLoadError::ok) error = field_end(reader);
     if (error != GraphLoadError::ok) return error;
     properties.push_back(std::move(property));
     return GraphLoadError::ok;
 }
 
-// "node " has been read.
-GraphLoadError read_node(DocumentReader& reader, NodeRecord& node) {
-    GraphLoadError error = GraphLoadError::ok;
+// The fields a node block expects next: kind, title and bounds in order,
+// then ports and properties.
+enum class NodeStage : std::uint8_t { kind, title, bounds, rest };
+
+// "node" has been read; `key_offset` receives the key's offset.
+GraphLoadError read_node(DocumentReader& reader, NodeRecord& node, std::size_t& key_offset) {
+    reader.skip_space();
+    key_offset = reader.offset();
     std::string_view key{};
-    error = reader.key(key);
+    GraphLoadError error = reader.key(key);
     if (error != GraphLoadError::ok) return error;
     node.key.assign(key);
-    error = reader.literal(" {\n    kind: ", GraphLoadError::syntax);
-    if (error == GraphLoadError::ok) error = reader.quoted(node.kind);
-    if (error == GraphLoadError::ok) error = reader.literal(";\n    title: ", GraphLoadError::syntax);
-    if (error == GraphLoadError::ok) error = reader.quoted(node.title);
-    if (error == GraphLoadError::ok) error = reader.literal(";\n    bounds: ", GraphLoadError::syntax);
-    if (error == GraphLoadError::ok) error = reader.real(node.bounds.x, NumberRange::any);
-    if (error == GraphLoadError::ok) error = reader.literal(" ", GraphLoadError::syntax);
-    if (error == GraphLoadError::ok) error = reader.real(node.bounds.y, NumberRange::any);
-    if (error == GraphLoadError::ok) error = reader.literal(" ", GraphLoadError::syntax);
-    if (error == GraphLoadError::ok) error = reader.real(node.bounds.width, NumberRange::non_negative);
-    if (error == GraphLoadError::ok) error = reader.literal(" ", GraphLoadError::syntax);
-    if (error == GraphLoadError::ok) error = reader.real(node.bounds.height, NumberRange::non_negative);
-    if (error == GraphLoadError::ok) error = reader.literal(";\n", GraphLoadError::syntax);
+    error = reader.punctuation("{", GraphLoadError::syntax);
+    if (error == GraphLoadError::ok) error = reader.line_end();
     if (error != GraphLoadError::ok) return error;
-    // Ports, then properties, then the closing brace. Each line is bounded,
-    // and the counts are checked before each line is read.
+    NodeStage stage = NodeStage::kind;
+    // One field per line until the closing brace. Each line is bounded, and
+    // the counts are checked before each line is read. `line` is the
+    // line's first token, where its structural errors are reported.
     while (true) {
-        if (reader.at_end()) return reader.fail(GraphLoadError::truncated, reader.offset());
-        if (reader.peek() == '}') return reader.literal("}\n", GraphLoadError::syntax);
-        const std::size_t line = reader.offset();
-        error = reader.literal("    ", GraphLoadError::syntax);
+        error = reader.blank_lines();
         if (error != GraphLoadError::ok) return error;
-        // A line cut inside "port: " is truncated, not a property named
-        // "port".
-        if (reader.cut_inside("port: ")) return reader.literal("port: ", GraphLoadError::syntax);
-        if (reader.starts_with("port: ")) {
-            if (!node.properties.empty()) return reader.fail(GraphLoadError::syntax, reader.offset());
-            if (node.ports.size() >= maximum_node_ports) return reader.fail(GraphLoadError::limit, line);
-            error = reader.literal("port: ", GraphLoadError::syntax);
-            PortRecord port{};
-            if (error == GraphLoadError::ok) error = read_port(reader, port);
-            if (error != GraphLoadError::ok) return error;
-            node.ports.push_back(std::move(port));
-            continue;
+        if (reader.at_end()) return reader.fail(GraphLoadError::truncated, reader.offset());
+        const std::size_t line = reader.offset();
+        if (reader.peek() == '}') {
+            if (stage != NodeStage::rest) return reader.fail(GraphLoadError::syntax, line);
+            error = reader.punctuation("}", GraphLoadError::syntax);
+            if (error == GraphLoadError::ok) error = reader.line_end();
+            return error;
         }
-        if (node.properties.size() >= maximum_node_properties) return reader.fail(GraphLoadError::limit, line);
-        error = read_property(reader, node.properties);
+        std::string_view name{};
+        error = reader.word(name, GraphLoadError::syntax);
+        if (error != GraphLoadError::ok) return error;
+        switch (stage) {
+        case NodeStage::kind:
+            if (name != "kind") return reader.fail(GraphLoadError::syntax, line);
+            error = reader.punctuation(":", GraphLoadError::syntax);
+            if (error == GraphLoadError::ok) error = reader.quoted(node.kind);
+            if (error == GraphLoadError::ok) error = field_end(reader);
+            stage = NodeStage::title;
+            break;
+        case NodeStage::title:
+            if (name != "title") return reader.fail(GraphLoadError::syntax, line);
+            error = reader.punctuation(":", GraphLoadError::syntax);
+            if (error == GraphLoadError::ok) error = reader.quoted(node.title);
+            if (error == GraphLoadError::ok) error = field_end(reader);
+            stage = NodeStage::bounds;
+            break;
+        case NodeStage::bounds:
+            if (name != "bounds") return reader.fail(GraphLoadError::syntax, line);
+            error = reader.punctuation(":", GraphLoadError::syntax);
+            if (error == GraphLoadError::ok) error = reader.real(node.bounds.x, NumberRange::any);
+            if (error == GraphLoadError::ok) error = reader.real(node.bounds.y, NumberRange::any);
+            if (error == GraphLoadError::ok) error = reader.real(node.bounds.width, NumberRange::non_negative);
+            if (error == GraphLoadError::ok) error = reader.real(node.bounds.height, NumberRange::non_negative);
+            if (error == GraphLoadError::ok) error = field_end(reader);
+            stage = NodeStage::rest;
+            break;
+        case NodeStage::rest:
+        default:
+            if (name == "port") {
+                if (!node.properties.empty()) return reader.fail(GraphLoadError::syntax, line);
+                if (node.ports.size() >= maximum_node_ports) return reader.fail(GraphLoadError::limit, line);
+                PortRecord port{};
+                error = read_port(reader, port);
+                if (error == GraphLoadError::ok) node.ports.push_back(std::move(port));
+                break;
+            }
+            if (node.properties.size() >= maximum_node_properties) return reader.fail(GraphLoadError::limit, line);
+            error = read_property(reader, name, line, node.properties);
+            break;
+        }
         if (error != GraphLoadError::ok) return error;
     }
 }
 
-// "link " has been read.
-GraphLoadError read_link(DocumentReader& reader, ParsedLink& link) {
-    GraphLoadError error = GraphLoadError::ok;
-    link.from_key_offset = reader.offset();
-    error = reader.key(link.from_key);
-    if (error == GraphLoadError::ok) error = reader.literal(":", GraphLoadError::syntax);
-    link.from_port_offset = reader.offset();
-    if (error == GraphLoadError::ok) error = reader.whole(link.from_port, 65535U);
-    if (error == GraphLoadError::ok) error = reader.literal(" -> ", GraphLoadError::syntax);
-    link.to_key_offset = reader.offset();
-    if (error == GraphLoadError::ok) error = reader.key(link.to_key);
-    if (error == GraphLoadError::ok) error = reader.literal(":", GraphLoadError::syntax);
-    link.to_port_offset = reader.offset();
-    if (error == GraphLoadError::ok) error = reader.whole(link.to_port, 65535U);
-    if (error == GraphLoadError::ok) error = reader.literal(";\n", GraphLoadError::syntax);
+// One link end, "<key>:<port>", recording each part's offset.
+GraphLoadError read_end(DocumentReader& reader, std::string_view& key, std::size_t& key_offset,
+                        std::uint32_t& port, std::size_t& port_offset) {
+    reader.skip_space();
+    key_offset = reader.offset();
+    GraphLoadError error = reader.key(key);
+    if (error == GraphLoadError::ok) error = reader.punctuation(":", GraphLoadError::syntax);
+    reader.skip_space();
+    port_offset = reader.offset();
+    if (error == GraphLoadError::ok) error = reader.whole(port, 65535U);
     return error;
 }
 
-// How many lines start with `statement` (an upper bound for one reserve).
-std::size_t count_statements(std::string_view text, std::string_view statement, std::size_t cap) noexcept {
+// "link" has been read. May throw std::bad_alloc copying the ID.
+GraphLoadError read_link(DocumentReader& reader, ParsedLink& link) {
+    reader.skip_space();
+    link.id_offset = reader.offset();
+    std::string_view id{};
+    GraphLoadError error = reader.key(id);
+    if (error != GraphLoadError::ok) return error;
+    link.id.assign(id);
+    error = read_end(reader, link.from_key, link.from_key_offset, link.from_port, link.from_port_offset);
+    if (error == GraphLoadError::ok) error = reader.punctuation("->", GraphLoadError::syntax);
+    if (error == GraphLoadError::ok) {
+        error = read_end(reader, link.to_key, link.to_key_offset, link.to_port, link.to_port_offset);
+    }
+    if (error == GraphLoadError::ok) error = field_end(reader);
+    return error;
+}
+
+// How often `word` occurs: an upper bound on its statements, for one
+// reserve (at most a quarter of the document's bytes).
+std::size_t count_occurrences(std::string_view text, std::string_view word, std::size_t cap) noexcept {
     std::size_t count = 0U;
     std::size_t at = 0U;
     while (count < cap) {
-        const std::size_t found = text.find(statement, at);
+        const std::size_t found = text.find(word, at);
         if (found == std::string_view::npos) break;
-        if (found == 0U || text[found - 1U] == '\n') ++count;
-        at = found + 1U;
+        ++count;
+        at = found + word.size();
     }
     return count;
 }
 
-GraphLoadError read_document(std::string_view text, DocumentReader& reader, ParsedDocument& parsed) {
-    GraphLoadError error = reader.literal(document_header, GraphLoadError::bad_header);
+// After "end": its semicolon, then only spaces, comments and blank lines;
+// the input may end without a line end.
+GraphLoadError read_end_statement(DocumentReader& reader) {
+    GraphLoadError error = reader.punctuation(";", GraphLoadError::syntax);
     if (error != GraphLoadError::ok) return error;
+    reader.skip_space();
+    if (reader.at_end()) return GraphLoadError::ok;
+    if (reader.peek() == '#') {
+        error = reader.blank_lines();
+    } else {
+        error = reader.line_end();
+        if (error == GraphLoadError::truncated) return GraphLoadError::ok;
+        if (error == GraphLoadError::ok) error = reader.blank_lines();
+    }
+    if (error != GraphLoadError::ok) return error;
+    if (!reader.at_end()) return reader.fail(GraphLoadError::syntax, reader.offset());
+    return GraphLoadError::ok;
+}
+
+GraphLoadError read_document(std::string_view text, DocumentReader& reader, ParsedDocument& parsed) {
+    GraphLoadError error = reader.blank_lines();
+    if (error != GraphLoadError::ok) return error;
+    const std::size_t header_offset = reader.offset();
+    std::string_view header{};
+    error = reader.word(header, GraphLoadError::bad_header);
+    if (error != GraphLoadError::ok) return error;
+    if (header != header_word) return reader.fail(GraphLoadError::bad_header, header_offset);
+    reader.skip_space();
     const std::size_t version_offset = reader.offset();
     std::uint32_t version = 0U;
     error = reader.whole(version, 0xFFFFFFFFU);
     if (error != GraphLoadError::ok) return error;
     if (version != graph_document_version) return reader.fail(GraphLoadError::unsupported_version, version_offset);
-    error = reader.literal(";\n", GraphLoadError::syntax);
+    error = field_end(reader);
     if (error != GraphLoadError::ok) return error;
-    // One reserve for the whole parse (the counts are upper bounds: a
-    // "node " inside a text at a line start is counted too).
-    const std::size_t nodes = count_statements(text, "node ", maximum_document_nodes);
-    const std::size_t links = count_statements(text, "link ", maximum_document_links);
+    // One reserve for the whole parse.
+    const std::size_t nodes = count_occurrences(text, "node", maximum_document_nodes);
+    const std::size_t links = count_occurrences(text, "link", maximum_document_links);
     parsed.nodes.reserve(nodes);
     parsed.key_offsets.reserve(nodes);
     parsed.links.reserve(links);
     while (true) {
+        error = reader.blank_lines();
+        if (error != GraphLoadError::ok) return error;
+        if (reader.at_end()) return reader.fail(GraphLoadError::truncated, reader.offset());
         const std::size_t start = reader.offset();
-        if (reader.starts_with("node ")) {
+        std::string_view statement{};
+        error = reader.word(statement, GraphLoadError::unknown_statement);
+        if (error != GraphLoadError::ok) return error;
+        if (statement == "node") {
             if (!parsed.links.empty()) return reader.fail(GraphLoadError::unknown_statement, start);
             if (parsed.nodes.size() >= maximum_document_nodes) return reader.fail(GraphLoadError::limit, start);
-            error = reader.literal("node ", GraphLoadError::syntax);
             parsed.nodes.emplace_back();
-            parsed.key_offsets.push_back(reader.offset());
-            if (error == GraphLoadError::ok) error = read_node(reader, parsed.nodes.back());
+            parsed.key_offsets.push_back(0U);
+            error = read_node(reader, parsed.nodes.back(), parsed.key_offsets.back());
             if (error != GraphLoadError::ok) return error;
             continue;
         }
-        if (reader.starts_with("link ")) {
+        if (statement == "link") {
             if (parsed.links.size() >= maximum_document_links) return reader.fail(GraphLoadError::limit, start);
-            error = reader.literal("link ", GraphLoadError::syntax);
-            ParsedLink link{};
-            if (error == GraphLoadError::ok) error = read_link(reader, link);
+            parsed.links.emplace_back();
+            error = read_link(reader, parsed.links.back());
             if (error != GraphLoadError::ok) return error;
-            parsed.links.push_back(link);
             continue;
         }
-        if (reader.starts_with("end")) {
-            // A wrong byte after "end" is named where it is ("end;\r\n" at
-            // the carriage return).
-            error = reader.literal("end;\n", GraphLoadError::syntax);
-            if (error != GraphLoadError::ok) return error;
-            break;
-        }
-        const bool cut = reader.cut_inside("node ") || reader.cut_inside("link ") || reader.cut_inside("end;\n");
-        if (cut) return reader.fail(GraphLoadError::truncated, text.size());
-        return reader.mismatch_at(start, GraphLoadError::unknown_statement);
+        if (statement == "end") return read_end_statement(reader);
+        return reader.fail(GraphLoadError::unknown_statement, start);
     }
-    if (!reader.at_end()) return reader.fail(GraphLoadError::syntax, reader.offset());
-    return error;
 }
 
-// Orders node indices of a parsed document by key.
+// Orders parsed node indices by key (and finds a key).
 struct ParsedKeyBefore final {
     const std::vector<NodeRecord>* nodes{};
     bool operator()(std::uint32_t left, std::uint32_t right) const noexcept {
@@ -627,7 +734,16 @@ struct ParsedKeyBefore final {
     }
 };
 
-// The node with this key, or `count` when there is none.
+// Orders parsed link indices by ID.
+struct ParsedIdBefore final {
+    const std::vector<ParsedLink>* links{};
+    bool operator()(std::uint32_t left, std::uint32_t right) const noexcept {
+        const bool before = (*links)[left].id < (*links)[right].id;
+        return before;
+    }
+};
+
+// The node with this key, or the node count when there is none.
 std::uint32_t parsed_node(const ParsedDocument& parsed, std::string_view key) noexcept {
     const ParsedKeyBefore before{&parsed.nodes};
     const std::vector<std::uint32_t>::const_iterator found =
@@ -638,42 +754,77 @@ std::uint32_t parsed_node(const ParsedDocument& parsed, std::string_view key) no
     return *found;
 }
 
-// Keys and links, checked as add_node and connect check them. The first
-// duplicate key in document order is reported before any link error; links
-// are then checked in document order.
+// The smallest offset among repeats in `order` (indices stably sorted by
+// text, so the second of each equal pair is the later one in the document),
+// or `none`. `text` and `offset` give each index's text and byte offset.
+template <typename Text, typename Offset>
+std::size_t earliest_repeat(const std::vector<std::uint32_t>& order, Text text, Offset offset,
+                            std::size_t none) noexcept {
+    std::size_t repeat = none;
+    for (std::size_t index = 1U; index < order.size(); ++index) {
+        if (text(order[index - 1U]) != text(order[index])) continue;
+        const std::size_t at = offset(order[index]);
+        if (repeat == none || at < repeat) repeat = at;
+    }
+    return repeat;
+}
+
+struct NodeKeyText final {
+    const ParsedDocument* parsed{};
+    std::string_view operator()(std::uint32_t node) const noexcept { return (*parsed).nodes[node].key; }
+};
+
+struct NodeKeyOffset final {
+    const ParsedDocument* parsed{};
+    std::size_t operator()(std::uint32_t node) const noexcept { return (*parsed).key_offsets[node]; }
+};
+
+struct LinkIdText final {
+    const ParsedDocument* parsed{};
+    std::string_view operator()(std::uint32_t link) const noexcept { return (*parsed).links[link].id; }
+};
+
+struct LinkIdOffset final {
+    const ParsedDocument* parsed{};
+    std::size_t operator()(std::uint32_t link) const noexcept { return (*parsed).links[link].id_offset; }
+};
+
+// Keys, IDs and links, checked as add_node and connect check them. The
+// earliest repeated node key is reported first, then the earliest repeated
+// link ID, then link errors in document order.
 GraphLoadError resolve_document(DocumentReader& reader, ParsedDocument& parsed) {
     const std::size_t count = parsed.nodes.size();
+    const std::size_t none = static_cast<std::size_t>(-1);
     parsed.order.resize(count);
     for (std::size_t index = 0U; index < count; ++index) parsed.order[index] = static_cast<std::uint32_t>(index);
-    const ParsedKeyBefore before{&parsed.nodes};
-    std::stable_sort(parsed.order.begin(), parsed.order.end(), before);
-    // Equal keys keep document order, so the second of each equal pair is a
-    // repeat; the earliest repeat is reported.
-    std::size_t repeat = 0U;
-    bool repeated = false;
-    for (std::size_t index = 1U; index < count; ++index) {
-        const NodeRecord& earlier = parsed.nodes[parsed.order[index - 1U]];
-        const NodeRecord& later = parsed.nodes[parsed.order[index]];
-        if (earlier.key != later.key) continue;
-        const std::size_t offset = parsed.key_offsets[parsed.order[index]];
-        if (!repeated || offset < repeat) repeat = offset;
-        repeated = true;
-    }
-    if (repeated) return reader.fail(GraphLoadError::duplicate_key, repeat);
+    const ParsedKeyBefore key_before{&parsed.nodes};
+    std::stable_sort(parsed.order.begin(), parsed.order.end(), key_before);
+    const std::size_t node_repeat = earliest_repeat(parsed.order, NodeKeyText{&parsed}, NodeKeyOffset{&parsed}, none);
+    if (node_repeat != none) return reader.fail(GraphLoadError::duplicate_key, node_repeat);
 
-    // One occupancy flag per input port, flat: port_base[node] is the node's
-    // first flag.
+    const std::size_t link_count = parsed.links.size();
+    parsed.link_order.resize(link_count);
+    for (std::size_t index = 0U; index < link_count; ++index) {
+        parsed.link_order[index] = static_cast<std::uint32_t>(index);
+    }
+    const ParsedIdBefore id_before{&parsed.links};
+    std::stable_sort(parsed.link_order.begin(), parsed.link_order.end(), id_before);
+    const std::size_t link_repeat =
+        earliest_repeat(parsed.link_order, LinkIdText{&parsed}, LinkIdOffset{&parsed}, none);
+    if (link_repeat != none) return reader.fail(GraphLoadError::duplicate_key, link_repeat);
+
+    // One occupancy flag per port, flat: port_base[node] is the node's first.
     std::vector<std::size_t> port_base(count + 1U, 0U);
     for (std::size_t index = 0U; index < count; ++index) {
         port_base[index + 1U] = port_base[index] + parsed.nodes[index].ports.size();
     }
     std::vector<std::uint8_t> occupied(port_base[count], 0U);
-    const std::uint32_t none = static_cast<std::uint32_t>(count);
+    const std::uint32_t missing = static_cast<std::uint32_t>(count);
     for (ParsedLink& link : parsed.links) {
         link.from_node = parsed_node(parsed, link.from_key);
-        if (link.from_node == none) return reader.fail(GraphLoadError::unknown_node, link.from_key_offset);
+        if (link.from_node == missing) return reader.fail(GraphLoadError::unknown_node, link.from_key_offset);
         link.to_node = parsed_node(parsed, link.to_key);
-        if (link.to_node == none) return reader.fail(GraphLoadError::unknown_node, link.to_key_offset);
+        if (link.to_node == missing) return reader.fail(GraphLoadError::unknown_node, link.to_key_offset);
         const NodeRecord& source = parsed.nodes[link.from_node];
         const NodeRecord& target = parsed.nodes[link.to_node];
         if (link.from_port >= source.ports.size()) return reader.fail(GraphLoadError::bad_port, link.from_port_offset);
@@ -712,6 +863,22 @@ std::uint32_t newer_generation(std::uint32_t generation) noexcept {
     return next;
 }
 
+// One past the largest n of the automatic IDs "l.<n>" among `links`, so the
+// automatic counter never hands out a loaded ID again.
+std::uint64_t next_automatic_number(const std::vector<ParsedLink>& links) noexcept {
+    std::uint64_t next = 1U;
+    for (const ParsedLink& link : links) {
+        const std::string_view id(link.id);
+        if (id.size() < 3U || id.substr(0U, 2U) != "l.") continue;
+        std::uint64_t value = 0U;
+        const char* const last = id.data() + id.size();
+        const std::from_chars_result parsed = std::from_chars(id.data() + 2U, last, value, 10);
+        if (parsed.ec != std::errc{} || parsed.ptr != last || value == 0xFFFFFFFFFFFFFFFFULL) continue;
+        next = std::max(next, value + 1U);
+    }
+    return next;
+}
+
 } // namespace
 
 std::string_view graph_load_error_name(GraphLoadError error) noexcept {
@@ -726,7 +893,6 @@ std::string_view graph_load_error_name(GraphLoadError error) noexcept {
     case GraphLoadError::unknown_statement: return "unknown_statement";
     case GraphLoadError::bad_key: return "bad_key";
     case GraphLoadError::bad_number: return "bad_number";
-    case GraphLoadError::non_canonical: return "non_canonical";
     case GraphLoadError::bad_text: return "bad_text";
     case GraphLoadError::bad_word: return "bad_word";
     case GraphLoadError::bad_property: return "bad_property";
@@ -776,8 +942,10 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
         return result;
     }
 
-    // Phase 3: reserve every array to its final size (slots kept from before
-    // stay, freed, so their generations keep counting), then replace.
+    // Phase 3. Reserve sizes: the node slots, their free list, move marks and
+    // key order each to the larger of the old slot count and the document's
+    // node count (slots kept from before stay, freed, so their generations
+    // keep counting); the link slots, their free list and ID order likewise.
     const std::size_t node_count = parsed.nodes.size();
     const std::size_t link_count = parsed.links.size();
     const std::size_t node_total = std::max(nodes_.size(), node_count);
@@ -788,8 +956,11 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
     key_order_.reserve(node_total);
     links_.reserve(link_total);
     free_links_.reserve(link_total);
+    link_key_order_.reserve(link_total);
 
-    // Nothing below allocates or fails.
+    // Nothing below allocates or fails; each push checks its reservation.
+    require_room(nodes_, node_total - nodes_.size(), "node_graph.load");
+    require_room(links_, link_total - links_.size(), "node_graph.load");
     clear_log();
     for (std::size_t index = 0U; index < node_count; ++index) {
         std::uint32_t generation = 1U;
@@ -810,15 +981,21 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
     // Free slots reused lowest first: the free list's newest entry is the
     // lowest free slot.
     free_nodes_.clear();
+    require_room(free_nodes_, nodes_.size() - node_count, "node_graph.load");
     for (std::size_t index = nodes_.size(); index > node_count; --index) {
         free_nodes_.push_back(static_cast<std::uint32_t>(index - 1U));
     }
+    move_marks_.clear();
+    require_room(move_marks_, nodes_.size(), "node_graph.load");
     move_marks_.assign(nodes_.size(), 0U);
+    key_order_.clear();
+    require_room(key_order_, parsed.order.size(), "node_graph.load");
     key_order_.assign(parsed.order.begin(), parsed.order.end());
 
     for (std::size_t index = 0U; index < link_count; ++index) {
-        const ParsedLink& parsed_link = parsed.links[index];
+        ParsedLink& parsed_link = parsed.links[index];
         LinkRecord link{};
+        link.key = std::move(parsed_link.id);
         link.from = PortRef{NodeId{parsed_link.from_node, nodes_[parsed_link.from_node].generation},
                             PortIndex{static_cast<std::uint16_t>(parsed_link.from_port)}};
         link.to = PortRef{NodeId{parsed_link.to_node, nodes_[parsed_link.to_node].generation},
@@ -827,16 +1004,25 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
         link.generation = 1U;
         if (index < links_.size()) {
             link.generation = newer_generation(links_[index].generation);
-            links_[index] = link;
+            links_[index] = std::move(link);
         } else {
-            links_.push_back(link);
+            links_.push_back(std::move(link));
         }
     }
-    for (std::size_t index = link_count; index < links_.size(); ++index) links_[index].live = false;
+    for (std::size_t index = link_count; index < links_.size(); ++index) {
+        const std::uint32_t generation = links_[index].generation;
+        links_[index] = LinkRecord{};
+        links_[index].generation = generation;
+    }
     free_links_.clear();
+    require_room(free_links_, links_.size() - link_count, "node_graph.load");
     for (std::size_t index = links_.size(); index > link_count; --index) {
         free_links_.push_back(static_cast<std::uint32_t>(index - 1U));
     }
+    link_key_order_.clear();
+    require_room(link_key_order_, parsed.link_order.size(), "node_graph.load");
+    link_key_order_.assign(parsed.link_order.begin(), parsed.link_order.end());
+    next_link_number_ = std::max(next_link_number_, next_automatic_number(parsed.links));
     live_nodes_ = node_count;
     live_links_ = link_count;
     advance();
