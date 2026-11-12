@@ -1140,6 +1140,31 @@ enum class RecipeField : std::uint8_t {
     stripe_ground_colour,
     stripe_gloss,
     stripe_reduced_motion,
+    // The node canvas's part fields (NODE_GRAPH_SPEC gaps N2, 2 and 3;
+    // cp31), admitted on a named part and read by resolve_canvas_look
+    // (ControlCanvasPaint): `fill-color` and `stroke-color` (a part's area
+    // and line colours); `stroke-dash` (two lengths, the dash and the gap;
+    // both 0 is `none`); `halo` (a width and a colour: a wider stroke drawn
+    // under a link; width 0 is `none`); `corner-radius`; `grid-spacing` and
+    // `grid-band` (the canvas grid's world spacing and the smallest minor
+    // spacing in view units); `background-texture` (a theme image tiled
+    // under the grid, multiplied at `texture_contrast`; no image is
+    // `none`); and `flow`, `flow-speed` and `flow-spacing` (the link flow
+    // effect's mark, speed and pitch).
+    fill_colour,
+    stroke_colour,
+    stroke_dash,
+    stroke_gap,
+    halo_width,
+    halo_colour,
+    corner_radius,
+    grid_spacing,
+    grid_band,
+    texture_image,
+    texture_contrast,
+    flow_style,
+    flow_speed,
+    flow_spacing,
     count,
 };
 
@@ -1179,6 +1204,30 @@ enum class StripeGloss : std::uint8_t { automatic, none };
 // What reduced motion shows of the stripes (`stripe-reduced-motion`): the
 // bands standing still, or no bands.
 enum class StripeReducedMotion : std::uint8_t { still, none };
+
+// What moves along a flowing link (`flow: none | dots | dashes`): nothing,
+// round dots, or dashes, one per `flow-spacing`.
+enum class CanvasFlowStyle : std::uint8_t { none, dots, dashes };
+
+// What the node canvas's part fields admit (RecipeField::fill_colour on):
+// a dash or gap of 0 to 64 logical units (not both 0 unless both are, which
+// is `none`), a halo 0 to 16 wide, a corner radius 0 to 64, a grid spacing
+// of 2 to 512 world units, a grid band starting at 2 to 128 view units, a
+// texture contrast of 0 to 0.03 (the design language's sub-3 % texture
+// rule: a declaration above it is refused, and the canvas clamps to it
+// again when it paints), a flow speed of 0 to 512 world units a second and
+// a flow spacing of 4 to 128.
+inline constexpr double maximum_canvas_dash = 64.0;
+inline constexpr double maximum_canvas_halo_width = 16.0;
+inline constexpr double maximum_canvas_corner_radius = 64.0;
+inline constexpr double minimum_canvas_grid_spacing = 2.0;
+inline constexpr double maximum_canvas_grid_spacing = 512.0;
+inline constexpr double minimum_canvas_grid_band = 2.0;
+inline constexpr double maximum_canvas_grid_band = 128.0;
+inline constexpr double maximum_canvas_texture_contrast = 0.03;
+inline constexpr double maximum_canvas_flow_speed = 512.0;
+inline constexpr double minimum_canvas_flow_spacing = 4.0;
+inline constexpr double maximum_canvas_flow_spacing = 128.0;
 
 // What a recipe admits (valid_recipe): an outline at most 16 logical units
 // wide, offset at most 64 either way; a text shadow offset at most 16 on
@@ -1228,7 +1277,13 @@ inline constexpr double maximum_rule_font_weight = 900.0;
 //   family (FontSpec::family, zero for a role); font_style: `italic`;
 // - font_size (in logical units, with em_lengths in the control's own
 //   font size), font_weight and letter_spacing (logical units, with
-//   em_lengths in the resolved size): `number`.
+//   em_lengths in the resolved size): `number`;
+// - the canvas fields: fill_colour, stroke_colour and halo_colour
+//   `colour`; stroke_dash, stroke_gap, halo_width, corner_radius,
+//   grid_spacing, grid_band and flow_spacing (logical units, em admitted),
+//   texture_contrast (a fraction) and flow_speed (world units a second)
+//   `number`; flow_style `flow_style`; texture_image `image`, `image_size`
+//   and `image_density`.
 struct GUI_FORMS_API RecipeDeclaration final {
     RecipeField field{RecipeField::text};
     bool initial{};
@@ -1241,6 +1296,13 @@ struct GUI_FORMS_API RecipeDeclaration final {
     StripeSense stripe_sense{StripeSense::forward};
     StripeGloss stripe_gloss{StripeGloss::automatic};
     StripeReducedMotion stripe_reduced_motion{StripeReducedMotion::still};
+    // The canvas's keyword and image fields: flow_style's mark, and
+    // texture_image's image (none for `none`), its size in source pixels and
+    // its source pixels per logical unit (ThemeImageResource).
+    CanvasFlowStyle flow_style{CanvasFlowStyle::none};
+    std::optional<ImageId> image{};
+    Size image_size{};
+    double image_density{1.0};
     bool shadowed{};
     Point shadow_offset{};
     double shadow_blur{};
@@ -1266,6 +1328,8 @@ struct GUI_FORMS_API RecipeDeclaration final {
                left.needle_shape == right.needle_shape && left.stripe_sense == right.stripe_sense &&
                left.stripe_gloss == right.stripe_gloss &&
                left.stripe_reduced_motion == right.stripe_reduced_motion &&
+               left.flow_style == right.flow_style && left.image == right.image &&
+               left.image_size == right.image_size && left.image_density == right.image_density &&
                left.shadowed == right.shadowed && left.shadow_offset == right.shadow_offset &&
                left.shadow_blur == right.shadow_blur && left.origin == right.origin &&
                left.em_lengths == right.em_lengths && left.inherit == right.inherit &&

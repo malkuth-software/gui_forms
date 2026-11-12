@@ -43,6 +43,11 @@ bool surface_role(PartRole role) noexcept {
     case PartRole::plot:
     case PartRole::legend:
     case PartRole::color_scale:
+    case PartRole::node:
+    case PartRole::header:
+    case PartRole::port:
+    case PartRole::lamp:
+    case PartRole::marquee:
         return true;
     case PartRole::region:
     case PartRole::shadow:
@@ -82,6 +87,7 @@ bool surface_role(PartRole role) noexcept {
     case PartRole::needle:
     case PartRole::beak:
     case PartRole::scrim:
+    case PartRole::link:
     case PartRole::count:
         return false;
     }
@@ -1540,6 +1546,11 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::plot:
     case PartRole::legend:
     case PartRole::color_scale:
+    case PartRole::node:
+    case PartRole::header:
+    case PartRole::port:
+    case PartRole::lamp:
+    case PartRole::marquee:
         paint_surface(painter, part, recipe);
         return;
     case PartRole::indicator:
@@ -1562,6 +1573,7 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::grid_major:
     case PartRole::grid_minor:
     case PartRole::crosshair:
+    case PartRole::link:
         paint_rule(painter, part.bounds, recipe);
         return;
     case PartRole::arc:

@@ -38,7 +38,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 80> material_properties{{
+constexpr std::array<NamedMaterialProperty, 91> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -46,6 +46,7 @@ constexpr std::array<NamedMaterialProperty, 80> material_properties{{
     {.name = "background-position", .property = MaterialProperty::background_position},
     {.name = "background-repeat", .property = MaterialProperty::background_repeat},
     {.name = "background-size", .property = MaterialProperty::background_size},
+    {.name = "background-texture", .property = MaterialProperty::background_texture},
     {.name = "border", .property = MaterialProperty::border},
     {.name = "border-bottom", .property = MaterialProperty::border_bottom},
     {.name = "border-bottom-color", .property = MaterialProperty::border_bottom_color},
@@ -74,11 +75,16 @@ constexpr std::array<NamedMaterialProperty, 80> material_properties{{
     {.name = "border-width", .property = MaterialProperty::border_width},
     {.name = "box-shadow", .property = MaterialProperty::box_shadow},
     {.name = "color", .property = MaterialProperty::color},
+    {.name = "corner-radius", .property = MaterialProperty::corner_radius},
     {.name = "default-outline", .property = MaterialProperty::default_outline},
     {.name = "edge-shadow", .property = MaterialProperty::edge_shadow},
+    {.name = "fill-color", .property = MaterialProperty::fill_color},
     {.name = "fill-text-color", .property = MaterialProperty::fill_text_color},
     {.name = "filter", .property = MaterialProperty::filter},
     {.name = "flare", .property = MaterialProperty::flare},
+    {.name = "flow", .property = MaterialProperty::flow},
+    {.name = "flow-spacing", .property = MaterialProperty::flow_spacing},
+    {.name = "flow-speed", .property = MaterialProperty::flow_speed},
     {.name = "font-family", .property = MaterialProperty::font_family},
     {.name = "font-size", .property = MaterialProperty::font_size},
     {.name = "font-style", .property = MaterialProperty::font_style},
@@ -87,6 +93,9 @@ constexpr std::array<NamedMaterialProperty, 80> material_properties{{
     {.name = "glow", .property = MaterialProperty::glow},
     {.name = "glow-placement", .property = MaterialProperty::glow_placement},
     {.name = "glyph-color", .property = MaterialProperty::glyph_color},
+    {.name = "grid-band", .property = MaterialProperty::grid_band},
+    {.name = "grid-spacing", .property = MaterialProperty::grid_spacing},
+    {.name = "halo", .property = MaterialProperty::halo},
     {.name = "height", .property = MaterialProperty::height},
     {.name = "keylines", .property = MaterialProperty::keylines},
     {.name = "letter-spacing", .property = MaterialProperty::letter_spacing},
@@ -115,6 +124,8 @@ constexpr std::array<NamedMaterialProperty, 80> material_properties{{
     {.name = "stripe-ratio", .property = MaterialProperty::stripe_ratio},
     {.name = "stripe-reduced-motion", .property = MaterialProperty::stripe_reduced_motion},
     {.name = "stripe-speed", .property = MaterialProperty::stripe_speed},
+    {.name = "stroke-color", .property = MaterialProperty::stroke_color},
+    {.name = "stroke-dash", .property = MaterialProperty::stroke_dash},
     {.name = "stroke-width", .property = MaterialProperty::stroke_width},
     {.name = "surface-finish", .property = MaterialProperty::surface_finish},
     {.name = "taper", .property = MaterialProperty::taper},
@@ -127,7 +138,7 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 33> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 41> recipe_longhands{{
     {.property = MaterialProperty::height, .field = RecipeField::block_size},
     {.property = MaterialProperty::min_width, .field = RecipeField::minimum_inline_size},
     {.property = MaterialProperty::padding_inline, .field = RecipeField::padding_inline},
@@ -161,6 +172,14 @@ constexpr std::array<RecipeLonghand, 33> recipe_longhands{{
     {.property = MaterialProperty::stripe_ground, .field = RecipeField::stripe_ground_colour},
     {.property = MaterialProperty::stripe_gloss, .field = RecipeField::stripe_gloss},
     {.property = MaterialProperty::stripe_reduced_motion, .field = RecipeField::stripe_reduced_motion},
+    {.property = MaterialProperty::fill_color, .field = RecipeField::fill_colour},
+    {.property = MaterialProperty::stroke_color, .field = RecipeField::stroke_colour},
+    {.property = MaterialProperty::corner_radius, .field = RecipeField::corner_radius},
+    {.property = MaterialProperty::grid_spacing, .field = RecipeField::grid_spacing},
+    {.property = MaterialProperty::grid_band, .field = RecipeField::grid_band},
+    {.property = MaterialProperty::flow, .field = RecipeField::flow_style},
+    {.property = MaterialProperty::flow_speed, .field = RecipeField::flow_speed},
+    {.property = MaterialProperty::flow_spacing, .field = RecipeField::flow_spacing},
 }};
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
@@ -501,6 +520,10 @@ private:
     bool lower_stripe_sense(RecipeField field);
     bool lower_stripe_gloss();
     bool lower_stripe_reduced_motion();
+    bool lower_stroke_dash();
+    bool lower_halo();
+    bool lower_flow_style();
+    bool lower_background_texture();
     bool lower_part_shape(RecipeField length_field, RecipeField colour_field, bool colour_required);
     bool lower_text_shadow();
     bool lower_font_family();
@@ -2743,6 +2766,160 @@ bool MaterialReader::lower_stripe_reduced_motion() {
     return true;
 }
 
+// `stroke-dash` (the node canvas, cp31): `none`, or two lengths, the dash
+// and the gap, each at most maximum_canvas_dash. A dash of 0 with a gap
+// would draw nothing and is refused; a gap of 0 draws solid.
+bool MaterialReader::lower_stroke_dash() {
+    RecipeDeclaration dash = recipe_declaration(RecipeField::stroke_dash);
+    RecipeDeclaration gap = recipe_declaration(RecipeField::stroke_gap);
+    const ValueComponent& first = value_.components[0U];
+    const std::size_t second_index = next(0U);
+    const bool one = second_index >= value_.components.size();
+    if (one && keyword(0U, "none")) {
+        lowering_.recipe_fields.push_back(dash);
+        lowering_.recipe_fields.push_back(gap);
+        return true;
+    }
+    if (one || next(second_index) < value_.components.size()) {
+        return fail(DiagnosticCode::value_syntax, first.token, "none or a dash and a gap");
+    }
+    BoxLength dash_length{};
+    BoxLength gap_length{};
+    if (!read_length(0U, false, false, dash_length)) return false;
+    if (!read_length(second_index, false, false, gap_length)) return false;
+    if (dash_length.units > maximum_canvas_dash) {
+        return fail(DiagnosticCode::value_out_of_range, first.token, clipped_theme_detail(first.text));
+    }
+    const ValueComponent& second = value_.components[second_index];
+    if (gap_length.units > maximum_canvas_dash) {
+        return fail(DiagnosticCode::value_out_of_range, second.token, clipped_theme_detail(second.text));
+    }
+    if (dash_length.units == 0.0 && gap_length.units > 0.0) {
+        return fail(DiagnosticCode::value_out_of_range, first.token, "a dash of 0 draws nothing");
+    }
+    dash.number = dash_length.units;
+    gap.number = gap_length.units;
+    lowering_.recipe_fields.push_back(dash);
+    lowering_.recipe_fields.push_back(gap);
+    return true;
+}
+
+// `halo` (the node canvas, cp31): `none`, or a width (at most
+// maximum_canvas_halo_width) and a colour, each once, in any order.
+bool MaterialReader::lower_halo() {
+    RecipeDeclaration width = recipe_declaration(RecipeField::halo_width);
+    RecipeDeclaration colour = recipe_declaration(RecipeField::halo_colour);
+    const bool one = next(0U) >= value_.components.size();
+    if (one && keyword(0U, "none")) {
+        colour.colour = Color::rgba(0, 0, 0, 0);
+        lowering_.recipe_fields.push_back(width);
+        lowering_.recipe_fields.push_back(colour);
+        return true;
+    }
+    bool sized = false;
+    bool coloured = false;
+    for (std::size_t index = 0U; index < value_.components.size(); index = next(index)) {
+        const ValueComponent& component = value_.components[index];
+        if (component.kind == ValueComponentKind::number) {
+            if (sized) return fail(DiagnosticCode::value_syntax, component.token, "one width");
+            sized = true;
+            BoxLength read{};
+            if (!read_length(index, false, false, read)) return false;
+            if (read.units > maximum_canvas_halo_width) {
+                return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+            }
+            width.number = read.units;
+            continue;
+        }
+        if (coloured) return fail(DiagnosticCode::value_syntax, component.token, "one colour");
+        coloured = true;
+        if (!read_colour(index, colour.colour)) return false;
+    }
+    if (!sized || !coloured) {
+        return fail(DiagnosticCode::value_syntax, value_.components[0U].token, "none or a width and a colour");
+    }
+    lowering_.recipe_fields.push_back(width);
+    lowering_.recipe_fields.push_back(colour);
+    return true;
+}
+
+// `flow` (the node canvas, cp31): `none`, `dots` or `dashes`
+// (CanvasFlowStyle).
+bool MaterialReader::lower_flow_style() {
+    if (next(0U) < value_.components.size()) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "none, dots or dashes");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "none, dots or dashes");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::flow_style);
+    if (keyword(0U, "none")) {
+        declaration.flow_style = CanvasFlowStyle::none;
+    } else if (keyword(0U, "dots")) {
+        declaration.flow_style = CanvasFlowStyle::dots;
+    } else if (keyword(0U, "dashes")) {
+        declaration.flow_style = CanvasFlowStyle::dashes;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `background-texture` (NODE_GRAPH_SPEC gap 2; cp31): `none`, or
+// `url("resource:<name>") multiply <percentage>`: an image resource the
+// manifest lists, multiplied at the percentage, from 0% to 3% (the design
+// language's sub-3 % texture rule, maximum_canvas_texture_contrast). A
+// higher contrast is out of range: the declaration is dropped, never
+// clamped silently. `multiply` is the only blend, and is written.
+bool MaterialReader::lower_background_texture() {
+    RecipeDeclaration image = recipe_declaration(RecipeField::texture_image);
+    RecipeDeclaration contrast = recipe_declaration(RecipeField::texture_contrast);
+    const ValueComponent& first = value_.components[0U];
+    const std::size_t blend_index = next(0U);
+    if (blend_index >= value_.components.size() && keyword(0U, "none")) {
+        lowering_.recipe_fields.push_back(image);
+        lowering_.recipe_fields.push_back(contrast);
+        return true;
+    }
+    const std::size_t contrast_index = blend_index < value_.components.size() ? next(blend_index) : blend_index;
+    const bool three = contrast_index < value_.components.size() &&
+                       next(contrast_index) >= value_.components.size();
+    if (!three) {
+        return fail(DiagnosticCode::value_syntax, first.token, "none or url(...) multiply <percentage>");
+    }
+    if (first.kind != ValueComponentKind::resource) {
+        return fail(DiagnosticCode::value_wrong_kind, first.token, "an image resource");
+    }
+    const ThemeImageResource* found = nullptr;
+    for (const ThemeImageResource& resource : images_) {
+        if (resource.resource == first.text) found = &resource;
+    }
+    if (found == nullptr) return fail(DiagnosticCode::value_wrong_kind, first.token, "an image resource");
+    const ValueComponent& blend = value_.components[blend_index];
+    if (blend.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, blend.token, "multiply");
+    }
+    if (!keyword(blend_index, "multiply")) {
+        return fail(DiagnosticCode::keyword_unknown, blend.token, clipped_theme_detail(blend.text));
+    }
+    const ValueComponent& amount = value_.components[contrast_index];
+    const bool percentage = amount.kind == ValueComponentKind::number && amount.unit == ValueUnit::percent;
+    if (!percentage) return fail(DiagnosticCode::value_wrong_kind, amount.token, "a percentage");
+    const double fraction = amount.number / 100.0;
+    if (!(fraction >= 0.0 && fraction <= maximum_canvas_texture_contrast)) {
+        return fail(DiagnosticCode::value_out_of_range, amount.token, clipped_theme_detail(amount.text));
+    }
+    image.image = (*found).image;
+    image.image_size = (*found).pixel_size;
+    image.image_density = (*found).pixels_per_logical_pixel;
+    contrast.number = fraction;
+    lowering_.recipe_fields.push_back(image);
+    lowering_.recipe_fields.push_back(contrast);
+    return true;
+}
+
 // A part's shape: `taper` and `flare` (a length and an optional colour) and
 // `edge-shadow` (a length and a colour), each at most once and in any
 // order. An omitted colour takes its `initial` (none: the part's own).
@@ -3106,6 +3283,29 @@ void MaterialReader::lower(MaterialProperty property) {
         return;
     case MaterialProperty::stripe_gloss: static_cast<void>(lower_stripe_gloss()); return;
     case MaterialProperty::stripe_reduced_motion: static_cast<void>(lower_stripe_reduced_motion()); return;
+    case MaterialProperty::fill_color: static_cast<void>(lower_recipe_colour(RecipeField::fill_colour)); return;
+    case MaterialProperty::stroke_color: static_cast<void>(lower_recipe_colour(RecipeField::stroke_colour)); return;
+    case MaterialProperty::stroke_dash: static_cast<void>(lower_stroke_dash()); return;
+    case MaterialProperty::halo: static_cast<void>(lower_halo()); return;
+    case MaterialProperty::corner_radius:
+        static_cast<void>(lower_part_length(RecipeField::corner_radius, 0.0, maximum_canvas_corner_radius));
+        return;
+    case MaterialProperty::grid_spacing:
+        static_cast<void>(
+            lower_part_length(RecipeField::grid_spacing, minimum_canvas_grid_spacing, maximum_canvas_grid_spacing));
+        return;
+    case MaterialProperty::grid_band:
+        static_cast<void>(lower_part_length(RecipeField::grid_band, minimum_canvas_grid_band, maximum_canvas_grid_band));
+        return;
+    case MaterialProperty::background_texture: static_cast<void>(lower_background_texture()); return;
+    case MaterialProperty::flow: static_cast<void>(lower_flow_style()); return;
+    case MaterialProperty::flow_speed:
+        static_cast<void>(lower_stripe_number(RecipeField::flow_speed, 0.0, maximum_canvas_flow_speed));
+        return;
+    case MaterialProperty::flow_spacing:
+        static_cast<void>(
+            lower_part_length(RecipeField::flow_spacing, minimum_canvas_flow_spacing, maximum_canvas_flow_spacing));
+        return;
     // A value outside the enumeration names no property: nothing is lowered.
     default: return;
     }
@@ -3242,7 +3442,18 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::stripe_pitch:
     case MaterialProperty::stripe_ratio:
     case MaterialProperty::stripe_reduced_motion:
-    case MaterialProperty::stripe_speed: return;
+    case MaterialProperty::stripe_speed:
+    case MaterialProperty::background_texture:
+    case MaterialProperty::corner_radius:
+    case MaterialProperty::fill_color:
+    case MaterialProperty::flow:
+    case MaterialProperty::flow_spacing:
+    case MaterialProperty::flow_speed:
+    case MaterialProperty::grid_band:
+    case MaterialProperty::grid_spacing:
+    case MaterialProperty::halo:
+    case MaterialProperty::stroke_color:
+    case MaterialProperty::stroke_dash: return;
     // A value outside the enumeration names no property: it sets no field.
     default: return;
     }
@@ -3271,6 +3482,25 @@ bool stripe_property(MaterialProperty property) noexcept {
     }
 }
 
+bool canvas_property(MaterialProperty property) noexcept {
+    switch (property) {
+    case MaterialProperty::background_texture:
+    case MaterialProperty::corner_radius:
+    case MaterialProperty::fill_color:
+    case MaterialProperty::flow:
+    case MaterialProperty::flow_spacing:
+    case MaterialProperty::flow_speed:
+    case MaterialProperty::grid_band:
+    case MaterialProperty::grid_spacing:
+    case MaterialProperty::halo:
+    case MaterialProperty::stroke_color:
+    case MaterialProperty::stroke_dash: return true;
+    // Every other property, and a value outside the enumeration, is not a
+    // canvas property.
+    default: return false;
+    }
+}
+
 RecipePropertyFields recipe_property_fields(MaterialProperty property) noexcept {
     RecipePropertyFields result{};
     if (property == MaterialProperty::outline) {
@@ -3295,6 +3525,21 @@ RecipePropertyFields recipe_property_fields(MaterialProperty property) noexcept 
     }
     if (property == MaterialProperty::edge_shadow) {
         result.fields = {RecipeField::edge_shadow_width, RecipeField::edge_shadow_colour};
+        result.count = 2U;
+        return result;
+    }
+    if (property == MaterialProperty::stroke_dash) {
+        result.fields = {RecipeField::stroke_dash, RecipeField::stroke_gap};
+        result.count = 2U;
+        return result;
+    }
+    if (property == MaterialProperty::halo) {
+        result.fields = {RecipeField::halo_width, RecipeField::halo_colour};
+        result.count = 2U;
+        return result;
+    }
+    if (property == MaterialProperty::background_texture) {
+        result.fields = {RecipeField::texture_image, RecipeField::texture_contrast};
         result.count = 2U;
         return result;
     }

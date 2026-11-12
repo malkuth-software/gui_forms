@@ -63,6 +63,12 @@ __ZGVZN11gui_drawing6render14PngCodecLimits*
 __ZGVZN9gui_forms10BindingRow*
 __ZGVZN9gui_forms10BlockPanel*
 __ZGVZN9gui_forms10ButtonBase*
+__ZGVZN9gui_forms10CanvasArea*
+__ZGVZN9gui_forms10CanvasFlow*
+__ZGVZN9gui_forms10CanvasGrid*
+__ZGVZN9gui_forms10CanvasLine*
+__ZGVZN9gui_forms10CanvasLook*
+__ZGVZN9gui_forms10CanvasView*
 __ZGVZN9gui_forms10CardLayout*
 __ZGVZN9gui_forms10ChoiceItem*
 __ZGVZN9gui_forms10CommandBar*
@@ -775,6 +781,7 @@ __ZGVZN9gui_forms18CommandRouteResult*
 __ZGVZN9gui_forms18CompiledThemeRules*
 __ZGVZN9gui_forms18ComponentContainer*
 __ZGVZN9gui_forms18ContextMenuRequest*
+__ZGVZN9gui_forms18ControlCanvasPaint*
 __ZGVZN9gui_forms18ControlPartMetrics*
 __ZGVZN9gui_forms18ControlRoleRecipes*
 __ZGVZN9gui_forms18CursorCapabilities*
@@ -963,6 +970,7 @@ __ZGVZN9gui_forms20BindingContextChange*
 __ZGVZN9gui_forms20CommandOverflowPanel*
 __ZGVZN9gui_forms20CompositorGeneration*
 __ZGVZN9gui_forms20ConnectedControlSeam*
+__ZGVZN9gui_forms20ControlCanvasTexture*
 __ZGVZN9gui_forms20ControlStripePattern*
 __ZGVZN9gui_forms20ControlVisualContext*
 __ZGVZN9gui_forms20DataGridViewRowEvent*
@@ -1421,6 +1429,7 @@ __ZGVZN9gui_forms8GroupBox*
 __ZGVZN9gui_forms8HelpBook*
 __ZGVZN9gui_forms8KeyChord*
 __ZGVZN9gui_forms8KeyEvent*
+__ZGVZN9gui_forms8LinkFlow*
 __ZGVZN9gui_forms8ListView*
 __ZGVZN9gui_forms8NodeSpec*
 __ZGVZN9gui_forms8PageView*
@@ -1538,6 +1547,12 @@ __ZGVZNK11gui_drawing6render14PngCodecLimits*
 __ZGVZNK9gui_forms10BindingRow*
 __ZGVZNK9gui_forms10BlockPanel*
 __ZGVZNK9gui_forms10ButtonBase*
+__ZGVZNK9gui_forms10CanvasArea*
+__ZGVZNK9gui_forms10CanvasFlow*
+__ZGVZNK9gui_forms10CanvasGrid*
+__ZGVZNK9gui_forms10CanvasLine*
+__ZGVZNK9gui_forms10CanvasLook*
+__ZGVZNK9gui_forms10CanvasView*
 __ZGVZNK9gui_forms10CardLayout*
 __ZGVZNK9gui_forms10ChoiceItem*
 __ZGVZNK9gui_forms10CommandBar*
@@ -2250,6 +2265,7 @@ __ZGVZNK9gui_forms18CommandRouteResult*
 __ZGVZNK9gui_forms18CompiledThemeRules*
 __ZGVZNK9gui_forms18ComponentContainer*
 __ZGVZNK9gui_forms18ContextMenuRequest*
+__ZGVZNK9gui_forms18ControlCanvasPaint*
 __ZGVZNK9gui_forms18ControlPartMetrics*
 __ZGVZNK9gui_forms18ControlRoleRecipes*
 __ZGVZNK9gui_forms18CursorCapabilities*
@@ -2438,6 +2454,7 @@ __ZGVZNK9gui_forms20BindingContextChange*
 __ZGVZNK9gui_forms20CommandOverflowPanel*
 __ZGVZNK9gui_forms20CompositorGeneration*
 __ZGVZNK9gui_forms20ConnectedControlSeam*
+__ZGVZNK9gui_forms20ControlCanvasTexture*
 __ZGVZNK9gui_forms20ControlStripePattern*
 __ZGVZNK9gui_forms20ControlVisualContext*
 __ZGVZNK9gui_forms20DataGridViewRowEvent*
@@ -2896,6 +2913,7 @@ __ZGVZNK9gui_forms8GroupBox*
 __ZGVZNK9gui_forms8HelpBook*
 __ZGVZNK9gui_forms8KeyChord*
 __ZGVZNK9gui_forms8KeyEvent*
+__ZGVZNK9gui_forms8LinkFlow*
 __ZGVZNK9gui_forms8ListView*
 __ZGVZNK9gui_forms8NodeSpec*
 __ZGVZNK9gui_forms8PageView*
@@ -3065,6 +3083,12 @@ __ZN11gui_drawing6render20core_text_font_bytesE*
 __ZN9gui_forms10BindingRow*
 __ZN9gui_forms10BlockPanel*
 __ZN9gui_forms10ButtonBase*
+__ZN9gui_forms10CanvasArea*
+__ZN9gui_forms10CanvasFlow*
+__ZN9gui_forms10CanvasGrid*
+__ZN9gui_forms10CanvasLine*
+__ZN9gui_forms10CanvasLook*
+__ZN9gui_forms10CanvasView*
 __ZN9gui_forms10CardLayout*
 __ZN9gui_forms10ChoiceItem*
 __ZN9gui_forms10CommandBar*
@@ -4023,6 +4047,14 @@ __ZN9gui_forms17locale_xml_limitsB*
 __ZN9gui_forms17locale_xml_limitsE*
 __ZN9gui_forms17measure_paragraphB*
 __ZN9gui_forms17measure_paragraphE*
+__ZN9gui_forms17paint_canvas_lampB*
+__ZN9gui_forms17paint_canvas_lampE*
+__ZN9gui_forms17paint_canvas_linkB*
+__ZN9gui_forms17paint_canvas_linkE*
+__ZN9gui_forms17paint_canvas_nodeB*
+__ZN9gui_forms17paint_canvas_nodeE*
+__ZN9gui_forms17paint_canvas_portB*
+__ZN9gui_forms17paint_canvas_portE*
 __ZN9gui_forms17paint_masked_fillB*
 __ZN9gui_forms17paint_masked_fillE*
 __ZN9gui_forms17part_corner_radiiB*
@@ -4057,6 +4089,7 @@ __ZN9gui_forms18CommandRouteResult*
 __ZN9gui_forms18CompiledThemeRules*
 __ZN9gui_forms18ComponentContainer*
 __ZN9gui_forms18ContextMenuRequest*
+__ZN9gui_forms18ControlCanvasPaint*
 __ZN9gui_forms18ControlPartMetrics*
 __ZN9gui_forms18ControlRoleRecipes*
 __ZN9gui_forms18CursorCapabilities*
@@ -4361,6 +4394,8 @@ __ZN9gui_forms19mnemonic_access_keyB*
 __ZN9gui_forms19mnemonic_access_keyE*
 __ZN9gui_forms19motion_curve_easingB*
 __ZN9gui_forms19motion_curve_easingE*
+__ZN9gui_forms19node_canvas_anatomyB*
+__ZN9gui_forms19node_canvas_anatomyE*
 __ZN9gui_forms19normalize_help_bodyB*
 __ZN9gui_forms19normalize_help_bodyE*
 __ZN9gui_forms19note_effect_refusedB*
@@ -4381,6 +4416,8 @@ __ZN9gui_forms19put_declared_topicsB*
 __ZN9gui_forms19put_declared_topicsE*
 __ZN9gui_forms19read_property_entryB*
 __ZN9gui_forms19read_property_entryE*
+__ZN9gui_forms19resolve_canvas_lookB*
+__ZN9gui_forms19resolve_canvas_lookE*
 __ZN9gui_forms19semantic_state_nameB*
 __ZN9gui_forms19semantic_state_nameE*
 __ZN9gui_forms19show_specimen_stateB*
@@ -4415,6 +4452,7 @@ __ZN9gui_forms20BindingContextChange*
 __ZN9gui_forms20CommandOverflowPanel*
 __ZN9gui_forms20CompositorGeneration*
 __ZN9gui_forms20ConnectedControlSeam*
+__ZN9gui_forms20ControlCanvasTexture*
 __ZN9gui_forms20ControlStripePattern*
 __ZN9gui_forms20ControlVisualContext*
 __ZN9gui_forms20DataGridViewRowEvent*
@@ -4503,6 +4541,8 @@ __ZN9gui_forms20make_logical_monitorB*
 __ZN9gui_forms20make_logical_monitorE*
 __ZN9gui_forms20make_property_objectB*
 __ZN9gui_forms20make_property_objectE*
+__ZN9gui_forms20paint_canvas_marqueeB*
+__ZN9gui_forms20paint_canvas_marqueeE*
 __ZN9gui_forms20paint_direction_ringB*
 __ZN9gui_forms20paint_direction_ringE*
 __ZN9gui_forms20paint_text_over_fillB*
@@ -4642,6 +4682,8 @@ __ZN9gui_forms21host_window_kind_nameB*
 __ZN9gui_forms21host_window_kind_nameE*
 __ZN9gui_forms21icon_identifier_validB*
 __ZN9gui_forms21icon_identifier_validE*
+__ZN9gui_forms21link_flow_mark_colourB*
+__ZN9gui_forms21link_flow_mark_colourE*
 __ZN9gui_forms21mask_result_hint_nameB*
 __ZN9gui_forms21mask_result_hint_nameE*
 __ZN9gui_forms21media_condition_holdsB*
@@ -4750,6 +4792,8 @@ __ZN9gui_forms22grid_span_extent_validB*
 __ZN9gui_forms22grid_span_extent_validE*
 __ZN9gui_forms22help_locale_error_nameB*
 __ZN9gui_forms22help_locale_error_nameE*
+__ZN9gui_forms22link_flow_wants_framesB*
+__ZN9gui_forms22link_flow_wants_framesE*
 __ZN9gui_forms22locale_file_error_nameB*
 __ZN9gui_forms22locale_file_error_nameE*
 __ZN9gui_forms22measure_available_sizeB*
@@ -4882,6 +4926,8 @@ __ZN9gui_forms23nearest_logical_monitorB*
 __ZN9gui_forms23nearest_logical_monitorE*
 __ZN9gui_forms23overridden_presentationB*
 __ZN9gui_forms23overridden_presentationE*
+__ZN9gui_forms23paint_canvas_backgroundB*
+__ZN9gui_forms23paint_canvas_backgroundE*
 __ZN9gui_forms23paragraph_storage_boundB*
 __ZN9gui_forms23paragraph_storage_boundE*
 __ZN9gui_forms23raster_view_defect_nameB*
@@ -5103,6 +5149,8 @@ __ZN9gui_forms26property_value_origin_nameB*
 __ZN9gui_forms26property_value_origin_nameE*
 __ZN9gui_forms26recipe_declaration_lengthsB*
 __ZN9gui_forms26recipe_declaration_lengthsE*
+__ZN9gui_forms26register_link_flow_effectsB*
+__ZN9gui_forms26register_link_flow_effectsE*
 __ZN9gui_forms26reset_child_property_entryB*
 __ZN9gui_forms26reset_child_property_entryE*
 __ZN9gui_forms26show_specimen_custom_stateB*
@@ -5128,6 +5176,8 @@ __ZN9gui_forms27form_start_position_definedB*
 __ZN9gui_forms27form_start_position_definedE*
 __ZN9gui_forms27layout_diagnostic_code_nameB*
 __ZN9gui_forms27layout_diagnostic_code_nameE*
+__ZN9gui_forms27paint_canvas_node_selectionB*
+__ZN9gui_forms27paint_canvas_node_selectionE*
 __ZN9gui_forms27recipe_declaration_admittedB*
 __ZN9gui_forms27recipe_declaration_admittedE*
 __ZN9gui_forms27semantic_feedback_kind_nameB*
@@ -5187,6 +5237,8 @@ __ZN9gui_forms29DataGridViewCellsTextProvider*
 __ZN9gui_forms29PrimitiveParameterDeclaration*
 __ZN9gui_forms29animation_interval_for_travelB*
 __ZN9gui_forms29animation_interval_for_travelE*
+__ZN9gui_forms29clamp_canvas_texture_contrastB*
+__ZN9gui_forms29clamp_canvas_texture_contrastE*
 __ZN9gui_forms29effect_selection_outcome_nameB*
 __ZN9gui_forms29effect_selection_outcome_nameE*
 __ZN9gui_forms29fill_semantic_text_boundariesB*
@@ -5607,6 +5659,7 @@ __ZN9gui_forms8GroupBox*
 __ZN9gui_forms8HelpBook*
 __ZN9gui_forms8KeyChord*
 __ZN9gui_forms8KeyEvent*
+__ZN9gui_forms8LinkFlow*
 __ZN9gui_forms8ListView*
 __ZN9gui_forms8NodeSpec*
 __ZN9gui_forms8PageView*
@@ -5788,6 +5841,12 @@ __ZNK[RO]11gui_drawing6render14PngCodecLimits*
 __ZNK[RO]9gui_forms10BindingRow*
 __ZNK[RO]9gui_forms10BlockPanel*
 __ZNK[RO]9gui_forms10ButtonBase*
+__ZNK[RO]9gui_forms10CanvasArea*
+__ZNK[RO]9gui_forms10CanvasFlow*
+__ZNK[RO]9gui_forms10CanvasGrid*
+__ZNK[RO]9gui_forms10CanvasLine*
+__ZNK[RO]9gui_forms10CanvasLook*
+__ZNK[RO]9gui_forms10CanvasView*
 __ZNK[RO]9gui_forms10CardLayout*
 __ZNK[RO]9gui_forms10ChoiceItem*
 __ZNK[RO]9gui_forms10CommandBar*
@@ -6500,6 +6559,7 @@ __ZNK[RO]9gui_forms18CommandRouteResult*
 __ZNK[RO]9gui_forms18CompiledThemeRules*
 __ZNK[RO]9gui_forms18ComponentContainer*
 __ZNK[RO]9gui_forms18ContextMenuRequest*
+__ZNK[RO]9gui_forms18ControlCanvasPaint*
 __ZNK[RO]9gui_forms18ControlPartMetrics*
 __ZNK[RO]9gui_forms18ControlRoleRecipes*
 __ZNK[RO]9gui_forms18CursorCapabilities*
@@ -6688,6 +6748,7 @@ __ZNK[RO]9gui_forms20BindingContextChange*
 __ZNK[RO]9gui_forms20CommandOverflowPanel*
 __ZNK[RO]9gui_forms20CompositorGeneration*
 __ZNK[RO]9gui_forms20ConnectedControlSeam*
+__ZNK[RO]9gui_forms20ControlCanvasTexture*
 __ZNK[RO]9gui_forms20ControlStripePattern*
 __ZNK[RO]9gui_forms20ControlVisualContext*
 __ZNK[RO]9gui_forms20DataGridViewRowEvent*
@@ -7146,6 +7207,7 @@ __ZNK[RO]9gui_forms8GroupBox*
 __ZNK[RO]9gui_forms8HelpBook*
 __ZNK[RO]9gui_forms8KeyChord*
 __ZNK[RO]9gui_forms8KeyEvent*
+__ZNK[RO]9gui_forms8LinkFlow*
 __ZNK[RO]9gui_forms8ListView*
 __ZNK[RO]9gui_forms8NodeSpec*
 __ZNK[RO]9gui_forms8PageView*
@@ -7263,6 +7325,12 @@ __ZN[KRO]11gui_drawing6render14PngCodecLimits*
 __ZN[KRO]9gui_forms10BindingRow*
 __ZN[KRO]9gui_forms10BlockPanel*
 __ZN[KRO]9gui_forms10ButtonBase*
+__ZN[KRO]9gui_forms10CanvasArea*
+__ZN[KRO]9gui_forms10CanvasFlow*
+__ZN[KRO]9gui_forms10CanvasGrid*
+__ZN[KRO]9gui_forms10CanvasLine*
+__ZN[KRO]9gui_forms10CanvasLook*
+__ZN[KRO]9gui_forms10CanvasView*
 __ZN[KRO]9gui_forms10CardLayout*
 __ZN[KRO]9gui_forms10ChoiceItem*
 __ZN[KRO]9gui_forms10CommandBar*
@@ -7975,6 +8043,7 @@ __ZN[KRO]9gui_forms18CommandRouteResult*
 __ZN[KRO]9gui_forms18CompiledThemeRules*
 __ZN[KRO]9gui_forms18ComponentContainer*
 __ZN[KRO]9gui_forms18ContextMenuRequest*
+__ZN[KRO]9gui_forms18ControlCanvasPaint*
 __ZN[KRO]9gui_forms18ControlPartMetrics*
 __ZN[KRO]9gui_forms18ControlRoleRecipes*
 __ZN[KRO]9gui_forms18CursorCapabilities*
@@ -8163,6 +8232,7 @@ __ZN[KRO]9gui_forms20BindingContextChange*
 __ZN[KRO]9gui_forms20CommandOverflowPanel*
 __ZN[KRO]9gui_forms20CompositorGeneration*
 __ZN[KRO]9gui_forms20ConnectedControlSeam*
+__ZN[KRO]9gui_forms20ControlCanvasTexture*
 __ZN[KRO]9gui_forms20ControlStripePattern*
 __ZN[KRO]9gui_forms20ControlVisualContext*
 __ZN[KRO]9gui_forms20DataGridViewRowEvent*
@@ -8621,6 +8691,7 @@ __ZN[KRO]9gui_forms8GroupBox*
 __ZN[KRO]9gui_forms8HelpBook*
 __ZN[KRO]9gui_forms8KeyChord*
 __ZN[KRO]9gui_forms8KeyEvent*
+__ZN[KRO]9gui_forms8LinkFlow*
 __ZN[KRO]9gui_forms8ListView*
 __ZN[KRO]9gui_forms8NodeSpec*
 __ZN[KRO]9gui_forms8PageView*
@@ -8738,6 +8809,12 @@ __ZT[VIST]N11gui_drawing6render14PngCodecLimits*E
 __ZT[VIST]N9gui_forms10BindingRow*E
 __ZT[VIST]N9gui_forms10BlockPanel*E
 __ZT[VIST]N9gui_forms10ButtonBase*E
+__ZT[VIST]N9gui_forms10CanvasArea*E
+__ZT[VIST]N9gui_forms10CanvasFlow*E
+__ZT[VIST]N9gui_forms10CanvasGrid*E
+__ZT[VIST]N9gui_forms10CanvasLine*E
+__ZT[VIST]N9gui_forms10CanvasLook*E
+__ZT[VIST]N9gui_forms10CanvasView*E
 __ZT[VIST]N9gui_forms10CardLayout*E
 __ZT[VIST]N9gui_forms10ChoiceItem*E
 __ZT[VIST]N9gui_forms10CommandBar*E
@@ -9450,6 +9527,7 @@ __ZT[VIST]N9gui_forms18CommandRouteResult*E
 __ZT[VIST]N9gui_forms18CompiledThemeRules*E
 __ZT[VIST]N9gui_forms18ComponentContainer*E
 __ZT[VIST]N9gui_forms18ContextMenuRequest*E
+__ZT[VIST]N9gui_forms18ControlCanvasPaint*E
 __ZT[VIST]N9gui_forms18ControlPartMetrics*E
 __ZT[VIST]N9gui_forms18ControlRoleRecipes*E
 __ZT[VIST]N9gui_forms18CursorCapabilities*E
@@ -9638,6 +9716,7 @@ __ZT[VIST]N9gui_forms20BindingContextChange*E
 __ZT[VIST]N9gui_forms20CommandOverflowPanel*E
 __ZT[VIST]N9gui_forms20CompositorGeneration*E
 __ZT[VIST]N9gui_forms20ConnectedControlSeam*E
+__ZT[VIST]N9gui_forms20ControlCanvasTexture*E
 __ZT[VIST]N9gui_forms20ControlStripePattern*E
 __ZT[VIST]N9gui_forms20ControlVisualContext*E
 __ZT[VIST]N9gui_forms20DataGridViewRowEvent*E
@@ -10096,6 +10175,7 @@ __ZT[VIST]N9gui_forms8GroupBox*E
 __ZT[VIST]N9gui_forms8HelpBook*E
 __ZT[VIST]N9gui_forms8KeyChord*E
 __ZT[VIST]N9gui_forms8KeyEvent*E
+__ZT[VIST]N9gui_forms8LinkFlow*E
 __ZT[VIST]N9gui_forms8ListView*E
 __ZT[VIST]N9gui_forms8NodeSpec*E
 __ZT[VIST]N9gui_forms8PageView*E
@@ -10213,6 +10293,12 @@ __ZT[hvc]*11gui_drawing6render14PngCodecLimits*
 __ZT[hvc]*9gui_forms10BindingRow*
 __ZT[hvc]*9gui_forms10BlockPanel*
 __ZT[hvc]*9gui_forms10ButtonBase*
+__ZT[hvc]*9gui_forms10CanvasArea*
+__ZT[hvc]*9gui_forms10CanvasFlow*
+__ZT[hvc]*9gui_forms10CanvasGrid*
+__ZT[hvc]*9gui_forms10CanvasLine*
+__ZT[hvc]*9gui_forms10CanvasLook*
+__ZT[hvc]*9gui_forms10CanvasView*
 __ZT[hvc]*9gui_forms10CardLayout*
 __ZT[hvc]*9gui_forms10ChoiceItem*
 __ZT[hvc]*9gui_forms10CommandBar*
@@ -10925,6 +11011,7 @@ __ZT[hvc]*9gui_forms18CommandRouteResult*
 __ZT[hvc]*9gui_forms18CompiledThemeRules*
 __ZT[hvc]*9gui_forms18ComponentContainer*
 __ZT[hvc]*9gui_forms18ContextMenuRequest*
+__ZT[hvc]*9gui_forms18ControlCanvasPaint*
 __ZT[hvc]*9gui_forms18ControlPartMetrics*
 __ZT[hvc]*9gui_forms18ControlRoleRecipes*
 __ZT[hvc]*9gui_forms18CursorCapabilities*
@@ -11113,6 +11200,7 @@ __ZT[hvc]*9gui_forms20BindingContextChange*
 __ZT[hvc]*9gui_forms20CommandOverflowPanel*
 __ZT[hvc]*9gui_forms20CompositorGeneration*
 __ZT[hvc]*9gui_forms20ConnectedControlSeam*
+__ZT[hvc]*9gui_forms20ControlCanvasTexture*
 __ZT[hvc]*9gui_forms20ControlStripePattern*
 __ZT[hvc]*9gui_forms20ControlVisualContext*
 __ZT[hvc]*9gui_forms20DataGridViewRowEvent*
@@ -11571,6 +11659,7 @@ __ZT[hvc]*9gui_forms8GroupBox*
 __ZT[hvc]*9gui_forms8HelpBook*
 __ZT[hvc]*9gui_forms8KeyChord*
 __ZT[hvc]*9gui_forms8KeyEvent*
+__ZT[hvc]*9gui_forms8LinkFlow*
 __ZT[hvc]*9gui_forms8ListView*
 __ZT[hvc]*9gui_forms8NodeSpec*
 __ZT[hvc]*9gui_forms8PageView*
@@ -11688,6 +11777,12 @@ __ZZN11gui_drawing6render14PngCodecLimits*
 __ZZN9gui_forms10BindingRow*
 __ZZN9gui_forms10BlockPanel*
 __ZZN9gui_forms10ButtonBase*
+__ZZN9gui_forms10CanvasArea*
+__ZZN9gui_forms10CanvasFlow*
+__ZZN9gui_forms10CanvasGrid*
+__ZZN9gui_forms10CanvasLine*
+__ZZN9gui_forms10CanvasLook*
+__ZZN9gui_forms10CanvasView*
 __ZZN9gui_forms10CardLayout*
 __ZZN9gui_forms10ChoiceItem*
 __ZZN9gui_forms10CommandBar*
@@ -12400,6 +12495,7 @@ __ZZN9gui_forms18CommandRouteResult*
 __ZZN9gui_forms18CompiledThemeRules*
 __ZZN9gui_forms18ComponentContainer*
 __ZZN9gui_forms18ContextMenuRequest*
+__ZZN9gui_forms18ControlCanvasPaint*
 __ZZN9gui_forms18ControlPartMetrics*
 __ZZN9gui_forms18ControlRoleRecipes*
 __ZZN9gui_forms18CursorCapabilities*
@@ -12588,6 +12684,7 @@ __ZZN9gui_forms20BindingContextChange*
 __ZZN9gui_forms20CommandOverflowPanel*
 __ZZN9gui_forms20CompositorGeneration*
 __ZZN9gui_forms20ConnectedControlSeam*
+__ZZN9gui_forms20ControlCanvasTexture*
 __ZZN9gui_forms20ControlStripePattern*
 __ZZN9gui_forms20ControlVisualContext*
 __ZZN9gui_forms20DataGridViewRowEvent*
@@ -13046,6 +13143,7 @@ __ZZN9gui_forms8GroupBox*
 __ZZN9gui_forms8HelpBook*
 __ZZN9gui_forms8KeyChord*
 __ZZN9gui_forms8KeyEvent*
+__ZZN9gui_forms8LinkFlow*
 __ZZN9gui_forms8ListView*
 __ZZN9gui_forms8NodeSpec*
 __ZZN9gui_forms8PageView*
@@ -13163,6 +13261,12 @@ __ZZNK11gui_drawing6render14PngCodecLimits*
 __ZZNK9gui_forms10BindingRow*
 __ZZNK9gui_forms10BlockPanel*
 __ZZNK9gui_forms10ButtonBase*
+__ZZNK9gui_forms10CanvasArea*
+__ZZNK9gui_forms10CanvasFlow*
+__ZZNK9gui_forms10CanvasGrid*
+__ZZNK9gui_forms10CanvasLine*
+__ZZNK9gui_forms10CanvasLook*
+__ZZNK9gui_forms10CanvasView*
 __ZZNK9gui_forms10CardLayout*
 __ZZNK9gui_forms10ChoiceItem*
 __ZZNK9gui_forms10CommandBar*
@@ -13875,6 +13979,7 @@ __ZZNK9gui_forms18CommandRouteResult*
 __ZZNK9gui_forms18CompiledThemeRules*
 __ZZNK9gui_forms18ComponentContainer*
 __ZZNK9gui_forms18ContextMenuRequest*
+__ZZNK9gui_forms18ControlCanvasPaint*
 __ZZNK9gui_forms18ControlPartMetrics*
 __ZZNK9gui_forms18ControlRoleRecipes*
 __ZZNK9gui_forms18CursorCapabilities*
@@ -14063,6 +14168,7 @@ __ZZNK9gui_forms20BindingContextChange*
 __ZZNK9gui_forms20CommandOverflowPanel*
 __ZZNK9gui_forms20CompositorGeneration*
 __ZZNK9gui_forms20ConnectedControlSeam*
+__ZZNK9gui_forms20ControlCanvasTexture*
 __ZZNK9gui_forms20ControlStripePattern*
 __ZZNK9gui_forms20ControlVisualContext*
 __ZZNK9gui_forms20DataGridViewRowEvent*
@@ -14521,6 +14627,7 @@ __ZZNK9gui_forms8GroupBox*
 __ZZNK9gui_forms8HelpBook*
 __ZZNK9gui_forms8KeyChord*
 __ZZNK9gui_forms8KeyEvent*
+__ZZNK9gui_forms8LinkFlow*
 __ZZNK9gui_forms8ListView*
 __ZZNK9gui_forms8NodeSpec*
 __ZZNK9gui_forms8PageView*

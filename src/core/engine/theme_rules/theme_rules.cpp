@@ -1103,7 +1103,11 @@ bool part_length_field(RecipeField field) noexcept {
                         field == RecipeField::padding_inline || field == RecipeField::gap ||
                         field == RecipeField::margin_block_start || field == RecipeField::margin_block_end ||
                         field == RecipeField::taper || field == RecipeField::flare ||
-                        field == RecipeField::edge_shadow_width || field == RecipeField::stripe_pitch;
+                        field == RecipeField::edge_shadow_width || field == RecipeField::stripe_pitch ||
+                        field == RecipeField::stroke_dash || field == RecipeField::stroke_gap ||
+                        field == RecipeField::halo_width || field == RecipeField::corner_radius ||
+                        field == RecipeField::grid_spacing || field == RecipeField::grid_band ||
+                        field == RecipeField::flow_spacing;
     return length;
 }
 
@@ -1873,7 +1877,9 @@ constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "padding_inline", "gap", "margin_block_start", "margin_block_end", "taper", "taper_colour", "flare",
     "flare_colour", "edge_shadow_width", "edge_shadow_colour", "stripe_pitch", "stripe_ratio", "stripe_angle",
     "stripe_lean", "stripe_direction", "stripe_speed", "stripe_colour", "stripe_ground_colour", "stripe_gloss",
-    "stripe_reduced_motion",
+    "stripe_reduced_motion", "fill_colour", "stroke_colour", "stroke_dash", "stroke_gap", "halo_width",
+    "halo_colour", "corner_radius", "grid_spacing", "grid_band", "texture_image", "texture_contrast", "flow_style",
+    "flow_speed", "flow_spacing",
 };
 
 } // namespace
@@ -1888,7 +1894,12 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     // their bands.
     case RecipeField::scrim_colour:
     case RecipeField::stripe_colour:
-    case RecipeField::stripe_ground_colour: return ColourPosition::fill;
+    case RecipeField::stripe_ground_colour:
+    // A canvas part's area colour.
+    case RecipeField::fill_colour: return ColourPosition::fill;
+    // A canvas part's lines and a link's halo.
+    case RecipeField::stroke_colour:
+    case RecipeField::halo_colour:
     case RecipeField::outline_colour:
     case RecipeField::default_outline_colour:
     case RecipeField::taper_colour:
@@ -1923,6 +1934,17 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::stripe_speed:
     case RecipeField::stripe_gloss:
     case RecipeField::stripe_reduced_motion:
+    case RecipeField::stroke_dash:
+    case RecipeField::stroke_gap:
+    case RecipeField::halo_width:
+    case RecipeField::corner_radius:
+    case RecipeField::grid_spacing:
+    case RecipeField::grid_band:
+    case RecipeField::texture_image:
+    case RecipeField::texture_contrast:
+    case RecipeField::flow_style:
+    case RecipeField::flow_speed:
+    case RecipeField::flow_spacing:
     case RecipeField::count:
     default: return ColourPosition::none;
     }
@@ -1947,7 +1969,34 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::flare_colour:
     case RecipeField::edge_shadow_colour:
     case RecipeField::stripe_colour:
-    case RecipeField::stripe_ground_colour: return true;
+    case RecipeField::stripe_ground_colour:
+    case RecipeField::fill_colour:
+    case RecipeField::stroke_colour:
+    case RecipeField::halo_colour: return true;
+    case RecipeField::stroke_dash:
+    case RecipeField::stroke_gap: return in_range(declaration.number, 0.0, maximum_canvas_dash);
+    case RecipeField::halo_width: return in_range(declaration.number, 0.0, maximum_canvas_halo_width);
+    case RecipeField::corner_radius: return in_range(declaration.number, 0.0, maximum_canvas_corner_radius);
+    case RecipeField::grid_spacing:
+        return in_range(declaration.number, minimum_canvas_grid_spacing, maximum_canvas_grid_spacing);
+    case RecipeField::grid_band:
+        return in_range(declaration.number, minimum_canvas_grid_band, maximum_canvas_grid_band);
+    // No image is `none`; an image has a size and a density.
+    case RecipeField::texture_image: {
+        if (!declaration.image) return true;
+        const bool sized = declaration.image_size.width >= 1.0 && declaration.image_size.height >= 1.0 &&
+                           std::isfinite(declaration.image_size.width) &&
+                           std::isfinite(declaration.image_size.height);
+        const bool dense = std::isfinite(declaration.image_density) && declaration.image_density > 0.0;
+        return (*declaration.image).value != 0U && sized && dense;
+    }
+    case RecipeField::texture_contrast: return in_range(declaration.number, 0.0, maximum_canvas_texture_contrast);
+    case RecipeField::flow_style:
+        return declaration.flow_style == CanvasFlowStyle::none || declaration.flow_style == CanvasFlowStyle::dots ||
+               declaration.flow_style == CanvasFlowStyle::dashes;
+    case RecipeField::flow_speed: return in_range(declaration.number, 0.0, maximum_canvas_flow_speed);
+    case RecipeField::flow_spacing:
+        return in_range(declaration.number, minimum_canvas_flow_spacing, maximum_canvas_flow_spacing);
     // A pitch of 0 is `auto`.
     case RecipeField::stripe_pitch:
         return declaration.number == 0.0 ||

@@ -125,6 +125,20 @@ enum class MaterialProperty : std::uint8_t {
     stripe_ratio,
     stripe_reduced_motion,
     stripe_speed,
+    // The node canvas's part fields (cp31; NODE_GRAPH_SPEC gaps N2, 2 and
+    // 3): recipe fields of a named part (RecipeField::fill_colour on), read
+    // by resolve_canvas_look.
+    background_texture,
+    corner_radius,
+    fill_color,
+    flow,
+    flow_spacing,
+    flow_speed,
+    grid_band,
+    grid_spacing,
+    halo,
+    stroke_color,
+    stroke_dash,
 };
 
 // An image resource the theme's manifest lists, bound to the engine's image
@@ -161,6 +175,11 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
 // (`stripe-pitch` to `stripe-reduced-motion`): part fields, admitted only on
 // a named part.
 [[nodiscard]] bool stripe_property(MaterialProperty property) noexcept;
+
+// Whether `property` is one of the node canvas's part properties
+// (`fill-color` to `flow-spacing`, `background-texture`): part fields,
+// admitted only on a named part.
+[[nodiscard]] bool canvas_property(MaterialProperty property) noexcept;
 
 // The recipe fields a recipe property sets, in order (`count` of the
 // capacity are live): what CSS's `initial` resets. None for a material

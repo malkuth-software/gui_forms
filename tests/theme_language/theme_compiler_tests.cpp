@@ -97,6 +97,8 @@ struct Options final {
     EngineVersion requires_engine{current_engine_version};
     // The effects an `effect` may name; null checks the name's form only.
     const EffectRegistry* effects{};
+    // The theme images `url("resource:...")` may name in a texture.
+    std::span<const theme_language::ThemeImageResource> images{};
 };
 
 struct Compilation final {
@@ -118,6 +120,7 @@ Compilation compile(std::string_view text, Options options = Options{}) {
                             .vocabulary = SelectorVocabulary{},
                             .published_values = published,
                             .resources = resources,
+                            .images = options.images,
                             .requires_engine = options.requires_engine,
                             .effects = options.effects};
     input.vocabulary.controls = controls;
@@ -741,6 +744,87 @@ void test_warnings() {
         }
     }
     require(each_refused, "each stripe value outside its range or vocabulary refuses its sheet with one error");
+    // The node canvas's properties (cp31) are part fields too: admitted on
+    // a named part, range-checked, and refused on a control; the texture
+    // names a theme image, multiplies it, and admits at most 3 %.
+    const theme_language::ThemeImageResource grain{.resource = "icon.check",
+                                                   .image = ImageId{41U},
+                                                   .pixel_size = Size{64.0, 32.0},
+                                                   .pixels_per_logical_pixel = 2.0};
+    Options textured{};
+    textured.images = std::span<const theme_language::ThemeImageResource>(&grain, 1U);
+    const Compilation canvas = compile(
+        "#a::part(face) { fill-color: #fbfcfd; stroke-color: rgb(99 132 178 / 22%); stroke-width: 1.5px;"
+        " stroke-dash: 6px 4px; halo: rgb(47 105 190 / 30%) 4px; corner-radius: 6px; grid-spacing: 16px;"
+        " grid-band: 12px; flow: dots; flow-speed: 48; flow-spacing: 16px;"
+        " background-texture: url(\"resource:icon.check\") multiply 2.5% }\n"
+        "#b::part(face) { stroke-dash: none; halo: none; flow: none; background-texture: none }",
+        textured);
+    bool canvas_admitted = true;
+    for (const ThemeDiagnostic& diagnostic : canvas.diagnostics) {
+        if (diagnostic.code == DiagnosticCode::literal_colour_unremappable) continue;
+        canvas_admitted = false;
+        std::cerr << "  canvas: " << diagnostic_code_label(diagnostic.code) << ' '
+                  << diagnostic_code_name(diagnostic.code) << " (" << diagnostic.detail << ")\n";
+    }
+    require(canvas.outcome == CompileOutcome::compiled && canvas_admitted && canvas.sheet.rules.size() == 2U,
+            "the node canvas properties compile on a named part");
+    const RecipeDeclaration* texture = nullptr;
+    const RecipeDeclaration* contrast = nullptr;
+    const RecipeDeclaration* dash = nullptr;
+    const RecipeDeclaration* gap = nullptr;
+    const RecipeDeclaration* halo_width = nullptr;
+    const RecipeDeclaration* flow = nullptr;
+    if (canvas.sheet.rules.size() == 2U) {
+        for (const RecipeDeclaration& field : canvas.sheet.rules[0].recipe_fields) {
+            if (field.field == RecipeField::texture_image) texture = &field;
+            if (field.field == RecipeField::texture_contrast) contrast = &field;
+            if (field.field == RecipeField::stroke_dash) dash = &field;
+            if (field.field == RecipeField::stroke_gap) gap = &field;
+            if (field.field == RecipeField::halo_width) halo_width = &field;
+            if (field.field == RecipeField::flow_style) flow = &field;
+        }
+    }
+    require(texture != nullptr && (*texture).image == std::optional<ImageId>(ImageId{41U}) &&
+                (*texture).image_size == Size{64.0, 32.0} && (*texture).image_density == 2.0,
+            "a texture lowers to its theme image, its pixel size and its density");
+    require(contrast != nullptr && (*contrast).number == 0.025, "a texture's contrast lowers to a fraction");
+    require(dash != nullptr && (*dash).number == 6.0 && gap != nullptr && (*gap).number == 4.0,
+            "stroke-dash lowers to its dash and its gap");
+    require(halo_width != nullptr && (*halo_width).number == 4.0, "a halo's width is read in either order");
+    require(flow != nullptr && (*flow).flow_style == CanvasFlowStyle::dots, "flow lowers to its mark");
+    const std::array<BadStripe, 9> bad_canvas{{
+        {"#a::part(face) { background-texture: url(\"resource:icon.check\") multiply 5% }",
+         DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { background-texture: url(\"resource:icon.check\") screen 2% }",
+         DiagnosticCode::keyword_unknown},
+        {"#a::part(face) { stroke-dash: 80px 4px }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { halo: 20px #ffffff }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { corner-radius: 65px }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { grid-spacing: 1px }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { grid-band: 129px }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { flow: sparks }", DiagnosticCode::keyword_unknown},
+        {"#a::part(face) { flow-speed: 600 }", DiagnosticCode::value_out_of_range},
+    }};
+    bool canvas_refused = true;
+    for (const BadStripe& bad : bad_canvas) {
+        const Compilation refused = compile(bad.sheet, textured);
+        const bool one = refused.outcome == CompileOutcome::refused && refused.diagnostics.size() == 1U &&
+                         refused.diagnostics[0].code == bad.code;
+        if (!one) {
+            canvas_refused = false;
+            std::cerr << "  bad canvas value not refused as expected: " << bad.sheet << '\n';
+        }
+    }
+    require(canvas_refused, "each canvas value outside its range or vocabulary refuses its sheet with one error");
+    const Compilation untextured = compile("#a::part(face) { background-texture: url(\"resource:icon.check\") multiply 1% }");
+    require(untextured.outcome == CompileOutcome::refused,
+            "a texture naming a resource that is not a theme image is refused");
+    const Compilation control_canvas = compile("#a { fill-color: #ffffff; flow: dots }");
+    require(control_canvas.outcome == CompileOutcome::compiled && control_canvas.diagnostics.size() == 2U &&
+                warned(control_canvas, DiagnosticCode::property_not_admitted, "fill-color") &&
+                warned(control_canvas, DiagnosticCode::property_not_admitted, "flow"),
+            "the canvas properties are refused on a control");
     const Compilation control_stripes = compile("#a { stripe-speed: 1 }");
     require(control_stripes.outcome == CompileOutcome::compiled && control_stripes.diagnostics.size() == 1U &&
                 warned(control_stripes, DiagnosticCode::property_not_admitted, "stripe-speed"),

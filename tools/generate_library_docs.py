@@ -190,6 +190,8 @@ HEADER_TO_CATEGORY: dict[str, str] = {
     # The node canvas's graph model and link router precede NodeCanvas.
     "include/gui_forms/controls/link_router.hpp": "Drawing",
     "include/gui_forms/controls/node_graph.hpp": "Drawing",
+    # The node canvas's link flow effect precedes NodeCanvas too.
+    "include/gui_forms/controls/link_flow_effects.hpp": "Drawing",
     # The help system's printing sits beside its controls.
     "include/gui_forms/controls/help_print.hpp": "Information display",
     # The stock specimens (one per anatomy, for captures and the theme

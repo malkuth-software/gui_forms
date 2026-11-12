@@ -53,6 +53,8 @@ Related types
      - An operation's result: the status and, for add_node and connect, the new record's identity (zero otherwise).
    * - :cpp:class:`GraphSaveResult <gui_forms::GraphSaveResult>`
      - save's result: the status, the bytes written (zero unless ok) and the document's size in bytes (always set, so save with empty storage measures).
+   * - :cpp:class:`LinkFlow <gui_forms::LinkFlow>`
+     - The flow: one dashed stroke per link, its dash pattern moved along the link by the phase.
    * - :cpp:class:`LinkId <gui_forms::LinkId>`
      - A link's identity, as NodeId.
    * - :cpp:class:`LinkRecord <gui_forms::LinkRecord>`
@@ -293,6 +295,23 @@ Related types
    .. cpp:member:: std::size_t written
 
    .. cpp:member:: std::size_t required
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LinkFlow final
+
+   ``#include <gui_forms/controls/link_flow_effects.hpp>``
+
+   The flow: one dashed stroke per link, its dash pattern moved along the link by the phase. ``dots`` are round beads half the link's width every ``spacing``; ``dashes`` are breaks half a pitch long, a little wider than the link. The colour is the frame's primary colour.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void run(const EffectView<NodeCanvas>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = NodeCanvas
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
 
 .. cpp:namespace:: gui_forms
 
@@ -1664,6 +1683,26 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/link_flow_effects.hpp>``
+
+.. cpp:function:: bool link_flow_wants_frames(const EffectView<NodeCanvas>& view, bool motion_reduced) noexcept
+
+   Whether the canvas should enlist the flow on the motion clock: some link flows, the style draws marks, the speed is above 0 and motion is not reduced. Anything else: no frames (a still frame draws the static form).
+
+.. cpp:function:: Color link_flow_mark_colour(const CanvasLook& look) noexcept
+
+   The colour the canvas gives the flow as its primary effect colour: the canvas's own colour from ``look``, opaque.
+
+.. cpp:function:: void register_link_flow_effects(EffectRegistry& registry)
+
+   Adds the node canvas's effects to ``registry``.
+
+.. cpp:var:: constexpr std::size_t maximum_flow_links
+
+   The most links one frame of flow draws: the canvas fills the view with the flowing links it shows, nearest first, and leaves the rest still. Value: ``64U``.
 
 .. cpp:namespace:: gui_forms
 

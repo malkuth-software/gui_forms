@@ -399,6 +399,7 @@ add_library(gui_forms_core STATIC
     src/core/theme/familiar_themes/familiar_themes.cpp
     src/core/theme/gui_forms_theme/gui_forms_theme.cpp
     src/core/theme/stock_anatomies/stock_anatomies.cpp
+    src/core/theme/canvas_look/canvas_look.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
     src/core/theme/part_painting/part_painting.cpp
     src/core/theme/owner_draw/owner_draw.cpp
@@ -1128,6 +1129,7 @@ add_library(gui_forms_controls STATIC
     src/controls/range_control/progress_bar/progress_bar.cpp
     src/controls/instruments/sweep_scope/sweep_scope.cpp
     src/controls/instruments/sweep_scope/sweep_scope_effects.cpp
+    src/controls/link_flow/link_flow_effects.cpp
     src/controls/instruments/sparkline/sparkline.cpp
     src/controls/plots/plot_axis_item/plot_axis_item.cpp
     src/controls/plots/plot_series_item/plot_series_item.cpp
@@ -1162,7 +1164,8 @@ set_target_properties(gui_forms_controls gui_forms_host_headless PROPERTIES
 # pass (cmake/LocalizablePlugin.cmake, gui_forms_verify_effects).
 gui_forms_verify_effects(gui_forms_controls
     SOURCES src/controls/range_control/progress_bar/progress_bar_effects.cpp
-            src/controls/instruments/sweep_scope/sweep_scope_effects.cpp)
+            src/controls/instruments/sweep_scope/sweep_scope_effects.cpp
+            src/controls/link_flow/link_flow_effects.cpp)
 
 # The lab library (audit F9): controls a product uses that are not part of
 # the installed library. CorrespondenceView, ReviewCard and InstrumentRack
@@ -4273,6 +4276,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_sweep_scope_tests tests/sweep_scope_tests.cpp)
     target_link_libraries(gui_forms_sweep_scope_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_sweep_scope_tests COMMAND gui_forms_sweep_scope_tests)
+
+    # The node canvas's look, theme side (cp31): anatomy, recipes in light,
+    # dark and high contrast, grid variants, the texture clamp, the paint
+    # commands and the link_flow effect.
+    add_executable(gui_forms_canvas_look_tests tests/canvas_look_tests.cpp)
+    target_link_libraries(gui_forms_canvas_look_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_canvas_look_tests COMMAND gui_forms_canvas_look_tests)
     add_executable(gui_forms_plot_view_tests tests/plot_view_tests.cpp)
     target_link_libraries(gui_forms_plot_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_plot_view_tests COMMAND gui_forms_plot_view_tests)
@@ -5695,6 +5705,15 @@ if(GUI_FORMS_BUILD_TESTS)
             target_link_libraries(gui_forms_${lamp_test}_tests PRIVATE gui_forms_controls gui_forms_skia)
             add_test(NAME gui_forms_${lamp_test}_tests COMMAND gui_forms_${lamp_test}_tests)
         endforeach()
+        # The node canvas's look in pixels (cp31), and its preview set:
+        # gui_forms_canvas_look_raster_tests --preview <directory>.
+        add_executable(gui_forms_canvas_look_raster_tests tests/canvas_look_raster_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_canvas_look_raster_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_canvas_look_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_canvas_look_raster_tests COMMAND gui_forms_canvas_look_raster_tests)
 
         add_executable(gui_forms_canvas_raster_tests tests/canvas_raster_tests.cpp)
         target_link_libraries(gui_forms_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)

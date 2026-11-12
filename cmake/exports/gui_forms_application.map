@@ -65,6 +65,12 @@
     _ZGVZN9gui_forms10BindingRow*;
     _ZGVZN9gui_forms10BlockPanel*;
     _ZGVZN9gui_forms10ButtonBase*;
+    _ZGVZN9gui_forms10CanvasArea*;
+    _ZGVZN9gui_forms10CanvasFlow*;
+    _ZGVZN9gui_forms10CanvasGrid*;
+    _ZGVZN9gui_forms10CanvasLine*;
+    _ZGVZN9gui_forms10CanvasLook*;
+    _ZGVZN9gui_forms10CanvasView*;
     _ZGVZN9gui_forms10CardLayout*;
     _ZGVZN9gui_forms10ChoiceItem*;
     _ZGVZN9gui_forms10CommandBar*;
@@ -777,6 +783,7 @@
     _ZGVZN9gui_forms18CompiledThemeRules*;
     _ZGVZN9gui_forms18ComponentContainer*;
     _ZGVZN9gui_forms18ContextMenuRequest*;
+    _ZGVZN9gui_forms18ControlCanvasPaint*;
     _ZGVZN9gui_forms18ControlPartMetrics*;
     _ZGVZN9gui_forms18ControlRoleRecipes*;
     _ZGVZN9gui_forms18CursorCapabilities*;
@@ -965,6 +972,7 @@
     _ZGVZN9gui_forms20CommandOverflowPanel*;
     _ZGVZN9gui_forms20CompositorGeneration*;
     _ZGVZN9gui_forms20ConnectedControlSeam*;
+    _ZGVZN9gui_forms20ControlCanvasTexture*;
     _ZGVZN9gui_forms20ControlStripePattern*;
     _ZGVZN9gui_forms20ControlVisualContext*;
     _ZGVZN9gui_forms20DataGridViewRowEvent*;
@@ -1423,6 +1431,7 @@
     _ZGVZN9gui_forms8HelpBook*;
     _ZGVZN9gui_forms8KeyChord*;
     _ZGVZN9gui_forms8KeyEvent*;
+    _ZGVZN9gui_forms8LinkFlow*;
     _ZGVZN9gui_forms8ListView*;
     _ZGVZN9gui_forms8NodeSpec*;
     _ZGVZN9gui_forms8PageView*;
@@ -1540,6 +1549,12 @@
     _ZGVZNK9gui_forms10BindingRow*;
     _ZGVZNK9gui_forms10BlockPanel*;
     _ZGVZNK9gui_forms10ButtonBase*;
+    _ZGVZNK9gui_forms10CanvasArea*;
+    _ZGVZNK9gui_forms10CanvasFlow*;
+    _ZGVZNK9gui_forms10CanvasGrid*;
+    _ZGVZNK9gui_forms10CanvasLine*;
+    _ZGVZNK9gui_forms10CanvasLook*;
+    _ZGVZNK9gui_forms10CanvasView*;
     _ZGVZNK9gui_forms10CardLayout*;
     _ZGVZNK9gui_forms10ChoiceItem*;
     _ZGVZNK9gui_forms10CommandBar*;
@@ -2252,6 +2267,7 @@
     _ZGVZNK9gui_forms18CompiledThemeRules*;
     _ZGVZNK9gui_forms18ComponentContainer*;
     _ZGVZNK9gui_forms18ContextMenuRequest*;
+    _ZGVZNK9gui_forms18ControlCanvasPaint*;
     _ZGVZNK9gui_forms18ControlPartMetrics*;
     _ZGVZNK9gui_forms18ControlRoleRecipes*;
     _ZGVZNK9gui_forms18CursorCapabilities*;
@@ -2440,6 +2456,7 @@
     _ZGVZNK9gui_forms20CommandOverflowPanel*;
     _ZGVZNK9gui_forms20CompositorGeneration*;
     _ZGVZNK9gui_forms20ConnectedControlSeam*;
+    _ZGVZNK9gui_forms20ControlCanvasTexture*;
     _ZGVZNK9gui_forms20ControlStripePattern*;
     _ZGVZNK9gui_forms20ControlVisualContext*;
     _ZGVZNK9gui_forms20DataGridViewRowEvent*;
@@ -2898,6 +2915,7 @@
     _ZGVZNK9gui_forms8HelpBook*;
     _ZGVZNK9gui_forms8KeyChord*;
     _ZGVZNK9gui_forms8KeyEvent*;
+    _ZGVZNK9gui_forms8LinkFlow*;
     _ZGVZNK9gui_forms8ListView*;
     _ZGVZNK9gui_forms8NodeSpec*;
     _ZGVZNK9gui_forms8PageView*;
@@ -3067,6 +3085,12 @@
     _ZN9gui_forms10BindingRow*;
     _ZN9gui_forms10BlockPanel*;
     _ZN9gui_forms10ButtonBase*;
+    _ZN9gui_forms10CanvasArea*;
+    _ZN9gui_forms10CanvasFlow*;
+    _ZN9gui_forms10CanvasGrid*;
+    _ZN9gui_forms10CanvasLine*;
+    _ZN9gui_forms10CanvasLook*;
+    _ZN9gui_forms10CanvasView*;
     _ZN9gui_forms10CardLayout*;
     _ZN9gui_forms10ChoiceItem*;
     _ZN9gui_forms10CommandBar*;
@@ -4025,6 +4049,14 @@
     _ZN9gui_forms17locale_xml_limitsE*;
     _ZN9gui_forms17measure_paragraphB*;
     _ZN9gui_forms17measure_paragraphE*;
+    _ZN9gui_forms17paint_canvas_lampB*;
+    _ZN9gui_forms17paint_canvas_lampE*;
+    _ZN9gui_forms17paint_canvas_linkB*;
+    _ZN9gui_forms17paint_canvas_linkE*;
+    _ZN9gui_forms17paint_canvas_nodeB*;
+    _ZN9gui_forms17paint_canvas_nodeE*;
+    _ZN9gui_forms17paint_canvas_portB*;
+    _ZN9gui_forms17paint_canvas_portE*;
     _ZN9gui_forms17paint_masked_fillB*;
     _ZN9gui_forms17paint_masked_fillE*;
     _ZN9gui_forms17part_corner_radiiB*;
@@ -4059,6 +4091,7 @@
     _ZN9gui_forms18CompiledThemeRules*;
     _ZN9gui_forms18ComponentContainer*;
     _ZN9gui_forms18ContextMenuRequest*;
+    _ZN9gui_forms18ControlCanvasPaint*;
     _ZN9gui_forms18ControlPartMetrics*;
     _ZN9gui_forms18ControlRoleRecipes*;
     _ZN9gui_forms18CursorCapabilities*;
@@ -4363,6 +4396,8 @@
     _ZN9gui_forms19mnemonic_access_keyE*;
     _ZN9gui_forms19motion_curve_easingB*;
     _ZN9gui_forms19motion_curve_easingE*;
+    _ZN9gui_forms19node_canvas_anatomyB*;
+    _ZN9gui_forms19node_canvas_anatomyE*;
     _ZN9gui_forms19normalize_help_bodyB*;
     _ZN9gui_forms19normalize_help_bodyE*;
     _ZN9gui_forms19note_effect_refusedB*;
@@ -4383,6 +4418,8 @@
     _ZN9gui_forms19put_declared_topicsE*;
     _ZN9gui_forms19read_property_entryB*;
     _ZN9gui_forms19read_property_entryE*;
+    _ZN9gui_forms19resolve_canvas_lookB*;
+    _ZN9gui_forms19resolve_canvas_lookE*;
     _ZN9gui_forms19semantic_state_nameB*;
     _ZN9gui_forms19semantic_state_nameE*;
     _ZN9gui_forms19show_specimen_stateB*;
@@ -4417,6 +4454,7 @@
     _ZN9gui_forms20CommandOverflowPanel*;
     _ZN9gui_forms20CompositorGeneration*;
     _ZN9gui_forms20ConnectedControlSeam*;
+    _ZN9gui_forms20ControlCanvasTexture*;
     _ZN9gui_forms20ControlStripePattern*;
     _ZN9gui_forms20ControlVisualContext*;
     _ZN9gui_forms20DataGridViewRowEvent*;
@@ -4505,6 +4543,8 @@
     _ZN9gui_forms20make_logical_monitorE*;
     _ZN9gui_forms20make_property_objectB*;
     _ZN9gui_forms20make_property_objectE*;
+    _ZN9gui_forms20paint_canvas_marqueeB*;
+    _ZN9gui_forms20paint_canvas_marqueeE*;
     _ZN9gui_forms20paint_direction_ringB*;
     _ZN9gui_forms20paint_direction_ringE*;
     _ZN9gui_forms20paint_text_over_fillB*;
@@ -4644,6 +4684,8 @@
     _ZN9gui_forms21host_window_kind_nameE*;
     _ZN9gui_forms21icon_identifier_validB*;
     _ZN9gui_forms21icon_identifier_validE*;
+    _ZN9gui_forms21link_flow_mark_colourB*;
+    _ZN9gui_forms21link_flow_mark_colourE*;
     _ZN9gui_forms21mask_result_hint_nameB*;
     _ZN9gui_forms21mask_result_hint_nameE*;
     _ZN9gui_forms21media_condition_holdsB*;
@@ -4752,6 +4794,8 @@
     _ZN9gui_forms22grid_span_extent_validE*;
     _ZN9gui_forms22help_locale_error_nameB*;
     _ZN9gui_forms22help_locale_error_nameE*;
+    _ZN9gui_forms22link_flow_wants_framesB*;
+    _ZN9gui_forms22link_flow_wants_framesE*;
     _ZN9gui_forms22locale_file_error_nameB*;
     _ZN9gui_forms22locale_file_error_nameE*;
     _ZN9gui_forms22measure_available_sizeB*;
@@ -4884,6 +4928,8 @@
     _ZN9gui_forms23nearest_logical_monitorE*;
     _ZN9gui_forms23overridden_presentationB*;
     _ZN9gui_forms23overridden_presentationE*;
+    _ZN9gui_forms23paint_canvas_backgroundB*;
+    _ZN9gui_forms23paint_canvas_backgroundE*;
     _ZN9gui_forms23paragraph_storage_boundB*;
     _ZN9gui_forms23paragraph_storage_boundE*;
     _ZN9gui_forms23raster_view_defect_nameB*;
@@ -5105,6 +5151,8 @@
     _ZN9gui_forms26property_value_origin_nameE*;
     _ZN9gui_forms26recipe_declaration_lengthsB*;
     _ZN9gui_forms26recipe_declaration_lengthsE*;
+    _ZN9gui_forms26register_link_flow_effectsB*;
+    _ZN9gui_forms26register_link_flow_effectsE*;
     _ZN9gui_forms26reset_child_property_entryB*;
     _ZN9gui_forms26reset_child_property_entryE*;
     _ZN9gui_forms26show_specimen_custom_stateB*;
@@ -5130,6 +5178,8 @@
     _ZN9gui_forms27form_start_position_definedE*;
     _ZN9gui_forms27layout_diagnostic_code_nameB*;
     _ZN9gui_forms27layout_diagnostic_code_nameE*;
+    _ZN9gui_forms27paint_canvas_node_selectionB*;
+    _ZN9gui_forms27paint_canvas_node_selectionE*;
     _ZN9gui_forms27recipe_declaration_admittedB*;
     _ZN9gui_forms27recipe_declaration_admittedE*;
     _ZN9gui_forms27semantic_feedback_kind_nameB*;
@@ -5189,6 +5239,8 @@
     _ZN9gui_forms29PrimitiveParameterDeclaration*;
     _ZN9gui_forms29animation_interval_for_travelB*;
     _ZN9gui_forms29animation_interval_for_travelE*;
+    _ZN9gui_forms29clamp_canvas_texture_contrastB*;
+    _ZN9gui_forms29clamp_canvas_texture_contrastE*;
     _ZN9gui_forms29effect_selection_outcome_nameB*;
     _ZN9gui_forms29effect_selection_outcome_nameE*;
     _ZN9gui_forms29fill_semantic_text_boundariesB*;
@@ -5609,6 +5661,7 @@
     _ZN9gui_forms8HelpBook*;
     _ZN9gui_forms8KeyChord*;
     _ZN9gui_forms8KeyEvent*;
+    _ZN9gui_forms8LinkFlow*;
     _ZN9gui_forms8ListView*;
     _ZN9gui_forms8NodeSpec*;
     _ZN9gui_forms8PageView*;
@@ -5790,6 +5843,12 @@
     _ZNK[RO]9gui_forms10BindingRow*;
     _ZNK[RO]9gui_forms10BlockPanel*;
     _ZNK[RO]9gui_forms10ButtonBase*;
+    _ZNK[RO]9gui_forms10CanvasArea*;
+    _ZNK[RO]9gui_forms10CanvasFlow*;
+    _ZNK[RO]9gui_forms10CanvasGrid*;
+    _ZNK[RO]9gui_forms10CanvasLine*;
+    _ZNK[RO]9gui_forms10CanvasLook*;
+    _ZNK[RO]9gui_forms10CanvasView*;
     _ZNK[RO]9gui_forms10CardLayout*;
     _ZNK[RO]9gui_forms10ChoiceItem*;
     _ZNK[RO]9gui_forms10CommandBar*;
@@ -6502,6 +6561,7 @@
     _ZNK[RO]9gui_forms18CompiledThemeRules*;
     _ZNK[RO]9gui_forms18ComponentContainer*;
     _ZNK[RO]9gui_forms18ContextMenuRequest*;
+    _ZNK[RO]9gui_forms18ControlCanvasPaint*;
     _ZNK[RO]9gui_forms18ControlPartMetrics*;
     _ZNK[RO]9gui_forms18ControlRoleRecipes*;
     _ZNK[RO]9gui_forms18CursorCapabilities*;
@@ -6690,6 +6750,7 @@
     _ZNK[RO]9gui_forms20CommandOverflowPanel*;
     _ZNK[RO]9gui_forms20CompositorGeneration*;
     _ZNK[RO]9gui_forms20ConnectedControlSeam*;
+    _ZNK[RO]9gui_forms20ControlCanvasTexture*;
     _ZNK[RO]9gui_forms20ControlStripePattern*;
     _ZNK[RO]9gui_forms20ControlVisualContext*;
     _ZNK[RO]9gui_forms20DataGridViewRowEvent*;
@@ -7148,6 +7209,7 @@
     _ZNK[RO]9gui_forms8HelpBook*;
     _ZNK[RO]9gui_forms8KeyChord*;
     _ZNK[RO]9gui_forms8KeyEvent*;
+    _ZNK[RO]9gui_forms8LinkFlow*;
     _ZNK[RO]9gui_forms8ListView*;
     _ZNK[RO]9gui_forms8NodeSpec*;
     _ZNK[RO]9gui_forms8PageView*;
@@ -7265,6 +7327,12 @@
     _ZN[KRO]9gui_forms10BindingRow*;
     _ZN[KRO]9gui_forms10BlockPanel*;
     _ZN[KRO]9gui_forms10ButtonBase*;
+    _ZN[KRO]9gui_forms10CanvasArea*;
+    _ZN[KRO]9gui_forms10CanvasFlow*;
+    _ZN[KRO]9gui_forms10CanvasGrid*;
+    _ZN[KRO]9gui_forms10CanvasLine*;
+    _ZN[KRO]9gui_forms10CanvasLook*;
+    _ZN[KRO]9gui_forms10CanvasView*;
     _ZN[KRO]9gui_forms10CardLayout*;
     _ZN[KRO]9gui_forms10ChoiceItem*;
     _ZN[KRO]9gui_forms10CommandBar*;
@@ -7977,6 +8045,7 @@
     _ZN[KRO]9gui_forms18CompiledThemeRules*;
     _ZN[KRO]9gui_forms18ComponentContainer*;
     _ZN[KRO]9gui_forms18ContextMenuRequest*;
+    _ZN[KRO]9gui_forms18ControlCanvasPaint*;
     _ZN[KRO]9gui_forms18ControlPartMetrics*;
     _ZN[KRO]9gui_forms18ControlRoleRecipes*;
     _ZN[KRO]9gui_forms18CursorCapabilities*;
@@ -8165,6 +8234,7 @@
     _ZN[KRO]9gui_forms20CommandOverflowPanel*;
     _ZN[KRO]9gui_forms20CompositorGeneration*;
     _ZN[KRO]9gui_forms20ConnectedControlSeam*;
+    _ZN[KRO]9gui_forms20ControlCanvasTexture*;
     _ZN[KRO]9gui_forms20ControlStripePattern*;
     _ZN[KRO]9gui_forms20ControlVisualContext*;
     _ZN[KRO]9gui_forms20DataGridViewRowEvent*;
@@ -8623,6 +8693,7 @@
     _ZN[KRO]9gui_forms8HelpBook*;
     _ZN[KRO]9gui_forms8KeyChord*;
     _ZN[KRO]9gui_forms8KeyEvent*;
+    _ZN[KRO]9gui_forms8LinkFlow*;
     _ZN[KRO]9gui_forms8ListView*;
     _ZN[KRO]9gui_forms8NodeSpec*;
     _ZN[KRO]9gui_forms8PageView*;
@@ -8740,6 +8811,12 @@
     _ZT[VIST]N9gui_forms10BindingRow*E;
     _ZT[VIST]N9gui_forms10BlockPanel*E;
     _ZT[VIST]N9gui_forms10ButtonBase*E;
+    _ZT[VIST]N9gui_forms10CanvasArea*E;
+    _ZT[VIST]N9gui_forms10CanvasFlow*E;
+    _ZT[VIST]N9gui_forms10CanvasGrid*E;
+    _ZT[VIST]N9gui_forms10CanvasLine*E;
+    _ZT[VIST]N9gui_forms10CanvasLook*E;
+    _ZT[VIST]N9gui_forms10CanvasView*E;
     _ZT[VIST]N9gui_forms10CardLayout*E;
     _ZT[VIST]N9gui_forms10ChoiceItem*E;
     _ZT[VIST]N9gui_forms10CommandBar*E;
@@ -9452,6 +9529,7 @@
     _ZT[VIST]N9gui_forms18CompiledThemeRules*E;
     _ZT[VIST]N9gui_forms18ComponentContainer*E;
     _ZT[VIST]N9gui_forms18ContextMenuRequest*E;
+    _ZT[VIST]N9gui_forms18ControlCanvasPaint*E;
     _ZT[VIST]N9gui_forms18ControlPartMetrics*E;
     _ZT[VIST]N9gui_forms18ControlRoleRecipes*E;
     _ZT[VIST]N9gui_forms18CursorCapabilities*E;
@@ -9640,6 +9718,7 @@
     _ZT[VIST]N9gui_forms20CommandOverflowPanel*E;
     _ZT[VIST]N9gui_forms20CompositorGeneration*E;
     _ZT[VIST]N9gui_forms20ConnectedControlSeam*E;
+    _ZT[VIST]N9gui_forms20ControlCanvasTexture*E;
     _ZT[VIST]N9gui_forms20ControlStripePattern*E;
     _ZT[VIST]N9gui_forms20ControlVisualContext*E;
     _ZT[VIST]N9gui_forms20DataGridViewRowEvent*E;
@@ -10098,6 +10177,7 @@
     _ZT[VIST]N9gui_forms8HelpBook*E;
     _ZT[VIST]N9gui_forms8KeyChord*E;
     _ZT[VIST]N9gui_forms8KeyEvent*E;
+    _ZT[VIST]N9gui_forms8LinkFlow*E;
     _ZT[VIST]N9gui_forms8ListView*E;
     _ZT[VIST]N9gui_forms8NodeSpec*E;
     _ZT[VIST]N9gui_forms8PageView*E;
@@ -10215,6 +10295,12 @@
     _ZT[hvc]*9gui_forms10BindingRow*;
     _ZT[hvc]*9gui_forms10BlockPanel*;
     _ZT[hvc]*9gui_forms10ButtonBase*;
+    _ZT[hvc]*9gui_forms10CanvasArea*;
+    _ZT[hvc]*9gui_forms10CanvasFlow*;
+    _ZT[hvc]*9gui_forms10CanvasGrid*;
+    _ZT[hvc]*9gui_forms10CanvasLine*;
+    _ZT[hvc]*9gui_forms10CanvasLook*;
+    _ZT[hvc]*9gui_forms10CanvasView*;
     _ZT[hvc]*9gui_forms10CardLayout*;
     _ZT[hvc]*9gui_forms10ChoiceItem*;
     _ZT[hvc]*9gui_forms10CommandBar*;
@@ -10927,6 +11013,7 @@
     _ZT[hvc]*9gui_forms18CompiledThemeRules*;
     _ZT[hvc]*9gui_forms18ComponentContainer*;
     _ZT[hvc]*9gui_forms18ContextMenuRequest*;
+    _ZT[hvc]*9gui_forms18ControlCanvasPaint*;
     _ZT[hvc]*9gui_forms18ControlPartMetrics*;
     _ZT[hvc]*9gui_forms18ControlRoleRecipes*;
     _ZT[hvc]*9gui_forms18CursorCapabilities*;
@@ -11115,6 +11202,7 @@
     _ZT[hvc]*9gui_forms20CommandOverflowPanel*;
     _ZT[hvc]*9gui_forms20CompositorGeneration*;
     _ZT[hvc]*9gui_forms20ConnectedControlSeam*;
+    _ZT[hvc]*9gui_forms20ControlCanvasTexture*;
     _ZT[hvc]*9gui_forms20ControlStripePattern*;
     _ZT[hvc]*9gui_forms20ControlVisualContext*;
     _ZT[hvc]*9gui_forms20DataGridViewRowEvent*;
@@ -11573,6 +11661,7 @@
     _ZT[hvc]*9gui_forms8HelpBook*;
     _ZT[hvc]*9gui_forms8KeyChord*;
     _ZT[hvc]*9gui_forms8KeyEvent*;
+    _ZT[hvc]*9gui_forms8LinkFlow*;
     _ZT[hvc]*9gui_forms8ListView*;
     _ZT[hvc]*9gui_forms8NodeSpec*;
     _ZT[hvc]*9gui_forms8PageView*;
@@ -11690,6 +11779,12 @@
     _ZZN9gui_forms10BindingRow*;
     _ZZN9gui_forms10BlockPanel*;
     _ZZN9gui_forms10ButtonBase*;
+    _ZZN9gui_forms10CanvasArea*;
+    _ZZN9gui_forms10CanvasFlow*;
+    _ZZN9gui_forms10CanvasGrid*;
+    _ZZN9gui_forms10CanvasLine*;
+    _ZZN9gui_forms10CanvasLook*;
+    _ZZN9gui_forms10CanvasView*;
     _ZZN9gui_forms10CardLayout*;
     _ZZN9gui_forms10ChoiceItem*;
     _ZZN9gui_forms10CommandBar*;
@@ -12402,6 +12497,7 @@
     _ZZN9gui_forms18CompiledThemeRules*;
     _ZZN9gui_forms18ComponentContainer*;
     _ZZN9gui_forms18ContextMenuRequest*;
+    _ZZN9gui_forms18ControlCanvasPaint*;
     _ZZN9gui_forms18ControlPartMetrics*;
     _ZZN9gui_forms18ControlRoleRecipes*;
     _ZZN9gui_forms18CursorCapabilities*;
@@ -12590,6 +12686,7 @@
     _ZZN9gui_forms20CommandOverflowPanel*;
     _ZZN9gui_forms20CompositorGeneration*;
     _ZZN9gui_forms20ConnectedControlSeam*;
+    _ZZN9gui_forms20ControlCanvasTexture*;
     _ZZN9gui_forms20ControlStripePattern*;
     _ZZN9gui_forms20ControlVisualContext*;
     _ZZN9gui_forms20DataGridViewRowEvent*;
@@ -13048,6 +13145,7 @@
     _ZZN9gui_forms8HelpBook*;
     _ZZN9gui_forms8KeyChord*;
     _ZZN9gui_forms8KeyEvent*;
+    _ZZN9gui_forms8LinkFlow*;
     _ZZN9gui_forms8ListView*;
     _ZZN9gui_forms8NodeSpec*;
     _ZZN9gui_forms8PageView*;
@@ -13165,6 +13263,12 @@
     _ZZNK9gui_forms10BindingRow*;
     _ZZNK9gui_forms10BlockPanel*;
     _ZZNK9gui_forms10ButtonBase*;
+    _ZZNK9gui_forms10CanvasArea*;
+    _ZZNK9gui_forms10CanvasFlow*;
+    _ZZNK9gui_forms10CanvasGrid*;
+    _ZZNK9gui_forms10CanvasLine*;
+    _ZZNK9gui_forms10CanvasLook*;
+    _ZZNK9gui_forms10CanvasView*;
     _ZZNK9gui_forms10CardLayout*;
     _ZZNK9gui_forms10ChoiceItem*;
     _ZZNK9gui_forms10CommandBar*;
@@ -13877,6 +13981,7 @@
     _ZZNK9gui_forms18CompiledThemeRules*;
     _ZZNK9gui_forms18ComponentContainer*;
     _ZZNK9gui_forms18ContextMenuRequest*;
+    _ZZNK9gui_forms18ControlCanvasPaint*;
     _ZZNK9gui_forms18ControlPartMetrics*;
     _ZZNK9gui_forms18ControlRoleRecipes*;
     _ZZNK9gui_forms18CursorCapabilities*;
@@ -14065,6 +14170,7 @@
     _ZZNK9gui_forms20CommandOverflowPanel*;
     _ZZNK9gui_forms20CompositorGeneration*;
     _ZZNK9gui_forms20ConnectedControlSeam*;
+    _ZZNK9gui_forms20ControlCanvasTexture*;
     _ZZNK9gui_forms20ControlStripePattern*;
     _ZZNK9gui_forms20ControlVisualContext*;
     _ZZNK9gui_forms20DataGridViewRowEvent*;
@@ -14523,6 +14629,7 @@
     _ZZNK9gui_forms8HelpBook*;
     _ZZNK9gui_forms8KeyChord*;
     _ZZNK9gui_forms8KeyEvent*;
+    _ZZNK9gui_forms8LinkFlow*;
     _ZZNK9gui_forms8ListView*;
     _ZZNK9gui_forms8NodeSpec*;
     _ZZNK9gui_forms8PageView*;

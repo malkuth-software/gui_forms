@@ -770,6 +770,13 @@ ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, C
     result.scrim = Color::rgba(plate.red, plate.green, plate.blue, 255);
     result.stroke_width = std::max(ordinary.stroke_width, 2.0);
     result.needle_shape = NeedleShape::line;
+    // A node canvas part (cp31): its area in the plate, its lines in the
+    // state's edge and its halo in the focus colour, with no texture; its
+    // dashes, corners, grid spacing and flow are geometry and are kept.
+    result.canvas.fill = plate;
+    result.canvas.stroke = edge;
+    result.canvas.halo = focus;
+    result.canvas.texture.reset();
     return result;
 }
 
@@ -1867,6 +1874,50 @@ void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, Cont
     if (reduced != nullptr) stripes.reduced_motion = (*reduced).stripe_reduced_motion;
 }
 
+// The node canvas fields `fields` sets (RecipeField::fill_colour on; cp31),
+// over `canvas`, in place, with the stroke width (which the dial parts also
+// read as ControlVisualRecipe::stroke_width), so a canvas part can tell a
+// set width from the floor's. A texture without an image is `none`.
+void apply_canvas_paint(const CompiledThemeRules::RecipeResolution& fields, ControlCanvasPaint& canvas) noexcept {
+    const RecipeDeclaration* const fill = set_recipe_field(fields, RecipeField::fill_colour);
+    if (fill != nullptr) canvas.fill = (*fill).colour;
+    const RecipeDeclaration* const stroke = set_recipe_field(fields, RecipeField::stroke_colour);
+    if (stroke != nullptr) canvas.stroke = (*stroke).colour;
+    const RecipeDeclaration* const width = set_recipe_field(fields, RecipeField::stroke_width);
+    if (width != nullptr) canvas.stroke_width = (*width).number;
+    const RecipeDeclaration* const dash = set_recipe_field(fields, RecipeField::stroke_dash);
+    if (dash != nullptr) canvas.dash = (*dash).number;
+    const RecipeDeclaration* const gap = set_recipe_field(fields, RecipeField::stroke_gap);
+    if (gap != nullptr) canvas.gap = (*gap).number;
+    const RecipeDeclaration* const halo_width = set_recipe_field(fields, RecipeField::halo_width);
+    if (halo_width != nullptr) canvas.halo_width = (*halo_width).number;
+    const RecipeDeclaration* const halo = set_recipe_field(fields, RecipeField::halo_colour);
+    if (halo != nullptr) canvas.halo = (*halo).colour;
+    const RecipeDeclaration* const corner = set_recipe_field(fields, RecipeField::corner_radius);
+    if (corner != nullptr) canvas.corner_radius = (*corner).number;
+    const RecipeDeclaration* const spacing = set_recipe_field(fields, RecipeField::grid_spacing);
+    if (spacing != nullptr) canvas.grid_spacing = (*spacing).number;
+    const RecipeDeclaration* const band = set_recipe_field(fields, RecipeField::grid_band);
+    if (band != nullptr) canvas.grid_band = (*band).number;
+    const RecipeDeclaration* const image = set_recipe_field(fields, RecipeField::texture_image);
+    if (image != nullptr && !(*image).image) canvas.texture.reset();
+    if (image != nullptr && (*image).image) {
+        ControlCanvasTexture texture{};
+        texture.image = *(*image).image;
+        texture.pixel_size = (*image).image_size;
+        texture.density = (*image).image_density;
+        const RecipeDeclaration* const contrast = set_recipe_field(fields, RecipeField::texture_contrast);
+        if (contrast != nullptr) texture.contrast = (*contrast).number;
+        canvas.texture = texture;
+    }
+    const RecipeDeclaration* const flow = set_recipe_field(fields, RecipeField::flow_style);
+    if (flow != nullptr) canvas.flow = (*flow).flow_style;
+    const RecipeDeclaration* const speed = set_recipe_field(fields, RecipeField::flow_speed);
+    if (speed != nullptr) canvas.flow_speed = (*speed).number;
+    const RecipeDeclaration* const flow_spacing = set_recipe_field(fields, RecipeField::flow_spacing);
+    if (flow_spacing != nullptr) canvas.flow_spacing = (*flow_spacing).number;
+}
+
 // The recipe fields `fields` sets, over `recipe` (the floor's copy), in
 // place. The outline's style comes first: a ring has no offset, and no
 // outline no width.
@@ -1919,6 +1970,7 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     const RecipeDeclaration* const offset = set_recipe_field(fields, RecipeField::outline_offset);
     if (offset != nullptr && recipe.authored_focus_outline) recipe.focus_offset = (*offset).number;
     apply_part_metrics(fields, recipe.part_metrics);
+    apply_canvas_paint(fields, recipe.canvas);
     const RecipeDeclaration* const shadow = set_recipe_field(fields, RecipeField::text_shadow);
     if (shadow == nullptr) return;
     if (!(*shadow).shadowed) {
@@ -1994,10 +2046,13 @@ void Theme::provenance(const Control& control, ControlVisualRole role, ControlVi
     CompiledThemeRules::FieldProvenance pass{};
     pass.level = CascadeLevel::forced_high_contrast;
     pass.layer = ThemeLayer::forced_high_contrast;
-    const std::array<RecipeField, 8> pass_colours{RecipeField::text,        RecipeField::outline_colour,
-                                                  RecipeField::text_shadow, RecipeField::muted_text,
-                                                  RecipeField::glyph,       RecipeField::default_outline_colour,
-                                                  RecipeField::fill_text, RecipeField::scrim_colour};
+    const std::array<RecipeField, 13> pass_colours{RecipeField::text,        RecipeField::outline_colour,
+                                                   RecipeField::text_shadow, RecipeField::muted_text,
+                                                   RecipeField::glyph,       RecipeField::default_outline_colour,
+                                                   RecipeField::fill_text,   RecipeField::scrim_colour,
+                                                   RecipeField::fill_colour, RecipeField::stroke_colour,
+                                                   RecipeField::halo_colour, RecipeField::texture_image,
+                                                   RecipeField::texture_contrast};
     for (const RecipeField field : pass_colours) result.recipe_fields[static_cast<std::size_t>(field)] = pass;
     for (CompiledThemeRules::FieldProvenance& field : result.recipe_fields) {
         if (!field.authored) field = pass;
@@ -2224,6 +2279,13 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
         // ground colour.
         fields.fields[static_cast<std::size_t>(RecipeField::stripe_colour)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::stripe_ground_colour)] = nullptr;
+        // A canvas part takes the pass's plate, edge and focus colour, and
+        // draws no texture.
+        fields.fields[static_cast<std::size_t>(RecipeField::fill_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::stroke_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::halo_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::texture_image)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::texture_contrast)] = nullptr;
         bool any = false;
         for (const RecipeDeclaration* field : fields.fields) any = any || field != nullptr;
         fields.authored = any;

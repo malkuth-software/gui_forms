@@ -118,6 +118,55 @@ struct GUI_FORMS_API ControlPartMetrics final {
     }
 };
 
+// A node canvas part's tiled texture as a theme sets it
+// (`background-texture`; NODE_GRAPH_SPEC gap 2, cp31): a theme image of
+// `pixel_size` source pixels at `density` source pixels per logical unit,
+// multiplied under the grid at `contrast` (0 to
+// maximum_canvas_texture_contrast, the design language's sub-3 % rule).
+struct GUI_FORMS_API ControlCanvasTexture final {
+    ImageId image{};
+    Size pixel_size{};
+    double density{1.0};
+    double contrast{};
+    friend bool operator==(const ControlCanvasTexture& left, const ControlCanvasTexture& right) noexcept {
+        return left.image == right.image && left.pixel_size == right.pixel_size && left.density == right.density &&
+               left.contrast == right.contrast;
+    }
+};
+
+// A node canvas part's paint as a theme sets it (RecipeField::fill_colour
+// to flow_spacing, and RecipeField::stroke_width as `stroke_width`; cp31),
+// each unset where no rule sets it:
+// resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock
+// value it states for the part. Lengths are logical units, the grid's
+// spacing world units, the flow's speed world units a second. The forced
+// high-contrast records set the colours: the plate, the state's edge and
+// the focus colour. `texture` is none for `background-texture: none`.
+struct GUI_FORMS_API ControlCanvasPaint final {
+    std::optional<Color> fill{};
+    std::optional<Color> stroke{};
+    std::optional<double> stroke_width{};
+    std::optional<double> dash{};
+    std::optional<double> gap{};
+    std::optional<double> halo_width{};
+    std::optional<Color> halo{};
+    std::optional<double> corner_radius{};
+    std::optional<double> grid_spacing{};
+    std::optional<double> grid_band{};
+    std::optional<ControlCanvasTexture> texture{};
+    std::optional<CanvasFlowStyle> flow{};
+    std::optional<double> flow_speed{};
+    std::optional<double> flow_spacing{};
+    friend bool operator==(const ControlCanvasPaint& left, const ControlCanvasPaint& right) noexcept {
+        return left.fill == right.fill && left.stroke == right.stroke && left.stroke_width == right.stroke_width &&
+               left.dash == right.dash &&
+               left.gap == right.gap && left.halo_width == right.halo_width && left.halo == right.halo &&
+               left.corner_radius == right.corner_radius && left.grid_spacing == right.grid_spacing &&
+               left.grid_band == right.grid_band && left.texture == right.texture && left.flow == right.flow &&
+               left.flow_speed == right.flow_speed && left.flow_spacing == right.flow_spacing;
+    }
+};
+
 struct GUI_FORMS_API ControlVisualRecipe final {
     SurfaceMaterial material;
     Color text{Color::rgba(27, 39, 51)};
@@ -152,6 +201,8 @@ struct GUI_FORMS_API ControlVisualRecipe final {
     double stroke_width{4.0};
     NeedleShape needle_shape{NeedleShape::tapered};
     Color scrim{Color::rgba(16, 24, 32, 96)};
+    // A node canvas part's paint, where a rule naming the part sets it.
+    ControlCanvasPaint canvas{};
     friend bool operator==(const ControlVisualRecipe& left,
                            const ControlVisualRecipe& right) noexcept(noexcept(
         left.material == right.material && left.text == right.text &&
@@ -167,7 +218,7 @@ struct GUI_FORMS_API ControlVisualRecipe final {
         left.pressed_content_offset == right.pressed_content_offset &&
         left.text_shadow == right.text_shadow && left.part_metrics == right.part_metrics &&
         left.fill_text == right.fill_text && left.stroke_width == right.stroke_width &&
-        left.needle_shape == right.needle_shape && left.scrim == right.scrim)) {
+        left.needle_shape == right.needle_shape && left.scrim == right.scrim && left.canvas == right.canvas)) {
         return left.material == right.material && left.text == right.text &&
                left.muted_text == right.muted_text &&
                left.glyph == right.glyph &&
@@ -182,7 +233,7 @@ struct GUI_FORMS_API ControlVisualRecipe final {
                left.pressed_content_offset == right.pressed_content_offset &&
                left.text_shadow == right.text_shadow && left.part_metrics == right.part_metrics &&
                left.fill_text == right.fill_text && left.stroke_width == right.stroke_width &&
-               left.needle_shape == right.needle_shape && left.scrim == right.scrim;
+               left.needle_shape == right.needle_shape && left.scrim == right.scrim && left.canvas == right.canvas;
     }
 };
 

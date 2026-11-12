@@ -260,8 +260,10 @@ void bounded_ranges() {
 
 void registry_checks() {
     const EffectRegistry& registry = built_in_effect_registry();
-    require(registry.count() == 6U, "six built-in effects: the progress bar's five and the sweep scope's");
+    require(registry.count() == 7U,
+            "seven built-in effects: the progress bar's five, the sweep scope's and the node canvas's link flow");
     require(built_in("scope_sweep").parent == "sweep_scope", "the sweep scope's effect names its parent");
+    require(built_in("link_flow").parent == "node_canvas", "the link flow names the node canvas as its parent");
     const std::array<std::string_view, 5> names{"progress_stripes", "progress_pulse", "progress_laser",
                                                  "progress_woven_stripes", "progress_bubbles"};
     for (const std::string_view name : names) {

@@ -664,6 +664,150 @@ button::part(face):state(danger) {
 button::part(label):state(danger) {
   color: #7a1a10;
 }
+
+/* The node canvas (cp31; NODE_GRAPH_SPEC section 3): a paper canvas with
+   a blueprint grid in the ordinary line's blue, white nodes outlined in
+   it under chrome headers, links in the dark line with flowing dots, the
+   selection in the accent blue with a soft halo, the signal group for an
+   invalid link, a rejected drop and a lamp in error. The grid variants
+   are classes on the canvas: paper (the default), blue (white lines on
+   the royale blue), green and grey. The dark variant is derived by rule
+   (resolve_canvas_look), so these rules are written in light terms. */
+node-canvas::part(region) {
+  fill-color: #fbfcfd;
+  grid-spacing: 16px;
+  grid-band: 12px;
+}
+node-canvas::part(grid-minor) {
+  stroke-color: rgb(99 132 178 / 22%);
+  stroke-width: 1px;
+}
+node-canvas::part(grid-major) {
+  stroke-color: rgb(99 132 178 / 45%);
+}
+node-canvas.blue::part(region) {
+  fill-color: #1f4f8f;
+}
+node-canvas.blue::part(grid-minor) {
+  stroke-color: rgb(255 255 255 / 16%);
+}
+node-canvas.blue::part(grid-major) {
+  stroke-color: rgb(255 255 255 / 34%);
+}
+node-canvas.green::part(region) {
+  fill-color: #e9f2e4;
+}
+node-canvas.green::part(grid-minor) {
+  stroke-color: rgb(46 125 79 / 20%);
+}
+node-canvas.green::part(grid-major) {
+  stroke-color: rgb(46 125 79 / 42%);
+}
+node-canvas.grey::part(region) {
+  fill-color: #8a8f96;
+}
+node-canvas.grey::part(grid-minor) {
+  stroke-color: rgb(27 39 51 / 18%);
+}
+node-canvas.grey::part(grid-major) {
+  stroke-color: rgb(27 39 51 / 36%);
+}
+node-canvas::part(node) {
+  fill-color: #ffffff;
+  stroke-color: #6384b2;
+  stroke-width: 1px;
+  corner-radius: 6px;
+}
+node-canvas::part(node):hover {
+  stroke-color: #496c9f;
+}
+node-canvas::part(node):state(selected) {
+  stroke-color: #2f69be;
+}
+node-canvas::part(node):disabled {
+  fill-color: #f4f4f5;
+  stroke-color: #becfe4;
+}
+node-canvas::part(node-header) {
+  fill-color: #cadefb;
+  stroke-color: #a5c4f1;
+  stroke-width: 1px;
+  corner-radius: 6px;
+  color: #153765;
+}
+node-canvas::part(node-header):hover {
+  fill-color: #d2e4fb;
+}
+node-canvas::part(node-header):state(selected) {
+  fill-color: #a5c4f1;
+}
+node-canvas::part(node-header):disabled {
+  fill-color: #becfe4;
+  color: #627997;
+}
+node-canvas::part(node-selection) {
+  stroke-color: #2f69be;
+  stroke-width: 2px;
+  corner-radius: 8px;
+}
+node-canvas::part(port) {
+  fill-color: #ffffff;
+  stroke-color: #496c9f;
+  stroke-width: 1.5px;
+}
+node-canvas::part(port):hover {
+  fill-color: #ffcf66;
+}
+node-canvas::part(port):state(drop-accepted) {
+  fill-color: #2e7d4f;
+}
+node-canvas::part(port):state(drop-rejected) {
+  fill-color: #fde4e1;
+  stroke-color: #9b1c1c;
+}
+node-canvas::part(link), node-canvas::part(dashed-link) {
+  stroke-color: #496c9f;
+  stroke-width: 2px;
+}
+node-canvas::part(link) {
+  flow: dots;
+  flow-speed: 48;
+  flow-spacing: 16px;
+}
+node-canvas::part(dashed-link) {
+  stroke-dash: 6px 4px;
+}
+node-canvas::part(link):hover, node-canvas::part(dashed-link):hover {
+  stroke-color: #2f69be;
+  stroke-width: 2.5px;
+}
+node-canvas::part(link):state(selected), node-canvas::part(dashed-link):state(selected) {
+  stroke-color: #2f69be;
+  halo: 4px rgb(47 105 190 / 30%);
+}
+node-canvas::part(link):invalid, node-canvas::part(dashed-link):invalid {
+  stroke-color: #b4413c;
+  stroke-dash: 2px 3px;
+}
+node-canvas::part(lamp) {
+  fill-color: #becfe4;
+  stroke-color: #496c9f;
+  stroke-width: 1px;
+}
+node-canvas::part(lamp):checked {
+  fill-color: #3fae5a;
+  stroke-color: #2e7d4f;
+}
+node-canvas::part(lamp):invalid {
+  fill-color: #d9463e;
+  stroke-color: #9b1c1c;
+}
+node-canvas::part(marquee) {
+  fill-color: rgb(47 105 190 / 12%);
+  stroke-color: #2f69be;
+  stroke-width: 1px;
+  stroke-dash: 4px 3px;
+}
 )css";
 
 constexpr std::string_view light_sheet_file = "gui-forms/light.css";

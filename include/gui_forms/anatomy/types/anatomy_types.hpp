@@ -105,6 +105,20 @@ enum class PartRole : std::uint8_t {
     needle,
     beak,
     scrim,
+    // The node canvas roles (NODE_GRAPH_SPEC gap N2; cp31), appended: a
+    // graph node's body (`node`) and its title band (`header`), a node's
+    // connection point (`port`), a stroked connection between ports
+    // (`link`), a small status light on a port or node (`lamp`) and the
+    // rubber-band selection rectangle (`marquee`). The canvas paints them
+    // through resolve_canvas_look (gui_forms/theme/canvas_look); before a
+    // theme binds them the built-in recipe draws `link` as a divider and
+    // the others as a face.
+    node,
+    header,
+    port,
+    link,
+    lamp,
+    marquee,
     count,
 };
 

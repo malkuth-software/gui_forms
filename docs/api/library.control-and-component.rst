@@ -3747,6 +3747,18 @@ Enumerations
 
    .. cpp:enumerator:: scrim
 
+   .. cpp:enumerator:: node
+
+   .. cpp:enumerator:: header
+
+   .. cpp:enumerator:: port
+
+   .. cpp:enumerator:: link
+
+   .. cpp:enumerator:: lamp
+
+   .. cpp:enumerator:: marquee
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms

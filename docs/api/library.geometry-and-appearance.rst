@@ -50,6 +50,18 @@ Types
      - A bundled font family a theme names in place of a role's faces (theme-language ``font-family: Selawik``).
    * - :cpp:class:`CachedPartRaster <gui_forms::CachedPartRaster>`
      - A part's cached raster and what drew it: the primitive, every parameter (animated ones included, since they change the pixels), the target with its states restricted to those the primitive reads, and the extent.
+   * - :cpp:class:`CanvasArea <gui_forms::CanvasArea>`
+     - A filled and outlined canvas part (the background, a node, its header, a port, a lamp, the marquee): its area, its line, the line's width and its corner radius, in view units.
+   * - :cpp:class:`CanvasFlow <gui_forms::CanvasFlow>`
+     - What moves along a flowing link (the link part at rest): the mark, its speed in world units a second and its pitch in view units.
+   * - :cpp:class:`CanvasGrid <gui_forms::CanvasGrid>`
+     - The world grid: minor and major colours, one line width (view units), the minor spacing in world units at zoom 1, and the band of view spacings the shown level keeps to (select_grid_level; its maximum is exactly grid_level_ratio times its minimum).
+   * - :cpp:class:`CanvasLine <gui_forms::CanvasLine>`
+     - A link's stroke: its colour and width, its dash and gap (a dash of 0 is solid), and its halo, a wider stroke ``halo_width`` beyond each side drawn under it (0 draws none).
+   * - :cpp:class:`CanvasLook <gui_forms::CanvasLook>`
+     - Every canvas part in every state, as one theme draws them in one colour scheme and contrast.
+   * - :cpp:class:`CanvasView <gui_forms::CanvasView>`
+     - Where the canvas lies in the painter's coordinates: ``origin`` is world (0, 0) and ``zoom`` view units per world unit (finite and positive; the background draws no grid otherwise).
    * - :cpp:class:`CheckerPattern <gui_forms::CheckerPattern>`
      - An alpha checkerboard (piece C7): square cells ``cell`` units wide, alternating ``first`` and ``second``, with the corner of a ``first`` cell at ``anchor``, so the pattern stays put while the filled rectangle moves.
    * - :cpp:class:`Color <gui_forms::Color>`
@@ -78,6 +90,10 @@ Types
      -  
    * - :cpp:class:`ConnectedControlVisualGeometry <gui_forms::ConnectedControlVisualGeometry>`
      - The resolved recipe owns no renderer object.
+   * - :cpp:class:`ControlCanvasPaint <gui_forms::ControlCanvasPaint>`
+     - A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part.
+   * - :cpp:class:`ControlCanvasTexture <gui_forms::ControlCanvasTexture>`
+     - A node canvas part's tiled texture as a theme sets it (``background-texture``; NODE_GRAPH_SPEC gap 2, cp31): a theme image of ``pixel_size`` source pixels at ``density`` source pixels per logical unit, multiplied under the grid at ``contrast`` (0 to maximum_canvas_texture_contrast, the design language's sub-3 % rule).
    * - :cpp:class:`ControlPartMetrics <gui_forms::ControlPartMetrics>`
      -  
    * - :cpp:class:`ControlRoleRecipes <gui_forms::ControlRoleRecipes>`
@@ -824,6 +840,140 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: CanvasArea final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   A filled and outlined canvas part (the background, a node, its header, a port, a lamp, the marquee): its area, its line, the line's width and its corner radius, in view units. A transparent colour or a zero width draws nothing of that half.
+
+   .. cpp:member:: Color fill
+
+   .. cpp:member:: Color stroke
+
+   .. cpp:member:: double stroke_width
+
+   .. cpp:member:: double corner_radius
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasFlow final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   What moves along a flowing link (the link part at rest): the mark, its speed in world units a second and its pitch in view units.
+
+   .. cpp:member:: CanvasFlowStyle style
+
+      Default: ``{CanvasFlowStyle::none}``.
+
+   .. cpp:member:: double speed
+
+      Default: ``{48.0}``.
+
+   .. cpp:member:: double spacing
+
+      Default: ``{16.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasGrid final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   The world grid: minor and major colours, one line width (view units), the minor spacing in world units at zoom 1, and the band of view spacings the shown level keeps to (select_grid_level; its maximum is exactly grid_level_ratio times its minimum). ``minor_shown`` is false in forced high contrast, which draws the major lines alone, with no fade.
+
+   .. cpp:member:: Color minor
+
+   .. cpp:member:: Color major
+
+   .. cpp:member:: double line_width
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double spacing
+
+      Default: ``{16.0}``.
+
+   .. cpp:member:: GridLevelBand band
+
+   .. cpp:member:: bool minor_shown
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasLine final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   A link's stroke: its colour and width, its dash and gap (a dash of 0 is solid), and its halo, a wider stroke ``halo_width`` beyond each side drawn under it (0 draws none). Lengths in view units.
+
+   .. cpp:member:: Color colour
+
+   .. cpp:member:: double width
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double dash
+
+   .. cpp:member:: double gap
+
+   .. cpp:member:: Color halo
+
+   .. cpp:member:: double halo_width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasLook final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   Every canvas part in every state, as one theme draws them in one colour scheme and contrast. ``texture`` is none where the theme sets none, and always in forced high contrast. ``titles`` are the header's title ink by node state. The marquee is its area (``marquee``) and its dashed outline (``marquee_outline``; no halo). A plain value: copy it, keep it, compare it.
+
+   .. cpp:member:: CanvasArea background
+
+   .. cpp:member:: CanvasGrid grid
+
+   .. cpp:member:: std::optional<ControlCanvasTexture> texture
+
+   .. cpp:member:: std::array<CanvasArea, canvas_node_state_count> nodes
+
+   .. cpp:member:: std::array<CanvasArea, canvas_node_state_count> headers
+
+   .. cpp:member:: std::array<Color, canvas_node_state_count> titles
+
+   .. cpp:member:: CanvasArea selection
+
+   .. cpp:member:: std::array<CanvasArea, canvas_port_state_count> ports
+
+   .. cpp:member:: std::array<CanvasLine, canvas_link_state_count> links
+
+   .. cpp:member:: std::array<CanvasLine, canvas_link_state_count> dashed_links
+
+   .. cpp:member:: std::array<CanvasArea, canvas_lamp_state_count> lamps
+
+   .. cpp:member:: CanvasArea marquee
+
+   .. cpp:member:: CanvasLine marquee_outline
+
+   .. cpp:member:: CanvasFlow flow
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasView final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   Where the canvas lies in the painter's coordinates: ``origin`` is world (0, 0) and ``zoom`` view units per world unit (finite and positive; the background draws no grid otherwise).
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: double zoom
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CheckerPattern final
 
    ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
@@ -1274,6 +1424,60 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ControlCanvasPaint final
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
+
+   A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part. Lengths are logical units, the grid's spacing world units, the flow's speed world units a second. The forced high-contrast records set the colours: the plate, the state's edge and the focus colour. ``texture`` is none for ``background-texture: none``.
+
+   .. cpp:member:: std::optional<Color> fill
+
+   .. cpp:member:: std::optional<Color> stroke
+
+   .. cpp:member:: std::optional<double> stroke_width
+
+   .. cpp:member:: std::optional<double> dash
+
+   .. cpp:member:: std::optional<double> gap
+
+   .. cpp:member:: std::optional<double> halo_width
+
+   .. cpp:member:: std::optional<Color> halo
+
+   .. cpp:member:: std::optional<double> corner_radius
+
+   .. cpp:member:: std::optional<double> grid_spacing
+
+   .. cpp:member:: std::optional<double> grid_band
+
+   .. cpp:member:: std::optional<ControlCanvasTexture> texture
+
+   .. cpp:member:: std::optional<CanvasFlowStyle> flow
+
+   .. cpp:member:: std::optional<double> flow_speed
+
+   .. cpp:member:: std::optional<double> flow_spacing
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ControlCanvasTexture final
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
+
+   A node canvas part's tiled texture as a theme sets it (``background-texture``; NODE_GRAPH_SPEC gap 2, cp31): a theme image of ``pixel_size`` source pixels at ``density`` source pixels per logical unit, multiplied under the grid at ``contrast`` (0 to maximum_canvas_texture_contrast, the design language's sub-3 % rule).
+
+   .. cpp:member:: ImageId image
+
+   .. cpp:member:: Size pixel_size
+
+   .. cpp:member:: double density
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double contrast
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ControlPartMetrics final
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
@@ -1519,6 +1723,10 @@ Types
    .. cpp:member:: Color scrim
 
       Default: ``{Color::rgba(16, 24, 32, 96)}``.
+
+   .. cpp:member:: ControlCanvasPaint canvas
+
+      A node canvas part's paint, where a rule naming the part sets it.
 
 .. cpp:namespace:: gui_forms
 
@@ -5039,7 +5247,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, and ``font_family`` for a numbered bundled family (FontSpec::family, zero for a role); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, and ``font_family`` for a numbered bundled family (FontSpec::family, zero for a role); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``; - the canvas fields: fill_colour, stroke_colour and halo_colour ``colour``; stroke_dash, stroke_gap, halo_width, corner_radius, grid_spacing, grid_band and flow_spacing (logical units, em admitted), texture_contrast (a fraction) and flow_speed (world units a second) ``number``; flow_style ``flow_style``; texture_image ``image``, ``image_size`` and ``image_density``.
 
    .. cpp:member:: RecipeField field
 
@@ -5070,6 +5278,18 @@ Types
    .. cpp:member:: StripeReducedMotion stripe_reduced_motion
 
       Default: ``{StripeReducedMotion::still}``.
+
+   .. cpp:member:: CanvasFlowStyle flow_style
+
+      The canvas's keyword and image fields: flow_style's mark, and texture_image's image (none for ``none``), its size in source pixels and its source pixels per logical unit (ThemeImageResource). Default: ``{CanvasFlowStyle::none}``.
+
+   .. cpp:member:: std::optional<ImageId> image
+
+   .. cpp:member:: Size image_size
+
+   .. cpp:member:: double image_density
+
+      Default: ``{1.0}``.
 
    .. cpp:member:: bool shadowed
 
@@ -6362,6 +6582,90 @@ Enumerations
    .. cpp:enumerator:: none
 
    .. cpp:enumerator:: flash
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasFlowStyle
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: dots
+
+   .. cpp:enumerator:: dashes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasLampState
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: off
+
+   .. cpp:enumerator:: on
+
+   .. cpp:enumerator:: error
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasLinkState
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: hot
+
+   .. cpp:enumerator:: selected
+
+   .. cpp:enumerator:: invalid
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasLinkStyle
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: plain
+
+   .. cpp:enumerator:: dashed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasNodeState
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: hot
+
+   .. cpp:enumerator:: selected
+
+   .. cpp:enumerator:: disabled
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasPortState
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: hot
+
+   .. cpp:enumerator:: drop_accepted
+
+   .. cpp:enumerator:: drop_rejected
+
+   .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
 
@@ -7801,6 +8105,34 @@ Enumerations
 
    .. cpp:enumerator:: stripe_reduced_motion
 
+   .. cpp:enumerator:: fill_colour
+
+   .. cpp:enumerator:: stroke_colour
+
+   .. cpp:enumerator:: stroke_dash
+
+   .. cpp:enumerator:: stroke_gap
+
+   .. cpp:enumerator:: halo_width
+
+   .. cpp:enumerator:: halo_colour
+
+   .. cpp:enumerator:: corner_radius
+
+   .. cpp:enumerator:: grid_spacing
+
+   .. cpp:enumerator:: grid_band
+
+   .. cpp:enumerator:: texture_image
+
+   .. cpp:enumerator:: texture_contrast
+
+   .. cpp:enumerator:: flow_style
+
+   .. cpp:enumerator:: flow_speed
+
+   .. cpp:enumerator:: flow_spacing
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -8990,6 +9322,50 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(RecipeField::count)``.
 
+.. cpp:var:: constexpr double maximum_canvas_dash
+
+   What the node canvas's part fields admit (RecipeField::fill_colour on): a dash or gap of 0 to 64 logical units (not both 0 unless both are, which is ``none``), a halo 0 to 16 wide, a corner radius 0 to 64, a grid spacing of 2 to 512 world units, a grid band starting at 2 to 128 view units, a texture contrast of 0 to 0.03 (the design language's sub-3 % texture rule: a declaration above it is refused, and the canvas clamps to it again when it paints), a flow speed of 0 to 512 world units a second and a flow spacing of 4 to 128. Value: ``64.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_halo_width
+
+   Value: ``16.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_corner_radius
+
+   Value: ``64.0``.
+
+.. cpp:var:: constexpr double minimum_canvas_grid_spacing
+
+   Value: ``2.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_grid_spacing
+
+   Value: ``512.0``.
+
+.. cpp:var:: constexpr double minimum_canvas_grid_band
+
+   Value: ``2.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_grid_band
+
+   Value: ``128.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_texture_contrast
+
+   Value: ``0.03``.
+
+.. cpp:var:: constexpr double maximum_canvas_flow_speed
+
+   Value: ``512.0``.
+
+.. cpp:var:: constexpr double minimum_canvas_flow_spacing
+
+   Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_flow_spacing
+
+   Value: ``128.0``.
+
 .. cpp:var:: constexpr double maximum_recipe_outline_width
 
    What a recipe admits (valid_recipe): an outline at most 16 logical units wide, offset at most 64 either way; a text shadow offset at most 16 on each axis and blurred by at most 8. Value: ``16.0``.
@@ -9235,6 +9611,68 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_procedural_tile
 
    Value: ``256.0``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+.. cpp:function:: const ControlAnatomy& node_canvas_anatomy() noexcept
+
+.. cpp:function:: CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, ControlVisualContext context)
+
+   Resolves every canvas part of ``canvas`` from ``theme`` (Theme::resolve with the part's name and node_canvas_control_id as the control type, so the rules match the canvas's classes and stable ID: the grid variants ``paper``, ``blue``, ``green`` and ``grey`` are classes). ``context`` carries the canvas's colour scheme and contrast (Control::visual_context); each part is resolved in its own states over it. - A field no rule sets takes the stock value the part table states, coloured from the theme's basic style. - Dark: where the theme derives its dark variant (ThemeDarkVariant:: derived), every colour is mapped by the dark colour rule by what it paints (the canvas as a well, nodes and ports as stock faces, headers and lamps as chrome, lines as lines, selection cues as cues, titles as ink); a theme with an authored dark variant keeps its rules' colours and maps only the stock values. - Forced high contrast: no rule applies (the engine's pass); areas take the plate, lines the state's edge, a selected link a two-unit halo in the focus colour; minor grid lines and the marquee's fill are clear and there is no texture. Reads the theme only; the result owns everything it holds.
+
+.. cpp:function:: double clamp_canvas_texture_contrast(double contrast) noexcept
+
+   The contrast a canvas texture is multiplied at: ``contrast`` clamped to [0, maximum_canvas_texture_contrast] (the design language's sub-3 % texture rule; the compiler already refuses more), 0 when not finite.
+
+.. cpp:function:: void paint_canvas_background(Painter& painter, const CanvasLook& look, Rect area, CanvasView view)
+
+   The canvas background over ``area``: the region's colour, then the texture (one multiply group at the clamped contrast holding one tiled pattern, its tiles anchored at world (0, 0) and drawn at the image's own size at every zoom, so the grain stays sharp), then the grid (the level select_grid_level chooses for ``view.zoom``, one fill_grid_pattern pass with the level's fade). Draws a bounded number of commands whatever the area: three at most, besides the group.
+
+.. cpp:function:: void paint_canvas_node(Painter& painter, const CanvasLook& look, Rect body, double header_height, CanvasNodeState state)
+
+   A node's body ``body`` with its header band, the top ``header_height`` view units (0 for none, clamped to the body), in ``state``: the body's area, the header's area clipped to the band and a line under it, then the body's outline over both.
+
+.. cpp:function:: void paint_canvas_node_selection(Painter& painter, const CanvasLook& look, Rect body)
+
+   The selection ring around a node's ``body``: the selection part's line, two view units outside the body plus half its width, with its corners.
+
+.. cpp:function:: void paint_canvas_port(Painter& painter, const CanvasLook& look, Point centre, double radius, CanvasPortState state)
+
+   A port: a disc of ``radius`` at ``centre`` in ``state``'s area.
+
+.. cpp:function:: void paint_canvas_link(Painter& painter, const CanvasLook& look, std::span<const Point> points, CanvasLinkState state, CanvasLinkStyle style)
+
+   A link through ``points`` (2 or more, finite; a NaN breaks it as Painter::stroke_polyline does), as ``style``'s part in ``state``: its halo first, solid, then its stroke with round joins and caps and its dashes. Fewer than 2 points draw nothing.
+
+.. cpp:function:: void paint_canvas_lamp(Painter& painter, const CanvasLook& look, Point centre, double radius, CanvasLampState state)
+
+   A lamp: a disc of ``radius`` at ``centre`` in ``state``'s area.
+
+.. cpp:function:: void paint_canvas_marquee(Painter& painter, const CanvasLook& look, Rect rect)
+
+   The marquee over ``rect``: its area, then its outline with its dashes.
+
+.. cpp:var:: constexpr std::string_view node_canvas_control_id
+
+   The node canvas's control id and anatomy (the part table in docs/user/theme-language.md, "node canvas"). The anatomy is the theme's, so the default theme's ``node-canvas::part(...)`` rules compile before a canvas control is registered: the theme compilers add it to the selector vocabulary when the controls they are given lack it. A canvas control returns it from Control::anatomy(). Static storage. Value: ``{"node_canvas"}``.
+
+.. cpp:var:: constexpr std::size_t canvas_node_state_count
+
+   Value: ``static_cast<std::size_t>(CanvasNodeState::count)``.
+
+.. cpp:var:: constexpr std::size_t canvas_port_state_count
+
+   Value: ``static_cast<std::size_t>(CanvasPortState::count)``.
+
+.. cpp:var:: constexpr std::size_t canvas_link_state_count
+
+   Value: ``static_cast<std::size_t>(CanvasLinkState::count)``.
+
+.. cpp:var:: constexpr std::size_t canvas_lamp_state_count
+
+   Value: ``static_cast<std::size_t>(CanvasLampState::count)``.
 
 .. cpp:namespace:: gui_forms
 
