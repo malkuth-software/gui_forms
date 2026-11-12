@@ -5,7 +5,9 @@
 // outside a window. Drawn through the offscreen raster in the default
 // theme, the danger key differs from a plain one and not one pixel outside
 // the button changes. With GUI_FORMS_PREVIEW_DIR set, the test also writes
-// preview shots of a plain and a danger key.
+// preview shots of a plain and a danger key. A theme's
+// `button::part(label):state(danger)` rule, a custom state resolved against
+// the button's anatomy (R2-13), matches the label of a danger key only.
 
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
 #include "gui_forms/control/control/control.hpp"
@@ -13,7 +15,11 @@
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/drop_down_button.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/theme.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
@@ -187,6 +193,50 @@ void write_preview(const WindowCapture& picture, const std::string& name) {
     out.write(reinterpret_cast<const char*>(png.data()), static_cast<std::streamsize>(png.size()));
 }
 
+// The custom state at run time: the sheet's danger rule is lowered against
+// the stock button anatomy's custom states, and the button's danger bit
+// (Button::anatomy_states) selects it. The standard-state rule beside it
+// keeps matching as before.
+void test_danger_rule_matches() {
+    const Color plain_ink = Color::rgba(20, 40, 200);
+    const Color danger_ink = Color::rgba(210, 30, 20);
+    const Color hot_ink = Color::rgba(20, 160, 60);
+    const std::string_view sheet = "button::part(label) { color: #1428c8 }\n"
+                                   "button::part(label):state(danger) { color: #d21e14 }\n"
+                                   "button::part(label):hover { color: #14a03c }\n";
+    // The registry outlives the theme, which owns images loaded into it.
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    ThemeCompileOptions options{};
+    options.controls = stock_control_anatomies();
+    const ThemePackage package = theme_sheet_package(sheet, "danger-rule");
+    const ThemeCompileResult compiled = compile_theme_package(package, library, images, options);
+    require(compiled.succeeded(), "a sheet with a danger rule compiles");
+    if (!compiled.succeeded()) return;
+    for (const ThemeCompileDiagnostic& diagnostic : compiled.diagnostics()) {
+        const std::string line = format_theme_diagnostic(diagnostic);
+        require(line.find("danger-rule") == std::string::npos, "the package's rules compile without findings: " + line);
+    }
+    ButtonWindow made = button_window();
+    (*made.window).set_theme(compiled.theme());
+    const Theme& theme = (*made.window).theme();
+    const Button& button = *made.button;
+    const ControlVisualContext context = button.visual_context();
+    const ResolvedControlRecipe plain =
+        theme.resolve(button, ControlVisualRole::button, context, button.anatomy_states(), "label");
+    require(plain.recipe().text == plain_ink, "a plain key's label takes the plain rule");
+    (*made.button).danger = true;
+    const AnatomyStateSet danger_states = button.anatomy_states();
+    const ResolvedControlRecipe danger =
+        theme.resolve(button, ControlVisualRole::button, context, danger_states, "label");
+    require(danger.recipe().text == danger_ink, "a danger key's label takes the danger rule");
+    AnatomyStateSet hot_states = danger_states;
+    hot_states.insert(AnatomyState::hot);
+    const ResolvedControlRecipe hot =
+        theme.resolve(button, ControlVisualRole::button, context, hot_states, "label");
+    require(hot.recipe().text == hot_ink, "a standard state rule still matches, and the later rule wins its tie");
+}
+
 void test_no_spill() {
     OffscreenRasterOptions options{};
     options.font_directory = GUI_FORMS_TEST_FONT_DIR;
@@ -236,6 +286,7 @@ int main() {
     test_state_and_mark();
     test_glow_level();
     test_pulse_runs_and_rests();
+    test_danger_rule_matches();
     test_no_spill();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";

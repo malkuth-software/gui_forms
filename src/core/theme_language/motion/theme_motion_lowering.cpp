@@ -1001,6 +1001,9 @@ bool refines(const ThemeRule& refining, const ThemeRule& host) noexcept {
         left.family != right.family || !(left.excluded == right.excluded)) {
         return false;
     }
+    // A refinement joins its host's machine as a state of standard states
+    // alone, so it must name the host's custom states exactly (R2-13).
+    if (left.custom_states != right.custom_states) return false;
     if (left.states.size() <= right.states.size()) return false;
     for (const AnatomyState state : right.states) {
         if (std::find(left.states.begin(), left.states.end(), state) == left.states.end()) return false;

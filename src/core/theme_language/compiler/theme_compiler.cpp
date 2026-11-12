@@ -3631,9 +3631,9 @@ void CompilePass::add_recipe_field(const RecipeDeclaration& declaration) {
 
 bool CompilePass::rule_has_states() const noexcept {
     for (const LoweredSelector& lowered : lowered_selectors_) {
-        if (!lowered.selector.states.empty()) return true;
+        if (!lowered.selector.states.empty() || !lowered.selector.custom_states.empty()) return true;
         for (const RuleExclusion& exclusion : lowered.selector.excluded) {
-            if (!exclusion.states.empty()) return true;
+            if (!exclusion.states.empty() || !exclusion.custom_states.empty()) return true;
         }
     }
     return false;

@@ -365,7 +365,7 @@ Types
    * - :cpp:class:`RuleSelector <gui_forms::RuleSelector>`
      - ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family).
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
-     - A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
+     - A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
    * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
      - A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
    * - :cpp:class:`ScopedDefinition <gui_forms::ScopedDefinition>`
@@ -5262,6 +5262,10 @@ Types
 
    .. cpp:member:: std::vector<AnatomyState> states
 
+   .. cpp:member:: std::vector<CustomStateIndex> custom_states
+
+      Custom states (RuleSelector::custom_states), positions in the custom states of the exclusion's control type, or of its selector's when it names none.
+
    .. cpp:member:: std::string family
 
 .. cpp:namespace:: gui_forms
@@ -5296,7 +5300,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches.
+   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches. ``custom_states`` (R2-13) are the custom states its ``:state()`` names: each a position in its control type's ControlAnatomy::custom_states, or, when its part is an item part, in the custom states of the item system declaring that part. A position means something only for one control type, so a selector with custom states names its control type (an inline style's rules, which apply to their own control alone, need not). They match the part's AnatomyStateSet custom bits.
 
    .. cpp:member:: std::string control_type
 
@@ -5309,6 +5313,8 @@ Types
    .. cpp:member:: std::optional<PartRole> role
 
    .. cpp:member:: std::vector<AnatomyState> states
+
+   .. cpp:member:: std::vector<CustomStateIndex> custom_states
 
    .. cpp:member:: SurfaceKind surface
 
@@ -5328,7 +5334,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
+   A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
 
    .. cpp:member:: std::uint32_t ids
 

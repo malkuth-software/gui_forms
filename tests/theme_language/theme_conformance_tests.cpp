@@ -175,6 +175,16 @@ std::string states_text(std::span<const AnatomyState> states) {
     return text;
 }
 
+// Custom states as their positions in the type's declarations (R2-13).
+std::string custom_states_text(const std::vector<CustomStateIndex>& states) {
+    std::string text{};
+    for (const CustomStateIndex state : states) {
+        if (!text.empty()) text += ",";
+        text += std::to_string(state.value);
+    }
+    return text;
+}
+
 std::string selector_text(const RuleSelector& selector) {
     std::string text{};
     if (selector.surface == SurfaceKind::window) text += "surface=window ";
@@ -185,6 +195,7 @@ std::string selector_text(const RuleSelector& selector) {
     if (!selector.part.empty()) text += "part=" + selector.part + " ";
     if (selector.role) text += "role=" + std::string(part_role_name(*selector.role)) + " ";
     if (!selector.states.empty()) text += "states=" + states_text(selector.states) + " ";
+    if (!selector.custom_states.empty()) text += "custom=" + custom_states_text(selector.custom_states) + " ";
     if (!selector.family.empty()) text += "family=" + selector.family + " ";
     for (const RuleExclusion& exclusion : selector.excluded) {
         text += "not(";
@@ -192,6 +203,7 @@ std::string selector_text(const RuleSelector& selector) {
         if (!exclusion.stable_id.empty()) text += "id=" + exclusion.stable_id + " ";
         for (const std::string& name : exclusion.classes) text += "class=" + name + " ";
         if (!exclusion.states.empty()) text += "states=" + states_text(exclusion.states) + " ";
+        if (!exclusion.custom_states.empty()) text += "custom=" + custom_states_text(exclusion.custom_states) + " ";
         if (!exclusion.family.empty()) text += "family=" + exclusion.family + " ";
         if (text.back() == ' ') text.pop_back();
         text += ") ";
