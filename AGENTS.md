@@ -77,11 +77,20 @@ finding:
 python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz
 python3 -B tools/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard
 python3 -B tools/export_annotations.py check
+python3 -B tools/control_registry.py members --check
 ```
 
 The third fails on a public declaration under `include/gui_forms/` that lacks
 its library's export macro (`GUI_FORMS_API`); `python3 -B
 tools/export_annotations.py apply` adds the missing ones.
+
+The fourth fails when the member manifest (`manifests/members.json`, 1.0
+condition 3) and the registry, schema or public headers disagree: a control,
+property, event or method that is not listed, or a listed one that no longer
+exists, or an entry without a status, reason or question. `python3 -B
+tools/control_registry.py members` writes it again (keeping the statuses
+people set), and `python3 -B tools/generate_library_docs.py` and `python3 -B
+tools/control_registry.py render` regenerate the pages read from it.
 
 `stx_skia/` and every third-party source (FreeType, HarfBuzz, libunibreak,
 md4c, SheenBidi, the Unicode data) live in the stx repository since

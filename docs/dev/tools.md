@@ -18,8 +18,14 @@ template_harness, checked out beside this repository at the commit
   and their header coverage, `render` writes the control indexes under
   `docs/controls/generated/`, `readme-table` prints or splices
   (`--write README.md`) the README control table, and `emit-cpp` writes or,
-  with `--check`, verifies `demo/gallery_catalog.inc`.
+  with `--check`, verifies `demo/gallery_catalog.inc`. `members` writes the
+  member manifest `manifests/members.json` (`tools/member_manifest.py`): every
+  control's properties, events and methods against Windows Forms, supported,
+  deferred, excluded or unclassified; `--catalogue` reads stage W's Windows
+  Forms catalogue again, and `--check` fails when the manifest and the
+  registry, schema or headers disagree.
   `python3 tools/control_registry.py check`
+  `python3 tools/control_registry.py members --check`
 
 `tools/winforms_divergences.py`
 : Checks `manifests/winforms-divergences.json`, the record of every difference
