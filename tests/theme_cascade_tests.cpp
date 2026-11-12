@@ -638,6 +638,48 @@ void ancestor_compounds() {
             "ancestor compounds count");
 }
 
+// Item rules (cp31): `:item(.socket-float)` and `:item(#n42)` match a part
+// only when its facts carry that item, never a control's own part; an
+// item's ID counts as an ID, its class as a class.
+void item_rules() {
+    RuleSelector float_items{};
+    float_items.item_classes.push_back("socket-float");
+    RuleSelector one_item{};
+    one_item.item_id = "n42";
+    require(rule_specificity(float_items).classes == 1U && rule_specificity(float_items).ids == 0U &&
+                rule_specificity(one_item).ids == 1U,
+            "an item class counts as a class, an item ID as an ID");
+    ThemeRuleSheet sheet{};
+    sheet.rules.push_back(rule("type", CascadeLevel::theme_sheet, by_type(), bulge(0.2)));
+    sheet.rules.push_back(rule("n42", CascadeLevel::theme_sheet, one_item, bulge(0.7)));
+    sheet.rules.push_back(rule("float", CascadeLevel::theme_sheet, float_items, bulge(0.5)));
+    const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(rules.diagnostics().empty(), "item rules compile");
+    const std::vector<std::string> none{};
+    const std::vector<std::string> float_class{"socket-float"};
+    const std::vector<std::string> int_class{"socket-int"};
+    require(amplitude_of(rules.resolve(face_of("x", none))) == 0.2, "a control's own part matches no item rule");
+    CompiledThemeRules::PartFacts floating = face_of("x", none);
+    floating.item_classes = float_class;
+    require(amplitude_of(rules.resolve(floating)) == 0.5, "an item of the class takes the class rule");
+    CompiledThemeRules::PartFacts integer = face_of("x", none);
+    integer.item_classes = int_class;
+    require(amplitude_of(rules.resolve(integer)) == 0.2, "an item of another class does not");
+    CompiledThemeRules::PartFacts named = face_of("x", none);
+    named.item_id = "n42";
+    named.item_classes = float_class;
+    require(amplitude_of(rules.resolve(named)) == 0.7, "the item ID outranks the item class, though earlier");
+    CompiledThemeRules::PartFacts other = face_of("n42", none);
+    require(amplitude_of(rules.resolve(other)) == 0.2, "a control's stable ID is not an item ID");
+    RuleSelector bad_class{};
+    bad_class.item_classes.push_back("Socket");
+    ThemeRuleSheet bad{};
+    bad.rules.push_back(rule("bad", CascadeLevel::theme_sheet, bad_class, bulge(0.9)));
+    const CompiledThemeRules bad_rules = CompiledThemeRules::compile(bad, builtin_primitive_registry());
+    require(has_diagnostic(bad_rules, RuleDiagnosticKind::selector_invalid, "bad"),
+            "an item class that is not a style class name is refused");
+}
+
 int main() {
     levels_in_order();
     families_and_exclusions();
@@ -649,7 +691,8 @@ int main() {
     style_classes();
     paint_path();
     surface_rules();
+    item_rules();
     std::cout << "theme cascade: levels, specificity, diagnostics, budgets, engine versions, classes and the paint "
-                 "path passed\n";
+                 "path, item rules passed\n";
     return EXIT_SUCCESS;
 }

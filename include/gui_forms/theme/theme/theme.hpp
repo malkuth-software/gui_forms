@@ -13,6 +13,8 @@
 
 #include <memory>
 #include <optional>
+#include <span>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -26,6 +28,14 @@ namespace detail { class ThemeImageLease; struct ThemeAccess; struct ThemeSource
 // (Theme::application_role, Control::theme_role_colours): its foreground,
 // its background for a pair (the foreground's plate for a single role),
 // the built-in role it falls back to and whether it is a pair.
+// The item a part is resolved for (cp31; Theme::resolve's item form): its
+// stable ID and classes, as `:item(#id.class)` selects them. Both views
+// are borrowed for the call. An empty ID and no classes is no item.
+struct GUI_FORMS_API ThemeItem final {
+    std::string_view id{};
+    std::span<const std::string> classes{};
+};
+
 struct GUI_FORMS_API ThemeRoleColours final {
     Color foreground{};
     Color background{};
@@ -83,6 +93,15 @@ public:
     [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
                                                 ControlVisualContext context, AnatomyStateSet states,
                                                 std::string_view part, std::string_view control_type) const;
+    // As above for a part of `item` (a node canvas's node, port or link):
+    // rules with `:item()` match where the item has their ID and classes.
+    // No item is the form above; an item's results are not kept with the
+    // control's (the caller keeps what it resolves, once per distinct
+    // item), so each call runs the cascade.
+    [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
+                                                ControlVisualContext context, AnatomyStateSet states,
+                                                std::string_view part, std::string_view control_type,
+                                                const ThemeItem& item) const;
     // Where each field of `control`'s recipe in `role` and `context` came
     // from (T4 cascade spec, item 5), for an editor's query: the facts
     // resolve() reads, through CompiledThemeRules::resolve_provenance,
@@ -174,6 +193,7 @@ private:
     [[nodiscard]] ResolvedControlRecipe resolve_from_rules(const Control& control, ControlVisualRole role,
                                                            ControlVisualContext context, AnatomyStateSet states,
                                                            std::string_view part, std::string_view control_type,
+                                                           const ThemeItem& item,
                                                            bool& reads_ancestor_states) const;
     // The engine compiles the definition's rules: a theme is made whole or
     // not at all, so the theme it replaces stays in force until it exists.

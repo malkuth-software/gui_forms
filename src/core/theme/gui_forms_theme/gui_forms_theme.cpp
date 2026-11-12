@@ -859,6 +859,18 @@ node-canvas::part(marquee) {
   stroke-width: 1px;
   stroke-dash: 4px 3px;
 }
+node-canvas.blue::part(link-preview) {
+  stroke-color: #e8f2ff;
+}
+node-canvas.blue::part(knife) {
+  stroke-color: #ffb4a8;
+}
+node-canvas.blue::part(port-label), node-canvas.grey::part(port-label) {
+  color: #ffffff;
+}
+node-canvas.grey::part(link-preview) {
+  stroke-color: #1b2733;
+}
 )css";
 
 constexpr std::string_view light_sheet_file = "gui-forms/light.css";

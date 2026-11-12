@@ -254,6 +254,21 @@ void test_forms() {
                 repeated.specificity == specificity(0U, 4U, 0U),
             "a repeated class or state is kept once and counted as written, as CSS counts it");
 
+    const LoweredSelector item = lower_one("button::part(face):item(#n42.warning)");
+    require(item.selector.part == "face" && item.selector.item_id == "n42" &&
+                item.selector.item_classes == std::vector<std::string>{"warning"} &&
+                item.selector.stable_id.empty() && item.selector.classes.empty() &&
+                item.specificity == specificity(1U, 1U, 2U),
+            "an item's ID and class, counted as an ID and a class");
+    const LoweredSelector item_classes = lower_one(":item( .socket-float.wide )");
+    require(item_classes.selector.item_classes == std::vector<std::string>{"socket-float", "wide"} &&
+                item_classes.selector.item_id.empty() && item_classes.specificity == specificity(0U, 2U, 0U),
+            "item classes, spaces allowed inside the parentheses");
+    const LoweredSelector item_with_own = lower_one("button#save:item(#save)");
+    require(item_with_own.selector.stable_id == "save" && item_with_own.selector.item_id == "save" &&
+                item_with_own.specificity == specificity(2U, 0U, 1U),
+            "a control's ID and an item's ID are separate");
+
     const LoweredSelector commented = lower_one("button/* a */:hover");
     require(commented.selector.states.size() == 1U, "a comment is not a combinator");
 }
@@ -395,7 +410,7 @@ void test_refused() {
     too_wide += ")";
     std::string too_long{};
     for (std::size_t index = 0U; index <= maximum_simple_selectors; ++index) too_long += ".c";
-    const std::array<RefusedCase, 23> cases{{
+    const std::array<RefusedCase, 29> cases{{
         {":is(button label)", DiagnosticCode::combinator_not_admitted, 12U},
         {"button > :hover > label", DiagnosticCode::selector_syntax, 11U},
         {"> label", DiagnosticCode::selector_syntax, 1U},
@@ -417,6 +432,12 @@ void test_refused() {
         {"button,", DiagnosticCode::selector_syntax, 8U},
         {"button:is()", DiagnosticCode::selector_syntax, 11U},
         {"button::part(face label)", DiagnosticCode::selector_syntax, 19U},
+        {"button:item()", DiagnosticCode::selector_syntax, 13U},
+        {"button:item", DiagnosticCode::selector_syntax, 8U},
+        {"button:item(warning)", DiagnosticCode::selector_syntax, 13U},
+        {"button:item(.Warning)", DiagnosticCode::selector_syntax, 14U},
+        {"button:item(#a#b)", DiagnosticCode::selector_syntax, 15U},
+        {"button:item(.a .b)", DiagnosticCode::selector_syntax, 16U},
         {std::string_view(too_wide), DiagnosticCode::too_many_is_arguments, 109U},
         {std::string_view(too_long), DiagnosticCode::selector_too_long, 66U},
     }};

@@ -4,18 +4,24 @@
 // contrast clamp and its layers' fills; the paint functions' commands (the
 // background's fill, texture groups, the engine's baked blocks on the world
 // lattice, and the grid level at three zooms, nodes, links with their
-// halo and dashes, the marquee); and the link_flow effect: its frames
+// halo and dashes, the marquee, the focus ring, port labels, the knife and
+// the link preview); one item's look (`:item()` rules for a socket type and
+// a node's ID); and the link_flow effect: its frames
 // wanted only while a link flows and motion is not reduced, its still
 // pose at phase 0, and its phase following the ticks. Time comes from the
 // test, never the wall clock. Pixels are checked in canvas_look_raster_tests.
 
+#include "../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/link_flow_effects.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/canvas_look/canvas_look.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
 
@@ -30,6 +36,7 @@
 #include <limits>
 #include <memory>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -66,7 +73,7 @@ public:
     void fill_linear_gradient_spread(Rect, Point, Point, std::span<const GradientStop>, GradientSpreadMode) override {}
     void fill_radial_gradient(Rect, Point, Size, std::span<const GradientStop>) override {}
     void draw_line(Point, Point, Color, double) override { lines = lines + 1; }
-    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color color) override { text_colours.push_back(color); }
     void draw_image(ImageId, Rect, double) override {}
     void stroke_polyline(std::span<const Point> points, const StrokeStyle& style) override {
         const Polyline polyline{points.size(), style};
@@ -117,6 +124,7 @@ public:
     std::vector<PaintGroup> groups{};
     std::vector<Pattern> patterns{};
     std::vector<Point> rasters{};
+    std::vector<Color> text_colours{};
 };
 
 const FrameTime start{std::chrono::seconds(1000)};
@@ -157,20 +165,23 @@ std::size_t index_of(CanvasLinkState state) { return static_cast<std::size_t>(st
 std::size_t index_of(CanvasNodeState state) { return static_cast<std::size_t>(state); }
 std::size_t index_of(CanvasLampState state) { return static_cast<std::size_t>(state); }
 std::size_t index_of(CanvasPortState state) { return static_cast<std::size_t>(state); }
+std::size_t index_of(CanvasPreviewState state) { return static_cast<std::size_t>(state); }
 
 void anatomy_checks() {
     const ControlAnatomy& anatomy = node_canvas_anatomy();
     require(anatomy.control_id == "node_canvas" && anatomy.control_id == node_canvas_control_id,
             "the canvas anatomy is node_canvas's");
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none, "the canvas anatomy is valid");
-    require(anatomy.parts.size() == 11U, "the canvas has eleven parts");
-    const std::array<std::string_view, 11> names{"region", "grid_minor",  "grid_major", "node",
-                                                 "node_header", "node_selection", "port", "link",
-                                                 "dashed_link", "lamp", "marquee"};
-    const std::array<PartRole, 11> roles{PartRole::region, PartRole::grid_minor, PartRole::grid_major,
+    require(anatomy.parts.size() == 15U, "the canvas has fifteen parts");
+    const std::array<std::string_view, 15> names{"region",      "grid_minor",     "grid_major", "node",
+                                                 "node_header", "node_selection", "port",       "link",
+                                                 "dashed_link", "lamp",           "marquee",    "port_label",
+                                                 "focus",       "knife",          "link_preview"};
+    const std::array<PartRole, 15> roles{PartRole::region, PartRole::grid_minor, PartRole::grid_major,
                                          PartRole::node,   PartRole::header,     PartRole::selection,
                                          PartRole::port,   PartRole::link,       PartRole::link,
-                                         PartRole::lamp,   PartRole::marquee};
+                                         PartRole::lamp,   PartRole::marquee,    PartRole::label,
+                                         PartRole::focus,  PartRole::marquee,    PartRole::link};
     bool listed = anatomy.parts.size() == names.size();
     for (std::size_t index = 0U; listed && index < names.size(); ++index) {
         listed = anatomy.parts[index].name == names[index] && anatomy.parts[index].role == roles[index];
@@ -338,6 +349,119 @@ void grid_variants() {
     require(!(dark_blue.background == dark_blue_base.background), "a variant also applies in dark");
 }
 
+// The interaction parts: port labels, the focus ring, the knife and the
+// link preview, in light, dark, forced high contrast and two variants.
+void interaction_recipes() {
+    const std::shared_ptr<const Theme> theme = default_theme();
+    const std::shared_ptr<Panel> canvas = make_control<Panel>(StableId("canvas.interaction"));
+    const CanvasLook light = resolve_canvas_look(*theme, *canvas, light_context());
+    const CanvasLook dark = resolve_canvas_look(*theme, *canvas, dark_context());
+    const CanvasLook contrast = resolve_canvas_look(*theme, *canvas, contrast_context());
+    const Color label = light.port_labels[index_of(CanvasPortState::normal)];
+    require(label.alpha == 255U && channel_sum(label) < channel_sum(light.background.fill) / 2,
+            "a port label is dark ink on the paper");
+    require(channel_sum(dark.port_labels[index_of(CanvasPortState::normal)]) > channel_sum(label),
+            "a dark port label is light ink");
+    require(light.focus.stroke.alpha > 0U && light.focus.fill.alpha == 0U &&
+                light.focus.stroke_width >= minimum_canvas_focus_width && light.focus.corner_radius == 0.0,
+            "the focus ring is an unfilled stroke at least two units wide");
+    require(contrast.focus.stroke.alpha > 0U && contrast.focus.stroke_width >= minimum_canvas_focus_width,
+            "and so in forced high contrast");
+    require(same_rgb(light.knife.colour, 0xb4, 0x41, 0x3c) && light.knife.width == 1.5 && light.knife.dash == 4.0 &&
+                light.knife.gap == 3.0,
+            "the knife is the signal red, dashed 4 on 3");
+    const CanvasLine& seeking = light.link_previews[index_of(CanvasPreviewState::seeking)];
+    const CanvasLine& accepted = light.link_previews[index_of(CanvasPreviewState::accepted)];
+    const CanvasLine& refused = light.link_previews[index_of(CanvasPreviewState::refused)];
+    require(same_rgb(seeking.colour, 0x2f, 0x69, 0xbe) && seeking.width == 2.0 && seeking.dash == 6.0 &&
+                seeking.gap == 4.0,
+            "a seeking preview is the accent, dashed 6 on 4");
+    require(same_rgb(accepted.colour, 0x2e, 0x7d, 0x4f) && accepted.dash == 0.0,
+            "an accepted preview is solid green");
+    require(same_rgb(refused.colour, 0xb4, 0x41, 0x3c) && refused.dash == 2.0 && refused.gap == 3.0,
+            "a refused preview is red, dotted 2 on 3: refusal shows in the dash as well as the colour");
+    const Color dark_accepted = dark.link_previews[index_of(CanvasPreviewState::accepted)].colour;
+    require(dark_accepted.green > dark_accepted.red + 30U, "an accepted preview stays green in dark");
+    require(contrast.knife.halo_width == 0.0 &&
+                contrast.link_previews[index_of(CanvasPreviewState::seeking)].halo_width == 0.0 &&
+                contrast.link_previews[index_of(CanvasPreviewState::refused)].dash == 2.0,
+            "no halo in forced high contrast, and the dashes stay");
+    require((*canvas).add_class("blue"), "the blue class is added");
+    const CanvasLook blue = resolve_canvas_look(*theme, *canvas, light_context());
+    require(same_rgb(blue.link_previews[index_of(CanvasPreviewState::seeking)].colour, 0xe8, 0xf2, 0xff) &&
+                same_rgb(blue.knife.colour, 0xff, 0xb4, 0xa8) &&
+                same_rgb(blue.port_labels[index_of(CanvasPortState::normal)], 255, 255, 255),
+            "blue: a pale preview, a pale red knife and white labels");
+    require((*canvas).remove_class("blue") && (*canvas).add_class("grey"), "switched to grey");
+    const CanvasLook grey = resolve_canvas_look(*theme, *canvas, light_context());
+    require(same_rgb(grey.link_previews[index_of(CanvasPreviewState::seeking)].colour, 0x1b, 0x27, 0x33) &&
+                same_rgb(grey.port_labels[index_of(CanvasPortState::normal)], 255, 255, 255),
+            "grey: an ink preview and white labels");
+}
+
+// A theme of the default theme and `sheet`, compiled from the sheet alone;
+// a literal colour's warning (W201) is allowed. `images` must outlive the
+// theme.
+std::shared_ptr<const Theme> theme_with(std::string_view sheet, ImageRegistry& images) {
+    const std::string hash = theme_language::package_sha256_hex(theme_language::package_sha256(sheet));
+    ThemePackage package{};
+    package.manifest = "{\"format\": \"gui-forms-theme/1\", \"name\": \"items\", \"version\": \"1.0.0\", "
+                       "\"engine\": \">=0.3\", \"sheet\": {\"path\": \"items.theme.css\", \"sha256\": \"" +
+                       hash + "\"}}";
+    package.files.push_back(ThemePackageFile{"items.theme.css", std::string(sheet)});
+    ThemeCompileOptions options{};
+    options.controls = stock_control_anatomies();
+    options.base = ThemeBase::gui_forms;
+    const ThemeLibrary library{};
+    const ThemeCompileResult compiled = compile_theme_package(package, library, images, options);
+    bool clean = compiled.succeeded();
+    for (const ThemeCompileDiagnostic& diagnostic : compiled.diagnostics()) {
+        if (diagnostic.code == "W201") continue;
+        clean = false;
+        std::cerr << "  item theme: " << diagnostic.code << " " << diagnostic.name << " (" << diagnostic.detail
+                  << ")\n";
+    }
+    require(clean, "the item theme compiles");
+    std::shared_ptr<const Theme> theme = compiled.theme();
+    return theme;
+}
+
+// One item's look: a socket type's class colours its ports and links, a
+// node's ID its outline; an item without them, and the canvas itself,
+// keep the base look.
+void item_looks() {
+    constexpr std::string_view sheet = "node-canvas::part(port):item(.socket-float) { fill-color: #3fae5a; }\n"
+                                       "node-canvas::part(link):item(.socket-float) { stroke-color: #3fae5a; }\n"
+                                       "node-canvas::part(node):item(#n42) { stroke-color: #b4413c; }\n";
+    ImageRegistry images{};
+    const std::shared_ptr<const Theme> theme = theme_with(sheet, images);
+    require(theme != nullptr, "the item theme is made");
+    if (theme == nullptr) return;
+    const std::shared_ptr<Panel> canvas = make_control<Panel>(StableId("canvas.items"));
+    const CanvasLook base = resolve_canvas_look(*theme, *canvas, light_context());
+    require(!same_rgb(base.ports[index_of(CanvasPortState::normal)].fill, 0x3f, 0xae, 0x5a) &&
+                !same_rgb(base.nodes[index_of(CanvasNodeState::normal)].stroke, 0xb4, 0x41, 0x3c),
+            "item rules do not style the canvas itself");
+    const CanvasItem nothing{};
+    require(resolve_canvas_look(*theme, *canvas, light_context(), nothing) == base, "an empty item is the base look");
+    const std::vector<std::string> float_class{"socket-float"};
+    const CanvasItem floating{"", float_class};
+    const CanvasLook float_look = resolve_canvas_look(*theme, *canvas, light_context(), floating);
+    require(same_rgb(float_look.ports[index_of(CanvasPortState::normal)].fill, 0x3f, 0xae, 0x5a) &&
+                same_rgb(float_look.links[index_of(CanvasLinkState::normal)].colour, 0x3f, 0xae, 0x5a),
+            "a float socket's port and link take the socket type's colour");
+    require(float_look.nodes == base.nodes, "the socket class leaves nodes alone");
+    const std::vector<std::string> int_class{"socket-int"};
+    const CanvasItem integer{"", int_class};
+    require(resolve_canvas_look(*theme, *canvas, light_context(), integer) == base,
+            "another socket type keeps the base look");
+    const CanvasItem node{"n42", {}};
+    const CanvasLook node_look = resolve_canvas_look(*theme, *canvas, light_context(), node);
+    require(same_rgb(node_look.nodes[index_of(CanvasNodeState::normal)].stroke, 0xb4, 0x41, 0x3c) &&
+                node_look.ports == base.ports,
+            "one node's ID outlines that node only");
+}
+
 void texture_clamp() {
     require(clamp_canvas_texture_contrast(0.02) == 0.02, "a contrast within the rule is kept");
     require(clamp_canvas_texture_contrast(0.05) == maximum_canvas_texture_contrast, "more is clamped to 3 %");
@@ -496,6 +620,42 @@ void part_commands() {
     require(marquee.fills.size() == 1U && marquee.polylines.size() == 1U && marquee.polylines[0].points == 5U &&
                 marquee.polylines[0].style.dash_count == 2U,
             "the marquee is a wash and a closed dashed outline");
+    RecordingPainter focus;
+    paint_canvas_focus(focus, look, Rect{10.0, 10.0, 120.0, 80.0}, 6.0);
+    require(focus.outlines.size() == 1U && focus.outlines[0].rect == Rect{7.0, 7.0, 126.0, 86.0} &&
+                focus.outlines[0].width == 2.0 && focus.outlines[0].radius == 9.0 && focus.rounded_fills.empty(),
+            "the focus ring is two units wide, a two-unit gap outside the item, its corners following");
+    RecordingPainter no_focus;
+    paint_canvas_focus(no_focus, look, Rect{10.0, 10.0, 0.0, 0.0}, 6.0);
+    require(no_focus.outlines.empty(), "an empty item has no ring");
+    RecordingPainter label;
+    paint_canvas_port_label(label, look, Point{30.0, 20.0}, "value", FontSpec{}, CanvasPortState::normal);
+    require(label.text_colours.size() == 1U &&
+                label.text_colours[0] == look.port_labels[index_of(CanvasPortState::normal)],
+            "a port label is drawn in its state's ink");
+    RecordingPainter no_label;
+    paint_canvas_port_label(no_label, look, Point{30.0, 20.0}, "", FontSpec{}, CanvasPortState::normal);
+    require(no_label.text_colours.empty(), "an empty label draws nothing");
+    RecordingPainter knife;
+    paint_canvas_knife(knife, look, path);
+    require(knife.polylines.size() == 1U && knife.polylines[0].points == 3U &&
+                knife.polylines[0].style.dash_count == 2U && knife.polylines[0].style.width == 1.5,
+            "the knife is one dashed stroke along its path");
+    RecordingPainter no_knife;
+    paint_canvas_knife(no_knife, look, std::span<const Point>(path.data(), 1U));
+    require(no_knife.polylines.empty(), "a knife of one point draws nothing");
+    RecordingPainter accepted;
+    paint_canvas_link_preview(accepted, look, path, CanvasPreviewState::accepted);
+    require(accepted.polylines.size() == 1U && accepted.polylines[0].style.dash_count == 0U,
+            "an accepted preview is one solid stroke");
+    RecordingPainter refused;
+    paint_canvas_link_preview(refused, look, path, CanvasPreviewState::refused);
+    require(refused.polylines.size() == 1U && refused.polylines[0].style.dash_count == 2U &&
+                refused.polylines[0].style.dashes[0] == 2.0,
+            "a refused preview is dotted");
+    RecordingPainter out_of_range;
+    paint_canvas_link_preview(out_of_range, look, path, CanvasPreviewState::count);
+    require(out_of_range.polylines.empty(), "no preview state past the last draws nothing");
 }
 
 const EffectEntry& link_flow() {
@@ -608,6 +768,8 @@ int main() {
     light_recipes();
     dark_recipes();
     high_contrast_recipes();
+    interaction_recipes();
+    item_looks();
     grid_variants();
     texture_clamp();
     texture_fills();

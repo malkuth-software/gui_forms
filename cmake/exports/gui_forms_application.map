@@ -68,6 +68,7 @@
     _ZGVZN9gui_forms10CanvasArea*;
     _ZGVZN9gui_forms10CanvasFlow*;
     _ZGVZN9gui_forms10CanvasGrid*;
+    _ZGVZN9gui_forms10CanvasItem*;
     _ZGVZN9gui_forms10CanvasLine*;
     _ZGVZN9gui_forms10CanvasLook*;
     _ZGVZN9gui_forms10CanvasView*;
@@ -1482,6 +1483,7 @@
     _ZGVZN9gui_forms9TakenPage*;
     _ZGVZN9gui_forms9TextBlock*;
     _ZGVZN9gui_forms9TextStore*;
+    _ZGVZN9gui_forms9ThemeItem*;
     _ZGVZN9gui_forms9ThemeRule*;
     _ZGVZN9gui_forms9ToolStrip*;
     _ZGVZN9gui_forms9WindowRef*;
@@ -1554,6 +1556,7 @@
     _ZGVZNK9gui_forms10CanvasArea*;
     _ZGVZNK9gui_forms10CanvasFlow*;
     _ZGVZNK9gui_forms10CanvasGrid*;
+    _ZGVZNK9gui_forms10CanvasItem*;
     _ZGVZNK9gui_forms10CanvasLine*;
     _ZGVZNK9gui_forms10CanvasLook*;
     _ZGVZNK9gui_forms10CanvasView*;
@@ -2968,6 +2971,7 @@
     _ZGVZNK9gui_forms9TakenPage*;
     _ZGVZNK9gui_forms9TextBlock*;
     _ZGVZNK9gui_forms9TextStore*;
+    _ZGVZNK9gui_forms9ThemeItem*;
     _ZGVZNK9gui_forms9ThemeRule*;
     _ZGVZNK9gui_forms9ToolStrip*;
     _ZGVZNK9gui_forms9WindowRef*;
@@ -3092,6 +3096,7 @@
     _ZN9gui_forms10CanvasArea*;
     _ZN9gui_forms10CanvasFlow*;
     _ZN9gui_forms10CanvasGrid*;
+    _ZN9gui_forms10CanvasItem*;
     _ZN9gui_forms10CanvasLine*;
     _ZN9gui_forms10CanvasLook*;
     _ZN9gui_forms10CanvasView*;
@@ -4238,6 +4243,10 @@
     _ZN9gui_forms18grid_spans_overlapE*;
     _ZN9gui_forms18is_registered_nameB*;
     _ZN9gui_forms18is_registered_nameE*;
+    _ZN9gui_forms18paint_canvas_focusB*;
+    _ZN9gui_forms18paint_canvas_focusE*;
+    _ZN9gui_forms18paint_canvas_knifeB*;
+    _ZN9gui_forms18paint_canvas_knifeE*;
     _ZN9gui_forms18paint_text_part_atB*;
     _ZN9gui_forms18paint_text_part_atE*;
     _ZN9gui_forms18paragraph_line_boxB*;
@@ -4938,6 +4947,8 @@
     _ZN9gui_forms23overridden_presentationE*;
     _ZN9gui_forms23paint_canvas_backgroundB*;
     _ZN9gui_forms23paint_canvas_backgroundE*;
+    _ZN9gui_forms23paint_canvas_port_labelB*;
+    _ZN9gui_forms23paint_canvas_port_labelE*;
     _ZN9gui_forms23paragraph_storage_boundB*;
     _ZN9gui_forms23paragraph_storage_boundE*;
     _ZN9gui_forms23raster_view_defect_nameB*;
@@ -5087,6 +5098,8 @@
     _ZN9gui_forms25image_resource_error_nameE*;
     _ZN9gui_forms25installed_effect_registryB*;
     _ZN9gui_forms25installed_effect_registryE*;
+    _ZN9gui_forms25paint_canvas_link_previewB*;
+    _ZN9gui_forms25paint_canvas_link_previewE*;
     _ZN9gui_forms25paint_data_grid_view_cellB*;
     _ZN9gui_forms25paint_data_grid_view_cellE*;
     _ZN9gui_forms25property_collection_itemsB*;
@@ -5724,6 +5737,7 @@
     _ZN9gui_forms9TakenPage*;
     _ZN9gui_forms9TextBlock*;
     _ZN9gui_forms9TextStore*;
+    _ZN9gui_forms9ThemeItem*;
     _ZN9gui_forms9ThemeRule*;
     _ZN9gui_forms9ToolStrip*;
     _ZN9gui_forms9WindowRef*;
@@ -5854,6 +5868,7 @@
     _ZNK[RO]9gui_forms10CanvasArea*;
     _ZNK[RO]9gui_forms10CanvasFlow*;
     _ZNK[RO]9gui_forms10CanvasGrid*;
+    _ZNK[RO]9gui_forms10CanvasItem*;
     _ZNK[RO]9gui_forms10CanvasLine*;
     _ZNK[RO]9gui_forms10CanvasLook*;
     _ZNK[RO]9gui_forms10CanvasView*;
@@ -7268,6 +7283,7 @@
     _ZNK[RO]9gui_forms9TakenPage*;
     _ZNK[RO]9gui_forms9TextBlock*;
     _ZNK[RO]9gui_forms9TextStore*;
+    _ZNK[RO]9gui_forms9ThemeItem*;
     _ZNK[RO]9gui_forms9ThemeRule*;
     _ZNK[RO]9gui_forms9ToolStrip*;
     _ZNK[RO]9gui_forms9WindowRef*;
@@ -7340,6 +7356,7 @@
     _ZN[KRO]9gui_forms10CanvasArea*;
     _ZN[KRO]9gui_forms10CanvasFlow*;
     _ZN[KRO]9gui_forms10CanvasGrid*;
+    _ZN[KRO]9gui_forms10CanvasItem*;
     _ZN[KRO]9gui_forms10CanvasLine*;
     _ZN[KRO]9gui_forms10CanvasLook*;
     _ZN[KRO]9gui_forms10CanvasView*;
@@ -8754,6 +8771,7 @@
     _ZN[KRO]9gui_forms9TakenPage*;
     _ZN[KRO]9gui_forms9TextBlock*;
     _ZN[KRO]9gui_forms9TextStore*;
+    _ZN[KRO]9gui_forms9ThemeItem*;
     _ZN[KRO]9gui_forms9ThemeRule*;
     _ZN[KRO]9gui_forms9ToolStrip*;
     _ZN[KRO]9gui_forms9WindowRef*;
@@ -8826,6 +8844,7 @@
     _ZT[VIST]N9gui_forms10CanvasArea*E;
     _ZT[VIST]N9gui_forms10CanvasFlow*E;
     _ZT[VIST]N9gui_forms10CanvasGrid*E;
+    _ZT[VIST]N9gui_forms10CanvasItem*E;
     _ZT[VIST]N9gui_forms10CanvasLine*E;
     _ZT[VIST]N9gui_forms10CanvasLook*E;
     _ZT[VIST]N9gui_forms10CanvasView*E;
@@ -10240,6 +10259,7 @@
     _ZT[VIST]N9gui_forms9TakenPage*E;
     _ZT[VIST]N9gui_forms9TextBlock*E;
     _ZT[VIST]N9gui_forms9TextStore*E;
+    _ZT[VIST]N9gui_forms9ThemeItem*E;
     _ZT[VIST]N9gui_forms9ThemeRule*E;
     _ZT[VIST]N9gui_forms9ToolStrip*E;
     _ZT[VIST]N9gui_forms9WindowRef*E;
@@ -10312,6 +10332,7 @@
     _ZT[hvc]*9gui_forms10CanvasArea*;
     _ZT[hvc]*9gui_forms10CanvasFlow*;
     _ZT[hvc]*9gui_forms10CanvasGrid*;
+    _ZT[hvc]*9gui_forms10CanvasItem*;
     _ZT[hvc]*9gui_forms10CanvasLine*;
     _ZT[hvc]*9gui_forms10CanvasLook*;
     _ZT[hvc]*9gui_forms10CanvasView*;
@@ -11726,6 +11747,7 @@
     _ZT[hvc]*9gui_forms9TakenPage*;
     _ZT[hvc]*9gui_forms9TextBlock*;
     _ZT[hvc]*9gui_forms9TextStore*;
+    _ZT[hvc]*9gui_forms9ThemeItem*;
     _ZT[hvc]*9gui_forms9ThemeRule*;
     _ZT[hvc]*9gui_forms9ToolStrip*;
     _ZT[hvc]*9gui_forms9WindowRef*;
@@ -11798,6 +11820,7 @@
     _ZZN9gui_forms10CanvasArea*;
     _ZZN9gui_forms10CanvasFlow*;
     _ZZN9gui_forms10CanvasGrid*;
+    _ZZN9gui_forms10CanvasItem*;
     _ZZN9gui_forms10CanvasLine*;
     _ZZN9gui_forms10CanvasLook*;
     _ZZN9gui_forms10CanvasView*;
@@ -13212,6 +13235,7 @@
     _ZZN9gui_forms9TakenPage*;
     _ZZN9gui_forms9TextBlock*;
     _ZZN9gui_forms9TextStore*;
+    _ZZN9gui_forms9ThemeItem*;
     _ZZN9gui_forms9ThemeRule*;
     _ZZN9gui_forms9ToolStrip*;
     _ZZN9gui_forms9WindowRef*;
@@ -13284,6 +13308,7 @@
     _ZZNK9gui_forms10CanvasArea*;
     _ZZNK9gui_forms10CanvasFlow*;
     _ZZNK9gui_forms10CanvasGrid*;
+    _ZZNK9gui_forms10CanvasItem*;
     _ZZNK9gui_forms10CanvasLine*;
     _ZZNK9gui_forms10CanvasLook*;
     _ZZNK9gui_forms10CanvasView*;
@@ -14698,6 +14723,7 @@
     _ZZNK9gui_forms9TakenPage*;
     _ZZNK9gui_forms9TextBlock*;
     _ZZNK9gui_forms9TextStore*;
+    _ZZNK9gui_forms9ThemeItem*;
     _ZZNK9gui_forms9ThemeRule*;
     _ZZNK9gui_forms9ToolStrip*;
     _ZZNK9gui_forms9WindowRef*;

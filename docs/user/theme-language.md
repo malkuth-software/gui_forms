@@ -126,19 +126,22 @@ more than 256 levels up are not matched.
 | either of, counting nothing | `button:where(.primary, #save)` |
 | none of | `button:not(.primary, :hover)`: compounds of types, stable IDs, classes, states and families, not nested |
 | family | `:family(accent-button)`, a control visual family: the parts a control draws for that family (`window`, `panel`, `card`, `button`, `accent-button`, `command-button`, `choice`, `editor`, `menu-item`, `selection`, `progress`, `tool-tip`, `link`, `visited-link`) |
+| item | `:item(#n42)`, `:item(.socket-float)`, `:item(#n42.warning)`: one item of an item-drawing control (a node canvas's node, port or link) by its stable ID and classes, written together with no spaces between them; never a control's own part |
 | selector list | `button, check-box { ... }` |
 | surface | `window`, `popup`, with the surface root's classes and stable ID: `window#settings`, `popup.alert` |
 
 `:has()`, `:nth-*()`, attribute selectors, the sibling combinators `+`
 and `~`, a combinator inside a group, and `&` are errors, as are a
-`:not()` inside a `:not()` and a part, role or surface in one. An unknown control type, state or pseudo-class is a
+`:not()` inside a `:not()` and a part, role, surface or `:item()` in one; an
+`:item()` takes at most one stable ID, and an ancestor compound none. An unknown control type, state or pseudo-class is a
 warning (W106) that drops the rule. A part the selector's control type lacks
 is a warning too, but, as CSS's `::part()` matches nothing for a part the
 element lacks, it leaves out only its own selector: in
 `user-control::part(lid), panel::part(face)` the panel rule still applies. Specificity is CSS's: stable IDs, then
 classes and states (pseudo-classes) together, then control types and parts
-(the part's name and role, as pseudo-elements). `:family()` counts as a
-pseudo-class, `:is()` and `:not()` as their most specific argument and
+(the part's name and role, as pseudo-elements). An `:item()`'s stable
+ID counts as a stable ID and each of its classes as a class. `:family()`
+counts as a pseudo-class, `:is()` and `:not()` as their most specific argument and
 `:where()` as nothing. So `button:hover` beats `.primary`, as in CSS.
 A control's fonts are resolved for no family, so a font property in a
 `:family()` rule is a warning that drops it.
@@ -440,6 +443,10 @@ parts, their states and the properties each reads:
 | `dashed-link` | link | as `link` | as `link`; the static form of a flowing link |
 | `lamp` | lamp | `:checked` (on), `:invalid` (error); neither is off | `fill-color`, `stroke-color`, `stroke-width` |
 | `marquee` | marquee | none | `fill-color`, `stroke-color`, `stroke-width`, `stroke-dash` |
+| `port-label` | label | as `port` | `color` (a port's name) |
+| `focus` | focus | none | `stroke-color`, `stroke-width` (at least 2px), `corner-radius` (added to the item's): a ring two units outside the keyboard-focused node or port |
+| `knife` | marquee | none | `stroke-color`, `stroke-width`, `stroke-dash`: the stroke drawn to cut links |
+| `link-preview` | link | `:state(drop-accepted)`, `:state(drop-rejected)`; neither is seeking | as `link`, without the flow: the link being dragged |
 
 A property no rule sets takes the canvas's stock value, coloured from the
 theme's basic style. The grid shows the level whose spacing on screen lies
@@ -456,9 +463,22 @@ its canvas in light terms; the colours that carry state keep their hue
 green, a rejected drop and an invalid link red), only their lightness
 moved for contrast. The default theme's `blue` and `grey` variants also
 recolour the links, ports' rims, selection and marquee so they read on
-their canvas. Forced high contrast draws areas
+their canvas.
+
+A rule reaches one item with `:item()`: `node-canvas::part(node):item(#n42)`
+styles the node whose stable ID is `n42`, and
+`node-canvas::part(port):item(.warning)` every port of that class. A
+socket's data type is a class on its port and on the links it carries,
+by convention `socket-<type>`, so `node-canvas::part(link):item(.socket-float)`
+colours float links. The canvas resolves one look per distinct item ID
+and class set it shows, on the same triggers as its own. The focus ring
+is at least two units wide and drawn two units outside the item, so focus
+shows by shape as well as colour; a refused link preview is dotted as well
+as red. Forced high contrast draws areas
 in the plate and lines in the state's edge, a two-unit focus-coloured halo
-on the selected link only, no minor grid, no marquee fill and no texture.
+on the selected link only, no halo on the knife or a link preview, a
+focus ring in the focus colour, no minor grid, no marquee fill and no
+texture.
 
 Each texture layer is one of the engine's procedural patterns, generated
 per display scale in integer arithmetic (the same bytes on every host) in

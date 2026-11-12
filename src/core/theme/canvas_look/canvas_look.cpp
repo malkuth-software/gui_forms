@@ -28,7 +28,9 @@ constexpr std::array<AnatomyState, 3> canvas_port_part_states{AnatomyState::hot,
 constexpr std::array<AnatomyState, 3> canvas_link_part_states{AnatomyState::hot, AnatomyState::selected,
                                                               AnatomyState::invalid};
 constexpr std::array<AnatomyState, 2> canvas_lamp_part_states{AnatomyState::checked, AnatomyState::invalid};
-constexpr std::array<PartDeclaration, 11> canvas_parts{
+constexpr std::array<AnatomyState, 2> canvas_preview_part_states{AnatomyState::drop_accepted,
+                                                                 AnatomyState::drop_rejected};
+constexpr std::array<PartDeclaration, 15> canvas_parts{
     PartDeclaration{.name = "region", .role = PartRole::region, .composed_from = "", .states = {}},
     PartDeclaration{.name = "grid_minor", .role = PartRole::grid_minor, .composed_from = "", .states = {}},
     PartDeclaration{.name = "grid_major", .role = PartRole::grid_major, .composed_from = "", .states = {}},
@@ -41,7 +43,13 @@ constexpr std::array<PartDeclaration, 11> canvas_parts{
     PartDeclaration{
         .name = "dashed_link", .role = PartRole::link, .composed_from = "", .states = canvas_link_part_states},
     PartDeclaration{.name = "lamp", .role = PartRole::lamp, .composed_from = "", .states = canvas_lamp_part_states},
-    PartDeclaration{.name = "marquee", .role = PartRole::marquee, .composed_from = "", .states = {}}};
+    PartDeclaration{.name = "marquee", .role = PartRole::marquee, .composed_from = "", .states = {}},
+    PartDeclaration{
+        .name = "port_label", .role = PartRole::label, .composed_from = "", .states = canvas_port_part_states},
+    PartDeclaration{.name = "focus", .role = PartRole::focus, .composed_from = "", .states = {}},
+    PartDeclaration{.name = "knife", .role = PartRole::marquee, .composed_from = "", .states = {}},
+    PartDeclaration{
+        .name = "link_preview", .role = PartRole::link, .composed_from = "", .states = canvas_preview_part_states}};
 // The control's states: every state a part takes, with focus and
 // availability.
 constexpr std::array<AnatomyState, 11> canvas_control_states{
@@ -109,6 +117,8 @@ struct CanvasColouring final {
 struct CanvasPartPaint final {
     ControlCanvasPaint canvas{};
     Color text{};
+    // The recipe's focus ring colour, for the scheme and contrast.
+    Color focus{};
 };
 
 // One resolution request: the part's registered name, its recipe family,
@@ -120,14 +130,23 @@ struct CanvasPartQuery final {
     AnatomyStateSet states{};
 };
 
-[[nodiscard]] CanvasPartPaint resolve_canvas_part(const Theme& theme, const Control& canvas,
-                                                  const CanvasPartQuery& query) {
+// What one look's parts are resolved against: the theme, the canvas and
+// the item (none for the canvas's own look). Borrowed for the resolution.
+struct CanvasResolver final {
+    const Theme& theme;
+    const Control& canvas;
+    ThemeItem item{};
+};
+
+[[nodiscard]] CanvasPartPaint resolve_canvas_part(const CanvasResolver& resolver, const CanvasPartQuery& query) {
     const ResolvedControlRecipe resolved =
-        theme.resolve(canvas, query.role, query.context, query.states, query.part, node_canvas_control_id);
+        resolver.theme.resolve(resolver.canvas, query.role, query.context, query.states, query.part,
+                               node_canvas_control_id, resolver.item);
     const ControlVisualRecipe& recipe = resolved.recipe();
     CanvasPartPaint result{};
     result.canvas = recipe.canvas;
     result.text = recipe.text;
+    result.focus = recipe.focus_ring;
     return result;
 }
 
@@ -371,6 +390,50 @@ struct CanvasLineStock final {
     return stock;
 }
 
+[[nodiscard]] CanvasStateRequest preview_state_request(std::size_t index) noexcept {
+    CanvasStateRequest request{};
+    const CanvasPreviewState state = static_cast<CanvasPreviewState>(index);
+    switch (state) {
+    case CanvasPreviewState::accepted:
+        request.selected = true;
+        request.part_state = AnatomyState::drop_accepted;
+        break;
+    case CanvasPreviewState::refused:
+        request.surface = ControlSurfaceState::invalid;
+        request.part_state = AnatomyState::drop_rejected;
+        break;
+    default:
+        break;
+    }
+    return request;
+}
+
+// The dragged link: dashed in the accent while it seeks a port, solid
+// success green over a port that accepts it, dashed red over one that
+// refuses it. Its colours over a port are signals, which keep their hue in
+// dark.
+[[nodiscard]] CanvasLineStock preview_stock(const BasicControlStyle& basic, CanvasPreviewState state) noexcept {
+    CanvasLineStock stock{};
+    stock.colour = basic.accent;
+    stock.width = 2.0;
+    stock.dash = 6.0;
+    stock.gap = 4.0;
+    stock.colour_class = detail::DarkColourClass::cue;
+    if (state == CanvasPreviewState::accepted) {
+        stock.colour = stock_success;
+        stock.dash = 0.0;
+        stock.gap = 0.0;
+        stock.colour_class = detail::DarkColourClass::signal;
+    }
+    if (state == CanvasPreviewState::refused) {
+        stock.colour = stock_signal_red;
+        stock.dash = 2.0;
+        stock.gap = 3.0;
+        stock.colour_class = detail::DarkColourClass::signal;
+    }
+    return stock;
+}
+
 // A link's line in forced high contrast: the state's edge, a two-unit halo
 // in the focus colour on the selected link only.
 void apply_high_contrast_line(CanvasLine& line, CanvasLinkState state) noexcept {
@@ -433,7 +496,11 @@ double clamp_canvas_texture_contrast(double contrast) noexcept {
     return std::clamp(contrast, 0.0, maximum_canvas_texture_contrast);
 }
 
-CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, ControlVisualContext context) {
+namespace {
+
+// resolve_canvas_look for `resolver`'s item (none for the canvas's own).
+[[nodiscard]] CanvasLook resolve_look_for(const CanvasResolver& resolver, ControlVisualContext context) {
+    const Theme& theme = resolver.theme;
     const BasicControlStyle& basic = theme.basic_style();
     const ThemeDarkVariant dark_variant = theme.definition().dark_variant;
     CanvasColouring colouring{};
@@ -447,7 +514,7 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
     // The region: the canvas colour, the grid's spacing and band, the
     // texture.
     const CanvasPartQuery region_query = canvas_query("region", ControlVisualRole::panel, context, rest);
-    const CanvasPartPaint region = resolve_canvas_part(theme, canvas, region_query);
+    const CanvasPartPaint region = resolve_canvas_part(resolver, region_query);
     CanvasAreaStock region_stock{};
     region_stock.fill = basic.paper;
     region_stock.stroke = clear_colour;
@@ -478,9 +545,9 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
     // The grid levels: the minor line's colour and width (both levels'),
     // the major line's colour.
     const CanvasPartQuery minor_query = canvas_query("grid_minor", ControlVisualRole::panel, context, rest);
-    const CanvasPartPaint minor = resolve_canvas_part(theme, canvas, minor_query);
+    const CanvasPartPaint minor = resolve_canvas_part(resolver, minor_query);
     const CanvasPartQuery major_query = canvas_query("grid_major", ControlVisualRole::panel, context, rest);
-    const CanvasPartPaint major = resolve_canvas_part(theme, canvas, major_query);
+    const CanvasPartPaint major = resolve_canvas_part(resolver, major_query);
     look.grid.minor =
         canvas_colour(minor.canvas.stroke, with_alpha(basic.accent, 40), detail::DarkColourClass::line, colouring);
     look.grid.major =
@@ -494,10 +561,10 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
         const CanvasNodeState state = static_cast<CanvasNodeState>(index);
         const CanvasStateRequest request = node_state_request(index);
         const CanvasPartQuery node_query = canvas_query("node", ControlVisualRole::card, context, request);
-        const CanvasPartPaint node = resolve_canvas_part(theme, canvas, node_query);
+        const CanvasPartPaint node = resolve_canvas_part(resolver, node_query);
         look.nodes[index] = canvas_area(node.canvas, node_stock(basic, state), colouring);
         const CanvasPartQuery header_query = canvas_query("node_header", ControlVisualRole::card, context, request);
-        const CanvasPartPaint header = resolve_canvas_part(theme, canvas, header_query);
+        const CanvasPartPaint header = resolve_canvas_part(resolver, header_query);
         look.headers[index] = canvas_area(header.canvas, header_stock(basic, state), colouring);
         // The engine has already resolved the title ink for the scheme.
         look.titles[index] = header.text;
@@ -506,7 +573,7 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
     // The selection ring.
     const CanvasPartQuery selection_query =
         canvas_query("node_selection", ControlVisualRole::selection, context, rest);
-    const CanvasPartPaint selection = resolve_canvas_part(theme, canvas, selection_query);
+    const CanvasPartPaint selection = resolve_canvas_part(resolver, selection_query);
     CanvasAreaStock selection_stock{};
     selection_stock.fill = clear_colour;
     selection_stock.stroke = basic.accent;
@@ -521,7 +588,7 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
         const CanvasPortState state = static_cast<CanvasPortState>(index);
         const CanvasStateRequest request = port_state_request(index);
         const CanvasPartQuery port_query = canvas_query("port", ControlVisualRole::button, context, request);
-        const CanvasPartPaint port = resolve_canvas_part(theme, canvas, port_query);
+        const CanvasPartPaint port = resolve_canvas_part(resolver, port_query);
         look.ports[index] = canvas_area(port.canvas, port_stock(basic, state), colouring);
     }
 
@@ -531,10 +598,10 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
         const CanvasLinkState state = static_cast<CanvasLinkState>(index);
         const CanvasStateRequest request = link_state_request(index);
         const CanvasPartQuery link_query = canvas_query("link", ControlVisualRole::panel, context, request);
-        const CanvasPartPaint link = resolve_canvas_part(theme, canvas, link_query);
+        const CanvasPartPaint link = resolve_canvas_part(resolver, link_query);
         look.links[index] = canvas_line(link.canvas, link_stock(basic, state, CanvasLinkStyle::plain), colouring);
         const CanvasPartQuery dashed_query = canvas_query("dashed_link", ControlVisualRole::panel, context, request);
-        const CanvasPartPaint dashed = resolve_canvas_part(theme, canvas, dashed_query);
+        const CanvasPartPaint dashed = resolve_canvas_part(resolver, dashed_query);
         look.dashed_links[index] =
             canvas_line(dashed.canvas, link_stock(basic, state, CanvasLinkStyle::dashed), colouring);
         if (context.high_contrast) apply_high_contrast_line(look.links[index], state);
@@ -553,13 +620,13 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
         const CanvasLampState state = static_cast<CanvasLampState>(index);
         const CanvasStateRequest request = lamp_state_request(index);
         const CanvasPartQuery lamp_query = canvas_query("lamp", ControlVisualRole::progress, context, request);
-        const CanvasPartPaint lamp = resolve_canvas_part(theme, canvas, lamp_query);
+        const CanvasPartPaint lamp = resolve_canvas_part(resolver, lamp_query);
         look.lamps[index] = canvas_area(lamp.canvas, lamp_stock(basic, state), colouring);
     }
 
     // The marquee: its area and its dashed outline.
     const CanvasPartQuery marquee_query = canvas_query("marquee", ControlVisualRole::selection, context, rest);
-    const CanvasPartPaint marquee = resolve_canvas_part(theme, canvas, marquee_query);
+    const CanvasPartPaint marquee = resolve_canvas_part(resolver, marquee_query);
     CanvasAreaStock marquee_stock{};
     marquee_stock.fill = with_alpha(basic.accent, 31);
     marquee_stock.stroke = basic.accent;
@@ -572,6 +639,65 @@ CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, Contro
     look.marquee_outline.width = look.marquee.stroke_width;
     look.marquee_outline.dash = canvas_length(marquee.canvas.dash, 4.0);
     look.marquee_outline.gap = canvas_length(marquee.canvas.gap, 3.0);
+
+    // Port labels, by port state: the engine has resolved the ink for the
+    // scheme and contrast.
+    for (std::size_t index = 0U; index < canvas_port_state_count; ++index) {
+        const CanvasStateRequest request = port_state_request(index);
+        const CanvasPartQuery label_query = canvas_query("port_label", ControlVisualRole::button, context, request);
+        const CanvasPartPaint label = resolve_canvas_part(resolver, label_query);
+        look.port_labels[index] = label.text;
+    }
+
+    // The focus ring: a rule's line colour, else the recipe's focus ring
+    // colour (already the scheme's, and forced high contrast's focus
+    // colour there); never narrower than the rule's minimum.
+    const CanvasPartQuery focus_query = canvas_query("focus", ControlVisualRole::selection, context, rest);
+    const CanvasPartPaint focus = resolve_canvas_part(resolver, focus_query);
+    look.focus.fill = clear_colour;
+    look.focus.stroke = focus.focus;
+    if (focus.canvas.stroke.has_value() && !context.high_contrast) {
+        look.focus.stroke = canvas_colour(focus.canvas.stroke, focus.focus, detail::DarkColourClass::cue, colouring);
+    }
+    look.focus.stroke_width = std::max(canvas_length(focus.canvas.stroke_width, 2.0), minimum_canvas_focus_width);
+    look.focus.corner_radius = canvas_length(focus.canvas.corner_radius, 0.0);
+
+    // The knife: a dashed signal-red stroke.
+    const CanvasPartQuery knife_query = canvas_query("knife", ControlVisualRole::selection, context, rest);
+    const CanvasPartPaint knife = resolve_canvas_part(resolver, knife_query);
+    CanvasLineStock knife_stock{};
+    knife_stock.colour = stock_signal_red;
+    knife_stock.width = 1.5;
+    knife_stock.dash = 4.0;
+    knife_stock.gap = 3.0;
+    knife_stock.colour_class = detail::DarkColourClass::signal;
+    look.knife = canvas_line(knife.canvas, knife_stock, colouring);
+    if (context.high_contrast) look.knife.halo_width = 0.0;
+
+    // The link being dragged, by preview state.
+    for (std::size_t index = 0U; index < canvas_preview_state_count; ++index) {
+        const CanvasPreviewState state = static_cast<CanvasPreviewState>(index);
+        const CanvasStateRequest request = preview_state_request(index);
+        const CanvasPartQuery preview_query = canvas_query("link_preview", ControlVisualRole::panel, context, request);
+        const CanvasPartPaint preview = resolve_canvas_part(resolver, preview_query);
+        look.link_previews[index] = canvas_line(preview.canvas, preview_stock(basic, state), colouring);
+        if (context.high_contrast) look.link_previews[index].halo_width = 0.0;
+    }
+    return look;
+}
+
+} // namespace
+
+CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, ControlVisualContext context) {
+    const CanvasResolver resolver{theme, canvas, ThemeItem{}};
+    const CanvasLook look = resolve_look_for(resolver, context);
+    return look;
+}
+
+CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, ControlVisualContext context,
+                               const CanvasItem& item) {
+    const CanvasResolver resolver{theme, canvas, ThemeItem{item.id, item.classes}};
+    const CanvasLook look = resolve_look_for(resolver, context);
     return look;
 }
 
@@ -719,6 +845,50 @@ void paint_canvas_marquee(Painter& painter, const CanvasLook& look, Rect rect) {
     StrokeStyle style = canvas_stroke(outline.colour, outline.width, outline.dash, outline.gap);
     style.join = StrokeJoin::miter;
     painter.stroke_polyline(corners, style);
+}
+
+void paint_canvas_focus(Painter& painter, const CanvasLook& look, Rect target, double target_radius) {
+    const CanvasArea& ring = look.focus;
+    if (target.empty() || ring.stroke.alpha == 0U) return;
+    const double width = std::max(finite_or_zero(ring.stroke_width), minimum_canvas_focus_width);
+    const double reach = canvas_focus_gap + width / 2.0;
+    const Rect around = outset_rect(target, reach);
+    const double radius = std::max(finite_or_zero(target_radius), 0.0) + reach + finite_or_zero(ring.corner_radius);
+    const double shortest = std::min(around.width, around.height);
+    const double clamped = std::min(radius, shortest / 2.0);
+    painter.stroke_rounded_rect(around, clamped, ring.stroke, width);
+}
+
+void paint_canvas_port_label(Painter& painter, const CanvasLook& look, Point baseline, std::string_view text,
+                             FontSpec font, CanvasPortState state) {
+    const std::size_t index = static_cast<std::size_t>(state);
+    if (index >= canvas_port_state_count || text.empty()) return;
+    const Color ink = look.port_labels[index];
+    if (ink.alpha == 0U) return;
+    painter.draw_text_utf8(baseline, text, font, ink);
+}
+
+void paint_canvas_knife(Painter& painter, const CanvasLook& look, std::span<const Point> points) {
+    const CanvasLine& line = look.knife;
+    if (points.size() < 2U || line.colour.alpha == 0U || !(line.width > 0.0)) return;
+    const StrokeStyle stroke = canvas_stroke(line.colour, line.width, line.dash, line.gap);
+    painter.stroke_polyline(points, stroke);
+}
+
+void paint_canvas_link_preview(Painter& painter, const CanvasLook& look, std::span<const Point> points,
+                               CanvasPreviewState state) {
+    const std::size_t index = static_cast<std::size_t>(state);
+    if (index >= canvas_preview_state_count || points.size() < 2U) return;
+    const CanvasLine& line = look.link_previews[index];
+    const bool haloed = line.halo.alpha > 0U && line.halo_width > 0.0;
+    if (haloed) {
+        const double halo_width = line.width + 2.0 * line.halo_width;
+        const StrokeStyle halo = canvas_stroke(line.halo, halo_width, 0.0, 0.0);
+        painter.stroke_polyline(points, halo);
+    }
+    if (line.colour.alpha == 0U || !(line.width > 0.0)) return;
+    const StrokeStyle stroke = canvas_stroke(line.colour, line.width, line.dash, line.gap);
+    painter.stroke_polyline(points, stroke);
 }
 
 } // namespace gui_forms

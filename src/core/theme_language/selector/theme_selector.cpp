@@ -65,7 +65,7 @@ constexpr std::array<std::string_view, 25> refused_pseudo_classes{{
 
 // The language's functional pseudo-classes, an error written without
 // their arguments.
-constexpr std::array<std::string_view, 5> argument_pseudo_classes{{"is", "where", "not", "family", "state"}};
+constexpr std::array<std::string_view, 6> argument_pseudo_classes{{"is", "where", "not", "family", "state", "item"}};
 
 constexpr std::array<std::string_view, 9> refused_pseudo_elements{{
     "before", "after", "first-line", "first-letter", "marker", "placeholder", "selection", "backdrop",
@@ -95,9 +95,10 @@ template <std::size_t Count>
 // count (rule_specificity) for one of its kind.
 [[nodiscard]] RuleSpecificity specificity_of(SimpleKind kind) noexcept {
     RuleSpecificity one{};
-    if (kind == SimpleKind::stable_id) one.ids = 1U;
+    if (kind == SimpleKind::stable_id || kind == SimpleKind::item_id) one.ids = 1U;
     const bool pseudo_class = kind == SimpleKind::style_class || kind == SimpleKind::state ||
-                              kind == SimpleKind::custom_state || kind == SimpleKind::family;
+                              kind == SimpleKind::custom_state || kind == SimpleKind::family ||
+                              kind == SimpleKind::item_class;
     if (pseudo_class) one.classes = 1U;
     if (kind == SimpleKind::control_type || kind == SimpleKind::surface) one.types = 1U;
     if (kind == SimpleKind::part || kind == SimpleKind::role) one.types = 1U;
@@ -198,6 +199,7 @@ private:
     [[nodiscard]] bool open_group(std::uint32_t function_token, GroupKind group);
     [[nodiscard]] bool close_group(std::uint32_t closer);
     [[nodiscard]] bool read_family(std::uint32_t function_token);
+    [[nodiscard]] bool read_item(std::uint32_t function_token);
     [[nodiscard]] bool finish_compound(std::uint32_t at);
     [[nodiscard]] bool add_simple(const Simple& simple);
     // add_simple, counting `counted` toward the compound's specificity.
@@ -490,6 +492,7 @@ bool SelectorPass::read_pseudo() {
         return open_group(next, GroupKind::negation);
     }
     if (equals_ascii_folded(name, "family")) return read_family(next);
+    if (equals_ascii_folded(name, "item")) return read_item(next);
     if (equals_ascii_folded(name, "state")) {
         const NameArgument argument = name_argument(next);
         if (!argument.found) {
@@ -699,6 +702,67 @@ bool SelectorPass::read_family(std::uint32_t function_token) {
     simple.token = argument.name;
     simple.name = family;
     return add_simple(simple);
+}
+
+// `:item(<compound>)` (cp31): one compound of the item's stable ID
+// (`#id`, at most one) and classes (`.name`), written without spaces
+// between them, such as `:item(#n42)`, `:item(.socket-float)` or
+// `:item(#n42.warning)`. The part then matches only for an item that has
+// them; each counts as an ID or a class does.
+bool SelectorPass::read_item(std::uint32_t function_token) {
+    std::uint32_t index = function_token + 1U;
+    while (index < end_ && (tokens_[index].kind == TokenKind::whitespace || tokens_[index].kind == TokenKind::comment)) {
+        ++index;
+    }
+    std::size_t read = 0U;
+    while (index < end_) {
+        const Token& token = tokens_[index];
+        if (token.kind == TokenKind::hash) {
+            if ((token.flags & token_flag_hash_identifier) == 0U) {
+                report(DiagnosticCode::selector_syntax, index, "an item's stable ID must be a name");
+                return false;
+            }
+            Simple simple{};
+            simple.kind = SimpleKind::item_id;
+            simple.token = index;
+            simple.name = token_text(index).substr(1U);
+            if (!add_simple(simple)) return false;
+            read = read + 1U;
+            ++index;
+            continue;
+        }
+        const bool dot = token.kind == TokenKind::delim && token_text(index)[0] == '.';
+        if (!dot) break;
+        const std::uint32_t name_token = index + 1U;
+        if (name_token >= end_ || tokens_[name_token].kind != TokenKind::ident) {
+            report(DiagnosticCode::selector_syntax, index, "'.' without a class name");
+            return false;
+        }
+        const std::string_view name = token_text(name_token);
+        if (!valid_style_class_name(name)) {
+            report(DiagnosticCode::selector_syntax, name_token, "not a style class name");
+            return false;
+        }
+        Simple simple{};
+        simple.kind = SimpleKind::item_class;
+        simple.token = name_token;
+        simple.name = name;
+        if (!add_simple(simple)) return false;
+        read = read + 1U;
+        index = name_token + 1U;
+    }
+    while (index < end_ && (tokens_[index].kind == TokenKind::whitespace || tokens_[index].kind == TokenKind::comment)) {
+        ++index;
+    }
+    if (read == 0U || index >= end_ || tokens_[index].kind != TokenKind::right_paren) {
+        const std::uint32_t offending = index < end_ ? index : function_token;
+        report(DiagnosticCode::selector_syntax, offending, "':item()' takes an item's #id and .classes");
+        return false;
+    }
+    Frame& frame = workspace_.frames[depth_];
+    frame.compound_started = true;
+    index_ = index + 1U;
+    return true;
 }
 
 // Ends the compound being read at token `at` (a ',', the ')' of an
@@ -949,6 +1013,18 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
                 return false;
             }
             selector.family = std::string(simple.name);
+        } else if (simple.kind == SimpleKind::item_id) {
+            if (!selector.item_id.empty() && selector.item_id != simple.name) {
+                report(DiagnosticCode::selector_syntax, simple.token, "two item IDs");
+                return false;
+            }
+            selector.item_id = std::string(simple.name);
+        } else if (simple.kind == SimpleKind::item_class) {
+            bool present = false;
+            for (const std::string& name : selector.item_classes) {
+                if (name == simple.name) present = true;
+            }
+            if (!present) selector.item_classes.push_back(std::string(simple.name));
         } else {
             bool present = false;
             for (const AnatomyState state : selector.states) {
@@ -967,7 +1043,8 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
     // only: its rules style no part of a control.
     const bool surface_with_more = selector.surface != SurfaceKind::none &&
                                    (!selector.control_type.empty() || !selector.part.empty() || selector.role ||
-                                    !selector.states.empty() || names_custom_state);
+                                    !selector.states.empty() || names_custom_state ||
+                                    !selector.item_id.empty() || !selector.item_classes.empty());
     if (surface_with_more) {
         report(DiagnosticCode::selector_syntax, surface_token,
                "a window or popup selector takes only classes and a stable ID");
@@ -1127,8 +1204,9 @@ void SelectorPass::report(DiagnosticCode code, std::uint32_t token, std::string 
 std::size_t lowered_selector_bytes(const RuleSelector& selector) noexcept {
     std::size_t bytes = lowered_record_bytes + selector.control_type.size() + selector.stable_id.size() +
                         selector.part.size() + selector.states.size() + selector.custom_states.size() +
-                        selector.family.size();
+                        selector.family.size() + selector.item_id.size();
     for (const std::string& name : selector.classes) bytes += name.size();
+    for (const std::string& name : selector.item_classes) bytes += name.size();
     for (const RuleExclusion& exclusion : selector.excluded) {
         bytes += lowered_record_bytes + exclusion.control_type.size() + exclusion.stable_id.size() +
                  exclusion.states.size() + exclusion.custom_states.size() + exclusion.family.size();

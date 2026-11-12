@@ -123,6 +123,8 @@ struct Alternative final {
 // no standard state: it is resolved against the selector's control type
 // once the selector is expanded (R2-13), since an `:is()` may give each
 // expansion its own type.
+// item_id and item_class are `:item()`'s arguments (cp31): the item's
+// stable ID and classes.
 enum class SimpleKind : std::uint8_t {
     control_type,
     stable_id,
@@ -134,6 +136,8 @@ enum class SimpleKind : std::uint8_t {
     surface,
     family,
     negation,
+    item_id,
+    item_class,
 };
 struct Simple final {
     SimpleKind kind{SimpleKind::control_type};

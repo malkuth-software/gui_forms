@@ -35,6 +35,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 
 namespace gui_forms {
@@ -59,16 +60,30 @@ inline constexpr std::string_view node_canvas_control_id{"node_canvas"};
 // - a port: at rest, under the pointer, or under a dragged link that may
 //   (`:state(drop-accepted)`) or may not (`:state(drop-rejected)`) connect;
 // - a link: at rest, under the pointer, selected or invalid (`:invalid`);
-// - a lamp: off (neither), on (`:checked`) or in error (`:invalid`).
+// - a lamp: off (neither), on (`:checked`) or in error (`:invalid`);
+// - the link being dragged (`link-preview`): seeking a port, over a port
+//   that accepts it (`:state(drop-accepted)`) or over one that refuses it
+//   (`:state(drop-rejected)`).
+// A port's label ink follows its port's state.
 enum class CanvasNodeState : std::uint8_t { normal, hot, selected, disabled, count };
 enum class CanvasPortState : std::uint8_t { normal, hot, drop_accepted, drop_rejected, count };
 enum class CanvasLinkState : std::uint8_t { normal, hot, selected, invalid, count };
 enum class CanvasLampState : std::uint8_t { off, on, error, count };
+enum class CanvasPreviewState : std::uint8_t { seeking, accepted, refused, count };
 
 inline constexpr std::size_t canvas_node_state_count = static_cast<std::size_t>(CanvasNodeState::count);
 inline constexpr std::size_t canvas_port_state_count = static_cast<std::size_t>(CanvasPortState::count);
 inline constexpr std::size_t canvas_link_state_count = static_cast<std::size_t>(CanvasLinkState::count);
 inline constexpr std::size_t canvas_lamp_state_count = static_cast<std::size_t>(CanvasLampState::count);
+inline constexpr std::size_t canvas_preview_state_count = static_cast<std::size_t>(CanvasPreviewState::count);
+
+// The keyboard focus cue (the `focus` part) is a shape, not only a colour:
+// a ring at least minimum_canvas_focus_width units wide, drawn
+// canvas_focus_gap units outside the focused node or port, so it shows
+// where a hue difference alone would not (forced high contrast, colour
+// blindness, a theme whose focus colour is near its line colour).
+inline constexpr double minimum_canvas_focus_width = 2.0;
+inline constexpr double canvas_focus_gap = 2.0;
 
 // Which link part a link is drawn as: `link`, or `dashed-link` (a link the
 // consumer marks dashed, and the static form of a flowing link).
@@ -164,6 +179,16 @@ struct GUI_FORMS_API CanvasLook final {
     CanvasArea marquee{};
     CanvasLine marquee_outline{};
     CanvasFlow flow{};
+    // A port's label ink, by port state.
+    std::array<Color, canvas_port_state_count> port_labels{};
+    // The focus ring: its line colour, width (at least
+    // minimum_canvas_focus_width) and the radius it adds to the item's
+    // corners; its fill is clear.
+    CanvasArea focus{};
+    // The knife stroke that cuts links.
+    CanvasLine knife{};
+    // The link being dragged, by preview state.
+    std::array<CanvasLine, canvas_preview_state_count> link_previews{};
     friend bool operator==(const CanvasLook& left, const CanvasLook& right) noexcept {
         return left.background == right.background && left.grid == right.grid && left.texture == right.texture &&
                left.texture_blend == right.texture_blend &&
@@ -171,7 +196,8 @@ struct GUI_FORMS_API CanvasLook final {
                left.selection == right.selection && left.ports == right.ports && left.links == right.links &&
                left.dashed_links == right.dashed_links && left.lamps == right.lamps &&
                left.marquee == right.marquee && left.marquee_outline == right.marquee_outline &&
-               left.flow == right.flow;
+               left.flow == right.flow && left.port_labels == right.port_labels && left.focus == right.focus &&
+               left.knife == right.knife && left.link_previews == right.link_previews;
     }
 };
 
@@ -199,6 +225,29 @@ struct GUI_FORMS_API CanvasLook final {
 // Reads the theme only; the result owns everything it holds.
 [[nodiscard]] GUI_FORMS_API CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas,
                                                            ControlVisualContext context);
+
+// One item of the canvas (a node, a port or a link) as theme rules address
+// it with `:item()`: its stable ID (`:item(#n42)`) and classes
+// (`:item(.warning)`). A socket's data type is an item class on its port
+// and on the links it carries, conventionally `socket-<type>`
+// (`node-canvas::part(port):item(.socket-float)`), so a theme colours by
+// data type. Both views are borrowed for the call.
+struct GUI_FORMS_API CanvasItem final {
+    std::string_view id{};
+    std::span<const std::string> classes{};
+};
+
+// The look of one item: as resolve_canvas_look above, with `item`'s ID and
+// classes matched by `:item()` rules, so every part an item draws (node,
+// header, selection, port, port label, link, dashed link, link preview,
+// lamp and focus ring) takes the rules written for it. A canvas paints the
+// item's parts from this look and the canvas-wide parts (region, grid,
+// marquee, knife, texture) from its own; it resolves one per distinct ID
+// and class set it shows, on the same triggers, and keeps them. With no ID
+// and no classes it is the canvas's look. Reads the theme only; runs the
+// cascade on every call (Theme::resolve's item form keeps nothing).
+[[nodiscard]] GUI_FORMS_API CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas,
+                                                           ControlVisualContext context, const CanvasItem& item);
 
 // The contrast a canvas texture is multiplied at: `contrast` clamped to
 // [0, maximum_canvas_texture_contrast] (the design language's sub-3 %
@@ -272,5 +321,28 @@ GUI_FORMS_API void paint_canvas_lamp(Painter& painter, const CanvasLook& look, P
 
 // The marquee over `rect`: its area, then its outline with its dashes.
 GUI_FORMS_API void paint_canvas_marquee(Painter& painter, const CanvasLook& look, Rect rect);
+
+// The keyboard focus ring around a focused node's body or port's disc
+// `target` whose corners are `target_radius` (a port's radius for a
+// disc): the focus part's line, canvas_focus_gap outside the target plus
+// half its width, its corners the target's grown by the same reach plus
+// the part's corner radius. Draws nothing for an empty target or a clear
+// line; the width is never below minimum_canvas_focus_width.
+GUI_FORMS_API void paint_canvas_focus(Painter& painter, const CanvasLook& look, Rect target, double target_radius);
+
+// A port's label `text` at `baseline` in `font`, in the label ink of the
+// port's `state`. Draws nothing for empty text or a clear ink.
+GUI_FORMS_API void paint_canvas_port_label(Painter& painter, const CanvasLook& look, Point baseline,
+                                           std::string_view text, FontSpec font, CanvasPortState state);
+
+// The knife stroke through `points` (as paint_canvas_link's), with its
+// dashes. Fewer than 2 points draw nothing.
+GUI_FORMS_API void paint_canvas_knife(Painter& painter, const CanvasLook& look, std::span<const Point> points);
+
+// The link being dragged through `points`, in `state`: its halo, then its
+// stroke with its dashes, as paint_canvas_link. Fewer than 2 points draw
+// nothing.
+GUI_FORMS_API void paint_canvas_link_preview(Painter& painter, const CanvasLook& look, std::span<const Point> points,
+                                             CanvasPreviewState state);
 
 } // namespace gui_forms

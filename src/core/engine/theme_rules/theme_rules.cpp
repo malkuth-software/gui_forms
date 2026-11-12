@@ -93,6 +93,9 @@ std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool ow
     for (const std::string& name : selector.classes) {
         if (!valid_style_class_name(name)) return RuleDiagnosticKind::selector_invalid;
     }
+    for (const std::string& name : selector.item_classes) {
+        if (!valid_style_class_name(name)) return RuleDiagnosticKind::selector_invalid;
+    }
     for (const AnatomyState state : selector.states) {
         if (static_cast<std::size_t>(state) >= anatomy_state_count) return RuleDiagnosticKind::selector_invalid;
     }
@@ -267,12 +270,15 @@ RuleSpecificity exclusion_specificity(const RuleExclusion& exclusion) noexcept {
 
 RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept {
     RuleSpecificity result{};
-    result.ids = selector.stable_id.empty() ? 0U : 1U;
-    // Each class, each state and the family, as CSS counts classes and
-    // pseudo-classes.
+    const std::uint32_t own_id = selector.stable_id.empty() ? 0U : 1U;
+    const std::uint32_t item_id = selector.item_id.empty() ? 0U : 1U;
+    result.ids = own_id + item_id;
+    // Each class, each item class, each state and the family, as CSS
+    // counts classes and pseudo-classes.
     const std::size_t family = selector.family.empty() ? 0U : 1U;
+    const std::size_t classes = selector.classes.size() + selector.item_classes.size();
     const std::size_t states = selector.states.size() + selector.custom_states.size();
-    result.classes = static_cast<std::uint32_t>(selector.classes.size() + states + family);
+    result.classes = static_cast<std::uint32_t>(classes + states + family);
     // A surface selector counts as a type selector, as CSS's `window` would;
     // the part's name and role each as a pseudo-element.
     const bool typed = !selector.control_type.empty() || selector.surface != SurfaceKind::none;
@@ -2544,6 +2550,14 @@ bool CompiledThemeRules::matches(const CompiledRule& rule, const PartFacts& fact
         if (!present) return false;
     }
     if (!selector.family.empty() && selector.family != facts.family) return false;
+    if (!selector.item_id.empty() && selector.item_id != facts.item_id) return false;
+    for (const std::string& name : selector.item_classes) {
+        bool present = false;
+        for (const std::string& held : facts.item_classes) {
+            if (held == name) present = true;
+        }
+        if (!present) return false;
+    }
     for (const RuleExclusion& exclusion : selector.excluded) {
         if (exclusion_matches(exclusion, facts)) return false;
     }

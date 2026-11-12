@@ -151,19 +151,26 @@ struct GUI_FORMS_API RuleSelector final {
     std::vector<RuleExclusion> excluded{};
     // The selector's ancestor compounds, nearest first (selector step 4).
     std::vector<RuleAncestor> ancestors{};
+    // The item the part belongs to (`:item(#id.class)`; cp31): its stable
+    // ID and classes, each optional. A selector with either matches only
+    // a part resolved for an item that has them (PartFacts::item_id and
+    // item_classes), never a control's own part.
+    std::string item_id{};
+    std::vector<std::string> item_classes{};
 
     friend bool operator==(const RuleSelector& left, const RuleSelector& right) noexcept {
         return left.control_type == right.control_type && left.stable_id == right.stable_id &&
                left.classes == right.classes && left.part == right.part && left.role == right.role &&
                left.states == right.states && left.custom_states == right.custom_states &&
                left.surface == right.surface && left.family == right.family &&
-               left.excluded == right.excluded && left.ancestors == right.ancestors;
+               left.excluded == right.excluded && left.ancestors == right.ancestors &&
+               left.item_id == right.item_id && left.item_classes == right.item_classes;
     }
 };
 
 // A selector's specificity, CSS's three columns compared in order: the
-// stable ID; the classes, the states (standard and custom) and the family
-// (pseudo-classes); the
+// stable ID and the item's ID; the classes, the item's classes, the states
+// (standard and custom) and the family (pseudo-classes); the
 // control type or surface and the part (its name or role, one each, as
 // pseudo-elements). A `:not()` adds its most specific argument's, and each
 // ancestor compound its own.
@@ -1826,6 +1833,11 @@ public:
         // (uses_ancestors). Borrowed for the call.
         std::span<const AncestorFacts> ancestors{};
         AncestorBloom ancestor_bloom{};
+        // The item the part is resolved for (cp31: a node canvas's node,
+        // port or link): its stable ID and classes, empty for a control's
+        // own part. Borrowed for the call.
+        std::string_view item_id{};
+        std::span<const std::string> item_classes{};
     };
 
     // Why a part resolved as it did.

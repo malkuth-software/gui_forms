@@ -2205,7 +2205,7 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     }
     bool reads_ancestor_states = false;
     ResolvedControlRecipe resolved =
-        resolve_from_rules(control, role, context, states, part, control_type, reads_ancestor_states);
+        resolve_from_rules(control, role, context, states, part, control_type, ThemeItem{}, reads_ancestor_states);
     if (kept.recipes.size() >= detail::maximum_kept_recipes) kept.recipes.clear();
     detail::KeptRecipe entry{this,
                              placement,
@@ -2222,10 +2222,23 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     return resolved;
 }
 
+ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
+                                     AnatomyStateSet states, std::string_view part, std::string_view control_type,
+                                     const ThemeItem& item) const {
+    if (item.id.empty() && item.classes.empty()) {
+        ResolvedControlRecipe plain = resolve(control, role, context, states, part, control_type);
+        return plain;
+    }
+    bool reads_ancestor_states = false;
+    ResolvedControlRecipe resolved =
+        resolve_from_rules(control, role, context, states, part, control_type, item, reads_ancestor_states);
+    return resolved;
+}
+
 ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlVisualRole role,
                                                 ControlVisualContext context, AnatomyStateSet states,
                                                 std::string_view part, std::string_view control_type,
-                                                bool& reads_ancestor_states) const {
+                                                const ThemeItem& item, bool& reads_ancestor_states) const {
     reads_ancestor_states = false;
     const ControlVisualRecipe& floor = resolve(role, context);
     // Forced high contrast is the engine's own pass (E1): the built-in
@@ -2242,6 +2255,8 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
     facts.states = states;
     facts.forced_high_contrast = forced;
     facts.family = control_visual_role_name(role);
+    facts.item_id = item.id;
+    facts.item_classes = item.classes;
     const SurfaceRoot* const window = control.attached_surface_root();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();

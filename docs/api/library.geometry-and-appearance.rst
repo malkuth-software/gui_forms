@@ -56,6 +56,8 @@ Types
      - What moves along a flowing link (the link part at rest): the mark, its speed in world units a second and its pitch in view units.
    * - :cpp:class:`CanvasGrid <gui_forms::CanvasGrid>`
      - The world grid: minor and major colours, one line width (view units), the minor spacing in world units at zoom 1, and the band of view spacings the shown level keeps to (select_grid_level; its maximum is exactly grid_level_ratio times its minimum).
+   * - :cpp:class:`CanvasItem <gui_forms::CanvasItem>`
+     - One item of the canvas (a node, a port or a link) as theme rules address it with ``:item()``: its stable ID (``:item(#n42)``) and classes (``:item(.warning)``).
    * - :cpp:class:`CanvasLine <gui_forms::CanvasLine>`
      - A link's stroke: its colour and width, its dash and gap (a dash of 0 is solid), and its halo, a wider stroke ``halo_width`` beyond each side drawn under it (0 draws none).
    * - :cpp:class:`CanvasLook <gui_forms::CanvasLook>`
@@ -232,8 +234,6 @@ Types
      - The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3.
    * - :cpp:class:`LightPlaneCache <gui_forms::engine_light::LightPlaneCache>`
      - The bakes in one directory, each read the first time it is asked for (``<directory>/<name>.f32``) and kept: a missing or defective file is remembered and not read again.
-   * - :cpp:class:`LightPlaneRaster <gui_forms::engine_light::LightPlaneRaster>`
-     - -- a part's kept composite ----------------------------------------------------------------- A part composited from a bake (PartPaint::light_planes, such as IndicatorLamp's lens) keeps its last composite in one of these, owned by the part's control, so that a repaint with nothing changed (a lamp repainted for a neighbour's damage) draws the kept raster again instead of compositing.
    * - :cpp:class:`LightPlaneRect <gui_forms::engine_light::LightPlaneRect>`
      - A rectangle of device pixels the planes are stretched over.
    * - :cpp:class:`LightPlanes <gui_forms::engine_light::LightPlanes>`
@@ -310,8 +310,6 @@ Types
      - A part's hit region (T1's hand-off): its shape in its bounds, never less than the minimum target.
    * - :cpp:class:`PartKey <gui_forms::PartKey>`
      - A painted part's identity from frame to frame (T2 GIVEN H3-1), which lets the engine keep a record for it: its states and when it entered them, its transitions, its preparation and its cached raster.
-   * - :cpp:class:`PartLightPlanes <gui_forms::PartLightPlanes>`
-     - A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, and the composite its control keeps between paints.
    * - :cpp:class:`PartMotion <gui_forms::PartMotion>`
      - A part's running transitions (E7; T2 plan, "How motion is driven").
    * - :cpp:class:`PartPaint <gui_forms::PartPaint>`
@@ -389,7 +387,7 @@ Types
    * - :cpp:class:`RuleSelector <gui_forms::RuleSelector>`
      - ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family).
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
-     - A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
+     - A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
    * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
      - A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
    * - :cpp:class:`ScopedDefinition <gui_forms::ScopedDefinition>`
@@ -420,6 +418,8 @@ Types
      -  
    * - :cpp:class:`ThemeGeometryTokens <gui_forms::ThemeGeometryTokens>`
      - ThemeGeometryTokens centralizes control heights, touch targets, splitter geometry, navigation extents, and compact breakpoint.
+   * - :cpp:class:`ThemeItem <gui_forms::ThemeItem>`
+     - An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair.
    * - :cpp:class:`ThemeLibrary <gui_forms::ThemeLibrary>`
      - The installed theme packages an ``@import`` may name (D2): each verified whole when installed (its manifest, every file's hash, and every ``@import`` of its sheet listed in its manifest), and found by its name.
    * - :cpp:class:`ThemeMotionTokens <gui_forms::ThemeMotionTokens>`
@@ -431,7 +431,7 @@ Types
    * - :cpp:class:`ThemePackageFile <gui_forms::ThemePackageFile>`
      - One file of a theme package: its path inside the package, as the manifest lists it, and its bytes.
    * - :cpp:class:`ThemeRoleColours <gui_forms::ThemeRoleColours>`
-     - An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair.
+     -  
    * - :cpp:class:`ThemeRule <gui_forms::ThemeRule>`
      -  
    * - :cpp:class:`ThemeRuleSheet <gui_forms::ThemeRuleSheet>`
@@ -906,6 +906,18 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: CanvasItem final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   One item of the canvas (a node, a port or a link) as theme rules address it with ``:item()``: its stable ID (``:item(#n42)``) and classes (``:item(.warning)``). A socket's data type is an item class on its port and on the links it carries, conventionally ``socket-<type>`` (``node-canvas::part(port):item(.socket-float)``), so a theme colours by data type. Both views are borrowed for the call.
+
+   .. cpp:member:: std::string_view id
+
+   .. cpp:member:: std::span<const std::string> classes
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CanvasLine final
 
    ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
@@ -965,6 +977,22 @@ Types
    .. cpp:member:: CanvasLine marquee_outline
 
    .. cpp:member:: CanvasFlow flow
+
+   .. cpp:member:: std::array<Color, canvas_port_state_count> port_labels
+
+      A port's label ink, by port state.
+
+   .. cpp:member:: CanvasArea focus
+
+      The focus ring: its line colour, width (at least minimum_canvas_focus_width) and the radius it adds to the item's corners; its fill is clear.
+
+   .. cpp:member:: CanvasLine knife
+
+      The knife stroke that cuts links.
+
+   .. cpp:member:: std::array<CanvasLine, canvas_preview_state_count> link_previews
+
+      The link being dragged, by preview state.
 
 .. cpp:namespace:: gui_forms
 
@@ -1307,6 +1335,12 @@ Types
       The part's control's ancestors, its parent first, and their keys (fill_ancestor_facts): read only by rules with ancestor compounds (uses_ancestors). Borrowed for the call.
 
    .. cpp:member:: AncestorBloom ancestor_bloom
+
+   .. cpp:member:: std::string_view item_id
+
+      The item the part is resolved for (cp31: a node canvas's node, port or link): its stable ID and classes, empty for a control's own part. Borrowed for the call.
+
+   .. cpp:member:: std::span<const std::string> item_classes
 
 .. cpp:namespace:: gui_forms
 
@@ -3313,32 +3347,6 @@ Types
 
 .. cpp:namespace:: gui_forms::engine_light
 
-.. cpp:class:: LightPlaneRaster final
-
-   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
-
-   -- a part's kept composite ----------------------------------------------------------------- A part composited from a bake (PartPaint::light_planes, such as IndicatorLamp's lens) keeps its last composite in one of these, owned by the part's control, so that a repaint with nothing changed (a lamp repainted for a neighbour's damage) draws the kept raster again instead of compositing. Every lamp of the bake takes the one drive. It holds the bake it composited, so a bake released elsewhere is never mistaken for a new one at the same address. One thread: the painting one.
-
-
-   .. rubric:: Properties
-
-   .. cpp:function:: std::size_t composites() const noexcept
-
-      Composites made so far: one for each change of the inputs.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: std::shared_ptr<const PartRaster> composite(const std::shared_ptr<const LightPlanes>& planes, LampDrive drive, const LightComposite& settings, DeviceExtent extent, DeviceScale scale)
-
-      The composite of ``planes`` over ``extent`` device pixels at ``scale``, every lamp driven by ``drive``: the kept raster when the bake, drive, settings, extent and scale are those it was made with, else a new one, then kept. Null, and nothing kept, when ``planes`` is null, the extent is empty, or no raster of that extent and scale can be made (PartRaster::create). Throws std::bad_alloc when a new raster cannot be stored (what was kept stays).
-
-   .. cpp:function:: void release() noexcept
-
-      Releases the kept raster and bake (a control leaving its window).
-
-.. cpp:namespace:: gui_forms::engine_light
-
 .. cpp:struct:: LightPlaneRect final
 
    ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
@@ -4552,22 +4560,6 @@ Types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: PartLightPlanes final
-
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
-
-   A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, and the composite its control keeps between paints. See PartPaint::light_planes.
-
-   .. cpp:member:: std::shared_ptr<const engine_light::LightPlanes> planes
-
-   .. cpp:member:: engine_light::LampDrive drive
-
-   .. cpp:member:: engine_light::LightPlaneRaster* raster
-
-      The control's kept composite (a member of the control), borrowed for the call; with none the part takes its recipe.
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:class:: PartMotion final
 
    ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
@@ -4694,10 +4686,6 @@ Types
    .. cpp:member:: std::optional<PartArc> arc
 
       The arc and needle roles' angles (PartArc), or none, when neither draws. Every other role ignores them.
-
-   .. cpp:member:: std::optional<PartLightPlanes> light_planes
-
-      The baked light planes the part is composited from (PartLightPlanes), or none. Such a part is drawn as the bake's light, room · R + Σ colour · power · L_i toned (engine_light::composite_light_planes), stretched over ``bounds`` at the window's scale, in place of its recipe and of any primitive a rule would choose: the bake carries the part's whole look, its body included. The composite is transparent where the bake's coverage is 0, so its light never reaches past the part; a part with a corner radius is clipped to that shape as well. The recipe draws the part instead in forced high contrast, where the role's colours stand, and when no raster of the part's size can be made (ornament gives way first).
 
 .. cpp:namespace:: gui_forms
 
@@ -5570,10 +5558,6 @@ Types
 
    .. cpp:member:: std::vector<AnatomyState> states
 
-   .. cpp:member:: std::vector<CustomStateIndex> custom_states
-
-      Custom states (RuleSelector::custom_states), positions in the custom states of the exclusion's control type, or of its selector's when it names none.
-
    .. cpp:member:: std::string family
 
 .. cpp:namespace:: gui_forms
@@ -5608,7 +5592,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches. ``custom_states`` (R2-13) are the custom states its ``:state()`` names: each a position in its control type's ControlAnatomy::custom_states, or, when its part is an item part, in the custom states of the item system declaring that part. A position means something only for one control type, so a selector with custom states names its control type (an inline style's rules, which apply to their own control alone, need not). They match the part's AnatomyStateSet custom bits.
+   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches.
 
    .. cpp:member:: std::string control_type
 
@@ -5622,8 +5606,6 @@ Types
 
    .. cpp:member:: std::vector<AnatomyState> states
 
-   .. cpp:member:: std::vector<CustomStateIndex> custom_states
-
    .. cpp:member:: SurfaceKind surface
 
       Default: ``{SurfaceKind::none}``.
@@ -5636,13 +5618,19 @@ Types
 
       The selector's ancestor compounds, nearest first (selector step 4).
 
+   .. cpp:member:: std::string item_id
+
+      The item the part belongs to (``:item(#id.class)``; cp31): its stable ID and classes, each optional. A selector with either matches only a part resolved for an item that has them (PartFacts::item_id and item_classes), never a control's own part.
+
+   .. cpp:member:: std::vector<std::string> item_classes
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: RuleSpecificity final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
+   A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
 
    .. cpp:member:: std::uint32_t ids
 
@@ -5874,6 +5862,10 @@ Types
       Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
 
    .. cpp:function:: ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role, ControlVisualContext context, AnatomyStateSet states, std::string_view part, std::string_view control_type) const
+
+      Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
+
+   .. cpp:function:: ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role, ControlVisualContext context, AnatomyStateSet states, std::string_view part, std::string_view control_type, const ThemeItem& item) const
 
       Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
 
@@ -6214,6 +6206,18 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ThemeItem final
+
+   ``#include <gui_forms/theme/theme/theme.hpp>``
+
+   An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair. The item a part is resolved for (cp31; Theme::resolve's item form): its stable ID and classes, as ``:item(#id.class)`` selects them. Both views are borrowed for the call. An empty ID and no classes is no item.
+
+   .. cpp:member:: std::string_view id
+
+   .. cpp:member:: std::span<const std::string> classes
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: ThemeLibrary final
 
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
@@ -6310,8 +6314,6 @@ Types
 .. cpp:struct:: ThemeRoleColours final
 
    ``#include <gui_forms/theme/theme/theme.hpp>``
-
-   An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair.
 
    .. cpp:member:: Color foreground
 
@@ -6706,6 +6708,20 @@ Enumerations
    .. cpp:enumerator:: drop_accepted
 
    .. cpp:enumerator:: drop_rejected
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasPreviewState
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: seeking
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: refused
 
    .. cpp:enumerator:: count
 
@@ -8798,10 +8814,6 @@ Functions, constants and aliases
 
 ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
 
-.. cpp:function:: LampColour lamp_colour_from_srgb(Color colour) noexcept
-
-   A colour given as sRGB, such as a control's lamp colour property, as a lamp's linear colour at unit power: each channel decoded by the sRGB curve (through engine_power, so every host decodes alike). Alpha is ignored; an empty colour is black.
-
 .. cpp:function:: LightPlanesDefect read_light_planes(std::span<const std::byte> bytes, LightPlanes& planes)
 
    Reads the study's bake file (lamp_keys.cpp, write_buffers): three little-endian int32 (width, height, lamp count), then the room plane, each lamp's plane and the coverage plane as little-endian IEEE binary32. The whole buffer is validated before ``planes`` is replaced; on a defect ``planes`` is left as it was. Throws std::bad_alloc when the planes cannot be stored (``planes`` left as it was).
@@ -8835,10 +8847,6 @@ Functions, constants and aliases
 .. cpp:function:: double lit_key_lean_degrees(double height_share) noexcept
 
    The sides' lean in degrees for a key ``height_share`` of its short side tall (lamp_keys.cpp, shape_key).
-
-.. cpp:function:: bool light_plane_name_valid(std::string_view name) noexcept
-
-   Whether ``name`` names a bake: 1 to 64 lower-case ASCII letters, digits and '_' (the baker's stems, such as dialog_ok_up), so that a name never leaves its directory.
 
 .. cpp:var:: constexpr LampColour lamp_amber
 
@@ -9684,6 +9692,10 @@ Functions, constants and aliases
 
    Resolves every canvas part of ``canvas`` from ``theme`` (Theme::resolve with the part's name and node_canvas_control_id as the control type, so the rules match the canvas's classes and stable ID: the grid variants ``paper``, ``blue``, ``green`` and ``grey`` are classes). ``context`` carries the canvas's colour scheme and contrast (Control::visual_context); each part is resolved in its own states over it. - A field no rule sets takes the stock value the part table states, coloured from the theme's basic style. - Dark: where the theme derives its dark variant (ThemeDarkVariant:: derived), every colour is mapped by the dark colour rule by what it paints (the canvas as a well, nodes and ports as stock faces, headers as chrome, lines as lines, selection cues as cues, titles as ink, and the colours that carry state as signals, which keep their hue: a lamp on stays green, in error red, off neutral; an accepted drop green, a rejected one red; an invalid link red); a theme with an authored dark variant keeps its rules' colours and maps only the stock values. The texture screens instead of multiplying (CanvasTextureBlend). - Forced high contrast: no rule applies (the engine's pass); areas take the plate, lines the state's edge, a selected link a two-unit halo in the focus colour; minor grid lines and the marquee's fill are clear and there is no texture. Reads the theme only; the result owns everything it holds.
 
+.. cpp:function:: CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, ControlVisualContext context, const CanvasItem& item)
+
+   The look of one item: as resolve_canvas_look above, with ``item``'s ID and classes matched by ``:item()`` rules, so every part an item draws (node, header, selection, port, port label, link, dashed link, link preview, lamp and focus ring) takes the rules written for it. A canvas paints the item's parts from this look and the canvas-wide parts (region, grid, marquee, knife, texture) from its own; it resolves one per distinct ID and class set it shows, on the same triggers, and keeps them. With no ID and no classes it is the canvas's look. Reads the theme only; runs the cascade on every call (Theme::resolve's item form keeps nothing).
+
 .. cpp:function:: double clamp_canvas_texture_contrast(double contrast) noexcept
 
    The contrast a canvas texture is multiplied at: ``contrast`` clamped to [0, maximum_canvas_texture_contrast] (the design language's sub-3 % texture rule; the compiler already refuses more), 0 when not finite.
@@ -9720,6 +9732,22 @@ Functions, constants and aliases
 
    The marquee over ``rect``: its area, then its outline with its dashes.
 
+.. cpp:function:: void paint_canvas_focus(Painter& painter, const CanvasLook& look, Rect target, double target_radius)
+
+   The keyboard focus ring around a focused node's body or port's disc ``target`` whose corners are ``target_radius`` (a port's radius for a disc): the focus part's line, canvas_focus_gap outside the target plus half its width, its corners the target's grown by the same reach plus the part's corner radius. Draws nothing for an empty target or a clear line; the width is never below minimum_canvas_focus_width.
+
+.. cpp:function:: void paint_canvas_port_label(Painter& painter, const CanvasLook& look, Point baseline, std::string_view text, FontSpec font, CanvasPortState state)
+
+   A port's label ``text`` at ``baseline`` in ``font``, in the label ink of the port's ``state``. Draws nothing for empty text or a clear ink.
+
+.. cpp:function:: void paint_canvas_knife(Painter& painter, const CanvasLook& look, std::span<const Point> points)
+
+   The knife stroke through ``points`` (as paint_canvas_link's), with its dashes. Fewer than 2 points draw nothing.
+
+.. cpp:function:: void paint_canvas_link_preview(Painter& painter, const CanvasLook& look, std::span<const Point> points, CanvasPreviewState state)
+
+   The link being dragged through ``points``, in ``state``: its halo, then its stroke with its dashes, as paint_canvas_link. Fewer than 2 points draw nothing.
+
 .. cpp:var:: constexpr std::string_view node_canvas_control_id
 
    The node canvas's control id and anatomy (the part table in docs/user/theme-language.md, "node canvas"). The anatomy is the theme's, so the default theme's ``node-canvas::part(...)`` rules compile before a canvas control is registered: the theme compilers add it to the selector vocabulary when the controls they are given lack it. A canvas control returns it from Control::anatomy(). Static storage. Value: ``{"node_canvas"}``.
@@ -9739,6 +9767,18 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t canvas_lamp_state_count
 
    Value: ``static_cast<std::size_t>(CanvasLampState::count)``.
+
+.. cpp:var:: constexpr std::size_t canvas_preview_state_count
+
+   Value: ``static_cast<std::size_t>(CanvasPreviewState::count)``.
+
+.. cpp:var:: constexpr double minimum_canvas_focus_width
+
+   The keyboard focus cue (the ``focus`` part) is a shape, not only a colour: a ring at least minimum_canvas_focus_width units wide, drawn canvas_focus_gap units outside the focused node or port, so it shows where a hue difference alone would not (forced high contrast, colour blindness, a theme whose focus colour is near its line colour). Value: ``2.0``.
+
+.. cpp:var:: constexpr double canvas_focus_gap
+
+   Value: ``2.0``.
 
 .. cpp:namespace:: gui_forms
 
