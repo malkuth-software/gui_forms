@@ -20,12 +20,25 @@
   --industrial-flake: var(--gost-a-810);  /* grey-silver */
   --industrial-key-seed: 7;
   --industrial-well-seed: 3;
+  /* Relief by role (owner, 2026-11-12): each role's height above or below
+     the panel, which seats it with a contact shadow and crevice darkening
+     under the one light. Keys a share of their shorter side, wells sunk,
+     group panels a plain length (a share of a large panel's side would be
+     clamped anyway). */
+  --industrial-key-seat: 6%;
+  --industrial-well-seat: -10%;
+  --industrial-panel-seat: 1px;
 }
 
-group-box::part(face), scaled-group-box::part(face) { background: var(--industrial-body); }
+group-box::part(face), scaled-group-box::part(face) {
+  background: var(--industrial-body);
+  seat: var(--industrial-panel-seat);
+}
 button::part(face) {
   background: finish(orange-peel, var(--industrial-key), var(--industrial-key-shade), var(--industrial-key-seed));
+  seat: var(--industrial-key-seat);
 }
 check-box::part(well), radio-button::part(well) {
   background: finish(hammertone, var(--industrial-well), var(--industrial-flake), var(--industrial-well-seed));
+  seat: var(--industrial-well-seat);
 }

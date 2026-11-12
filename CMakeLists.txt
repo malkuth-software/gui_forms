@@ -1487,6 +1487,15 @@ if(GUI_FORMS_ENABLE_SKIA)
         )
     endif()
 
+    # The lamps' and lit keys' baker (skeudoindustrial surfaces), ported from
+    # the industrial-surfaces study: an offline tool the integrator runs to
+    # make the light-plane bakes, its legends drawn by GUI.Drawing's text
+    # engine in the bundled Portsmouth Mono (gui_forms_lamp_keys_legend_tests).
+    add_executable(gui_forms_lamp_keys tools/industrial_surfaces/lamp_keys.cpp)
+    target_link_libraries(gui_forms_lamp_keys PRIVATE gui_drawing_skia gui_forms_core)
+    target_compile_definitions(gui_forms_lamp_keys PRIVATE
+        GUI_FORMS_LEGEND_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthMono.ttf")
+
     add_library(gui_drawing_raster_c_api SHARED
         src/abi/drawing_skia_c_api.cpp
     )
@@ -2787,6 +2796,9 @@ endif()
 
 if(GUI_FORMS_BUILD_TESTS)
     enable_testing()
+    if(TARGET gui_forms_lamp_keys)
+        add_test(NAME gui_forms_lamp_keys_legend_tests COMMAND gui_forms_lamp_keys --legend-test)
+    endif()
     if(TARGET gui_forms_text_masks_impl)
         add_executable(gui_forms_text_mask_cost_probe EXCLUDE_FROM_ALL tests/text_mask_cost_probe.cpp)
         target_link_libraries(gui_forms_text_mask_cost_probe PRIVATE gui_forms_text_masks_impl)

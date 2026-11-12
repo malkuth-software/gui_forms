@@ -324,6 +324,22 @@ void envelopes_hold() {
     require(engine_light::lamp_power(true, 0.06, false) == 1.0, "full power from 60 ms");
     require(engine_light::lamp_power(true, 0.0, true) == 1.0, "under reduced motion, full power at once");
     require(!engine_light::lamp_settled(0.05) && engine_light::lamp_settled(0.06), "the strike settles at 60 ms");
+    // The cool-down (principle 7): the filament's inertia, then fully off.
+    require(engine_light::lamp_cooling_power(1.0, 0.0, false) == 1.0, "a lamp switched off starts at its power");
+    require(near(engine_light::lamp_cooling_power(1.0, 0.06, false), 0.25), "halfway through the cool-down, 25%");
+    require(near(engine_light::lamp_cooling_power(0.7, 0.03, false), 0.7 * 0.5625),
+            "a lamp switched off mid-strike cools from where it was");
+    require(engine_light::lamp_cooling_power(1.0, 0.12, false) == 0.0, "fully off from 120 ms");
+    require(engine_light::lamp_cooling_power(1.0, 0.0, true) == 0.0, "under reduced motion, off at once");
+    require(!engine_light::lamp_cooled(0.119) && engine_light::lamp_cooled(0.12), "the cool-down ends at 120 ms");
+    double previous = 1.0;
+    bool falling = true;
+    for (int step = 1; step <= 12; ++step) {
+        const double power = engine_light::lamp_cooling_power(1.0, 0.01 * static_cast<double>(step), false);
+        if (!(power < previous)) falling = false;
+        previous = power;
+    }
+    require(falling && previous == 0.0, "the cool-down falls every frame and ends at 0, so the frames stop");
 
     require(engine_light::key_press_mix(0.0, 1.0, 0.0, false) == 0.0, "a press starts where it was");
     require(near(engine_light::key_press_mix(0.0, 1.0, 0.035, false), 0.75), "halfway, eased to 75%");

@@ -1484,6 +1484,7 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
         case MaterialField::finish:
         case MaterialField::mask:
         case MaterialField::reflection:
+        case MaterialField::seat:
         case MaterialField::count:
         default: break; // Not drawn under the pass.
         }

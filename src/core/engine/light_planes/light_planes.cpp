@@ -274,6 +274,19 @@ bool key_press_settled(double seconds) noexcept {
     return settled;
 }
 
+double lamp_cooling_power(double from, double seconds, bool reduced_motion) noexcept {
+    if (reduced_motion || !(seconds < lamp_cool_seconds) || !(from > 0.0)) return 0.0;
+    const double u = seconds < 0.0 ? 0.0 : seconds / lamp_cool_seconds;
+    const double left = 1.0 - u;
+    const double power = from * left * left;
+    return power;
+}
+
+bool lamp_cooled(double seconds) noexcept {
+    const bool cooled = !(seconds < lamp_cool_seconds);
+    return cooled;
+}
+
 double lit_key_lean_degrees(double height_share) noexcept {
     const double t = std::clamp((height_share - 0.25) / 0.75, 0.0, 1.0);
     const double lean = 3.0 + 17.0 * t;

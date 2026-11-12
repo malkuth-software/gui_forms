@@ -151,18 +151,26 @@ GUI_FORMS_API std::size_t composite_light_planes(const LightPlanes& up, const Li
 //
 // The study's envelopes (panel_lamps.html, powerAt and the press), the
 // owner's: a lamp strikes from 40% to full power over 60 ms, as a filament
-// warms; it goes out at once. A key's press eases out over 70 ms
-// (1 − (1 − u)²) from wherever it was. Under reduced motion both arrive at
-// once. Durations are perceptual, so they are given in seconds.
+// warms. Switched off it cools (principle 7, owner 2026-11-12: the
+// filament's inertia): from the power it had to 0 over 120 ms, falling
+// fastest at first (p · (1 − u)²), and is fully off from then, so the
+// frames end. A key's press eases out over 70 ms (1 − (1 − u)²) from
+// wherever it was. Under reduced motion each arrives at once. Durations
+// are perceptual, so they are given in seconds.
 
 inline constexpr double lamp_strike_seconds = 0.06;
 inline constexpr double lamp_strike_start = 0.4;
 inline constexpr double key_press_seconds = 0.07;
+inline constexpr double lamp_cool_seconds = 0.12;
 
 // A lamp's power `seconds` after it was switched: 0 when off, the strike
 // envelope when on (1 from lamp_strike_seconds, or at once under reduced
-// motion).
+// motion). A lamp switched off while lit cools instead (lamp_cooling_power).
 [[nodiscard]] GUI_FORMS_API double lamp_power(bool on, double seconds, bool reduced_motion) noexcept;
+// A lamp's power `seconds` after it was switched off at power `from`:
+// from · (1 − u)², u = seconds / lamp_cool_seconds, and 0 from
+// lamp_cool_seconds on, or at once under reduced motion.
+[[nodiscard]] GUI_FORMS_API double lamp_cooling_power(double from, double seconds, bool reduced_motion) noexcept;
 
 // A key's press mix `seconds` after its press or release began from mix
 // `from` toward `to` (0 up, 1 down): eased, reaching `to` at
@@ -173,6 +181,8 @@ inline constexpr double key_press_seconds = 0.07;
 // have settled: the frames after it change nothing.
 [[nodiscard]] GUI_FORMS_API bool lamp_settled(double seconds) noexcept;
 [[nodiscard]] GUI_FORMS_API bool key_press_settled(double seconds) noexcept;
+// Whether a lamp switched off `seconds` ago has cooled: it is fully off.
+[[nodiscard]] GUI_FORMS_API bool lamp_cooled(double seconds) noexcept;
 
 // -- the lit keys' bake ------------------------------------------------------------------
 //

@@ -61,8 +61,9 @@ std::filesystem::path light_plane_directory() {
 // window's display scale with every lamp of the bake at this lamp's colour
 // and power, and drawn device-aligned. The planes are stretched over the
 // largest rectangle of their aspect at the control's top left. A lamp
-// strikes over the study's 60 ms and goes out at once (lamp_power); under
-// reduced motion it is lit at once. It lights its own lens and legend
+// strikes over the study's 60 ms (lamp_power) and cools over 120 ms from
+// the power it had (lamp_cooling_power), its frames ending once it is
+// fully off; under reduced motion it is lit and put out at once. It lights its own lens and legend
 // only: the composite is transparent where the bake's coverage is 0.
 // Painting recomposites only when the power, the scale or the size moved.
 // It takes no input. One thread: the UI thread.
@@ -95,8 +96,10 @@ private:
     engine_light::LampColour colour_{};
     bool lit_{};
     double power_{};
-    // The strike's first frame, taken from the timer's clock.
+    // The strike's or the cool-down's first frame, taken from the timer's
+    // clock, and the power the cool-down starts from.
     std::optional<FrameTime> struck_at_{};
+    double cooling_from_{};
     // The last composite and the power it was made at.
     std::shared_ptr<const PartRaster> raster_{};
     double raster_power_{};
@@ -108,13 +111,15 @@ void LampIndicator::set_lit(bool lit) {
     lit_ = lit;
     struck_at_.reset();
     strike_timer_.stop();
-    const bool at_once = !lit || reduced_motion() || attached_window() == nullptr;
+    cooling_from_ = power_;
+    const bool at_once = reduced_motion() || attached_window() == nullptr || (!lit && !(power_ > 0.0));
     if (at_once) {
         power_ = engine_light::lamp_power(lit, engine_light::lamp_strike_seconds, true);
         invalidate(Dirty::paint);
         return;
     }
-    power_ = engine_light::lamp_power(true, 0.0, false);
+    // The first frame of the strike, or the power the cool-down starts at.
+    if (lit) power_ = engine_light::lamp_power(true, 0.0, false);
     invalidate(Dirty::paint);
     const std::shared_ptr<LampIndicator> self = std::dynamic_pointer_cast<LampIndicator>(shared_from_this());
     if (!self) return;
@@ -143,9 +148,12 @@ Rect LampIndicator::shown_rect() const noexcept {
 AnimationTickResult LampIndicator::advance(FrameTime now) {
     if (!struck_at_) struck_at_ = now;
     const double seconds = std::chrono::duration<double>(now - *struck_at_).count();
-    power_ = engine_light::lamp_power(lit_, seconds, reduced_motion());
+    const bool reduced = reduced_motion();
+    power_ = lit_ ? engine_light::lamp_power(true, seconds, reduced)
+                  : engine_light::lamp_cooling_power(cooling_from_, seconds, reduced);
     invalidate(Dirty::paint);
-    if (!lit_ || engine_light::lamp_settled(seconds)) strike_timer_.stop();
+    const bool ended = lit_ ? engine_light::lamp_settled(seconds) : engine_light::lamp_cooled(seconds);
+    if (ended || reduced) strike_timer_.stop();
     return AnimationTickResult::damaged;
 }
 
@@ -158,7 +166,7 @@ AnimationTickResult LampIndicator::StrikeTick::operator()(FrameTime now) const {
 void LampIndicator::on_detached_from_window() noexcept {
     Control::on_detached_from_window();
     strike_timer_.stop();
-    // A lamp struck while away is lit once it is shown again.
+    // A lamp struck or cooling while away shows its end state when shown again.
     power_ = engine_light::lamp_power(lit_, engine_light::lamp_strike_seconds, true);
 }
 

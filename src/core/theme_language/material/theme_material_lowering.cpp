@@ -38,7 +38,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 79> material_properties{{
+constexpr std::array<NamedMaterialProperty, 80> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -104,6 +104,7 @@ constexpr std::array<NamedMaterialProperty, 79> material_properties{{
     {.name = "padding-inline", .property = MaterialProperty::padding_inline},
     {.name = "reflection", .property = MaterialProperty::reflection},
     {.name = "scrim-color", .property = MaterialProperty::scrim_color},
+    {.name = "seat", .property = MaterialProperty::seat},
     {.name = "stripe-angle", .property = MaterialProperty::stripe_angle},
     {.name = "stripe-color", .property = MaterialProperty::stripe_color},
     {.name = "stripe-direction", .property = MaterialProperty::stripe_direction},
@@ -474,6 +475,7 @@ private:
     bool lower_shadows();
     bool lower_filter();
     bool lower_finish();
+    bool lower_seat();
     bool lower_glows();
     bool lower_glow_placements();
     bool lower_mask();
@@ -1904,6 +1906,31 @@ bool MaterialReader::lower_finish() {
     return true;
 }
 
+// `seat: none | <height> [<colour>]`: the part's height above its panel, a
+// length (negative: sunk into it) or a percentage of its shorter side,
+// and its shadow's colour (default_seat_colour). The height is clamped to
+// maximum_seat_height when the material is assembled.
+bool MaterialReader::lower_seat() {
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::seat;
+    declaration.colour = default_seat_colour;
+    const std::size_t values = count(ComponentRange{0U, value_.components.size()});
+    if (values == 1U && keyword(0U, "none")) {
+        lowering_.declarations.push_back(std::move(declaration));
+        return true;
+    }
+    if (values != 1U && values != 2U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[0].token, "a height and a colour");
+    }
+    BoxLength height{};
+    if (!read_length(0U, true, true, height)) return false;
+    declaration.relative = height.units == 0.0 && height.fraction != 0.0;
+    declaration.number = declaration.relative ? height.fraction : height.units;
+    if (values == 2U && !read_colour(next(0U), declaration.colour)) return false;
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
 // One glow: a colour and one or two lengths, its blur and its spread.
 bool MaterialReader::read_glow(ComponentRange range, MaterialGlow& glow) {
     glow = MaterialGlow{};
@@ -3013,6 +3040,7 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::mask_image: static_cast<void>(lower_mask()); return;
     case MaterialProperty::reflection: static_cast<void>(lower_reflection()); return;
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
+    case MaterialProperty::seat: static_cast<void>(lower_seat()); return;
     case MaterialProperty::keylines: static_cast<void>(lower_keylines()); return;
     case MaterialProperty::muted_color: static_cast<void>(lower_recipe_colour(RecipeField::muted_text)); return;
     case MaterialProperty::glyph_color: static_cast<void>(lower_recipe_colour(RecipeField::glyph)); return;
@@ -3175,6 +3203,7 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::mask_image: fields.push_back(MaterialField::mask); return;
     case MaterialProperty::reflection: fields.push_back(MaterialField::reflection); return;
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
+    case MaterialProperty::seat: fields.push_back(MaterialField::seat); return;
     case MaterialProperty::keylines: fields.push_back(MaterialField::keylines); return;
     case MaterialProperty::muted_color:
     case MaterialProperty::glyph_color:
