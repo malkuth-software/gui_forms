@@ -469,7 +469,8 @@ void resolve_authored_gradient(const AuthoredGradient& gradient, Size box, Mater
     case MaterialFillKind::conic_gradient: resolve_conic(gradient, extent, space, placed, layer); return;
     case MaterialFillKind::solid:
     case MaterialFillKind::image:
-    case MaterialFillKind::procedural: break;
+    case MaterialFillKind::procedural:
+    case MaterialFillKind::finish: break;
     // A value outside the enumeration is no gradient: the empty layer.
     default: break;
     }

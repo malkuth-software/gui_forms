@@ -67,6 +67,7 @@
 #include "gui_forms/controls/help_book.hpp"
 #include "gui_forms/controls/help_book_system.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
+#include "gui_forms/controls/indicator_lamp.hpp"
 #include "gui_forms/controls/info_banner.hpp"
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/linear_gauge.hpp"
@@ -155,7 +156,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 143> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 144> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -169,6 +170,7 @@ inline constexpr std::array<SchemaCatalogEntry, 143> schema_catalog{{
     {"label", "Label", &describe_type<Label>, &create_type<Label>, &is_exact_type<Label>},
     {"text_block", "TextBlock", &describe_type<TextBlock>, &create_type<TextBlock>, &is_exact_type<TextBlock>},
     {"badge", "Badge", &describe_type<Badge>, &create_type<Badge>, &is_exact_type<Badge>},
+    {"indicator_lamp", "IndicatorLamp", &describe_type<IndicatorLamp>, &create_type<IndicatorLamp>, &is_exact_type<IndicatorLamp>},
     {"info_banner", "InfoBanner", &describe_type<InfoBanner>, &create_type<InfoBanner>, &is_exact_type<InfoBanner>},
     {"empty_state", "EmptyState", &describe_type<EmptyState>, &create_type<EmptyState>, &is_exact_type<EmptyState>},
     {"toast", "Toast", &describe_type<Toast>, &create_type<Toast>, &is_exact_type<Toast>},

@@ -14,6 +14,7 @@
     {"label", "Information display", Size{160.0, 24.0}, "Display name", &make_text<Label>, nullptr, ""},
     {"text_block", "Information display", Size{240.0, 48.0}, "Palettes show every stock control in every state it declares.", &make_text<TextBlock>, nullptr, ""},
     {"badge", "Information display", Size{40.0, 24.0}, "Badge", &make_badge, nullptr, ""},
+    {"indicator_lamp", "Information display", Size{120.0, 24.0}, "Indicator lamp", &make_indicator_lamp, nullptr, ""},
     {"info_banner", "Information display", Size{340.0, 64.0}, "Info banner", &make_info_banner, nullptr, ""},
     {"empty_state", "Information display", Size{300.0, 150.0}, "Empty state", &make_empty_state, nullptr, ""},
     {"toast", "Information display", Size{320.0, 56.0}, "Theme saved", &make_toast, nullptr, ""},

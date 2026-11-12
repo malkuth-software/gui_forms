@@ -776,6 +776,7 @@ std::string_view fill_kind_name(MaterialFillKind kind) {
     case MaterialFillKind::image: return "image";
     case MaterialFillKind::conic_gradient: return "conic_gradient";
     case MaterialFillKind::procedural: return "procedural";
+    case MaterialFillKind::finish: return "finish";
     }
     return {};
 }
@@ -811,6 +812,21 @@ std::string_view linear_geometry_name(MaterialLinearGeometry geometry) {
     switch (geometry) {
     case MaterialLinearGeometry::endpoints: return "endpoints";
     case MaterialLinearGeometry::css_angle: return "css_angle";
+    }
+    return {};
+}
+
+std::string_view finish_kind_name(FinishKind kind) {
+    switch (kind) {
+    case FinishKind::dusty_matte: return "dusty_matte";
+    case FinishKind::orange_peel: return "orange_peel";
+    case FinishKind::hammertone: return "hammertone";
+    case FinishKind::wrinkle: return "wrinkle";
+    case FinishKind::bead_blast: return "bead_blast";
+    case FinishKind::sand_cast: return "sand_cast";
+    case FinishKind::flat: return "flat";
+    case FinishKind::cloth_weave: return "cloth_weave";
+    case FinishKind::glint: return "glint";
     }
     return {};
 }
@@ -940,6 +956,7 @@ std::vector<std::string> required_features() {
     add_values(keys, "space", coordinate_space_name);
     add_values(keys, "linear", linear_geometry_name);
     add_values(keys, "procedural", pattern_name);
+    add_values(keys, "finish", finish_kind_name);
     add_values(keys, "fill_blend", fill_blend_name);
     add_values(keys, "border", border_style_name);
     add_values(keys, "glow", glow_placement_name);
@@ -987,6 +1004,9 @@ void add_fill_features(std::vector<std::string>& keys, const MaterialFillLayer& 
     }
     if (fill.kind == MaterialFillKind::procedural) {
         add_key(keys, "procedural." + std::string(pattern_name(fill.procedural.pattern)));
+    }
+    if (fill.kind == MaterialFillKind::finish) {
+        add_key(keys, "finish." + std::string(finish_kind_name(fill.finish.kind)));
     }
 }
 

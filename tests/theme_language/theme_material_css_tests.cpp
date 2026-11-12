@@ -731,6 +731,74 @@ void test_reflection_lowering() {
     require(cleared != nullptr && !(*cleared).reflection, "reflection: none clears it");
 }
 
+// The seat (skeudoindustrial surfaces): `seat` lowers to its height, as a
+// length or a share of the shorter side, and its colour; the material is
+// assembled with a raised part's contact shadow and crevice, or a sunk
+// part's inset lip shade and seam, under the light from the upper left;
+// the depth is clamped to a bas-relief's, a share resolves at the part's
+// size, and a seat with no room among four shadows gives way.
+void test_seat() {
+    const std::string_view raised_sheet = "#pad::part(face) { seat: 2px }";
+    const Compilation raised = compile(raised_sheet);
+    const MaterialDeclaration* const height = field_of(only_rule(raised, raised_sheet), MaterialField::seat);
+    require(height != nullptr && (*height).number == 2.0 && !(*height).relative &&
+                (*height).colour == default_seat_colour,
+            "seat: 2px lowers to a height of 2 in the default colour");
+    const std::string_view sunk_sheet = "#pad::part(face) { seat: -6% #102030 }";
+    const Compilation sunk = compile(sunk_sheet);
+    const MaterialDeclaration* const share = field_of(only_rule(sunk, sunk_sheet), MaterialField::seat);
+    require(share != nullptr && (*share).relative && std::abs((*share).number + 0.06) < 1e-12 &&
+                (*share).colour == Color::rgba(0x10, 0x20, 0x30),
+            "seat: -6% #102030 lowers to a sunk share and its colour");
+    const std::string_view none_sheet = "#pad::part(face) { seat: none }";
+    const Compilation none = compile(none_sheet);
+    const MaterialDeclaration* const cleared = field_of(only_rule(none, none_sheet), MaterialField::seat);
+    require(cleared != nullptr && (*cleared).number == 0.0, "seat: none seats nothing");
+    require(compile("#pad::part(face) { seat: 2px 3px }").outcome != CompileOutcome::compiled,
+            "a second length is not a colour");
+
+    const Color shade = Color::rgba(0, 0, 0, 100);
+    std::vector<MaterialShadow> standing{};
+    seat_shadows(2.0, shade, standing);
+    require(standing.size() == 2U, "a raised part casts a contact shadow and darkens its crevice");
+    if (standing.size() == 2U) {
+        require(!standing[0].inset && standing[0].offset == Point{1.0, 1.0} && standing[0].blur_radius == 2.0 &&
+                    standing[0].spread == -0.5 && standing[0].color == shade,
+                "the contact shadow falls half the height down and to the right, narrower than the part");
+        require(!standing[1].inset && standing[1].offset == Point{0.0, 0.0} && standing[1].blur_radius == 1.0 &&
+                    standing[1].color == Color::rgba(0, 0, 0, 80),
+                "the crevice darkens all round, softer");
+    }
+    std::vector<MaterialShadow> well{};
+    seat_shadows(-3.0, shade, well);
+    require(well.size() == 2U && well[0].inset && well[1].inset && well[0].offset == Point{1.5, 1.5},
+            "a sunk part's lip shades its upper left inside");
+    std::vector<MaterialShadow> tall{};
+    seat_shadows(10.0, shade, tall);
+    require(!tall.empty() && tall[0].offset == Point{2.0, 2.0}, "the depth is clamped to maximum_seat_height");
+    std::vector<MaterialShadow> flat{};
+    seat_shadows(0.0, shade, flat);
+    require(flat.empty(), "a height of 0 seats nothing");
+    std::vector<MaterialShadow> crowded(3U);
+    seat_shadows(2.0, shade, crowded);
+    require(crowded.size() == SurfaceMaterial::maximum_shadows && !crowded.back().inset &&
+                crowded.back().offset == Point{1.0, 1.0},
+            "with room for one, the contact shadow stays and the crevice gives way");
+
+    MaterialDeclaration relative{};
+    relative.field = MaterialField::seat;
+    relative.relative = true;
+    relative.number = 0.25;
+    relative.colour = shade;
+    std::array<const MaterialDeclaration*, material_field_count> fields{};
+    fields[static_cast<std::size_t>(MaterialField::seat)] = &relative;
+    require(material_fields_read_box(fields), "a share of the shorter side reads the box");
+    SurfaceMaterial assembled{};
+    assemble_material(SurfaceMaterial{}, fields, Size{40.0, 8.0}, assembled);
+    require(assembled.shadows.size() == 2U && assembled.shadows[0].offset == Point{1.0, 1.0},
+            "a quarter of an 8-unit side seats the part 2 units proud");
+}
+
 void test_refusals() {
     const std::array<Refusal, 78> refusals{{
         {"#a { reflection: below backplane 1px }", DiagnosticCode::value_syntax},
@@ -1207,6 +1275,7 @@ int main() {
     test_filter_lowering();
     test_image_lowering();
     test_reflection_lowering();
+    test_seat();
     test_refusals();
     test_gate();
     if (failures != 0) {

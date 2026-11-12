@@ -3,6 +3,7 @@
 #include "material_bake_policy.hpp"
 #include "material_image.hpp"
 #include "../kernel/box_blur.hpp"
+#include "../finish/finish_kernel.hpp"
 #include "../kernel/pixel_kernel.hpp"
 #include "../procedural/procedural_pattern.hpp"
 
@@ -25,6 +26,7 @@
 #include <new>
 #include <optional>
 #include <span>
+#include <utility>
 #include <string_view>
 #include <vector>
 
@@ -373,6 +375,9 @@ ResolvedFill resolve_fill(const MaterialFillLayer& layer, Rect box, double scale
     fill.opacity = layer.opacity;
     // A procedural fill draws its ground until its pattern is lent (E10).
     if (layer.kind == MaterialFillKind::procedural) fill.colour = layer.procedural.ground;
+    // A finish whose painting failed for want of storage draws its paint,
+    // as a solid.
+    if (layer.kind == MaterialFillKind::finish) fill.colour = layer.finish.paint;
     if (layer.kind == MaterialFillKind::linear_gradient) {
         Point start{};
         Point end{};
@@ -711,6 +716,10 @@ struct MaterialImageLayer final {
     const PartRaster* variant{};
     std::vector<std::size_t> columns;
     std::vector<std::size_t> rows;
+    // A finish fill's pixels (prepare_finishes), painted for this bake and
+    // released with it: the destination's extent, the box's pixels painted
+    // and the rest transparent. `variant` borrows it.
+    std::shared_ptr<PartRaster> painted;
 };
 
 struct MaterialImages final {
@@ -806,12 +815,56 @@ void extend_at_box(std::vector<std::size_t>& map, double start, double end) noex
     for (std::size_t output = last_index + 1U; output < map.size(); ++output) map[output] = last_entry;
 }
 
+// The device rectangle a finish is anchored to and painted over: the
+// box's, its origin and size rounded to whole pixels, so that a region
+// bake (bake_material_region) shifted by whole pixels anchors it alike.
+FinishRect finish_surface(Rect box) noexcept {
+    const double left = std::floor(box.x + 0.5);
+    const double top = std::floor(box.y + 0.5);
+    const double right = std::floor(box.right() + 0.5);
+    const double bottom = std::floor(box.bottom() + 0.5);
+    const FinishRect surface{static_cast<std::int64_t>(left), static_cast<std::int64_t>(top),
+                             static_cast<std::int64_t>(right - left), static_cast<std::int64_t>(bottom - top)};
+    return surface;
+}
+
+// Paints each finish fill (skeudoindustrial surfaces, phase 1) over the
+// box, into a raster of the destination's extent that the bake owns: the
+// finish kernel needs no variant, only its two scratch rows. Storage that
+// cannot be allocated leaves that layer without pixels, and the fill draws
+// its paint as a solid (resolve_fill): fill() is noexcept and still writes
+// every pixel.
+void prepare_finishes(const SurfaceMaterial& material, const PrimitiveTarget& target, const MaterialLook& look,
+                      DeviceExtent extent, MaterialImages& images) noexcept {
+    const double scale = target.scale.value;
+    const FinishRect surface = finish_surface(look.box);
+    const FinishRect whole{0, 0, static_cast<std::int64_t>(extent.width), static_cast<std::int64_t>(extent.height)};
+    FinishScratch scratch{};
+    for (std::size_t index = 0U; index < material.fills.size(); ++index) {
+        const MaterialFillLayer& layer = material.fills[index];
+        if (layer.kind != MaterialFillKind::finish) continue;
+        try {
+            if (scratch.upper.empty()) reserve_finish_scratch(scratch, extent.width);
+            std::shared_ptr<PartRaster> painted = PartRaster::create(extent, target.scale);
+            if (!painted) continue;
+            const PartRasterView view = (*painted).view();
+            static_cast<void>(paint_finish(layer.finish, scale, surface, whole, view, scratch));
+            MaterialImageLayer& mapped = images.layers[index];
+            mapped.painted = std::move(painted);
+            mapped.variant = mapped.painted.get();
+        } catch (const std::bad_alloc&) {
+            continue;
+        }
+    }
+}
+
 // Maps each image fill's lent variant, each procedural fill's lent
-// pattern and an image mask's lent variant onto the destination. Storage
-// that cannot be allocated leaves that layer without a variant: fill() is
-// noexcept and still writes every pixel.
+// pattern and an image mask's lent variant onto the destination, after
+// painting the finish fills. Storage that cannot be allocated leaves that
+// layer without a variant: fill() is noexcept and still writes every pixel.
 void prepare_images(const SurfaceMaterial& material, const PrimitiveTarget& target, const MaterialLook& look,
                     DeviceExtent extent, MaterialImages& images) noexcept {
+    prepare_finishes(material, target, look, extent, images);
     if (target.variants == nullptr) return;
     const double scale = target.scale.value;
     for (std::size_t index = 0U; index < material.fills.size(); ++index) {
@@ -1038,6 +1091,23 @@ Unit fill_colour(const ResolvedFill& fill, const MaterialImages& images, std::si
                            static_cast<double>(pixels[at]) * weight,
                            static_cast<double>(pixels[at + 3U]) * weight};
         return pattern;
+    }
+    case MaterialFillKind::finish: {
+        const MaterialImageLayer& layer = images.layers[fill.image];
+        // Not painted (no storage): the paint, as a solid.
+        if (layer.variant == nullptr) {
+            const Unit paint = premultiply(fill.colour, coverage * fill.opacity);
+            return paint;
+        }
+        // The painted raster has the destination's extent: pixel (x, y) is
+        // the destination's own.
+        const PartRaster& painted = *layer.variant;
+        const std::span<const std::uint8_t> pixels = painted.pixels();
+        const std::size_t at = y * painted.row_bytes() + x * part_raster_bytes_per_pixel;
+        const double weight = coverage * fill.opacity / 255.0;
+        const Unit finish{static_cast<double>(pixels[at + 2U]) * weight, static_cast<double>(pixels[at + 1U]) * weight,
+                          static_cast<double>(pixels[at]) * weight, static_cast<double>(pixels[at + 3U]) * weight};
+        return finish;
     }
     }
     return Unit{};
@@ -1609,6 +1679,13 @@ std::uint64_t fill_weight(const MaterialFillLayer& layer, const MaterialEffortWe
         // composited; its generation is an idle frame's, bounded apart
         // (procedural_generation_effort).
         return weights.image;
+    case MaterialFillKind::finish: {
+        // Painted during the bake, over the box (charged here over the
+        // whole destination, a slight overcharge for the outsets), then
+        // composited as an image's variant is.
+        const std::uint64_t finish = weights.image + finish_effort_weight(layer.finish.kind);
+        return finish;
+    }
     }
     return 0U;
 }

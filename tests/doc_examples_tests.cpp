@@ -1888,6 +1888,15 @@ void example() {
 }
 }  // namespace doc_example_ImageList_2
 
+namespace doc_example_IndicatorLamp_1 {
+void example() {
+    std::shared_ptr<gf::IndicatorLamp> fault =
+        gf::make_control<gf::IndicatorLamp>(gf::StableId("panel.fault"), "Fault");
+    (*fault).state = gf::IndicatorLampState::error;
+    // fault->semantic_descriptor().value is "error"
+}
+}  // namespace doc_example_IndicatorLamp_1
+
 namespace doc_example_InfoBanner_1 {
 void example() {
     std::shared_ptr<gf::InfoBanner> offline = gf::make_control<gf::InfoBanner>(gf::StableId("sync.offline"));
@@ -4189,6 +4198,7 @@ int main() {
     failures += run("HelpProvider example 1", &doc_example_HelpProvider_1::example);
     failures += run("ImageList example 1", &doc_example_ImageList_1::example);
     failures += run("ImageList example 2", &doc_example_ImageList_2::example);
+    failures += run("IndicatorLamp example 1", &doc_example_IndicatorLamp_1::example);
     failures += run("InfoBanner example 1", &doc_example_InfoBanner_1::example);
     failures += run("Label example 1", &doc_example_Label_1::example);
     failures += run("Label example 2", &doc_example_Label_2::example);

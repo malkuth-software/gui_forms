@@ -1,0 +1,242 @@
+/* The Gallery's industrial-surfaces page (skeudoindustrial surfaces,
+   phase 5; notes:planning/SKEUDOINDUSTRIAL_SURFACES.md): the surface
+   finishes, lit keys composited from baked light planes, and the
+   industrial theme over the GOST paints on a few stock controls.
+   gui_forms_add_form() compiles this document into
+   industrial-surfaces_form.hpp at build time.
+
+   gallery.industrial-surfaces.document is a declared boundary only: the
+   page moves its children into the shell's page body (a 1000 x 660 design
+   surface), where each is placed by its bounds in design coordinates.
+   The swatches' looks are the gallery theme's `finish-*` classes
+   (demo/themes/gallery/gallery.theme.css), so each finish, colour, seed
+   and grain is one line there. The swatches are small because a bake
+   has a budget: past it (a hammertone past about 22,000 device pixels, a
+   glint past about 10,000) the built-in look draws instead, so at 3x the
+   hammertone and the glints show that. Behaviour stays in the page
+   (src/controls/gallery/pages/industrial-surfaces.cpp): the lit keys,
+   which it places inside gallery.industrial.keys, the Lamps check box,
+   and the check box that puts the industrial theme on the preview. */
+scaled-panel gallery.industrial-surfaces.document {
+  design-size: 1000 660;
+
+  label gallery.industrial-surfaces.heading {
+    text: "INDUSTRIAL SURFACES";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.industrial-surfaces.lead {
+    text: "Paint and metal finishes painted per device pixel, keys lit by baked light, and GOST machine-tool paints.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.industrial.finishes {
+    text: "Finishes · one light from the upper left, no tile and no seam";
+    classes: "paper" "group-caption";
+    design-size: 950 232;
+    bounds: 24 88 950 232;
+    panel gallery.industrial.finish.dusty-matte {
+      classes: "finish-dusty-matte";
+      bounds: 20 40 72 48;
+    }
+    label gallery.industrial.finish.dusty-matte.caption {
+      text: "Dusty matte";
+      classes: "muted" "note";
+      bounds: 20 92 100 16;
+    }
+    panel gallery.industrial.finish.orange-peel {
+      classes: "finish-orange-peel";
+      bounds: 134 40 72 48;
+    }
+    label gallery.industrial.finish.orange-peel.caption {
+      text: "Orange peel";
+      classes: "muted" "note";
+      bounds: 134 92 100 16;
+    }
+    panel gallery.industrial.finish.hammertone {
+      classes: "finish-hammertone";
+      bounds: 248 40 72 48;
+    }
+    label gallery.industrial.finish.hammertone.caption {
+      text: "Hammertone";
+      classes: "muted" "note";
+      bounds: 248 92 100 16;
+    }
+    panel gallery.industrial.finish.wrinkle {
+      classes: "finish-wrinkle";
+      bounds: 362 40 72 48;
+    }
+    label gallery.industrial.finish.wrinkle.caption {
+      text: "Wrinkle";
+      classes: "muted" "note";
+      bounds: 362 92 100 16;
+    }
+    panel gallery.industrial.finish.bead-blast {
+      classes: "finish-bead-blast";
+      bounds: 476 40 72 48;
+    }
+    label gallery.industrial.finish.bead-blast.caption {
+      text: "Bead blast";
+      classes: "muted" "note";
+      bounds: 476 92 100 16;
+    }
+    panel gallery.industrial.finish.sand-cast {
+      classes: "finish-sand-cast";
+      bounds: 590 40 72 48;
+    }
+    label gallery.industrial.finish.sand-cast.caption {
+      text: "Sand cast";
+      classes: "muted" "note";
+      bounds: 590 92 100 16;
+    }
+    panel gallery.industrial.finish.flat {
+      classes: "finish-flat";
+      bounds: 704 40 72 48;
+    }
+    label gallery.industrial.finish.flat.caption {
+      text: "Flat";
+      classes: "muted" "note";
+      bounds: 704 92 100 16;
+    }
+    panel gallery.industrial.finish.cloth-weave {
+      classes: "finish-cloth-weave";
+      bounds: 818 40 72 48;
+    }
+    label gallery.industrial.finish.cloth-weave.caption {
+      text: "Cloth weave";
+      classes: "muted" "note";
+      bounds: 818 92 100 16;
+    }
+
+    panel gallery.industrial.glint.bead-blast {
+      classes: "finish-bead-blast-glint";
+      bounds: 20 124 60 40;
+    }
+    label gallery.industrial.glint.bead-blast.caption {
+      text: "Bead-blast glint";
+      classes: "muted" "note";
+      bounds: 20 168 100 16;
+    }
+    panel gallery.industrial.glint.sand-blast {
+      classes: "finish-sand-blast-glint";
+      bounds: 134 124 60 40;
+    }
+    label gallery.industrial.glint.sand-blast.caption {
+      text: "Sand-blast glint";
+      classes: "muted" "note";
+      bounds: 134 168 100 16;
+    }
+    panel gallery.industrial.glint.iridescent {
+      classes: "finish-iridescent-glint";
+      bounds: 248 124 60 40;
+    }
+    label gallery.industrial.glint.iridescent.caption {
+      text: "Iridescent glint";
+      classes: "muted" "note";
+      bounds: 248 168 100 16;
+    }
+    panel gallery.industrial.glint.coarse-grit {
+      classes: "finish-coarse-grit-glint";
+      bounds: 362 124 60 40;
+    }
+    label gallery.industrial.glint.coarse-grit.caption {
+      text: "Coarse-grit glint";
+      classes: "muted" "note";
+      bounds: 362 168 100 16;
+    }
+    panel gallery.industrial.glint.painted-sand {
+      classes: "finish-painted-sand-glint";
+      bounds: 476 124 60 40;
+    }
+    label gallery.industrial.glint.painted-sand.caption {
+      text: "Painted-sand glint";
+      classes: "muted" "note";
+      bounds: 476 168 100 16;
+    }
+    label gallery.industrial.glint.note {
+      text: "The glints are blasted metal drawn from its facets' glints; they stand still and cost some eight times a finish.";
+      classes: "muted" "note";
+      bounds: 600 124 320 48;
+    }
+  }
+
+  scaled-group-box gallery.industrial.lit-keys {
+    text: "Lit keys · baked light planes composited at run time";
+    classes: "paper" "group-caption";
+    design-size: 470 316;
+    bounds: 24 332 470 316;
+    panel gallery.industrial.keys {
+      bounds: 16 36 438 196;
+    }
+    check-box gallery.industrial.lamps {
+      text: "Lamps on";
+      indicator-style: toggle;
+      bounds: 16 242 200 24;
+    }
+    label gallery.industrial.bakes {
+      text: "";
+      classes: "muted" "note";
+      bounds: 16 272 438 36;
+    }
+  }
+
+  scaled-group-box gallery.industrial.preview {
+    text: "Industrial theme · GOST machine-tool paints";
+    classes: "paper" "group-caption";
+    design-size: 466 316;
+    bounds: 508 332 466 316;
+    check-box gallery.industrial.theme {
+      text: "The industrial theme on this group";
+      bounds: 16 40 320 24;
+    }
+    button gallery.industrial.preview.start {
+      text: "Start";
+      bounds: 16 84 120 32;
+    }
+    button gallery.industrial.preview.stop {
+      text: "Stop";
+      bounds: 150 84 120 32;
+    }
+    button gallery.industrial.preview.erase {
+      text: "Erase program";
+      danger: true;
+      bounds: 284 84 166 32;
+    }
+    indicator-lamp gallery.industrial.preview.running {
+      text: "Running";
+      bounds: 284 132 166 24;
+    }
+    indicator-lamp gallery.industrial.preview.fault {
+      text: "Fault";
+      state: error;
+      bounds: 284 166 166 24;
+    }
+    indicator-lamp gallery.industrial.preview.coolant-lamp {
+      text: "Coolant flow";
+      state: on;
+      bounds: 284 196 166 24;
+    }
+    check-box gallery.industrial.preview.coolant {
+      text: "Coolant";
+      checked: true;
+      bounds: 16 132 200 24;
+    }
+    radio-button gallery.industrial.preview.manual {
+      text: "Manual feed";
+      group-name: "gallery-industrial-feed";
+      checked: true;
+      bounds: 16 166 200 24;
+    }
+    radio-button gallery.industrial.preview.automatic {
+      text: "Automatic feed";
+      group-name: "gallery-industrial-feed";
+      bounds: 16 196 200 24;
+    }
+    label gallery.industrial.preview.state {
+      text: "";
+      classes: "muted" "note";
+      bounds: 16 236 434 64;
+    }
+  }
+}

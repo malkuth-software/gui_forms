@@ -429,7 +429,8 @@ constexpr std::array<std::string_view, material_field_count> material_field_name
     "filter_blur",
     "finish",
     "mask",
-    "reflection"};
+    "reflection",
+    "seat"};
 
 // The edge fields: four edges of three fields each, from border_top_style.
 constexpr std::size_t first_edge_field = static_cast<std::size_t>(MaterialField::border_top_style);
@@ -489,6 +490,7 @@ ColourPosition material_field_colour_position(MaterialField field) noexcept {
     case MaterialField::finish:
     case MaterialField::mask:
     case MaterialField::reflection:
+    case MaterialField::seat:
     case MaterialField::count:
     default: return ColourPosition::none;
     }
@@ -531,6 +533,8 @@ void apply_material_declaration(const MaterialDeclaration& declaration, SurfaceM
     case MaterialField::finish: material.finish = declaration.number; return;
     case MaterialField::mask: material.mask = declaration.mask; return;
     case MaterialField::reflection: material.reflection = declaration.reflection; return;
+    // Appended after the other fields (assemble_material).
+    case MaterialField::seat: return;
     case MaterialField::border_top_style:
     case MaterialField::border_top_width:
     case MaterialField::border_top_colour:
@@ -971,6 +975,7 @@ bool material_fields_read_box(
     for (const MaterialDeclaration* const declaration : fields) {
         if (declaration == nullptr || (*declaration).initial) continue;
         if (corner_field((*declaration).field) && (*declaration).relative) return true;
+        if ((*declaration).field == MaterialField::seat && (*declaration).relative) return true;
         if ((*declaration).field == MaterialField::fill_sizes) {
             for (const MaterialImageSize& size : (*declaration).image_sizes) {
                 const bool proportional = size.sizing == MaterialImageSizing::cover ||
@@ -1031,7 +1036,8 @@ bool width_field(MaterialField field) noexcept {
 void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
     const MaterialField field = declaration.field;
     const bool corner = corner_field(field) && !declaration.relative;
-    if (width_field(field) || corner || field == MaterialField::filter_blur) walk.visit(declaration.number);
+    const bool seat = field == MaterialField::seat && !declaration.relative;
+    if (width_field(field) || corner || seat || field == MaterialField::filter_blur) walk.visit(declaration.number);
     for (AuthoredGradient& gradient : declaration.gradients) {
         walk.visit(gradient.centre_x.units);
         walk.visit(gradient.centre_y.units);
@@ -1292,6 +1298,13 @@ void assemble_material(const SurfaceMaterial& floor,
     }
     if (fills) compose_fills(floor, fields, box, material);
     if (corners) compose_corners(floor, fields, std::min(box.width, box.height), material);
+    // The seat's shadows go after the authored ones, at the part's size.
+    const MaterialDeclaration* const seat = set_field(fields, MaterialField::seat);
+    if (seat != nullptr) {
+        const double shorter = std::min(box.width, box.height);
+        const double height = (*seat).relative ? (*seat).number * shorter : (*seat).number;
+        seat_shadows(height, (*seat).colour, material.shadows);
+    }
     const MaterialDeclaration* const border_image = set_field(fields, MaterialField::border_image);
     const bool framed = border_image != nullptr && (*border_image).border_image.has_value();
     if (edges && !framed) assemble_edges(floor, fields, material);
@@ -1300,6 +1313,31 @@ void assemble_material(const SurfaceMaterial& floor,
     material.fills.push_back(*(*border_image).border_image);
     material.border.reset();
     material.border_edges = MaterialBorderEdges{};
+}
+
+void seat_shadows(double height, Color colour, std::vector<MaterialShadow>& shadows) {
+    if (!std::isfinite(height) || height == 0.0) return;
+    const double depth = std::min(std::abs(height), maximum_seat_height);
+    const bool raised = height > 0.0;
+    const double run = depth * seat_light_run;
+    // Raised, a contact shadow a little narrower than the part, so it lies
+    // close under it; sunk, the lip's shade inside the opening.
+    MaterialShadow cast{};
+    cast.offset = Point{run, run};
+    cast.blur_radius = depth;
+    cast.spread = raised ? -0.25 * depth : 0.0;
+    cast.color = colour;
+    cast.inset = !raised;
+    // The crevice: darkening all round the seam, softer than the cast.
+    const double crevice_alpha = std::round(static_cast<double>(colour.alpha) * 0.8);
+    MaterialShadow crevice{};
+    crevice.offset = Point{0.0, 0.0};
+    crevice.blur_radius = std::max(1.0, depth * 0.5);
+    crevice.spread = 0.0;
+    crevice.color = Color::rgba(colour.red, colour.green, colour.blue, static_cast<std::uint8_t>(crevice_alpha));
+    crevice.inset = !raised;
+    if (shadows.size() < SurfaceMaterial::maximum_shadows) shadows.push_back(cast);
+    if (shadows.size() < SurfaceMaterial::maximum_shadows) shadows.push_back(crevice);
 }
 
 RuleDeclaration RuleDeclaration::primitive(std::string_view primitive_name) {

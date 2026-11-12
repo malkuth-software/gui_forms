@@ -157,6 +157,52 @@ bool valid_procedural_fill(const ProceduralFill& fill) noexcept {
     return false;
 }
 
+// A finish fill's parameters (skeudoindustrial surfaces, phase 1): a
+// built-in finish, a finite grain within [minimum_finish_grain,
+// maximum_finish_grain], a light whose elevation is within [0, 90]
+// degrees (any whole azimuth, read modulo 360), a finite ambient in
+// [0, 1], and finite relief and gloss scales within [0,
+// maximum_finish_scale].
+bool valid_glint_preset(GlintPreset preset) noexcept {
+    switch (preset) {
+    case GlintPreset::bead_blast:
+    case GlintPreset::sand_blast:
+    case GlintPreset::iridescent:
+    case GlintPreset::coarse_grit:
+    case GlintPreset::painted_sand: return true;
+    }
+    // A preset outside the enumeration is not fitted.
+    return false;
+}
+
+bool valid_finish_fill(const FinishFill& fill) noexcept {
+    switch (fill.kind) {
+    case FinishKind::dusty_matte:
+    case FinishKind::orange_peel:
+    case FinishKind::hammertone:
+    case FinishKind::wrinkle:
+    case FinishKind::bead_blast:
+    case FinishKind::sand_cast:
+    case FinishKind::flat:
+    case FinishKind::cloth_weave:
+    case FinishKind::glint: {
+        const bool grain = std::isfinite(fill.grain) && fill.grain >= minimum_finish_grain &&
+                           fill.grain <= maximum_finish_grain;
+        const bool light = fill.light_elevation_degrees >= 0 &&
+                           fill.light_elevation_degrees <= maximum_finish_elevation_degrees;
+        const bool ambient = std::isfinite(fill.ambient) && fill.ambient >= 0.0 && fill.ambient <= 1.0;
+        const bool scales = std::isfinite(fill.relief) && fill.relief >= 0.0 && fill.relief <= maximum_finish_scale &&
+                            std::isfinite(fill.gloss) && fill.gloss >= 0.0 && fill.gloss <= maximum_finish_scale;
+        // The glint reads its preset, which every other finish ignores.
+        const bool preset = fill.kind != FinishKind::glint || valid_glint_preset(fill.glint);
+        const bool valid = grain && light && ambient && scales && preset;
+        return valid;
+    }
+    }
+    // A kind outside the enumeration is not built in.
+    return false;
+}
+
 // An overlay shadow: at most SurfaceMaterial::maximum_shadows valid layers,
 // none of them inset (an overlay shadow falls outside its surface).
 bool valid_overlay_shadow(const std::vector<MaterialShadow>& layers) noexcept {
@@ -851,6 +897,20 @@ void paint_fill_layer(Painter& painter, Rect bounds, const MaterialFillLayer& fi
         }
         return;
     }
+    case MaterialFillKind::finish: {
+        // The painter path never paints a finish: it draws the fill's
+        // paint as a solid, as the engine does when the finish's storage
+        // cannot be had.
+        Color paint = fill.finish.paint;
+        const double alpha = static_cast<double>(paint.alpha) * std::clamp(fill.opacity, 0.0, 1.0);
+        paint.alpha = static_cast<std::uint8_t>(std::floor(alpha + 0.5));
+        if (clipped) {
+            painter.fill_rounded_rect(bounds, corner_radius, paint);
+        } else {
+            painter.fill_rect(bounds, paint);
+        }
+        return;
+    }
     }
     // A kind outside the enumeration paints nothing.
     return;
@@ -1002,6 +1062,15 @@ bool valid_fill_layer(const MaterialFillLayer& fill) noexcept {
             return false;
         }
         break;
+    case MaterialFillKind::finish:
+        if (fill.linear_geometry != MaterialLinearGeometry::endpoints ||
+            fill.spread != GradientSpreadMode::pad ||
+            !valid_finish_fill(fill.finish) ||
+            !std::isfinite(fill.opacity) || fill.opacity < 0.0 ||
+            fill.opacity > 1.0) {
+            return false;
+        }
+        break;
     default:
         return false;
     }
@@ -1086,10 +1155,11 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         if (!derivable || material.keylines.size() >= SurfaceMaterial::maximum_keylines) return false;
     }
     // A mask (E9.6) is a solid, gradient or image layer; a procedural
-    // pattern is not a mask.
+    // pattern or a finish is not a mask.
     if (material.mask) {
         const MaterialFillLayer& mask = *material.mask;
-        if (mask.kind == MaterialFillKind::procedural || !valid_fill_layer(mask)) return false;
+        const bool textured = mask.kind == MaterialFillKind::procedural || mask.kind == MaterialFillKind::finish;
+        if (textured || !valid_fill_layer(mask)) return false;
     }
     if (material.reflection && !valid_material_reflection(*material.reflection)) return false;
     return true;
@@ -1414,6 +1484,7 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
         case MaterialField::finish:
         case MaterialField::mask:
         case MaterialField::reflection:
+        case MaterialField::seat:
         case MaterialField::count:
         default: break; // Not drawn under the pass.
         }

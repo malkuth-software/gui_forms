@@ -14,6 +14,7 @@
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/text_block.hpp"
 #include "gui_forms/controls/badge.hpp"
+#include "gui_forms/controls/indicator_lamp.hpp"
 #include "gui_forms/controls/info_banner.hpp"
 #include "gui_forms/controls/empty_state.hpp"
 #include "gui_forms/controls/toast.hpp"

@@ -38,7 +38,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 79> material_properties{{
+constexpr std::array<NamedMaterialProperty, 80> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -104,6 +104,7 @@ constexpr std::array<NamedMaterialProperty, 79> material_properties{{
     {.name = "padding-inline", .property = MaterialProperty::padding_inline},
     {.name = "reflection", .property = MaterialProperty::reflection},
     {.name = "scrim-color", .property = MaterialProperty::scrim_color},
+    {.name = "seat", .property = MaterialProperty::seat},
     {.name = "stripe-angle", .property = MaterialProperty::stripe_angle},
     {.name = "stripe-color", .property = MaterialProperty::stripe_color},
     {.name = "stripe-direction", .property = MaterialProperty::stripe_direction},
@@ -204,6 +205,37 @@ constexpr std::array<NamedPattern, 6> pattern_names{{
 }};
 
 constexpr std::string_view pattern_function_name = "pattern";
+
+// The surface finishes `finish()` names (FinishKind; skeudoindustrial
+// surfaces, phases 1 and 2): the finishes, and the glint in each of its
+// presets.
+struct NamedFinish final {
+    std::string_view name{};
+    FinishKind kind{FinishKind::orange_peel};
+    GlintPreset glint{GlintPreset::sand_blast};
+};
+
+constexpr std::array<NamedFinish, 13> finish_names{{
+    {.name = "dusty-matte", .kind = FinishKind::dusty_matte},
+    {.name = "orange-peel", .kind = FinishKind::orange_peel},
+    {.name = "hammertone", .kind = FinishKind::hammertone},
+    {.name = "wrinkle", .kind = FinishKind::wrinkle},
+    {.name = "bead-blast", .kind = FinishKind::bead_blast},
+    {.name = "sand-cast", .kind = FinishKind::sand_cast},
+    {.name = "flat", .kind = FinishKind::flat},
+    {.name = "cloth-weave", .kind = FinishKind::cloth_weave},
+    {.name = "bead-blast-glint", .kind = FinishKind::glint, .glint = GlintPreset::bead_blast},
+    {.name = "sand-blast-glint", .kind = FinishKind::glint, .glint = GlintPreset::sand_blast},
+    {.name = "iridescent-glint", .kind = FinishKind::glint, .glint = GlintPreset::iridescent},
+    {.name = "coarse-grit-glint", .kind = FinishKind::glint, .glint = GlintPreset::coarse_grit},
+    {.name = "painted-sand-glint", .kind = FinishKind::glint, .glint = GlintPreset::painted_sand},
+}};
+
+constexpr std::string_view finish_function_name = "finish";
+
+// The largest seed `finish()` admits: the finish's seed is a 32-bit signed
+// integer, written non-negative.
+constexpr double maximum_finish_seed = 2147483647.0;
 
 [[nodiscard]] const NamedGradient* gradient_function(std::string_view name) noexcept {
     for (const NamedGradient& gradient : gradient_functions) {
@@ -404,6 +436,7 @@ private:
     bool read_conic_configuration(ComponentRange range, AuthoredGradient& gradient, bool& configured);
     bool read_gradient(std::size_t index, AuthoredGradient& gradient);
     bool read_pattern(std::size_t index, MaterialFillLayer& layer);
+    bool read_finish(std::size_t index, MaterialFillLayer& layer);
     bool read_image(std::size_t index, WrittenLayer& layer);
     bool read_resource_image(std::size_t index, MaterialFillLayer& layer);
     bool push_fills(std::span<const WrittenLayer> written);
@@ -442,6 +475,7 @@ private:
     bool lower_shadows();
     bool lower_filter();
     bool lower_finish();
+    bool lower_seat();
     bool lower_glows();
     bool lower_glow_placements();
     bool lower_mask();
@@ -499,6 +533,7 @@ bool MaterialReader::drop_unknown_functions() {
         if (component.kind != ValueComponentKind::function) continue;
         if (gradient_function(component.text) != nullptr || filter_function(component.text) != nullptr) continue;
         if (equals_ascii_folded(component.text, pattern_function_name)) continue;
+        if (equals_ascii_folded(component.text, finish_function_name)) continue;
         return fail(DiagnosticCode::unknown_function, component.token, clipped_theme_detail(component.text));
     }
     return true;
@@ -858,7 +893,8 @@ bool MaterialReader::read_gradient(std::size_t index, AuthoredGradient& gradient
     case MaterialFillKind::conic_gradient: read = read_conic_configuration(arguments[0], gradient, configured); break;
     case MaterialFillKind::solid:
     case MaterialFillKind::image:
-    case MaterialFillKind::procedural: break;
+    case MaterialFillKind::procedural:
+    case MaterialFillKind::finish: break;
     // A value outside the enumeration names no gradient function: nothing
     // is read.
     default: break;
@@ -918,6 +954,63 @@ bool MaterialReader::read_pattern(std::size_t index, MaterialFillLayer& layer) {
     return true;
 }
 
+// `finish(<name>, <paint>, <secondary> [, <seed> [, <grain>]])`: a surface
+// finish (finish_names) in its paint and second colour (the dust's, or the
+// cloth's weft), its seed a whole number from 0 to 2^31 - 1 (7, the
+// study's, by default) and its grain a number from 0.5 to 4 (1 by
+// default), with the study's light, ambient, relief and gloss. The engine
+// paints it per device pixel as it bakes the part (skeudoindustrial
+// surfaces, phase 1). A finish layer, like a pattern, takes no position,
+// size or repetition.
+bool MaterialReader::read_finish(std::size_t index, MaterialFillLayer& layer) {
+    const ValueComponent& function = value_.components[index];
+    std::vector<ComponentRange> arguments{};
+    split(ComponentRange{index + 1U, function.subtree_end}, arguments);
+    if (arguments.size() < 3U || arguments.size() > 5U) {
+        return fail(DiagnosticCode::value_syntax, function.token,
+                    "a finish, two colours, and an optional seed and grain");
+    }
+    for (const ComponentRange& argument : arguments) {
+        if (count(argument) != 1U) return fail(DiagnosticCode::value_syntax, function.token, "one value per argument");
+    }
+    const NamedFinish* named = nullptr;
+    for (const NamedFinish& candidate : finish_names) {
+        if (keyword(arguments[0].first, candidate.name)) named = &candidate;
+    }
+    if (named == nullptr) {
+        return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
+                    "dusty-matte, orange-peel, hammertone, wrinkle, bead-blast, sand-cast, flat, cloth-weave "
+                    "or a glint");
+    }
+    FinishFill finish{};
+    finish.kind = (*named).kind;
+    finish.glint = (*named).glint;
+    if (!read_colour(arguments[1].first, finish.paint)) return false;
+    if (!read_colour(arguments[2].first, finish.secondary)) return false;
+    if (arguments.size() >= 4U) {
+        const ValueComponent& seed = value_.components[arguments[3].first];
+        const bool number = seed.kind == ValueComponentKind::number && seed.unit == ValueUnit::none;
+        if (!number) return fail(DiagnosticCode::value_wrong_kind, seed.token, "a whole number seed");
+        const bool whole = seed.number >= 0.0 && seed.number <= maximum_finish_seed &&
+                           std::floor(seed.number) == seed.number;
+        if (!whole) {
+            return fail(DiagnosticCode::value_out_of_range, seed.token, "a seed from 0 to 2147483647");
+        }
+        finish.seed = static_cast<std::int32_t>(seed.number);
+    }
+    if (arguments.size() == 5U) {
+        const ValueComponent& grain = value_.components[arguments[4].first];
+        const bool number = grain.kind == ValueComponentKind::number && grain.unit == ValueUnit::none;
+        if (!number) return fail(DiagnosticCode::value_wrong_kind, grain.token, "a number grain");
+        if (!(grain.number >= minimum_finish_grain && grain.number <= maximum_finish_grain)) {
+            return fail(DiagnosticCode::value_out_of_range, grain.token, "a grain from 0.5 to 4");
+        }
+        finish.grain = grain.number;
+    }
+    layer = MaterialFillLayer::finish_fill(finish);
+    return true;
+}
+
 bool MaterialReader::read_image(std::size_t index, WrittenLayer& layer) {
     layer = WrittenLayer{};
     const ValueComponent& component = value_.components[index];
@@ -930,6 +1023,15 @@ bool MaterialReader::read_image(std::size_t index, WrittenLayer& layer) {
         layer.imaged = true;
         layer.patterned = true;
         return read_pattern(index, layer.image);
+    }
+    const bool finish_written =
+        component.kind == ValueComponentKind::function && equals_ascii_folded(component.text, finish_function_name);
+    if (finish_written) {
+        // A finish covers its box as a pattern does: no position, size
+        // or repetition.
+        layer.imaged = true;
+        layer.patterned = true;
+        return read_finish(index, layer.image);
     }
     if (component.kind == ValueComponentKind::resource) {
         layer.imaged = true;
@@ -1800,6 +1902,31 @@ bool MaterialReader::lower_finish() {
     MaterialDeclaration declaration{};
     declaration.field = MaterialField::finish;
     declaration.number = amount;
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// `seat: none | <height> [<colour>]`: the part's height above its panel, a
+// length (negative: sunk into it) or a percentage of its shorter side,
+// and its shadow's colour (default_seat_colour). The height is clamped to
+// maximum_seat_height when the material is assembled.
+bool MaterialReader::lower_seat() {
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::seat;
+    declaration.colour = default_seat_colour;
+    const std::size_t values = count(ComponentRange{0U, value_.components.size()});
+    if (values == 1U && keyword(0U, "none")) {
+        lowering_.declarations.push_back(std::move(declaration));
+        return true;
+    }
+    if (values != 1U && values != 2U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[0].token, "a height and a colour");
+    }
+    BoxLength height{};
+    if (!read_length(0U, true, true, height)) return false;
+    declaration.relative = height.units == 0.0 && height.fraction != 0.0;
+    declaration.number = declaration.relative ? height.fraction : height.units;
+    if (values == 2U && !read_colour(next(0U), declaration.colour)) return false;
     lowering_.declarations.push_back(std::move(declaration));
     return true;
 }
@@ -2913,6 +3040,7 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::mask_image: static_cast<void>(lower_mask()); return;
     case MaterialProperty::reflection: static_cast<void>(lower_reflection()); return;
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
+    case MaterialProperty::seat: static_cast<void>(lower_seat()); return;
     case MaterialProperty::keylines: static_cast<void>(lower_keylines()); return;
     case MaterialProperty::muted_color: static_cast<void>(lower_recipe_colour(RecipeField::muted_text)); return;
     case MaterialProperty::glyph_color: static_cast<void>(lower_recipe_colour(RecipeField::glyph)); return;
@@ -3075,6 +3203,7 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::mask_image: fields.push_back(MaterialField::mask); return;
     case MaterialProperty::reflection: fields.push_back(MaterialField::reflection); return;
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
+    case MaterialProperty::seat: fields.push_back(MaterialField::seat); return;
     case MaterialProperty::keylines: fields.push_back(MaterialField::keylines); return;
     case MaterialProperty::muted_color:
     case MaterialProperty::glyph_color:

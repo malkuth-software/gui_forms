@@ -34,6 +34,7 @@
 #include "gui_forms/controls/font_dialog.hpp"
 #include "gui_forms/controls/grid_panel.hpp"
 #include "gui_forms/controls/group_box.hpp"
+#include "gui_forms/controls/indicator_lamp.hpp"
 #include "gui_forms/controls/info_banner.hpp"
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/link_label.hpp"
@@ -1185,6 +1186,26 @@ void test_group_box_properties() {
         const bool sample = !(*control).use_mnemonic.read();
         (*control).use_mnemonic = sample;
         expect((*control).use_mnemonic.read() == sample, "GroupBox.use_mnemonic: a write stores");
+    }
+}
+
+void test_indicator_lamp_properties() {
+    std::shared_ptr<IndicatorLamp> control = make_control<IndicatorLamp>(StableId("generated.indicatorlamp"));
+    {
+        const IndicatorLampState sample = IndicatorLampState::on;
+        (*control).state = sample;
+        expect((*control).state.read() == sample, "IndicatorLamp.state: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("state");
+        expect(by_name && *by_name == PropertyValueTraits<IndicatorLampState>::to_binding(sample),
+               "IndicatorLamp.state: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Coolant"};
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "IndicatorLamp.text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "IndicatorLamp.text: the table reads the cell");
     }
 }
 
@@ -3242,6 +3263,7 @@ int main() {
     test_font_dialog_properties();
     test_grid_panel_properties();
     test_group_box_properties();
+    test_indicator_lamp_properties();
     test_info_banner_properties();
     test_instrument_rack_properties();
     test_label_properties();

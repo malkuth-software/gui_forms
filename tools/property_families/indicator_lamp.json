@@ -1,0 +1,89 @@
+{
+  "family": "IndicatorLamp",
+  "step": "cp31",
+  "declaring": "IndicatorLamp",
+  "header": "include/gui_forms/controls/indicator_lamp.hpp",
+  "source": "src/controls/indicator_lamp/indicator_lamp.cpp",
+  "capabilities_header": "include/gui_forms/controls/indicator_lamp_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/indicator_lamp_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "state",
+      "capability": "IndicatorLampStateChoice",
+      "value": "IndicatorLampState",
+      "initial": "IndicatorLampState::off",
+      "comment": "Whether the lamp is off, on or showing an error. The lens warms up on a change to on or error and cools down on a change to off, at once under reduced motion.",
+      "getter": "state",
+      "setter": "set_state",
+      "clear": null,
+      "field": "state_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "Whether the lamp is off, on or showing an error.",
+        "default": "BindingValue{PropertyEnumValue{\"indicator_lamp_state\", \"off\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "indicator_lamp_state_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written starts the lens's warm-up or cool-down (IndicatorLamp::begin_change) besides the paint and semantics invalidation"
+      ],
+      "sample": "IndicatorLampState::on"
+    },
+    {
+      "name": "text",
+      "capability": "IndicatorLampText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The legend beside the lens, which also names the lamp to assistive technology; empty for a lens alone. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "text",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The legend beside the lens.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) {",
+        "    throw std::invalid_argument(\"IndicatorLamp text must be valid UTF-8\");",
+        "}"
+      ],
+      "sample": "std::string{\"Coolant\"}"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "IndicatorLamp",
+    "include": "gui_forms/controls/indicator_lamp.hpp"
+  }
+}

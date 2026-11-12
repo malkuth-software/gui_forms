@@ -797,6 +797,9 @@ enum class MaterialField : std::uint8_t {
     finish,
     mask,
     reflection,
+    // The part's seat in its panel (skeudoindustrial surfaces): derived
+    // shadows, appended to the shadows when the material is assembled.
+    seat,
     count,
 };
 
@@ -837,7 +840,11 @@ inline constexpr std::size_t material_field_count = static_cast<std::size_t>(Mat
 //   none; mask: `mask`, empty for none, and `gradients`, empty or one
 //   entry, the mask's authored gradient as for a fill layer;
 // - filter_blur and finish: `number`;
-// - reflection: `reflection`, empty for none (stage T5, C7).
+// - reflection: `reflection`, empty for none (stage T5, C7);
+// - seat: `number`, the part's height above its panel in logical units
+//   (negative: sunk into it), or, with `relative`, a fraction of the box's
+//   shorter side, and `colour`, its shadow's; 0 for none. Resolved when
+//   the material is assembled (seat_shadows).
 // `initial`, set, is CSS's `initial`: the field keeps the floor's value,
 // and the declaration still wins over those beneath it; its value members
 // are not read.
@@ -916,6 +923,36 @@ GUI_FORMS_API void set_material_declaration_colours(MaterialDeclaration& declara
 // Sets each of the declaration's current_colours to `colour`.
 GUI_FORMS_API void set_material_current_colour(MaterialDeclaration& declaration, Color colour) noexcept;
 
+// -- the seat ------------------------------------------------------------------------------
+//
+// A part seated in its panel (skeudoindustrial surfaces; the theme's
+// "object presence"): a key, a well or a plate that stands proud of the
+// panel, or sinks into it, by a height a theme sets per role (`seat`).
+// Under the one fixed light from the upper left (the finishes' light), a
+// raised part casts a thin contact shadow down and to the right and
+// darkens the crevice all round where it meets the panel; a sunk part's
+// lip shades its upper left inside, and its seam darkens. Both are outer
+// or inset shadows of the material, so they are baked with it, identical
+// in any repaint rectangle, and drawn by every path that draws shadows.
+// The depth is a bas-relief's: at most maximum_seat_height, so a share of
+// a long bar's shorter side stays a seat and the shadows stay within the
+// material's outsets.
+inline constexpr double maximum_seat_height = 4.0;
+// The seat's shadow colour when the sheet gives none.
+inline constexpr Color default_seat_colour = Color::rgba(0, 0, 0, 77);
+// The run of the cast shadow per unit of height: the light stands 45
+// degrees above the panel, so the shadow falls half the height across and
+// half down.
+inline constexpr double seat_light_run = 0.5;
+
+// Appends the seat's shadows for a part `height` logical units above its
+// panel (negative: below it; resolved, not a share) in `colour` to
+// `shadows`: the cast shadow (a raised part's contact shadow, a sunk
+// part's lip shade) then the crevice, each while `shadows` holds fewer
+// than SurfaceMaterial::maximum_shadows; a seat with no room is dropped
+// (ornament gives way first). A height of 0 appends nothing.
+GUI_FORMS_API void seat_shadows(double height, Color colour, std::vector<MaterialShadow>& shadows);
+
 // Replaces `material` with `floor` and the declarations of `fields` (the
 // winning declaration of each field, by the field's position, null where
 // none) in place: a part's assembled material (EC1); an `initial`
@@ -975,7 +1012,8 @@ GUI_FORMS_API void assemble_material(const SurfaceMaterial& floor,
 [[nodiscard]] GUI_FORMS_API bool material_fields_read_current_colour(
     const std::array<const MaterialDeclaration*, material_field_count>& fields) noexcept;
 
-// Whether assembling `fields` reads the part's box: a relative corner, an
+// Whether assembling `fields` reads the part's box: a relative corner or
+// seat, an
 // authored gradient, of a fill or the mask, other than a fixed one
 // (authored_gradient_fixed), or an image size of the box (a fraction of
 // its side, cover or contain).

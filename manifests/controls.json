@@ -151,6 +151,17 @@
       "doc": "api/generated/gui_forms.Badge.rst"
     },
     {
+      "id": "indicator_lamp",
+      "type": "IndicatorLamp",
+      "header": "gui_forms/controls/indicator_lamp.hpp",
+      "category": "Information display",
+      "purpose": "Round lens in a bezel showing off, on or error, with an optional legend; warms up and cools down (at once under reduced motion), lights only its own lens and is never clickable; every theme can show it.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "industrial-surfaces",
+      "doc": "api/generated/gui_forms.IndicatorLamp.rst"
+    },
+    {
       "id": "info_banner",
       "type": "InfoBanner",
       "header": "gui_forms/controls/info_banner.hpp",

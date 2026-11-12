@@ -629,10 +629,15 @@ struct PageDigest final {
 // (part-rules-reach-paint). Recorded again: basics, in both tables; no page
 // with fill or selection rules moved.
 //
+// cp31 (industrial surfaces, phase 5): the industrial-surfaces page
+// lengthens the navigation list every page shows, so every page moves; its
+// own entries are placeholders (0). To be recorded again: every page, in
+// both tables (GUI_FORMS_GALLERY_TRACE_PRINT=1), by the integrator.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
-constexpr std::array<PageDigest, 39> expected_digests{{
+constexpr std::array<PageDigest, 40> expected_digests{{
     {"basics", 0xb8cb2b6329f738e2ULL},
     {"values", 0xe9dc6462db0cb202ULL},
     {"retained-rows", 0x00a62d0893b2b805ULL},
@@ -671,6 +676,7 @@ constexpr std::array<PageDigest, 39> expected_digests{{
     {"instruments", 0x10c7ec04abfc8019ULL},
     {"guided-tasks", 0xf257f2954366ea8dULL},
     {"help-book", 0x86279d24929e671aULL},
+    {"industrial-surfaces", 0x0000000000000000ULL},
     {"controls-inspection", 0x47e1dff67a7f273fULL},
 }};
 
@@ -687,7 +693,7 @@ constexpr std::array<PageDigest, 39> expected_digests{{
 // dock site parts carry their names. typography-and-inspection is
 // left out (zero): it shows a RuntimeId, which counts every control made
 // before it in the process, and this pass runs after the one above.
-constexpr std::array<PageDigest, 39> professional_digests{{
+constexpr std::array<PageDigest, 40> professional_digests{{
     {"basics", 0x13b220f701300fb1ULL},
     {"values", 0x57a560b4f8c726cdULL},
     {"retained-rows", 0x2bf5b0b0ee2d29b0ULL},
@@ -726,6 +732,7 @@ constexpr std::array<PageDigest, 39> professional_digests{{
     {"instruments", 0x17b2083c6af9764fULL},
     {"guided-tasks", 0x0f758c41e6d9da4eULL},
     {"help-book", 0x7dd2d63b1fa4ae4aULL},
+    {"industrial-surfaces", 0x0000000000000000ULL},
     {"controls-inspection", 0x5461e90be4f721f0ULL},
 }};
 

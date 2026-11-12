@@ -72,6 +72,8 @@ enum class MaterialProperty : std::uint8_t {
     mask_image,
     reflection,
     surface_finish,
+    // The part's seat in its panel: `seat: none | <height> [<colour>]`.
+    seat,
     // The four inner lines one unit inside the border (T4 floor sheet,
     // owner option 1): `keylines: <top> <right> <bottom> <left>`.
     keylines,

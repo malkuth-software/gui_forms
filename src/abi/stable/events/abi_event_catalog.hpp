@@ -139,6 +139,7 @@
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/pages/types/page_set_types.hpp"
+#include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
 #include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 #include "gui_forms/surface_material/procedural_fill/procedural_fill.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
@@ -450,12 +451,40 @@ struct EnumerationChoices<EventPhase> {
 };
 
 template <>
+struct EnumerationChoices<FinishKind> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 9> choices{{
+        {"dusty_matte", static_cast<std::int64_t>(FinishKind::dusty_matte)},
+        {"orange_peel", static_cast<std::int64_t>(FinishKind::orange_peel)},
+        {"hammertone", static_cast<std::int64_t>(FinishKind::hammertone)},
+        {"wrinkle", static_cast<std::int64_t>(FinishKind::wrinkle)},
+        {"bead_blast", static_cast<std::int64_t>(FinishKind::bead_blast)},
+        {"sand_cast", static_cast<std::int64_t>(FinishKind::sand_cast)},
+        {"flat", static_cast<std::int64_t>(FinishKind::flat)},
+        {"cloth_weave", static_cast<std::int64_t>(FinishKind::cloth_weave)},
+        {"glint", static_cast<std::int64_t>(FinishKind::glint)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<FontRole> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 3> choices{{
         {"control", static_cast<std::int64_t>(FontRole::control)},
         {"content", static_cast<std::int64_t>(FontRole::content)},
         {"monospace", static_cast<std::int64_t>(FontRole::monospace)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<GlintPreset> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 5> choices{{
+        {"bead_blast", static_cast<std::int64_t>(GlintPreset::bead_blast)},
+        {"sand_blast", static_cast<std::int64_t>(GlintPreset::sand_blast)},
+        {"iridescent", static_cast<std::int64_t>(GlintPreset::iridescent)},
+        {"coarse_grit", static_cast<std::int64_t>(GlintPreset::coarse_grit)},
+        {"painted_sand", static_cast<std::int64_t>(GlintPreset::painted_sand)},
     }};
 };
 
@@ -591,13 +620,14 @@ struct EnumerationChoices<MaterialEdge> {
 template <>
 struct EnumerationChoices<MaterialFillKind> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 6> choices{{
+    static constexpr std::array<EnumerationChoice, 7> choices{{
         {"solid", static_cast<std::int64_t>(MaterialFillKind::solid)},
         {"linear_gradient", static_cast<std::int64_t>(MaterialFillKind::linear_gradient)},
         {"radial_gradient", static_cast<std::int64_t>(MaterialFillKind::radial_gradient)},
         {"image", static_cast<std::int64_t>(MaterialFillKind::image)},
         {"conic_gradient", static_cast<std::int64_t>(MaterialFillKind::conic_gradient)},
         {"procedural", static_cast<std::int64_t>(MaterialFillKind::procedural)},
+        {"finish", static_cast<std::int64_t>(MaterialFillKind::finish)},
     }};
 };
 
@@ -996,6 +1026,7 @@ void append_field(EventFields& fields, std::string_view name, const DragInteract
 void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value);
 void append_field(EventFields& fields, std::string_view name, const FileDialogOk& value);
 void read_field(EventFields& fields, std::string_view name, FileDialogOk& value);
+void append_field(EventFields& fields, std::string_view name, const FinishFill& value);
 void append_field(EventFields& fields, std::string_view name, const FocusedControlChange& value);
 void append_field(EventFields& fields, std::string_view name, const FontChoice& value);
 void append_field(EventFields& fields, std::string_view name, const FontDialogResult& value);
@@ -1724,6 +1755,22 @@ inline void read_field(EventFields& fields, std::string_view name, FileDialogOk&
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const FinishFill& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "kind", value.kind);
+    append_field(fields, "seed", value.seed);
+    append_field(fields, "grain", value.grain);
+    append_field(fields, "paint", value.paint);
+    append_field(fields, "secondary", value.secondary);
+    append_field(fields, "light_azimuth_degrees", value.light_azimuth_degrees);
+    append_field(fields, "light_elevation_degrees", value.light_elevation_degrees);
+    append_field(fields, "ambient", value.ambient);
+    append_field(fields, "relief", value.relief);
+    append_field(fields, "gloss", value.gloss);
+    append_field(fields, "glint", value.glint);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const FocusedControlChange& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "previous_id", value.previous_id);
@@ -2135,6 +2182,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     append_field(fields, "period_degrees", value.period_degrees);
     append_field(fields, "blend", value.blend);
     append_field(fields, "procedural", value.procedural);
+    append_field(fields, "finish", value.finish);
     fields.leave(prefix);
 }
 

@@ -269,6 +269,26 @@ h-scroll-bar::part(track), v-scroll-bar::part(track) {
   background: pattern(checker, #d4d0c8, #ffffff);
   border: none;
 }
+/* Indicator lamps (follow-up 4): a sunken Windows 2000 well around a plain
+   lens. The lens is dark glass off; on and error light only the lens, the
+   only saturated colour here. */
+indicator-lamp::part(bezel) {
+  background: #d4d0c8;
+  border: 1px solid #808080;
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+indicator-lamp::part(lens) {
+  background: #404040;
+  border: 1px solid #000000;
+}
+indicator-lamp::part(lens):state(on) {
+  background: radial-gradient(circle at 40% 35%, #c0ffc0, #00c000 55%, #008000);
+  border: 1px solid #004000;
+}
+indicator-lamp::part(lens):state(error) {
+  background: radial-gradient(circle at 40% 35%, #ffc0c0, #e00000 55%, #800000);
+  border: 1px solid #400000;
+}
 )css";
 
 constexpr std::string_view modern_flat_sheet = R"css(/* modern-flat: a flat modern look (stage T4, phase 7; M076: boundaries,
@@ -459,6 +479,29 @@ constexpr std::string_view modern_flat_sheet = R"css(/* modern-flat: a flat mode
   color: #6e6e6e;
   muted-color: #6e6e6e;
   glyph-color: #6e6e6e;
+}
+)css";
+
+constexpr std::string_view modern_flat_parts_sheet = R"css(/* modern-flat: parts. */
+/* Indicator lamps (follow-up 4): a flat ring. The lens is dark glass off;
+   on and error light only the lens, the only saturated colour here. */
+indicator-lamp::part(bezel) {
+  background: #e5e5e5;
+  border: 1px solid #c4c4c4;
+}
+indicator-lamp::part(lens) {
+  background: #3b3b3b;
+  border: 1px solid #2b2b2b;
+}
+indicator-lamp::part(lens):state(on) {
+  background: #13a10e;
+  border: 1px solid #0e7a0b;
+  box-shadow: inset 0 0 2px #c8f5c6;
+}
+indicator-lamp::part(lens):state(error) {
+  background: #c42b1c;
+  border: 1px solid #921f14;
+  box-shadow: inset 0 0 2px #ffd7d2;
 }
 )css";
 
@@ -763,6 +806,26 @@ button:default:active::part(face), button:default:disabled::part(face) {
 button:default:disabled {
   default-outline: 0px #003c74;
 }
+/* Indicator lamps (follow-up 4): a Luna bezel. The lens is dark glass off;
+   on and error light only the lens, the only saturated colour here. */
+indicator-lamp::part(bezel) {
+  background: linear-gradient(to bottom, #cfcbbd, #f4f3ee);
+  border: 1px solid #a5a28f;
+}
+indicator-lamp::part(lens) {
+  background: radial-gradient(circle at 40% 35%, #8a8a84, #3b3b38 70%);
+  border: 1px solid #2a2a27;
+}
+indicator-lamp::part(lens):state(on) {
+  background: radial-gradient(circle at 40% 35%, #e3ffd6, #3dbb3d 50%, #1d7a1d);
+  border: 1px solid #1a5c1a;
+  box-shadow: inset 0 0 2px #e3ffd6b0;
+}
+indicator-lamp::part(lens):state(error) {
+  background: radial-gradient(circle at 40% 35%, #ffe0d6, #e0442b 50%, #8f1c0e);
+  border: 1px solid #6a140a;
+  box-shadow: inset 0 0 2px #ffe0d6b0;
+}
 )css";
 
 constexpr std::string_view windows7_style_sheet = R"css(/* windows7-style: an Aero-like look (stage T4, phase 7), following 7.css
@@ -1052,6 +1115,28 @@ numeric-up-down::part(increment-glyph), numeric-up-down::part(decrement-glyph),
 domain-up-down::part(up-glyph), domain-up-down::part(down-glyph) {
   glyph-color: #4d4d4d;
 }
+/* Indicator lamps (follow-up 4): an Aero glass bezel. The lens is dark
+   glass off; on and error light only the lens, the only saturated colour
+   here. */
+indicator-lamp::part(bezel) {
+  background: linear-gradient(to bottom, #b9c4d0, #f2f5f8);
+  border: 1px solid #8e9aa7;
+}
+indicator-lamp::part(lens) {
+  background: radial-gradient(circle at 40% 30%, #7e8790, #2b3036 70%);
+  border: 1px solid #22262b;
+  box-shadow: inset 0 1px 1px #ffffff40;
+}
+indicator-lamp::part(lens):state(on) {
+  background: radial-gradient(circle at 40% 30%, #f0ffe8, #4ccf3c 45%, #1e7f19);
+  border: 1px solid #186414;
+  box-shadow: inset 0 0 3px #f0ffe8c0;
+}
+indicator-lamp::part(lens):state(error) {
+  background: radial-gradient(circle at 40% 30%, #fff0ea, #ef4a32 45%, #941b0f);
+  border: 1px solid #70140b;
+  box-shadow: inset 0 0 3px #fff0eac0;
+}
 )css";
 
 constexpr std::string_view macos_style_parts_sheet = R"css(/* macos-style: parts (AppKit). The system face
@@ -1148,6 +1233,25 @@ h-scroll-bar:disabled::part(thumb), v-scroll-bar:disabled::part(thumb) {
     background: #6b6b6b;
     border-color: #676767;
   }
+}
+/* Indicator lamps (follow-up 4): a quiet AppKit bezel. The lens is dark
+   glass off; on and error light only the lens, the only saturated colour
+   here. */
+indicator-lamp::part(bezel) {
+  background: #e5e5e5;
+  border: 1px solid #c8c8c8;
+}
+indicator-lamp::part(lens) {
+  background: radial-gradient(circle at 40% 35%, #8e8e93, #48484a 70%);
+  border: 1px solid #3a3a3c;
+}
+indicator-lamp::part(lens):state(on) {
+  background: radial-gradient(circle at 40% 35%, #c9f7d1, #28c840 55%, #1a9a2f);
+  border: 1px solid #168a2a;
+}
+indicator-lamp::part(lens):state(error) {
+  background: radial-gradient(circle at 40% 35%, #ffd4d1, #ff5f57 55%, #c9302a);
+  border: 1px solid #b72a24;
 }
 )css";
 
@@ -1677,6 +1781,8 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
     {.id = "modern-flat",
      .sheet = modern_flat_sheet,
      .file = "modern-flat/floor.css",
+     .parts_sheet = modern_flat_parts_sheet,
+     .parts_file = "modern-flat/parts.css",
      .structure = {.dotted_focus = false,
                    .focus_width = 2.0,
                    .pressed_content_offset = Point{},

@@ -92,6 +92,39 @@
 .navigation-paper::part(face) { background: #e8e8e6; }
 .status-strip::part(face) { background: #ebebe9; }
 
+/* The industrial-surfaces page's swatches (skeudoindustrial surfaces,
+   phase 5): one finish each, in the GOST machine-tool paints (ГОСТ
+   22133-86's colorimetry; demo/themes/gost_paints/SOURCES.md). These are
+   the page's visual choices, not rulings: each paint is one property here
+   and each finish, seed and grain one rule below. A finish paints the
+   same in light and dark. */
+:root {
+  --swatch-teal: #4d676d;        /* GOST 397, blue-green */
+  --swatch-grey-green: #80948a;  /* GOST 365 */
+  --swatch-pale-mint: #b4c4b2;   /* GOST 319 */
+  --swatch-white-night: #b9bbae; /* GOST 858, here the dust */
+  --swatch-dark-grey: #656f74;   /* GOST 832 */
+  --swatch-grey-silver: #8d9695; /* GOST 810 */
+  --swatch-orange: #e0783a;      /* GOST 121 */
+  --swatch-flake: #bdb6a8;       /* hammertone's aluminium flake */
+  --swatch-warp: #8a6f4a;
+  --swatch-weft: #c8b98f;
+  --swatch-metal: #a3a3a3;       /* a glint's metal, as the fitted presets */
+}
+.finish-dusty-matte::part(face) { background: finish(dusty-matte, var(--swatch-teal), var(--swatch-white-night), 7); }
+.finish-orange-peel::part(face) { background: finish(orange-peel, var(--swatch-pale-mint), var(--swatch-grey-green), 7); }
+.finish-hammertone::part(face) { background: finish(hammertone, var(--swatch-teal), var(--swatch-flake), 11); }
+.finish-wrinkle::part(face) { background: finish(wrinkle, var(--swatch-dark-grey), var(--swatch-flake), 7); }
+.finish-bead-blast::part(face) { background: finish(bead-blast, var(--swatch-grey-silver), var(--swatch-metal), 7); }
+.finish-sand-cast::part(face) { background: finish(sand-cast, var(--swatch-grey-green), var(--swatch-white-night), 7); }
+.finish-flat::part(face) { background: finish(flat, var(--swatch-orange), var(--swatch-orange)); }
+.finish-cloth-weave::part(face) { background: finish(cloth-weave, var(--swatch-warp), var(--swatch-weft), 11, 2); }
+.finish-bead-blast-glint::part(face) { background: finish(bead-blast-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
+.finish-sand-blast-glint::part(face) { background: finish(sand-blast-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
+.finish-iridescent-glint::part(face) { background: finish(iridescent-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
+.finish-coarse-grit-glint::part(face) { background: finish(coarse-grit-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
+.finish-painted-sand-glint::part(face) { background: finish(painted-sand-glint, var(--swatch-teal), var(--swatch-metal), 5); }
+
 /* The dark variant: the same roles and grounds, each a dark paper with a
    light ink, in the order of the light rules above. The grounds keep
    their light order of depth (the canvas darkest, the navigation paper

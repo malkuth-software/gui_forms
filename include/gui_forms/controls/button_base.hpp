@@ -186,6 +186,27 @@ protected:
         Color face{};
         Color text{};
     };
+    // What a derived push button adds to its face (Button::danger,
+    // skeudoindustrial surfaces follow-up 5). ButtonBase adds nothing.
+    // - `state`: a custom state of the derived anatomy. The face is drawn
+    //   plain, then again in this state over it at `level` (0 to 1, clamped)
+    //   as one group bounded by the face, so what a theme gives the state
+    //   (a glow placed over the face) never leaves the face; the cues and
+    //   content then take the state too.
+    // - `leading_mark`: a mark that leads the content, in a column of
+    //   leading_mark_column units at the content's inline start; measure
+    //   and content_box make room for it. It is the state's cue that does
+    //   not rest on colour.
+    struct GUI_FORMS_API FaceLayer final {
+        std::optional<CustomStateIndex> state{};
+        double level{1.0};
+        PartMark leading_mark{PartMark::none};
+    };
+    // The column a leading mark takes, its gap after it included, and the
+    // mark's side, in logical units.
+    static constexpr double leading_mark_column = 16.0;
+    static constexpr double leading_mark_side = 11.0;
+    [[nodiscard]] virtual FaceLayer face_layer() const noexcept;
     // The face, cues and content of a themed push-style button. With a
     // style override, `authored` (by default the override's face and text)
     // colours the face and the enabled text.
@@ -220,6 +241,10 @@ private:
     std::shared_ptr<CommandConnection> command_connection_{};
     [[nodiscard]] bool should_serialize_image() const noexcept;
     void on_image_list_changed(const ImageListChange& change);
+    // The face layer's leading mark in `face` (FaceLayer), drawn as a
+    // glyph part displaced by `offset`; nothing without one.
+    void paint_leading_mark(Painter& painter, Rect face, PartMark mark, bool command_alignment,
+                            ControlVisualRole family, AnatomyStateSet states, Point offset) const;
 
     std::optional<BasicControlStyle> style_override_;
     std::optional<ControlStateRecipes> visual_recipes_override_;

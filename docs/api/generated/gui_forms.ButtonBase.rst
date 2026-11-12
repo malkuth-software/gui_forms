@@ -587,6 +587,10 @@ gui_forms::ButtonBase
 
       The image and the text lines laid out in ``bounds``, drawn as the icon part and one label part per line through the theme's engine, displaced by ``offset``.
 
+   .. cpp:function:: virtual FaceLayer face_layer() const noexcept
+
+      *Protected.*
+
    .. cpp:function:: void paint_themed_button(Painter& painter, Rect bounds, ControlVisualRole role, bool default_cue, bool command_alignment = false, bool selected = false, std::optional<AuthoredButtonColours> authored = {}) const
 
       *Protected.*
@@ -649,7 +653,7 @@ gui_forms::ButtonBase
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ButtonBase``. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 36 unclassified; 21 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ButtonBase``. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 37 unclassified; 22 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -855,6 +859,10 @@ Counterpart: ``ButtonBase``. Members declared here and by the counterpart: 18 su
    * - method
      - GUI.Forms-only
      - ``clear_visual_recipes``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``face_layer``
      - unclassified (untested)
    * - method
      - ``Control.OnFontChanged``

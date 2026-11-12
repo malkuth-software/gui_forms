@@ -236,9 +236,9 @@ only material fields selects the `material` primitive.
 
 | Area | Properties |
 |---|---|
-| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
+| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
-| shadows and light | `box-shadow` (up to 4, `inset` admitted), `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
+| shadows and light | `box-shadow` (up to 4, `inset` admitted), `seat`, `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
 | presentation | `opacity`, `scale`, `translate` |
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; a user theme the process is started with (`--theme`, `GUI_FORMS_THEME_SHEET`) is checked against the process's installed registry (`install_built_in_effect_registry()`, called by a program using the stock controls while it sets up) and refused the same way, the program's own theme staying; with none installed the names' form only is checked and the request's report says so; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
@@ -256,6 +256,52 @@ pinstripe and 64px for the rest). The engine generates the pattern for each
 display scale in an idle frame and draws the ground until it is ready; a
 pattern layer takes no position, size or repetition. For example,
 `background: pattern(checker, #d4d0c8, #ffffff)`.
+
+`finish(<name>, <paint>, <second> [, <seed> [, <grain>]])` is a surface
+finish: paint or metal lit by one light from the upper left, painted for
+each device pixel as the part is baked, with no tile and no seam. The
+finishes are `dusty-matte` (flat enamel under settled dust; the second
+colour is the dust's), `orange-peel` (satin powder coat), `hammertone`
+(hammered enamel with aluminium flake), `wrinkle` (enamel cured into fine
+ridges), `bead-blast` (bare peened steel, in its own steel colour),
+`sand-cast` (a casting's skin under paint; the second colour is the
+dust's), `flat` (the paint as a plain solid) and `cloth-weave` (a plain
+weave; the paint is the warp's colour and the second the weft's). The
+glints are blasted metal drawn from its facets' glints rather than its
+relief: `bead-blast-glint`, `sand-blast-glint`, `iridescent-glint`,
+`coarse-grit-glint` and `painted-sand-glint` (the sand blast under a thin
+coat of the paint); for a glint the second colour is the metal's (the
+fitted presets used #a3a3a3 to #a6a5a7). A glint costs some eight times a
+finish, and a part too large for it falls back to its built-in look. The
+seed, a whole number from 0 to 2147483647 (7 by default), chooses the
+noise; the grain, a number from 0.5 to 4 (1 by default), scales every
+feature. A finish layer, like a pattern, takes no position, size or
+repetition. For example,
+`background-image: finish(hammertone, #4d676d, #bdb6a8, 11)`.
+
+`seat: none | <height> [<colour>]` seats a part in its panel: the height
+it stands above the panel, a length or a percentage of its shorter side,
+negative for a part sunk into it (a well), and its shadow's colour
+(black at 30% by default). Under the one light from the upper left, a
+raised part casts a thin contact shadow half its height down and to the
+right and darkens the crevice all round where it meets the panel; a sunk
+part's lip shades its upper left inside and its seam darkens. The seat
+adds these as shadows after the `box-shadow` ones, while there is room
+among the four (the contact shadow first); the height is at most 4 units,
+so a share of a long part's side stays a seat. A theme gives each role its
+own height: `button::part(face) { seat: 6% }`,
+`check-box::part(well) { seat: -10% }`.
+
+Two stock hooks carry the skeudoindustrial lights into every theme. An
+indicator lamp's lens is `indicator-lamp::part(lens)`, lit in
+`:state(on)` and `:state(error)`; the lamp draws the lit lens over the
+dark one at its warm-up's power, clipped to the lens, so whatever a theme
+gives the lit lens (a radial heart, an inset glow) lights only the lens.
+A button marked `danger` takes `:state(danger)` on its parts; the button
+draws its face in that state over the plain face, bounded by the face,
+and fades it slowly between 72% and full, steady under reduced motion, so
+a theme lights a danger key with a glow placed over its face:
+`button::part(face):state(danger) { glow: #e2412c 5px; glow-placement: over }`.
 
 `reflection` mirrors the part's finished face (its fills, borders, glows,
 filters and mask; not its text), or with `backplane` the window's backplane

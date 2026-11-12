@@ -415,6 +415,8 @@ add_library(gui_forms_core STATIC
     src/core/engine/primitives/material/material_primitive.cpp
     src/core/engine/primitives/material/material_raster.cpp
     src/core/engine/primitives/material/overlay_shadow_primitive.cpp
+    src/core/engine/primitives/finish/finish_kernel.cpp
+    src/core/engine/light_planes/light_planes.cpp
     src/core/engine/primitives/procedural/procedural_pattern.cpp
     src/core/engine/primitives/light/sheen_primitive.cpp
     src/core/engine/primitives/light/glass_primitive.cpp
@@ -942,6 +944,7 @@ add_library(gui_forms_controls STATIC
     src/controls/label/label.cpp
     src/controls/text_block/text_block.cpp
     src/controls/badge/badge.cpp
+    src/controls/indicator_lamp/indicator_lamp.cpp
     src/controls/info_banner/info_banner.cpp
     src/controls/empty_state/empty_state.cpp
     src/controls/spinner/spinner.cpp
@@ -1492,6 +1495,15 @@ if(GUI_FORMS_ENABLE_SKIA)
         )
     endif()
 
+    # The lamps' and lit keys' baker (skeudoindustrial surfaces), ported from
+    # the industrial-surfaces study: an offline tool the integrator runs to
+    # make the light-plane bakes, its legends drawn by GUI.Drawing's text
+    # engine in the bundled Portsmouth Mono (gui_forms_lamp_keys_legend_tests).
+    add_executable(gui_forms_lamp_keys tools/industrial_surfaces/lamp_keys.cpp)
+    target_link_libraries(gui_forms_lamp_keys PRIVATE gui_drawing_skia gui_forms_core)
+    target_compile_definitions(gui_forms_lamp_keys PRIVATE
+        GUI_FORMS_LEGEND_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthMono.ttf")
+
     add_library(gui_drawing_raster_c_api SHARED
         src/abi/drawing_skia_c_api.cpp
     )
@@ -1972,6 +1984,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/instruments.cpp
         src/controls/gallery/pages/guided-tasks.cpp
         src/controls/gallery/pages/help-book.cpp
+        src/controls/gallery/pages/industrial-surfaces.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -1987,8 +2000,11 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/controls>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/gui_forms_gallery>
     )
+    # The industrial-surfaces page reads the lamps' light-plane bakes from
+    # the source tree (or GUI_FORMS_LIGHT_PLANES); none are shipped yet.
     target_compile_definitions(gui_forms_gallery_model PRIVATE
-        GUI_FORMS_VERSION_STRING="${PROJECT_VERSION}")
+        GUI_FORMS_VERSION_STRING="${PROJECT_VERSION}"
+        GUI_FORMS_LIGHT_PLANE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/light_planes")
     # Installed, the model names no GUI.Forms library: a program links it with
     # GUIForms::Application and a headless test with GUIForms::Controls, so a
     # process holds one engine (the SDK's linking rule).
@@ -2062,6 +2078,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS InstrumentsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/guided-tasks.form
         CLASS GuidedTasksDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/industrial-surfaces.form
+        CLASS IndustrialSurfacesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/help-book.form
         CLASS HelpBookPageDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
@@ -2108,7 +2126,15 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/dock-and-anchor.form demo/pages/docking-workspace.form
             demo/pages/containers-and-focus.form demo/pages/tabs-and-pages.form
             demo/pages/anchored-overlays.form demo/pages/commands-and-menus.form
-            demo/pages/live-surfaces.form)
+            demo/pages/live-surfaces.form demo/pages/industrial-surfaces.form)
+    # The industrial-surfaces page's theme and the GOST palette it imports
+    # (skeudoindustrial surfaces, phases 4 and 5). Unchecked here: the
+    # industrial package needs the palette in its library, which
+    # gui_forms_theme_gost_palette_tests supplies and checks.
+    gui_forms_add_theme(gui_forms_gallery_model demo/themes/gost_paints
+        FUNCTION gost_paints_theme_package NAMESPACE gui_forms::gallery)
+    gui_forms_add_theme(gui_forms_gallery_model demo/themes/industrial
+        FUNCTION industrial_theme_package NAMESPACE gui_forms::gallery)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own
@@ -2778,6 +2804,9 @@ endif()
 
 if(GUI_FORMS_BUILD_TESTS)
     enable_testing()
+    if(TARGET gui_forms_lamp_keys)
+        add_test(NAME gui_forms_lamp_keys_legend_tests COMMAND gui_forms_lamp_keys --legend-test)
+    endif()
     if(TARGET gui_forms_text_masks_impl)
         add_executable(gui_forms_text_mask_cost_probe EXCLUDE_FROM_ALL tests/text_mask_cost_probe.cpp)
         target_link_libraries(gui_forms_text_mask_cost_probe PRIVATE gui_forms_text_masks_impl)
@@ -3496,6 +3525,17 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_engine_procedural_tests tests/engine_procedural_tests.cpp)
     target_link_libraries(gui_forms_engine_procedural_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_engine_procedural_tests COMMAND gui_forms_engine_procedural_tests)
+    # Surface finishes (skeudoindustrial surfaces, phase 1): the kernel's
+    # bytes against the JavaScript reference, damage invariance, the
+    # material layer and finish(); --measure and --preview <dir>.
+    add_executable(gui_forms_engine_finish_tests tests/engine_finish_tests.cpp)
+    target_link_libraries(gui_forms_engine_finish_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_engine_finish_tests COMMAND gui_forms_engine_finish_tests)
+    # Lamps and lit keys as baked light planes (phase 3): the bake file,
+    # the composite, the envelopes and the cache; --preview <out> <bakes>.
+    add_executable(gui_forms_engine_light_planes_tests tests/engine_light_planes_tests.cpp)
+    target_link_libraries(gui_forms_engine_light_planes_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_engine_light_planes_tests COMMAND gui_forms_engine_light_planes_tests)
     add_executable(gui_forms_engine_slice_tests tests/engine_slice_tests.cpp)
     target_link_libraries(gui_forms_engine_slice_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_engine_slice_tests COMMAND gui_forms_engine_slice_tests)
@@ -3900,6 +3940,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_package_compile_tests tests/theme_language/theme_package_compile_tests.cpp)
     target_link_libraries(gui_forms_theme_package_compile_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_package_compile_tests COMMAND gui_forms_theme_package_compile_tests)
+    # The GOST paint palette package (skeudoindustrial surfaces, phase 4).
+    add_executable(gui_forms_theme_gost_palette_tests tests/theme_language/theme_gost_palette_tests.cpp)
+    target_link_libraries(gui_forms_theme_gost_palette_tests PRIVATE gui_forms_controls)
+    target_compile_definitions(gui_forms_theme_gost_palette_tests PRIVATE
+        GUI_FORMS_GOST_PALETTE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/gost_paints"
+        GUI_FORMS_INDUSTRIAL_THEME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/industrial")
+    add_test(NAME gui_forms_theme_gost_palette_tests COMMAND gui_forms_theme_gost_palette_tests)
     add_executable(gui_forms_theme_user_theme_tests tests/theme_language/theme_user_theme_tests.cpp)
     target_link_libraries(gui_forms_theme_user_theme_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_user_theme_tests COMMAND gui_forms_theme_user_theme_tests)
@@ -5088,6 +5135,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/instruments_tests.cpp
             tests/gallery_pages/guided-tasks_tests.cpp
             tests/gallery_pages/help-book_tests.cpp
+            tests/gallery_pages/industrial-surfaces_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )
@@ -5633,6 +5681,20 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         target_link_libraries(gui_forms_offscreen_capture_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_offscreen_capture_tests COMMAND gui_forms_offscreen_capture_tests)
+
+        # Skeudoindustrial surfaces follow-ups 4 and 5: the indicator lamp
+        # and the danger key, their timing, and that each lights only its
+        # own lens or face (offscreen raster). GUI_FORMS_PREVIEW_DIR, when
+        # set, receives preview shots.
+        foreach(lamp_test indicator_lamp danger_key)
+            add_executable(gui_forms_${lamp_test}_tests tests/${lamp_test}_tests.cpp
+                src/runtime/offscreen/offscreen_raster_create.cpp
+                $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+            target_compile_definitions(gui_forms_${lamp_test}_tests PRIVATE
+                GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+            target_link_libraries(gui_forms_${lamp_test}_tests PRIVATE gui_forms_controls gui_forms_skia)
+            add_test(NAME gui_forms_${lamp_test}_tests COMMAND gui_forms_${lamp_test}_tests)
+        endforeach()
 
         add_executable(gui_forms_canvas_raster_tests tests/canvas_raster_tests.cpp)
         target_link_libraries(gui_forms_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)

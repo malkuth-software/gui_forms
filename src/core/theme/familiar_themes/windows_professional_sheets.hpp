@@ -1288,6 +1288,27 @@ h-scroll-bar::part(thumb):active, v-scroll-bar::part(thumb):active {
     border-color: #5f9be0;
   }
 }
+/* Indicator lamps (follow-up 4): an Office 2003 bezel. The lens is dark
+   glass off; on and error light only the lens, the only saturated colour
+   here. */
+indicator-lamp::part(bezel) {
+  background: linear-gradient(to bottom, #c3d3e8, #f3f7fc);
+  border: 1px solid #8ba2c1;
+}
+indicator-lamp::part(lens) {
+  background: radial-gradient(circle at 40% 35%, #7f8893, #2e343b 70%);
+  border: 1px solid #262b31;
+}
+indicator-lamp::part(lens):state(on) {
+  background: radial-gradient(circle at 40% 35%, #dcf7d9, #2e9e3e 50%, #1b6a26);
+  border: 1px solid #165520;
+  box-shadow: inset 0 0 2px #dcf7d9b0;
+}
+indicator-lamp::part(lens):state(error) {
+  background: radial-gradient(circle at 40% 35%, #fbdcdd, #d13438 50%, #8a1d20);
+  border: 1px solid #6e1619;
+  box-shadow: inset 0 0 2px #fbdcddb0;
+}
 )css";
 
 } // namespace gui_forms::detail

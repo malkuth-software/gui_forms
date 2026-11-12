@@ -174,6 +174,8 @@ Types
      -  
    * - :cpp:class:`FamiliarThemeBuild <gui_forms::FamiliarThemeBuild>`
      - A built theme and what building it measured.
+   * - :cpp:class:`FinishFill <gui_forms::FinishFill>`
+     - One finish's parameters.
    * - :cpp:class:`FontDeclaration <gui_forms::FontDeclaration>`
      - A part's font as the cascade resolved it: a text role, or, with ``inherit`` (D7), the parent control's, which the caller resolves at paint.
    * - :cpp:class:`FontSpec <gui_forms::FontSpec>`
@@ -202,8 +204,22 @@ Types
      - One item's content to paint (owner decision W-Q6), raised while the control paints, after the item's plate and selection and before its focus cue.
    * - :cpp:class:`JoinedSegmentsStyle <gui_forms::JoinedSegmentsStyle>`
      - How a joined row or column is outlined: one outer edge round the whole group with ``radius`` corners, and one shared seam between neighbours, both ``edge_width`` wide.
+   * - :cpp:class:`LampColour <gui_forms::engine_light::LampColour>`
+     - A lamp's colour, linear RGB at unit power.
+   * - :cpp:class:`LampDrive <gui_forms::engine_light::LampDrive>`
+     - A lamp as composited: its colour and its power (0 off, 1 the baked unit; the strike envelope passes through, lamp_power).
    * - :cpp:class:`LentImageVariants <gui_forms::LentImageVariants>`
      - The variants lent for one bake, by fill layer; null where none is lent.
+   * - :cpp:class:`LightComposite <gui_forms::engine_light::LightComposite>`
+     - The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3.
+   * - :cpp:class:`LightPlaneCache <gui_forms::engine_light::LightPlaneCache>`
+     - The bakes in one directory, each read the first time it is asked for (``<directory>/<name>.f32``) and kept: a missing or defective file is remembered and not read again.
+   * - :cpp:class:`LightPlaneRect <gui_forms::engine_light::LightPlaneRect>`
+     - A rectangle of device pixels the planes are stretched over.
+   * - :cpp:class:`LightPlanes <gui_forms::engine_light::LightPlanes>`
+     - One bake's planes, ``width`` × ``height`` pixels: - ``room``: the room's light, three floats a pixel (red, green, blue), premultiplied by coverage; - ``lamps``: ``lamp_count`` planes of the same shape, one after another, each lamp alone at unit white power; - ``coverage``: one float a pixel in [0, 1], the share of the pixel the key covers.
+   * - :cpp:class:`LitKeyBake <gui_forms::engine_light::LitKeyBake>`
+     - -- the lit keys' bake ------------------------------------------------------------------ One lit key's bake parameters, and the values the study baked its dialog keys with (lamp_keys.cpp, the dialog family): - height above the panel as a share of the key's short side: 0.57 there, an early test value.
    * - :cpp:class:`MarkerStyle <gui_forms::MarkerStyle>`
      - A marker drawn centred on each point: ``size`` its full width, ``fill`` its inside (ignored by the stroked shapes), ``edge`` its outline (or its lines, for the stroked shapes) ``edge_width`` wide.
    * - :cpp:class:`MaterialAssemblyContext <gui_forms::MaterialAssemblyContext>`
@@ -2632,6 +2648,58 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: FinishFill final
+
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+   One finish's parameters. The defaults are the study's: its paint (#2f6e6c, a teal), its dust (#bdb6a8), a light from 125 degrees (counter-clockwise from the right) at 38 degrees above the surface, and ambient 0.32. - ``seed`` chooses the noise; equal parameters give equal bytes. - ``grain`` multiplies every feature's size, and the relief with it, so that a coarser finish keeps its slopes; within [0.5, 4]. - ``paint`` is the finish's colour; ``secondary`` the dust's (dusty matte, sand cast) or the weft's (cloth). Both are drawn opaque: their alpha is not read; the fill layer's opacity composites the finish. - For the glint, ``secondary`` is the metal's colour (the presets' own are listed with them), ``paint`` the coat's (painted sand alone draws it), ``gloss`` scales the glints' energy and ``grain`` the facets and specks; the light, ambient and relief are the preset's fitted geometry. - The light's azimuth is a whole number of degrees in [0, 359] and its elevation one in [0, 90]: the kernel reads each degree's cosine and sine from a table, never libm. - ``ambient`` in [0, 1]; ``relief`` and ``gloss`` scale the finish's own relief and sheen, within [0, 4].
+
+   .. cpp:member:: FinishKind kind
+
+      Default: ``{FinishKind::orange_peel}``.
+
+   .. cpp:member:: std::int32_t seed
+
+      Default: ``{7}``.
+
+   .. cpp:member:: double grain
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: Color paint
+
+      Default: ``{Color::rgba(0x2f, 0x6e, 0x6c)}``.
+
+   .. cpp:member:: Color secondary
+
+      Default: ``{Color::rgba(0xbd, 0xb6, 0xa8)}``.
+
+   .. cpp:member:: std::int32_t light_azimuth_degrees
+
+      Default: ``{125}``.
+
+   .. cpp:member:: std::int32_t light_elevation_degrees
+
+      Default: ``{38}``.
+
+   .. cpp:member:: double ambient
+
+      Default: ``{0.32}``.
+
+   .. cpp:member:: double relief
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double gloss
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: GlintPreset glint
+
+      Default: ``{GlintPreset::sand_blast}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FontDeclaration final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -2920,6 +2988,32 @@ Types
 
       Default: ``{1.0}``.
 
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LampColour final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   A lamp's colour, linear RGB at unit power. The study's lamps (panel_lamps.html, C): amber, warm white, red (the owner's: [1, 0.12, 0.04]), green, blue and cyan.
+
+   .. cpp:member:: double red
+
+   .. cpp:member:: double green
+
+   .. cpp:member:: double blue
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LampDrive final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   A lamp as composited: its colour and its power (0 off, 1 the baked unit; the strike envelope passes through, lamp_power).
+
+   .. cpp:member:: LampColour colour
+
+   .. cpp:member:: double power
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: LentImageVariants final
@@ -2929,6 +3023,109 @@ Types
    The variants lent for one bake, by fill layer; null where none is lent.
 
    .. cpp:member:: std::array<std::shared_ptr<const PartRaster>, maximum_image_variants> layers
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LightComposite final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3. ``press_mix`` mixes the up bake (0) toward the down bake (1).
+
+   .. cpp:member:: double room
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double exposure
+
+      Default: ``{1.3}``.
+
+   .. cpp:member:: double press_mix
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:class:: LightPlaneCache final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   The bakes in one directory, each read the first time it is asked for (``<directory>/<name>.f32``) and kept: a missing or defective file is remembered and not read again. Names are lower-case letters, digits and '_' (the baker's stems, such as dialog_ok_up), so a name never leaves the directory. One thread: the UI thread that asks.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit LightPlaneCache(std::filesystem::path directory)
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t reads() const noexcept
+
+      Files read so far (each at most once).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::shared_ptr<const LightPlanes> lend(std::string_view name)
+
+      The bake named ``name``, or null when it is missing, defective, or the name is not one. Throws std::bad_alloc when a read's storage cannot be had (nothing is remembered then).
+
+   .. cpp:function:: LightPlanesDefect defect(std::string_view name) const noexcept
+
+      The defect of the last read of ``name``; none for a name not read.
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LightPlaneRect final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   A rectangle of device pixels the planes are stretched over.
+
+   .. cpp:member:: std::int64_t x
+
+   .. cpp:member:: std::int64_t y
+
+   .. cpp:member:: std::int64_t width
+
+   .. cpp:member:: std::int64_t height
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LightPlanes final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   One bake's planes, ``width`` × ``height`` pixels: - ``room``: the room's light, three floats a pixel (red, green, blue), premultiplied by coverage; - ``lamps``: ``lamp_count`` planes of the same shape, one after another, each lamp alone at unit white power; - ``coverage``: one float a pixel in [0, 1], the share of the pixel the key covers. Rows run top to bottom, pixels left to right.
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+   .. cpp:member:: std::uint32_t lamp_count
+
+   .. cpp:member:: std::vector<float> room
+
+   .. cpp:member:: std::vector<float> lamps
+
+   .. cpp:member:: std::vector<float> coverage
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LitKeyBake final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   -- the lit keys' bake ------------------------------------------------------------------ One lit key's bake parameters, and the values the study baked its dialog keys with (lamp_keys.cpp, the dialog family): - height above the panel as a share of the key's short side: 0.57 there, an early test value. Relief is contextual (owner, 2026-11-12): each role takes its own height, a theme parameter, so the baker is given the role's share and a bake is made per role; nothing here fixes one; - the sides lean in by 3° + 17° × clamp((share − 0.25) / 0.75, 0, 1); - the sides are the key's own plastic; - the control camera tilted 16° toward the viewer; - OK lit as the ANTI-ICE caption: clear acrylic, its one coil just above a frosted back, so the coil is neither invisible nor plainly visible; CANCEL in white opaque plastic with its lamps deep in the shell; - renders 240 pixels wide, shown 180 logical units wide; - composited with the room at 1 (panel_lamps' colouring). Light is never local (owner, 2026-11-12): a lamp lights its own lens and legend only. The composite keeps it so, writing nothing where the key's coverage is 0, so a bake's spill onto the panel never shows. The baker is run by the integrator (``lamps <dir> 240 dialog``); nothing at run time reads these but the display width.
+
+   .. cpp:member:: double height_share
+
+   .. cpp:member:: double camera_tilt_degrees
+
+   .. cpp:member:: std::uint32_t bake_width
+
+   .. cpp:member:: double display_width
+
+   .. cpp:member:: double room
 
 .. cpp:namespace:: gui_forms
 
@@ -3114,7 +3311,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7). ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
+   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
 
    .. cpp:member:: MaterialField field
 
@@ -3259,6 +3456,8 @@ Types
 
    .. cpp:function:: static MaterialFillLayer procedural_pattern(const ProceduralFill& pattern, double opacity = 1.0)
 
+   .. cpp:function:: static MaterialFillLayer finish_fill(const FinishFill& finish, double opacity = 1.0)
+
    .. cpp:member:: MaterialFillKind kind
 
       Default: ``{MaterialFillKind::solid}``.
@@ -3334,6 +3533,10 @@ Types
    .. cpp:member:: ProceduralFill procedural
 
       Read only by a procedural fill, with ``opacity``.
+
+   .. cpp:member:: FinishFill finish
+
+      Read only by a finish fill, with ``opacity``.
 
 .. cpp:namespace:: gui_forms
 
@@ -6614,6 +6817,30 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FinishKind
+
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+   .. cpp:enumerator:: dusty_matte
+
+   .. cpp:enumerator:: orange_peel
+
+   .. cpp:enumerator:: hammertone
+
+   .. cpp:enumerator:: wrinkle
+
+   .. cpp:enumerator:: bead_blast
+
+   .. cpp:enumerator:: sand_cast
+
+   .. cpp:enumerator:: flat
+
+   .. cpp:enumerator:: cloth_weave
+
+   .. cpp:enumerator:: glint
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: FontField
 
    ``#include <gui_forms/theme/theme/resolved_font.hpp>``
@@ -6641,6 +6868,22 @@ Enumerations
    .. cpp:enumerator:: content
 
    .. cpp:enumerator:: monospace
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: GlintPreset
+
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+   .. cpp:enumerator:: bead_blast
+
+   .. cpp:enumerator:: sand_blast
+
+   .. cpp:enumerator:: iridescent
+
+   .. cpp:enumerator:: coarse_grit
+
+   .. cpp:enumerator:: painted_sand
 
 .. cpp:namespace:: gui_forms
 
@@ -6721,6 +6964,30 @@ Enumerations
    .. cpp:enumerator:: middle
 
    .. cpp:enumerator:: last
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:enum-class:: LightPlanesDefect
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: unreadable
+
+   .. cpp:enumerator:: short_header
+
+   .. cpp:enumerator:: empty_size
+
+   .. cpp:enumerator:: too_large
+
+   .. cpp:enumerator:: too_many_lamps
+
+   .. cpp:enumerator:: length_mismatch
+
+   .. cpp:enumerator:: not_finite
+
+   .. cpp:enumerator:: coverage_out_of_range
 
 .. cpp:namespace:: gui_forms
 
@@ -6882,6 +7149,8 @@ Enumerations
 
    .. cpp:enumerator:: reflection
 
+   .. cpp:enumerator:: seat
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -6901,6 +7170,8 @@ Enumerations
    .. cpp:enumerator:: conic_gradient
 
    .. cpp:enumerator:: procedural
+
+   .. cpp:enumerator:: finish
 
 .. cpp:namespace:: gui_forms
 
@@ -8085,6 +8356,94 @@ Functions, constants and aliases
 
    The angle of the point (x, y) from the positive x axis, in radians in [−π, π], as std::atan2(y, x) (E9.6's conic gradient). Exact cases: (0, 0) gives 0, and a point on an axis gives 0, ±π/2 or π. NaN in either argument gives NaN. The ratio of the smaller to the larger magnitude is reduced twice (by π/4 and by the half-angle formula) to at most 0.2, where a 13-term series converges past 2^-60.
 
+.. cpp:namespace:: gui_forms::engine_light
+
+``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+.. cpp:function:: LightPlanesDefect read_light_planes(std::span<const std::byte> bytes, LightPlanes& planes)
+
+   Reads the study's bake file (lamp_keys.cpp, write_buffers): three little-endian int32 (width, height, lamp count), then the room plane, each lamp's plane and the coverage plane as little-endian IEEE binary32. The whole buffer is validated before ``planes`` is replaced; on a defect ``planes`` is left as it was. Throws std::bad_alloc when the planes cannot be stored (``planes`` left as it was).
+
+.. cpp:function:: std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& down, std::span<const LampDrive> drives, const LightComposite& settings, LightPlaneRect rect, const PartRasterView& destination) noexcept
+
+   Composites ``up`` and ``down`` (the same bake for a key that is not pressed) with one drive per lamp over ``rect`` in ``destination`` (premultiplied BGRA8), writing every pixel of ``rect`` inside the destination: the key's pixels with their coverage as alpha, transparent where it covers nothing. The planes are sampled bilinearly in linear, premultiplied light, so a 240-pixel bake shown 180 units wide (the owner's choice) is filtered before it is toned; a rectangle the bake's own size reads each plane pixel exactly. Returns the pixels written; none when the two bakes' shapes or lamp counts differ, ``drives`` holds fewer than the lamp count, or ``rect`` is empty.
+
+.. cpp:function:: double lamp_power(bool on, double seconds, bool reduced_motion) noexcept
+
+   A lamp's power ``seconds`` after it was switched: 0 when off, the strike envelope when on (1 from lamp_strike_seconds, or at once under reduced motion). A lamp switched off while lit cools instead (lamp_cooling_power).
+
+.. cpp:function:: double lamp_cooling_power(double from, double seconds, bool reduced_motion) noexcept
+
+   A lamp's power ``seconds`` after it was switched off at power ``from``: from · (1 − u)², u = seconds / lamp_cool_seconds, and 0 from lamp_cool_seconds on, or at once under reduced motion.
+
+.. cpp:function:: double key_press_mix(double from, double to, double seconds, bool reduced_motion) noexcept
+
+   A key's press mix ``seconds`` after its press or release began from mix ``from`` toward ``to`` (0 up, 1 down): eased, reaching ``to`` at key_press_seconds, or at once under reduced motion.
+
+.. cpp:function:: bool lamp_settled(double seconds) noexcept
+
+   Whether a lamp switched on ``seconds`` ago and a press begun ``seconds`` ago have settled: the frames after it change nothing.
+
+.. cpp:function:: bool key_press_settled(double seconds) noexcept
+
+.. cpp:function:: bool lamp_cooled(double seconds) noexcept
+
+   Whether a lamp switched off ``seconds`` ago has cooled: it is fully off.
+
+.. cpp:function:: double lit_key_lean_degrees(double height_share) noexcept
+
+   The sides' lean in degrees for a key ``height_share`` of its short side tall (lamp_keys.cpp, shape_key).
+
+.. cpp:var:: constexpr LampColour lamp_amber
+
+   Value: ``{1.0, 0.50, 0.08}``.
+
+.. cpp:var:: constexpr LampColour lamp_white
+
+   Value: ``{1.0, 0.92, 0.78}``.
+
+.. cpp:var:: constexpr LampColour lamp_red
+
+   Value: ``{1.0, 0.12, 0.04}``.
+
+.. cpp:var:: constexpr LampColour lamp_green
+
+   Value: ``{0.16, 1.0, 0.25}``.
+
+.. cpp:var:: constexpr LampColour lamp_blue
+
+   Value: ``{0.10, 0.35, 1.0}``.
+
+.. cpp:var:: constexpr LampColour lamp_cyan
+
+   Value: ``{0.15, 0.85, 1.0}``.
+
+.. cpp:var:: constexpr std::uint32_t maximum_light_plane_side
+
+   The largest bake read: a side of 2048 pixels (the baker's own clamp) and eight lamps. Value: ``2048U``.
+
+.. cpp:var:: constexpr std::uint32_t maximum_light_plane_lamps
+
+   Value: ``8U``.
+
+.. cpp:var:: constexpr double lamp_strike_seconds
+
+   Value: ``0.06``.
+
+.. cpp:var:: constexpr double lamp_strike_start
+
+   Value: ``0.4``.
+
+.. cpp:var:: constexpr double key_press_seconds
+
+   Value: ``0.07``.
+
+.. cpp:var:: constexpr double lamp_cool_seconds
+
+   Value: ``0.12``.
+
+.. cpp:var:: constexpr LitKeyBake dialog_key_study_bake
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/motion_clock/motion_clock.hpp>``
@@ -8367,6 +8726,10 @@ Functions, constants and aliases
 
    Sets each of the declaration's current_colours to ``colour``.
 
+.. cpp:function:: void seat_shadows(double height, Color colour, std::vector<MaterialShadow>& shadows)
+
+   Appends the seat's shadows for a part ``height`` logical units above its panel (negative: below it; resolved, not a share) in ``colour`` to ``shadows``: the cast shadow (a raised part's contact shadow, a sunk part's lip shade) then the crevice, each while ``shadows`` holds fewer than SurfaceMaterial::maximum_shadows; a seat with no room is dropped (ornament gives way first). A height of 0 appends nothing.
+
 .. cpp:function:: void assemble_material(const SurfaceMaterial& floor, const std::array<const MaterialDeclaration*, material_field_count>& fields, Size box, MaterialAssemblyContext context, SurfaceMaterial& material)
 
    With ``context``, each declaration's em lengths are first added at the part's em (add_material_em) and its current colours set (set_material_current_colour); the overload without it assembles at an em of 0, its current colours as written.
@@ -8383,7 +8746,7 @@ Functions, constants and aliases
 
 .. cpp:function:: bool material_fields_read_box(const std::array<const MaterialDeclaration*, material_field_count>& fields) noexcept
 
-   Whether assembling ``fields`` reads the part's box: a relative corner, an authored gradient, of a fill or the mask, other than a fixed one (authored_gradient_fixed), or an image size of the box (a fraction of its side, cover or contain).
+   Whether assembling ``fields`` reads the part's box: a relative corner or seat, an authored gradient, of a fill or the mask, other than a fixed one (authored_gradient_fixed), or an image size of the box (a fraction of its side, cover or contain).
 
 .. cpp:function:: std::string_view recipe_field_name(RecipeField field) noexcept
 
@@ -8547,6 +8910,18 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(MaterialField::count)``.
 
+.. cpp:var:: constexpr double maximum_seat_height
+
+   -- the seat ------------------------------------------------------------------------------ A part seated in its panel (skeudoindustrial surfaces; the theme's "object presence"): a key, a well or a plate that stands proud of the panel, or sinks into it, by a height a theme sets per role (``seat``). Under the one fixed light from the upper left (the finishes' light), a raised part casts a thin contact shadow down and to the right and darkens the crevice all round where it meets the panel; a sunk part's lip shades its upper left inside, and its seam darkens. Both are outer or inset shadows of the material, so they are baked with it, identical in any repaint rectangle, and drawn by every path that draws shadows. The depth is a bas-relief's: at most maximum_seat_height, so a share of a long bar's shorter side stays a seat and the shadows stay within the material's outsets. Value: ``4.0``.
+
+.. cpp:var:: constexpr Color default_seat_colour
+
+   The seat's shadow colour when the sheet gives none. Value: ``Color::rgba(0, 0, 0, 77)``.
+
+.. cpp:var:: constexpr double seat_light_run
+
+   The run of the cast shadow per unit of height: the light stands 45 degrees above the panel, so the shadow falls half the height across and half down. Value: ``0.5``.
+
 .. cpp:var:: constexpr std::size_t recipe_field_count
 
    Value: ``static_cast<std::size_t>(RecipeField::count)``.
@@ -8706,6 +9081,26 @@ Functions, constants and aliases
 .. cpp:function:: bool valid_colour_matrix(const MaterialColourMatrix& matrix) noexcept
 
    Every entry finite and at most 256 in magnitude.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+.. cpp:var:: constexpr double minimum_finish_grain
+
+   The bounds valid_surface_material holds a finish to. Value: ``0.5``.
+
+.. cpp:var:: constexpr double maximum_finish_grain
+
+   Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_finish_scale
+
+   Value: ``4.0``.
+
+.. cpp:var:: constexpr std::int32_t maximum_finish_elevation_degrees
+
+   Value: ``90``.
 
 .. cpp:namespace:: gui_forms
 

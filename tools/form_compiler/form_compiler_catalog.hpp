@@ -67,6 +67,7 @@
 #include "gui_forms/controls/help_book.hpp"
 #include "gui_forms/controls/help_book_system.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
+#include "gui_forms/controls/indicator_lamp.hpp"
 #include "gui_forms/controls/info_banner.hpp"
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/linear_gauge.hpp"
@@ -155,7 +156,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 143> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 144> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -169,6 +170,7 @@ inline constexpr std::array<FormCatalogEntry, 143> form_catalog{{
     {"label", "Label", "gui_forms/controls/label.hpp", &add_catalog_type<Label>},
     {"text_block", "TextBlock", "gui_forms/controls/text_block.hpp", &add_catalog_type<TextBlock>},
     {"badge", "Badge", "gui_forms/controls/badge.hpp", &add_catalog_type<Badge>},
+    {"indicator_lamp", "IndicatorLamp", "gui_forms/controls/indicator_lamp.hpp", &add_catalog_type<IndicatorLamp>},
     {"info_banner", "InfoBanner", "gui_forms/controls/info_banner.hpp", &add_catalog_type<InfoBanner>},
     {"empty_state", "EmptyState", "gui_forms/controls/empty_state.hpp", &add_catalog_type<EmptyState>},
     {"toast", "Toast", "gui_forms/controls/toast.hpp", &add_catalog_type<Toast>},
