@@ -61765,7 +61765,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 967,
+          "line": 977,
           "page": "gui-forms-control-arrange-void-rect-f8163f0c8c.html"
         },
         {
@@ -61786,7 +61786,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 979,
+          "line": 989,
           "page": "gui-forms-control-measure-for-layout-size-const-layoutconstraint-1bbb831532.html"
         },
         {
@@ -61807,7 +61807,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 988,
+          "line": 998,
           "page": "gui-forms-control-first-baseline-std-optional-double-double-e2cd755b70.html"
         },
         {
@@ -61828,7 +61828,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 989,
+          "line": 999,
           "page": "gui-forms-control-last-baseline-std-optional-double-double-68c32cfdd0.html"
         },
         {
@@ -61843,7 +61843,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 993,
+          "line": 1003,
           "page": "gui-forms-control-measure-generation-std-uint64-t-const-c422eec28c.html"
         },
         {
@@ -61858,7 +61858,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1003,
+          "line": 1013,
           "page": "gui-forms-control-size-depends-on-content-bool-const-noexcept-adf3ef997a.html"
         },
         {
@@ -61873,7 +61873,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1004,
+          "line": 1014,
           "page": "gui-forms-control-sizes-children-from-content-bool-const-noexcept-615743ddea.html"
         },
         {
@@ -61888,7 +61888,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1011,
+          "line": 1021,
           "page": "gui-forms-control-child-touch-escalation-dirty-const-noexcept-04296f2b16.html"
         },
         {
@@ -61903,7 +61903,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1020,
+          "line": 1030,
           "page": "gui-forms-control-gather-content-regions-void-8c9c827521.html"
         },
         {
@@ -61918,7 +61918,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1021,
+          "line": 1031,
           "page": "gui-forms-control-fold-content-regions-dirty-noexcept-af4dc9c93f.html"
         },
         {
@@ -61933,7 +61933,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1032,
+          "line": 1042,
           "page": "gui-forms-control-measures-children-in-arrange-bool-const-noexcept-03757ff9d1.html"
         },
         {
@@ -61948,7 +61948,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1046,
+          "line": 1056,
           "page": "gui-forms-control-effective-layout-direction-layoutdirection-const-noexcept-b95e7cc27c.html"
         },
         {
@@ -61974,7 +61974,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1047,
+          "line": 1057,
           "page": "gui-forms-control-on-paint-void-painter-rect-864a68ebb7.html"
         },
         {
@@ -61989,7 +61989,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1051,
+          "line": 1061,
           "page": "gui-forms-control-visual-outsets-insets-const-noexcept-954897ee80.html"
         },
         {
@@ -62010,7 +62010,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1058,
+          "line": 1068,
           "page": "gui-forms-control-on-ambient-frame-bool-frametime-8a8c174328.html"
         },
         {
@@ -62025,7 +62025,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1064,
+          "line": 1074,
           "page": "gui-forms-control-paint-depends-on-size-bool-const-noexcept-47fecc6334.html"
         },
         {
@@ -62040,7 +62040,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1079,
+          "line": 1089,
           "page": "gui-forms-control-layout-resize-response-resizeaxes-const-noexcept-28d8f8ec01.html"
         },
         {
@@ -62061,7 +62061,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1080,
+          "line": 1090,
           "page": "gui-forms-control-hit-test-local-bool-point-const-89b92778fa.html"
         },
         {
@@ -62082,7 +62082,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1085,
+          "line": 1095,
           "page": "gui-forms-control-on-pointer-preview-void-pointerevent-e890e7830d.html"
         },
         {
@@ -62103,7 +62103,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1086,
+          "line": 1096,
           "page": "gui-forms-control-on-pointer-bubble-void-pointerevent-23c522d48f.html"
         },
         {
@@ -62124,7 +62124,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1087,
+          "line": 1097,
           "page": "gui-forms-control-on-key-preview-void-keyevent-8a17ad2f67.html"
         },
         {
@@ -62145,7 +62145,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1088,
+          "line": 1098,
           "page": "gui-forms-control-on-key-bubble-void-keyevent-fb112dc23c.html"
         },
         {
@@ -62166,7 +62166,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1089,
+          "line": 1099,
           "page": "gui-forms-control-on-text-input-void-textinputevent-fbae75f2bf.html"
         },
         {
@@ -62187,7 +62187,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1093,
+          "line": 1103,
           "page": "gui-forms-control-process-mnemonic-bool-char32-t-e94ad25965.html"
         },
         {
@@ -62202,7 +62202,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1094,
+          "line": 1104,
           "page": "gui-forms-control-semantic-descriptor-semanticdescriptor-const-9385a13c79.html"
         },
         {
@@ -62223,7 +62223,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1099,
+          "line": 1109,
           "page": "gui-forms-control-apply-provider-semantics-void-semanticdescriptor-const-738b924c7a.html"
         },
         {
@@ -62238,7 +62238,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1100,
+          "line": 1110,
           "page": "gui-forms-control-semantic-virtual-children-std-vector-semanticnode-const-5b3da477e3.html"
         },
         {
@@ -62253,7 +62253,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1106,
+          "line": 1116,
           "page": "gui-forms-control-begin-keyboard-drag-bool-44cea645cf.html"
         },
         {
@@ -62268,7 +62268,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1112,
+          "line": 1122,
           "page": "gui-forms-control-tool-tip-items-std-vector-semanticnode-const-3d7b112316.html"
         },
         {
@@ -62294,7 +62294,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1113,
+          "line": 1123,
           "page": "gui-forms-control-on-semantic-action-bool-semanticaction-std-string-view-3db6d06be9.html"
         },
         {
@@ -62325,7 +62325,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1115,
+          "line": 1125,
           "page": "gui-forms-control-on-semantic-child-action-bool-std-string-view-semanticaction-std-string-view-947cf52850.html"
         },
         {
@@ -62346,7 +62346,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1127,
+          "line": 1137,
           "page": "gui-forms-control-on-semantic-text-layout-semantictextresult-semantictextlayout-c9f3654639.html"
         },
         {
@@ -62367,7 +62367,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1133,
+          "line": 1143,
           "page": "gui-forms-control-on-set-semantic-text-selection-semantictextresult-semantictextselection-2ff316fd91.html"
         },
         {
@@ -62388,7 +62388,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1134,
+          "line": 1144,
           "page": "gui-forms-control-on-drag-preview-void-dragevent-d648445e5a.html"
         },
         {
@@ -62409,7 +62409,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1135,
+          "line": 1145,
           "page": "gui-forms-control-on-drag-void-dragevent-e0148d1856.html"
         },
         {
@@ -62430,7 +62430,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1136,
+          "line": 1146,
           "page": "gui-forms-control-on-drag-bubble-void-dragevent-499cb47688.html"
         },
         {
@@ -62451,7 +62451,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1137,
+          "line": 1147,
           "page": "gui-forms-control-on-focus-changed-void-bool-8fb99d2812.html"
         },
         {
@@ -62466,7 +62466,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1142,
+          "line": 1152,
           "page": "gui-forms-control-focus-invalidation-dirty-const-noexcept-233cd46d0e.html"
         },
         {
@@ -62481,7 +62481,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1147,
+          "line": 1157,
           "page": "gui-forms-control-paints-content-bool-const-noexcept-d624f356b3.html"
         },
         {
@@ -62502,7 +62502,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1154,
+          "line": 1164,
           "page": "gui-forms-control-reveal-focused-descendant-bool-const-control-6f8042bead.html"
         },
         {
@@ -62517,7 +62517,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1164,
+          "line": 1174,
           "page": "gui-forms-control-focus-target-ptr-const-ec918a99d2.html"
         },
         {
@@ -62532,7 +62532,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1169,
+          "line": 1179,
           "page": "gui-forms-control-text-input-caret-std-optional-rect-const-9c1c4b1322.html"
         },
         {
@@ -62553,7 +62553,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1172,
+          "line": 1182,
           "page": "gui-forms-control-on-focus-cue-changed-void-bool-4cb6ad6624.html"
         },
         {
@@ -62568,7 +62568,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1173,
+          "line": 1183,
           "page": "gui-forms-control-on-activate-void-184eaec822.html"
         },
         {
@@ -62589,7 +62589,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1178,
+          "line": 1188,
           "page": "gui-forms-control-on-context-menu-requested-void-contextmenurequest-bea16d5ff8.html"
         },
         {
@@ -62604,7 +62604,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1183,
+          "line": 1193,
           "page": "gui-forms-control-clicks-primary-button-only-bool-const-noexcept-d1a41e6955.html"
         },
         {
@@ -62619,7 +62619,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1189,
+          "line": 1199,
           "page": "gui-forms-control-anatomy-const-controlanatomy-const-noexcept-d645ba774d.html"
         },
         {
@@ -62640,7 +62640,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1196,
+          "line": 1206,
           "page": "gui-forms-control-fill-part-geometry-void-std-span-partgeometry-const-861d818576.html"
         },
         {
@@ -62655,7 +62655,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1199,
+          "line": 1209,
           "page": "gui-forms-control-anatomy-states-anatomystateset-const-cec74504f5.html"
         },
         {
@@ -62670,7 +62670,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1216,
+          "line": 1226,
           "page": "gui-forms-control-parts-parts-const-52255decbe.html"
         },
         {
@@ -62685,7 +62685,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1217,
+          "line": 1227,
           "page": "gui-forms-control-states-states-const-a586d761ea.html"
         },
         {
@@ -62700,7 +62700,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1225,
+          "line": 1235,
           "page": "gui-forms-control-realized-item-count-std-size-t-const-9ea46dbd1f.html"
         },
         {
@@ -62721,7 +62721,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1226,
+          "line": 1236,
           "page": "gui-forms-control-realized-item-stable-id-std-string-std-size-t-const-b9aba186e3.html"
         },
         {
@@ -62742,7 +62742,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1229,
+          "line": 1239,
           "page": "gui-forms-control-realized-item-system-itemsystemindex-std-size-t-const-30a6557b29.html"
         },
         {
@@ -62768,7 +62768,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1234,
+          "line": 1244,
           "page": "gui-forms-control-fill-realized-item-geometry-void-std-size-t-std-span-partgeometry-const-8639ba2a5c.html"
         },
         {
@@ -62789,7 +62789,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1236,
+          "line": 1246,
           "page": "gui-forms-control-realized-item-anatomy-states-anatomystateset-std-size-t-const-753e4d7733.html"
         },
         {
@@ -62804,7 +62804,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1246,
+          "line": 1256,
           "page": "gui-forms-control-on-visible-changed-void-f3f21066f5.html"
         },
         {
@@ -62819,7 +62819,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1247,
+          "line": 1257,
           "page": "gui-forms-control-on-enabled-changed-void-a0117b1a35.html"
         },
         {
@@ -62834,7 +62834,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1248,
+          "line": 1258,
           "page": "gui-forms-control-on-auto-size-changed-void-40b3f58050.html"
         },
         {
@@ -62849,7 +62849,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1249,
+          "line": 1259,
           "page": "gui-forms-control-on-causes-validation-changed-void-3fef911e14.html"
         },
         {
@@ -62864,7 +62864,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1250,
+          "line": 1260,
           "page": "gui-forms-control-on-cursor-changed-void-c5f99df20e.html"
         },
         {
@@ -62879,7 +62879,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1251,
+          "line": 1261,
           "page": "gui-forms-control-on-back-color-changed-void-b87d2d38a5.html"
         },
         {
@@ -62894,7 +62894,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1252,
+          "line": 1262,
           "page": "gui-forms-control-on-fore-color-changed-void-3590705a75.html"
         },
         {
@@ -62909,7 +62909,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1253,
+          "line": 1263,
           "page": "gui-forms-control-on-margin-changed-void-1b92d80eec.html"
         },
         {
@@ -62924,7 +62924,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1254,
+          "line": 1264,
           "page": "gui-forms-control-on-padding-changed-void-a543eb26bc.html"
         },
         {
@@ -62939,7 +62939,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1255,
+          "line": 1265,
           "page": "gui-forms-control-on-dock-changed-void-103f806456.html"
         },
         {
@@ -62954,7 +62954,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1256,
+          "line": 1266,
           "page": "gui-forms-control-on-layout-direction-changed-void-6d0468da80.html"
         },
         {
@@ -62969,7 +62969,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1261,
+          "line": 1271,
           "page": "gui-forms-control-on-right-to-left-changed-void-dcea016169.html"
         },
         {
@@ -62984,7 +62984,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1262,
+          "line": 1272,
           "page": "gui-forms-control-on-tab-index-changed-void-4d539d53ee.html"
         },
         {
@@ -62999,7 +62999,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1263,
+          "line": 1273,
           "page": "gui-forms-control-on-tab-stop-changed-void-4d42231ccc.html"
         },
         {
@@ -63020,7 +63020,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1302,
+          "line": 1312,
           "page": "gui-forms-control-on-mouse-down-void-mouseeventargs-a776f29fb5.html"
         },
         {
@@ -63041,7 +63041,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1303,
+          "line": 1313,
           "page": "gui-forms-control-on-mouse-up-void-mouseeventargs-7944144e5e.html"
         },
         {
@@ -63062,7 +63062,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1304,
+          "line": 1314,
           "page": "gui-forms-control-on-mouse-move-void-mouseeventargs-e283e0bda9.html"
         },
         {
@@ -63083,7 +63083,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1305,
+          "line": 1315,
           "page": "gui-forms-control-on-mouse-wheel-void-mouseeventargs-9a26f03215.html"
         },
         {
@@ -63098,7 +63098,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1306,
+          "line": 1316,
           "page": "gui-forms-control-on-mouse-enter-void-ff2ebf4ce5.html"
         },
         {
@@ -63113,7 +63113,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1307,
+          "line": 1317,
           "page": "gui-forms-control-on-mouse-hover-void-23bc3de700.html"
         },
         {
@@ -63128,7 +63128,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1308,
+          "line": 1318,
           "page": "gui-forms-control-on-mouse-leave-void-416d460129.html"
         },
         {
@@ -63143,7 +63143,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1309,
+          "line": 1319,
           "page": "gui-forms-control-on-mouse-capture-changed-void-7571c9f862.html"
         },
         {
@@ -63158,7 +63158,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1310,
+          "line": 1320,
           "page": "gui-forms-control-on-click-void-e5845a33c9.html"
         },
         {
@@ -63173,7 +63173,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1311,
+          "line": 1321,
           "page": "gui-forms-control-on-double-click-void-e69b5ca73c.html"
         },
         {
@@ -63194,7 +63194,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1312,
+          "line": 1322,
           "page": "gui-forms-control-on-mouse-click-void-mouseeventargs-b36eba5c98.html"
         },
         {
@@ -63215,7 +63215,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1313,
+          "line": 1323,
           "page": "gui-forms-control-on-mouse-double-click-void-mouseeventargs-460773d9ec.html"
         },
         {
@@ -63236,7 +63236,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1329,
+          "line": 1339,
           "page": "gui-forms-control-on-preview-key-down-void-previewkeydowneventargs-11e793fa01.html"
         },
         {
@@ -63257,7 +63257,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1330,
+          "line": 1340,
           "page": "gui-forms-control-on-key-down-void-keyeventargs-aa18ddf0ce.html"
         },
         {
@@ -63278,7 +63278,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1331,
+          "line": 1341,
           "page": "gui-forms-control-on-key-press-void-keypresseventargs-d71bde463e.html"
         },
         {
@@ -63299,7 +63299,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1332,
+          "line": 1342,
           "page": "gui-forms-control-on-key-up-void-keyeventargs-4b528dac74.html"
         },
         {
@@ -63314,7 +63314,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1341,
+          "line": 1351,
           "page": "gui-forms-control-on-enter-void-755645ac0b.html"
         },
         {
@@ -63329,7 +63329,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1342,
+          "line": 1352,
           "page": "gui-forms-control-on-got-focus-void-ede9a08169.html"
         },
         {
@@ -63344,7 +63344,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1343,
+          "line": 1353,
           "page": "gui-forms-control-on-lost-focus-void-703e1c1f8c.html"
         },
         {
@@ -63359,7 +63359,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1344,
+          "line": 1354,
           "page": "gui-forms-control-on-leave-void-a8221095b7.html"
         },
         {
@@ -63380,7 +63380,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1345,
+          "line": 1355,
           "page": "gui-forms-control-on-validating-void-controlvalidationevent-aff2a1f686.html"
         },
         {
@@ -63395,7 +63395,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1346,
+          "line": 1356,
           "page": "gui-forms-control-on-validated-void-74e4fc6700.html"
         },
         {
@@ -63416,7 +63416,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1349,
+          "line": 1359,
           "page": "gui-forms-control-on-help-requested-void-helprequestevent-2c8bc017a0.html"
         },
         {
@@ -63437,7 +63437,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1353,
+          "line": 1363,
           "page": "gui-forms-control-on-drag-enter-void-dragevent-a9351b81eb.html"
         },
         {
@@ -63458,7 +63458,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1354,
+          "line": 1364,
           "page": "gui-forms-control-on-drag-over-void-dragevent-682c0f6144.html"
         },
         {
@@ -63479,7 +63479,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1355,
+          "line": 1365,
           "page": "gui-forms-control-on-drag-drop-void-dragevent-226034040c.html"
         },
         {
@@ -63500,7 +63500,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1356,
+          "line": 1366,
           "page": "gui-forms-control-on-drag-leave-void-dragevent-8b4ea14643.html"
         },
         {
@@ -63515,7 +63515,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1360,
+          "line": 1370,
           "page": "gui-forms-control-on-layout-void-0ef6c41ef7.html"
         },
         {
@@ -63536,7 +63536,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1365,
+          "line": 1375,
           "page": "gui-forms-control-on-paint-background-void-painteventargs-5618aa827c.html"
         },
         {
@@ -63557,7 +63557,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1369,
+          "line": 1379,
           "page": "gui-forms-control-on-change-ui-cues-void-bool-5146a92297.html"
         },
         {
@@ -63578,7 +63578,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1371,
+          "line": 1381,
           "page": "gui-forms-control-append-interactions-void-std-vector-interactiondeclaration-const-b9443a87d8.html"
         },
         {
@@ -63593,7 +63593,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1380,
+          "line": 1390,
           "page": "gui-forms-control-stop-inherited-colours-void-8d13a35a34.html"
         },
         {
@@ -63614,7 +63614,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1385,
+          "line": 1395,
           "page": "gui-forms-control-set-font-from-code-void-bool-noexcept-2a118c5bb1.html"
         },
         {
@@ -63640,7 +63640,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1394,
+          "line": 1404,
           "page": "gui-forms-control-report-opaque-cover-void-const-painter-rect-const-noexcept-b6626718b2.html"
         },
         {
@@ -63661,7 +63661,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1403,
+          "line": 1413,
           "page": "gui-forms-control-measure-intrinsic-size-const-layoutconstraint-58d6c2cdbf.html"
         },
         {
@@ -63682,7 +63682,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1406,
+          "line": 1416,
           "page": "gui-forms-control-publish-part-geometry-void-std-span-partgeometry-const-fe69e5e5db.html"
         },
         {
@@ -63697,7 +63697,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1408,
+          "line": 1418,
           "page": "gui-forms-control-published-part-geometry-partgeometrybuffer-const-d271ecfdf4.html"
         },
         {
@@ -63718,7 +63718,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1411,
+          "line": 1421,
           "page": "gui-forms-control-publish-realized-item-system-itemsystemindex-std-size-t-const-f10aa5386f.html"
         },
         {
@@ -63744,7 +63744,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1414,
+          "line": 1424,
           "page": "gui-forms-control-publish-realized-item-geometry-void-std-size-t-std-span-partgeometry-const-dcf63b2caa.html"
         },
         {
@@ -63765,7 +63765,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1416,
+          "line": 1426,
           "page": "gui-forms-control-published-realized-item-geometry-partgeometrybuffer-std-size-t-const-605982add3.html"
         },
         {
@@ -63780,7 +63780,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1420,
+          "line": 1430,
           "page": "gui-forms-control-base-anatomy-states-anatomystateset-const-8a00a2f74c.html"
         },
         {
@@ -63795,7 +63795,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1421,
+          "line": 1431,
           "page": "gui-forms-control-window-borrowedpointer-window-const-noexcept-402419827c.html"
         },
         {
@@ -63810,7 +63810,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1424,
+          "line": 1434,
           "page": "gui-forms-control-surface-root-borrowedpointer-surfaceroot-const-noexcept-6d8504587a.html"
         },
         {
@@ -63831,7 +63831,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1430,
+          "line": 1440,
           "page": "gui-forms-control-set-tool-tip-presentation-void-tooltippresentation-noexcept-6ae84ec476.html"
         },
         {
@@ -63846,7 +63846,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1438,
+          "line": 1448,
           "page": "gui-forms-control-field-hint-text-std-string-const-3a03e54837.html"
         },
         {
@@ -63867,7 +63867,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1441,
+          "line": 1451,
           "page": "gui-forms-control-set-publishes-item-tool-tips-void-bool-noexcept-628e7dea79.html"
         },
         {
@@ -63882,7 +63882,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1444,
+          "line": 1454,
           "page": "gui-forms-control-require-mutable-void-const-38bcc3a249.html"
         },
         {
@@ -63903,7 +63903,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1447,
+          "line": 1457,
           "page": "gui-forms-control-require-direct-child-void-const-control-const-d5a4d13e6d.html"
         },
         {
@@ -63924,7 +63924,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1452,
+          "line": 1462,
           "page": "gui-forms-control-child-leaving-void-const-control-noexcept-3ec3af4155.html"
         },
         {
@@ -63939,7 +63939,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1458,
+          "line": 1468,
           "page": "gui-forms-control-snapshot-layout-children-std-vector-ptr-const-8e56d6fcb6.html"
         },
         {
@@ -63960,7 +63960,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1459,
+          "line": 1469,
           "page": "gui-forms-control-is-current-layout-child-bool-const-ptr-const-noexcept-c8dddffb99.html"
         },
         {
@@ -63986,7 +63986,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1464,
+          "line": 1474,
           "page": "gui-forms-control-set-child-layout-void-const-ptr-rect-d62ca48955.html"
         },
         {
@@ -64012,7 +64012,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1465,
+          "line": 1475,
           "page": "gui-forms-control-set-child-layout-collapsed-void-const-ptr-bool-7e6847e3c2.html"
         },
         {
@@ -64038,7 +64038,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1473,
+          "line": 1483,
           "page": "gui-forms-control-note-containing-block-void-const-control-const-control-823e52e874.html"
         },
         {
@@ -64059,7 +64059,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1474,
+          "line": 1484,
           "page": "gui-forms-control-set-containing-block-dependencies-void-std-span-const-runtimeid-8072223c4c.html"
         },
         {
@@ -64080,7 +64080,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1475,
+          "line": 1485,
           "page": "gui-forms-control-notify-positioning-changed-void-const-control-c3f2df4b3a.html"
         },
         {
@@ -64101,7 +64101,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1479,
+          "line": 1491,
           "page": "gui-forms-control-arrange-self-void-rect-noexcept-d30df7f6fc.html"
         },
         {
@@ -64127,7 +64127,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1483,
+          "line": 1495,
           "page": "gui-forms-control-on-paint-overlay-void-painter-rect-ae8c518bb8.html"
         },
         {
@@ -64142,7 +64142,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1484,
+          "line": 1496,
           "page": "gui-forms-control-child-viewport-rectangle-rect-const-noexcept-e14f3acc5a.html"
         },
         {
@@ -64157,7 +64157,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1487,
+          "line": 1499,
           "page": "gui-forms-control-prepare-command-activation-bool-bb8d8b3a74.html"
         },
         {
@@ -64172,7 +64172,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1488,
+          "line": 1500,
           "page": "gui-forms-control-focus-next-after-self-bool-bbc55dbc00.html"
         },
         {
@@ -64187,7 +64187,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1489,
+          "line": 1501,
           "page": "gui-forms-control-perform-dialog-command-bool-962bd41c0e.html"
         },
         {
@@ -64202,7 +64202,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1490,
+          "line": 1502,
           "page": "gui-forms-control-supports-dialog-command-bool-const-noexcept-e02c52e504.html"
         },
         {
@@ -64217,7 +64217,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1491,
+          "line": 1503,
           "page": "gui-forms-control-command-dialog-result-dialogresult-const-noexcept-c572426f22.html"
         },
         {
@@ -64232,7 +64232,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1492,
+          "line": 1504,
           "page": "gui-forms-control-assign-cancel-dialog-result-void-7c28436ecf.html"
         },
         {
@@ -64253,7 +64253,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1493,
+          "line": 1505,
           "page": "gui-forms-control-mnemonic-matches-bool-char32-t-const-noexcept-9c1ff1a1fc.html"
         },
         {
@@ -64274,7 +64274,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1495,
+          "line": 1507,
           "page": "gui-forms-control-process-mnemonic-self-bool-char32-t-1669ef8840.html"
         },
         {
@@ -64295,7 +64295,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1496,
+          "line": 1508,
           "page": "gui-forms-control-notify-default-void-bool-015e7571c9.html"
         },
         {
@@ -64316,7 +64316,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1497,
+          "line": 1509,
           "page": "gui-forms-control-define-bindable-property-void-bindableproperty-39f0c511cc.html"
         },
         {
@@ -64342,7 +64342,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1504,
+          "line": 1516,
           "page": "gui-forms-control-publish-change-void-event-eventarguments-values-5529665501.html"
         },
         {
@@ -64357,7 +64357,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1521,
+          "line": 1533,
           "page": "gui-forms-control-clear-bindable-properties-void-fd49a514b4.html"
         },
         {
@@ -64372,7 +64372,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1522,
+          "line": 1534,
           "page": "gui-forms-control-on-attached-to-window-void-f2a427a9c9.html"
         },
         {
@@ -64387,7 +64387,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1523,
+          "line": 1535,
           "page": "gui-forms-control-on-attachment-committed-void-noexcept-589b30c611.html"
         },
         {
@@ -64408,7 +64408,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1526,
+          "line": 1538,
           "page": "gui-forms-control-on-detaching-from-window-void-surfaceroot-noexcept-f5c1f399a4.html"
         },
         {
@@ -64423,7 +64423,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1527,
+          "line": 1539,
           "page": "gui-forms-control-on-detached-from-window-void-noexcept-68b554b356.html"
         },
         {
@@ -64438,7 +64438,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1530,
+          "line": 1542,
           "page": "gui-forms-control-on-dispose-void-noexcept-09321b85a9.html"
         },
         {
@@ -64453,7 +64453,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1547,
+          "line": 1559,
           "page": "gui-forms-control-layout-key-layoutkey-const-0cc490507d.html"
         },
         {
@@ -64468,7 +64468,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1550,
+          "line": 1562,
           "page": "gui-forms-control-advance-layout-revision-void-noexcept-02eae8b53b.html"
         }
       ],
@@ -64482,7 +64482,7 @@
       "kind": "struct",
       "header": "gui_forms/control/control/control.hpp",
       "source": "include/gui_forms/control/control/control.hpp",
-      "line": 1537,
+      "line": 1549,
       "declaration": "struct GUI_FORMS_API LayoutKey final",
       "comment": "",
       "access": "protected",
@@ -64500,7 +64500,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1538,
+          "line": 1550,
           "page": "gui-forms-control-layoutkey-property-epoch-std-uint64-t-77b9ac089d.html"
         },
         {
@@ -64515,7 +64515,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1539,
+          "line": 1551,
           "page": "gui-forms-control-layoutkey-revision-std-uint64-t-67f1822a0b.html"
         },
         {
@@ -64530,7 +64530,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1540,
+          "line": 1552,
           "page": "gui-forms-control-layoutkey-client-rect-3d6a9a3a84.html"
         },
         {
@@ -64545,7 +64545,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1541,
+          "line": 1553,
           "page": "gui-forms-control-layoutkey-text-scale-double-9b14fc11f9.html"
         }
       ],
@@ -64559,7 +64559,7 @@
       "kind": "struct",
       "header": "gui_forms/control/control/control.hpp",
       "source": "include/gui_forms/control/control/control.hpp",
-      "line": 1205,
+      "line": 1215,
       "declaration": "struct GUI_FORMS_API Parts final",
       "comment": "",
       "access": "public",
@@ -64577,7 +64577,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1206,
+          "line": 1216,
           "page": "gui-forms-control-parts-region-partgeometry-7aa36ae475.html"
         },
         {
@@ -64592,7 +64592,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1207,
+          "line": 1217,
           "page": "gui-forms-control-parts-focus-partgeometry-0648e1e15c.html"
         }
       ],
@@ -64606,7 +64606,7 @@
       "kind": "struct",
       "header": "gui_forms/control/control/control.hpp",
       "source": "include/gui_forms/control/control/control.hpp",
-      "line": 1209,
+      "line": 1219,
       "declaration": "struct GUI_FORMS_API States final",
       "comment": "",
       "access": "public",
@@ -64624,7 +64624,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1210,
+          "line": 1220,
           "page": "gui-forms-control-states-normal-bool-e63cdb63fe.html"
         },
         {
@@ -64639,7 +64639,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1211,
+          "line": 1221,
           "page": "gui-forms-control-states-enabled-bool-ce9b5725a2.html"
         },
         {
@@ -64654,7 +64654,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1212,
+          "line": 1222,
           "page": "gui-forms-control-states-disabled-bool-eca8d52980.html"
         },
         {
@@ -64669,7 +64669,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1213,
+          "line": 1223,
           "page": "gui-forms-control-states-focused-bool-1f87a516be.html"
         },
         {
@@ -64684,7 +64684,7 @@
           "comment": "",
           "header": "gui_forms/control/control/control.hpp",
           "source": "include/gui_forms/control/control/control.hpp",
-          "line": 1214,
+          "line": 1224,
           "page": "gui-forms-control-states-focus-visible-bool-e51a5860b7.html"
         }
       ],
@@ -155470,7 +155470,7 @@
       "kind": "class",
       "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
       "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-      "line": 211,
+      "line": 217,
       "declaration": "class GUI_FORMS_API ImageAtlas final",
       "comment": "",
       "access": "public",
@@ -155499,7 +155499,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 218,
+          "line": 224,
           "page": "gui-forms-imageatlas-imageatlas-void-const-std-shared-ptr-applicationresources-imageatlaslayout-1e52986960.html"
         },
         {
@@ -155514,7 +155514,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 219,
+          "line": 225,
           "page": "gui-forms-imageatlas-imageatlas-void-5d612f749b.html"
         },
         {
@@ -155535,7 +155535,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 220,
+          "line": 226,
           "page": "gui-forms-imageatlas-imageatlas-void-const-imageatlas-2d09b8b3d1.html"
         },
         {
@@ -155556,7 +155556,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 221,
+          "line": 227,
           "page": "gui-forms-imageatlas-operator-imageatlas-const-imageatlas-395dba9347.html"
         },
         {
@@ -155577,7 +155577,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 222,
+          "line": 228,
           "page": "gui-forms-imageatlas-imageatlas-void-imageatlas-6277e22c2c.html"
         },
         {
@@ -155598,7 +155598,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 223,
+          "line": 229,
           "page": "gui-forms-imageatlas-operator-imageatlas-imageatlas-9425568797.html"
         },
         {
@@ -155613,7 +155613,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 225,
+          "line": 231,
           "page": "gui-forms-imageatlas-layout-const-imageatlaslayout-const-noexcept-143f39ace1.html"
         },
         {
@@ -155628,7 +155628,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 227,
+          "line": 233,
           "page": "gui-forms-imageatlas-image-imageid-const-noexcept-a716585e2d.html"
         },
         {
@@ -155643,7 +155643,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 228,
+          "line": 234,
           "page": "gui-forms-imageatlas-image-width-std-uint32-t-const-noexcept-1fae3adac8.html"
         },
         {
@@ -155658,7 +155658,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 229,
+          "line": 235,
           "page": "gui-forms-imageatlas-image-height-std-uint32-t-const-noexcept-d83cda9e03.html"
         },
         {
@@ -155679,7 +155679,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 237,
+          "line": 243,
           "page": "gui-forms-imageatlas-acquire-imageatlasacquire-std-uint64-t-7553b3f28b.html"
         },
         {
@@ -155700,7 +155700,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 239,
+          "line": 245,
           "page": "gui-forms-imageatlas-find-imageatlasslot-std-uint64-t-const-noexcept-4b919fadd0.html"
         },
         {
@@ -155721,7 +155721,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 241,
+          "line": 247,
           "page": "gui-forms-imageatlas-filled-bool-imageatlasslot-const-noexcept-230a87a3db.html"
         },
         {
@@ -155752,7 +155752,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 250,
+          "line": 256,
           "page": "gui-forms-imageatlas-fill-imageatlaserror-imageatlasslot-std-uint64-t-std-span-const-std-byte-f310f85552.html"
         },
         {
@@ -155773,7 +155773,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 254,
+          "line": 260,
           "page": "gui-forms-imageatlas-release-bool-imageatlasslot-a1b4714fbb.html"
         },
         {
@@ -155788,7 +155788,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 256,
+          "line": 262,
           "page": "gui-forms-imageatlas-clear-void-a43a983e4f.html"
         },
         {
@@ -155829,7 +155829,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 266,
+          "line": 276,
           "page": "gui-forms-imageatlas-draw-bool-painter-control-imageatlasslot-rect-double-49f377ebad.html"
         },
         {
@@ -155865,7 +155865,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 270,
+          "line": 280,
           "page": "gui-forms-imageatlas-draw-unrecorded-bool-painter-imageatlasslot-rect-double-bd2c2214dd.html"
         },
         {
@@ -155886,7 +155886,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 273,
+          "line": 283,
           "page": "gui-forms-imageatlas-source-rectangle-std-optional-rect-imageatlasslot-const-noexcept-6884e7e992.html"
         },
         {
@@ -155901,7 +155901,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 275,
+          "line": 285,
           "page": "gui-forms-imageatlas-statistics-imageatlasstatistics-const-noexcept-7daf3859cf.html"
         },
         {
@@ -155916,7 +155916,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 282,
+          "line": 292,
           "page": "gui-forms-imageatlas-apply-pending-fills-void-noexcept-c6cbfd0d10.html"
         }
       ],
@@ -155930,7 +155930,7 @@
       "kind": "struct",
       "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
       "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-      "line": 148,
+      "line": 151,
       "declaration": "struct GUI_FORMS_API ImageAtlasAcquire final",
       "comment": "",
       "access": "public",
@@ -155948,7 +155948,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 149,
+          "line": 152,
           "page": "gui-forms-imageatlasacquire-slot-imageatlasslot-a07e4877cf.html"
         },
         {
@@ -155963,7 +155963,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 150,
+          "line": 153,
           "page": "gui-forms-imageatlasacquire-outcome-imageatlasacquireoutcome-9ff7c8a416.html"
         },
         {
@@ -155978,7 +155978,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 152,
+          "line": 155,
           "page": "gui-forms-imageatlasacquire-replaced-key-std-uint64-t-b1f68fbb2e.html"
         }
       ],
@@ -155992,7 +155992,7 @@
       "kind": "enum",
       "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
       "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-      "line": 136,
+      "line": 139,
       "declaration": "enum class ImageAtlasAcquireOutcome : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -156010,7 +156010,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 138,
+          "line": 141,
           "page": "gui-forms-imageatlasacquireoutcome-hit-gui-forms-imageatlasacquireoutcome-c8045cadb2.html"
         },
         {
@@ -156025,7 +156025,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 140,
+          "line": 143,
           "page": "gui-forms-imageatlasacquireoutcome-assigned-gui-forms-imageatlasacquireoutcome-adf3190c91.html"
         },
         {
@@ -156040,7 +156040,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 143,
+          "line": 146,
           "page": "gui-forms-imageatlasacquireoutcome-replaced-gui-forms-imageatlasacquireoutcome-9950d6c3d2.html"
         },
         {
@@ -156055,7 +156055,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 145,
+          "line": 148,
           "page": "gui-forms-imageatlasacquireoutcome-full-gui-forms-imageatlasacquireoutcome-7090f141f8.html"
         }
       ],
@@ -156069,7 +156069,7 @@
       "kind": "enum",
       "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
       "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-      "line": 155,
+      "line": 158,
       "declaration": "enum class ImageAtlasError : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -156087,7 +156087,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 156,
+          "line": 159,
           "page": "gui-forms-imageatlaserror-none-gui-forms-imageatlaserror-90944f7aa1.html"
         },
         {
@@ -156102,7 +156102,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 159,
+          "line": 162,
           "page": "gui-forms-imageatlaserror-deferred-gui-forms-imageatlaserror-ddb3c93477.html"
         },
         {
@@ -156117,7 +156117,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 161,
+          "line": 164,
           "page": "gui-forms-imageatlaserror-stale-slot-gui-forms-imageatlaserror-1fae7f4861.html"
         },
         {
@@ -156132,7 +156132,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 164,
+          "line": 167,
           "page": "gui-forms-imageatlaserror-painting-gui-forms-imageatlaserror-5618314fa1.html"
         },
         {
@@ -156147,7 +156147,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 167,
+          "line": 170,
           "page": "gui-forms-imageatlaserror-invalid-pixels-gui-forms-imageatlaserror-5329527996.html"
         },
         {
@@ -156162,7 +156162,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 170,
+          "line": 173,
           "page": "gui-forms-imageatlaserror-registry-refused-gui-forms-imageatlaserror-d3244af7ce.html"
         }
       ],
@@ -156176,7 +156176,7 @@
       "kind": "struct",
       "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
       "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-      "line": 115,
+      "line": 118,
       "declaration": "struct GUI_FORMS_API ImageAtlasLayout final",
       "comment": "",
       "access": "public",
@@ -156194,7 +156194,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 117,
+          "line": 120,
           "page": "gui-forms-imageatlaslayout-slot-width-std-uint32-t-f76ce2de5f.html"
         },
         {
@@ -156209,7 +156209,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 118,
+          "line": 121,
           "page": "gui-forms-imageatlaslayout-slot-height-std-uint32-t-0324744cd7.html"
         },
         {
@@ -156224,7 +156224,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 121,
+          "line": 124,
           "page": "gui-forms-imageatlaslayout-slot-count-std-uint32-t-dc9217ad79.html"
         },
         {
@@ -156239,7 +156239,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 123,
+          "line": 126,
           "page": "gui-forms-imageatlaslayout-gutter-std-uint32-t-703fbd56a4.html"
         },
         {
@@ -156254,7 +156254,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 127,
+          "line": 130,
           "page": "gui-forms-imageatlaslayout-users-per-slot-std-uint32-t-dedbc3ee67.html"
         },
         {
@@ -156269,7 +156269,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 128,
+          "line": 131,
           "page": "gui-forms-imageatlaslayout-replacement-imageatlasreplacement-63bed52687.html"
         },
         {
@@ -156284,7 +156284,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 133,
+          "line": 136,
           "page": "gui-forms-imageatlaslayout-pending-fills-std-uint32-t-214b1756ed.html"
         }
       ],
@@ -156298,7 +156298,7 @@
       "kind": "enum",
       "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
       "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-      "line": 105,
+      "line": 108,
       "declaration": "enum class ImageAtlasReplacement : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -156316,7 +156316,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 109,
+          "line": 112,
           "page": "gui-forms-imageatlasreplacement-least-recently-used-gui-forms-imageatlasreplacement-a7223a029f.html"
         },
         {
@@ -156331,7 +156331,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 112,
+          "line": 115,
           "page": "gui-forms-imageatlasreplacement-caller-gui-forms-imageatlasreplacement-823da6c587.html"
         }
       ],
@@ -156345,7 +156345,7 @@
       "kind": "struct",
       "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
       "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-      "line": 93,
+      "line": 96,
       "declaration": "struct GUI_FORMS_API ImageAtlasSlot final",
       "comment": "",
       "access": "public",
@@ -156363,7 +156363,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 94,
+          "line": 97,
           "page": "gui-forms-imageatlasslot-index-std-uint32-t-a316c70777.html"
         },
         {
@@ -156378,7 +156378,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 95,
+          "line": 98,
           "page": "gui-forms-imageatlasslot-generation-std-uint32-t-24200b3484.html"
         }
       ],
@@ -156392,7 +156392,7 @@
       "kind": "struct",
       "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
       "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-      "line": 173,
+      "line": 176,
       "declaration": "struct GUI_FORMS_API ImageAtlasStatistics final",
       "comment": "",
       "access": "public",
@@ -156410,7 +156410,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 176,
+          "line": 179,
           "page": "gui-forms-imageatlasstatistics-hits-std-uint64-t-0dd241f526.html"
         },
         {
@@ -156425,7 +156425,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 177,
+          "line": 180,
           "page": "gui-forms-imageatlasstatistics-assignments-std-uint64-t-46f6dad234.html"
         },
         {
@@ -156440,7 +156440,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 178,
+          "line": 181,
           "page": "gui-forms-imageatlasstatistics-replacements-std-uint64-t-3affcad7a6.html"
         },
         {
@@ -156455,7 +156455,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 179,
+          "line": 182,
           "page": "gui-forms-imageatlasstatistics-full-refusals-std-uint64-t-1ce4903ead.html"
         },
         {
@@ -156470,7 +156470,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 180,
+          "line": 183,
           "page": "gui-forms-imageatlasstatistics-releases-std-uint64-t-fd95604991.html"
         },
         {
@@ -156485,7 +156485,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 182,
+          "line": 185,
           "page": "gui-forms-imageatlasstatistics-fills-std-uint64-t-47a206acb2.html"
         },
         {
@@ -156500,7 +156500,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 183,
+          "line": 186,
           "page": "gui-forms-imageatlasstatistics-fill-refusals-std-uint64-t-4139507342.html"
         },
         {
@@ -156515,7 +156515,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 186,
+          "line": 189,
           "page": "gui-forms-imageatlasstatistics-deferred-fills-std-uint64-t-8c15c3806d.html"
         },
         {
@@ -156530,7 +156530,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 187,
+          "line": 190,
           "page": "gui-forms-imageatlasstatistics-deferred-replacements-std-uint64-t-b50f9208d6.html"
         },
         {
@@ -156545,7 +156545,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 188,
+          "line": 191,
           "page": "gui-forms-imageatlasstatistics-deferred-drops-std-uint64-t-28a3d1268d.html"
         },
         {
@@ -156560,7 +156560,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 192,
+          "line": 195,
           "page": "gui-forms-imageatlasstatistics-damage-failures-std-uint64-t-21f46e94bd.html"
         },
         {
@@ -156575,7 +156575,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 194,
+          "line": 197,
           "page": "gui-forms-imageatlasstatistics-pending-now-std-uint32-t-df22bfdfeb.html"
         },
         {
@@ -156590,7 +156590,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 196,
+          "line": 199,
           "page": "gui-forms-imageatlasstatistics-stale-rejections-std-uint64-t-45dd47d9e3.html"
         },
         {
@@ -156605,7 +156605,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 197,
+          "line": 200,
           "page": "gui-forms-imageatlasstatistics-draws-std-uint64-t-d8c04dc5ac.html"
         },
         {
@@ -156620,7 +156620,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 200,
+          "line": 203,
           "page": "gui-forms-imageatlasstatistics-draw-refusals-std-uint64-t-89dba416ce.html"
         },
         {
@@ -156635,8 +156635,23 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 201,
+          "line": 204,
           "page": "gui-forms-imageatlasstatistics-user-overflows-std-uint64-t-e706936581.html"
+        },
+        {
+          "id": "gui_forms::ImageAtlasStatistics::unfilled_draws|std::uint64_t",
+          "name": "unfilled_draws",
+          "type": "std::uint64_t",
+          "namespace": "gui_forms::ImageAtlasStatistics",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "std::uint64_t unfilled_draws{}",
+          "comment": "",
+          "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
+          "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
+          "line": 207,
+          "page": "gui-forms-imageatlasstatistics-unfilled-draws-std-uint64-t-ebe53dce22.html"
         },
         {
           "id": "gui_forms::ImageAtlasStatistics::users_damaged|std::uint64_t",
@@ -156650,7 +156665,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 203,
+          "line": 209,
           "page": "gui-forms-imageatlasstatistics-users-damaged-std-uint64-t-de9eb16f2d.html"
         },
         {
@@ -156665,7 +156680,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 204,
+          "line": 210,
           "page": "gui-forms-imageatlasstatistics-slots-in-use-std-uint32-t-c2c802144c.html"
         },
         {
@@ -156680,7 +156695,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 207,
+          "line": 213,
           "page": "gui-forms-imageatlasstatistics-image-bytes-std-uint64-t-c41de3cf71.html"
         },
         {
@@ -156695,7 +156710,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
           "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-          "line": 208,
+          "line": 214,
           "page": "gui-forms-imageatlasstatistics-table-bytes-std-uint64-t-b6d442b8cf.html"
         }
       ],
@@ -158417,7 +158432,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_registry/image_registry.hpp",
           "source": "include/gui_forms/resources/image_registry/image_registry.hpp",
-          "line": 54,
+          "line": 59,
           "page": "gui-forms-imageregistry-patch-bgra32-premultiplied-imageloadresult-imageid-std-uint32-t-std-uint32-t-std-uint3-b4f648c4d9.html"
         },
         {
@@ -158468,7 +158483,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_registry/image_registry.hpp",
           "source": "include/gui_forms/resources/image_registry/image_registry.hpp",
-          "line": 67,
+          "line": 72,
           "page": "gui-forms-imageregistry-patch-bgra32-premultiplied-in-place-imageloadresult-imageid-std-uint32-t-std-uint32-t--11555c8608.html"
         },
         {
@@ -158489,7 +158504,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_registry/image_registry.hpp",
           "source": "include/gui_forms/resources/image_registry/image_registry.hpp",
-          "line": 71,
+          "line": 76,
           "page": "gui-forms-imageregistry-remove-bool-imageid-noexcept-e15b425377.html"
         },
         {
@@ -158504,7 +158519,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_registry/image_registry.hpp",
           "source": "include/gui_forms/resources/image_registry/image_registry.hpp",
-          "line": 72,
+          "line": 77,
           "page": "gui-forms-imageregistry-clear-void-noexcept-1f3a79b7ab.html"
         },
         {
@@ -158525,7 +158540,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_registry/image_registry.hpp",
           "source": "include/gui_forms/resources/image_registry/image_registry.hpp",
-          "line": 74,
+          "line": 79,
           "page": "gui-forms-imageregistry-find-std-optional-imageresourceview-imageid-const-noexcept-fa84e1804d.html"
         },
         {
@@ -158540,7 +158555,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_registry/image_registry.hpp",
           "source": "include/gui_forms/resources/image_registry/image_registry.hpp",
-          "line": 76,
+          "line": 81,
           "page": "gui-forms-imageregistry-image-ids-std-vector-imageid-const-17aa15c6e8.html"
         },
         {
@@ -158555,7 +158570,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_registry/image_registry.hpp",
           "source": "include/gui_forms/resources/image_registry/image_registry.hpp",
-          "line": 77,
+          "line": 82,
           "page": "gui-forms-imageregistry-snapshot-imageregistrysnapshot-const-noexcept-c692de5078.html"
         },
         {
@@ -158570,7 +158585,7 @@
           "comment": "",
           "header": "gui_forms/resources/image_registry/image_registry.hpp",
           "source": "include/gui_forms/resources/image_registry/image_registry.hpp",
-          "line": 78,
+          "line": 83,
           "page": "gui-forms-imageregistry-limits-const-imageregistrylimits-const-noexcept-97107cd999.html"
         }
       ],
@@ -165887,7 +165902,7 @@
       "kind": "struct",
       "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
       "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
-      "line": 30,
+      "line": 39,
       "declaration": "struct GUI_FORMS_API LayoutDiagnostic final",
       "comment": "",
       "access": "public",
@@ -165905,7 +165920,7 @@
           "comment": "",
           "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
           "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
-          "line": 31,
+          "line": 40,
           "page": "gui-forms-layoutdiagnostic-severity-layoutdiagnosticseverity-95f4cc64cc.html"
         },
         {
@@ -165920,7 +165935,7 @@
           "comment": "",
           "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
           "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
-          "line": 32,
+          "line": 41,
           "page": "gui-forms-layoutdiagnostic-code-layoutdiagnosticcode-6a3a8bd38a.html"
         },
         {
@@ -165935,7 +165950,7 @@
           "comment": "",
           "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
           "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
-          "line": 36,
+          "line": 46,
           "page": "gui-forms-layoutdiagnostic-child-std-string-67903763ca.html"
         },
         {
@@ -165950,7 +165965,7 @@
           "comment": "",
           "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
           "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
-          "line": 37,
+          "line": 47,
           "page": "gui-forms-layoutdiagnostic-ancestor-std-string-fc8920eb82.html"
         }
       ],
@@ -165984,6 +165999,21 @@
           "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
           "line": 23,
           "page": "gui-forms-layoutdiagnosticcode-containing-block-not-parent-gui-forms-layoutdiagnosticcode-f470588a7a.html"
+        },
+        {
+          "id": "gui_forms::LayoutDiagnosticCode::arrange_outside_slot|gui_forms::LayoutDiagnosticCode",
+          "name": "arrange_outside_slot",
+          "type": "gui_forms::LayoutDiagnosticCode",
+          "namespace": "gui_forms::LayoutDiagnosticCode",
+          "kind": "EnumConstantDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "arrange_outside_slot = 202",
+          "comment": "",
+          "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
+          "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
+          "line": 32,
+          "page": "gui-forms-layoutdiagnosticcode-arrange-outside-slot-gui-forms-layoutdiagnosticcode-96a822f11f.html"
         }
       ],
       "page": "gui-forms-layoutdiagnosticcode-91fba95c27.html",
@@ -193030,6 +193060,63 @@
           "page": "gui-forms-metrics-record-paint-group-refusals-void-std-uint64-t-noexcept-8b8eaed099.html"
         },
         {
+          "id": "gui_forms::Metrics::record_layout_arrange_refusal|void (std::string_view, std::string_view) noexcept",
+          "name": "record_layout_arrange_refusal",
+          "type": "void (std::string_view, std::string_view) noexcept",
+          "namespace": "gui_forms::Metrics",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "arranged",
+              "type": "std::string_view",
+              "declaration": "std::string_view arranged"
+            },
+            {
+              "name": "arranging",
+              "type": "std::string_view",
+              "declaration": "std::string_view arranging"
+            }
+          ],
+          "declaration": "void record_layout_arrange_refusal(std::string_view arranged, std::string_view arranging) noexcept",
+          "comment": "",
+          "header": "gui_forms/metrics/metrics/metrics.hpp",
+          "source": "include/gui_forms/metrics/metrics/metrics.hpp",
+          "line": 105,
+          "page": "gui-forms-metrics-record-layout-arrange-refusal-void-std-string-view-std-string-view-noexcept-1dc68cb280.html"
+        },
+        {
+          "id": "gui_forms::Metrics::record_stale_image_refusals|void (std::string_view, std::uint64_t, std::uint64_t) noexcept",
+          "name": "record_stale_image_refusals",
+          "type": "void (std::string_view, std::uint64_t, std::uint64_t) noexcept",
+          "namespace": "gui_forms::Metrics",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "operation",
+              "type": "std::string_view",
+              "declaration": "std::string_view operation"
+            },
+            {
+              "name": "image",
+              "type": "std::uint64_t",
+              "declaration": "std::uint64_t image"
+            },
+            {
+              "name": "refusals",
+              "type": "std::uint64_t",
+              "declaration": "std::uint64_t refusals"
+            }
+          ],
+          "declaration": "void record_stale_image_refusals(std::string_view operation, std::uint64_t image, std::uint64_t refusals) noexcept",
+          "comment": "",
+          "header": "gui_forms/metrics/metrics/metrics.hpp",
+          "source": "include/gui_forms/metrics/metrics/metrics.hpp",
+          "line": 112,
+          "page": "gui-forms-metrics-record-stale-image-refusals-void-std-string-view-std-uint64-t-std-uint64-t-noexcept-30214bf9b3.html"
+        },
+        {
           "id": "gui_forms::Metrics::record_expectation_miss|void (HousekeepingExpectation, std::uint64_t, std::uint64_t) noexcept",
           "name": "record_expectation_miss",
           "type": "void (HousekeepingExpectation, std::uint64_t, std::uint64_t) noexcept",
@@ -193057,7 +193144,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 104,
+          "line": 117,
           "page": "gui-forms-metrics-record-expectation-miss-void-housekeepingexpectation-std-uint64-t-std-uint64-t-noexcept-4932d2391e.html"
         },
         {
@@ -193072,7 +193159,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 106,
+          "line": 119,
           "page": "gui-forms-metrics-expectation-thresholds-const-expectationthresholds-const-noexcept-3a748f5cc6.html"
         },
         {
@@ -193093,7 +193180,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 107,
+          "line": 120,
           "page": "gui-forms-metrics-set-expectation-thresholds-void-const-expectationthresholds-noexcept-428f4eb854.html"
         },
         {
@@ -193108,7 +193195,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 108,
+          "line": 121,
           "page": "gui-forms-metrics-record-reentrant-frame-poll-void-noexcept-305c773897.html"
         },
         {
@@ -193129,7 +193216,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 109,
+          "line": 122,
           "page": "gui-forms-metrics-record-occlusion-transition-void-bool-noexcept-121cc09a01.html"
         },
         {
@@ -193144,7 +193231,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 110,
+          "line": 123,
           "page": "gui-forms-metrics-record-occluded-frame-poll-void-noexcept-352f9a9407.html"
         },
         {
@@ -193165,7 +193252,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 111,
+          "line": 124,
           "page": "gui-forms-metrics-record-present-void-std-uint64-t-noexcept-36f9228028.html"
         },
         {
@@ -193196,7 +193283,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 113,
+          "line": 126,
           "page": "gui-forms-metrics-record-present-void-std-uint64-t-std-uint64-t-std-uint64-t-noexcept-ba52202727.html"
         },
         {
@@ -193217,7 +193304,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 116,
+          "line": 129,
           "page": "gui-forms-metrics-record-screen-copy-void-std-uint64-t-noexcept-42d9258bb6.html"
         },
         {
@@ -193248,7 +193335,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 118,
+          "line": 131,
           "page": "gui-forms-metrics-record-live-present-void-std-uint64-t-std-uint64-t-std-uint64-t-noexcept-50672faefc.html"
         },
         {
@@ -193263,7 +193350,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 121,
+          "line": 134,
           "page": "gui-forms-metrics-record-live-pairing-wait-void-noexcept-7cc6e2ddc4.html"
         },
         {
@@ -193278,7 +193365,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 123,
+          "line": 136,
           "page": "gui-forms-metrics-record-live-unpaired-presentation-void-noexcept-ffceaa862c.html"
         },
         {
@@ -193304,7 +193391,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 124,
+          "line": 137,
           "page": "gui-forms-metrics-set-renderer-void-std-string-view-bool-d6f5b02a82.html"
         },
         {
@@ -193325,7 +193412,7 @@
           "comment": "",
           "header": "gui_forms/metrics/metrics/metrics.hpp",
           "source": "include/gui_forms/metrics/metrics/metrics.hpp",
-          "line": 127,
+          "line": 140,
           "page": "gui-forms-metrics-set-backplane-replay-void-bool-noexcept-a2a7f3ae19.html"
         }
       ],
@@ -194921,6 +195008,36 @@
           "page": "gui-forms-metricssnapshot-paint-group-refusals-std-uint64-t-1389394481.html"
         },
         {
+          "id": "gui_forms::MetricsSnapshot::layout_arrange_refusals|std::uint64_t",
+          "name": "layout_arrange_refusals",
+          "type": "std::uint64_t",
+          "namespace": "gui_forms::MetricsSnapshot",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "std::uint64_t layout_arrange_refusals{}",
+          "comment": "",
+          "header": "gui_forms/metrics/types/metrics_types.hpp",
+          "source": "include/gui_forms/metrics/types/metrics_types.hpp",
+          "line": 223,
+          "page": "gui-forms-metricssnapshot-layout-arrange-refusals-std-uint64-t-97d563ac67.html"
+        },
+        {
+          "id": "gui_forms::MetricsSnapshot::stale_image_refusals|std::uint64_t",
+          "name": "stale_image_refusals",
+          "type": "std::uint64_t",
+          "namespace": "gui_forms::MetricsSnapshot",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "std::uint64_t stale_image_refusals{}",
+          "comment": "",
+          "header": "gui_forms/metrics/types/metrics_types.hpp",
+          "source": "include/gui_forms/metrics/types/metrics_types.hpp",
+          "line": 229,
+          "page": "gui-forms-metricssnapshot-stale-image-refusals-std-uint64-t-7ea530584f.html"
+        },
+        {
           "id": "gui_forms::MetricsSnapshot::bundled_font_lookups_without_source|std::uint64_t",
           "name": "bundled_font_lookups_without_source",
           "type": "std::uint64_t",
@@ -194932,7 +195049,7 @@
           "comment": "",
           "header": "gui_forms/metrics/types/metrics_types.hpp",
           "source": "include/gui_forms/metrics/types/metrics_types.hpp",
-          "line": 223,
+          "line": 233,
           "page": "gui-forms-metricssnapshot-bundled-font-lookups-without-source-std-uint64-t-8efdab72a5.html"
         },
         {
@@ -194947,7 +195064,7 @@
           "comment": "",
           "header": "gui_forms/metrics/types/metrics_types.hpp",
           "source": "include/gui_forms/metrics/types/metrics_types.hpp",
-          "line": 224,
+          "line": 234,
           "page": "gui-forms-metricssnapshot-renderer-name-std-string-5b26731f59.html"
         },
         {
@@ -194962,7 +195079,7 @@
           "comment": "",
           "header": "gui_forms/metrics/types/metrics_types.hpp",
           "source": "include/gui_forms/metrics/types/metrics_types.hpp",
-          "line": 225,
+          "line": 235,
           "page": "gui-forms-metricssnapshot-cpu-only-bool-a72917728c.html"
         },
         {
@@ -194977,7 +195094,7 @@
           "comment": "",
           "header": "gui_forms/metrics/types/metrics_types.hpp",
           "source": "include/gui_forms/metrics/types/metrics_types.hpp",
-          "line": 230,
+          "line": 240,
           "page": "gui-forms-metricssnapshot-backplane-replay-bool-5115dd63de.html"
         },
         {
@@ -194992,7 +195109,7 @@
           "comment": "",
           "header": "gui_forms/metrics/types/metrics_types.hpp",
           "source": "include/gui_forms/metrics/types/metrics_types.hpp",
-          "line": 232,
+          "line": 242,
           "page": "gui-forms-metricssnapshot-to-json-std-string-const-7f6f3da6e2.html"
         }
       ],
@@ -298164,7 +298281,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 603,
+          "line": 605,
           "page": "gui-forms-surfaceroot-snapshot-control-std-optional-controlsnapshot-const-control-ptr-double-f18d41ab4f.html"
         },
         {
@@ -298185,7 +298302,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 621,
+          "line": 628,
           "page": "gui-forms-surfaceroot-capture-window-std-optional-windowcapture-const-windowcaptureoptions-1098ebc700.html"
         },
         {
@@ -298211,7 +298328,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 639,
+          "line": 647,
           "page": "gui-forms-surfaceroot-capture-control-std-optional-windowcapture-const-control-ptr-const-controlcaptureoptions-33d3dea905.html"
         },
         {
@@ -298232,7 +298349,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 648,
+          "line": 656,
           "page": "gui-forms-surfaceroot-set-invalidation-overlay-void-std-optional-bool-c01be99cae.html"
         },
         {
@@ -298247,7 +298364,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 649,
+          "line": 657,
           "page": "gui-forms-surfaceroot-invalidation-overlay-setting-std-optional-bool-const-noexcept-94ce26de5a.html"
         },
         {
@@ -298262,7 +298379,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 654,
+          "line": 662,
           "page": "gui-forms-surfaceroot-invalidation-overlay-enabled-bool-noexcept-e4ee746c40.html"
         },
         {
@@ -298277,7 +298394,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 658,
+          "line": 666,
           "page": "gui-forms-surfaceroot-invalidation-overlay-invalidationoverlay-noexcept-08bd8c7d28.html"
         },
         {
@@ -298308,7 +298425,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 662,
+          "line": 670,
           "page": "gui-forms-surfaceroot-record-presented-area-void-rect-invalidationcause-std-string-view-cf7af9b84e.html"
         },
         {
@@ -298329,7 +298446,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 667,
+          "line": 675,
           "page": "gui-forms-surfaceroot-release-control-snapshot-bool-imageid-506c241483.html"
         },
         {
@@ -298344,7 +298461,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 668,
+          "line": 676,
           "page": "gui-forms-surfaceroot-text-metrics-provider-textmetricsprovider-const-noexcept-4cc3d79e8d.html"
         },
         {
@@ -298370,7 +298487,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 671,
+          "line": 679,
           "page": "gui-forms-surfaceroot-resolve-text-layout-utf8-resolvedtextlayout-std-string-view-fontspec-const-296222f6e2.html"
         },
         {
@@ -298396,7 +298513,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 674,
+          "line": 682,
           "page": "gui-forms-surfaceroot-measure-text-extent-utf8-textextent-std-string-view-fontspec-const-158189debf.html"
         },
         {
@@ -298422,7 +298539,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 679,
+          "line": 687,
           "page": "gui-forms-surfaceroot-fill-line-break-opportunities-utf8-textresolutionstatus-std-string-view-std-span-linebre-9def4edd89.html"
         },
         {
@@ -298437,7 +298554,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 681,
+          "line": 689,
           "page": "gui-forms-surfaceroot-presentation-changed-event-const-presentationsettings-noexcept-ab6d4295cf.html"
         },
         {
@@ -298452,7 +298569,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 689,
+          "line": 697,
           "page": "gui-forms-surfaceroot-theme-const-theme-const-noexcept-07568343c5.html"
         },
         {
@@ -298467,7 +298584,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 692,
+          "line": 700,
           "page": "gui-forms-surfaceroot-application-theme-const-theme-const-noexcept-510a5980a9.html"
         },
         {
@@ -298482,7 +298599,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 696,
+          "line": 704,
           "page": "gui-forms-surfaceroot-theme-fallback-const-std-optional-themefallback-const-noexcept-f16a615300.html"
         },
         {
@@ -298497,7 +298614,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 699,
+          "line": 707,
           "page": "gui-forms-surfaceroot-user-theme-rules-const-compiledthemerules-const-noexcept-898b4a94fc.html"
         },
         {
@@ -298512,7 +298629,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 700,
+          "line": 708,
           "page": "gui-forms-surfaceroot-theme-ptr-std-shared-ptr-const-theme-const-noexcept-863e56d986.html"
         },
         {
@@ -298533,7 +298650,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 705,
+          "line": 713,
           "page": "gui-forms-surfaceroot-set-theme-void-std-shared-ptr-const-theme-4a031ddbdb.html"
         },
         {
@@ -298548,7 +298665,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 709,
+          "line": 717,
           "page": "gui-forms-surfaceroot-inline-with-theme-reported-bool-const-noexcept-3e50e92918.html"
         },
         {
@@ -298563,7 +298680,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 712,
+          "line": 720,
           "page": "gui-forms-surfaceroot-resources-std-shared-ptr-applicationresources-const-noexcept-3221b461ba.html"
         },
         {
@@ -298584,7 +298701,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 715,
+          "line": 723,
           "page": "gui-forms-surfaceroot-shares-resources-with-bool-const-surfaceroot-const-noexcept-7777f709e4.html"
         },
         {
@@ -298599,7 +298716,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 719,
+          "line": 727,
           "page": "gui-forms-surfaceroot-theme-changed-event-const-theme-noexcept-21cf5f5cad.html"
         },
         {
@@ -298614,7 +298731,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 722,
+          "line": 730,
           "page": "gui-forms-surfaceroot-active-bool-const-noexcept-472bd39a78.html"
         },
         {
@@ -298635,7 +298752,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 723,
+          "line": 731,
           "page": "gui-forms-surfaceroot-set-active-void-bool-bac30fc120.html"
         },
         {
@@ -298650,7 +298767,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 724,
+          "line": 732,
           "page": "gui-forms-surfaceroot-active-changed-event-bool-noexcept-41d6b365ea.html"
         },
         {
@@ -298665,7 +298782,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 731,
+          "line": 739,
           "page": "gui-forms-surfaceroot-frame-moved-event-noexcept-d05c1f0491.html"
         },
         {
@@ -298680,7 +298797,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 732,
+          "line": 740,
           "page": "gui-forms-surfaceroot-report-frame-moved-void-05bc9016d2.html"
         },
         {
@@ -298695,7 +298812,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 738,
+          "line": 746,
           "page": "gui-forms-surfaceroot-menu-opening-event-noexcept-f20b6810ea.html"
         },
         {
@@ -298710,7 +298827,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 739,
+          "line": 747,
           "page": "gui-forms-surfaceroot-announce-menu-opening-void-80d65ddcf0.html"
         },
         {
@@ -298725,7 +298842,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 747,
+          "line": 755,
           "page": "gui-forms-surfaceroot-declare-non-opaque-bool-c7a38ec29a.html"
         },
         {
@@ -298740,7 +298857,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 748,
+          "line": 756,
           "page": "gui-forms-surfaceroot-non-opaque-declared-bool-const-noexcept-fdb9520c70.html"
         },
         {
@@ -298755,7 +298872,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 759,
+          "line": 767,
           "page": "gui-forms-surfaceroot-declare-content-surface-bool-4db687ae44.html"
         },
         {
@@ -298770,7 +298887,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 760,
+          "line": 768,
           "page": "gui-forms-surfaceroot-content-surface-declared-bool-const-noexcept-26f15b6bed.html"
         },
         {
@@ -298785,7 +298902,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 763,
+          "line": 771,
           "page": "gui-forms-surfaceroot-compositor-state-const-compositorstate-const-noexcept-354cc05e56.html"
         },
         {
@@ -298811,7 +298928,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 770,
+          "line": 778,
           "page": "gui-forms-surfaceroot-set-compositor-state-void-const-compositorstate-bool-07b14441db.html"
         },
         {
@@ -298832,7 +298949,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 780,
+          "line": 788,
           "page": "gui-forms-surfaceroot-request-backdrop-windowbackdropgrant-const-windowbackdroprequest-fb61c65b5d.html"
         },
         {
@@ -298847,7 +298964,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 782,
+          "line": 790,
           "page": "gui-forms-surfaceroot-backdrop-request-const-windowbackdroprequest-const-noexcept-4186a17d8d.html"
         },
         {
@@ -298862,7 +298979,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 783,
+          "line": 791,
           "page": "gui-forms-surfaceroot-backdrop-grant-const-windowbackdropgrant-const-noexcept-7d361ce480.html"
         },
         {
@@ -298877,7 +298994,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 791,
+          "line": 799,
           "page": "gui-forms-surfaceroot-backdrop-changed-event-const-windowbackdropgrant-noexcept-64272a62ef.html"
         },
         {
@@ -298898,7 +299015,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 805,
+          "line": 813,
           "page": "gui-forms-surfaceroot-set-backdrop-chain-void-std-optional-backdropchain-d5e1d673e2.html"
         },
         {
@@ -298913,7 +299030,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 806,
+          "line": 814,
           "page": "gui-forms-surfaceroot-backdrop-chain-const-std-optional-backdropchain-const-noexcept-261f2439ef.html"
         },
         {
@@ -298928,7 +299045,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 810,
+          "line": 818,
           "page": "gui-forms-surfaceroot-backdrop-chain-resolution-std-optional-backdropchainresolution-const-noexcept-b1f776dfbc.html"
         },
         {
@@ -298943,7 +299060,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 814,
+          "line": 822,
           "page": "gui-forms-surfaceroot-host-services-hostservices-const-noexcept-36169d7ec9.html"
         },
         {
@@ -298958,7 +299075,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 829,
+          "line": 837,
           "page": "gui-forms-surfaceroot-key-map-const-keymap-const-noexcept-87a34a97a4.html"
         },
         {
@@ -298973,7 +299090,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 832,
+          "line": 840,
           "page": "gui-forms-surfaceroot-key-bindings-const-std-shared-ptr-keybindings-const-noexcept-c70b013d4e.html"
         },
         {
@@ -298988,7 +299105,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 835,
+          "line": 843,
           "page": "gui-forms-surfaceroot-share-key-bindings-std-shared-ptr-keybindings-e61bb86a54.html"
         },
         {
@@ -299009,7 +299126,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 839,
+          "line": 847,
           "page": "gui-forms-surfaceroot-set-key-bindings-void-std-shared-ptr-keybindings-3a875598f1.html"
         },
         {
@@ -299035,7 +299152,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 844,
+          "line": 852,
           "page": "gui-forms-surfaceroot-rebind-key-command-void-keycommand-keybinding-da46548791.html"
         },
         {
@@ -299056,7 +299173,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 845,
+          "line": 853,
           "page": "gui-forms-surfaceroot-restore-key-command-void-keycommand-c34611dde3.html"
         },
         {
@@ -299071,7 +299188,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 847,
+          "line": 855,
           "page": "gui-forms-surfaceroot-clear-key-bindings-void-0370652935.html"
         },
         {
@@ -299086,7 +299203,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 849,
+          "line": 857,
           "page": "gui-forms-surfaceroot-begin-update-updatescope-c694b4cfb9.html"
         },
         {
@@ -299101,7 +299218,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 850,
+          "line": 858,
           "page": "gui-forms-surfaceroot-perform-layout-void-575fc8637e.html"
         },
         {
@@ -299116,7 +299233,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 851,
+          "line": 859,
           "page": "gui-forms-surfaceroot-flush-void-151ef315ff.html"
         },
         {
@@ -299142,7 +299259,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 855,
+          "line": 863,
           "page": "gui-forms-surfaceroot-paint-std-optional-paintreceipt-painter-rect-b523291639.html"
         },
         {
@@ -299168,7 +299285,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 863,
+          "line": 871,
           "page": "gui-forms-surfaceroot-paint-std-optional-paintreceipt-painter-std-span-const-rect-267b99da9e.html"
         },
         {
@@ -299194,7 +299311,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 868,
+          "line": 876,
           "page": "gui-forms-surfaceroot-notify-presented-bool-paintreceipt-std-uint64-t-92f3c4af1d.html"
         },
         {
@@ -299225,7 +299342,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 871,
+          "line": 879,
           "page": "gui-forms-surfaceroot-notify-presented-bool-paintreceipt-std-uint64-t-presentedarea-a34bcc71d7.html"
         },
         {
@@ -299246,7 +299363,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 876,
+          "line": 884,
           "page": "gui-forms-surfaceroot-notify-presented-void-std-uint64-t-d57f471e1d.html"
         },
         {
@@ -299261,7 +299378,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 877,
+          "line": 885,
           "page": "gui-forms-surfaceroot-paint-lease-snapshot-paintleasesnapshot-const-noexcept-95e04afca9.html"
         },
         {
@@ -299276,7 +299393,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 878,
+          "line": 886,
           "page": "gui-forms-surfaceroot-take-damage-damageregion-3918125333.html"
         },
         {
@@ -299297,7 +299414,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 879,
+          "line": 887,
           "page": "gui-forms-surfaceroot-take-damage-damageregion-paintplane-2498b53cf1.html"
         },
         {
@@ -299318,7 +299435,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 888,
+          "line": 896,
           "page": "gui-forms-surfaceroot-set-scroll-copies-supported-void-bool-noexcept-e73c0c8813.html"
         },
         {
@@ -299333,7 +299450,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 889,
+          "line": 897,
           "page": "gui-forms-surfaceroot-scroll-copies-supported-bool-const-noexcept-42e1ce9a35.html"
         },
         {
@@ -299354,7 +299471,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 892,
+          "line": 900,
           "page": "gui-forms-surfaceroot-take-scroll-copies-void-std-vector-scrollcopy-7d20396b87.html"
         },
         {
@@ -299380,7 +299497,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 906,
+          "line": 914,
           "page": "gui-forms-surfaceroot-request-scroll-copy-bool-control-point-e032d5d3e7.html"
         },
         {
@@ -299411,7 +299528,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 918,
+          "line": 926,
           "page": "gui-forms-surfaceroot-request-content-scroll-bool-control-rect-point-556cb85df5.html"
         },
         {
@@ -299426,7 +299543,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 919,
+          "line": 927,
           "page": "gui-forms-surfaceroot-needs-frame-bool-const-noexcept-87deacc23d.html"
         },
         {
@@ -299441,7 +299558,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 920,
+          "line": 928,
           "page": "gui-forms-surfaceroot-next-wake-std-optional-frametime-const-noexcept-9523ce7eb9.html"
         },
         {
@@ -299467,7 +299584,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 921,
+          "line": 929,
           "page": "gui-forms-surfaceroot-schedule-paint-framerequesttoken-const-control-ptr-frametime-60523319f8.html"
         },
         {
@@ -299503,7 +299620,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 923,
+          "line": 931,
           "page": "gui-forms-surfaceroot-schedule-ui-timer-framerequesttoken-component-frameinterval-frametime-std-function-void--681b66675b.html"
         },
         {
@@ -299524,7 +299641,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 926,
+          "line": 934,
           "page": "gui-forms-surfaceroot-poll-frame-schedule-framepollresult-frametime-c765b32289.html"
         },
         {
@@ -299539,7 +299656,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 927,
+          "line": 935,
           "page": "gui-forms-surfaceroot-cancel-frame-requests-void-3dc493ab5f.html"
         },
         {
@@ -299565,7 +299682,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 928,
+          "line": 936,
           "page": "gui-forms-surfaceroot-set-occluded-void-bool-frametime-068c51953b.html"
         },
         {
@@ -299580,7 +299697,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 929,
+          "line": 937,
           "page": "gui-forms-surfaceroot-occluded-bool-const-noexcept-14aa863fef.html"
         },
         {
@@ -299601,7 +299718,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 935,
+          "line": 943,
           "page": "gui-forms-surfaceroot-set-paint-wake-handler-void-std-function-void-57d15528b0.html"
         },
         {
@@ -299616,7 +299733,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 939,
+          "line": 947,
           "page": "gui-forms-surfaceroot-shutdown-dispatcher-void-noexcept-b5b62f4133.html"
         },
         {
@@ -299637,7 +299754,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 941,
+          "line": 949,
           "page": "gui-forms-surfaceroot-load-png-imageloadresult-std-span-const-std-byte-16ce96c31e.html"
         },
         {
@@ -299673,7 +299790,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 942,
+          "line": 950,
           "page": "gui-forms-surfaceroot-load-bgra32-premultiplied-imageloadresult-std-uint32-t-std-uint32-t-std-uint64-t-std-spa-a43101cbae.html"
         },
         {
@@ -299699,7 +299816,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 945,
+          "line": 966,
           "page": "gui-forms-surfaceroot-replace-png-imageloadresult-imageid-std-span-const-std-byte-0d50f12868.html"
         },
         {
@@ -299730,7 +299847,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 947,
+          "line": 968,
           "page": "gui-forms-surfaceroot-replace-png-imageloadresult-imageid-std-span-const-std-byte-control-05b0008f51.html"
         },
         {
@@ -299776,7 +299893,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 950,
+          "line": 971,
           "page": "gui-forms-surfaceroot-replace-bgra32-premultiplied-imageloadresult-imageid-std-uint32-t-std-uint32-t-std-uint6-de7f04308c.html"
         },
         {
@@ -299822,7 +299939,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 954,
+          "line": 975,
           "page": "gui-forms-surfaceroot-update-bgra32-premultiplied-imageloadresult-imageid-std-uint32-t-std-uint32-t-std-uint64-743292c891.html"
         },
         {
@@ -299883,7 +300000,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 958,
+          "line": 984,
           "page": "gui-forms-surfaceroot-patch-bgra32-premultiplied-imageloadresult-imageid-std-uint32-t-std-uint32-t-std-uint32--924b69d550.html"
         },
         {
@@ -299904,7 +300021,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 963,
+          "line": 989,
           "page": "gui-forms-surfaceroot-remove-image-bool-imageid-d6b8976b04.html"
         },
         {
@@ -299919,7 +300036,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 964,
+          "line": 990,
           "page": "gui-forms-surfaceroot-image-resources-const-imageregistry-const-noexcept-833b66129b.html"
         },
         {
@@ -299934,7 +300051,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 967,
+          "line": 993,
           "page": "gui-forms-surfaceroot-image-resource-snapshot-imageregistrysnapshot-const-noexcept-3a1c0def1b.html"
         },
         {
@@ -299955,7 +300072,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 971,
+          "line": 997,
           "page": "gui-forms-surfaceroot-find-control-ptr-std-string-view-const-fef137b0d0.html"
         },
         {
@@ -299976,7 +300093,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 972,
+          "line": 998,
           "page": "gui-forms-surfaceroot-hit-test-control-ptr-point-8ffb9c31ca.html"
         },
         {
@@ -299997,7 +300114,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 973,
+          "line": 999,
           "page": "gui-forms-surfaceroot-request-focus-bool-const-control-ptr-ae1e71f098.html"
         },
         {
@@ -300012,7 +300129,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 974,
+          "line": 1000,
           "page": "gui-forms-surfaceroot-focused-control-control-ptr-const-noexcept-dc2e15b6a7.html"
         },
         {
@@ -300027,7 +300144,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 984,
+          "line": 1010,
           "page": "gui-forms-surfaceroot-restore-focus-control-ptr-cb84a323f9.html"
         },
         {
@@ -300048,7 +300165,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 989,
+          "line": 1015,
           "page": "gui-forms-surfaceroot-focus-target-of-control-ptr-const-control-ptr-3f97d8397a.html"
         },
         {
@@ -300063,7 +300180,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 990,
+          "line": 1016,
           "page": "gui-forms-surfaceroot-focus-target-depth-const-std-size-t-06c5990224.html"
         },
         {
@@ -300078,7 +300195,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 994,
+          "line": 1020,
           "page": "gui-forms-surfaceroot-active-control-control-ptr-const-2fc82f530a.html"
         },
         {
@@ -300099,7 +300216,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 997,
+          "line": 1023,
           "page": "gui-forms-surfaceroot-control-focused-bool-const-control-ptr-const-a21a0f8475.html"
         },
         {
@@ -300114,7 +300231,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1003,
+          "line": 1029,
           "page": "gui-forms-surfaceroot-text-input-caret-std-optional-rect-e57bf49f04.html"
         },
         {
@@ -300129,7 +300246,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1009,
+          "line": 1035,
           "page": "gui-forms-surfaceroot-focused-control-changed-event-const-focusedcontrolchange-noexcept-0ebdbe973b.html"
         },
         {
@@ -300144,7 +300261,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1016,
+          "line": 1042,
           "page": "gui-forms-surfaceroot-rules-ruleset-c07884dcb3.html"
         },
         {
@@ -300159,7 +300276,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1028,
+          "line": 1054,
           "page": "gui-forms-surfaceroot-help-requested-event-helprequestevent-noexcept-9eca4b2e92.html"
         },
         {
@@ -300174,7 +300291,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1038,
+          "line": 1064,
           "page": "gui-forms-surfaceroot-key-down-event-keyeventargs-noexcept-3a109b07af.html"
         },
         {
@@ -300189,7 +300306,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1039,
+          "line": 1065,
           "page": "gui-forms-surfaceroot-key-press-event-keypresseventargs-noexcept-e64d8afb65.html"
         },
         {
@@ -300204,7 +300321,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1040,
+          "line": 1066,
           "page": "gui-forms-surfaceroot-key-state-changed-event-const-keystatechange-noexcept-d5d598318b.html"
         },
         {
@@ -300219,7 +300336,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1041,
+          "line": 1067,
           "page": "gui-forms-surfaceroot-key-up-event-keyeventargs-noexcept-48d406463f.html"
         },
         {
@@ -300240,7 +300357,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1047,
+          "line": 1073,
           "page": "gui-forms-surfaceroot-is-key-down-bool-std-uint32-t-const-noexcept-3c89d3cadb.html"
         },
         {
@@ -300261,7 +300378,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1054,
+          "line": 1080,
           "page": "gui-forms-surfaceroot-append-interactions-void-std-vector-interactiondeclaration-b17ba4de40.html"
         },
         {
@@ -300282,7 +300399,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1059,
+          "line": 1085,
           "page": "gui-forms-surfaceroot-request-help-bool-bool-e9bffbe114.html"
         },
         {
@@ -300297,7 +300414,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1062,
+          "line": 1088,
           "page": "gui-forms-surfaceroot-focus-cue-visible-bool-const-noexcept-797a280a95.html"
         },
         {
@@ -300328,7 +300445,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1065,
+          "line": 1091,
           "page": "gui-forms-surfaceroot-validate-control-bool-const-control-ptr-control-bool-9801f8d859.html"
         },
         {
@@ -300354,7 +300471,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1068,
+          "line": 1094,
           "page": "gui-forms-surfaceroot-validate-children-bool-const-control-ptr-validationconstraints-6b8e9cddf4.html"
         },
         {
@@ -300369,7 +300486,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1071,
+          "line": 1097,
           "page": "gui-forms-surfaceroot-validation-snapshot-validationsnapshot-const-noexcept-64561cbb4c.html"
         },
         {
@@ -300400,7 +300517,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1072,
+          "line": 1098,
           "page": "gui-forms-surfaceroot-begin-focus-scope-focusscopeid-const-control-ptr-const-control-ptr-focusscopeoptions-47886471ca.html"
         },
         {
@@ -300426,7 +300543,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1076,
+          "line": 1102,
           "page": "gui-forms-surfaceroot-end-focus-scope-bool-focusscopeid-focusscopeclosereason-275d8e0ffe.html"
         },
         {
@@ -300441,7 +300558,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1079,
+          "line": 1105,
           "page": "gui-forms-surfaceroot-focus-scope-depth-std-size-t-const-noexcept-6438573c92.html"
         },
         {
@@ -300456,7 +300573,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1080,
+          "line": 1106,
           "page": "gui-forms-surfaceroot-active-focus-scope-root-control-ptr-const-noexcept-49ff6c0153.html"
         },
         {
@@ -300477,7 +300594,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1081,
+          "line": 1107,
           "page": "gui-forms-surfaceroot-move-focus-bool-bool-632e37840d.html"
         },
         {
@@ -300498,7 +300615,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1092,
+          "line": 1118,
           "page": "gui-forms-surfaceroot-set-focus-regions-void-std-vector-control-ptr-0255c4fc1a.html"
         },
         {
@@ -300513,7 +300630,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1093,
+          "line": 1119,
           "page": "gui-forms-surfaceroot-focus-regions-std-vector-control-ptr-const-b785ea285a.html"
         },
         {
@@ -300534,7 +300651,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1097,
+          "line": 1123,
           "page": "gui-forms-surfaceroot-add-focus-region-bool-const-control-ptr-64877763f1.html"
         },
         {
@@ -300555,7 +300672,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1102,
+          "line": 1128,
           "page": "gui-forms-surfaceroot-move-focus-region-bool-bool-5f6b5c9fad.html"
         },
         {
@@ -300576,7 +300693,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1103,
+          "line": 1129,
           "page": "gui-forms-surfaceroot-set-accept-button-void-const-control-ptr-cd1e9ff6a7.html"
         },
         {
@@ -300597,7 +300714,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1104,
+          "line": 1130,
           "page": "gui-forms-surfaceroot-set-cancel-button-void-const-control-ptr-ee2c7a756e.html"
         },
         {
@@ -300612,7 +300729,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1105,
+          "line": 1131,
           "page": "gui-forms-surfaceroot-accept-button-control-ptr-const-noexcept-b4a52e2807.html"
         },
         {
@@ -300627,7 +300744,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1108,
+          "line": 1134,
           "page": "gui-forms-surfaceroot-cancel-button-control-ptr-const-noexcept-24e507c1bc.html"
         },
         {
@@ -300642,7 +300759,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1111,
+          "line": 1137,
           "page": "gui-forms-surfaceroot-dialog-key-snapshot-dialogkeysnapshot-const-noexcept-be35390d0b.html"
         },
         {
@@ -300657,7 +300774,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1112,
+          "line": 1138,
           "page": "gui-forms-surfaceroot-dialog-result-dialogresult-const-noexcept-9de9a60c5a.html"
         },
         {
@@ -300678,7 +300795,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1115,
+          "line": 1141,
           "page": "gui-forms-surfaceroot-set-dialog-result-void-dialogresult-beb4845abe.html"
         },
         {
@@ -300693,7 +300810,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1116,
+          "line": 1142,
           "page": "gui-forms-surfaceroot-dialog-result-changed-event-dialogresult-noexcept-8509d23ea2.html"
         },
         {
@@ -300708,7 +300825,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1119,
+          "line": 1145,
           "page": "gui-forms-surfaceroot-focus-scope-changed-event-const-focusscopechange-noexcept-1e24a12cde.html"
         },
         {
@@ -300734,7 +300851,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1122,
+          "line": 1148,
           "page": "gui-forms-surfaceroot-capture-pointer-void-const-control-ptr-std-uint64-t-f5d300805a.html"
         },
         {
@@ -300749,7 +300866,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1123,
+          "line": 1149,
           "page": "gui-forms-surfaceroot-release-pointer-void-25622c328f.html"
         },
         {
@@ -300764,7 +300881,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1124,
+          "line": 1150,
           "page": "gui-forms-surfaceroot-captured-control-control-ptr-const-noexcept-fa6e7225a4.html"
         },
         {
@@ -300779,7 +300896,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1125,
+          "line": 1151,
           "page": "gui-forms-surfaceroot-captured-pointer-id-std-uint64-t-const-noexcept-157dcf2afc.html"
         },
         {
@@ -300794,7 +300911,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1128,
+          "line": 1154,
           "page": "gui-forms-surfaceroot-pointer-capture-changed-event-const-pointercapturechange-noexcept-16aa43f318.html"
         },
         {
@@ -300809,7 +300926,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1132,
+          "line": 1158,
           "page": "gui-forms-surfaceroot-control-availability-changed-event-const-controlavailabilitychange-noexcept-b1519e6695.html"
         },
         {
@@ -300840,7 +300957,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1135,
+          "line": 1161,
           "page": "gui-forms-surfaceroot-open-overlay-overlaytoken-const-control-ptr-const-control-ptr-overlayoptions-8c649f2ecc.html"
         },
         {
@@ -300855,7 +300972,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1147,
+          "line": 1173,
           "page": "gui-forms-surfaceroot-tool-tips-shown-setting-std-optional-bool-const-noexcept-fb76901cbd.html"
         },
         {
@@ -300876,7 +300993,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1150,
+          "line": 1176,
           "page": "gui-forms-surfaceroot-set-tool-tips-shown-void-std-optional-bool-f06531d366.html"
         },
         {
@@ -300891,7 +301008,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1153,
+          "line": 1179,
           "page": "gui-forms-surfaceroot-tool-tips-shown-bool-const-noexcept-b8f6ffbdf0.html"
         },
         {
@@ -300906,7 +301023,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1154,
+          "line": 1180,
           "page": "gui-forms-surfaceroot-tool-tip-settings-const-tooltipsettings-const-noexcept-d50b614b27.html"
         },
         {
@@ -300927,7 +301044,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1160,
+          "line": 1186,
           "page": "gui-forms-surfaceroot-set-tool-tip-settings-void-tooltipsettings-a1f9fd469d.html"
         },
         {
@@ -300953,7 +301070,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1166,
+          "line": 1192,
           "page": "gui-forms-surfaceroot-show-tool-tip-void-const-control-ptr-std-optional-std-chrono-milliseconds-4d9000458e.html"
         },
         {
@@ -300968,7 +301085,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1169,
+          "line": 1195,
           "page": "gui-forms-surfaceroot-hide-tool-tip-void-2e3d589a82.html"
         },
         {
@@ -300983,7 +301100,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1170,
+          "line": 1196,
           "page": "gui-forms-surfaceroot-tool-tip-visible-bool-const-noexcept-3927fa7514.html"
         },
         {
@@ -300998,7 +301115,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1173,
+          "line": 1199,
           "page": "gui-forms-surfaceroot-tool-tip-target-control-ptr-const-noexcept-7a5ed52727.html"
         },
         {
@@ -301013,7 +301130,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1174,
+          "line": 1200,
           "page": "gui-forms-surfaceroot-tool-tip-item-id-std-string-const-3be4507681.html"
         },
         {
@@ -301028,7 +301145,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1175,
+          "line": 1201,
           "page": "gui-forms-surfaceroot-tool-tip-text-std-string-const-d17bd27fdb.html"
         },
         {
@@ -301043,7 +301160,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1177,
+          "line": 1203,
           "page": "gui-forms-surfaceroot-tool-tip-visibility-changed-event-const-tooltipevent-noexcept-90a238b079.html"
         },
         {
@@ -301074,7 +301191,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1191,
+          "line": 1217,
           "page": "gui-forms-surfaceroot-request-tool-tip-std-uint64-t-const-control-ptr-tooltiprequest-std-weak-ptr-surfacereque-2bee4d3e17.html"
         },
         {
@@ -301095,7 +301212,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1195,
+          "line": 1221,
           "page": "gui-forms-surfaceroot-withdraw-tool-tip-request-void-std-uint64-t-41361f99f3.html"
         },
         {
@@ -301126,7 +301243,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1212,
+          "line": 1238,
           "page": "gui-forms-surfaceroot-raise-alert-std-uint64-t-const-control-ptr-alertrequest-std-weak-ptr-surfacerequestanswe-6ea29dcb5c.html"
         },
         {
@@ -301147,7 +301264,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1217,
+          "line": 1243,
           "page": "gui-forms-surfaceroot-withdraw-alert-void-std-uint64-t-f8b1998d17.html"
         },
         {
@@ -301183,7 +301300,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1221,
+          "line": 1247,
           "page": "gui-forms-surfaceroot-register-accelerator-acceleratortoken-component-keygesture-std-function-bool-accelerator-74ddbc65da.html"
         },
         {
@@ -301204,7 +301321,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1230,
+          "line": 1256,
           "page": "gui-forms-surfaceroot-offer-accelerators-bool-const-keyevent-f0bf018a0e.html"
         },
         {
@@ -301230,7 +301347,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1238,
+          "line": 1264,
           "page": "gui-forms-surfaceroot-set-command-target-void-commandroutestage-const-std-shared-ptr-commandtarget-4a6c983798.html"
         },
         {
@@ -301251,7 +301368,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1239,
+          "line": 1265,
           "page": "gui-forms-surfaceroot-command-target-std-shared-ptr-commandtarget-commandroutestage-const-59b67e1057.html"
         },
         {
@@ -301272,7 +301389,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1243,
+          "line": 1269,
           "page": "gui-forms-surfaceroot-resolve-command-commandrouteresult-std-string-view-const-f9a95c823e.html"
         },
         {
@@ -301293,7 +301410,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1253,
+          "line": 1279,
           "page": "gui-forms-surfaceroot-route-command-commandrouteresult-const-commandinvocation-e5dd85b204.html"
         },
         {
@@ -301308,7 +301425,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1254,
+          "line": 1280,
           "page": "gui-forms-surfaceroot-pressed-control-control-ptr-const-noexcept-a81cc597f6.html"
         },
         {
@@ -301323,7 +301440,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1256,
+          "line": 1282,
           "page": "gui-forms-surfaceroot-hovered-control-control-ptr-const-noexcept-8d9bd3b8c1.html"
         },
         {
@@ -301344,7 +301461,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1262,
+          "line": 1288,
           "page": "gui-forms-surfaceroot-dispatch-pointer-bool-pointerevent-9e2baf9a6b.html"
         },
         {
@@ -301365,7 +301482,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1263,
+          "line": 1289,
           "page": "gui-forms-surfaceroot-dispatch-key-bool-keyevent-faf2674a52.html"
         },
         {
@@ -301391,7 +301508,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1273,
+          "line": 1299,
           "page": "gui-forms-surfaceroot-dispatch-context-request-bool-contextrequestorigin-point-066018d5bd.html"
         },
         {
@@ -301412,7 +301529,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1277,
+          "line": 1303,
           "page": "gui-forms-surfaceroot-dispatch-host-hover-void-point-2856d460e0.html"
         },
         {
@@ -301427,7 +301544,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1283,
+          "line": 1309,
           "page": "gui-forms-surfaceroot-interaction-snapshot-interactionsnapshot-const-eaef98d792.html"
         },
         {
@@ -301448,7 +301565,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1286,
+          "line": 1312,
           "page": "gui-forms-surfaceroot-set-input-time-source-void-const-inputtimesource-noexcept-5dddf3d706.html"
         },
         {
@@ -301469,7 +301586,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1287,
+          "line": 1313,
           "page": "gui-forms-surfaceroot-dispatch-text-bool-textinputevent-b434c282ef.html"
         },
         {
@@ -301484,7 +301601,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1288,
+          "line": 1314,
           "page": "gui-forms-surfaceroot-deferred-input-snapshot-deferredinputsnapshot-const-noexcept-2a5adc5e07.html"
         },
         {
@@ -301505,7 +301622,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1289,
+          "line": 1315,
           "page": "gui-forms-surfaceroot-dispatch-drag-dragdispatchresult-dragevent-dc1ea0a94e.html"
         },
         {
@@ -301520,7 +301637,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1290,
+          "line": 1316,
           "page": "gui-forms-surfaceroot-cancel-drag-void-noexcept-37b98a3c8a.html"
         },
         {
@@ -301535,7 +301652,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1294,
+          "line": 1320,
           "page": "gui-forms-surfaceroot-engine-parts-const-engineparttable-const-noexcept-e7b5bb98e3.html"
         },
         {
@@ -301550,7 +301667,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1298,
+          "line": 1324,
           "page": "gui-forms-surfaceroot-motion-clock-motionclock-noexcept-b58aea06f1.html"
         },
         {
@@ -301565,7 +301682,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1299,
+          "line": 1325,
           "page": "gui-forms-surfaceroot-motion-clock-const-motionclock-const-noexcept-f0f7cea3c1.html"
         },
         {
@@ -301580,7 +301697,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1304,
+          "line": 1330,
           "page": "gui-forms-surfaceroot-drag-engine-dragengine-7e4c450a90.html"
         },
         {
@@ -301595,7 +301712,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1305,
+          "line": 1331,
           "page": "gui-forms-surfaceroot-drag-engine-if-made-const-dragengine-const-noexcept-d303894f1f.html"
         },
         {
@@ -301621,7 +301738,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1318,
+          "line": 1344,
           "page": "gui-forms-surfaceroot-publish-value-bool-std-string-view-double-cdf71a1f77.html"
         },
         {
@@ -301642,7 +301759,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1319,
+          "line": 1345,
           "page": "gui-forms-surfaceroot-withdraw-value-void-std-string-view-110be965a2.html"
         },
         {
@@ -301663,7 +301780,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1320,
+          "line": 1346,
           "page": "gui-forms-surfaceroot-published-value-std-optional-double-std-string-view-const-3962188c43.html"
         },
         {
@@ -301678,7 +301795,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1326,
+          "line": 1352,
           "page": "gui-forms-surfaceroot-layout-diagnostics-std-span-const-layoutdiagnostic-const-noexcept-70725b6a79.html"
         },
         {
@@ -301693,7 +301810,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1329,
+          "line": 1355,
           "page": "gui-forms-surfaceroot-layout-diagnostics-std-span-const-layoutdiagnostic-const-981ab8793b.html"
         },
         {
@@ -301708,7 +301825,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1330,
+          "line": 1356,
           "page": "gui-forms-surfaceroot-dropped-layout-diagnostics-std-uint64-t-const-noexcept-cfcfb52437.html"
         },
         {
@@ -301723,7 +301840,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1331,
+          "line": 1357,
           "page": "gui-forms-surfaceroot-clear-layout-diagnostics-void-noexcept-f297f62df4.html"
         },
         {
@@ -301738,7 +301855,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1336,
+          "line": 1362,
           "page": "gui-forms-surfaceroot-control-table-const-detail-controltable-const-noexcept-c2f5a852bd.html"
         },
         {
@@ -301753,7 +301870,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1337,
+          "line": 1363,
           "page": "gui-forms-surfaceroot-control-table-const-detail-controltable-const-6559d6761e.html"
         },
         {
@@ -301774,7 +301891,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1344,
+          "line": 1370,
           "page": "gui-forms-surfaceroot-containing-block-dependent-count-std-size-t-runtimeid-const-noexcept-dbf1f15541.html"
         },
         {
@@ -301789,7 +301906,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1345,
+          "line": 1371,
           "page": "gui-forms-surfaceroot-containing-block-watch-count-std-size-t-const-noexcept-f47a12c5e2.html"
         },
         {
@@ -301804,7 +301921,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1348,
+          "line": 1374,
           "page": "gui-forms-surfaceroot-containing-block-subtree-arranges-std-uint64-t-const-noexcept-e33bde3539.html"
         },
         {
@@ -301825,7 +301942,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1355,
+          "line": 1381,
           "page": "gui-forms-surfaceroot-visual-inspection-snapshot-visualinspectionsnapshot-visualinspectionoptions-b04ad47145.html"
         },
         {
@@ -301840,7 +301957,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1357,
+          "line": 1383,
           "page": "gui-forms-surfaceroot-semantic-snapshot-semanticsnapshot-03f8fee383.html"
         },
         {
@@ -301855,7 +301972,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1358,
+          "line": 1384,
           "page": "gui-forms-surfaceroot-semantic-generation-std-uint64-t-const-noexcept-3b046f2015.html"
         },
         {
@@ -301870,7 +301987,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1365,
+          "line": 1391,
           "page": "gui-forms-surfaceroot-layout-pass-sequence-std-uint64-t-const-noexcept-e23eaa01ca.html"
         },
         {
@@ -301901,7 +302018,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1372,
+          "line": 1398,
           "page": "gui-forms-surfaceroot-perform-semantic-action-bool-std-string-view-semanticaction-std-string-view-4f2dbf4d44.html"
         },
         {
@@ -301937,7 +302054,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1388,
+          "line": 1414,
           "page": "gui-forms-surfaceroot-perform-semantic-action-bool-runtimeid-std-string-view-semanticaction-std-string-view-14898e24e8.html"
         },
         {
@@ -301963,7 +302080,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1398,
+          "line": 1424,
           "page": "gui-forms-surfaceroot-semantic-text-layout-semantictextresult-runtimeid-semantictextlayout-4e2752e152.html"
         },
         {
@@ -301989,7 +302106,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1405,
+          "line": 1431,
           "page": "gui-forms-surfaceroot-set-semantic-text-selection-semantictextresult-runtimeid-semantictextselection-41e255d30b.html"
         },
         {
@@ -302020,7 +302137,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1412,
+          "line": 1438,
           "page": "gui-forms-surfaceroot-surfaceroot-void-control-ptr-size-std-shared-ptr-applicationresources-63d8a31a41.html"
         },
         {
@@ -302035,7 +302152,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1415,
+          "line": 1441,
           "page": "gui-forms-surfaceroot-surfaceroot-void-90701743df.html"
         },
         {
@@ -302056,7 +302173,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1421,
+          "line": 1447,
           "page": "gui-forms-surfaceroot-resize-surface-bool-size-062acdb6e6.html"
         },
         {
@@ -302077,7 +302194,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1426,
+          "line": 1452,
           "page": "gui-forms-surfaceroot-set-surface-scale-bool-double-967bcac610.html"
         },
         {
@@ -302092,7 +302209,7 @@
           "comment": "",
           "header": "gui_forms/surface_root/surface_root.hpp",
           "source": "include/gui_forms/surface_root/surface_root.hpp",
-          "line": 1432,
+          "line": 1458,
           "page": "gui-forms-surfaceroot-release-tree-void-noexcept-e9b57f1f41.html"
         }
       ],
@@ -387242,7 +387359,7 @@
       "comment": "",
       "header": "gui_forms/control/control/control.hpp",
       "source": "include/gui_forms/control/control/control.hpp",
-      "line": 1595,
+      "line": 1607,
       "page": "gui-forms-kept-resolutions-of-detail-keptresolutions-const-gui-forms-control-d12ec01750.html",
       "associated_type": "gui_forms::Control"
     },
@@ -387385,11 +387502,11 @@
           "declaration": "LayoutDiagnosticCode code"
         }
       ],
-      "declaration": "",
+      "declaration": "I_FORMS_API std::string_view layout_diagnostic_code_name(LayoutDiagnosticCode code) noexcept",
       "comment": "",
       "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
       "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
-      "line": 28,
+      "line": 37,
       "page": "gui-forms-layout-diagnostic-code-name-std-string-view-layoutdiagnosticcode-noexcept-f5178e1134.html"
     },
     {
@@ -387410,7 +387527,7 @@
       "comment": "",
       "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
       "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
-      "line": 26,
+      "line": 35,
       "page": "gui-forms-layout-diagnostic-severity-layoutdiagnosticseverity-layoutdiagnosticcode-noexcept-0dfd6e93f6.html"
     },
     {
@@ -387826,7 +387943,7 @@
       "comment": "",
       "header": "gui_forms/control/control/control.hpp",
       "source": "include/gui_forms/control/control/control.hpp",
-      "line": 2433,
+      "line": 2445,
       "page": "gui-forms-make-control-std-shared-ptr-controltype-stableid-arguments-ab49b15c88.html"
     },
     {
@@ -391326,7 +391443,7 @@
       "comment": "",
       "header": "gui_forms/control/control/control.hpp",
       "source": "include/gui_forms/control/control/control.hpp",
-      "line": 1542,
+      "line": 1554,
       "page": "gui-forms-operator-bool-const-gui-forms-control-layoutkey-const-gui-forms-control-layoutkey-noexcept-0234409f67.html",
       "associated_type": "gui_forms::Control::LayoutKey"
     },
@@ -393513,7 +393630,7 @@
       "comment": "",
       "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
       "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-      "line": 98,
+      "line": 101,
       "page": "gui-forms-operator-bool-const-gui-forms-imageatlasslot-const-gui-forms-imageatlasslot-noexcept-bc50ea8ae5.html",
       "associated_type": "gui_forms::ImageAtlasSlot"
     },
@@ -393783,7 +393900,7 @@
       "comment": "",
       "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
       "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
-      "line": 39,
+      "line": 49,
       "page": "gui-forms-operator-bool-const-gui-forms-layoutdiagnostic-const-gui-forms-layoutdiagnostic-noexcept-1c8201d225.html",
       "associated_type": "gui_forms::LayoutDiagnostic"
     },
@@ -399333,7 +399450,7 @@
       "comment": "",
       "header": "gui_forms/control/control/control.hpp",
       "source": "include/gui_forms/control/control/control.hpp",
-      "line": 1723,
+      "line": 1735,
       "page": "gui-forms-paint-part-with-built-in-recipe-void-painter-const-gui-forms-control-const-partpaint-const-surfacema-dc9956c663.html",
       "associated_type": "gui_forms::Control"
     },
@@ -409531,7 +409648,7 @@
       "comment": "",
       "header": "gui_forms/resources/image_atlas/image_atlas.hpp",
       "source": "include/gui_forms/resources/image_atlas/image_atlas.hpp",
-      "line": 86,
+      "line": 89,
       "page": "gui-forms-image-atlas-pending-every-slot-const-std-uint32-t-fdab70c9a8.html"
     },
     {
@@ -410116,7 +410233,7 @@
       "comment": "",
       "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
       "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
-      "line": 50,
+      "line": 60,
       "page": "gui-forms-maximum-containing-block-dependents-const-std-size-t-3c7fb9ba89.html"
     },
     {
@@ -410821,7 +410938,7 @@
       "comment": "",
       "header": "gui_forms/layout/diagnostics/layout_diagnostics.hpp",
       "source": "include/gui_forms/layout/diagnostics/layout_diagnostics.hpp",
-      "line": 46,
+      "line": 56,
       "page": "gui-forms-maximum-layout-diagnostics-const-std-size-t-ec9a35d1d1.html"
     },
     {
