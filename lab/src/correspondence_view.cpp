@@ -737,7 +737,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
         // PartPaint::text borrows: each elided line is held in a named
         // string that outlives its part's paint.
         const std::string title = elide_text_end(painter, item.title, fonts.title, layout.title_width);
-        content.text = title;
+        content.text = lend_paint_text(title);
         content.font = fonts.title;
         paint_text_part_at(painter, *this, content, layout.title_origin, layout.title_width);
         PartPaint secondary = content;
@@ -745,10 +745,10 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
         secondary.states = status_states;
         const std::string secondary_line =
             elide_text_end(painter, item.secondary_text, fonts.secondary, layout.secondary_width);
-        secondary.text = secondary_line;
+        secondary.text = lend_paint_text(secondary_line);
         secondary.font = fonts.secondary;
         paint_text_part_at(painter, *this, secondary, layout.secondary_origin, layout.secondary_width);
-        content.text = item.metric;
+        content.text = lend_paint_text(item.metric);
         content.font = fonts.metric;
         paint_text_part_at(painter, *this, content, layout.metric_origin,
                            std::max(0.0, row.x + row.width - layout.metric_origin.x));
@@ -769,7 +769,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
             word_label.family = ControlVisualRole::card;
             word_label.role = PartRole::label;
             word_label.states = status_states;
-            word_label.text = layout.state_text;
+            word_label.text = lend_paint_text(layout.state_text);
             word_label.font = word_font;
             word_label.measured_text = word;
             paint_text_part_at(painter, *this, word_label, word_origin, word.width);
@@ -785,7 +785,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
             paint_part(painter, *this, rule);
             const double evidence_x = layout.evidence_x;
             const Rect excerpt_box = layout.excerpt_box;
-            content.text = item.metadata;
+            content.text = lend_paint_text(item.metadata);
             content.font = fonts.evidence;
             paint_text_part_at(painter, *this, content, {evidence_x, body_top + 16.0 * scale},
                                excerpt_box.width);
@@ -801,7 +801,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
             quiet.family = ControlVisualRole::editor;
             quiet.tone = PartTextTone::secondary;
             quiet.states = status_states;
-            quiet.text = "MATCHED EXCERPT";
+            quiet.text = lend_paint_text("MATCHED EXCERPT");
             quiet.font = fonts.evidence_bold;
             paint_text_part_at(painter, *this, quiet,
                                {excerpt_box.x + 6.0, excerpt_box.y + 15.0 * scale},
@@ -832,7 +832,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
                 heading.family = ControlVisualRole::card;
                 heading.role = PartRole::label;
                 heading.states = item_states;
-                heading.text = item.information_heading;
+                heading.text = lend_paint_text(item.information_heading);
                 heading.font = fonts.evidence_bold;
                 paint_text_part_at(painter, *this, heading,
                                    {lane_x + 9.0 * scale, body_top + 18.0 * scale},
@@ -840,11 +840,11 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
                 PartPaint lane_text = heading;
                 lane_text.tone = PartTextTone::secondary;
                 lane_text.font = fonts.evidence;
-                lane_text.text = tags;
+                lane_text.text = lend_paint_text(tags);
                 paint_text_part_at(painter, *this, lane_text,
                                    {lane_x + 9.0 * scale, body_top + 36.0 * scale},
                                    std::max(0.0, layout.lane_width - 12.0 * scale));
-                lane_text.text = item.information_detail;
+                lane_text.text = lend_paint_text(item.information_detail);
                 paint_text_part_at(painter, *this, lane_text,
                                    {lane_x + 9.0 * scale, body_top + 54.0 * scale},
                                    std::max(0.0, layout.lane_width - 12.0 * scale));
@@ -855,7 +855,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
                 lane_text.role = PartRole::label;
                 lane_text.tone = PartTextTone::secondary;
                 lane_text.states = item_states;
-                lane_text.text = summary;
+                lane_text.text = lend_paint_text(summary);
                 lane_text.font = fonts.evidence;
                 paint_text_part_at(painter, *this, lane_text, layout.footer_origin,
                                    std::max(0.0, row.x + row.width - layout.footer_origin.x));
