@@ -1,12 +1,12 @@
-#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
+#include "gui_forms/controls/help_book_viewer.hpp"
 
-#include "gui_forms/controls/button_base/button/button.hpp"
-#include "gui_forms/controls/button_base/check_box/check_box.hpp"
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
-#include "gui_forms/controls/panel/tree_view/tree_view.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/tree_view.hpp"
+#include "gui_forms/controls/tab_control.hpp"
+#include "gui_forms/controls/tab_page.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>

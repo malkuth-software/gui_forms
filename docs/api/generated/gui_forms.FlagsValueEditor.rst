@@ -9,7 +9,7 @@ gui_forms::FlagsValueEditor
 
 .. cpp:class:: FlagsValueEditor final : public Panel, public FlagsValueEditorCapabilities<FlagsValueEditor>
 
-   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp>``
+   ``#include <gui_forms/controls/flags_value_editor.hpp>``
 
    A drop-down field that edits a flags enumeration as a list of check boxes.
 

@@ -9,7 +9,7 @@ gui_forms::TabControl
 
 .. cpp:class:: TabControl final : public ContainerControl, public TabControlCapabilities<TabControl>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/tab_control.hpp>``
 
    A set of pages shown one at a time, chosen from a row of tabs.
 

@@ -9,7 +9,7 @@ gui_forms::AnchoredOverlayLayer
 
 .. cpp:class:: AnchoredOverlayLayer final : public Panel, public AnchoredOverlayLayerCapabilities<AnchoredOverlayLayer>
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer.hpp>``
 
    A transparent full-window overlay that shows one overlay control next to an anchor control.
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/ribbon/ribbon.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 
 #include <cstddef>
 #include <cstdint>

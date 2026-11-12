@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
+#include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/detail/weak_member_callback.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

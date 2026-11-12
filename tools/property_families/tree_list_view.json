@@ -2,9 +2,9 @@
   "family": "TreeListView",
   "step": "B7",
   "declaring": "TreeListView",
-  "header": "include/gui_forms/controls/panel/tree_list_view/tree_list_view.hpp",
+  "header": "include/gui_forms/controls/tree_list_view.hpp",
   "source": "src/controls/panel/tree_list_view/tree_list_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/tree_list_view_capabilities.hpp",
   "shared": [
     "FontCapability"
   ],
@@ -133,7 +133,7 @@
   ],
   "test": {
     "type": "TreeListView",
-    "include": "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
+    "include": "gui_forms/controls/tree_list_view.hpp"
   },
   "includes": [
     "gui_forms/image_list.hpp"

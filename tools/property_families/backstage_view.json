@@ -2,15 +2,15 @@
   "family": "BackstageView",
   "step": "M-S8",
   "declaring": "BackstageView",
-  "header": "include/gui_forms/controls/backstage_view/backstage_view.hpp",
+  "header": "include/gui_forms/controls/backstage_view.hpp",
   "source": "src/controls/backstage_view/backstage_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/backstage_view_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
   "test": {
     "type": "BackstageView",
-    "include": "gui_forms/controls/backstage_view/backstage_view.hpp"
+    "include": "gui_forms/controls/backstage_view.hpp"
   },
   "properties": [
     {

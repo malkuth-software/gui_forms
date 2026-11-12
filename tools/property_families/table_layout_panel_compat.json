@@ -2,13 +2,13 @@
   "family": "TableLayoutPanelCompat",
   "step": "M-S5",
   "declaring": "TableLayoutPanelCompat",
-  "header": "include/gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp",
+  "header": "include/gui_forms/controls/table_layout_panel_compat.hpp",
   "source": "src/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.cpp",
-  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_capabilities/table_layout_panel_compat_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/table_layout_panel_compat_capabilities.hpp",
   "base": "Control",
   "includes": [
-    "gui_forms/controls/scrollable_control/container_control/container_control.hpp",
-    "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_values/table_layout_panel_compat_values.hpp"
+    "gui_forms/controls/container_control.hpp",
+    "gui_forms/controls/table_layout_panel_compat_values.hpp"
   ],
   "properties": [
     {
@@ -151,7 +151,7 @@
   "not_properties": [],
   "test": {
     "type": "TableLayoutPanelCompat",
-    "include": "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
+    "include": "gui_forms/controls/table_layout_panel_compat.hpp"
   },
   "extra_entries": [
     "{\"column_count\", &describe_table_layout_panel_compat_column_count,\n         &read_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::column_count_property), &TableLayoutPanelCompat::column_count_property>,\n         &write_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::set_column_count_property), &TableLayoutPanelCompat::set_column_count_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}",

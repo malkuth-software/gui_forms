@@ -9,7 +9,7 @@ gui_forms::InfoBanner
 
 .. cpp:class:: InfoBanner final : public Control, public InfoBannerCapabilities<InfoBanner>
 
-   ``#include <gui_forms/controls/info_banner/info_banner.hpp>``
+   ``#include <gui_forms/controls/info_banner.hpp>``
 
    A message strip across a form or a page, such as "Changes saved" or "Connection lost; retrying".
 

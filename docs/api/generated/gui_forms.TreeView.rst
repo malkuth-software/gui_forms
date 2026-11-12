@@ -9,7 +9,7 @@ gui_forms::TreeView
 
 .. cpp:class:: TreeView final : public Panel, public TreeViewCapabilities<TreeView>
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
+   ``#include <gui_forms/controls/tree_view.hpp>``
 
    A hierarchy of labelled items that the user expands, collapses and selects.
 

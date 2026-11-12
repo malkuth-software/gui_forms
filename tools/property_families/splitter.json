@@ -2,14 +2,14 @@
   "family": "Splitter",
   "step": "M-S8",
   "declaring": "Splitter",
-  "header": "include/gui_forms/controls/splitter/splitter.hpp",
+  "header": "include/gui_forms/controls/splitter.hpp",
   "source": "src/controls/splitter/splitter.cpp",
-  "capabilities_header": "include/gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/splitter_capabilities.hpp",
   "shared": [],
   "includes": [],
   "test": {
     "type": "Splitter",
-    "include": "gui_forms/controls/splitter/splitter.hpp"
+    "include": "gui_forms/controls/splitter.hpp"
   },
   "properties": [
     {

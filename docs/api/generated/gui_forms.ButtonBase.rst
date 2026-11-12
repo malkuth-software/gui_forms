@@ -9,7 +9,7 @@ gui_forms::ButtonBase
 
 .. cpp:class:: ButtonBase : public Control, public ButtonBaseCapabilities<ButtonBase>
 
-   ``#include <gui_forms/controls/button_base/button_base.hpp>``
+   ``#include <gui_forms/controls/button_base.hpp>``
 
    The common base of every clickable control: text, image, input and the click.
 

@@ -2,12 +2,12 @@
   "family": "SweepScope",
   "step": "M-S6",
   "declaring": "SweepScope",
-  "header": "include/gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp",
+  "header": "include/gui_forms/controls/sweep_scope.hpp",
   "source": "src/controls/instruments/sweep_scope/sweep_scope.cpp",
-  "capabilities_header": "include/gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/sweep_scope_capabilities.hpp",
   "base": "RangeControl",
   "includes": [
-    "gui_forms/controls/range_control/range_control.hpp",
+    "gui_forms/controls/range_control.hpp",
     "gui_forms/animation.hpp"
   ],
   "properties": [
@@ -82,6 +82,6 @@
   "not_properties": [],
   "test": {
     "type": "SweepScope",
-    "include": "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
+    "include": "gui_forms/controls/sweep_scope.hpp"
   }
 }

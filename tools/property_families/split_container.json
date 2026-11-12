@@ -2,18 +2,18 @@
   "family": "SplitContainer",
   "step": "M-S8",
   "declaring": "SplitContainer",
-  "header": "include/gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp",
+  "header": "include/gui_forms/controls/split_container.hpp",
   "source": "src/controls/scrollable_control/container_control/split_container/split_container.cpp",
-  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/split_container_capabilities.hpp",
   "shared": [],
   "includes": [
-    "gui_forms/controls/range_control/range_control.hpp",
-    "gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp",
+    "gui_forms/controls/range_control.hpp",
+    "gui_forms/controls/split_container_values.hpp",
     "gui_forms/scheduler/types/scheduler_types.hpp"
   ],
   "test": {
     "type": "SplitContainer",
-    "include": "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
+    "include": "gui_forms/controls/split_container.hpp"
   },
   "properties": [
     {

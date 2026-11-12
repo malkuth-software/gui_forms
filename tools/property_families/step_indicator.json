@@ -2,9 +2,9 @@
   "family": "StepIndicator",
   "step": "2.5",
   "declaring": "StepIndicator",
-  "header": "include/gui_forms/controls/step_indicator/step_indicator.hpp",
+  "header": "include/gui_forms/controls/step_indicator.hpp",
   "source": "src/controls/step_indicator/step_indicator.cpp",
-  "capabilities_header": "include/gui_forms/controls/step_indicator/step_indicator_capabilities/step_indicator_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/step_indicator_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
@@ -47,6 +47,6 @@
   "test": {
     "type": "StepIndicator",
     "configure": ["(*control).set_steps({\"First\", \"Second\"});"],
-    "include": "gui_forms/controls/step_indicator/step_indicator.hpp"
+    "include": "gui_forms/controls/step_indicator.hpp"
   }
 }

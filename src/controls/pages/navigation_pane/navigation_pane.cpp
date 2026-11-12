@@ -1,6 +1,6 @@
-#include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
+#include "gui_forms/controls/navigation_pane.hpp"
 
-#include "gui_forms/controls/pages/page_view/page_view.hpp"
+#include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

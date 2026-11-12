@@ -2,15 +2,15 @@
   "family": "ExpandableSections",
   "step": "M-S8",
   "declaring": "ExpandableSections",
-  "header": "include/gui_forms/controls/collections/expandable_sections.hpp",
+  "header": "include/gui_forms/controls/expandable_sections.hpp",
   "source": "src/controls/collections/expandable_sections.cpp",
-  "capabilities_header": "include/gui_forms/controls/collections/expandable_sections_capabilities/expandable_sections_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/expandable_sections_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [],
   "test": {
     "type": "ExpandableSections",
-    "include": "gui_forms/controls/collections/expandable_sections.hpp"
+    "include": "gui_forms/controls/expandable_sections.hpp"
   },
   "properties": [
     {

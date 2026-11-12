@@ -9,7 +9,7 @@ gui_forms::PropertyList
 
 .. cpp:class:: PropertyList final : public Panel, public PropertyListCapabilities<PropertyList>
 
-   ``#include <gui_forms/controls/panel/property_list/property_list.hpp>``
+   ``#include <gui_forms/controls/property_list.hpp>``
 
    A scrolling list of named settings in collapsible groups, each with a value and an optional editor.
 

@@ -9,7 +9,7 @@ gui_forms::HelpBookViewer
 
 .. cpp:class:: HelpBookViewer final : public Control
 
-   ``#include <gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp>``
+   ``#include <gui_forms/controls/help_book_viewer.hpp>``
 
    Three-pane help viewer: toolbar, Contents, Index, Search and Bookmarks tabs and a HelpBook, with history and contents sync, over one compiled helpbook section.
 

@@ -348,9 +348,9 @@ FormSchema sample_schema(bool spelled) {
     schema.types.push_back(gui_forms::form_language::form_control_type<gui_forms::Button>("button"));
     if (spelled) {
         schema.types[0].cpp_type = "gui_forms::UserControl";
-        schema.types[0].header = "gui_forms/controls/panel/user_control/user_control.hpp";
+        schema.types[0].header = "gui_forms/controls/user_control.hpp";
         schema.types[1].cpp_type = "gui_forms::Button";
-        schema.types[1].header = "gui_forms/controls/button_base/button/button.hpp";
+        schema.types[1].header = "gui_forms/controls/button.hpp";
     }
     return schema;
 }

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
+#include "gui_forms/controls/domain_up_down.hpp"
 
 #include "../up_down/spin_buttons.hpp"
 #include "../panel_anatomy.hpp"

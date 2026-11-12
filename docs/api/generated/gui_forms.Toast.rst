@@ -9,7 +9,7 @@ gui_forms::Toast
 
 .. cpp:class:: Toast final : public Control
 
-   ``#include <gui_forms/controls/toast/toast.hpp>``
+   ``#include <gui_forms/controls/toast.hpp>``
 
    A brief notice shown for a while above the bottom of a window, such as "Message archived." with an Undo button after a deletion.
 

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/range_control/range_control.hpp"
+#include "gui_forms/controls/range_control.hpp"
 
 #include "range_control_rendering.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

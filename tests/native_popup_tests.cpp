@@ -6,8 +6,8 @@
 // cannot open one falls back to an overlay, or refuses when asked to.
 #include "gui_forms/application.hpp"
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
-#include "gui_forms/controls/task_dialog/task_dialog.hpp"
+#include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
 #include "application/headless_application.hpp"

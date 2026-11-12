@@ -9,7 +9,7 @@ gui_forms::DomainUpDown
 
 .. cpp:class:: DomainUpDown final : public Panel, public TextItemsCapability<DomainUpDown>, public DomainUpDownCapabilities<DomainUpDown>
 
-   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down.hpp>``
+   ``#include <gui_forms/controls/domain_up_down.hpp>``
 
    A text field with up and down buttons that steps through a list of strings.
 

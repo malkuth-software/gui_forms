@@ -8,7 +8,7 @@
 // sub-surface's thread. One thread per engine.
 
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
+#include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/plots/axis/axis.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/mark_painters/mark_painters.hpp"

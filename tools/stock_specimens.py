@@ -1,6 +1,6 @@
 """Write or check the stock specimen catalogue's generated table.
 
-The stock specimen catalogue (``gui_forms/controls/specimen/stock_specimens``,
+The stock specimen catalogue (``gui_forms/controls/stock_specimens``,
 owner request 2026-11-11) holds one representative instance maker for every
 control type of the control schema (``manifests/control-schema.json``, kind
 ``control``), in schema order, so that a theme palette is complete by

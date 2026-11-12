@@ -2,12 +2,12 @@
   "family": "FlexPanel",
   "step": "M-S5",
   "declaring": "FlexPanel",
-  "header": "include/gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp",
+  "header": "include/gui_forms/controls/flex_panel.hpp",
   "source": "src/controls/scrollable_control/container_control/flex_panel/flex_panel.cpp",
-  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/flex_panel_capabilities.hpp",
   "base": "ScrollableControl",
   "includes": [
-    "gui_forms/controls/scrollable_control/container_control/container_control.hpp",
+    "gui_forms/controls/container_control.hpp",
     "gui_forms/layout/style/layout_style.hpp"
   ],
   "properties": [
@@ -162,7 +162,7 @@
   "not_properties": [],
   "test": {
     "type": "FlexPanel",
-    "include": "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp"
+    "include": "gui_forms/controls/flex_panel.hpp"
   },
   "extra_entries": [
     "{\"style\", &describe_flex_panel_style,\n         &read_member_entry<FlexPanel, decltype(&FlexPanel::style_property), &FlexPanel::style_property>,\n         &write_member_entry<FlexPanel, decltype(&FlexPanel::set_style_property), &FlexPanel::set_style_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}"

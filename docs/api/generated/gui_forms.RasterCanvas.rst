@@ -9,7 +9,7 @@ gui_forms::RasterCanvas
 
 .. cpp:class:: RasterCanvas : public Control, public RasterCanvasCapabilities<RasterCanvas>
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas.hpp>``
+   ``#include <gui_forms/controls/raster_canvas.hpp>``
 
    A zoomable, pannable view of a bitmap that the application owns and edits.
 

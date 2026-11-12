@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/tree_view.hpp"
 
 #include "../collection_control_utilities.hpp"
 #include "../cut_off_text/cut_off_text_reveal.hpp"

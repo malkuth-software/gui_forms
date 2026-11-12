@@ -9,8 +9,8 @@
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
-#include "gui_forms/controls/panel/list_view/list_view.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/list_view.hpp"
 
 #include <cstdio>
 #include <cstdlib>

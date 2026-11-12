@@ -3,7 +3,7 @@
 // Ribbon geometry and command-kind tests shared by the ribbon's sources
 // (ribbon.cpp and ribbon_scaling.cpp). Private to the ribbon.
 
-#include "gui_forms/controls/ribbon/ribbon.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 
 #include <cmath>
 #include <cstddef>

@@ -9,7 +9,7 @@ gui_forms::ToggleSwitch
 
 .. cpp:class:: ToggleSwitch final : public ButtonBase, public ToggleSwitchCapabilities<ToggleSwitch>
 
-   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp>``
+   ``#include <gui_forms/controls/toggle_switch.hpp>``
 
    A switch for a setting that takes effect as soon as it is turned, such as "Wi-Fi" on or off.
 

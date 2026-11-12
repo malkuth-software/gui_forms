@@ -9,7 +9,7 @@ gui_forms::Badge
 
 .. cpp:class:: Badge final : public Control, public BadgeCapabilities<Badge>
 
-   ``#include <gui_forms/controls/badge/badge.hpp>``
+   ``#include <gui_forms/controls/badge.hpp>``
 
    A small count or dot, such as the number of unread messages beside a mailbox.
 

@@ -1,7 +1,7 @@
 // DataGridView layout, part geometry, painting and anatomy. Every part has
 // one geometry function, used both by on_paint and by the published anatomy.
 
-#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
 
 #include "../text_block/line_wrapping.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

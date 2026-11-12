@@ -9,7 +9,7 @@ gui_forms::MaskedTextBox
 
 .. cpp:class:: MaskedTextBox final : public Panel, public MaskedTextBoxCapabilities<MaskedTextBox>
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box.hpp>``
+   ``#include <gui_forms/controls/masked_text_box.hpp>``
 
    A text box that takes input through a mask.
 

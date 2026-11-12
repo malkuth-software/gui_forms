@@ -1,4 +1,4 @@
-#include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
+#include "gui_forms/controls/dock_navigator.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"

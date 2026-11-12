@@ -9,7 +9,7 @@ gui_forms::LinkLabel
 
 .. cpp:class:: LinkLabel : public ButtonBase, public LinkLabelCapabilities<LinkLabel>
 
-   ``#include <gui_forms/controls/button_base/link_label/link_label.hpp>``
+   ``#include <gui_forms/controls/link_label.hpp>``
 
    Underlined text that the user clicks like a hyperlink.
 

@@ -5,8 +5,8 @@
 // restores both strips exactly. Internal to the controls library.
 
 #include "gui_forms/components/context_menu/context_menu.hpp"
-#include "gui_forms/controls/menu_strip/menu_strip.hpp"
-#include "gui_forms/controls/tool_strip/tool_strip.hpp"
+#include "gui_forms/controls/menu_strip.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
 
 #include <cstddef>
 #include <cstdint>

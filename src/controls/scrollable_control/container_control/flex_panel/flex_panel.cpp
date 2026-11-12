@@ -5,7 +5,7 @@
 // publishes the slots. Measurements go through measure_for_layout, so a
 // child whose constraint is unchanged answers from its cache.
 
-#include "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp"
+#include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include "../../scrollable_anatomy.hpp"

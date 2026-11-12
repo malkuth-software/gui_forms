@@ -8,7 +8,7 @@
 #include "gui_forms/application.hpp"
 
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/window.hpp"
 

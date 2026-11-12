@@ -1,4 +1,4 @@
-#include "gui_forms/controls/menu_strip/menu_strip.hpp"
+#include "gui_forms/controls/menu_strip.hpp"
 
 #include "../menu_utilities.hpp"
 #include "../../tool_strip/strip_merge.hpp"

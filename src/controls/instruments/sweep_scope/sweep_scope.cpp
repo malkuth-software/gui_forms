@@ -1,6 +1,6 @@
-#include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
+#include "gui_forms/controls/sweep_scope.hpp"
 
-#include "gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp"
+#include "gui_forms/controls/sweep_scope_effects.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

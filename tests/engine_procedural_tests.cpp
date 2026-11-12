@@ -24,7 +24,7 @@
 // decides acceptance.
 
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"

@@ -9,7 +9,7 @@ gui_forms::PlotSeriesItem
 
 .. cpp:class:: PlotSeriesItem final : public Control, public PlotSeriesItemCapabilities<PlotSeriesItem>
 
-   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item.hpp>``
+   ``#include <gui_forms/controls/plot_series_item.hpp>``
 
    Item child of a PlotView declaring one series: its kind, legend label, axes and data (copied, a ring, borrowed views, a signal program or a producer's ring channel).
 

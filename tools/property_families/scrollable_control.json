@@ -2,16 +2,16 @@
   "family": "ScrollableControl",
   "step": "G9",
   "declaring": "ScrollableControl",
-  "header": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
+  "header": "include/gui_forms/controls/scrollable_control.hpp",
   "source": "src/controls/scrollable_control/scrollable_control.cpp",
-  "capabilities_header": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control_capabilities.hpp",
   "base": "Control",
   "includes": [
     "gui_forms/types.hpp"
   ],
   "test": {
     "type": "ScrollableControl",
-    "include": "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+    "include": "gui_forms/controls/scrollable_control.hpp"
   },
   "properties": [
     {

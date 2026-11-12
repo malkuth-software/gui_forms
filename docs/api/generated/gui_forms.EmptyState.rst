@@ -9,7 +9,7 @@ gui_forms::EmptyState
 
 .. cpp:class:: EmptyState final : public Control, public EmptyStateCapabilities<EmptyState>
 
-   ``#include <gui_forms/controls/empty_state/empty_state.hpp>``
+   ``#include <gui_forms/controls/empty_state.hpp>``
 
    What a list, a page or a search shows when it has nothing to show, such as "No messages" in an empty mailbox.
 

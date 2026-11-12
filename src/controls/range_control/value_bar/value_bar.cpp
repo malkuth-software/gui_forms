@@ -1,4 +1,4 @@
-#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
+#include "gui_forms/controls/value_bar.hpp"
 
 #include "../range_control_rendering.hpp"
 #include "value_text.hpp"

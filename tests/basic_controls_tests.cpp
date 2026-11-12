@@ -1,6 +1,6 @@
 #include "gui_forms/basic_controls.hpp"
-#include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
-#include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
+#include "gui_forms/controls/scaled_group_box.hpp"
+#include "gui_forms/controls/scaled_panel.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/diagnostic_controls.hpp"

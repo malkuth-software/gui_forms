@@ -8,7 +8,7 @@
 
 #include "plot_engine.hpp"
 
-#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
+#include "gui_forms/controls/plot_view.hpp"
 #include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
 #include "gui_forms/plots/series_ring_channel/series_ring_channel.hpp"

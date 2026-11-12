@@ -9,7 +9,7 @@ gui_forms::GaugeBase
 
 .. cpp:class:: GaugeBase : public RangeControl, public GaugeBaseCapabilities<GaugeBase>
 
-   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base.hpp>``
+   ``#include <gui_forms/controls/gauge_base.hpp>``
 
    Shared read-only gauge authority from the instruments package: a RangeControl value with scale marks, units, decimals and low and high alarm limits, a meter to assistive technology, that LinearGauge and RadialGauge draw.
 

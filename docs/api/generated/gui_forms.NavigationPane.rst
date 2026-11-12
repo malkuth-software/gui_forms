@@ -9,7 +9,7 @@ gui_forms::NavigationPane
 
 .. cpp:class:: NavigationPane : public Control, public NavigationPaneCapabilities<NavigationPane>
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    An Outlook-style navigation pane: the selected page's content above a stack of large page buttons.
 

@@ -78,7 +78,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AutoScrollCapability
 
-   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/scrollable_control_capabilities.hpp>``
 
    Whether scroll bars appear when the content exceeds the client area (AutoScroll).
 
@@ -95,7 +95,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AutoScrollMarginCapability
 
-   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/scrollable_control_capabilities.hpp>``
 
    Logical space kept around the content when scrolling; nonnegative (AutoScrollMargin).
 
@@ -110,7 +110,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AutoScrollMinSizeCapability
 
-   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/scrollable_control_capabilities.hpp>``
 
    Smallest logical content size scrolling allows for; nonnegative (AutoScrollMinSize).
 
@@ -125,7 +125,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AutoScrollPositionCapability
 
-   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/scrollable_control_capabilities.hpp>``
 
    The scrolled content's offset, negated as Windows Forms reports it (AutoScrollPosition); a write scrolls to the given position, clamped at zero.
 
@@ -142,7 +142,7 @@ Related types
 
 .. cpp:struct:: ScrollableControl::Parts final
 
-   ``#include <gui_forms/controls/scrollable_control/scrollable_control.hpp>``
+   ``#include <gui_forms/controls/scrollable_control.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -174,7 +174,7 @@ Related types
 
 .. cpp:struct:: ScrollableControl::States final
 
-   ``#include <gui_forms/controls/scrollable_control/scrollable_control.hpp>``
+   ``#include <gui_forms/controls/scrollable_control.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -194,7 +194,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScrollableControlCapabilities : public AutoScrollCapability<Declaring>, public AutoScrollMarginCapability<Declaring>, public AutoScrollMinSizeCapability<Declaring>, public AutoScrollPositionCapability<Declaring>, public WheelScrollsCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/scrollable_control_capabilities.hpp>``
 
    Every ScrollableControl capability, in the order the declaring class takes them.
 
@@ -225,7 +225,7 @@ Related types
 
 .. cpp:struct:: ScrollAxisSnapshot final
 
-   ``#include <gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp>``
+   ``#include <gui_forms/controls/scroll_properties.hpp>``
 
    ScrollAxisSnapshot exposes minimum, maximum, viewport, small/large change, value, effective maximum, and visibility for one axis.
 
@@ -255,7 +255,7 @@ Related types
 
 .. cpp:struct:: ScrollBar::Parts final
 
-   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp>``
+   ``#include <gui_forms/controls/scroll_bar.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -281,7 +281,7 @@ Related types
 
 .. cpp:struct:: ScrollBar::States final
 
-   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp>``
+   ``#include <gui_forms/controls/scroll_bar.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -301,7 +301,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScrollBarButtonExtentCapability
 
-   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/scroll_bar_capabilities.hpp>``
 
    The arrow buttons' extent along the axis, 8 to 64 pixels (else std::invalid_argument).
 
@@ -318,7 +318,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScrollBarCapabilities : public ScrollBarButtonExtentCapability<Declaring>, public ScrollBarMinimumThumbExtentCapability<Declaring>, public ScrollBarInitialRepeatDelayCapability<Declaring>, public ScrollBarRepeatIntervalCapability<Declaring>
 
-   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/scroll_bar_capabilities.hpp>``
 
    Every ScrollBar capability, in the order the declaring class takes them.
 
@@ -345,7 +345,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScrollBarInitialRepeatDelayCapability
 
-   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/scroll_bar_capabilities.hpp>``
 
    How long a held part waits before it repeats, 100ms to 2s (else std::invalid_argument); a press already repeating keeps its schedule.
 
@@ -362,7 +362,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScrollBarMinimumThumbExtentCapability
 
-   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/scroll_bar_capabilities.hpp>``
 
    The thumb's least extent, 8 to 128 pixels (else std::invalid_argument).
 
@@ -379,7 +379,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScrollBarRepeatIntervalCapability
 
-   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/scroll_bar_capabilities.hpp>``
 
    The interval between a held part's repeats, 16ms to 500ms (else std::invalid_argument).
 
@@ -396,7 +396,7 @@ Related types
 
 .. cpp:struct:: ScrollEvent final
 
-   ``#include <gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp>``
+   ``#include <gui_forms/controls/scroll_properties.hpp>``
 
    ScrollEvent reports axis, mutation kind, old/new values, and logical orientation for one admitted scroll transition.
 
@@ -416,7 +416,7 @@ Related types
 
 .. cpp:class:: ScrollProperties final
 
-   ``#include <gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp>``
+   ``#include <gui_forms/controls/scroll_properties.hpp>``
 
    ScrollProperties is the owner-bound, per-axis state model for enabled/visible state, authored or automatic range increments, clamped position, orientation, and inspectable snapshot projection.
 
@@ -491,7 +491,7 @@ Related types
 
 .. cpp:struct:: ScrollSnapshot final
 
-   ``#include <gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp>``
+   ``#include <gui_forms/controls/scroll_properties.hpp>``
 
    ScrollSnapshot combines horizontal/vertical axis snapshots with auto-scroll policy, margin, minimum size, offset, and logical position.
 
@@ -515,7 +515,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WheelScrollsCapability
 
-   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/scrollable_control_capabilities.hpp>``
 
    Whether a wheel turn over the control, or bubbling unhandled from a descendant, scrolls the control natively; false leaves the wheel to the consumer (a compatibility layer's OnMouseWheel).
 
@@ -535,7 +535,7 @@ Enumerations
 
 .. cpp:enum-class:: ScrollBarPart
 
-   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp>``
+   ``#include <gui_forms/controls/scroll_bar.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -553,7 +553,7 @@ Enumerations
 
 .. cpp:enum-class:: ScrollEventType
 
-   ``#include <gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp>``
+   ``#include <gui_forms/controls/scroll_properties.hpp>``
 
    .. cpp:enumerator:: small_decrement
 
@@ -577,7 +577,7 @@ Enumerations
 
 .. cpp:enum-class:: ScrollOrientation
 
-   ``#include <gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp>``
+   ``#include <gui_forms/controls/scroll_properties.hpp>``
 
    .. cpp:enumerator:: horizontal
 
@@ -588,7 +588,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/scrollable_control/scroll_bar_metrics/scroll_bar_metrics.hpp>``
+``#include <gui_forms/controls/scroll_bar_metrics.hpp>``
 
 .. cpp:var:: constexpr double scroll_thumb_extent_default
 

@@ -9,7 +9,7 @@ gui_forms::RadialGauge
 
 .. cpp:class:: RadialGauge final : public GaugeBase
 
-   ``#include <gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp>``
+   ``#include <gui_forms/controls/radial_gauge.hpp>``
 
    Dial gauge from the instruments package: the value lighting a 270-degree scale arc with marks, alarm segments and a needle, the value as text below the centre.
 

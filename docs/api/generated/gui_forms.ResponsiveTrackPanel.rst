@@ -9,7 +9,7 @@ gui_forms::ResponsiveTrackPanel
 
 .. cpp:class:: ResponsiveTrackPanel final : public ContainerControl, public ChildTrackCapability<ResponsiveTrackPanel>, public ResponsiveTrackPanelCapabilities<ResponsiveTrackPanel>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
    A container that divides one axis into tracks which shrink, grow and collapse in an order you set.
 

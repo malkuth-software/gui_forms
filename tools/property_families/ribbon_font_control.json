@@ -2,9 +2,9 @@
   "family": "RibbonFontControl",
   "step": "M-S8",
   "declaring": "RibbonFontControl",
-  "header": "include/gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp",
+  "header": "include/gui_forms/controls/ribbon_font_control.hpp",
   "source": "src/controls/ribbon_font_control/ribbon_font_control.cpp",
-  "capabilities_header": "include/gui_forms/controls/ribbon_font_control/ribbon_font_control_capabilities/ribbon_font_control_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/ribbon_font_control_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
@@ -12,7 +12,7 @@
   ],
   "test": {
     "type": "RibbonFontControl",
-    "include": "gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp"
+    "include": "gui_forms/controls/ribbon_font_control.hpp"
   },
   "properties": [
     {

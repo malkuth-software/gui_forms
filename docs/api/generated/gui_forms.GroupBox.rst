@@ -9,7 +9,7 @@ gui_forms::GroupBox
 
 .. cpp:class:: GroupBox : public Panel, public GroupBoxCapabilities<GroupBox>
 
-   ``#include <gui_forms/controls/panel/group_box/group_box.hpp>``
+   ``#include <gui_forms/controls/group_box.hpp>``
 
    A framed group of controls with a caption.
 

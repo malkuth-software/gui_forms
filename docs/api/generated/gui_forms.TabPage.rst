@@ -9,7 +9,7 @@ gui_forms::TabPage
 
 .. cpp:class:: TabPage final : public Panel, public TabPageCapabilities<TabPage>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp>``
+   ``#include <gui_forms/controls/tab_page.hpp>``
 
    One page of a tab control, with the caption shown on its tab.
 

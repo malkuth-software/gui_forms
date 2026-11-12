@@ -157,7 +157,7 @@ struct FormSchemaType final {
     // For the generator (FD5): the C++ class, qualified from the global
     // namespace without a leading `::` (`gui_forms::CheckBox`, or an
     // application's `my_app::NoteCard`), and the header that declares it
-    // (`gui_forms/controls/button_base/check_box/check_box.hpp`); empty for
+    // (`gui_forms/controls/check_box.hpp`); empty for
     // a type the generator cannot spell.
     std::string cpp_type{};
     std::string header{};

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/text.hpp"
 

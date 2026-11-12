@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/animation.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
+#include "gui_forms/controls/split_container.hpp"
 #include "gui_forms/scheduler.hpp"
 
 #include <chrono>

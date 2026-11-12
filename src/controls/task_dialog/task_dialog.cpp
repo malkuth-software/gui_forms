@@ -1,6 +1,6 @@
-#include "gui_forms/controls/task_dialog/task_dialog.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
 
-#include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

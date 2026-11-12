@@ -9,7 +9,7 @@ gui_forms::RibbonGallery
 
 .. cpp:class:: RibbonGallery final : public Control, public RibbonGalleryCapabilities<RibbonGallery>
 
-   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
 
    A ribbon gallery: a grid of image items in categories, in the ribbon or as a drop-down.
 

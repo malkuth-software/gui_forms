@@ -9,7 +9,7 @@ gui_forms::CommandOverflowPanel
 
 .. cpp:class:: CommandOverflowPanel final : public ContainerControl, public GroupSpecCapability<CommandOverflowPanel>, public CommandOverflowPanelCapabilities<CommandOverflowPanel>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp>``
+   ``#include <gui_forms/controls/command_overflow_panel.hpp>``
 
    A horizontal row of command groups that hides whole groups, in an order you set, when the row is too narrow.
 

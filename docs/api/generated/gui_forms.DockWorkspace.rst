@@ -9,7 +9,7 @@ gui_forms::DockWorkspace
 
 .. cpp:class:: DockWorkspace final : public Component, public DockWorkspaceCapabilities<DockWorkspace>
 
-   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>``
 
    A docking workspace: the layout, the panels and their factories, and which panel and document are active.
 

@@ -9,7 +9,7 @@ gui_forms::Wizard
 
 .. cpp:class:: Wizard final : public Control, public WizardCapabilities<Wizard>
 
-   ``#include <gui_forms/controls/wizard/wizard.hpp>``
+   ``#include <gui_forms/controls/wizard.hpp>``
 
    Guided sequence of WizardPage children shown one at a time, with the page's title and description, a step indicator, Back, Next or Finish and Cancel, and a cancellable page_changing.
 

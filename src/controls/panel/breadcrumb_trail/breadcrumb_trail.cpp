@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
+#include "gui_forms/controls/breadcrumb_trail.hpp"
 
 #include "../collection_control_utilities.hpp"
 #include "gui_forms/window.hpp"

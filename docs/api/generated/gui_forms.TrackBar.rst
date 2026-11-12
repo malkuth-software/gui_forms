@@ -9,7 +9,7 @@ gui_forms::TrackBar
 
 .. cpp:class:: TrackBar : public RangeControl, public TrackBarCapabilities<TrackBar>
 
-   ``#include <gui_forms/controls/range_control/track_bar/track_bar.hpp>``
+   ``#include <gui_forms/controls/track_bar.hpp>``
 
    A slider the user drags, clicks or steps with the keyboard to pick a value in a range.
 

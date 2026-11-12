@@ -9,7 +9,7 @@ gui_forms::MenuStrip
 
 .. cpp:class:: MenuStrip final : public Control, public MenuStripCapabilities<MenuStrip>
 
-   ``#include <gui_forms/controls/menu_strip/menu_strip.hpp>``
+   ``#include <gui_forms/controls/menu_strip.hpp>``
 
    A window's menu bar: a row of top-level menus such as File, Edit and View.
 

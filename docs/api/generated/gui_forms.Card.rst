@@ -9,7 +9,7 @@ gui_forms::Card
 
 .. cpp:class:: Card : public Panel, public CardCapabilities<Card>
 
-   ``#include <gui_forms/controls/panel/card/card.hpp>``
+   ``#include <gui_forms/controls/card.hpp>``
 
    A themed surface with a header, a body and a footer.
 

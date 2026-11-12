@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp"
+#include "gui_forms/controls/auto_complete.hpp"
 
 #include "gui_forms/text.hpp"
 

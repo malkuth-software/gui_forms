@@ -3,7 +3,7 @@
 // recursion, allocation, globals, clocks or host maths; drawing through the
 // canvas alone.
 
-#include "gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp"
+#include "gui_forms/controls/sweep_scope_effects.hpp"
 
 // Built without the gui_forms plugin's effect pass (GUI_FORMS_EFFECT_VERIFY
 // OFF, or a toolchain that cannot load the plugin), CMake defines this, and

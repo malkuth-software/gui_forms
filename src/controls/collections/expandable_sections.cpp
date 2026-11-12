@@ -1,4 +1,4 @@
-#include "gui_forms/controls/collections/expandable_sections.hpp"
+#include "gui_forms/controls/expandable_sections.hpp"
 #include "gui_forms/text.hpp"
 #include "../panel/panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

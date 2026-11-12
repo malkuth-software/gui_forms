@@ -1,4 +1,4 @@
-#include "gui_forms/controls/collections/choice_group.hpp"
+#include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

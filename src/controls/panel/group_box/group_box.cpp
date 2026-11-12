@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/group_box/group_box.hpp"
+#include "gui_forms/controls/group_box.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"

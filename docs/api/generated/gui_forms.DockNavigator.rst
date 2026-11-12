@@ -9,7 +9,7 @@ gui_forms::DockNavigator
 
 .. cpp:class:: DockNavigator : public Control, public DockNavigatorCapabilities<DockNavigator>
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
+   ``#include <gui_forms/controls/dock_navigator.hpp>``
 
    The two-list window switcher of docking: the active tool windows beside the active files.
 

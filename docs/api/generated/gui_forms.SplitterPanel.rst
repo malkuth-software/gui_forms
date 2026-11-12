@@ -9,7 +9,7 @@ gui_forms::SplitterPanel
 
 .. cpp:class:: SplitterPanel final : public ContainerControl, public SplitterPanelCapabilities<SplitterPanel>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp>``
+   ``#include <gui_forms/controls/splitter_panel.hpp>``
 
    One of the two panes of a :cpp:class:`SplitContainer <gui_forms::SplitContainer>`, which holds that pane's content.
 

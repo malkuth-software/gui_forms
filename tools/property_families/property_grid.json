@@ -2,9 +2,9 @@
   "family": "PropertyGrid",
   "step": "B6",
   "declaring": "PropertyGrid",
-  "header": "include/gui_forms/controls/panel/property_grid/property_grid.hpp",
+  "header": "include/gui_forms/controls/property_grid.hpp",
   "source": "src/controls/panel/property_grid/property_grid.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/property_grid_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
@@ -101,6 +101,6 @@
   ],
   "test": {
     "type": "PropertyGrid",
-    "include": "gui_forms/controls/panel/property_grid/property_grid.hpp"
+    "include": "gui_forms/controls/property_grid.hpp"
   }
 }

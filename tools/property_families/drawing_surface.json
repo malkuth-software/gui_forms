@@ -2,9 +2,9 @@
   "family": "DrawingSurface",
   "step": "M-S8",
   "declaring": "DrawingSurface",
-  "header": "include/gui_forms/controls/drawing_surface/drawing_surface.hpp",
+  "header": "include/gui_forms/controls/drawing_surface.hpp",
   "source": "src/controls/drawing_surface/drawing_surface.cpp",
-  "capabilities_header": "include/gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/drawing_surface_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
@@ -13,7 +13,7 @@
   ],
   "test": {
     "type": "DrawingSurface",
-    "include": "gui_forms/controls/drawing_surface/drawing_surface.hpp"
+    "include": "gui_forms/controls/drawing_surface.hpp"
   },
   "properties": [
     {

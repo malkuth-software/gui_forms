@@ -9,7 +9,7 @@ gui_forms::SearchField
 
 .. cpp:class:: SearchField final : public Control, public SearchFieldCapabilities<SearchField>
 
-   ``#include <gui_forms/controls/search_field/search_field.hpp>``
+   ``#include <gui_forms/controls/search_field.hpp>``
 
    A text field for a query, such as the search box above a list of messages.
 

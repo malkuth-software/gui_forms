@@ -1,4 +1,4 @@
-#include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+#include "gui_forms/controls/track_bar.hpp"
 
 #include "../range_control_rendering.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

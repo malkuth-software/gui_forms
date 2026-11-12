@@ -9,7 +9,7 @@ gui_forms::LinearGauge
 
 .. cpp:class:: LinearGauge final : public GaugeBase
 
-   ``#include <gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp>``
+   ``#include <gui_forms/controls/linear_gauge.hpp>``
 
    Bar gauge from the instruments package: the value filling a horizontal or vertical scale with marks, alarm segments along it and the value as text at its end.
 

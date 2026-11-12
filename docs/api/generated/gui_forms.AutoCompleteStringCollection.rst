@@ -9,7 +9,7 @@ gui_forms::AutoCompleteStringCollection
 
 .. cpp:class:: AutoCompleteStringCollection final
 
-   ``#include <gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp>``
+   ``#include <gui_forms/controls/auto_complete.hpp>``
 
    An ordered list of completion candidates for a text box or combo box.
 

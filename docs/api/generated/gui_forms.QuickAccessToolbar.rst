@@ -9,7 +9,7 @@ gui_forms::QuickAccessToolbar
 
 .. cpp:class:: QuickAccessToolbar final : public ToolStrip, public QuickAccessToolbarCapabilities<QuickAccessToolbar>
 
-   ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar.hpp>``
 
    The Quick Access Toolbar of a ribbon window: a small strip of command buttons the user chooses.
 

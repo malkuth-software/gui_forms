@@ -2,9 +2,9 @@
   "family": "ModalLayer",
   "step": "2.5",
   "declaring": "ModalLayer",
-  "header": "include/gui_forms/controls/modal_layer/modal_layer.hpp",
+  "header": "include/gui_forms/controls/modal_layer.hpp",
   "source": "src/controls/modal_layer/modal_layer.cpp",
-  "capabilities_header": "include/gui_forms/controls/modal_layer/modal_layer_capabilities/modal_layer_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/modal_layer_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
@@ -43,6 +43,6 @@
   ],
   "test": {
     "type": "ModalLayer",
-    "include": "gui_forms/controls/modal_layer/modal_layer.hpp"
+    "include": "gui_forms/controls/modal_layer.hpp"
   }
 }

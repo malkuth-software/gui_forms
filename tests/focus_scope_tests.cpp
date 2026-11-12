@@ -1,6 +1,6 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/window.hpp"
-#include "gui_forms/controls/panel/combo_box/combo_box.hpp"
+#include "gui_forms/controls/combo_box.hpp"
 
 #include <cstdlib>
 #include <array>

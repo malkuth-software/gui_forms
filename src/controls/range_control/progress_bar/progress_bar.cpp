@@ -1,7 +1,7 @@
-#include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
 
 #include "../range_control_rendering.hpp"
-#include "gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp"
+#include "gui_forms/controls/progress_bar_effects.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

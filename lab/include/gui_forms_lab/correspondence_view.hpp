@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-#include "gui_forms/controls/panel/object_view/object_view.hpp"
+#include "gui_forms/controls/object_view.hpp"
 #include "gui_forms_lab/correspondence_view_capabilities.hpp"
 
 namespace gui_forms {

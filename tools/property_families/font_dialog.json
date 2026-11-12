@@ -2,9 +2,9 @@
   "family": "FontDialog",
   "step": "B8",
   "declaring": "FontDialog",
-  "header": "include/gui_forms/controls/panel/font_dialog/font_dialog.hpp",
+  "header": "include/gui_forms/controls/font_dialog.hpp",
   "source": "src/controls/panel/font_dialog/font_dialog.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/font_dialog_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
@@ -87,6 +87,6 @@
   ],
   "test": {
     "type": "FontDialog",
-    "include": "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
+    "include": "gui_forms/controls/font_dialog.hpp"
   }
 }

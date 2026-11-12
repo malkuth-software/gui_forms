@@ -2,13 +2,13 @@
   "family": "ProgressBar",
   "step": "M-S4",
   "declaring": "ProgressBar",
-  "header": "include/gui_forms/controls/range_control/progress_bar/progress_bar.hpp",
+  "header": "include/gui_forms/controls/progress_bar.hpp",
   "source": "src/controls/range_control/progress_bar/progress_bar.cpp",
-  "capabilities_header": "include/gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/progress_bar_capabilities.hpp",
   "base": "RangeControl",
   "includes": [
-    "gui_forms/controls/range_control/range_control.hpp",
-    "gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp",
+    "gui_forms/controls/range_control.hpp",
+    "gui_forms/controls/progress_bar_values.hpp",
     "gui_forms/engine/effect/effect.hpp",
     "gui_forms/animation.hpp"
   ],
@@ -277,6 +277,6 @@
   "not_properties": [],
   "test": {
     "type": "ProgressBar",
-    "include": "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
+    "include": "gui_forms/controls/progress_bar.hpp"
   }
 }

@@ -209,7 +209,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DelimitersCapability
 
-   ``#include <gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/token_box_capabilities.hpp>``
 
    The characters that end an entry when typed or pasted, default ",;". Only ASCII punctuation and the space are admitted; anything else throws std::invalid_argument. Empty: only Enter ends an entry.
 
@@ -226,7 +226,7 @@ Related types
 
 .. cpp:struct:: MaskCulture final
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp>``
+   ``#include <gui_forms/controls/masked_text_provider.hpp>``
 
    The symbols the mask's culture characters stand for: ``.`` the decimal separator, ``,`` the group separator, ``:`` the time separator, ``/`` the date separator and ``$`` the currency symbol. Each symbol is one or more Unicode scalars and each scalar becomes one literal slot. GUI.Forms has no culture service, so the default is the invariant culture's symbols (the invariant currency symbol is U+00A4, the generic currency sign); a caller that wants another culture supplies its symbols.
 
@@ -254,7 +254,7 @@ Related types
 
 .. cpp:struct:: MaskEditResult final
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp>``
+   ``#include <gui_forms/controls/masked_text_provider.hpp>``
 
    What an edit did. On success ``position`` is the last position the edit wrote or passed over (the start position when the input was empty); on failure it is the position the refused character was tested at, and the provider is unchanged.
 
@@ -273,7 +273,7 @@ Related types
 
 .. cpp:struct:: MaskedTextBox::Parts final
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box.hpp>``
+   ``#include <gui_forms/controls/masked_text_box.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -289,7 +289,7 @@ Related types
 
 .. cpp:struct:: MaskedTextBox::States final
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box.hpp>``
+   ``#include <gui_forms/controls/masked_text_box.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -315,7 +315,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxAllowPromptAsInputCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    Whether the prompt character is accepted as input (AllowPromptAsInput); a view onto the provider.
 
@@ -332,7 +332,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxAsciiOnlyCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    Whether letter positions take only ASCII letters (AsciiOnly); a view onto the provider.
 
@@ -349,7 +349,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxCapabilities : public MaskedTextBoxMaskCapability<Declaring>, public MaskedTextBoxCultureCapability<Declaring>, public MaskedTextBoxTextCapability<Declaring>, public MaskedTextBoxTextMaskFormatCapability<Declaring>, public MaskedTextBoxPromptCharacterCapability<Declaring>, public MaskedTextBoxAllowPromptAsInputCapability<Declaring>, public MaskedTextBoxAsciiOnlyCapability<Declaring>, public MaskedTextBoxSkipLiteralsCapability<Declaring>, public MaskedTextBoxResetOnPromptCapability<Declaring>, public MaskedTextBoxResetOnSpaceCapability<Declaring>, public MaskedTextBoxRejectInputOnFirstFailureCapability<Declaring>, public MaskedTextBoxOverwriteModeCapability<Declaring>, public MaskedTextBoxReadOnlyCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    Every MaskedTextBox capability, in the order the declaring class takes them.
 
@@ -412,7 +412,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxCultureCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    The culture whose separators and currency symbol the mask's placeholders show (Culture); a view onto the provider. A change keeps as much of the text as the mask takes.
 
@@ -429,7 +429,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxMaskCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    The mask (Mask); a view onto the provider. A new mask keeps as much of the text as it takes (the assigned characters, without prompts or literals, placed again from the first position), or starts empty, and raises mask_changed. Throws std::invalid_argument for an invalid mask (MaskedTextProvider).
 
@@ -446,7 +446,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxOverwriteModeCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    Typing overwrites the character at the caret instead of inserting before it (IsOverwriteMode). The Insert key toggles it. A change raises overwrite_mode_changed.
 
@@ -461,7 +461,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxPromptCharacterCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    The character shown in each unassigned position (PromptChar); a view onto the provider, which refuses an unusable character (std::invalid_argument).
 
@@ -478,7 +478,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxReadOnlyCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    Whether the user may select and copy the text but not change it (ReadOnly); the editor follows.
 
@@ -493,7 +493,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxRejectInputOnFirstFailureCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    With it off (the default), a paste keeps the characters the mask takes and reports each one it drops; with it on, one refused character refuses the whole paste (RejectInputOnFirstFailure).
 
@@ -508,7 +508,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxResetOnPromptCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    Whether typing the prompt character clears the position (ResetOnPrompt); a view onto the provider.
 
@@ -525,7 +525,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxResetOnSpaceCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    Whether typing a space clears the position (ResetOnSpace); a view onto the provider.
 
@@ -542,7 +542,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxSkipLiteralsCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    Whether input matching a literal passes over it (SkipLiterals); a view onto the provider.
 
@@ -559,7 +559,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxTextCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    The text in text_mask_format (Text); a view onto the provider (under an empty mask, the editor's text). A write clears the box and places the text from the first position, literals in it matching the mask's literals, as place_text does; refused text leaves the box unchanged and raises mask_input_rejected instead of throwing (place_text reports the result). A placed text raises text_changed.
 
@@ -576,7 +576,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaskedTextBoxTextMaskFormatCapability
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/masked_text_box_capabilities.hpp>``
 
    What text includes (TextMaskFormat): literals, prompts, both or neither. A change raises text_changed when text changes; an unknown format throws std::invalid_argument.
 
@@ -593,7 +593,7 @@ Related types
 
 .. cpp:struct:: MaskInputRejection final
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box.hpp>``
+   ``#include <gui_forms/controls/masked_text_box.hpp>``
 
    Input the mask refused: the position the character was tested at, why, and the refused text (one character typed, or the whole value offered).
 
@@ -609,7 +609,7 @@ Related types
 
 .. cpp:struct:: MaskValidation final
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box.hpp>``
+   ``#include <gui_forms/controls/masked_text_box.hpp>``
 
    One run of the validation hook (Windows Forms' TypeValidationCompleted). The hook reads ``text`` (the text in text_mask_format) and writes ``valid`` and, when it refuses, a ``message``; setting ``cancel`` keeps the focus in the box when validation runs because the focus is leaving.
 
@@ -629,7 +629,7 @@ Related types
 
 .. cpp:struct:: RichTextBox::Item final
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
+   ``#include <gui_forms/controls/rich_text_box.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -647,7 +647,7 @@ Related types
 
 .. cpp:struct:: RichTextBox::ItemParts final
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
+   ``#include <gui_forms/controls/rich_text_box.hpp>``
 
    A bar button's parts: its face, its label and, on the heading button, the drop-down arrow.
 
@@ -661,7 +661,7 @@ Related types
 
 .. cpp:struct:: RichTextBox::ItemStates final
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
+   ``#include <gui_forms/controls/rich_text_box.hpp>``
 
    .. cpp:member:: bool hot
 
@@ -681,7 +681,7 @@ Related types
 
 .. cpp:struct:: RichTextBox::Parts final
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
+   ``#include <gui_forms/controls/rich_text_box.hpp>``
 
    Stage T1 anatomy, as dot members: TextBox's parts and the bar.
 
@@ -705,7 +705,7 @@ Related types
 
 .. cpp:struct:: RichTextBox::States final
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
+   ``#include <gui_forms/controls/rich_text_box.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -731,7 +731,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RichTextBoxAcceptsTabCapability
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/rich_text_box_capabilities.hpp>``
 
    Whether Tab inserts a tab (AcceptsTab); off (the default), Tab moves the focus.
 
@@ -746,7 +746,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RichTextBoxCapabilities : public RichTextBoxTextCapability<Declaring>, public RichTextBoxReadOnlyCapability<Declaring>, public RichTextBoxWordWrapCapability<Declaring>, public RichTextBoxAcceptsTabCapability<Declaring>, public RichTextBoxControlBarVisibleCapability<Declaring>, public FontCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/rich_text_box_capabilities.hpp>``
 
    Every RichTextBox capability, in the order the declaring class takes them.
 
@@ -786,7 +786,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RichTextBoxControlBarVisibleCapability
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/rich_text_box_capabilities.hpp>``
 
    Whether the control bar is shown (the default). Its keys work without it. A change closes the heading menu.
 
@@ -803,7 +803,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RichTextBoxReadOnlyCapability
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/rich_text_box_capabilities.hpp>``
 
    Whether the user may select and copy but not change the document (ReadOnly); a view onto the editing engine.
 
@@ -820,7 +820,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RichTextBoxTextCapability
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/rich_text_box_capabilities.hpp>``
 
    The plain text (Text): the source's blocks with the markup removed, joined by line feeds (markdown_plain_text); a view onto the parsed document. A write replaces the document with markdown that reads back as that text (punctuation escaped, each line feed a hard line break; leading white space on a line and trailing line feeds are not kept), clears the history and raises content_changed, text_changed when the plain text changes, then selection_changed. Throws std::invalid_argument for invalid UTF-8 and std::length_error past maximum_bytes.
 
@@ -837,7 +837,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RichTextBoxWordWrapCapability
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/rich_text_box_capabilities.hpp>``
 
    Lines wrap at the box's width (WordWrap, the default); without wrapping a line is one row and the box scrolls horizontally.
 
@@ -854,7 +854,7 @@ Related types
 
 .. cpp:struct:: RichTextFormat final
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
+   ``#include <gui_forms/controls/rich_text_box.hpp>``
 
    The markdown formatting at a RichTextBox's selection, as its control bar shows it. A span style is on when every selected content character has it, mixed when some do, and off when none does; an empty selection reads the character before its caret (on or off). A line format reads the non-blank lines the selection touches the same way. heading is on when every touched line is a heading of one level, held in heading_level; it is mixed when the lines differ and at least one is a heading, and heading_level is then 0, as it is for body text.
 
@@ -892,7 +892,7 @@ Related types
 
 .. cpp:struct:: SearchField::Parts final
 
-   ``#include <gui_forms/controls/search_field/search_field.hpp>``
+   ``#include <gui_forms/controls/search_field.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``well`` is the field's ground, ``icon`` the search mark, ``content`` the inner editor's slot, ``actuator`` the clear mark (absent while the field is empty; hot and pressed as the pointer is), ``activity`` the busy strip (absent unless busy) and ``focus`` the cue shown while the editor has the keyboard focus.
 
@@ -914,7 +914,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SearchFieldBusyCapability
 
-   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+   ``#include <gui_forms/controls/search_field_capabilities.hpp>``
 
    Whether a search is running; the field shows an activity strip along its bottom and is busy to assistive technology. The application sets and clears it.
 
@@ -929,7 +929,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SearchFieldCapabilities : public SearchFieldTextCapability<Declaring>, public SearchFieldPlaceholderTextCapability<Declaring>, public SearchFieldSearchDelayCapability<Declaring>, public SearchFieldBusyCapability<Declaring>
 
-   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+   ``#include <gui_forms/controls/search_field_capabilities.hpp>``
 
    Every SearchField capability, in the order the declaring class takes them.
 
@@ -956,7 +956,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SearchFieldPlaceholderTextCapability
 
-   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+   ``#include <gui_forms/controls/search_field_capabilities.hpp>``
 
    The hint the empty field shows, such as "Search": a view onto the inner editor's placeholder (see TextBox).
 
@@ -973,7 +973,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SearchFieldSearchDelayCapability
 
-   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+   ``#include <gui_forms/controls/search_field_capabilities.hpp>``
 
    How long typing must pause before search_requested is raised, 300 ms by default; zero raises it at each change. Negative or over 10 s throws std::invalid_argument. A change applies to the next edit.
 
@@ -990,7 +990,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SearchFieldTextCapability
 
-   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+   ``#include <gui_forms/controls/search_field_capabilities.hpp>``
 
    The query: a view onto the inner editor's text (see TextBox). A change raises text_changed and, after search_delay, search_requested.
 
@@ -1007,7 +1007,7 @@ Related types
 
 .. cpp:struct:: StyledTextRun final
 
-   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+   ``#include <gui_forms/controls/text_decorations.hpp>``
 
    One run of uniformly styled text, as composition gives it: the fields every covering decoration set, the later layer's (and within a layer the later decoration's) standing. Undecorated text has an empty style.
 
@@ -1019,7 +1019,7 @@ Related types
 
 .. cpp:struct:: TextBox::Parts final
 
-   ``#include <gui_forms/controls/panel/text_box/text_box.hpp>``
+   ``#include <gui_forms/controls/text_box.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -1041,7 +1041,7 @@ Related types
 
 .. cpp:struct:: TextBox::States final
 
-   ``#include <gui_forms/controls/panel/text_box/text_box.hpp>``
+   ``#include <gui_forms/controls/text_box.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -1067,7 +1067,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxAcceptsEnterCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    In a single-line box Enter is the box's own only while it has something to accept: an open suggestion list or appended completion, or an input-method composition; otherwise Enter goes on to the containers and the window's accept button. A box that is an edit session (a search field, an in-place editor) opts in with accepts_enter: plain Enter with nothing else to accept then raises committed() and stops there. Off by default. A multi-line box always takes Enter to insert newline_sequence.
 
@@ -1082,7 +1082,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxAcceptsEscapeCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    Escape is the box's own only while it has something to cancel: an open suggestion list or appended completion, an input-method composition or a selection drag; otherwise Escape goes on to the containers, menus and the window's cancel button. A box that is an edit session opts in with accepts_escape: plain Escape with nothing else to cancel then raises cancelled() and stops there. Off by default.
 
@@ -1097,7 +1097,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxAcceptsTabCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    Whether Tab inserts a tab in a multiline box (AcceptsTab) instead of moving the focus.
 
@@ -1112,7 +1112,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxAutoCompleteCaseSensitiveCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    Whether completion matches ASCII case exactly; off by default.
 
@@ -1127,7 +1127,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxAutoCompleteCustomSourceCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource). Never null: a new box owns an empty collection. Assigning one shares it (see AutoCompleteStringCollection); null throws std::invalid_argument.
 
@@ -1144,7 +1144,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxAutoCompleteModeCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    How completions are offered (AutoCompleteMode): none, suggest (a list under the box), append (the rest of the first match, selected) or both. Auto-complete acts only in a single-line, unmasked, writable box with no edit filter; otherwise the settings are kept and do nothing. Matching is by prefix, ignoring ASCII case unless auto_complete_case_sensitive.
 
@@ -1161,7 +1161,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxAutoCompleteSourceCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    Where completion candidates come from (AutoCompleteSource). list_items throws std::invalid_argument: a TextBox has no list (an editable ComboBox offers its items through its own setting).
 
@@ -1178,7 +1178,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxCapabilities : public TextBoxTextCapability<Declaring>, public TextBoxPlaceholderTextCapability<Declaring>, public TextBoxReadOnlyCapability<Declaring>, public TextBoxMultilineCapability<Declaring>, public TextBoxWordWrapCapability<Declaring>, public TextBoxNewlineSequenceCapability<Declaring>, public TextBoxAcceptsTabCapability<Declaring>, public TextBoxAcceptsEnterCapability<Declaring>, public TextBoxAcceptsEscapeCapability<Declaring>, public TextBoxMaximumLengthCapability<Declaring>, public TextBoxPasswordCharacterCapability<Declaring>, public TextBoxUseSystemPasswordCharacterCapability<Declaring>, public FontCapability<Declaring>, public TextBoxAutoCompleteModeCapability<Declaring>, public TextBoxAutoCompleteSourceCapability<Declaring>, public TextBoxAutoCompleteCustomSourceCapability<Declaring>, public TextBoxAutoCompleteCaseSensitiveCapability<Declaring>, public TextBoxTextAlignmentCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    Every TextBox capability, in the order the declaring class takes them.
 
@@ -1266,7 +1266,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxMaximumLengthCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    The most Unicode scalars a user edit, a paste or a semantic set-value may leave (MaxLength); zero admits any text that fits the store. A write does not truncate the text. A view onto the editing engine; more than 16 Mi throws std::out_of_range.
 
@@ -1283,7 +1283,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxMultilineCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    Opt-in plain-text document editing (Multiline). Stored line endings are preserved; Enter inserts newline_sequence, and Tab is separately opt-in (accepts_tab). Turning it on throws std::invalid_argument for a password box or a text multiline editing refuses.
 
@@ -1298,7 +1298,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxNewlineSequenceCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    What Enter inserts in a multiline box: LF (the default), CR or CRLF; anything else throws std::invalid_argument.
 
@@ -1315,7 +1315,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxPasswordCharacterCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    The character shown for each character of the text (PasswordChar); U'\0' for none. Throws std::invalid_argument in a multiline box or for anything but one printable Unicode scalar.
 
@@ -1330,7 +1330,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxPlaceholderTextCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    The hint shown in the empty field. Without one, the field's tooltip (Control::field_hint_text) shows there in the same light grey while the field has focus. Throws std::invalid_argument for invalid UTF-8.
 
@@ -1345,7 +1345,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxReadOnlyCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    Whether the user may select and copy the text but not change it (ReadOnly); a view onto the editing engine. A change ends any completion.
 
@@ -1362,7 +1362,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxTextAlignmentCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
 
@@ -1379,7 +1379,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxTextCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    The edited text (Text); a view onto the editing engine. A write ends any completion and composition, starts a new history, scrolls to the start and raises text_changed, then selection_changed. A multiline box refuses invalid UTF-8, more than 1 MiB or a line over 4096 bytes (std::invalid_argument). maximum_length does not truncate a written value.
 
@@ -1396,7 +1396,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxUseSystemPasswordCharacterCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    Whether the text is masked with the system's password character (UseSystemPasswordChar). Throws std::invalid_argument when turned on in a multiline box.
 
@@ -1411,7 +1411,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBoxWordWrapCapability
 
-   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
    Whether a multiline box wraps its lines at the box's width (WordWrap); a wrapped document overflows only vertically.
 
@@ -1426,7 +1426,7 @@ Related types
 
 .. cpp:struct:: TextChange final
 
-   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+   ``#include <gui_forms/controls/text_decorations.hpp>``
 
    One change of the text: removed_bytes at start replaced by inserted_bytes.
 
@@ -1440,7 +1440,7 @@ Related types
 
 .. cpp:struct:: TextDecoration final
 
-   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+   ``#include <gui_forms/controls/text_decorations.hpp>``
 
    One decoration: a byte range of the text (UTF-8 offsets; a bound inside a grapheme cluster applies from that cluster's next boundary) and its look. ``tag`` belongs to the producer: a diagnostic's index, a token's kind.
 
@@ -1454,7 +1454,7 @@ Related types
 
 .. cpp:struct:: TextDecorationChange final
 
-   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+   ``#include <gui_forms/controls/text_decorations.hpp>``
 
    What a change to the decorations touched: the byte range whose look changed, whether any look changed at all, and whether a font changed (the text must be laid out again) or only colours, lines and grounds (the range's rows repaint).
 
@@ -1468,7 +1468,7 @@ Related types
 
 .. cpp:struct:: TextDecorationLayer final
 
-   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+   ``#include <gui_forms/controls/text_decorations.hpp>``
 
    A producer's layer. Layers compose in ascending order: a later layer's fields stand over an earlier one's where both set them.
 
@@ -1478,7 +1478,7 @@ Related types
 
 .. cpp:class:: TextDecorations final
 
-   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+   ``#include <gui_forms/controls/text_decorations.hpp>``
 
    The decorations of one text, by layer. Each layer keeps its decorations in start order (equal starts in the order given); decorations of one layer may overlap. It knows nothing of the text: its owner checks ranges against the text and tells it of each edit (shift_for_edit). One execution context owns it.
 
@@ -1530,7 +1530,7 @@ Related types
 
 .. cpp:struct:: TextDecorationStyle final
 
-   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+   ``#include <gui_forms/controls/text_decorations.hpp>``
 
    The look one decoration gives its text. Each field left unset leaves that aspect as the layers under it (or the box itself) draw it. - ink: a theme ink; foreground: an authored colour, which stands over the ink except in high contrast, where the theme's colours stand (T4-1). - weight (1 to 1000) and italic change the font, so they change where glyphs fall: the box measures decorated text in its own font, and the caret, hit testing and the accessibility layout follow. - underline_color: the underline's colour; unset, or in high contrast, the text's ink. - background: a flat ground under the text, drawn under the selection band and left out in high contrast.
 
@@ -1561,7 +1561,7 @@ Related types
 
 .. cpp:struct:: TextEdit final
 
-   ``#include <gui_forms/controls/panel/text_box/text_box.hpp>``
+   ``#include <gui_forms/controls/text_box.hpp>``
 
    One user edit, offered to the edit filter before the TextBox changes anything: replace [start, end) of text() with ``replacement``. The filter reads the proposal and writes its verdict; with ``rewrite`` it also writes the whole new text and where the caret goes in it. ``replacement`` and the caret offsets are borrowed for the call. For a deletion with an empty selection the range is the grapheme Backspace or Delete would remove.
 
@@ -1589,7 +1589,7 @@ Related types
 
 .. cpp:struct:: TextMatchRange final
 
-   ``#include <gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp>``
+   ``#include <gui_forms/controls/auto_complete.hpp>``
 
    The part of a text that matched a pattern: ``length`` bytes from byte ``offset``, both on scalar boundaries of the text. A zero length is no match. Suggestion and drop-down lists highlight it.
 
@@ -1601,7 +1601,7 @@ Related types
 
 .. cpp:struct:: TextSelection final
 
-   ``#include <gui_forms/controls/panel/text_box/text_box.hpp>``
+   ``#include <gui_forms/controls/text_box.hpp>``
 
    TextSelection is TextBox's normalized byte-boundary selection value. It keeps anchor and active endpoints distinct while exposing ordered ranges for mutation and painting.
 
@@ -1635,7 +1635,7 @@ Related types
 
 .. cpp:struct:: Token final
 
-   ``#include <gui_forms/controls/panel/token_box/token_box.hpp>``
+   ``#include <gui_forms/controls/token_box.hpp>``
 
    One accepted entry.
 
@@ -1647,7 +1647,7 @@ Related types
 
 .. cpp:struct:: TokenBox::Item final
 
-   ``#include <gui_forms/controls/panel/token_box/token_box.hpp>``
+   ``#include <gui_forms/controls/token_box.hpp>``
 
    .. cpp:member:: TokenId id
 
@@ -1663,7 +1663,7 @@ Related types
 
 .. cpp:struct:: TokenBox::ItemParts final
 
-   ``#include <gui_forms/controls/panel/token_box/token_box.hpp>``
+   ``#include <gui_forms/controls/token_box.hpp>``
 
    .. cpp:member:: PartGeometry token_face
 
@@ -1677,7 +1677,7 @@ Related types
 
 .. cpp:struct:: TokenBox::ItemStates final
 
-   ``#include <gui_forms/controls/panel/token_box/token_box.hpp>``
+   ``#include <gui_forms/controls/token_box.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -1689,7 +1689,7 @@ Related types
 
 .. cpp:struct:: TokenBox::Parts final
 
-   ``#include <gui_forms/controls/panel/token_box/token_box.hpp>``
+   ``#include <gui_forms/controls/token_box.hpp>``
 
    Stage T1 anatomy, as dot members. Tokens are an item system.
 
@@ -1705,7 +1705,7 @@ Related types
 
 .. cpp:struct:: TokenBox::States final
 
-   ``#include <gui_forms/controls/panel/token_box/token_box.hpp>``
+   ``#include <gui_forms/controls/token_box.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -1721,7 +1721,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TokenBoxAutoCompleteCustomSourceCapability
 
-   ``#include <gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/token_box_capabilities.hpp>``
 
    The candidate list used when auto_complete_source is custom_source; null for none.
 
@@ -1738,7 +1738,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TokenBoxAutoCompleteModeCapability
 
-   ``#include <gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/token_box_capabilities.hpp>``
 
    The editor's auto-complete (see TextBox); an accepted completion becomes a token. list_items throws std::invalid_argument.
 
@@ -1755,7 +1755,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TokenBoxAutoCompleteSourceCapability
 
-   ``#include <gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/token_box_capabilities.hpp>``
 
    Where the editor's completion candidates come from (see TextBox).
 
@@ -1772,7 +1772,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TokenBoxCapabilities : public DelimitersCapability<Declaring>, public FontCapability<Declaring>, public TokenBoxAutoCompleteModeCapability<Declaring>, public TokenBoxAutoCompleteSourceCapability<Declaring>, public TokenBoxAutoCompleteCustomSourceCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/token_box_capabilities.hpp>``
 
    Every TokenBox capability, in the order the declaring class takes them.
 
@@ -1808,7 +1808,7 @@ Related types
 
 .. cpp:struct:: TokenId final
 
-   ``#include <gui_forms/controls/panel/token_box/token_box.hpp>``
+   ``#include <gui_forms/controls/token_box.hpp>``
 
    A token's identity in its TokenBox: assigned when the token is added and never reused, so it stays valid while positions change. It is not an index.
 
@@ -1821,7 +1821,7 @@ Enumerations
 
 .. cpp:enum-class:: AutoCompleteMode
 
-   ``#include <gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp>``
+   ``#include <gui_forms/controls/auto_complete.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1835,7 +1835,7 @@ Enumerations
 
 .. cpp:enum-class:: AutoCompleteSource
 
-   ``#include <gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp>``
+   ``#include <gui_forms/controls/auto_complete.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1859,7 +1859,7 @@ Enumerations
 
 .. cpp:enum-class:: MaskResultHint
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp>``
+   ``#include <gui_forms/controls/masked_text_provider.hpp>``
 
    .. cpp:enumerator:: success
 
@@ -1889,7 +1889,7 @@ Enumerations
 
 .. cpp:enum-class:: MaskTextFormat
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp>``
+   ``#include <gui_forms/controls/masked_text_provider.hpp>``
 
    .. cpp:enumerator:: exclude_prompt_and_literals
 
@@ -1903,7 +1903,7 @@ Enumerations
 
 .. cpp:enum-class:: RichTextBarButton
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
+   ``#include <gui_forms/controls/rich_text_box.hpp>``
 
    .. cpp:enumerator:: bold
 
@@ -1923,7 +1923,7 @@ Enumerations
 
 .. cpp:enum-class:: RichTextFormatState
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
+   ``#include <gui_forms/controls/rich_text_box.hpp>``
 
    .. cpp:enumerator:: off
 
@@ -1935,7 +1935,7 @@ Enumerations
 
 .. cpp:enum-class:: TextBox::MultilineValidation
 
-   ``#include <gui_forms/controls/panel/text_box/text_box.hpp>``
+   ``#include <gui_forms/controls/text_box.hpp>``
 
    .. cpp:enumerator:: valid
 
@@ -1949,7 +1949,7 @@ Enumerations
 
 .. cpp:enum-class:: TextEditKind
 
-   ``#include <gui_forms/controls/panel/text_box/text_box.hpp>``
+   ``#include <gui_forms/controls/text_box.hpp>``
 
    .. cpp:enumerator:: typing
 
@@ -1963,7 +1963,7 @@ Enumerations
 
 .. cpp:enum-class:: TextEditVerdict
 
-   ``#include <gui_forms/controls/panel/text_box/text_box.hpp>``
+   ``#include <gui_forms/controls/text_box.hpp>``
 
    .. cpp:enumerator:: accept
 
@@ -1975,7 +1975,7 @@ Enumerations
 
 .. cpp:enum-class:: TextInkRole
 
-   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+   ``#include <gui_forms/controls/text_decorations.hpp>``
 
    .. cpp:enumerator:: text
 
@@ -1991,7 +1991,7 @@ Enumerations
 
 .. cpp:enum-class:: TextMatchMode
 
-   ``#include <gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp>``
+   ``#include <gui_forms/controls/auto_complete.hpp>``
 
    .. cpp:enumerator:: prefix
 
@@ -2001,7 +2001,7 @@ Enumerations
 
 .. cpp:enum-class:: TextUnderline
 
-   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+   ``#include <gui_forms/controls/text_decorations.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -2014,25 +2014,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp>``
-
-.. cpp:function:: std::string_view mask_result_hint_name(MaskResultHint hint) noexcept
-
-.. cpp:type:: MaskPosition = TextUnitIndex<MaskPositionTag>
-
-   A position in a mask: the index of one slot, editable or literal. Every slot shows as exactly one Unicode scalar in the display text, so a position is also the scalar index of its slot in display_text(). It is not a byte offset; display_offset converts.
-
-.. cpp:namespace:: gui_forms
-
-``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
-
-.. cpp:var:: constexpr std::size_t rich_text_bar_button_count
-
-   Value: ``7U``.
-
-.. cpp:namespace:: gui_forms
-
-``#include <gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp>``
+``#include <gui_forms/controls/auto_complete.hpp>``
 
 .. cpp:function:: std::optional<HostAutoCompleteSource> host_auto_complete_source(AutoCompleteSource source) noexcept
 
@@ -2048,15 +2030,25 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+``#include <gui_forms/controls/masked_text_provider.hpp>``
 
-.. cpp:function:: TextChange text_change_between(std::string_view before, std::string_view after) noexcept
+.. cpp:function:: std::string_view mask_result_hint_name(MaskResultHint hint) noexcept
 
-   The smallest change turning ``before`` into ``after``: the bytes between their common prefix and their common suffix. Equal texts give an empty change at the end. Reads both once; allocates nothing.
+.. cpp:type:: MaskPosition = TextUnitIndex<MaskPositionTag>
+
+   A position in a mask: the index of one slot, editable or literal. Every slot shows as exactly one Unicode scalar in the display text, so a position is also the scalar index of its slot in display_text(). It is not a byte offset; display_offset converts.
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/search_field/search_field.hpp>``
+``#include <gui_forms/controls/rich_text_box.hpp>``
+
+.. cpp:var:: constexpr std::size_t rich_text_bar_button_count
+
+   Value: ``7U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/search_field.hpp>``
 
 .. cpp:var:: constexpr FrameInterval busy_sweep_period
 
@@ -2065,3 +2057,11 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double busy_segment_share
 
    Value: ``0.3``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/text_decorations.hpp>``
+
+.. cpp:function:: TextChange text_change_between(std::string_view before, std::string_view after) noexcept
+
+   The smallest change turning ``before`` into ``after``: the bytes between their common prefix and their common suffix. Equal texts give an empty change at the end. Reads both once; allocates nothing.

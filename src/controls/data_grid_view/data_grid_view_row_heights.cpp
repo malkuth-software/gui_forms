@@ -1,4 +1,4 @@
-#include "gui_forms/controls/data_grid_view/data_grid_view_row_heights.hpp"
+#include "gui_forms/controls/data_grid_view_row_heights.hpp"
 
 #include <cmath>
 

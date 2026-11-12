@@ -2,9 +2,9 @@
   "family": "NavigationPane",
   "step": "M-S8",
   "declaring": "NavigationPane",
-  "header": "include/gui_forms/controls/pages/navigation_pane/navigation_pane.hpp",
+  "header": "include/gui_forms/controls/navigation_pane.hpp",
   "source": "src/controls/pages/navigation_pane/navigation_pane.cpp",
-  "capabilities_header": "include/gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/navigation_pane_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
@@ -12,7 +12,7 @@
   ],
   "test": {
     "type": "NavigationPane",
-    "include": "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
+    "include": "gui_forms/controls/navigation_pane.hpp"
   },
   "properties": [
     {

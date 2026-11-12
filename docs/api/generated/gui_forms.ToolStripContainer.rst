@@ -9,7 +9,7 @@ gui_forms::ToolStripContainer
 
 .. cpp:class:: ToolStripContainer final : public Control, public ToolStripContainerCapabilities<ToolStripContainer>
 
-   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container.hpp>``
 
    Four ToolStripPanels around a content panel.
 

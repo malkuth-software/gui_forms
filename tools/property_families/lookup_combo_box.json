@@ -2,9 +2,9 @@
   "family": "LookupComboBox",
   "step": "2.5",
   "declaring": "LookupComboBox",
-  "header": "include/gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp",
+  "header": "include/gui_forms/controls/lookup_combo_box.hpp",
   "source": "src/controls/lookup_combo_box/lookup_combo_box.cpp",
-  "capabilities_header": "include/gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/lookup_combo_box_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
@@ -113,6 +113,6 @@
   "test": {
     "type": "LookupComboBox",
     "configure": ["(*control).set_rows({LookupRow{\"codemod.key\", {\"Codemod\"}}});"],
-    "include": "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp"
+    "include": "gui_forms/controls/lookup_combo_box.hpp"
   }
 }

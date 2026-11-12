@@ -9,7 +9,7 @@ gui_forms::RangeControl
 
 .. cpp:class:: RangeControl : public Control, public RangeControlCapabilities<RangeControl>
 
-   ``#include <gui_forms/controls/range_control/range_control.hpp>``
+   ``#include <gui_forms/controls/range_control.hpp>``
 
    The shared base of controls that show a number within a bounded range.
 

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/button_base/check_box/check_box.hpp"
+#include "gui_forms/controls/check_box.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "../choice_indicator_property.hpp"
 #include "gui_forms/text.hpp"

@@ -9,7 +9,7 @@ gui_forms::Ribbon
 
 .. cpp:class:: Ribbon final : public Control, public RibbonCapabilities<Ribbon>
 
-   ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>``
 
    A ribbon: the File tab and core tabs over a command plane of groups.
 

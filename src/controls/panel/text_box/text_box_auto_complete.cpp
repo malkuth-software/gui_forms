@@ -4,7 +4,7 @@
 // which runs after each user edit, and auto_complete_key, which runs before
 // the box's own key handling.
 
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 
 #include "text_box_auto_complete_session.hpp"
 #include "../text_editing/text_editing_engine.hpp"

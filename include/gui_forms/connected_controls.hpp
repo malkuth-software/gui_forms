@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/connected_controls/types/connected_control_types.hpp"
-#include "gui_forms/controls/button_base/button_base.hpp"
+#include "gui_forms/controls/button_base.hpp"
 
 #include <memory>
 #include <span>

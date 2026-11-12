@@ -2,11 +2,11 @@
   "family": "ListView",
   "step": "B7",
   "declaring": "ListView",
-  "header": "include/gui_forms/controls/panel/list_view/list_view.hpp",
+  "header": "include/gui_forms/controls/list_view.hpp",
   "source": "src/controls/panel/list_view/list_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/list_view_capabilities.hpp",
   "includes": [
-    "gui_forms/controls/panel/list_view/list_view_values/list_view_values.hpp",
+    "gui_forms/controls/list_view_values.hpp",
     "gui_forms/image_list.hpp",
     "gui_forms/theme/owner_draw/owner_draw.hpp",
     "gui_forms/types.hpp"
@@ -309,6 +309,6 @@
   ],
   "test": {
     "type": "ListView",
-    "include": "gui_forms/controls/panel/list_view/list_view.hpp"
+    "include": "gui_forms/controls/list_view.hpp"
   }
 }

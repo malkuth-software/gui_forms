@@ -9,7 +9,7 @@ gui_forms::SevenSegmentDisplay
 
 .. cpp:class:: SevenSegmentDisplay final : public Control, public SevenSegmentDisplayCapabilities<SevenSegmentDisplay>
 
-   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp>``
+   ``#include <gui_forms/controls/seven_segment_display.hpp>``
 
    Read-only seven-segment readout from the instruments package: digits, hexadecimal and the letters a cell can form, decimal points and colons, right-aligned in a fixed or fitted number of cells, unlit segments drawn faintly.
 

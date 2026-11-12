@@ -1,7 +1,7 @@
-#include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
+#include "gui_forms/controls/tool_strip_container.hpp"
 
 #include "../drag_gesture/drag_gesture.hpp"
-#include "gui_forms/controls/status_strip/status_strip.hpp"
+#include "gui_forms/controls/status_strip.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/events/key_commands/key_commands.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

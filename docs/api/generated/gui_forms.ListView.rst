@@ -9,7 +9,7 @@ gui_forms::ListView
 
 .. cpp:class:: ListView final : public Control, public ListViewCapabilities<ListView>
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    A list of items shown as details rows, a list, small icons, large icons or tiles.
 

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp"
+#include "gui_forms/controls/text_decorations.hpp"
 
 #include <algorithm>
 #include <cstddef>

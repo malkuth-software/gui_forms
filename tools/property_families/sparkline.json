@@ -2,9 +2,9 @@
   "family": "Sparkline",
   "step": "PL-1",
   "declaring": "Sparkline",
-  "header": "include/gui_forms/controls/instruments/sparkline/sparkline.hpp",
+  "header": "include/gui_forms/controls/sparkline.hpp",
   "source": "src/controls/instruments/sparkline/sparkline.cpp",
-  "capabilities_header": "include/gui_forms/controls/instruments/sparkline/sparkline_capabilities/sparkline_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/sparkline_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
@@ -79,6 +79,6 @@
   "not_properties": [],
   "test": {
     "type": "Sparkline",
-    "include": "gui_forms/controls/instruments/sparkline/sparkline.hpp"
+    "include": "gui_forms/controls/sparkline.hpp"
   }
 }

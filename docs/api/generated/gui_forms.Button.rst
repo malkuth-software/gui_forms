@@ -9,7 +9,7 @@ gui_forms::Button
 
 .. cpp:class:: Button : public ButtonBase, public ButtonCapabilities<Button>
 
-   ``#include <gui_forms/controls/button_base/button/button.hpp>``
+   ``#include <gui_forms/controls/button.hpp>``
 
    A push button that carries out an action when the user clicks it.
 

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/button.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"

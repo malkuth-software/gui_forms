@@ -9,7 +9,7 @@ gui_forms::DockSite
 
 .. cpp:class:: DockSite : public Control, public DockSiteCapabilities<DockSite>
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    The docked part of a docking workspace in one window: tool stacks with captions around the document area, separated by seams.
 

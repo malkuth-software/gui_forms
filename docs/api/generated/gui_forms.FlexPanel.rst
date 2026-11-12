@@ -9,7 +9,7 @@ gui_forms::FlexPanel
 
 .. cpp:class:: FlexPanel final : public ContainerControl, public FlexPanelCapabilities<FlexPanel>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp>``
+   ``#include <gui_forms/controls/flex_panel.hpp>``
 
    A container that lays its children out as a CSS flex container: lines of items that grow, shrink and align along a row or column.
 

@@ -9,7 +9,7 @@ gui_forms::FontDialog
 
 .. cpp:class:: FontDialog final : public Panel, public FontDialogCapabilities<FontDialog>
 
-   ``#include <gui_forms/controls/panel/font_dialog/font_dialog.hpp>``
+   ``#include <gui_forms/controls/font_dialog.hpp>``
 
    A dialog for choosing one of GUI.Forms' bundled fonts.
 

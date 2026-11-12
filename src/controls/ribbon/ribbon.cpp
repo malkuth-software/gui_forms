@@ -1,4 +1,4 @@
-#include "gui_forms/controls/ribbon/ribbon.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 
 #include "../menu/menu_utilities.hpp"
 #include "ribbon_application_menu.hpp"

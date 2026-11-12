@@ -9,7 +9,7 @@ gui_forms::TaskDialog
 
 .. cpp:class:: TaskDialog final : public Control, public TaskDialogCapabilities<TaskDialog>
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    A message dialog of pages: heading, text, icon, buttons, choices, details and progress.
 

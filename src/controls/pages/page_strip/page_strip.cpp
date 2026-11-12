@@ -1,4 +1,4 @@
-#include "gui_forms/controls/pages/page_strip/page_strip.hpp"
+#include "gui_forms/controls/page_strip.hpp"
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"

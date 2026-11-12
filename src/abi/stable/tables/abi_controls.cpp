@@ -7,7 +7,7 @@
 
 #include "../values/abi_values.hpp"
 
-#include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 

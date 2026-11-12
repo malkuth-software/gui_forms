@@ -9,7 +9,7 @@ gui_forms::DrawingSurface
 
 .. cpp:class:: DrawingSurface final : public Control, public DrawingSurfaceCapabilities<DrawingSurface>
 
-   ``#include <gui_forms/controls/drawing_surface/drawing_surface.hpp>``
+   ``#include <gui_forms/controls/drawing_surface.hpp>``
 
    A control that draws whatever its paint callback draws.
 

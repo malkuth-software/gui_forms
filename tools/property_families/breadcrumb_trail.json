@@ -2,15 +2,15 @@
   "family": "BreadcrumbTrail",
   "step": "B6",
   "declaring": "BreadcrumbTrail",
-  "header": "include/gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp",
+  "header": "include/gui_forms/controls/breadcrumb_trail.hpp",
   "source": "src/controls/panel/breadcrumb_trail/breadcrumb_trail.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/breadcrumb_trail_capabilities.hpp",
   "base": "Panel",
   "shared": [
     "FontCapability"
   ],
   "includes": [
-    "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_values/breadcrumb_trail_values.hpp",
+    "gui_forms/controls/breadcrumb_trail_values.hpp",
     "gui_forms/types.hpp"
   ],
   "properties": [
@@ -126,6 +126,6 @@
   ],
   "test": {
     "type": "BreadcrumbTrail",
-    "include": "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
+    "include": "gui_forms/controls/breadcrumb_trail.hpp"
   }
 }

@@ -9,7 +9,7 @@ gui_forms::ColorValueEditor
 
 .. cpp:class:: ColorValueEditor final : public Panel, public ColorValueEditorCapabilities<ColorValueEditor>
 
-   ``#include <gui_forms/controls/panel/color_value_editor/color_value_editor.hpp>``
+   ``#include <gui_forms/controls/color_value_editor.hpp>``
 
    A colour field: a swatch beside a text box that edits the colour as hexadecimal text.
 

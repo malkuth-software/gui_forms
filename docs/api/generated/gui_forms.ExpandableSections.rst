@@ -9,7 +9,7 @@ gui_forms::ExpandableSections
 
 .. cpp:class:: ExpandableSections final : public Panel, public ExpandableSectionsCapabilities<ExpandableSections>
 
-   ``#include <gui_forms/controls/collections/expandable_sections.hpp>``
+   ``#include <gui_forms/controls/expandable_sections.hpp>``
 
    A vertical stack of sections that the user expands and collapses.
 

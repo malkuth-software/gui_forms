@@ -1,4 +1,4 @@
-#include "gui_forms/controls/badge/badge.hpp"
+#include "gui_forms/controls/badge.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

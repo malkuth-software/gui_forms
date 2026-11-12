@@ -7,10 +7,10 @@
 
 #include "gui_forms/binding.hpp"
 #include "gui_forms/components/about_dialog/about_dialog.hpp"
-#include "gui_forms/controls/button_base/button_base.hpp"
-#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
-#include "gui_forms/controls/label/label.hpp"
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/gauge_base.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/panel.hpp"
 #include "gui_forms/pages.hpp"
 #include "gui_forms/window.hpp"
 

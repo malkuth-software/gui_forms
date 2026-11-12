@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
+#include "gui_forms/controls/scroll_bar.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <string_view>

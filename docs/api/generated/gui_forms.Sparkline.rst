@@ -9,7 +9,7 @@ gui_forms::Sparkline
 
 .. cpp:class:: Sparkline final : public Control, public SparklineCapabilities<Sparkline>
 
-   ``#include <gui_forms/controls/instruments/sparkline/sparkline.hpp>``
+   ``#include <gui_forms/controls/sparkline.hpp>``
 
    Read-only word-sized trend line from the instruments package: the newest values of a ring drawn through the plot primitives, with an optional shaded band and a dot on the newest value.
 

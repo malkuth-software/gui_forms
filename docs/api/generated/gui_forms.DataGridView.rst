@@ -9,7 +9,7 @@ gui_forms::DataGridView
 
 .. cpp:class:: DataGridView final : public Control, public DataGridViewCapabilities<DataGridView>, public DataGridViewRowsCapability<DataGridView>
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    A grid of typed columns over rows the grid owns, virtual rows or a binding source.
 

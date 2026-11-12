@@ -1,4 +1,4 @@
-#include "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp"
+#include "gui_forms/controls/seven_segment_display.hpp"
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

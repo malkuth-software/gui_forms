@@ -2,13 +2,13 @@
   "family": "PlotSeriesItem",
   "step": "PL-1",
   "declaring": "PlotSeriesItem",
-  "header": "include/gui_forms/controls/plots/plot_series_item/plot_series_item.hpp",
+  "header": "include/gui_forms/controls/plot_series_item.hpp",
   "source": "src/controls/plots/plot_series_item/plot_series_item.cpp",
-  "capabilities_header": "include/gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/plot_series_item_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
-    "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
+    "gui_forms/controls/plot_values.hpp"
   ],
   "properties": [
     {
@@ -213,6 +213,6 @@
   "not_properties": [],
   "test": {
     "type": "PlotSeriesItem",
-    "include": "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
+    "include": "gui_forms/controls/plot_series_item.hpp"
   }
 }

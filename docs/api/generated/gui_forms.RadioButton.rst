@@ -9,7 +9,7 @@ gui_forms::RadioButton
 
 .. cpp:class:: RadioButton : public ButtonBase, public RadioButtonCapabilities<RadioButton>
 
-   ``#include <gui_forms/controls/button_base/radio_button/radio_button.hpp>``
+   ``#include <gui_forms/controls/radio_button.hpp>``
 
    A round button with a caption that the user selects from a group of exclusive options.
 

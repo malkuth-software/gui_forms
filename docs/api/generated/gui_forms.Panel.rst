@@ -9,7 +9,7 @@ gui_forms::Panel
 
 .. cpp:class:: Panel : public ScrollableControl, public PanelCapabilities<Panel>
 
-   ``#include <gui_forms/controls/panel/panel.hpp>``
+   ``#include <gui_forms/controls/panel.hpp>``
 
    A plain surface that holds and arranges child controls.
 

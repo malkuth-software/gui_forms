@@ -9,7 +9,7 @@ gui_forms::BindingNavigator
 
 .. cpp:class:: BindingNavigator final : public ToolStrip, public BindingNavigatorCapabilities<BindingNavigator>
 
-   ``#include <gui_forms/controls/binding_navigator/binding_navigator.hpp>``
+   ``#include <gui_forms/controls/binding_navigator.hpp>``
 
    A ToolStrip that moves through a BindingSource.
 

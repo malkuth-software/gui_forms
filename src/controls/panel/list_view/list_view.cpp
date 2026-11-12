@@ -1,12 +1,12 @@
-#include "gui_forms/controls/panel/list_view/list_view.hpp"
+#include "gui_forms/controls/list_view.hpp"
 
 #include "../collection_control_utilities.hpp"
 #include "../cut_off_text/cut_off_text_reveal.hpp"
 #include "../details_columns.hpp"
 
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
-#include "gui_forms/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.hpp"
-#include "gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/h_scroll_bar.hpp"
+#include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

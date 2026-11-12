@@ -7,7 +7,7 @@
 
 #include "../values/abi_values.hpp"
 
-#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <cmath>

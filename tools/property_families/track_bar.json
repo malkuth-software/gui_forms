@@ -2,13 +2,13 @@
   "family": "TrackBar",
   "step": "M-S4",
   "declaring": "TrackBar",
-  "header": "include/gui_forms/controls/range_control/track_bar/track_bar.hpp",
+  "header": "include/gui_forms/controls/track_bar.hpp",
   "source": "src/controls/range_control/track_bar/track_bar.cpp",
-  "capabilities_header": "include/gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/track_bar_capabilities.hpp",
   "base": "RangeControl",
   "includes": [
-    "gui_forms/controls/range_control/range_control.hpp",
-    "gui_forms/controls/range_control/track_bar/track_bar_values/track_bar_values.hpp"
+    "gui_forms/controls/range_control.hpp",
+    "gui_forms/controls/track_bar_values.hpp"
   ],
   "properties": [
     {
@@ -131,6 +131,6 @@
   "not_properties": [],
   "test": {
     "type": "TrackBar",
-    "include": "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+    "include": "gui_forms/controls/track_bar.hpp"
   }
 }

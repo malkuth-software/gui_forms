@@ -10,7 +10,7 @@
 
 #include "gui_forms/control.hpp"
 #include "support/theme_definition_heap.hpp"
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme.hpp"

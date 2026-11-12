@@ -34,7 +34,7 @@
 // nesting (the parser's recursion depth), maximum_expression_operations
 // instructions. Nothing is allocated while parsing.
 
-#include "gui_forms/controls/range_control/value_bar/value_bar_values/value_bar_values.hpp"
+#include "gui_forms/controls/value_bar_values.hpp"
 
 #include <cstddef>
 #include <cstdint>

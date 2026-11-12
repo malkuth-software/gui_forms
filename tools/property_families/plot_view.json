@@ -2,13 +2,13 @@
   "family": "PlotView",
   "step": "PL-1",
   "declaring": "PlotView",
-  "header": "include/gui_forms/controls/plots/plot_view/plot_view.hpp",
+  "header": "include/gui_forms/controls/plot_view.hpp",
   "source": "src/controls/plots/plot_view/plot_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/plot_view_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
-    "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
+    "gui_forms/controls/plot_values.hpp"
   ],
   "properties": [
     {
@@ -180,6 +180,6 @@
   "not_properties": [],
   "test": {
     "type": "PlotView",
-    "include": "gui_forms/controls/plots/plot_view/plot_view.hpp"
+    "include": "gui_forms/controls/plot_view.hpp"
   }
 }

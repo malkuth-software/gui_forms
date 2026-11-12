@@ -10,7 +10,7 @@
 // The window is a hidden popup driven message by message; nothing takes the
 // foreground.
 #include "gui_forms/basic_controls.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/window.hpp"
 #include "../src/host/windows/application/windows_host.cpp"

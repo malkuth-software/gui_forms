@@ -9,7 +9,7 @@ gui_forms::ToolStripPanel
 
 .. cpp:class:: ToolStripPanel final : public Control, public ToolStripPanelCapabilities<ToolStripPanel>
 
-   ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp>``
+   ``#include <gui_forms/controls/tool_strip_panel.hpp>``
 
    A band along one edge that holds ToolStrips.
 

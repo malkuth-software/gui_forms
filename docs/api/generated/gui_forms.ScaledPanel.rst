@@ -9,7 +9,7 @@ gui_forms::ScaledPanel
 
 .. cpp:class:: ScaledPanel : public Panel, public ScaledPanelCapabilities<ScaledPanel>
 
-   ``#include <gui_forms/controls/panel/scaled_panel/scaled_panel.hpp>``
+   ``#include <gui_forms/controls/scaled_panel.hpp>``
 
    A panel that places its children in a fixed design space and scales them with the panel.
 

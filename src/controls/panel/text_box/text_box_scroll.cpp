@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 
 #include "../text_editing/text_editing_engine.hpp"
 #include "gui_forms/window.hpp"

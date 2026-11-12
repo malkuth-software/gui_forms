@@ -1,4 +1,4 @@
-#include "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
+#include "gui_forms/controls/ribbon_gallery.hpp"
 
 #include "../scrollable_control/scrolling_utilities.hpp"
 

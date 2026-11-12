@@ -1,4 +1,4 @@
-#include "gui_forms/controls/collections/command_bar.hpp"
+#include "gui_forms/controls/command_bar.hpp"
 #include "gui_forms/text.hpp"
 #include "../panel/panel_anatomy.hpp"
 

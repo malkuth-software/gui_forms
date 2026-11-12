@@ -1,12 +1,12 @@
 #include "support.hpp"
 
-#include "gui_forms/controls/callout/callout.hpp"
-#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
-#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
-#include "gui_forms/controls/modal_layer/modal_layer.hpp"
-#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
-#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
-#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
+#include "gui_forms/controls/callout.hpp"
+#include "gui_forms/controls/help_book_viewer.hpp"
+#include "gui_forms/controls/sparkline.hpp"
+#include "gui_forms/controls/modal_layer.hpp"
+#include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/controls/wizard_page.hpp"
 
 #include <algorithm>
 #include <cstdlib>

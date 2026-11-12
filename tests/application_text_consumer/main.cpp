@@ -1,5 +1,5 @@
 #include <gui_forms/audio/audio.hpp>
-#include <gui_forms/controls/panel/panel.hpp>
+#include <gui_forms/controls/panel.hpp>
 #include <gui_forms/text_mask.hpp>
 #include <gui_forms/window.hpp>
 

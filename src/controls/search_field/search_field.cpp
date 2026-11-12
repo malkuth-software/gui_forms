@@ -1,7 +1,7 @@
-#include "gui_forms/controls/search_field/search_field.hpp"
+#include "gui_forms/controls/search_field.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

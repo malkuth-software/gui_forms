@@ -9,7 +9,7 @@ gui_forms::RibbonColorPicker
 
 .. cpp:class:: RibbonColorPicker final : public Control, public RibbonColorPickerCapabilities<RibbonColorPicker>
 
-   ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker.hpp>``
 
    A ribbon drop-down colour picker: a split button over a palette overlay.
 

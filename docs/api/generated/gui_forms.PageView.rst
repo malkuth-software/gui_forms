@@ -9,7 +9,7 @@ gui_forms::PageView
 
 .. cpp:class:: PageView : public Control, public PageViewCapabilities<PageView>
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/page_view.hpp>``
 
    A row of tabs over the selected page's content, in the strip or the document preset.
 

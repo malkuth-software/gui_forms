@@ -2,9 +2,9 @@
   "family": "TreeView",
   "step": "B7",
   "declaring": "TreeView",
-  "header": "include/gui_forms/controls/panel/tree_view/tree_view.hpp",
+  "header": "include/gui_forms/controls/tree_view.hpp",
   "source": "src/controls/panel/tree_view/tree_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/tree_view_capabilities.hpp",
   "base": "Panel",
   "shared": [
     "FontCapability"
@@ -161,6 +161,6 @@
   ],
   "test": {
     "type": "TreeView",
-    "include": "gui_forms/controls/panel/tree_view/tree_view.hpp"
+    "include": "gui_forms/controls/tree_view.hpp"
   }
 }

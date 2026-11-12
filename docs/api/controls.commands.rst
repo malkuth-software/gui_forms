@@ -64,16 +64,6 @@ Related types
      - Whether an ampersand in the text marks the access key (UseMnemonic).
    * - :cpp:class:`ButtonVisualStyleChoiceCapability <gui_forms::ButtonVisualStyleChoiceCapability>`
      - Standard, flat, accent or command button.
-   * - :cpp:class:`ChoiceGroup::Parts <gui_forms::ChoiceGroup::Parts>`
-     - Stage T1 anatomy, as dot members: Panel's parts, then the segmented presentation's track (the whole strip) and selection (the indicator behind the selected segment).
-   * - :cpp:class:`ChoiceGroupCapabilities <gui_forms::ChoiceGroupCapabilities>`
-     - Every ChoiceGroup capability, in the order the declaring class takes them.
-   * - :cpp:class:`ChoiceGroupPresentationCapability <gui_forms::ChoiceGroupPresentationCapability>`
-     - How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment.
-   * - :cpp:class:`ChoiceGroupSelectedIndexCapability <gui_forms::ChoiceGroupSelectedIndexCapability>`
-     - The selected item's index, or -1 for none (G14: an ordinary cell).
-   * - :cpp:class:`ChoiceItem <gui_forms::ChoiceItem>`
-     -  
    * - :cpp:class:`CommandItem <gui_forms::CommandItem>`
      -  
    * - :cpp:class:`ContentPaddingCapability <gui_forms::ContentPaddingCapability>`
@@ -90,10 +80,6 @@ Related types
      - Menu mode routes the whole button to the drop-down; split mode keeps a primary Click region and a disclosure region at drop_down_edge.
    * - :cpp:class:`DropDownButtonDropDownWidthCapability <gui_forms::DropDownButtonDropDownWidthCapability>`
      - The disclosure extent on drop_down_edge, 12 to 64 (default 16); a write moves the reserved content inset with it, so author primary-content padding after it.
-   * - :cpp:class:`ExpandableSectionsCapabilities <gui_forms::ExpandableSectionsCapabilities>`
-     - Every ExpandableSections capability, in the order the declaring class takes them.
-   * - :cpp:class:`ExpandableSectionsSingleOpenCapability <gui_forms::ExpandableSectionsSingleOpenCapability>`
-     - Whether at most one section is open (an accordion).
    * - :cpp:class:`ExpandedStateCapability <gui_forms::ExpandedStateCapability>`
      - Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
    * - :cpp:class:`ImageAlignmentCapability <gui_forms::ImageAlignmentCapability>`
@@ -108,8 +94,6 @@ Related types
      - Every LinkLabel capability, in the order the declaring class takes them.
    * - :cpp:class:`LinkLabelVisitedCapability <gui_forms::LinkLabelVisitedCapability>`
      - Whether the link paints in its visited colour (Windows Forms' LinkVisited).
-   * - :cpp:class:`SectionItem <gui_forms::SectionItem>`
-     -  
    * - :cpp:class:`TextAlignmentCapability <gui_forms::TextAlignmentCapability>`
      - Where the text sits in the content area (TextAlign).
    * - :cpp:class:`TextImageRelationCapability <gui_forms::TextImageRelationCapability>`
@@ -121,7 +105,7 @@ Related types
 
 .. cpp:struct:: Button::Parts final
 
-   ``#include <gui_forms/controls/button_base/button/button.hpp>``
+   ``#include <gui_forms/controls/button.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -141,7 +125,7 @@ Related types
 
 .. cpp:struct:: Button::States final
 
-   ``#include <gui_forms/controls/button_base/button/button.hpp>``
+   ``#include <gui_forms/controls/button.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -169,7 +153,7 @@ Related types
 
 .. cpp:struct:: ButtonBase::Parts final
 
-   ``#include <gui_forms/controls/button_base/button_base.hpp>``
+   ``#include <gui_forms/controls/button_base.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -187,7 +171,7 @@ Related types
 
 .. cpp:struct:: ButtonBase::States final
 
-   ``#include <gui_forms/controls/button_base/button_base.hpp>``
+   ``#include <gui_forms/controls/button_base.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -211,7 +195,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonBaseCapabilities : public TextCapability<Declaring>, public TextAlignmentCapability<Declaring>, public FontCapability<Declaring>, public ContentPaddingCapability<Declaring>, public TextLineSpacingCapability<Declaring>, public ImageAlignmentCapability<Declaring>, public TextImageRelationCapability<Declaring>, public ImageGapCapability<Declaring>, public ButtonUseMnemonicCapability<Declaring>, public ExpandedStateCapability<Declaring>, public ButtonBaseImageCapability<Declaring>
 
-   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
 
    Every ButtonBase capability, in the order the declaring class takes them.
 
@@ -271,7 +255,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonBaseImageCapability
 
-   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
 
    A direct generational image resource for the button's content (Image); a view onto the image slot: a write clears image_index and image_key. An ID not live in the button's Window throws std::invalid_argument.
 
@@ -288,7 +272,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonCapabilities : public ButtonVisualStyleChoiceCapability<Declaring>, public ButtonFlatBorderWidthCapability<Declaring>, public ButtonDefaultButtonCapability<Declaring>, public ButtonDialogResultCapability<Declaring>, public ButtonSelectedCapability<Declaring>
 
-   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>``
 
    Every Button capability, in the order the declaring class takes them.
 
@@ -319,7 +303,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonDefaultButtonCapability
 
-   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>``
 
    Whether the button draws and announces itself as the default button; the window's accept_button writes it through notify_default.
 
@@ -334,7 +318,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonDialogResultCapability
 
-   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>``
 
    The result the button gives its window when activated (none: no result); an undefined value throws std::invalid_argument. A change raises dialog_result_changed.
 
@@ -351,7 +335,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonFlatBorderWidthCapability
 
-   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>``
 
    Border width in logical pixels of a flat button; finite and nonnegative (std::invalid_argument).
 
@@ -368,7 +352,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonSelectedCapability
 
-   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>``
 
    Whether the button shows as selected (a checked command's push button); a change raises selected_changed.
 
@@ -383,7 +367,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonUseMnemonicCapability
 
-   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
 
    Whether an ampersand in the text marks the access key (UseMnemonic).
 
@@ -400,7 +384,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonVisualStyleChoiceCapability
 
-   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>``
 
    Standard, flat, accent or command button.
 
@@ -415,92 +399,9 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: ChoiceGroup::Parts final
-
-   ``#include <gui_forms/controls/collections/choice_group.hpp>``
-
-   Stage T1 anatomy, as dot members: Panel's parts, then the segmented presentation's track (the whole strip) and selection (the indicator behind the selected segment). Both are absent in the buttons presentation, and the selection while nothing is selected.
-
-   .. cpp:member:: Panel::Parts panel
-
-   .. cpp:member:: PartGeometry track
-
-   .. cpp:member:: PartGeometry selection
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> ChoiceGroupCapabilities : public ChoiceGroupPresentationCapability<Declaring>, public ChoiceGroupSelectedIndexCapability<Declaring>
-
-   ``#include <gui_forms/controls/collections/choice_group_capabilities/choice_group_capabilities.hpp>``
-
-   Every ChoiceGroup capability, in the order the declaring class takes them.
-
-
-   .. rubric:: Properties
-
-   .. cpp:member:: ChoiceGroupPresentation presentation
-
-      How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment. Selection, keyboard and semantics are the same in both.
-
-   .. cpp:member:: int selected_index
-
-      The selected item's index, or -1 for none (G14: an ordinary cell). Outside the items throws std::out_of_range; a bound Value may refuse it. A change checks the selected item's button and raises changed.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> ChoiceGroupPresentationCapability
-
-   ``#include <gui_forms/controls/collections/choice_group_capabilities/choice_group_capabilities.hpp>``
-
-   How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment. Selection, keyboard and semantics are the same in both.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(ChoiceGroupPresentationCapability& capability, ChoiceGroupPresentation incoming)
-
-   .. cpp:member:: PropertyCell<ChoiceGroupPresentation, ChoiceGroupPresentationCapability<Declaring>> presentation
-
-      Default: ``{ChoiceGroupPresentation::buttons}``.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> ChoiceGroupSelectedIndexCapability
-
-   ``#include <gui_forms/controls/collections/choice_group_capabilities/choice_group_capabilities.hpp>``
-
-   The selected item's index, or -1 for none (G14: an ordinary cell). Outside the items throws std::out_of_range; a bound Value may refuse it. A change checks the selected item's button and raises changed.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(ChoiceGroupSelectedIndexCapability& capability, int incoming)
-
-   .. cpp:member:: PropertyCell<int, ChoiceGroupSelectedIndexCapability<Declaring>> selected_index
-
-      Default: ``{-1}``.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: ChoiceItem final
-
-   ``#include <gui_forms/controls/collections/choice_group.hpp>``
-
-   .. cpp:member:: int id
-
-   .. cpp:member:: std::string label
-
-   .. cpp:member:: std::string glyph
-
-   .. cpp:member:: ImageId image
-
-   .. cpp:member:: std::string accessible_name
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: CommandItem final
 
-   ``#include <gui_forms/controls/collections/command_bar.hpp>``
+   ``#include <gui_forms/controls/command_bar.hpp>``
 
    .. cpp:member:: int id
 
@@ -520,7 +421,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ContentPaddingCapability
 
-   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
 
    Insets between the button frame and its image and text content (Padding of the content).
 
@@ -537,7 +438,7 @@ Related types
 
 .. cpp:struct:: DropDownButton::Parts final
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp>``
+   ``#include <gui_forms/controls/drop_down_button.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -561,7 +462,7 @@ Related types
 
 .. cpp:struct:: DropDownButton::States final
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp>``
+   ``#include <gui_forms/controls/drop_down_button.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -589,7 +490,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DropDownButtonCapabilities : public DropDownButtonDropDownModeCapability<Declaring>, public DropDownButtonDropDownWidthCapability<Declaring>, public DropDownButtonDropDownEdgeCapability<Declaring>
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>``
 
    Every DropDownButton capability, in the order the declaring class takes them.
 
@@ -612,7 +513,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DropDownButtonDropDownEdgeCapability
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>``
 
    The edge holding the disclosure region, right (default) or bottom; a write moves the reserved content inset to it. An unknown edge throws std::invalid_argument and changes nothing.
 
@@ -629,7 +530,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DropDownButtonDropDownModeCapability
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>``
 
    Menu mode routes the whole button to the drop-down; split mode keeps a primary Click region and a disclosure region at drop_down_edge. An unknown mode throws std::invalid_argument and changes nothing.
 
@@ -646,7 +547,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DropDownButtonDropDownWidthCapability
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>``
 
    The disclosure extent on drop_down_edge, 12 to 64 (default 16); a write moves the reserved content inset with it, so author primary-content padding after it. A value outside that range throws std::invalid_argument and changes nothing.
 
@@ -661,39 +562,9 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ExpandableSectionsCapabilities : public ExpandableSectionsSingleOpenCapability<Declaring>
-
-   ``#include <gui_forms/controls/collections/expandable_sections_capabilities/expandable_sections_capabilities.hpp>``
-
-   Every ExpandableSections capability, in the order the declaring class takes them.
-
-
-   .. rubric:: Properties
-
-   .. cpp:member:: bool single_open
-
-      Whether at most one section is open (an accordion). Turning it on keeps the first open section and closes the others.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> ExpandableSectionsSingleOpenCapability
-
-   ``#include <gui_forms/controls/collections/expandable_sections_capabilities/expandable_sections_capabilities.hpp>``
-
-   Whether at most one section is open (an accordion). Turning it on keeps the first open section and closes the others.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(ExpandableSectionsSingleOpenCapability& capability, bool incoming)
-
-   .. cpp:member:: PropertyCell<bool, ExpandableSectionsSingleOpenCapability<Declaring>> single_open
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: template <typename Declaring> ExpandedStateCapability
 
-   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
 
    Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
 
@@ -708,7 +579,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ImageAlignmentCapability
 
-   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
 
    Where the image sits in the content area (ImageAlign).
 
@@ -725,7 +596,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ImageGapCapability
 
-   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
 
    The space between the image and the text (between zero and 64).
 
@@ -742,7 +613,7 @@ Related types
 
 .. cpp:struct:: LinkLabel::Parts final
 
-   ``#include <gui_forms/controls/button_base/link_label/link_label.hpp>``
+   ``#include <gui_forms/controls/link_label.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -758,7 +629,7 @@ Related types
 
 .. cpp:struct:: LinkLabel::States final
 
-   ``#include <gui_forms/controls/button_base/link_label/link_label.hpp>``
+   ``#include <gui_forms/controls/link_label.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -784,7 +655,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LinkLabelCapabilities : public LinkLabelVisitedCapability<Declaring>
 
-   ``#include <gui_forms/controls/button_base/link_label/link_label_capabilities/link_label_capabilities.hpp>``
+   ``#include <gui_forms/controls/link_label_capabilities.hpp>``
 
    Every LinkLabel capability, in the order the declaring class takes them.
 
@@ -799,7 +670,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LinkLabelVisitedCapability
 
-   ``#include <gui_forms/controls/button_base/link_label/link_label_capabilities/link_label_capabilities.hpp>``
+   ``#include <gui_forms/controls/link_label_capabilities.hpp>``
 
    Whether the link paints in its visited colour (Windows Forms' LinkVisited). Activation sets it; set it back to false if the target can become new again.
 
@@ -812,25 +683,9 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: SectionItem final
-
-   ``#include <gui_forms/controls/collections/expandable_sections.hpp>``
-
-   .. cpp:member:: int id
-
-   .. cpp:member:: std::string label
-
-   .. cpp:member:: Control::Ptr content
-
-   .. cpp:member:: Value<bool>* expanded
-
-      Borrowed; a missing model uses retained local state.
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: template <typename Declaring> TextAlignmentCapability
 
-   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
 
    Where the text sits in the content area (TextAlign).
 
@@ -847,7 +702,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextImageRelationCapability
 
-   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
 
    How the text and the image are placed against each other (TextImageRelation).
 
@@ -864,7 +719,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextLineSpacingCapability
 
-   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
 
    Line height as a multiple of the font's (between 0.75 and 3).
 
@@ -884,7 +739,7 @@ Enumerations
 
 .. cpp:enum-class:: ButtonVisualStyle
 
-   ``#include <gui_forms/controls/button_base/button/button_values/button_values.hpp>``
+   ``#include <gui_forms/controls/button_values.hpp>``
 
    .. cpp:enumerator:: standard
 
@@ -896,19 +751,9 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:enum-class:: ChoiceGroupPresentation
-
-   ``#include <gui_forms/controls/collections/choice_group_values/choice_group_values.hpp>``
-
-   .. cpp:enumerator:: buttons
-
-   .. cpp:enumerator:: segmented
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:enum-class:: ChoiceIndicatorStyle
 
-   ``#include <gui_forms/controls/button_base/button_base.hpp>``
+   ``#include <gui_forms/controls/button_base.hpp>``
 
    .. cpp:enumerator:: classic
 
@@ -920,7 +765,7 @@ Enumerations
 
 .. cpp:enum-class:: ContentAlignment
 
-   ``#include <gui_forms/controls/button_base/button_content_types/button_content_types.hpp>``
+   ``#include <gui_forms/controls/button_content_types.hpp>``
 
    .. cpp:enumerator:: top_left
 
@@ -944,7 +789,7 @@ Enumerations
 
 .. cpp:enum-class:: DropDownButtonEdge
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_values/drop_down_button_values.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_values.hpp>``
 
    .. cpp:enumerator:: right
 
@@ -954,7 +799,7 @@ Enumerations
 
 .. cpp:enum-class:: DropDownButtonMode
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_values/drop_down_button_values.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_values.hpp>``
 
    .. cpp:enumerator:: menu
 
@@ -964,7 +809,7 @@ Enumerations
 
 .. cpp:enum-class:: TextImageRelation
 
-   ``#include <gui_forms/controls/button_base/button_content_types/button_content_types.hpp>``
+   ``#include <gui_forms/controls/button_content_types.hpp>``
 
    .. cpp:enumerator:: overlay
 
@@ -981,7 +826,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::types
 
-``#include <gui_forms/controls/button_base/button_content_types/button_content_types.hpp>``
+``#include <gui_forms/controls/button_content_types.hpp>``
 
 .. cpp:var:: constexpr TypeTag<ContentAlignment> content_alignment
 

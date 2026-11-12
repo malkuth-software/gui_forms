@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
+#include "gui_forms/controls/list_box.hpp"
 #include "list_box_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 

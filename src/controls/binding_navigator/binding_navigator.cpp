@@ -1,4 +1,4 @@
-#include "gui_forms/controls/binding_navigator/binding_navigator.hpp"
+#include "gui_forms/controls/binding_navigator.hpp"
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/window.hpp"

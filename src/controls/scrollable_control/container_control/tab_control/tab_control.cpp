@@ -1,5 +1,5 @@
-#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
-#include "gui_forms/controls/pages/page_strip/page_strip.hpp"
+#include "gui_forms/controls/tab_control.hpp"
+#include "gui_forms/controls/page_strip.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/image_list.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

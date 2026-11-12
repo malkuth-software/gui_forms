@@ -9,7 +9,7 @@ gui_forms::DropDownButton
 
 .. cpp:class:: DropDownButton final : public Button, public DropDownButtonCapabilities<DropDownButton>
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp>``
+   ``#include <gui_forms/controls/drop_down_button.hpp>``
 
    A button with an arrow that asks the application to open a menu.
 

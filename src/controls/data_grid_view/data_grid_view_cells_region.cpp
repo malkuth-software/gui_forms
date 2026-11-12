@@ -9,7 +9,7 @@
 // cells text provider (decision 3(a)), the text cells travel without their
 // values and the region's provider fills them on its thread.
 
-#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 
 #include <algorithm>

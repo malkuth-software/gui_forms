@@ -9,7 +9,7 @@ gui_forms::Splitter
 
 .. cpp:class:: Splitter final : public Control, public SplitterCapabilities<Splitter>
 
-   ``#include <gui_forms/controls/splitter/splitter.hpp>``
+   ``#include <gui_forms/controls/splitter.hpp>``
 
    A bar docked after a docked control that resizes it by dragging.
 

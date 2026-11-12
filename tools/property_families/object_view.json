@@ -2,15 +2,15 @@
   "family": "ObjectView",
   "step": "B7",
   "declaring": "ObjectView",
-  "header": "include/gui_forms/controls/panel/object_view/object_view.hpp",
+  "header": "include/gui_forms/controls/object_view.hpp",
   "source": "src/controls/panel/object_view/object_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/object_view_capabilities.hpp",
   "base": "Panel",
   "shared": [
     "FontCapability"
   ],
   "includes": [
-    "gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp",
+    "gui_forms/controls/object_view_values.hpp",
     "gui_forms/image_list.hpp",
     "gui_forms/types.hpp"
   ],
@@ -239,6 +239,6 @@
   ],
   "test": {
     "type": "ObjectView",
-    "include": "gui_forms/controls/panel/object_view/object_view.hpp"
+    "include": "gui_forms/controls/object_view.hpp"
   }
 }

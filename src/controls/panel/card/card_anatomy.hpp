@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../panel_anatomy.hpp"
-#include "gui_forms/controls/panel/card/card.hpp"
+#include "gui_forms/controls/card.hpp"
 
 #include <array>
 

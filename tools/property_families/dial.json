@@ -2,13 +2,13 @@
   "family": "Dial",
   "step": "2.5",
   "declaring": "Dial",
-  "header": "include/gui_forms/controls/instruments/dial/dial.hpp",
+  "header": "include/gui_forms/controls/dial.hpp",
   "source": "src/controls/instruments/dial/dial.cpp",
-  "capabilities_header": "include/gui_forms/controls/instruments/dial/dial_capabilities/dial_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/dial_capabilities.hpp",
   "base": "RangeControl",
   "shared": [],
   "includes": [
-    "gui_forms/controls/range_control/range_control.hpp"
+    "gui_forms/controls/range_control.hpp"
   ],
   "not_properties": [],
   "properties": [
@@ -78,6 +78,6 @@
   ],
   "test": {
     "type": "Dial",
-    "include": "gui_forms/controls/instruments/dial/dial.hpp"
+    "include": "gui_forms/controls/dial.hpp"
   }
 }

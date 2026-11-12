@@ -9,7 +9,7 @@ gui_forms::SplitContainer
 
 .. cpp:class:: SplitContainer final : public ContainerControl, public SplitContainerCapabilities<SplitContainer>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/split_container.hpp>``
 
    Two panels separated by a seam that the user drags to share the space between them.
 

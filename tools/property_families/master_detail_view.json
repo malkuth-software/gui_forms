@@ -2,17 +2,17 @@
   "family": "MasterDetailView",
   "step": "M-S8",
   "declaring": "MasterDetailView",
-  "header": "include/gui_forms/controls/container/master_detail_view/master_detail_view.hpp",
+  "header": "include/gui_forms/controls/master_detail_view.hpp",
   "source": "src/controls/container/master_detail_view/master_detail_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/container/master_detail_view/master_detail_view_capabilities/master_detail_view_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/master_detail_view_capabilities.hpp",
   "base": "ContainerControl",
   "shared": [],
   "includes": [
-    "gui_forms/controls/container/master_detail_view/master_detail_view_values/master_detail_view_values.hpp"
+    "gui_forms/controls/master_detail_view_values.hpp"
   ],
   "test": {
     "type": "MasterDetailView",
-    "include": "gui_forms/controls/container/master_detail_view/master_detail_view.hpp"
+    "include": "gui_forms/controls/master_detail_view.hpp"
   },
   "properties": [
     {

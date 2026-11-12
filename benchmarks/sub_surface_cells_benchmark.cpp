@@ -34,8 +34,8 @@
 // Usage: gui_forms_sub_surface_cells_benchmark [steps]  (default 600)
 
 #include "gui_forms/gui_forms.hpp"
-#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
-#include "gui_forms/controls/data_grid_view/data_grid_view_cells.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view_cells.hpp"
 #include "../src/controls/data_grid_view/data_grid_view_cells_control.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "skia_raster.hpp"

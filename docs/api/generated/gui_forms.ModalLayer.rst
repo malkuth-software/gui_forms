@@ -9,7 +9,7 @@ gui_forms::ModalLayer
 
 .. cpp:class:: ModalLayer final : public Control, public ModalLayerCapabilities<ModalLayer>
 
-   ``#include <gui_forms/controls/modal_layer/modal_layer.hpp>``
+   ``#include <gui_forms/controls/modal_layer.hpp>``
 
    In-window modal layer: any control shown centred over a scrim dimming its owner's window, taking every press outside it and holding focus, closed with a DialogResult through a cancellable closing.
 

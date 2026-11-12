@@ -9,7 +9,7 @@ gui_forms::TreeListView
 
 .. cpp:class:: TreeListView final : public Control, public TreeListViewCapabilities<TreeListView>
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    A tree with tabular columns: nodes in a hierarchy, each with cells beside it.
 

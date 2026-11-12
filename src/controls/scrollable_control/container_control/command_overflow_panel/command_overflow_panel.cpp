@@ -1,6 +1,6 @@
-#include "gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp"
+#include "gui_forms/controls/command_overflow_panel.hpp"
 
-#include "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp"
+#include "gui_forms/controls/responsive_track_panel.hpp"
 #include "gui_forms/window.hpp"
 
 #include "../container_layout_utilities.hpp"

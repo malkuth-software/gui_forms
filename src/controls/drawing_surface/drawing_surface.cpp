@@ -1,4 +1,4 @@
-#include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
+#include "gui_forms/controls/drawing_surface.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>

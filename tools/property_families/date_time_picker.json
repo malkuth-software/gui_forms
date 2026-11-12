@@ -2,17 +2,17 @@
   "family": "DateTimePicker",
   "step": "B8",
   "declaring": "DateTimePicker",
-  "header": "include/gui_forms/controls/panel/date_time_picker/date_time_picker.hpp",
+  "header": "include/gui_forms/controls/date_time_picker.hpp",
   "source": "src/controls/panel/date_time_picker/date_time_picker.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/date_time_picker_capabilities.hpp",
   "base": "Panel",
   "shared": [
     "FontCapability"
   ],
   "includes": [
-    "gui_forms/controls/panel/date_time_picker/date_time_format_provider/date_time_format_provider.hpp",
-    "gui_forms/controls/panel/date_time_picker/date_time_picker_values/date_time_picker_values.hpp",
-    "gui_forms/controls/panel/date_time_picker/date_time_value/date_time_value.hpp",
+    "gui_forms/controls/date_time_format_provider.hpp",
+    "gui_forms/controls/date_time_picker_values.hpp",
+    "gui_forms/controls/date_time_value.hpp",
     "gui_forms/theme/types/theme_types.hpp",
     "gui_forms/types.hpp"
   ],
@@ -308,6 +308,6 @@
   ],
   "test": {
     "type": "DateTimePicker",
-    "include": "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp"
+    "include": "gui_forms/controls/date_time_picker.hpp"
   }
 }

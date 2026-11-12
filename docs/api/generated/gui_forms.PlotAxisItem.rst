@@ -9,7 +9,7 @@ gui_forms::PlotAxisItem
 
 .. cpp:class:: PlotAxisItem final : public Control, public PlotAxisItemCapabilities<PlotAxisItem>
 
-   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp>``
+   ``#include <gui_forms/controls/plot_axis_item.hpp>``
 
    Item child of a PlotView declaring one axis: direction, scale, initial range, title, fitting and following.
 

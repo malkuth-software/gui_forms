@@ -1,8 +1,8 @@
-#include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
 
 #include "gui_forms/application/workspace_transaction/workspace_transaction.hpp"
 #include "gui_forms/commands/command_route/command_route.hpp"
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/dock_site.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

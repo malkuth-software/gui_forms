@@ -2,17 +2,17 @@
   "family": "PageView",
   "step": "M-S8",
   "declaring": "PageView",
-  "header": "include/gui_forms/controls/pages/page_view/page_view.hpp",
+  "header": "include/gui_forms/controls/page_view.hpp",
   "source": "src/controls/pages/page_view/page_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/page_view_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
-    "gui_forms/controls/pages/page_view/page_view_values/page_view_values.hpp"
+    "gui_forms/controls/page_view_values.hpp"
   ],
   "test": {
     "type": "PageView",
-    "include": "gui_forms/controls/pages/page_view/page_view.hpp"
+    "include": "gui_forms/controls/page_view.hpp"
   },
   "properties": [
     {

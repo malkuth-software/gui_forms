@@ -88,6 +88,16 @@ Related types
      - Whether the first click on an unselected row also toggles its check (CheckOnClick); off by default, so the first click only selects.
    * - :cpp:class:`CheckedListBoxIndicatorSizeCapability <gui_forms::CheckedListBoxIndicatorSizeCapability>`
      - The check box's side in logical pixels, 8 to 32 (std::out_of_range otherwise); the row text starts after it.
+   * - :cpp:class:`ChoiceGroup::Parts <gui_forms::ChoiceGroup::Parts>`
+     - Stage T1 anatomy, as dot members: Panel's parts, then the segmented presentation's track (the whole strip) and selection (the indicator behind the selected segment).
+   * - :cpp:class:`ChoiceGroupCapabilities <gui_forms::ChoiceGroupCapabilities>`
+     - Every ChoiceGroup capability, in the order the declaring class takes them.
+   * - :cpp:class:`ChoiceGroupPresentationCapability <gui_forms::ChoiceGroupPresentationCapability>`
+     - How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment.
+   * - :cpp:class:`ChoiceGroupSelectedIndexCapability <gui_forms::ChoiceGroupSelectedIndexCapability>`
+     - The selected item's index, or -1 for none (G14: an ordinary cell).
+   * - :cpp:class:`ChoiceItem <gui_forms::ChoiceItem>`
+     -  
    * - :cpp:class:`ComboBox::Parts <gui_forms::ComboBox::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ComboBox::States <gui_forms::ComboBox::States>`
@@ -529,7 +539,7 @@ Related types
 
 .. cpp:struct:: BreadcrumbSegment final
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_values/breadcrumb_trail_values.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail_values.hpp>``
 
    .. cpp:member:: std::string stable_id
 
@@ -545,7 +555,7 @@ Related types
 
 .. cpp:struct:: BreadcrumbTrail::Item final
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -559,7 +569,7 @@ Related types
 
 .. cpp:struct:: BreadcrumbTrail::ItemParts final
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail.hpp>``
 
    .. cpp:member:: PartGeometry segment
 
@@ -573,7 +583,7 @@ Related types
 
 .. cpp:struct:: BreadcrumbTrail::ItemStates final
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail.hpp>``
 
    .. cpp:member:: bool hot
 
@@ -585,7 +595,7 @@ Related types
 
 .. cpp:struct:: BreadcrumbTrail::Parts final
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -599,7 +609,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BreadcrumbTrailActiveIdCapability
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail_capabilities.hpp>``
 
    The stable ID of the keyboard-active segment, the overflow or the edit button, or empty; a view, since keyboard, pointer and semantic actions move it. An ID not in the model throws std::out_of_range.
 
@@ -616,7 +626,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BreadcrumbTrailAppearanceCapability
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail_capabilities.hpp>``
 
    Whether the segments are drawn plain or as raised arrows. An undeclared value throws std::invalid_argument; a change re-lays out the segments.
 
@@ -633,7 +643,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BreadcrumbTrailCapabilities : public FontCapability<Declaring>, public BreadcrumbTrailAppearanceCapability<Declaring>, public BreadcrumbTrailActiveIdCapability<Declaring>, public BreadcrumbTrailEditingCapability<Declaring>, public BreadcrumbTrailTabCompletionAvailableCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail_capabilities.hpp>``
 
    Every BreadcrumbTrail capability, in the order the declaring class takes them.
 
@@ -669,7 +679,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BreadcrumbTrailEditingCapability
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail_capabilities.hpp>``
 
    Whether the exact-path editor replaces the segments. Ending an edit withdraws tab completion. begin_edit fills the editor and turns it on.
 
@@ -684,7 +694,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BreadcrumbTrailTabCompletionAvailableCapability
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail_capabilities.hpp>``
 
    Whether Tab in the path editor requests completion (edit_completion_requested). It holds only while editing; a write outside an edit stores false.
 
@@ -699,7 +709,7 @@ Related types
 
 .. cpp:struct:: CheckedListBox::Item final
 
-   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
+   ``#include <gui_forms/controls/checked_list_box.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -713,7 +723,7 @@ Related types
 
 .. cpp:struct:: CheckedListBox::ItemParts final
 
-   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
+   ``#include <gui_forms/controls/checked_list_box.hpp>``
 
    Stage T1 item records: ListBox's row parts and states plus the check.
 
@@ -731,7 +741,7 @@ Related types
 
 .. cpp:struct:: CheckedListBox::ItemStates final
 
-   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
+   ``#include <gui_forms/controls/checked_list_box.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -747,7 +757,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CheckedListBoxCapabilities : public CheckedListBoxCheckOnClickCapability<Declaring>, public CheckedListBoxIndicatorSizeCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/checked_list_box_capabilities.hpp>``
 
    Every CheckedListBox capability, in the order the declaring class takes them.
 
@@ -766,7 +776,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CheckedListBoxCheckOnClickCapability
 
-   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/checked_list_box_capabilities.hpp>``
 
    Whether the first click on an unselected row also toggles its check (CheckOnClick); off by default, so the first click only selects.
 
@@ -781,7 +791,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CheckedListBoxIndicatorSizeCapability
 
-   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/checked_list_box_capabilities.hpp>``
 
    The check box's side in logical pixels, 8 to 32 (std::out_of_range otherwise); the row text starts after it.
 
@@ -796,9 +806,92 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ChoiceGroup::Parts final
+
+   ``#include <gui_forms/controls/choice_group.hpp>``
+
+   Stage T1 anatomy, as dot members: Panel's parts, then the segmented presentation's track (the whole strip) and selection (the indicator behind the selected segment). Both are absent in the buttons presentation, and the selection while nothing is selected.
+
+   .. cpp:member:: Panel::Parts panel
+
+   .. cpp:member:: PartGeometry track
+
+   .. cpp:member:: PartGeometry selection
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ChoiceGroupCapabilities : public ChoiceGroupPresentationCapability<Declaring>, public ChoiceGroupSelectedIndexCapability<Declaring>
+
+   ``#include <gui_forms/controls/choice_group_capabilities.hpp>``
+
+   Every ChoiceGroup capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ChoiceGroupPresentation presentation
+
+      How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment. Selection, keyboard and semantics are the same in both.
+
+   .. cpp:member:: int selected_index
+
+      The selected item's index, or -1 for none (G14: an ordinary cell). Outside the items throws std::out_of_range; a bound Value may refuse it. A change checks the selected item's button and raises changed.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ChoiceGroupPresentationCapability
+
+   ``#include <gui_forms/controls/choice_group_capabilities.hpp>``
+
+   How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment. Selection, keyboard and semantics are the same in both.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ChoiceGroupPresentationCapability& capability, ChoiceGroupPresentation incoming)
+
+   .. cpp:member:: PropertyCell<ChoiceGroupPresentation, ChoiceGroupPresentationCapability<Declaring>> presentation
+
+      Default: ``{ChoiceGroupPresentation::buttons}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ChoiceGroupSelectedIndexCapability
+
+   ``#include <gui_forms/controls/choice_group_capabilities.hpp>``
+
+   The selected item's index, or -1 for none (G14: an ordinary cell). Outside the items throws std::out_of_range; a bound Value may refuse it. A change checks the selected item's button and raises changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ChoiceGroupSelectedIndexCapability& capability, int incoming)
+
+   .. cpp:member:: PropertyCell<int, ChoiceGroupSelectedIndexCapability<Declaring>> selected_index
+
+      Default: ``{-1}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ChoiceItem final
+
+   ``#include <gui_forms/controls/choice_group.hpp>``
+
+   .. cpp:member:: int id
+
+   .. cpp:member:: std::string label
+
+   .. cpp:member:: std::string glyph
+
+   .. cpp:member:: ImageId image
+
+   .. cpp:member:: std::string accessible_name
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ComboBox::Parts final
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box.hpp>``
+   ``#include <gui_forms/controls/combo_box.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -822,7 +915,7 @@ Related types
 
 .. cpp:struct:: ComboBox::States final
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box.hpp>``
+   ``#include <gui_forms/controls/combo_box.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -848,7 +941,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxAutoCompleteCustomSourceCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource). Never null: a new box owns an empty collection; null throws std::invalid_argument.
 
@@ -865,7 +958,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxAutoCompleteModeCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    How the drop_down editor offers completions (AutoCompleteMode); a filtered list turns the editor's own completion off.
 
@@ -882,7 +975,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxAutoCompleteSourceCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    Where the editor's completions come from (AutoCompleteSource); list_items offers the items.
 
@@ -899,7 +992,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxCapabilities : public ComboBoxSelectedIndexCapability<Declaring>, public ComboBoxTextCapability<Declaring>, public ComboBoxPlaceholderTextCapability<Declaring>, public ComboBoxDroppedDownCapability<Declaring>, public ComboBoxMaximumDropDownItemsCapability<Declaring>, public ComboBoxDropDownWidthCapability<Declaring>, public FontCapability<Declaring>, public ComboBoxDropDownStyleCapability<Declaring>, public ComboBoxDropDownFilterCapability<Declaring>, public ComboBoxAutoCompleteModeCapability<Declaring>, public ComboBoxAutoCompleteSourceCapability<Declaring>, public ComboBoxAutoCompleteCustomSourceCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    Every ComboBox capability, in the order the declaring class takes them.
 
@@ -963,7 +1056,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxDropDownFilterCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    Which items a drop_down field's list shows as the user types: every item, those starting with the text, or those containing it. A change closes the list.
 
@@ -980,7 +1073,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxDropDownStyleCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    Whether the field takes text (drop_down, a TextBox editor) or shows the selected item (drop_down_list, the default) (DropDownStyle). A change closes the list and creates or removes the editor.
 
@@ -997,7 +1090,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxDropDownWidthCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    The open list's width (DropDownWidth); zero follows the field's width. 0 to 4096 (std::out_of_range otherwise).
 
@@ -1014,7 +1107,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxDroppedDownCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    Whether the list is open (DroppedDown); a view. Writing true opens it on every item (when attached and not empty), false closes it; either raises drop_down_changed when the state changes.
 
@@ -1031,7 +1124,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxMaximumDropDownItemsCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    The most rows the open list shows before it scrolls (MaxDropDownItems), 1 to 64 (std::invalid_argument otherwise). An open list reopens at the new height.
 
@@ -1048,7 +1141,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxPlaceholderTextCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    The hint the field shows while no item is selected and no text is typed; the editor shows it in the drop_down style. Throws std::invalid_argument for invalid UTF-8.
 
@@ -1063,7 +1156,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxSelectedIndexCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.
 
@@ -1080,7 +1173,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ComboBoxTextCapability
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/combo_box_capabilities.hpp>``
 
    The field's text (Text): the editor's in the drop_down style, otherwise the selected item's; a view. A write sets the editor's text (the selection follows it), or in the drop_down_list style selects the item equal to it, or none. Invalid UTF-8 throws std::invalid_argument.
 
@@ -1097,7 +1190,7 @@ Related types
 
 .. cpp:struct:: DataGridView::Cell final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    .. cpp:member:: DataGridViewCellAddress address
 
@@ -1111,7 +1204,7 @@ Related types
 
 .. cpp:struct:: DataGridView::CellParts final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    The "cell" item system: one realized item per visible cell. A part a cell's kind does not show is absent.
 
@@ -1157,7 +1250,7 @@ Related types
 
 .. cpp:struct:: DataGridView::CellStates final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -1185,7 +1278,7 @@ Related types
 
 .. cpp:struct:: DataGridView::Column final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -1199,7 +1292,7 @@ Related types
 
 .. cpp:struct:: DataGridView::ColumnParts final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    The "column" item system: one realized item per visible column header.
 
@@ -1217,7 +1310,7 @@ Related types
 
 .. cpp:struct:: DataGridView::ColumnStates final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    .. cpp:member:: bool hot
 
@@ -1235,7 +1328,7 @@ Related types
 
 .. cpp:struct:: DataGridView::Parts final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -1269,7 +1362,7 @@ Related types
 
 .. cpp:struct:: DataGridView::Row final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    .. cpp:member:: DataGridViewRowPosition position
 
@@ -1283,7 +1376,7 @@ Related types
 
 .. cpp:struct:: DataGridView::RowParts final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    The "row" item system: one realized item per visible row.
 
@@ -1309,7 +1402,7 @@ Related types
 
 .. cpp:struct:: DataGridView::RowStates final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -1329,7 +1422,7 @@ Related types
 
 .. cpp:struct:: DataGridView::States final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -1347,7 +1440,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewAllowUserToAddRowsCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether unbound and bound grids show a new row after the last row (Windows Forms' new row); on by default. Turning it off cancels an edit on the new row and moves a current cell on it to the last row. A view onto the grid's flag.
 
@@ -1364,7 +1457,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewAllowUserToDeleteRowsCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether the user may delete rows (AllowUserToDeleteRows).
 
@@ -1381,7 +1474,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewAllowUserToOrderColumnsCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether the user may drag column headers to reorder them (AllowUserToOrderColumns).
 
@@ -1398,7 +1491,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewAllowUserToResizeColumnsCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether the user may drag column edges (AllowUserToResizeColumns).
 
@@ -1415,7 +1508,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewAllowUserToResizeRowsCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether the user may drag row edges (AllowUserToResizeRows).
 
@@ -1432,7 +1525,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewAlternatingRowsDefaultCellStyleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    A level of the cell style inheritance (AlternatingRowsDefaultCellStyle).
 
@@ -1447,7 +1540,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewAutoSizeColumnsModeCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    How columns size themselves (AutoSizeColumnsMode).
 
@@ -1464,7 +1557,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewAutoSizeRowsModeCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    How rows size themselves (AutoSizeRowsMode).
 
@@ -1481,7 +1574,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewBackgroundColorCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The authored colour behind the cells; empty takes the theme's (BackgroundColor).
 
@@ -1496,7 +1589,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewBorderStyleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The grid's outer border: none, line or sunken (BorderStyle).
 
@@ -1513,7 +1606,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>, public DataGridViewAutoSizeRowsModeCapability<Declaring>, public DataGridViewClipboardCopyModeCapability<Declaring>, public DataGridViewRowOrderPolicyCapability<Declaring>, public DataGridViewRowOrderThresholdsCapability<Declaring>, public DataGridViewAllowUserToDeleteRowsCapability<Declaring>, public DataGridViewShowCellErrorsCapability<Declaring>, public DataGridViewShowRowErrorsCapability<Declaring>, public DataGridViewShowEditingIconCapability<Declaring>, public DataGridViewDefaultCellStyleCapability<Declaring>, public DataGridViewRowsDefaultCellStyleCapability<Declaring>, public DataGridViewAlternatingRowsDefaultCellStyleCapability<Declaring>, public DataGridViewColumnHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewRowHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewEnableHeadersVisualStylesCapability<Declaring>, public DataGridViewGridColorCapability<Declaring>, public DataGridViewBackgroundColorCapability<Declaring>, public DataGridViewBorderStyleCapability<Declaring>, public DataGridViewCellBorderStyleCapability<Declaring>, public DataGridViewColumnHeadersBorderStyleCapability<Declaring>, public DataGridViewRowHeadersBorderStyleCapability<Declaring>, public DataGridViewDrawModeCapability<Declaring>, public DataGridViewColumnHeadersVisibleCapability<Declaring>, public DataGridViewRowHeadersVisibleCapability<Declaring>, public DataGridViewColumnHeadersHeightCapability<Declaring>, public DataGridViewRowHeadersWidthCapability<Declaring>, public DataGridViewRowHeightCapability<Declaring>, public FontCapability<Declaring>, public DataGridViewReadOnlyCapability<Declaring>, public DataGridViewAllowUserToResizeColumnsCapability<Declaring>, public DataGridViewAllowUserToResizeRowsCapability<Declaring>, public DataGridViewAllowUserToOrderColumnsCapability<Declaring>, public DataGridViewSelectionModeCapability<Declaring>, public DataGridViewMultiSelectCapability<Declaring>, public DataGridViewEditModeCapability<Declaring>, public DataGridViewCellsOnSubSurfaceCapability<Declaring>, public DataGridViewAllowUserToAddRowsCapability<Declaring>, public DataGridViewDataSourceCapability<Declaring>
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Every DataGridView capability, in the order the declaring class takes them.
 
@@ -1681,7 +1774,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellAddress final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    A cell by row position and column index, as the rows are presented now. Inserting, removing or sorting rows moves the row a position names.
 
@@ -1693,7 +1786,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewCellBorderStyleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The lines between cells (CellBorderStyle).
 
@@ -1710,7 +1803,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellCancelEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Raised before an edit begins; setting ``cancel`` keeps the cell out of edit.
 
@@ -1726,7 +1819,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellErrorTextNeededEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Raised when the grid reads a cell's error text in virtual or bound rows (Windows Forms' CellErrorTextNeeded): ``error_text`` starts as the text the grid holds (set_cell_error_text, or the record's error) and a handler may replace it with valid UTF-8 (other text is ignored). Raised from const reads (layout, paint, semantics); handlers may not change the grid.
 
@@ -1742,7 +1835,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    The cell an event concerns: its row's identity, the row's position when the event is raised (the position it had, for a row just removed), and the column.
 
@@ -1756,7 +1849,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellFormattingEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Raised when the grid needs a cell's text (Windows Forms' CellFormatting): to paint and lay it out, for its semantic value, and as the text an edit begins with. ``value`` is the cell's value and ``cell_style`` its inherited style. A handler that sets ``formatted_value`` and ``formatting_applied`` gives the text; otherwise the grid formats ``value``, which the handler may change, with ``cell_style``'s format and null value. The style the handler leaves (font, alignment, padding) places and draws the content that time. Handlers must not change the grid; a paint stops at a change.
 
@@ -1778,7 +1871,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellParsingEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Raised when an edited text cell stores its text (Windows Forms' CellParsing), after cell_validating and before the text converts to the column's value kind. ``formatted_value`` is the typed text and ``cell_style`` the cell's inherited style. A handler that sets ``value`` and ``parsing_applied`` gives the value stored; otherwise text equal to the style's null value stores its data source null value, and other text converts as without the event.
 
@@ -1800,7 +1893,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellsCell final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    One visible cell, resolved. Text and lines are ranges of the snapshot's shared buffers, so a snapshot of any size makes three allocations, not one per cell.
 
@@ -1854,7 +1947,7 @@ Related types
 
 .. cpp:class:: DataGridViewCellsContent final : public SubSurfaceContent
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate, after its provider (when it has one) filled the provided cells' text. Other updates are ignored. A look whose classes or inline style the control refuses throws, and the sub-surface fails.
 
@@ -1878,7 +1971,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellsLineRange final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    A range of DataGridViewCellsSnapshot::lines: ``count`` lines from ``first``.
 
@@ -1890,7 +1983,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellsLook final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    The grid's look, which the sub-surface's control takes over so that the theme selects and colours its parts as it does the grid's: the grid's style classes and inline style select rules (its stable ID is the control's own, DataGridViewCellsContent); its effective back and fore colours (Control::ambient_back_color, ambient_fore_color) stand for its authored ones.
 
@@ -1906,7 +1999,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewCellsOnSubSurfaceCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
 
@@ -1923,7 +2016,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellsParts final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    The parts of one cell, placed in the region's coordinates; a part the cell's kind does not show is absent (PartGeometry::present). They are the grid's "cell" item parts, resolved on the UI thread with the application's authored colours (PartGeometry::authored_background and authored_foreground).
 
@@ -1967,7 +2060,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellsProvided final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    A cell whose text the region's own provider fills on the sub-surface's thread (DataGridViewCellsTextProvider; decision 3(a), the virtual-mode half): its row, an index of DataGridViewCellsSnapshot::provided_rows, and its column. A provided cell arrives with an empty text range and no lines.
 
@@ -1981,7 +2074,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellsSnapshot final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    What the cell region shows in one content epoch: complete, so a newer snapshot replaces an older one whole. Coordinates are the region's (the grid's data area at the origin). Made and filled on the UI thread, then moved to the sub-surface's thread inside a DataGridViewCellsUpdate.
 
@@ -2011,7 +2104,7 @@ Related types
 
 .. cpp:class:: DataGridViewCellsTextProvider
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    The sub-surface half of virtual mode on a cell region (threaded sub-surfaces decision 3(a): a model the sub-surface's thread owns): the application's model of the rows' text, moved to the region's thread with its content (DataGridView::set_cells_text_provider) and called only there, once per snapshot that has provided cells. The UI thread then neither asks DataGridViewCellValueProvider::cell_value nor raises cell_formatting for those cells; it still does for the cells semantics, the editor and the application read through the grid. The provider is released on the region's thread when its sub-surface stops.
 
@@ -2026,7 +2119,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellsTextRange final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    A byte range of DataGridViewCellsSnapshot::text: [begin_byte, end_byte).
 
@@ -2038,7 +2131,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellsTextRequest final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    One cell a DataGridViewCellsTextProvider is asked for: its row's identity, borrowed from the snapshot (valid through the call), and its column.
 
@@ -2050,7 +2143,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellStyle final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    A cell style (Windows Forms' DataGridViewCellStyle). Every property is optional: an empty one is "not set" and is taken from the next style in the cell's inheritance chain (see DataGridView::inherited_cell_style); one no style sets is the theme's (T4 style mapping). Styles are values: a grid stores a copy, and changing a style the program holds changes no cell until it is set again. ``font`` is the content's font. ``alignment`` places the content: across through the text's alignment, up and down within the cell. ``padding``, in logical units at text scale 1, is kept clear around the content in place of the grid's own margins (4 units at the start and end). ``wrap_mode`` true wraps a text cell's text at the content's width, breaking at the text engine's line-break opportunities and at line ends; the lines are placed up and down as a block, cut at the content's bottom (rows do not grow to fit them). Other kinds and the headers keep one line. ``format`` formats a number value under a standard numeric format ("F2", "N0", "P1", "C", "E3", "G"; gui_forms/binding/number_format), the formats Binding accepts, and text typed in such a cell converts as the number it shows ("1,234.50"). ``null_value`` is shown for an empty value, and typed text equal to it stores ``data_source_null_value`` (an empty value when that is not set). The colours are authored colours (owner decision T4-1): over the theme's ordinary colours, under its important ones, and not in high contrast. ``back_color`` fills the cell, ``fore_color`` draws the text of a text, combo box or button cell (a link keeps its link colours, a check box its theme's), and the selection colours stand in for both while the cell is selected; an unset selection colour leaves the theme's selection look. A disabled grid stays greyed.
 
@@ -2080,7 +2173,7 @@ Related types
 
 .. cpp:class:: DataGridViewCellsUpdate final : public SubSurfaceContentUpdate
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
    One snapshot on its way to the sub-surface (SubSurfaceHost::redraw_all).
 
@@ -2095,7 +2188,7 @@ Related types
 
 .. cpp:struct:: DataGridViewCellValidatingEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Raised before an edited text cell commits, with the text as typed. Setting ``cancel`` refuses the text: the cell stays in edit and is marked invalid.
 
@@ -2113,7 +2206,7 @@ Related types
 
 .. cpp:class:: DataGridViewCellValueProvider
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    The application side of virtual mode (Windows Forms' CellValueNeeded and CellValuePushed), on ObjectView's stable-ID model: the application owns the rows and their order and gives the order to the grid as row IDs (in full with set_virtual_rows and set_virtual_row_order, by change with insert_virtual_rows, remove_virtual_rows and move_virtual_row, or on demand through a DataGridViewRowWindowSource); the grid asks for values by ID. It asks for the cells it shows (except the text cells a cell region's DataGridViewCellsTextProvider fills on its own thread), the current cell, and cells semantics or the application read through the grid; it never asks for any other row. Calls arrive on the grid's UI thread, from paint, layout, input and the grid's own methods. The provider may not mutate the grid from inside a call.
 
@@ -2140,7 +2233,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewClipboardCopyModeCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    What a copy puts on the clipboard (ClipboardCopyMode).
 
@@ -2157,7 +2250,7 @@ Related types
 
 .. cpp:struct:: DataGridViewColumn final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    One column. ``name`` is the column's identity: unique within the grid, not empty, and without '.', since a cell's stable ID is its row's ID, '.' and the column's name. ``width`` and ``minimum_width`` are logical units at text scale 1. ``default_cell_style`` is the column's cells' style (Windows Forms' DefaultCellStyle) and ``header_cell_style`` its header's (HeaderCell.Style). ``value_kind`` is the kind a committed text edit converts to (text by default; a number column takes signed_integer or number). ``items`` are a combo box column's choices and must be empty for other kinds. ``button_text`` is shown on a button cell whose value is empty. An image column's cells hold ImageId values, images of the grid's window, placed by ``image_layout``; ``image_description`` is the text an image cell gives in place of its image (Windows Forms' Description), as its cell text and its semantic name. A link column's cells show their text as a link; ``link_text`` is shown on a link cell whose value is empty (Windows Forms' Text with UseColumnTextForLinkValue). With ``track_visited_state`` a link the user clicks becomes visited (Windows Forms' TrackVisitedState). ``data_property_name`` names the BindingSource field a bound column shows.
 
@@ -2227,7 +2320,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewColumnHeadersBorderStyleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The column headers' border (ColumnHeadersBorderStyle).
 
@@ -2244,7 +2337,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewColumnHeadersDefaultCellStyleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    A level of the cell style inheritance (ColumnHeadersDefaultCellStyle).
 
@@ -2259,7 +2352,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewColumnHeadersHeightCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The column header band's height, 4 to 256 logical units (ColumnHeadersHeight).
 
@@ -2276,7 +2369,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewColumnHeadersVisibleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether the column header band is shown (ColumnHeadersVisible).
 
@@ -2293,7 +2386,7 @@ Related types
 
 .. cpp:struct:: DataGridViewDataErrorEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Raised when a value does not reach its cell (Windows Forms' DataError). ``formatted_value`` is the text the user gave (a typed text, a choice, or "true"/"false" for a check box). For a text edit, ``cancel`` true (the default, and the outcome when no handler is subscribed: owner decision B1-1) keeps the cell in edit, marked invalid, with its old value stored; false discards the edit, leaving the old value. A check box or choice has no edit to keep: its cell keeps its old value either way.
 
@@ -2317,7 +2410,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewDataSourceCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows. Every write resets the rows and the row state, even an equal one. A view onto the grid's source.
 
@@ -2334,7 +2427,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewDefaultCellStyleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    A level of the cell style inheritance (DefaultCellStyle).
 
@@ -2349,7 +2442,7 @@ Related types
 
 .. cpp:struct:: DataGridViewDisplayIndex final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    A column's place in the order the grid shows its columns (Windows Forms' DisplayIndex), apart from its index in columns(), which never changes with the order. 0 is the first column shown.
 
@@ -2359,7 +2452,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewDrawModeCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether cells are drawn by the grid or by the owner-draw event.
 
@@ -2376,7 +2469,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewEditModeCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    What starts an edit (EditMode).
 
@@ -2393,7 +2486,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewEnableHeadersVisualStylesCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether headers take the theme's look over their cell styles (EnableHeadersVisualStyles).
 
@@ -2410,7 +2503,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewGridColorCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The authored colour of the grid lines; empty takes the theme's (GridColor).
 
@@ -2425,7 +2518,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewMultiSelectCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether more than one cell or row may be selected (MultiSelect).
 
@@ -2442,7 +2535,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewReadOnlyCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether no cell can be edited (ReadOnly).
 
@@ -2459,7 +2552,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRow final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_rows/data_grid_view_rows.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_rows.hpp>``
 
    One unbound row. ``stable_id`` is unique within the grid; an empty ID is replaced by a generated one ("row.1", "row.2", ...). ``cells`` holds one value per column in column order; a shorter list is padded with empty values.
 
@@ -2475,7 +2568,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRowCancelEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Raised before a row is left or deleted; setting ``cancel`` keeps it.
 
@@ -2489,7 +2582,7 @@ Related types
 
 .. cpp:class:: DataGridViewRowComparer
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Orders unbound rows for DataGridView::sort(comparer) (Windows Forms' Sort(IComparer)). compare returns a negative number, zero or a positive number when ``left`` goes before, with or after ``right``. It need not be a consistent order: the grid's merge sort stays within the rows whatever it returns. It may not change the grid (std::logic_error).
 
@@ -2502,7 +2595,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRowErrorTextNeededEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    As DataGridViewCellErrorTextNeededEvent, for a row's own error text (Windows Forms' RowErrorTextNeeded).
 
@@ -2516,7 +2609,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRowEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    A row an event concerns: its identity and its position when the event is raised (the position it had, for a row just removed).
 
@@ -2528,7 +2621,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewRowHeadersBorderStyleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The row headers' border (RowHeadersBorderStyle).
 
@@ -2545,7 +2638,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewRowHeadersDefaultCellStyleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    A level of the cell style inheritance (RowHeadersDefaultCellStyle).
 
@@ -2560,7 +2653,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewRowHeadersVisibleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether the row header band is shown (RowHeadersVisible).
 
@@ -2577,7 +2670,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewRowHeadersWidthCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The row header band's width, 4 to 1024 logical units (RowHeadersWidth).
 
@@ -2594,7 +2687,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRowHeight final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_heights.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_heights.hpp>``
 
    One row's own height, by its presentation position, for DataGridViewRowHeights::reset.
 
@@ -2606,7 +2699,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewRowHeightCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The default row height, 4 to 256 logical units (RowTemplate.Height).
 
@@ -2623,7 +2716,7 @@ Related types
 
 .. cpp:class:: DataGridViewRowHeights final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_heights.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_heights.hpp>``
 
    A grid's row heights by presentation position, renderer-free, in logical units at text scale 1 (owner decision of 2026-11-02: real per-row heights for every row source, with no linear walk in scrolling, hit testing or painting). Every row has the default height except those given their own. While none is, nothing is stored and every query is arithmetic. Once one is, the index keeps each row's difference from the default and a Fenwick tree of the differences, 16 bytes a row. A row's height costs O(1); a row's top, the row at an offset and setting one row's height cost O(log count); reset with heights costs O(count + heights given). Offsets are sums of doubles. Heights of a few significant bits (whole and half units, quarter units at a text scale) add exactly; others may drift by rounding after many set_height calls, which reset clears. Single UI thread.
 
@@ -2671,7 +2764,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRowId final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
 
    A row's stable identity: not empty, unique among the grid's rows, and kept while the row moves. Unbound rows, virtual rows and BindingSource records each carry one. The selection, the current cell, an edit in progress and a pressed button cell are kept by it, so inserting, removing and sorting rows never moves them onto other rows. It is also the row's semantic stable ID, and a cell's is the row's, '.' and the column's name.
 
@@ -2681,7 +2774,7 @@ Related types
 
 .. cpp:class:: DataGridViewRowOrder final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
 
    A virtual grid's row order (owner decision W-5), renderer-free: the IDs in presentation order in one of two modes. Edit mode keeps every ID in chunks of at most 2 * chunk_capacity IDs, in order, with a Fenwick tree of the chunks' sizes and an ID-to-chunk index. Finding an ID's position or a position's ID costs O(log chunks + chunk_capacity); inserting or removing one row costs O(chunk_capacity + log chunks) (it shifts at most one chunk's IDs), so r rows cost r times that, plus O(chunks) when a chunk splits, merges or empties (at most once per chunk_capacity changes to one chunk); a move is a removal and an insertion. A reset builds everything, O(rows). Window mode holds the row count and the IDs of one window of positions, [window_first, window_first + window size), each with its position; prepare_window fetches a window from the source when the positions asked for are not all held, and any reported change discards it. An ID outside the window is asked of the source, one at a time. The order validates what the program reports in edit mode (IDs not empty, valid UTF-8, unique, and present when removed or moved) and throws std::invalid_argument, changing nothing; in window mode the source is trusted. Single UI thread.
 
@@ -2766,7 +2859,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRowOrderModeChange final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
 
    .. cpp:member:: DataGridViewRowOrderMode old_mode
 
@@ -2790,7 +2883,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewRowOrderPolicyCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Which row order a virtual grid keeps: automatic, edit or window.
 
@@ -2807,7 +2900,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRowOrderStatistics final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
 
    Counters of the order's work since it was made, for diagnostics and the tests that measure each change's cost.
 
@@ -2845,7 +2938,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRowOrderThresholds final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
 
    The automatic policy's thresholds. The grid goes to window mode when the rows reach window_rows, or the reported changes since the last layout pass reach window_changes; it returns to edit mode when the rows are at most edit_rows and both the last pass's and this pass's changes are at most edit_changes. The gaps between the pairs keep it from switching back and forth. window_margin is how many rows past each end of the visible ones a window holds.
 
@@ -2873,7 +2966,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewRowOrderThresholdsCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    The sizes at which automatic row order switches between edit and window.
 
@@ -2888,7 +2981,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRowPosition final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
 
    A row's presentation position: its index in the grid's current row order, 0 at the top. A position is not an identity: inserting, removing or sorting rows changes which row holds it. row_id and row_position convert between the two.
 
@@ -2898,7 +2991,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewRowsCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_rows/data_grid_view_rows.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_rows.hpp>``
 
    A grid's unbound rows edited in place (in-place collections design, owner 2026-11-07; the DataGridView pilot): ``(*grid).rows.read()``, ``rows[i]``, ``rows = {...}``, ``rows.insert(i, row)``, ``rows.append(row)``, ``rows.append(rows)``, ``rows.erase(i, n)``, ``rows.replace(i, row)`` and ``rows.clear()``. Positions are presentation positions of the unbound rows. A standard-layout struct whose only member is the cell, taken by the declaring class as a base. Each edit runs the declaring class's prepare_edit hook (it may refuse by throwing: nothing changes), the store, then its written hook. The declaring class takes the pending damage at its flush through take_dirty, and writes cell values and reorders through the owner operations.
 
@@ -2946,7 +3039,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewRowsDefaultCellStyleCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    A level of the cell style inheritance (RowsDefaultCellStyle).
 
@@ -2961,7 +3054,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRowValuesEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Raised when the new row becomes current (Windows Forms' DefaultValuesNeeded): ``values`` holds one value per column, empty, for the handler to fill with the values the new row starts with.
 
@@ -2975,7 +3068,7 @@ Related types
 
 .. cpp:class:: DataGridViewRowWindowSource
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
 
    The application side of a virtual grid's window mode (owner decision W-5): the application keeps the rows' order, and the grid asks for the IDs at the positions it shows (plus a margin) instead of holding the whole order. Calls arrive on the grid's UI thread; the source may not mutate the grid from inside one. IDs are not empty, valid UTF-8 and unique, as for set_virtual_rows.
 
@@ -2998,7 +3091,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewSelectionModeCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether selection takes cells or full rows (SelectionMode).
 
@@ -3015,7 +3108,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewShowCellErrorsCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether cells show their error glyphs (ShowCellErrors).
 
@@ -3032,7 +3125,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewShowEditingIconCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether the current row's header shows the editing glyph (ShowEditingIcon).
 
@@ -3049,7 +3142,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DataGridViewShowRowErrorsCapability
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_capabilities.hpp>``
 
    Whether row headers show their error glyphs (ShowRowErrors).
 
@@ -3066,7 +3159,7 @@ Related types
 
 .. cpp:struct:: DataGridViewSortCompareEvent final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
 
    Raised for each comparison while sort(column, direction) orders unbound rows, when it has a handler (Windows Forms' SortCompare). ``cell_value1`` and ``cell_value2`` are the two rows' values in ``column``, ``row_id1`` and ``row_id2`` their IDs and ``row1`` and ``row2`` their positions before the sort; all are borrowed for the call. A handler that sets ``sort_result`` (negative, zero or positive: the first row before, with or after the second, in ascending order) and ``handled`` decides; otherwise the grid's value order does. A descending sort reverses the result. Handlers may not change the grid's rows, columns or values (std::logic_error).
 
@@ -3092,7 +3185,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DefaultGroupHeaderCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    The default group's header; "Default" until set. Throws std::invalid_argument for invalid UTF-8.
 
@@ -3109,7 +3202,7 @@ Related types
 
 .. cpp:struct:: ItemCheckEvent final
 
-   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
+   ``#include <gui_forms/controls/checked_list_box.hpp>``
 
    ItemCheckEvent carries item index, current state, and mutable proposed state before a CheckedListBox commit.
 
@@ -3129,7 +3222,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LargeImageListCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    The images of the large-icon and tile views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.
 
@@ -3144,7 +3237,7 @@ Related types
 
 .. cpp:struct:: ListBox::Item final
 
-   ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
+   ``#include <gui_forms/controls/list_box.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -3158,7 +3251,7 @@ Related types
 
 .. cpp:struct:: ListBox::ItemParts final
 
-   ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
+   ``#include <gui_forms/controls/list_box.hpp>``
 
    .. cpp:member:: PartGeometry row
 
@@ -3170,7 +3263,7 @@ Related types
 
 .. cpp:struct:: ListBox::ItemStates final
 
-   ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
+   ``#include <gui_forms/controls/list_box.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -3182,7 +3275,7 @@ Related types
 
 .. cpp:struct:: ListBox::Parts final
 
-   ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
+   ``#include <gui_forms/controls/list_box.hpp>``
 
    Stage T1 anatomy, as dot members. Rows are an item system: each realized row is a value record, not a control (owner decision 5).
 
@@ -3200,7 +3293,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListBoxCapabilities : public ListBoxSelectionModeCapability<Declaring>, public ListBoxTopIndexCapability<Declaring>, public ListBoxItemHeightCapability<Declaring>, public FontCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_box_capabilities.hpp>``
 
    Every ListBox capability, in the order the declaring class takes them.
 
@@ -3232,7 +3325,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListBoxItemHeightCapability
 
-   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_box_capabilities.hpp>``
 
    The height of each row before text scaling (ItemHeight), 12 to 256 (std::invalid_argument otherwise). coerce_item_height may rewrite a write after that check.
 
@@ -3249,7 +3342,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListBoxSelectionModeCapability
 
-   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_box_capabilities.hpp>``
 
    One selected item, or an extended selection with Shift and Ctrl (SelectionMode). Switching to one keeps only the active (or first) selected item and raises selection_changed when that drops others.
 
@@ -3266,7 +3359,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListBoxTopIndexCapability
 
-   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_box_capabilities.hpp>``
 
    The first visible row (TopIndex); a view onto the list's scroll position. Zero in an empty list; otherwise an index outside the items throws std::out_of_range. Item edits and making a row visible move it.
 
@@ -3283,7 +3376,7 @@ Related types
 
 .. cpp:struct:: ListSelectionChange final
 
-   ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
+   ``#include <gui_forms/controls/list_box.hpp>``
 
    ListSelectionChange reports previous/current indices plus the exact selected-index snapshot after one mutation.
 
@@ -3297,7 +3390,7 @@ Related types
 
 .. cpp:struct:: ListView::Column final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -3311,7 +3404,7 @@ Related types
 
 .. cpp:struct:: ListView::ColumnParts final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    The "column" item system, named as ObjectView's: one visible column header of the details view. Its identity is the view's stable ID, ".column.", and the column's ID.
 
@@ -3329,7 +3422,7 @@ Related types
 
 .. cpp:struct:: ListView::ColumnStates final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    .. cpp:member:: bool hot
 
@@ -3347,7 +3440,7 @@ Related types
 
 .. cpp:struct:: ListView::Group final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -3361,7 +3454,7 @@ Related types
 
 .. cpp:struct:: ListView::GroupParts final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    The "group" item system: one shown group header line. Its identity is the view's stable ID, ".group.", and the group's ID; the default group's is the view's stable ID and ".default-group". ``index`` is the group's position in groups(), or groups().size() for the default group.
 
@@ -3375,7 +3468,7 @@ Related types
 
 .. cpp:struct:: ListView::GroupStates final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    .. cpp:member:: bool disabled
 
@@ -3383,7 +3476,7 @@ Related types
 
 .. cpp:struct:: ListView::Item final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -3399,7 +3492,7 @@ Related types
 
 .. cpp:struct:: ListView::ItemParts final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    The "item" item system: one realized item (a details row, or a cell of the other views).
 
@@ -3421,7 +3514,7 @@ Related types
 
 .. cpp:struct:: ListView::ItemStates final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -3439,7 +3532,7 @@ Related types
 
 .. cpp:struct:: ListView::Parts final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -3469,7 +3562,7 @@ Related types
 
 .. cpp:struct:: ListView::SubItem final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -3485,7 +3578,7 @@ Related types
 
 .. cpp:struct:: ListView::SubItemParts final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    The "sub_item" item system: one visible details-view cell past the first column. Its identity is the item's ID, ".sub.", and the column's.
 
@@ -3497,7 +3590,7 @@ Related types
 
 .. cpp:struct:: ListView::SubItemStates final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -3507,7 +3600,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListViewCapabilities : public ListViewViewCapability<Declaring>, public ListViewCheckBoxesCapability<Declaring>, public ListViewMultiSelectCapability<Declaring>, public ListViewFullRowSelectCapability<Declaring>, public SmallImageListCapability<Declaring>, public LargeImageListCapability<Declaring>, public FontCapability<Declaring>, public TileSizeCapability<Declaring>, public ListViewDrawModeCapability<Declaring>, public ShowGroupsCapability<Declaring>, public DefaultGroupHeaderCapability<Declaring>, public ListViewLabelEditCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    Every ListView capability, in the order the declaring class takes them.
 
@@ -3571,7 +3664,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListViewCheckBoxesCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    Whether each item shows a check box (Windows Forms' CheckBoxes); item_checked and set_item_checked read and write the state.
 
@@ -3586,7 +3679,7 @@ Related types
 
 .. cpp:struct:: ListViewColumn final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    One details-view column. ``stable_id`` is unique within the view and names the column in the published anatomy and semantics. ``width`` is in logical units at text scale 1.
 
@@ -3606,7 +3699,7 @@ Related types
 
 .. cpp:struct:: ListViewColumnClick final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    A click on a column header. The view does not sort: the application reorders its items (sort_items() is a helper for that) and shows the order with set_sort_indicator().
 
@@ -3620,7 +3713,7 @@ Related types
 
 .. cpp:struct:: ListViewColumnWidthChange final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    A column's new width in logical units, after a divider drag ends or set_column_width() changes it.
 
@@ -3634,7 +3727,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListViewDrawModeCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    Content-only owner drawing (owner decision W-Q6; Windows Forms' OwnerDraw with DrawItem and DrawSubItem). In ItemDrawMode::owner_draw the view raises draw_item_content for each painted item's own content (column 0: its icon and text) and, in the details view, for each visible sub-item cell (its column), and in the tile view for each sub-item line shown (its column), in paint order; the item's plate, check box and focus cue stay painted by role, and a handler's draw_default adds the default content. Column headers are not owner-drawn. A handler that changes the view's items, order, columns or view, or disposes it, ends that paint at once; the view is painted again with the change. Throws std::invalid_argument for an unknown mode.
 
@@ -3651,7 +3744,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListViewFullRowSelectCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    Whether the selection highlight spans the whole details row rather than the first column's text.
 
@@ -3666,7 +3759,7 @@ Related types
 
 .. cpp:struct:: ListViewGroup final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    One group of a ListView (Windows Forms' ListViewGroup): a header over its items. ``stable_id`` is unique within the view; items name it in ``group``.
 
@@ -3682,7 +3775,7 @@ Related types
 
 .. cpp:struct:: ListViewInsertionMark final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    Where a ListView's insertion mark stands (Windows Forms' ListViewInsertionMark Index and AppearsAfterItem): beside the item at model index ``index``, before it or, with ``after``, after it.
 
@@ -3694,7 +3787,7 @@ Related types
 
 .. cpp:struct:: ListViewItem final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    One item. ``text`` is shown in the first column (and as the label in the other views); ``sub_items[n]`` in column n + 1 of the details view. Sub-items past the last column are kept but not shown. ``image_key`` names an image in the small image list (details, list and small-icon views) or the large one (large-icon and tile views); an empty or unknown key shows no image. ``checked`` is shown while the view has check boxes. ``group`` names the ListViewGroup the item is shown in; an empty or unknown name puts it in the default group. A virtual view's items are never grouped.
 
@@ -3714,7 +3807,7 @@ Related types
 
 .. cpp:struct:: ListViewItemActivation final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    An item activated by a double click, Enter, or the semantic press action on a view without check boxes.
 
@@ -3728,7 +3821,7 @@ Related types
 
 .. cpp:struct:: ListViewItemCheck final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    A check box toggled by the user. item_checking is raised first and may cancel the change or alter ``new_value``; item_checked follows once the change is made. In a virtual view the application owns the checked state: it stores ``new_value`` when handling item_checking, and the view shows what the source then retrieves.
 
@@ -3748,7 +3841,7 @@ Related types
 
 .. cpp:class:: ListViewItemSource
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    The items of a virtual ListView (Windows Forms' VirtualMode with RetrieveVirtualItem). The application owns the data; the view asks for the count when the source is set or refresh_virtual_items() is called, and for single items only when it paints, lays out or describes the visible ones. Both functions are called on the view's UI thread from inside the view's own (const) work and must not change the view.
 
@@ -3765,7 +3858,7 @@ Related types
 
 .. cpp:struct:: ListViewLabelEdit final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    One label edit (Windows Forms' LabelEditEventArgs). In before_label_edit ``label`` is none, and a handler sets ``cancel`` to keep the item out of edit. In after_label_edit ``label`` is the edited text, or none when the edit was cancelled; a handler sets ``cancel`` to refuse the text, and the item keeps the text it had. A handler's change to ``label`` is ignored. ``index`` is the item's position when its edit began.
 
@@ -3783,7 +3876,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListViewLabelEditCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    Label editing (Windows Forms' LabelEdit, ListViewItem.BeginEdit, BeforeLabelEdit and AfterLabelEdit). While label_edit is on, F2 on the focused item, or begin_label_edit, places a TextBox (the ``label_editor`` part) over the item's text with its text selected. Enter, a press elsewhere in the view, or focus leaving the editor commits the edit; Escape and cancel_label_edit cancel it. Each ended edit raises after_label_edit once, after the editor has closed. A committed label after_label_edit does not cancel becomes an ordinary item's text; in a virtual view the application stores it while handling after_label_edit, and the view shows what the source then retrieves. Replacing or sorting the items, a new virtual source or refresh_virtual_items cancels the edit once the change is made, before any selection event; scrolling keeps it, the editor following its item. A slow second click on the focused item does not begin an edit yet: the host does not report its double-click interval. Turning label_edit off cancels an edit in progress.
 
@@ -3798,7 +3891,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListViewMultiSelectCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    Whether several items can be selected (Windows Forms' MultiSelect). Turning it off keeps only the focused item selected (or the first selected one) and raises selection_changed when that drops any.
 
@@ -3815,7 +3908,7 @@ Related types
 
 .. cpp:struct:: ListViewSelectionChange final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    A change of the selected items, after it happened. The selected indices are read from the view (selected_indices()); a virtual view with a large selection does not copy them into every event.
 
@@ -3829,7 +3922,7 @@ Related types
 
 .. cpp:struct:: ListViewSpliceRemap final
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    A retained item list with details, list, small-icon and large-icon views (Windows Forms' ListView). Items are records, not child controls; only the visible ones are laid out, painted and described, so a virtual view of millions of items realizes a screenful. Every part is painted through the by-role paint path. Two child scroll bars scroll the view when its items or columns do not fit. Selection, focus and check boxes are kept by index. Replacing the items of an ordinary view carries the selection, the focused item and the anchor over by stable ID; a virtual view keeps them by index, clamped to the new count. Columns are resized by dragging a header's divider, items' labels are edited in place (label_edit), and an application may draw items' content itself (draw_mode), and items are shown in groups (groups, show_groups). Tooltips and hot-tracking activation are not supported yet. How a splice moves an index (ListView::splice_virtual_items): before ``first`` it stays, inside [first, removed_end) it is dropped, after it shifts by inserted - removed.
 
@@ -3848,7 +3941,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ListViewViewCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    How the items are arranged (see ListViewView). Changing it drops the hot item and column and any revealed cut-off text. Throws std::invalid_argument for an unknown view.
 
@@ -3865,7 +3958,7 @@ Related types
 
 .. cpp:struct:: LookupColumn final
 
-   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp>``
+   ``#include <gui_forms/controls/lookup_combo_box.hpp>``
 
    One column of a LookupComboBox's list: its header and its width in logical units.
 
@@ -3879,7 +3972,7 @@ Related types
 
 .. cpp:struct:: LookupComboBox::Parts final
 
-   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp>``
+   ``#include <gui_forms/controls/lookup_combo_box.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -3899,7 +3992,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LookupComboBoxCapabilities : public LookupComboBoxSelectedKeyCapability<Declaring>, public LookupComboBoxDisplayColumnCapability<Declaring>, public LookupComboBoxMaxDropDownRowsCapability<Declaring>
 
-   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/lookup_combo_box_capabilities.hpp>``
 
    Every LookupComboBox capability, in the order the declaring class takes them.
 
@@ -3922,7 +4015,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LookupComboBoxDisplayColumnCapability
 
-   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/lookup_combo_box_capabilities.hpp>``
 
    The column whose cell the field shows for the chosen row. A column the rows lack shows nothing.
 
@@ -3939,7 +4032,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LookupComboBoxMaxDropDownRowsCapability
 
-   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/lookup_combo_box_capabilities.hpp>``
 
    The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).
 
@@ -3956,7 +4049,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LookupComboBoxSelectedKeyCapability
 
-   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/lookup_combo_box_capabilities.hpp>``
 
    The key of the chosen row, or empty for none. A write of a key no row has throws std::invalid_argument; the field then shows the chosen row's display cell.
 
@@ -3971,7 +4064,7 @@ Related types
 
 .. cpp:struct:: LookupRow final
 
-   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp>``
+   ``#include <gui_forms/controls/lookup_combo_box.hpp>``
 
    One row of a LookupComboBox: the key the application stores and the cells shown, one per column (missing cells show empty).
 
@@ -3983,7 +4076,7 @@ Related types
 
 .. cpp:struct:: ObjectColumnId final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
+   ``#include <gui_forms/controls/object_view_values.hpp>``
 
    .. cpp:member:: std::string value
 
@@ -3991,7 +4084,7 @@ Related types
 
 .. cpp:struct:: ObjectContextRequest final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    ObjectContextRequest carries the selected identity and local/window anchor geometry for one context-surface request.
 
@@ -4003,7 +4096,7 @@ Related types
 
 .. cpp:struct:: ObjectDetailsCell final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:member:: ObjectColumnId column
 
@@ -4017,7 +4110,7 @@ Related types
 
 .. cpp:struct:: ObjectDetailsColumn final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:member:: ObjectColumnId id
 
@@ -4047,7 +4140,7 @@ Related types
 
 .. cpp:struct:: ObjectDetailsPaintWork final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:member:: std::size_t rows
 
@@ -4059,7 +4152,7 @@ Related types
 
 .. cpp:struct:: ObjectDetailsSort final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
+   ``#include <gui_forms/controls/object_view_values.hpp>``
 
    .. cpp:member:: ObjectColumnId column
 
@@ -4073,7 +4166,7 @@ Related types
 
 .. cpp:struct:: ObjectSelectionChange final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    ObjectSelectionChange reports previous/current optional identities and interaction source.
 
@@ -4089,7 +4182,7 @@ Related types
 
 .. cpp:struct:: ObjectView::Column final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -4105,7 +4198,7 @@ Related types
 
 .. cpp:struct:: ObjectView::ColumnParts final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    The details view's column headers are a second item system, "column". Realized columns are those the viewport shows; in the generic realized-item path they follow the realized items. A column's identity is the view's stable ID, ".column.", and the column's id.
 
@@ -4125,7 +4218,7 @@ Related types
 
 .. cpp:struct:: ObjectView::ColumnStates final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:member:: bool pressed
 
@@ -4143,7 +4236,7 @@ Related types
 
 .. cpp:struct:: ObjectView::Item final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -4157,7 +4250,7 @@ Related types
 
 .. cpp:struct:: ObjectView::ItemParts final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:member:: PartGeometry cell
 
@@ -4173,7 +4266,7 @@ Related types
 
 .. cpp:struct:: ObjectView::ItemStates final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -4187,7 +4280,7 @@ Related types
 
 .. cpp:struct:: ObjectView::Parts final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -4203,7 +4296,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ObjectViewCapabilities : public ObjectViewViewModeCapability<Declaring>, public ObjectViewSelectedIdCapability<Declaring>, public ObjectViewSelectionModeCapability<Declaring>, public ObjectViewIconCellSizeCapability<Declaring>, public ObjectViewDetailsRowHeightCapability<Declaring>, public ObjectViewShowSecondaryTextCapability<Declaring>, public FontCapability<Declaring>, public ObjectViewImageListCapability<Declaring>, public ObjectViewDetailsSortCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/object_view_capabilities.hpp>``
 
    Every ObjectView capability, in the order the declaring class takes them.
 
@@ -4255,7 +4348,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ObjectViewDetailsRowHeightCapability
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/object_view_capabilities.hpp>``
 
    The details mode's row height, 20 through 256 (std::invalid_argument otherwise).
 
@@ -4272,7 +4365,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ObjectViewDetailsSortCapability
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/object_view_capabilities.hpp>``
 
    The accepted sort indicator: a sortable column and a direction, or an empty column for none; a view, since set_details_model carries or clears it. Sorting the items is the application's work (sort_requested). An unknown or unsortable column or an undeclared direction throws std::invalid_argument.
 
@@ -4289,7 +4382,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ObjectViewIconCellSizeCapability
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/object_view_capabilities.hpp>``
 
    The icon mode's cell size, 86 by 78 through 512 by 512 (std::invalid_argument otherwise).
 
@@ -4306,7 +4399,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ObjectViewImageListCapability
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/object_view_capabilities.hpp>``
 
    The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.
 
@@ -4321,7 +4414,7 @@ Related types
 
 .. cpp:struct:: ObjectViewItem final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    ObjectViewItem owns stable identity, primary/secondary text, icon/status metadata, and optional command data for one flat object row.
 
@@ -4349,7 +4442,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ObjectViewSelectedIdCapability
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/object_view_capabilities.hpp>``
 
    The primary selected item's stable ID, or empty; a view over the selection (G2). A write selects that item alone, or clears the selection, and raises selection_changed; an ID not in the model throws std::out_of_range. set_selected_ids sets several.
 
@@ -4366,7 +4459,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ObjectViewSelectionModeCapability
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/object_view_capabilities.hpp>``
 
    Whether one item or several may be selected. Turning on single selection keeps only the primary item.
 
@@ -4383,7 +4476,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ObjectViewShowSecondaryTextCapability
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/object_view_capabilities.hpp>``
 
    Whether icon cells show each item's secondary text under its name.
 
@@ -4400,7 +4493,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ObjectViewViewModeCapability
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/object_view_capabilities.hpp>``
 
    Icons or details. An undeclared mode throws std::invalid_argument; a change keeps the first visible item in view and ends a header interaction. A view, so the write can keep the first visible item.
 
@@ -4417,7 +4510,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ShowGroupsCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups). On by default.
 
@@ -4434,7 +4527,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SmallImageListCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    The images of the details, list and small-icon views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.
 
@@ -4449,7 +4542,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TileSizeCapability
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
    The tile view's tile, in logical units at text scale 1 (Windows Forms' TileSize). The default, an empty size, sizes tiles from the large icon and three lines of text. Throws std::invalid_argument unless both sides are zero, or both are finite and between minimum_tile_side and maximum_tile_side.
 
@@ -4464,7 +4557,7 @@ Related types
 
 .. cpp:struct:: TreeExpansionChange final
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
+   ``#include <gui_forms/controls/tree_view.hpp>``
 
    TreeExpansionChange reports the exact node and resulting expanded state.
 
@@ -4476,7 +4569,7 @@ Related types
 
 .. cpp:struct:: TreeListActivation final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    A node activated by a double click, Enter, or the semantic press action.
 
@@ -4486,7 +4579,7 @@ Related types
 
 .. cpp:struct:: TreeListColumn final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    One column. ``stable_id`` is unique within the view and names the column in the published anatomy and semantics. ``width`` is in logical units at text scale 1. Column 0 is the tree column: it shows each node's ``text`` with the indentation and the expander, and it always stays first.
 
@@ -4506,7 +4599,7 @@ Related types
 
 .. cpp:struct:: TreeListColumnMove final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    A column moved to a new display position, by a header drag or move_column(). Display position 0 always holds the tree column.
 
@@ -4518,7 +4611,7 @@ Related types
 
 .. cpp:struct:: TreeListColumnWidthChange final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    A column's new width in logical units, after a divider drag ends or set_column_width() changes it.
 
@@ -4530,7 +4623,7 @@ Related types
 
 .. cpp:struct:: TreeListExpansionChange final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    A node expanded or collapsed, by the user or the program.
 
@@ -4542,7 +4635,7 @@ Related types
 
 .. cpp:struct:: TreeListNode final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    One node of the tree. Nodes are given in preorder with their depth, as TreeView's items are: a node's children follow it directly, one level deeper. ``text`` is shown in the tree column and ``cells[n]`` in column n + 1; cells past the last column are kept but not shown. A node with children can always be expanded; ``expandable`` shows the expander on a node whose children are not loaded yet. ``expanded`` is ignored on a node that cannot be expanded. ``image_key`` names an image in the image list; an empty or unknown key shows none.
 
@@ -4568,7 +4661,7 @@ Related types
 
 .. cpp:class:: TreeListRowSource
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    The application's rows for a virtual TreeListView (audit N94, owner ruling D10 b): the view keeps no nodes, only the row count and each row's height in a height-indexed tree, and asks the source for the rows it shows. Rows are the shown nodes in order (a collapsed node's descendants are not rows); each row's node carries its depth, expandable and expanded flags. The view calls the source on its own thread, during layout, paint, input and semantics. retrieve_row and row_height are called only for rows below row_count(); set_row_expanded only for an expandable row whose expanded flag differs, and it must return the splice it made, after which row_count() is the old count - removed + inserted (otherwise the view throws std::logic_error and keeps its old rows). The source outlives nothing: the view holds it by shared_ptr until set_row_source replaces it.
 
@@ -4604,7 +4697,7 @@ Related types
 
 .. cpp:struct:: TreeListRowSplice final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    A change of a virtual tree's rows (TreeListRowSource): the ``removed`` rows at ``first`` were replaced by ``inserted`` rows. Expanding row r with k shown descendants is {r + 1, 0, k}; collapsing it is {r + 1, k, 0}.
 
@@ -4618,7 +4711,7 @@ Related types
 
 .. cpp:struct:: TreeListSelectionChange final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    A change of the selected node, after it happened.
 
@@ -4630,7 +4723,7 @@ Related types
 
 .. cpp:struct:: TreeListSortChange final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    The sibling order after a header click, the semantic press on a header, or set_sort().
 
@@ -4644,7 +4737,7 @@ Related types
 
 .. cpp:struct:: TreeListView::Cell final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    .. cpp:member:: std::size_t row
 
@@ -4660,7 +4753,7 @@ Related types
 
 .. cpp:struct:: TreeListView::CellParts final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    The "cell" item system: one visible cell past the tree column. Its identity is the node's ID, ".cell.", and the column's.
 
@@ -4672,7 +4765,7 @@ Related types
 
 .. cpp:struct:: TreeListView::CellStates final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -4682,7 +4775,7 @@ Related types
 
 .. cpp:struct:: TreeListView::Column final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -4698,7 +4791,7 @@ Related types
 
 .. cpp:struct:: TreeListView::ColumnParts final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    The "column" item system, named as ObjectView's and ListView's: one visible column header. Its identity is the view's stable ID, ".column.", and the column's ID.
 
@@ -4716,7 +4809,7 @@ Related types
 
 .. cpp:struct:: TreeListView::ColumnStates final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    .. cpp:member:: bool hot
 
@@ -4734,7 +4827,7 @@ Related types
 
 .. cpp:struct:: TreeListView::Parts final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -4756,7 +4849,7 @@ Related types
 
 .. cpp:struct:: TreeListView::Row final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    .. cpp:member:: std::size_t row
 
@@ -4774,7 +4867,7 @@ Related types
 
 .. cpp:struct:: TreeListView::RowParts final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    The "row" item system: one realized row. Its identity is the node's.
 
@@ -4794,7 +4887,7 @@ Related types
 
 .. cpp:struct:: TreeListView::RowStates final
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -4814,7 +4907,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TreeListViewCapabilities : public TreeListViewIndentationCapability<Declaring>, public TreeListViewImageListCapability<Declaring>, public FontCapability<Declaring>, public TreeListViewSelectedIdCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/tree_list_view_capabilities.hpp>``
 
    Every TreeListView capability, in the order the declaring class takes them.
 
@@ -4846,7 +4939,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TreeListViewImageListCapability
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/tree_list_view_capabilities.hpp>``
 
    The images that the nodes' image_key values name; a list must be alive and belong to this view's Window.
 
@@ -4861,7 +4954,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TreeListViewIndentationCapability
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/tree_list_view_capabilities.hpp>``
 
    Width of one tree level, in logical units; the tree column's text starts after the indentation, the expander and the icon.
 
@@ -4878,7 +4971,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TreeListViewSelectedIdCapability
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/tree_list_view_capabilities.hpp>``
 
    The selected node's stable ID, or none.
 
@@ -4895,7 +4988,7 @@ Related types
 
 .. cpp:struct:: TreeSelectionChange final
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
+   ``#include <gui_forms/controls/tree_view.hpp>``
 
    TreeSelectionChange reports previous/current optional node identities and interaction source.
 
@@ -4907,7 +5000,7 @@ Related types
 
 .. cpp:struct:: TreeView::Item final
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
+   ``#include <gui_forms/controls/tree_view.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -4921,7 +5014,7 @@ Related types
 
 .. cpp:struct:: TreeView::ItemParts final
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
+   ``#include <gui_forms/controls/tree_view.hpp>``
 
    .. cpp:member:: PartGeometry row
 
@@ -4937,7 +5030,7 @@ Related types
 
 .. cpp:struct:: TreeView::ItemStates final
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
+   ``#include <gui_forms/controls/tree_view.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -4955,7 +5048,7 @@ Related types
 
 .. cpp:struct:: TreeView::Parts final
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
+   ``#include <gui_forms/controls/tree_view.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -4971,7 +5064,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TreeViewCapabilities : public TreeViewSelectedIdCapability<Declaring>, public TreeViewItemHeightCapability<Declaring>, public TreeViewIndentationCapability<Declaring>, public TreeViewShowExpandersCapability<Declaring>, public FontCapability<Declaring>, public TreeViewImageListCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/tree_view_capabilities.hpp>``
 
    Every TreeView capability, in the order the declaring class takes them.
 
@@ -5011,7 +5104,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TreeViewImageListCapability
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/tree_view_capabilities.hpp>``
 
    The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.
 
@@ -5026,7 +5119,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TreeViewIndentationCapability
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/tree_view_capabilities.hpp>``
 
    The width of one tree level in logical units, 8 to 96 (std::invalid_argument otherwise).
 
@@ -5043,7 +5136,7 @@ Related types
 
 .. cpp:struct:: TreeViewItem final
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
+   ``#include <gui_forms/controls/tree_view.hpp>``
 
    TreeViewItem owns stable identity, text, icon/status metadata, expansion capability/state, and nested children for one tree node.
 
@@ -5067,7 +5160,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TreeViewItemHeightCapability
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/tree_view_capabilities.hpp>``
 
    The row height in logical units, 14 to 256 (std::invalid_argument otherwise).
 
@@ -5084,7 +5177,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TreeViewSelectedIdCapability
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/tree_view_capabilities.hpp>``
 
    The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change makes the item active and raises selection_changed; an ID not in the model throws std::out_of_range.
 
@@ -5101,7 +5194,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TreeViewShowExpandersCapability
 
-   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/tree_view_capabilities.hpp>``
 
    Whether expandable items draw their expander glyph.
 
@@ -5121,7 +5214,7 @@ Enumerations
 
 .. cpp:enum-class:: BreadcrumbAppearance
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_values/breadcrumb_trail_values.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail_values.hpp>``
 
    .. cpp:enumerator:: plain
 
@@ -5129,9 +5222,19 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ChoiceGroupPresentation
+
+   ``#include <gui_forms/controls/choice_group_values.hpp>``
+
+   .. cpp:enumerator:: buttons
+
+   .. cpp:enumerator:: segmented
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ComboBoxFilter
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_values/combo_box_values.hpp>``
+   ``#include <gui_forms/controls/combo_box_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -5143,7 +5246,7 @@ Enumerations
 
 .. cpp:enum-class:: ComboBoxStyle
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box_values/combo_box_values.hpp>``
+   ``#include <gui_forms/controls/combo_box_values.hpp>``
 
    .. cpp:enumerator:: drop_down_list
 
@@ -5153,7 +5256,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewAutoSizeColumnMode
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: not_set
 
@@ -5175,7 +5278,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewAutoSizeColumnsMode
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -5195,7 +5298,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewAutoSizeRowMode
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: all_cells_except_header
 
@@ -5207,7 +5310,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewAutoSizeRowsMode
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -5227,7 +5330,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewCellBorderStyle
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: single
 
@@ -5253,7 +5356,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewClipboardCopyMode
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: disable
 
@@ -5267,7 +5370,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewColumnKind
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: text
 
@@ -5285,7 +5388,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewColumnSortMode
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: not_sortable
 
@@ -5297,7 +5400,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewContentAlignment
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: top_start
 
@@ -5321,7 +5424,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewDataErrorContext
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: parsing
 
@@ -5331,7 +5434,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewEditMode
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: edit_on_enter
 
@@ -5347,7 +5450,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewHeaderBorderStyle
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: single
 
@@ -5361,7 +5464,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewImageLayout
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -5373,7 +5476,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewRowOrderMode
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
 
    .. cpp:enumerator:: edit
 
@@ -5383,7 +5486,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewRowOrderPolicy
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
 
    .. cpp:enumerator:: automatic
 
@@ -5395,7 +5498,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewRowOrderSwitchReason
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_row_order.hpp>``
 
    .. cpp:enumerator:: row_count
 
@@ -5409,7 +5512,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewRowSource
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: unbound
 
@@ -5421,7 +5524,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewSelectionMode
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: cell_select
 
@@ -5431,7 +5534,7 @@ Enumerations
 
 .. cpp:enum-class:: DataGridViewSortDirection
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
+   ``#include <gui_forms/controls/data_grid_view_types.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -5443,7 +5546,7 @@ Enumerations
 
 .. cpp:enum-class:: ListSelectionMode
 
-   ``#include <gui_forms/controls/panel/list_box/list_box_values/list_box_values.hpp>``
+   ``#include <gui_forms/controls/list_box_values.hpp>``
 
    .. cpp:enumerator:: one
 
@@ -5453,7 +5556,7 @@ Enumerations
 
 .. cpp:enum-class:: ListViewAlignment
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    .. cpp:enumerator:: left
 
@@ -5465,7 +5568,7 @@ Enumerations
 
 .. cpp:enum-class:: ListViewSortOrder
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -5477,7 +5580,7 @@ Enumerations
 
 .. cpp:enum-class:: ListViewView
 
-   ``#include <gui_forms/controls/panel/list_view/list_view_values/list_view_values.hpp>``
+   ``#include <gui_forms/controls/list_view_values.hpp>``
 
    .. cpp:enumerator:: details
 
@@ -5493,7 +5596,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectCellAvailability
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:enumerator:: available
 
@@ -5505,7 +5608,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectColumnAlignment
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:enumerator:: left
 
@@ -5515,7 +5618,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectGlyph
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    .. cpp:enumerator:: folder
 
@@ -5533,7 +5636,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectSelectionMode
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
+   ``#include <gui_forms/controls/object_view_values.hpp>``
 
    .. cpp:enumerator:: single
 
@@ -5543,7 +5646,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectSortDirection
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
+   ``#include <gui_forms/controls/object_view_values.hpp>``
 
    .. cpp:enumerator:: ascending
 
@@ -5553,7 +5656,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectViewMode
 
-   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
+   ``#include <gui_forms/controls/object_view_values.hpp>``
 
    .. cpp:enumerator:: icons
 
@@ -5563,7 +5666,7 @@ Enumerations
 
 .. cpp:enum-class:: TreeListAlignment
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    .. cpp:enumerator:: left
 
@@ -5575,7 +5678,7 @@ Enumerations
 
 .. cpp:enum-class:: TreeListSortOrder
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -5588,7 +5691,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+``#include <gui_forms/controls/data_grid_view_cells.hpp>``
 
 .. cpp:function:: bool data_grid_view_cells_snapshot_valid(const DataGridViewCellsSnapshot& snapshot) noexcept
 

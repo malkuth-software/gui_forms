@@ -9,7 +9,7 @@ gui_forms::ProgressRing
 
 .. cpp:class:: ProgressRing final : public Control, public ProgressRingCapabilities<ProgressRing>
 
-   ``#include <gui_forms/controls/progress_ring/progress_ring.hpp>``
+   ``#include <gui_forms/controls/progress_ring.hpp>``
 
    Circular progress indicator of forty dots: lit in proportion to value over maximum, or a turning run while indeterminate, on the window's frame clock with reduced motion honoured.
 

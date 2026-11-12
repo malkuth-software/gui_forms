@@ -3,7 +3,7 @@
 // drag layer and the keyboard move mode. The targets' geometry and their
 // plan are DockLayout's neighbours in the core (dock_drop_targets).
 
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/dock_site.hpp"
 #include "dock_site_children.hpp"
 #include "../../drag_gesture/drag_gesture.hpp"
 

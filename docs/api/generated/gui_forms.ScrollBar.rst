@@ -9,7 +9,7 @@ gui_forms::ScrollBar
 
 .. cpp:class:: ScrollBar : public RangeControl, public ScrollBarCapabilities<ScrollBar>
 
-   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp>``
+   ``#include <gui_forms/controls/scroll_bar.hpp>``
 
    A standalone scroll bar that sets a value within a range.
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../panel_anatomy.hpp"
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
+#include "gui_forms/controls/list_box.hpp"
 
 #include <array>
 

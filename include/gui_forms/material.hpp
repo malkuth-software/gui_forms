@@ -1,4 +1,4 @@
 #pragma once
 
-// Compatibility umbrella. New code may include the hierarchical leaf header.
-#include "gui_forms/controls/panel/material_panel/material_panel.hpp"
+// Compatibility umbrella. New code may include the control header directly.
+#include "gui_forms/controls/material_panel.hpp"

@@ -9,7 +9,7 @@ gui_forms::MasterDetailView
 
 .. cpp:class:: MasterDetailView final : public ContainerControl, public MasterDetailViewCapabilities<MasterDetailView>
 
-   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view.hpp>``
+   ``#include <gui_forms/controls/master_detail_view.hpp>``
 
    A list-and-details layout that shows both side by side on wide windows and one at a time on narrow ones.
 

@@ -6,7 +6,7 @@
 // unchanged answers from its cache), asks a nested BlockPanel for the
 // margins its content shares with this one, and runs the solver.
 
-#include "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp"
+#include "gui_forms/controls/block_panel.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include "../../scrollable_anatomy.hpp"

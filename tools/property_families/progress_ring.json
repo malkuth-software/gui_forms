@@ -2,16 +2,16 @@
   "family": "ProgressRing",
   "step": "W-4",
   "declaring": "ProgressRing",
-  "header": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+  "header": "include/gui_forms/controls/progress_ring.hpp",
   "source": "src/controls/progress_ring/progress_ring.cpp",
-  "capabilities_header": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/progress_ring_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
   "not_properties": [],
   "test": {
     "type": "ProgressRing",
-    "include": "gui_forms/controls/progress_ring/progress_ring.hpp"
+    "include": "gui_forms/controls/progress_ring.hpp"
   },
   "properties": [
     {

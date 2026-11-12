@@ -2,13 +2,13 @@
   "family": "ScrollBar",
   "step": "M-S4",
   "declaring": "ScrollBar",
-  "header": "include/gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp",
+  "header": "include/gui_forms/controls/scroll_bar.hpp",
   "source": "src/controls/range_control/scroll_bar/scroll_bar.cpp",
-  "capabilities_header": "include/gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/scroll_bar_capabilities.hpp",
   "base": "RangeControl",
   "includes": [
-    "gui_forms/controls/range_control/range_control.hpp",
-    "gui_forms/controls/scrollable_control/scroll_bar_metrics/scroll_bar_metrics.hpp"
+    "gui_forms/controls/range_control.hpp",
+    "gui_forms/controls/scroll_bar_metrics.hpp"
   ],
   "properties": [
     {
@@ -99,7 +99,7 @@
   "not_properties": [],
   "test": {
     "type": "ScrollBar",
-    "include": "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
+    "include": "gui_forms/controls/scroll_bar.hpp"
   },
   "extra_entries": [
     "{\"large_change\", &describe_scroll_bar_large_change,\n         &read_cell_entry<ScrollBar, decltype(&ScrollBar::large_change), &ScrollBar::large_change>,\n         &write_cell_entry<ScrollBar, decltype(&ScrollBar::large_change), &ScrollBar::large_change>,\n         nullptr, nullptr, nullptr,\n         nullptr}"

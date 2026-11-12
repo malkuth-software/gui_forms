@@ -9,7 +9,7 @@ gui_forms::BreadcrumbTrail
 
 .. cpp:class:: BreadcrumbTrail final : public Panel, public BreadcrumbTrailCapabilities<BreadcrumbTrail>
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail.hpp>``
 
    A location bar that shows the path to the current place as clickable segments.
 

@@ -2,9 +2,9 @@
   "family": "TaskDialog",
   "step": "B9",
   "declaring": "TaskDialog",
-  "header": "include/gui_forms/controls/task_dialog/task_dialog.hpp",
+  "header": "include/gui_forms/controls/task_dialog.hpp",
   "source": "src/controls/task_dialog/task_dialog.cpp",
-  "capabilities_header": "include/gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/task_dialog_capabilities.hpp",
   "shared": [],
   "properties": [
     {

@@ -2,13 +2,13 @@
   "family": "RadioButton",
   "step": "M-S3",
   "declaring": "RadioButton",
-  "header": "include/gui_forms/controls/button_base/radio_button/radio_button.hpp",
+  "header": "include/gui_forms/controls/radio_button.hpp",
   "source": "src/controls/button_base/radio_button/radio_button.cpp",
-  "capabilities_header": "include/gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/radio_button_capabilities.hpp",
   "base": "ButtonBase",
   "includes": [
-    "gui_forms/controls/button_base/button_base.hpp",
-    "gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp"
+    "gui_forms/controls/button_base.hpp",
+    "gui_forms/controls/check_box_capabilities.hpp"
   ],
   "properties": [
     {
@@ -133,6 +133,6 @@
   "not_properties": [],
   "test": {
     "type": "RadioButton",
-    "include": "gui_forms/controls/button_base/radio_button/radio_button.hpp"
+    "include": "gui_forms/controls/radio_button.hpp"
   }
 }

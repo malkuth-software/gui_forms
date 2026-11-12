@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/card/card.hpp"
+#include "gui_forms/controls/card.hpp"
 #include "card_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

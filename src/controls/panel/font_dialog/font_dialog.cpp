@@ -1,10 +1,10 @@
-#include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
+#include "gui_forms/controls/font_dialog.hpp"
 
 #include "../panel_anatomy.hpp"
 
 #include "gui_forms/basic_controls.hpp"
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
-#include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

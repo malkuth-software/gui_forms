@@ -6,7 +6,7 @@
 // thread is refused before anything is compared or stored.
 
 #include "gui_forms/gui_forms.hpp"
-#include "gui_forms/controls/collections/choice_group.hpp"
+#include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 

@@ -9,7 +9,7 @@ gui_forms::ObjectView
 
 .. cpp:class:: ObjectView final : public Panel, public ObjectViewCapabilities<ObjectView>
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    A view of many items, shown as a grid of icons or as rows with details columns.
 

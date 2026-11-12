@@ -138,7 +138,7 @@ Related types
 
 .. cpp:struct:: DrawingSurface::Parts final
 
-   ``#include <gui_forms/controls/drawing_surface/drawing_surface.hpp>``
+   ``#include <gui_forms/controls/drawing_surface.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -152,7 +152,7 @@ Related types
 
 .. cpp:struct:: DrawingSurface::States final
 
-   ``#include <gui_forms/controls/drawing_surface/drawing_surface.hpp>``
+   ``#include <gui_forms/controls/drawing_surface.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -168,7 +168,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DrawingSurfaceBackgroundCapability
 
-   ``#include <gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp>``
+   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>``
 
    The fill painted over the bounds before the paint callback (default transparent).
 
@@ -185,7 +185,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DrawingSurfaceCapabilities : public DrawingSurfaceHitTestVisibleCapability<Declaring>, public DrawingSurfaceSemanticRoleCapability<Declaring>, public DrawingSurfaceBackgroundCapability<Declaring>
 
-   ``#include <gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp>``
+   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>``
 
    Every DrawingSurface capability, in the order the declaring class takes them.
 
@@ -208,7 +208,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DrawingSurfaceHitTestVisibleCapability
 
-   ``#include <gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp>``
+   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>``
 
    Whether pointer input hits the surface (default false: it passes through to what lies beneath).
 
@@ -223,7 +223,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DrawingSurfaceSemanticRoleCapability
 
-   ``#include <gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp>``
+   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>``
 
    The role the surface publishes to accessibility (default image).
 
@@ -240,7 +240,7 @@ Related types
 
 .. cpp:struct:: GraphResult final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    An operation's result: the status and, for add_node and connect, the new record's identity (zero otherwise).
 
@@ -256,7 +256,7 @@ Related types
 
 .. cpp:struct:: LinkId final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    A link's identity, as NodeId.
 
@@ -268,7 +268,7 @@ Related types
 
 .. cpp:struct:: LinkRecord final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    A link slot, as NodeRecord.
 
@@ -284,7 +284,7 @@ Related types
 
 .. cpp:class:: LinkRouter final
 
-   ``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+   ``#include <gui_forms/controls/link_router.hpp>``
 
 
    .. rubric:: Properties
@@ -320,7 +320,7 @@ Related types
 
 .. cpp:struct:: LinkRouterOptions final
 
-   ``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+   ``#include <gui_forms/controls/link_router.hpp>``
 
    .. cpp:member:: LinkRouteStyle style
 
@@ -354,7 +354,7 @@ Related types
 
 .. cpp:struct:: LinkRouteStatistics final
 
-   ``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+   ``#include <gui_forms/controls/link_router.hpp>``
 
    .. cpp:member:: std::size_t routed
 
@@ -384,7 +384,7 @@ Related types
 
 .. cpp:class:: NodeGraph final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    Owned by its consumer and borrowed by the canvases that draw it, on one thread (the consumer's UI thread). Not copyable: identities name slots of one graph.
 
@@ -457,7 +457,7 @@ Related types
 
 .. cpp:struct:: NodeId final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    A node's identity: its slot and the slot's generation when it was added.
 
@@ -469,7 +469,7 @@ Related types
 
 .. cpp:struct:: NodeRecord final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    A node slot. ``live`` is false for a free slot, whose fields are stale.
 
@@ -487,7 +487,7 @@ Related types
 
 .. cpp:struct:: NodeSpec final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    What add_node takes: the node's title, its bounds in world units and its ports, copied into the node's record.
 
@@ -501,7 +501,7 @@ Related types
 
 .. cpp:struct:: PortIndex final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    A port's position in its node's port list (not an identity: the list is fixed when the node is added).
 
@@ -511,7 +511,7 @@ Related types
 
 .. cpp:struct:: PortRecord final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    A port: its name (shown and announced), direction, edge, its position along a fixed edge as a fraction from the edge's start (left to right, top to bottom; ignored for an automatic port), its lamp and its socket type (the consumer's number; type conversion arrives with N0's tables). An input takes one link; an output any number.
 
@@ -539,7 +539,7 @@ Related types
 
 .. cpp:struct:: PortRef final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    One port of one node.
 
@@ -551,7 +551,7 @@ Related types
 
 .. cpp:struct:: RasterCanvas::Parts final
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas.hpp>``
+   ``#include <gui_forms/controls/raster_canvas.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -567,7 +567,7 @@ Related types
 
 .. cpp:struct:: RasterCanvas::States final
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas.hpp>``
+   ``#include <gui_forms/controls/raster_canvas.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -583,7 +583,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasBitmapCapability
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
 
    The bitmap shown, shared with the application, or null for none. A new bitmap drops the published tiles and, when attached to a window, publishes the whole bitmap again.
 
@@ -600,7 +600,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasCanvasBackgroundCapability
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
 
    The fill around the bitmap.
 
@@ -617,7 +617,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasCapabilities : public RasterCanvasBitmapCapability<Declaring>, public RasterCanvasZoomCapability<Declaring>, public RasterCanvasViewOriginCapability<Declaring>, public RasterCanvasSamplingCapability<Declaring>, public RasterCanvasTransparencyGridCapability<Declaring>, public RasterCanvasCanvasBackgroundCapability<Declaring>, public RasterCanvasTransparencyCellSizeCapability<Declaring>
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
 
    Every RasterCanvas capability, in the order the declaring class takes them.
 
@@ -656,7 +656,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasSamplingCapability
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
 
    How magnified or reduced pixels are sampled (default nearest). A value outside the enumeration throws std::invalid_argument.
 
@@ -673,7 +673,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasTransparencyCellSizeCapability
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
 
    The checkerboard cell size in client units, 2 to 128; zero (the default) selects an adaptive bounded size. Any other value throws std::invalid_argument.
 
@@ -690,7 +690,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasTransparencyGridCapability
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
 
    Whether transparent pixels show a checkerboard (default true).
 
@@ -707,7 +707,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasViewOriginCapability
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
 
    The bitmap point shown at the client's top-left corner. A non-finite or unbounded origin throws std::invalid_argument and changes nothing.
 
@@ -724,7 +724,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasZoomCapability
 
-   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
 
    Client units per bitmap pixel, 1/64 to 256 (default 1). A value outside that range throws std::invalid_argument and changes nothing; set_view changes zoom and view_origin together.
 
@@ -741,7 +741,7 @@ Related types
 
 .. cpp:struct:: RoutedLink final
 
-   ``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+   ``#include <gui_forms/controls/link_router.hpp>``
 
    One routed link. ``points`` are its orthogonal polyline from the output's anchor to the input's, after nudging, as a range of LinkRouter::points; ``drawn`` is what is painted and hit-tested (the same polyline, or the soft style's flattened curve), as a range of LinkRouter::drawn. A fallback route found no orthogonal path (a port inside another node's margin, or the grid cap) and is the straight line between the stub ends.
 
@@ -1265,7 +1265,7 @@ Related types
 
 .. cpp:struct:: WorldPoint final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    A point in graph space (world units, float64).
 
@@ -1277,7 +1277,7 @@ Related types
 
 .. cpp:struct:: WorldRect final
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    An axis-aligned rectangle in graph space: its top-left corner and size.
 
@@ -1310,7 +1310,7 @@ Enumerations
 
 .. cpp:enum-class:: GraphStatus
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    .. cpp:enumerator:: ok
 
@@ -1332,7 +1332,7 @@ Enumerations
 
 .. cpp:enum-class:: LinkRouteStyle
 
-   ``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+   ``#include <gui_forms/controls/link_router.hpp>``
 
    .. cpp:enumerator:: orthogonal
 
@@ -1342,7 +1342,7 @@ Enumerations
 
 .. cpp:enum-class:: PortDirection
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    .. cpp:enumerator:: input
 
@@ -1352,7 +1352,7 @@ Enumerations
 
 .. cpp:enum-class:: PortLamp
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    .. cpp:enumerator:: off
 
@@ -1364,7 +1364,7 @@ Enumerations
 
 .. cpp:enum-class:: PortSide
 
-   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>``
 
    .. cpp:enumerator:: left
 
@@ -1447,7 +1447,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+``#include <gui_forms/controls/link_router.hpp>``
 
 .. cpp:function:: void append_link_route_trace(std::string& out, const LinkRouter& router)
 
@@ -1461,7 +1461,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+``#include <gui_forms/controls/node_graph.hpp>``
 
 .. cpp:function:: std::string_view graph_status_name(GraphStatus status) noexcept
 

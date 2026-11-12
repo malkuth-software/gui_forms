@@ -200,18 +200,6 @@ HEADER_TO_CATEGORY: dict[str, str] = {
     "include/gui_forms/controls/scroll_properties.hpp": "Scrolling",
 }
 
-# Control-family directories whose headers precede their registered control
-# (the node canvas's graph model and link router arrive before NodeCanvas
-# itself); remove an entry once the directory's control is registered.
-DIRECTORY_TO_CATEGORY: dict[str, str] = {
-    "include/gui_forms/controls/node_canvas": "Drawing",
-    # The help system's support headers (printing) sit beside its controls.
-    "include/gui_forms/controls/help": "Information display",
-    # The stock specimens (one per anatomy, for captures and the theme
-    # editor's palette) are a catalogue, not a control.
-    "include/gui_forms/controls/specimen": "Diagnostics",
-}
-
 CATEGORY_DESCRIPTIONS: dict[str, str] = {
     "Commands": "Buttons, links and command rows.",
     "Text editing": "Text entry.",
@@ -341,9 +329,6 @@ def page_resolver(registry: list[dict]):
                 return category_slug(HEADER_TO_CATEGORY[header])
         for control_dir, category in control_dirs:
             if directory == control_dir or directory.startswith(control_dir + "/"):
-                return category_slug(category)
-        for family_dir, category in DIRECTORY_TO_CATEGORY.items():
-            if directory == family_dir or directory.startswith(family_dir + "/"):
                 return category_slug(category)
         area = area_of(header)
         if area in AREA_TO_CATEGORY:

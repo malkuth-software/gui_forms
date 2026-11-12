@@ -1,5 +1,5 @@
 #include "gui_forms/input_controls.hpp"
-#include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
+#include "gui_forms/controls/scroll_bar.hpp"
 #include "gui_forms/window.hpp"
 #include "headless_host.hpp"
 #include "support/named_callbacks.hpp"

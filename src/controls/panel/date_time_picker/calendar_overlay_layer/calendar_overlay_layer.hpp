@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel.hpp"
 
 namespace gui_forms {
 

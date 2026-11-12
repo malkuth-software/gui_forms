@@ -1,12 +1,12 @@
-#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
+#include "gui_forms/controls/plot_view.hpp"
 
 #include "plot_engine.hpp"
 #include "plot_view_live.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
-#include "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
-#include "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
-#include "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
+#include "gui_forms/controls/plot_annotation_item.hpp"
+#include "gui_forms/controls/plot_axis_item.hpp"
+#include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 

@@ -2,9 +2,9 @@
   "family": "DockNavigator",
   "step": "M-S8",
   "declaring": "DockNavigator",
-  "header": "include/gui_forms/controls/docking/dock_navigator/dock_navigator.hpp",
+  "header": "include/gui_forms/controls/dock_navigator.hpp",
   "source": "src/controls/docking/dock_navigator/dock_navigator.cpp",
-  "capabilities_header": "include/gui_forms/controls/docking/dock_navigator/dock_navigator_capabilities/dock_navigator_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/dock_navigator_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
@@ -12,7 +12,7 @@
   ],
   "test": {
     "type": "DockNavigator",
-    "include": "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
+    "include": "gui_forms/controls/dock_navigator.hpp"
   },
   "properties": [
     {

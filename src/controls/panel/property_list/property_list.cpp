@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/property_list/property_list.hpp"
+#include "gui_forms/controls/property_list.hpp"
 
 #include "property_list_utilities.hpp"
 #include "gui_forms/text.hpp"

@@ -9,7 +9,7 @@ gui_forms::PlotView
 
 .. cpp:class:: PlotView final : public Control, public PlotViewCapabilities<PlotView>
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_view.hpp>``
+   ``#include <gui_forms/controls/plot_view.hpp>``
 
    Retained declarative plot from the plots package: axes, series and annotations declared as item children, with pan, zoom, box zoom, query and point picking, a keyboard point cursor, a figure node with a summary and a table view, and an optional live sub-surface.
 

@@ -1,7 +1,7 @@
 // RibbonGallery lines, part geometry, painting and anatomy. Every part has
 // one geometry function, used both by on_paint and by the published anatomy.
 
-#include "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
+#include "gui_forms/controls/ribbon_gallery.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 

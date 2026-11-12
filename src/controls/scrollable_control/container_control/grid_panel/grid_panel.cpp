@@ -8,7 +8,7 @@
 // from its cache, and an item stretched over fixed columns is asked only
 // its height.
 
-#include "gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp"
+#include "gui_forms/controls/grid_panel.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include "../../scrollable_anatomy.hpp"

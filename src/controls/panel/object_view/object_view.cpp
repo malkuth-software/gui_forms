@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/object_view/object_view.hpp"
+#include "gui_forms/controls/object_view.hpp"
 
 #include "../collection_control_utilities.hpp"
 #include "../details_columns.hpp"

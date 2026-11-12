@@ -9,7 +9,7 @@ gui_forms::PropertyGrid
 
 .. cpp:class:: PropertyGrid final : public Panel, public PropertyGridCapabilities<PropertyGrid>
 
-   ``#include <gui_forms/controls/panel/property_grid/property_grid.hpp>``
+   ``#include <gui_forms/controls/property_grid.hpp>``
 
    An inspector that lists and edits the registered properties of the selected controls.
 

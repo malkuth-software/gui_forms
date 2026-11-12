@@ -8,8 +8,8 @@
 // from the test, never the wall clock.
 
 #include "gui_forms/instrument_controls.hpp"
-#include "gui_forms/controls/panel/panel.hpp"
-#include "gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/sweep_scope_effects.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"

@@ -9,7 +9,7 @@ gui_forms::PictureBox
 
 .. cpp:class:: PictureBox : public Panel, public PictureBoxCapabilities<PictureBox>
 
-   ``#include <gui_forms/controls/panel/picture_box/picture_box.hpp>``
+   ``#include <gui_forms/controls/picture_box.hpp>``
 
    A box that displays one image from its window's image registry.
 

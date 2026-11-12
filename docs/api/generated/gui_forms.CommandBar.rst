@@ -9,7 +9,7 @@ gui_forms::CommandBar
 
 .. cpp:class:: CommandBar final : public Panel
 
-   ``#include <gui_forms/controls/collections/command_bar.hpp>``
+   ``#include <gui_forms/controls/command_bar.hpp>``
 
    A toolbar row of command buttons built from a list of items.
 

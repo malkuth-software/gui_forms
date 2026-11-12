@@ -1,8 +1,8 @@
-#include "gui_forms/controls/callout/callout.hpp"
+#include "gui_forms/controls/callout.hpp"
 
-#include "gui_forms/controls/button_base/button/button.hpp"
-#include "gui_forms/controls/label/label.hpp"
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/anchored_overlay_placement.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/text.hpp"

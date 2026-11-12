@@ -2,9 +2,9 @@
   "family": "EmptyState",
   "step": "W-4",
   "declaring": "EmptyState",
-  "header": "include/gui_forms/controls/empty_state/empty_state.hpp",
+  "header": "include/gui_forms/controls/empty_state.hpp",
   "source": "src/controls/empty_state/empty_state.cpp",
-  "capabilities_header": "include/gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/empty_state_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
@@ -123,6 +123,6 @@
   ],
   "test": {
     "type": "EmptyState",
-    "include": "gui_forms/controls/empty_state/empty_state.hpp"
+    "include": "gui_forms/controls/empty_state.hpp"
   }
 }

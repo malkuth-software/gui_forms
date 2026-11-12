@@ -1,4 +1,4 @@
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/dock_site.hpp"
 #include "dock_site_children.hpp"
 
 #include "dock_site_internal.hpp"

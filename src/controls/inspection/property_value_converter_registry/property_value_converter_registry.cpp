@@ -1,6 +1,6 @@
 #include "gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp"
 
-#include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
+#include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/text.hpp"
 #include "../property_service_utilities.hpp"
 

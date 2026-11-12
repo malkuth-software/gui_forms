@@ -9,7 +9,7 @@ gui_forms::StepIndicator
 
 .. cpp:class:: StepIndicator final : public Control, public StepIndicatorCapabilities<StepIndicator>
 
-   ``#include <gui_forms/controls/step_indicator/step_indicator.hpp>``
+   ``#include <gui_forms/controls/step_indicator.hpp>``
 
    Row of numbered steps joined by connectors, completed steps checked and the current step highlighted, a press on a completed step reported for going back.
 

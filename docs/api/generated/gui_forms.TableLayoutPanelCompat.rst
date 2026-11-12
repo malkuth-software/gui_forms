@@ -9,7 +9,7 @@ gui_forms::TableLayoutPanelCompat
 
 .. cpp:class:: TableLayoutPanelCompat final : public ContainerControl, public TableCellCapability<TableLayoutPanelCompat>, public TableColumnSpanCapability<TableLayoutPanelCompat>, public TableRowSpanCapability<TableLayoutPanelCompat>, public TableLayoutPanelCompatCapabilities<TableLayoutPanelCompat>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat.hpp>``
 
    For Windows Forms migration: Windows Forms' TableLayoutPanel, arranging its children in a grid of sized rows and columns.
 

@@ -9,7 +9,7 @@ gui_forms::FlowLayoutPanelCompat
 
 .. cpp:class:: FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>, public FlowLayoutPanelCompatCapabilities<FlowLayoutPanelCompat>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat.hpp>``
 
    For Windows Forms migration: Windows Forms' FlowLayoutPanel, laying its children out one after another in wrapping lines.
 

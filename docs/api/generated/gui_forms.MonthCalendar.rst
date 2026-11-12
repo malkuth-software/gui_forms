@@ -9,7 +9,7 @@ gui_forms::MonthCalendar
 
 .. cpp:class:: MonthCalendar final : public Control, public MonthCalendarCapabilities<MonthCalendar>
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/month_calendar.hpp>``
 
    A calendar of one or more months on which the user selects dates.
 

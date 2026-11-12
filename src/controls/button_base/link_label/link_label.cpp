@@ -1,4 +1,4 @@
-#include "gui_forms/controls/button_base/link_label/link_label.hpp"
+#include "gui_forms/controls/link_label.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

@@ -2,20 +2,20 @@
   "family": "Ribbon",
   "step": "M-S8",
   "declaring": "Ribbon",
-  "header": "include/gui_forms/controls/ribbon/ribbon.hpp",
+  "header": "include/gui_forms/controls/ribbon.hpp",
   "source": "src/controls/ribbon/ribbon.cpp",
-  "capabilities_header": "include/gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/ribbon_capabilities.hpp",
   "base": "Control",
   "shared": [
     "FontCapability"
   ],
   "includes": [
-    "gui_forms/controls/backstage_view/backstage_view.hpp",
+    "gui_forms/controls/backstage_view.hpp",
     "gui_forms/types.hpp"
   ],
   "test": {
     "type": "Ribbon",
-    "include": "gui_forms/controls/ribbon/ribbon.hpp"
+    "include": "gui_forms/controls/ribbon.hpp"
   },
   "properties": [
     {

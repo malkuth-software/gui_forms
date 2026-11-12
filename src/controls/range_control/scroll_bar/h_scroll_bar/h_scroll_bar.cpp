@@ -1,4 +1,4 @@
-#include "gui_forms/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.hpp"
+#include "gui_forms/controls/h_scroll_bar.hpp"
 
 #include "../scroll_bar_anatomy.hpp"
 

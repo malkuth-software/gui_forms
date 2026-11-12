@@ -2,13 +2,13 @@
   "family": "NumericUpDown",
   "step": "B4",
   "declaring": "NumericUpDown",
-  "header": "include/gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp",
+  "header": "include/gui_forms/controls/numeric_up_down.hpp",
   "source": "src/controls/panel/numeric_up_down/numeric_up_down.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/numeric_up_down_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
-    "gui_forms/controls/label/label_capabilities/label_capabilities.hpp"
+    "gui_forms/controls/label_capabilities.hpp"
   ],
   "properties": [
     {
@@ -336,6 +336,6 @@
   ],
   "test": {
     "type": "NumericUpDown",
-    "include": "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
+    "include": "gui_forms/controls/numeric_up_down.hpp"
   }
 }

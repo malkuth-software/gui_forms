@@ -9,7 +9,7 @@ gui_forms::HelpBookSystem
 
 .. cpp:class:: HelpBookSystem final : public Component
 
-   ``#include <gui_forms/controls/help/help_book_system/help_book_system.hpp>``
+   ``#include <gui_forms/controls/help_book_system.hpp>``
 
    The program's help: catalog of help fields, helpbook compile, F1 walking up to the window page, What's This, window cards, paper popups and the help window; external links go to the program.
 

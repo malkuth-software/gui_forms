@@ -9,7 +9,7 @@ gui_forms::Spinner
 
 .. cpp:class:: Spinner final : public Control, public SpinnerCapabilities<Spinner>
 
-   ``#include <gui_forms/controls/spinner/spinner.hpp>``
+   ``#include <gui_forms/controls/spinner.hpp>``
 
    Indeterminate busy indicator: a ring of twelve dots, three lit, turning while active on the window's frame clock; still under reduced motion; busy to assistive technology.
 

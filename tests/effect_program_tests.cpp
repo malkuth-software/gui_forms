@@ -11,7 +11,7 @@
 // its record's bounds fit its budgets; this file is compiled without the
 // pass, so its own test effect is labelled unverified either way.
 
-#include "gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp"
+#include "gui_forms/controls/progress_bar_effects.hpp"
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"

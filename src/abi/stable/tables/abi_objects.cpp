@@ -9,7 +9,7 @@
 #include "../windows/abi_window_handle.hpp"
 
 #include "gui_forms/components/context_menu/context_menu.hpp"
-#include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 

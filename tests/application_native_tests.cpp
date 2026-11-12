@@ -1,6 +1,6 @@
 #include "gui_forms/application.hpp"
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
 
 #include <chrono>

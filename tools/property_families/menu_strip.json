@@ -2,9 +2,9 @@
   "family": "MenuStrip",
   "step": "M-S8",
   "declaring": "MenuStrip",
-  "header": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
+  "header": "include/gui_forms/controls/menu_strip.hpp",
   "source": "src/controls/menu/menu_strip/menu_strip.cpp",
-  "capabilities_header": "include/gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/menu_strip_capabilities.hpp",
   "base": "Control",
   "shared": [
     "FontCapability"
@@ -14,7 +14,7 @@
   ],
   "test": {
     "type": "MenuStrip",
-    "include": "gui_forms/controls/menu_strip/menu_strip.hpp"
+    "include": "gui_forms/controls/menu_strip.hpp"
   },
   "properties": [
     {

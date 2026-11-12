@@ -9,7 +9,7 @@ gui_forms::RichTextBox
 
 .. cpp:class:: RichTextBox final : public Panel, public RichTextBoxCapabilities<RichTextBox>
 
-   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
+   ``#include <gui_forms/controls/rich_text_box.hpp>``
 
    A rich text field whose document is markdown, shown styled as it is edited.
 

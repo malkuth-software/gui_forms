@@ -1,4 +1,4 @@
-#include "gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp"
+#include "gui_forms/controls/data_grid_view_row_order.hpp"
 
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/text.hpp"

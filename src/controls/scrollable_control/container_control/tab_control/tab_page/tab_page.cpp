@@ -1,4 +1,4 @@
-#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+#include "gui_forms/controls/tab_page.hpp"
 #include "../../../../panel/panel_anatomy.hpp"
 
 #include "gui_forms/text.hpp"

@@ -9,7 +9,7 @@ gui_forms::TextBlock
 
 .. cpp:class:: TextBlock final : public Control, public TextBlockCapabilities<TextBlock>
 
-   ``#include <gui_forms/controls/text_block/text_block.hpp>``
+   ``#include <gui_forms/controls/text_block.hpp>``
 
    Read-only text laid out as CSS lays out the text of a block, for use inside the layout panels.
 

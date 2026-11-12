@@ -2,21 +2,21 @@
   "family": "TabControl",
   "step": "M-S8",
   "declaring": "TabControl",
-  "header": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp",
+  "header": "include/gui_forms/controls/tab_control.hpp",
   "source": "src/controls/scrollable_control/container_control/tab_control/tab_control.cpp",
-  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/tab_control_capabilities.hpp",
   "base": "ContainerControl",
   "shared": [],
   "includes": [
-    "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp",
+    "gui_forms/controls/tab_control_values.hpp",
     "gui_forms/image_list/image_list/image_list.hpp",
     "gui_forms/theme/owner_draw/owner_draw.hpp",
     "gui_forms/types.hpp",
-    "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+    "gui_forms/controls/tab_page.hpp"
   ],
   "test": {
     "type": "TabControl",
-    "include": "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
+    "include": "gui_forms/controls/tab_control.hpp"
   },
   "properties": [
     {

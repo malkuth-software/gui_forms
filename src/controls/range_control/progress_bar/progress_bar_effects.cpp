@@ -4,7 +4,7 @@
 // canvas alone. The stripes, pulse and laser reproduce the legacy painting
 // of range_control_rendering.cpp, with their phase as state.
 
-#include "gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp"
+#include "gui_forms/controls/progress_bar_effects.hpp"
 
 // Built without the gui_forms plugin's effect pass (GUI_FORMS_EFFECT_VERIFY
 // OFF, or a toolchain that cannot load the plugin), CMake defines this, and

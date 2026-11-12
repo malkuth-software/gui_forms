@@ -1,4 +1,4 @@
-#include "gui_forms/controls/scrollable_control/container_control/user_control/user_control.hpp"
+#include "gui_forms/controls/user_control.hpp"
 #include "../../scrollable_anatomy.hpp"
 
 #include <array>

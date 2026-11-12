@@ -9,7 +9,7 @@ gui_forms::StatusStrip
 
 .. cpp:class:: StatusStrip final : public ToolStrip
 
-   ``#include <gui_forms/controls/status_strip/status_strip.hpp>``
+   ``#include <gui_forms/controls/status_strip.hpp>``
 
    A status bar laid out as a strip of labels along the bottom of a window.
 

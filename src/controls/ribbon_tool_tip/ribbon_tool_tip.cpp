@@ -3,7 +3,7 @@
 #include "ribbon_tool_tip_layer/ribbon_tool_tip_layer.hpp"
 #include "ribbon_tool_tip_bubble.hpp"
 
-#include "gui_forms/controls/tool_strip/tool_strip.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/timer.hpp"

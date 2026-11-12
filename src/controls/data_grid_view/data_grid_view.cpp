@@ -1,4 +1,4 @@
-#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include "../panel/input_control_utilities.hpp"

@@ -9,7 +9,7 @@ gui_forms::UserControl
 
 .. cpp:class:: UserControl : public ContainerControl
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/user_control/user_control.hpp>``
+   ``#include <gui_forms/controls/user_control.hpp>``
 
    A container for building your own reusable composite control.
 

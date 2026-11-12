@@ -9,7 +9,7 @@ gui_forms::ScaledGroupBox
 
 .. cpp:class:: ScaledGroupBox final : public GroupBox, public ScaledGroupBoxCapabilities<ScaledGroupBox>
 
-   ``#include <gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp>``
+   ``#include <gui_forms/controls/scaled_group_box.hpp>``
 
    A group box whose children keep their proportions as it is resized.
 

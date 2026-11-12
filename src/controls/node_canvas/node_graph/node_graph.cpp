@@ -1,4 +1,4 @@
-#include "gui_forms/controls/node_canvas/node_graph/node_graph.hpp"
+#include "gui_forms/controls/node_graph.hpp"
 
 #include <algorithm>
 #include <cmath>

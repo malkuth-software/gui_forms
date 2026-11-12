@@ -4,7 +4,7 @@
 // the editor's field, and every reader of geometry goes through it;
 // on_key_preview and on_pointer select and remove tokens.
 
-#include "gui_forms/controls/panel/token_box/token_box.hpp"
+#include "gui_forms/controls/token_box.hpp"
 
 #include "../input_control_utilities.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

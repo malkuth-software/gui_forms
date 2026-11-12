@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
 
 #include "../up_down/spin_buttons.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"

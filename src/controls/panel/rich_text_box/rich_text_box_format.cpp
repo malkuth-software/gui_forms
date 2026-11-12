@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
+#include "gui_forms/controls/rich_text_box.hpp"
 
 #include "../text_editing/text_editing_engine.hpp"
 #include "gui_forms/detail/algorithm/binary_search.hpp"

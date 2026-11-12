@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
+#include "gui_forms/controls/flags_value_editor.hpp"
 
 #include "property_editor_drop_down_layer/property_editor_drop_down_layer.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"

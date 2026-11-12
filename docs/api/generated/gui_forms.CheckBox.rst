@@ -9,7 +9,7 @@ gui_forms::CheckBox
 
 .. cpp:class:: CheckBox : public ButtonBase, public CheckBoxCapabilities<CheckBox>
 
-   ``#include <gui_forms/controls/button_base/check_box/check_box.hpp>``
+   ``#include <gui_forms/controls/check_box.hpp>``
 
    A box with a caption that the user checks and unchecks.
 

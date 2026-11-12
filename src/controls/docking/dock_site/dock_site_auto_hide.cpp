@@ -2,7 +2,7 @@
 // DK-41, DK-42): the side strips, the flyout and its timers. The layout pass
 // that sizes the strips' bands and plans collapsing is in dock_site.cpp.
 
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/dock_site.hpp"
 
 #include "dock_site_internal.hpp"
 

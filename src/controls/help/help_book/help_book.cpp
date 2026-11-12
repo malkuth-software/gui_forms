@@ -1,4 +1,4 @@
-#include "gui_forms/controls/help/help_book/help_book.hpp"
+#include "gui_forms/controls/help_book.hpp"
 
 #include "../../scrollable_control/scrollable_anatomy.hpp"
 #include "gui_forms/anatomy.hpp"

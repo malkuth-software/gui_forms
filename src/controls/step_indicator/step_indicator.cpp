@@ -1,4 +1,4 @@
-#include "gui_forms/controls/step_indicator/step_indicator.hpp"
+#include "gui_forms/controls/step_indicator.hpp"
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

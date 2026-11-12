@@ -9,7 +9,7 @@ gui_forms::CheckedListBox
 
 .. cpp:class:: CheckedListBox final : public ListBox, public CheckedListBoxCapabilities<CheckedListBox>
 
-   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
+   ``#include <gui_forms/controls/checked_list_box.hpp>``
 
    A list box with a check box on each row.
 

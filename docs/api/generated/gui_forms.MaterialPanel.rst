@@ -9,7 +9,7 @@ gui_forms::MaterialPanel
 
 .. cpp:class:: MaterialPanel : public Panel, public MaterialPanelCapabilities<MaterialPanel>
 
-   ``#include <gui_forms/controls/panel/material_panel/material_panel.hpp>``
+   ``#include <gui_forms/controls/material_panel.hpp>``
 
    A panel that paints a surface material of your choosing behind its children.
 

@@ -7,8 +7,8 @@
 // fallback routes; determinism; and no storage growth when the same graph is
 // routed again (a drag routes on every frame). Headless and renderer-free.
 
-#include "gui_forms/controls/node_canvas/link_router/link_router.hpp"
-#include "gui_forms/controls/node_canvas/node_graph/node_graph.hpp"
+#include "gui_forms/controls/link_router.hpp"
+#include "gui_forms/controls/node_graph.hpp"
 
 #include <algorithm>
 #include <array>

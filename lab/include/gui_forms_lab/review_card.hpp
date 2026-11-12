@@ -1,8 +1,8 @@
 #pragma once
 
 #include "gui_forms_lab/review_card_values.hpp"
-#include "gui_forms/controls/panel/card/card.hpp"
-#include "gui_forms/controls/label/label.hpp"
+#include "gui_forms/controls/card.hpp"
+#include "gui_forms/controls/label.hpp"
 #include "gui_forms_lab/review_card_capabilities.hpp"
 
 #include <cstdint>

@@ -1,17 +1,17 @@
-#include "gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp"
+#include "gui_forms/controls/stock_specimens.hpp"
 
 // Each row's type (generated: tools/stock_specimens.py).
 #include "stock_specimen_includes.inc"
 
 // What the hand-written makers use beyond the rows' own headers.
 #include "gui_forms/commands/command/command.hpp"
-#include "gui_forms/controls/button_base/button/button.hpp"
-#include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp"
-#include "gui_forms/controls/panel/list_view/list_view_values/list_view_values.hpp"
-#include "gui_forms/controls/panel/panel.hpp"
-#include "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/anchored_overlay_placement.hpp"
+#include "gui_forms/controls/list_view_values.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/plot_values.hpp"
+#include "gui_forms/controls/tab_page.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/drawing/bitmap/bitmap.hpp"

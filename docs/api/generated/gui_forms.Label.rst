@@ -9,7 +9,7 @@ gui_forms::Label
 
 .. cpp:class:: Label : public Control, public LabelCapabilities<Label>
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label.hpp>``
 
    Read-only text that names, describes or reports something.
 

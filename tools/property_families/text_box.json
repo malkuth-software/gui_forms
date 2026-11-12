@@ -2,17 +2,17 @@
   "family": "TextBox",
   "step": "B3",
   "declaring": "TextBox",
-  "header": "include/gui_forms/controls/panel/text_box/text_box.hpp",
+  "header": "include/gui_forms/controls/text_box.hpp",
   "source": "src/controls/panel/text_box/text_box.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/text_box_capabilities.hpp",
   "base": "Panel",
   "shared": [
     "FontCapability"
   ],
   "includes": [
-    "gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp",
+    "gui_forms/controls/auto_complete.hpp",
     "gui_forms/types.hpp",
-    "gui_forms/controls/label/label_capabilities/label_capabilities.hpp"
+    "gui_forms/controls/label_capabilities.hpp"
   ],
   "properties": [
     {
@@ -458,6 +458,6 @@
   ],
   "test": {
     "type": "TextBox",
-    "include": "gui_forms/controls/panel/text_box/text_box.hpp"
+    "include": "gui_forms/controls/text_box.hpp"
   }
 }

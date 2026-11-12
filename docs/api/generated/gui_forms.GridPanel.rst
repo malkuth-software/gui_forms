@@ -9,7 +9,7 @@ gui_forms::GridPanel
 
 .. cpp:class:: GridPanel final : public ContainerControl, public GridAreaCapability<GridPanel>, public GridCellCapability<GridPanel>, public GridPanelCapabilities<GridPanel>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
+   ``#include <gui_forms/controls/grid_panel.hpp>``
 
    A container that lays its children out as a CSS grid container: items placed in rows and columns of sized tracks, by line, by area name or automatically.
 

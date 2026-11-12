@@ -1,6 +1,6 @@
-#include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
+#include "gui_forms/controls/tool_strip_panel.hpp"
 
-#include "gui_forms/controls/status_strip/status_strip.hpp"
+#include "gui_forms/controls/status_strip.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 

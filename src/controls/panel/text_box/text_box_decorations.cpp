@@ -2,7 +2,7 @@
 // repaints, the fonts they give the multiline layout, and how a decorated
 // row is painted. See text_box.hpp.
 
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 
 #include "../text_editing/text_editing_engine.hpp"
 #include "gui_forms/detail/algorithm/binary_search.hpp"

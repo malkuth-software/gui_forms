@@ -9,7 +9,7 @@ gui_forms::LookupComboBox
 
 .. cpp:class:: LookupComboBox final : public Control, public LookupComboBoxCapabilities<LookupComboBox>
 
-   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp>``
+   ``#include <gui_forms/controls/lookup_combo_box.hpp>``
 
    Multi-column lookup: a drop-down field choosing a row by key and showing one of its cells, with a headed list of every column filtered by typing.
 

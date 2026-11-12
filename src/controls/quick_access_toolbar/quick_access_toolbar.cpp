@@ -1,4 +1,4 @@
-#include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
+#include "gui_forms/controls/quick_access_toolbar.hpp"
 
 #include "../scrollable_control/scrolling_utilities.hpp"
 

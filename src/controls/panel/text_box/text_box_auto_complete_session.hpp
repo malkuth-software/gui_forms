@@ -3,10 +3,10 @@
 // The private state of TextBox auto-complete, shared by text_box.cpp (which
 // owns it through a std::unique_ptr) and text_box_auto_complete.cpp.
 
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 
 #include "../combo_box/drop_down_layer.hpp"
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/native_popup/popup_lift.hpp"
 

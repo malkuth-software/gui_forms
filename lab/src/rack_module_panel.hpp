@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/info_banner/notice_values/notice_values.hpp"
+#include "gui_forms/controls/notice_values.hpp"
 #include "gui_forms/input_controls.hpp"
 
 #include <functional>

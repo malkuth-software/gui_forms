@@ -9,7 +9,7 @@ gui_forms::ContainerControl
 
 .. cpp:class:: ContainerControl : public ScrollableControl, public ContainerControlCapabilities<ContainerControl>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/container_control.hpp>``
+   ``#include <gui_forms/controls/container_control.hpp>``
 
    The base class for containers that manage focus and validation for their descendants.
 

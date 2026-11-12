@@ -9,7 +9,7 @@ gui_forms::TextBox
 
 .. cpp:class:: TextBox final : public Panel, public TextBoxCapabilities<TextBox>
 
-   ``#include <gui_forms/controls/panel/text_box/text_box.hpp>``
+   ``#include <gui_forms/controls/text_box.hpp>``
 
    An editable text field: one line by default, or a plain-text document with :cpp:member:`multiline <gui_forms::TextBox::multiline>`.
 

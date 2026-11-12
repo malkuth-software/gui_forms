@@ -9,7 +9,7 @@ gui_forms::WizardPage
 
 .. cpp:class:: WizardPage final : public Panel, public WizardPageCapabilities<WizardPage>
 
-   ``#include <gui_forms/controls/wizard/wizard_page/wizard_page.hpp>``
+   ``#include <gui_forms/controls/wizard_page.hpp>``
 
    One page of a Wizard: a Panel with the title and description the wizard shows and can_advance, the gate on its Next button.
 

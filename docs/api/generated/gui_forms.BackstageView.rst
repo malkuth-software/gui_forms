@@ -9,7 +9,7 @@ gui_forms::BackstageView
 
 .. cpp:class:: BackstageView final : public Control, public BackstageViewCapabilities<BackstageView>
 
-   ``#include <gui_forms/controls/backstage_view/backstage_view.hpp>``
+   ``#include <gui_forms/controls/backstage_view.hpp>``
 
    The File tab's full page: a column of commands and topics beside the topic's page.
 

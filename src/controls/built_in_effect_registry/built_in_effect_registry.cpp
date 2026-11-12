@@ -3,8 +3,8 @@
 
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
-#include "gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp"
-#include "gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp"
+#include "gui_forms/controls/sweep_scope_effects.hpp"
+#include "gui_forms/controls/progress_bar_effects.hpp"
 
 namespace gui_forms {
 namespace {

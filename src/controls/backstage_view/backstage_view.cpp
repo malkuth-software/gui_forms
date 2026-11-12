@@ -1,4 +1,4 @@
-#include "gui_forms/controls/backstage_view/backstage_view.hpp"
+#include "gui_forms/controls/backstage_view.hpp"
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

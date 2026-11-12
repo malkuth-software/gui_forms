@@ -9,8 +9,8 @@
 
 #include "gui_forms/binding.hpp"
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/user_control/user_control.hpp"
-#include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/user_control.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/live_surface/wake_connection/live_surface_wake_connection.hpp"
 

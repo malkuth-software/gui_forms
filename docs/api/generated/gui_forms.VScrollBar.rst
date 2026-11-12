@@ -9,7 +9,7 @@ gui_forms::VScrollBar
 
 .. cpp:class:: VScrollBar final : public ScrollBar
 
-   ``#include <gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp>``
+   ``#include <gui_forms/controls/v_scroll_bar.hpp>``
 
    A scroll bar that runs vertically.
 

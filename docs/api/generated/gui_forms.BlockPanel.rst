@@ -9,7 +9,7 @@ gui_forms::BlockPanel
 
 .. cpp:class:: BlockPanel final : public ContainerControl, public BlockPanelCapabilities<BlockPanel>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp>``
+   ``#include <gui_forms/controls/block_panel.hpp>``
 
    A container that lays its children out as a CSS block formatting context: blocks stacked with collapsing margins, and runs of inline items broken into lines.
 

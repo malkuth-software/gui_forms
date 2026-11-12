@@ -3,7 +3,7 @@
 // Ribbon scaling definitions checked when a ribbon is defined (stage RB,
 // phase 2b; owner decisions 5, 27, 29, 32). Private to the ribbon.
 
-#include "gui_forms/controls/ribbon/ribbon.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 
 #include <vector>
 

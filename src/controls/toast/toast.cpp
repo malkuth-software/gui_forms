@@ -1,6 +1,6 @@
-#include "gui_forms/controls/toast/toast.hpp"
+#include "gui_forms/controls/toast.hpp"
 
-#include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/button.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"

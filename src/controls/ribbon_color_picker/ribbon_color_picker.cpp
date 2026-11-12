@@ -1,4 +1,4 @@
-#include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
+#include "gui_forms/controls/ribbon_color_picker.hpp"
 
 #include "ribbon_color_palette.hpp"
 

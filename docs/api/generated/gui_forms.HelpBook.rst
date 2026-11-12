@@ -9,7 +9,7 @@ gui_forms::HelpBook
 
 .. cpp:class:: HelpBook final : public ScrollableControl
 
-   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+   ``#include <gui_forms/controls/help_book.hpp>``
 
    Paper pane showing one help page: title, markdown body with callouts and collapsible sections, topic, popup and external links, keyboard link stops, and a print layout.
 

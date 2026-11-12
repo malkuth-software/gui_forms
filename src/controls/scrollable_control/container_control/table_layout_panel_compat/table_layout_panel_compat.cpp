@@ -1,4 +1,4 @@
-#include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
+#include "gui_forms/controls/table_layout_panel_compat.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../container_layout_utilities.hpp"
 #include "../text_collection_property.hpp"

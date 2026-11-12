@@ -9,7 +9,7 @@ gui_forms::PageStrip
 
 .. cpp:class:: PageStrip : public Control, public PageStripCapabilities<PageStrip>
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    The tab headers of a page set in one row, on the top, bottom, left or right edge of their content.
 

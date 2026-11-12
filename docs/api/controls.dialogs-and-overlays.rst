@@ -234,7 +234,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerCapabilities : public AnchoredOverlayLayerPlacementCapability<Declaring>, public AnchoredOverlayLayerDismissOnClickAwayCapability<Declaring>, public AnchoredOverlayLayerDismissOnEscapeCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>``
 
    Every AnchoredOverlayLayer capability, in the order the declaring class takes them.
 
@@ -257,7 +257,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerDismissOnClickAwayCapability
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>``
 
    Whether a press outside the content raises dismiss_requested(click_away). The layer only reports it; the owner closes the overlay.
 
@@ -274,7 +274,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerDismissOnEscapeCapability
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>``
 
    Whether Escape raises dismiss_requested(escape_key). The layer only reports it; the owner closes the overlay.
 
@@ -291,7 +291,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerPlacementCapability
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>``
 
    The overlay's preferred size, alignment, side, gap, margin and flip rule; resolved against the anchor on every arrangement (resolved_placement). An invalid placement throws std::invalid_argument.
 
@@ -306,7 +306,7 @@ Related types
 
 .. cpp:struct:: AnchoredOverlayPlacement final
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
 
    AnchoredOverlayPlacement is the caller-authored geometry policy for preferred size, horizontal alignment, preferred vertical side, gap, viewport margin, and optional vertical flipping. It contains no transient ownership or rendering state.
 
@@ -330,7 +330,7 @@ Related types
 
 .. cpp:struct:: AnchoredOverlayPlacementResult final
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
 
    AnchoredOverlayPlacementResult is the exact output of placement resolution: client-relative bounds plus whether the overlay moved above its anchor or had either dimension clamped.
 
@@ -346,7 +346,7 @@ Related types
 
 .. cpp:struct:: BundledFontFace final
 
-   ``#include <gui_forms/controls/panel/font_dialog/font_dialog.hpp>``
+   ``#include <gui_forms/controls/font_dialog.hpp>``
 
    One face GUI.Forms bundles for a FontRole, as every host registers it: its family name, what the role is for, and whether it has italic faces. Every face has regular (400) and bold (700) weights. The Noto faces are fallbacks for scripts and emoji, not choices, and are not listed.
 
@@ -364,7 +364,7 @@ Related types
 
 .. cpp:struct:: Callout::Parts final
 
-   ``#include <gui_forms/controls/callout/callout.hpp>``
+   ``#include <gui_forms/controls/callout.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -382,7 +382,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutActionTextCapability
 
-   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>``
 
    The action button's text; empty for no action button. Must be valid UTF-8 (std::invalid_argument).
 
@@ -397,7 +397,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutCapabilities : public CalloutTitleCapability<Declaring>, public CalloutTextCapability<Declaring>, public CalloutActionTextCapability<Declaring>, public CalloutLightDismissCapability<Declaring>, public CalloutPrefersAboveCapability<Declaring>
 
-   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>``
 
    Every Callout capability, in the order the declaring class takes them.
 
@@ -428,7 +428,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutLightDismissCapability
 
-   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>``
 
    Whether a press anywhere outside the callout closes it; without it, presses outside reach the window and only the close mark, Escape or the action close it.
 
@@ -445,7 +445,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutPrefersAboveCapability
 
-   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>``
 
    Whether the callout opens above its target rather than below; it moves to the other side when the preferred one has no room.
 
@@ -462,7 +462,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutTextCapability
 
-   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>``
 
    The explanation under the title, wrapped to the callout's width. Must be valid UTF-8 (std::invalid_argument).
 
@@ -477,7 +477,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutTitleCapability
 
-   ``#include <gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>``
 
    The bold first line; empty for none. Must be valid UTF-8 (std::invalid_argument).
 
@@ -658,7 +658,7 @@ Related types
 
 .. cpp:struct:: FontDialog::Parts final
 
-   ``#include <gui_forms/controls/panel/font_dialog/font_dialog.hpp>``
+   ``#include <gui_forms/controls/font_dialog.hpp>``
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -676,7 +676,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FontDialogCapabilities : public FontDialogFontCapability<Declaring>, public FontDialogShowApplyCapability<Declaring>, public FontDialogPreviewTextCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>``
 
    Every FontDialog capability, in the order the declaring class takes them.
 
@@ -699,7 +699,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FontDialogFontCapability
 
-   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>``
 
    The font OK or Apply last took (initially 9-unit Carlito, like Windows Forms' default); not the dialog's own text font (G1). A view, since OK and Apply move it. A write also resets the selection to it and marks the font as set from code; an invalid FontSpec throws std::invalid_argument.
 
@@ -716,7 +716,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FontDialogPreviewTextCapability
 
-   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>``
 
    The preview text; invalid UTF-8 throws std::invalid_argument.
 
@@ -733,7 +733,7 @@ Related types
 
 .. cpp:struct:: FontDialogResult final
 
-   ``#include <gui_forms/controls/panel/font_dialog/font_dialog.hpp>``
+   ``#include <gui_forms/controls/font_dialog.hpp>``
 
    How a FontDialog closed, and the font it holds then.
 
@@ -747,7 +747,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FontDialogShowApplyCapability
 
-   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>``
 
    Whether the Apply button is shown.
 
@@ -852,7 +852,7 @@ Related types
 
 .. cpp:struct:: ModalLayer::Parts final
 
-   ``#include <gui_forms/controls/modal_layer/modal_layer.hpp>``
+   ``#include <gui_forms/controls/modal_layer.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``scrim`` covers the client while content is shown; ``shadow`` lies under the content.
 
@@ -866,7 +866,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ModalLayerCapabilities : public ModalLayerCloseOnEscapeCapability<Declaring>
 
-   ``#include <gui_forms/controls/modal_layer/modal_layer_capabilities/modal_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/modal_layer_capabilities.hpp>``
 
    Every ModalLayer capability, in the order the declaring class takes them.
 
@@ -881,7 +881,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ModalLayerCloseOnEscapeCapability
 
-   ``#include <gui_forms/controls/modal_layer/modal_layer_capabilities/modal_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/modal_layer_capabilities.hpp>``
 
    Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
 
@@ -898,7 +898,7 @@ Related types
 
 .. cpp:struct:: ModalLayerClosingEvent final
 
-   ``#include <gui_forms/controls/modal_layer/modal_layer.hpp>``
+   ``#include <gui_forms/controls/modal_layer.hpp>``
 
    The argument of ModalLayer::closing: the result the layer would close with, and whether a handler refuses the closing.
 
@@ -1213,7 +1213,7 @@ Related types
 
 .. cpp:struct:: TaskDialog::Parts final
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    Stage T1 anatomy, as dot members. Its states are Control's.
 
@@ -1273,7 +1273,7 @@ Related types
 
 .. cpp:struct:: TaskDialogButton final
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    One command button. ``stable_id`` names the button in results and events and is unique within the page; a standard button with an empty ID takes its standard name ("ok", "cancel", "try_again", ...), and a standard button with empty text shows its standard text. A button whose ``allow_close`` is false raises button_clicked and leaves the dialog open.
 
@@ -1297,7 +1297,7 @@ Related types
 
 .. cpp:struct:: TaskDialogButtonClick final
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    A click on a button, before the dialog closes. Setting ``keep_open`` keeps the dialog open, as a button whose allow_close is false does.
 
@@ -1309,7 +1309,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TaskDialogCapabilities : public TaskDialogExpandedCapability<Declaring>, public TaskDialogVerificationCheckedCapability<Declaring>
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/task_dialog_capabilities.hpp>``
 
    Every TaskDialog capability, in the order the declaring class takes them.
 
@@ -1328,7 +1328,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TaskDialogExpandedCapability
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/task_dialog_capabilities.hpp>``
 
    Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander. A change re-lays out the dialog and raises expanded_changed; a write to a page without an expander does nothing and reads false.
 
@@ -1345,7 +1345,7 @@ Related types
 
 .. cpp:struct:: TaskDialogExpander final
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    Expanded information, shown below the text while expanded. The expander button shows one text or the other.
 
@@ -1365,7 +1365,7 @@ Related types
 
 .. cpp:struct:: TaskDialogPage final
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    One page (Windows Forms' TaskDialogPage). Empty strings leave their part out: no caption row, heading, text, verification check box or footnote. A page without buttons gets an OK button. ``default_button`` names the button Enter clicks and that takes focus first; empty names the first. With ``allow_cancel``, Escape closes the dialog as its cancel button would.
 
@@ -1409,7 +1409,7 @@ Related types
 
 .. cpp:struct:: TaskDialogProgressBar final
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    A progress bar below the text: a value between the bounds, or a marquee.
 
@@ -1427,7 +1427,7 @@ Related types
 
 .. cpp:struct:: TaskDialogRadioButton final
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    One radio button; at most one of a page's radio buttons is checked.
 
@@ -1445,7 +1445,7 @@ Related types
 
 .. cpp:struct:: TaskDialogResult final
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box and the radio buttons at that moment.
 
@@ -1459,7 +1459,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TaskDialogVerificationCheckedCapability
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/task_dialog_capabilities.hpp>``
 
    The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page. While the check box exists a write goes through it and raises verification_changed; before it does, a write only stores the page's state.
 
@@ -1653,7 +1653,7 @@ Enumerations
 
 .. cpp:enum-class:: CalloutCloseReason
 
-   ``#include <gui_forms/controls/callout/callout.hpp>``
+   ``#include <gui_forms/controls/callout.hpp>``
 
    .. cpp:enumerator:: close_button
 
@@ -1715,7 +1715,7 @@ Enumerations
 
 .. cpp:enum-class:: OverlayDismissReason
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer.hpp>``
 
    .. cpp:enumerator:: click_away
 
@@ -1725,7 +1725,7 @@ Enumerations
 
 .. cpp:enum-class:: OverlayHorizontalAlignment
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
 
    .. cpp:enumerator:: near
 
@@ -1737,7 +1737,7 @@ Enumerations
 
 .. cpp:enum-class:: OverlayVerticalPreference
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
 
    .. cpp:enumerator:: below
 
@@ -1747,7 +1747,7 @@ Enumerations
 
 .. cpp:enum-class:: TaskDialogIcon
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1763,7 +1763,7 @@ Enumerations
 
 .. cpp:enum-class:: TaskDialogStandardButton
 
-   ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1832,7 +1832,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp>``
+``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
 
 .. cpp:function:: AnchoredOverlayPlacementResult resolve_anchored_overlay(Rect anchor_bounds, Size client_size, AnchoredOverlayPlacement placement)
 
@@ -1840,7 +1840,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/panel/font_dialog/font_dialog.hpp>``
+``#include <gui_forms/controls/font_dialog.hpp>``
 
 .. cpp:function:: std::span<const BundledFontFace> bundled_font_faces() noexcept
 

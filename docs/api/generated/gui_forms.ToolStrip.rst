@@ -9,7 +9,7 @@ gui_forms::ToolStrip
 
 .. cpp:class:: ToolStrip : public Control, public ToolStripCapabilities<ToolStrip>
 
-   ``#include <gui_forms/controls/tool_strip/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>``
 
    A command strip of buttons, labels, separators and drop-down buttons.
 

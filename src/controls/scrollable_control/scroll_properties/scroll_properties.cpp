@@ -1,6 +1,6 @@
-#include "gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp"
+#include "gui_forms/controls/scroll_properties.hpp"
 #include "../scrolling_utilities.hpp"
-#include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
 
 #include <algorithm>
 #include <cmath>

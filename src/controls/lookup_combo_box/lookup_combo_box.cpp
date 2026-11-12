@@ -1,6 +1,6 @@
-#include "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp"
+#include "gui_forms/controls/lookup_combo_box.hpp"
 
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/text.hpp"

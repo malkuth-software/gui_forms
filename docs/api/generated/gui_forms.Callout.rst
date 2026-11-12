@@ -9,7 +9,7 @@ gui_forms::Callout
 
 .. cpp:class:: Callout final : public Control, public CalloutCapabilities<Callout>
 
-   ``#include <gui_forms/controls/callout/callout.hpp>``
+   ``#include <gui_forms/controls/callout.hpp>``
 
    Non-modal teaching callout at a target control: a card with a beak pointing at the target, a title, wrapped text, a close mark and an optional action, placed below or above the target in an overlay, with optional light dismiss.
 

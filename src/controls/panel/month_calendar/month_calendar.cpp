@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
+#include "gui_forms/controls/month_calendar.hpp"
 
 #include "../date_time_picker/calendar_grid/calendar_grid.hpp"
 #include "../date_time_picker/date_time_utilities.hpp"

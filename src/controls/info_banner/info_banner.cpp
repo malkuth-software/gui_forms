@@ -1,4 +1,4 @@
-#include "gui_forms/controls/info_banner/info_banner.hpp"
+#include "gui_forms/controls/info_banner.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/text/types/text_types.hpp"

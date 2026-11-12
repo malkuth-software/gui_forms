@@ -9,7 +9,7 @@ gui_forms::NumericUpDown
 
 .. cpp:class:: NumericUpDown final : public Panel, public NumericUpDownCapabilities<NumericUpDown>
 
-   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down.hpp>``
 
    A text field for a number, with up and down buttons that step it.
 

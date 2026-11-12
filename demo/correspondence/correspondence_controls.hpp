@@ -11,7 +11,7 @@
 #include "gui_forms/collection_controls.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/container_controls.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/menu_controls.hpp"
 #include "gui_forms/tooltip.hpp"
 #include "gui_forms/window.hpp"

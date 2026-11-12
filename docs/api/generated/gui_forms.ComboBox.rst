@@ -9,7 +9,7 @@ gui_forms::ComboBox
 
 .. cpp:class:: ComboBox final : public Panel, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox>
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box.hpp>``
+   ``#include <gui_forms/controls/combo_box.hpp>``
 
    A field that shows one selected item and drops down a list of the others.
 

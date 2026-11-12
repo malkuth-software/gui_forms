@@ -3,7 +3,7 @@
 // Both strips' items are worked on as copies and applied only once the whole
 // result is known, so a refused merge or revert changes nothing.
 
-#include "gui_forms/controls/tool_strip/tool_strip_manager.hpp"
+#include "gui_forms/controls/tool_strip_manager.hpp"
 
 #include "strip_merge.hpp"
 

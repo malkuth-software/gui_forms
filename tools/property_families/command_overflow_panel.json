@@ -2,12 +2,12 @@
   "family": "CommandOverflowPanel",
   "step": "M-S5",
   "declaring": "CommandOverflowPanel",
-  "header": "include/gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp",
+  "header": "include/gui_forms/controls/command_overflow_panel.hpp",
   "source": "src/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.cpp",
-  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel_capabilities/command_overflow_panel_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/command_overflow_panel_capabilities.hpp",
   "base": "Control",
   "includes": [
-    "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+    "gui_forms/controls/container_control.hpp"
   ],
   "properties": [
     {
@@ -47,6 +47,6 @@
   "not_properties": [],
   "test": {
     "type": "CommandOverflowPanel",
-    "include": "gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp"
+    "include": "gui_forms/controls/command_overflow_panel.hpp"
   }
 }

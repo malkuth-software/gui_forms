@@ -1,9 +1,9 @@
-#include "gui_forms/controls/panel/combo_box/combo_box.hpp"
+#include "gui_forms/controls/combo_box.hpp"
 
 #include "drop_down_layer.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "../input_control_utilities.hpp"
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/detail/weak_member_callback.hpp"

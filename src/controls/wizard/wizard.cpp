@@ -1,8 +1,8 @@
-#include "gui_forms/controls/wizard/wizard.hpp"
+#include "gui_forms/controls/wizard.hpp"
 
-#include "gui_forms/controls/button_base/button/button.hpp"
-#include "gui_forms/controls/step_indicator/step_indicator.hpp"
-#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/step_indicator.hpp"
+#include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"

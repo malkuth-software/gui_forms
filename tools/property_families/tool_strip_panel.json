@@ -2,17 +2,17 @@
   "family": "ToolStripPanel",
   "step": "M-S8",
   "declaring": "ToolStripPanel",
-  "header": "include/gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp",
+  "header": "include/gui_forms/controls/tool_strip_panel.hpp",
   "source": "src/controls/tool_strip_panel/tool_strip_panel.cpp",
-  "capabilities_header": "include/gui_forms/controls/tool_strip_panel/tool_strip_panel_capabilities/tool_strip_panel_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/tool_strip_panel_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
-    "gui_forms/controls/tool_strip_panel/tool_strip_panel_values/tool_strip_panel_values.hpp"
+    "gui_forms/controls/tool_strip_panel_values.hpp"
   ],
   "test": {
     "type": "ToolStripPanel",
-    "include": "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
+    "include": "gui_forms/controls/tool_strip_panel.hpp"
   },
   "properties": [
     {

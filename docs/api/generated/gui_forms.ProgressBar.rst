@@ -9,7 +9,7 @@ gui_forms::ProgressBar
 
 .. cpp:class:: ProgressBar : public RangeControl, public ProgressBarCapabilities<ProgressBar>
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
+   ``#include <gui_forms/controls/progress_bar.hpp>``
 
    A bar that shows how far an operation has progressed.
 

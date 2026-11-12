@@ -1,4 +1,4 @@
-#include "gui_forms/controls/text_block/text_block.hpp"
+#include "gui_forms/controls/text_block.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include "line_wrapping.hpp"

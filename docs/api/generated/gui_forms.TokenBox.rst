@@ -9,7 +9,7 @@ gui_forms::TokenBox
 
 .. cpp:class:: TokenBox final : public Control, public TokenBoxCapabilities<TokenBox>
 
-   ``#include <gui_forms/controls/panel/token_box/token_box.hpp>``
+   ``#include <gui_forms/controls/token_box.hpp>``
 
    A text field that turns each accepted entry into a removable token.
 

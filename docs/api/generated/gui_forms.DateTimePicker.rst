@@ -9,7 +9,7 @@ gui_forms::DateTimePicker
 
 .. cpp:class:: DateTimePicker final : public Panel, public DateTimePickerCapabilities<DateTimePicker>
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker.hpp>``
+   ``#include <gui_forms/controls/date_time_picker.hpp>``
 
    A field that shows a date and time and lets the user pick a date from a drop-down calendar.
 

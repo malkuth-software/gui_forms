@@ -1,9 +1,9 @@
 #pragma once
 
 #include "gui_forms/binding_types.hpp"
-#include "gui_forms/controls/button_base/button_base.hpp"
-#include "gui_forms/controls/label/label.hpp"
-#include "gui_forms/controls/panel/picture_box/picture_box.hpp"
+#include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/picture_box.hpp"
 
 #include <memory>
 #include <functional>

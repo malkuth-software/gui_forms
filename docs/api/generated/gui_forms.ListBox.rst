@@ -9,7 +9,7 @@ gui_forms::ListBox
 
 .. cpp:class:: ListBox : public Panel, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox>
 
-   ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
+   ``#include <gui_forms/controls/list_box.hpp>``
 
    A scrolling list of text rows from which the user selects one row or several.
 

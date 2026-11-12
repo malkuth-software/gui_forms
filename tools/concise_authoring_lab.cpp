@@ -1,5 +1,5 @@
 #include "gui_forms/basic_controls.hpp"
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel.hpp"
 #include "gui_forms/range_controls.hpp"
 #include "gui_forms/window.hpp"
 #include "skia_raster.hpp"

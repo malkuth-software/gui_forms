@@ -9,7 +9,7 @@ gui_forms::ValueBar
 
 .. cpp:class:: ValueBar final : public RangeControl, public ValueBarCapabilities<ValueBar>
 
-   ``#include <gui_forms/controls/range_control/value_bar/value_bar.hpp>``
+   ``#include <gui_forms/controls/value_bar.hpp>``
 
    Blender-style value bar over RangeControl: a fill or field style, drag-to-scrub within a soft range, click-to-type bounded arithmetic with units within the hard range, snapping and step arrows.
 

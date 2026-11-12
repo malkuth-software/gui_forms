@@ -6,7 +6,7 @@
 // capability cases.
 
 #include "gui_forms/gui_forms.hpp"
-#include "gui_forms/controls/task_dialog/task_dialog.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/delegate.hpp"
 
 #include <cmath>

@@ -9,7 +9,7 @@ gui_forms::Dial
 
 .. cpp:class:: Dial : public RangeControl, public DialCapabilities<Dial>
 
-   ``#include <gui_forms/controls/instruments/dial/dial.hpp>``
+   ``#include <gui_forms/controls/dial.hpp>``
 
    Rotary knob from the instruments package: a RangeControl value set by turning, dragging or the TrackBar keys over a 270-degree scale, a slider to assistive technology.
 

@@ -9,7 +9,7 @@ gui_forms::PlotAnnotationItem
 
 .. cpp:class:: PlotAnnotationItem final : public Control, public PlotAnnotationItemCapabilities<PlotAnnotationItem>
 
-   ``#include <gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp>``
+   ``#include <gui_forms/controls/plot_annotation_item.hpp>``
 
    Item child of a PlotView declaring a text label anchored at a data point.
 

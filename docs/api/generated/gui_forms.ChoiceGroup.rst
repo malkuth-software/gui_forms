@@ -9,7 +9,7 @@ gui_forms::ChoiceGroup
 
 .. cpp:class:: ChoiceGroup final : public Panel, public ChoiceGroupCapabilities<ChoiceGroup>
 
-   ``#include <gui_forms/controls/collections/choice_group.hpp>``
+   ``#include <gui_forms/controls/choice_group.hpp>``
 
    A row of buttons from which the user picks exactly one choice.
 

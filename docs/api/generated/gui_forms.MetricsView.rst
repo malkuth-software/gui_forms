@@ -9,7 +9,7 @@ gui_forms::MetricsView
 
 .. cpp:class:: MetricsView final : public Control, public MetricsViewCapabilities<MetricsView>
 
-   ``#include <gui_forms/controls/metrics_view/metrics_view.hpp>``
+   ``#include <gui_forms/controls/metrics_view.hpp>``
 
    A diagnostic panel that shows the window's runtime counters.
 

@@ -9,7 +9,7 @@ gui_forms::ScrollableControl
 
 .. cpp:class:: ScrollableControl : public Control, public ScrollableControlCapabilities<ScrollableControl>
 
-   ``#include <gui_forms/controls/scrollable_control/scrollable_control.hpp>``
+   ``#include <gui_forms/controls/scrollable_control.hpp>``
 
    The base class for controls whose children scroll inside a viewport.
 

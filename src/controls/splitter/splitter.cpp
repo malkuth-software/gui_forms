@@ -1,4 +1,4 @@
-#include "gui_forms/controls/splitter/splitter.hpp"
+#include "gui_forms/controls/splitter.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"

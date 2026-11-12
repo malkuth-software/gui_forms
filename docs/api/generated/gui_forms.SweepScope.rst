@@ -9,7 +9,7 @@ gui_forms::SweepScope
 
 .. cpp:class:: SweepScope : public RangeControl, public SweepScopeCapabilities<SweepScope>
 
-   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp>``
+   ``#include <gui_forms/controls/sweep_scope.hpp>``
 
    A read-only scope that draws a level as a trace on a graticule.
 

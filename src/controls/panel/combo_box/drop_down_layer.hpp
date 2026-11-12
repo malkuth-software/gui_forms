@@ -1,9 +1,9 @@
 #pragma once
 
-#include "gui_forms/controls/panel/panel.hpp"
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
-#include "gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp"
-#include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/auto_complete.hpp"
+#include "gui_forms/controls/scroll_bar.hpp"
 
 #include <cstddef>
 #include <span>

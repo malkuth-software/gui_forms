@@ -14,7 +14,7 @@
 #include "../registry/abi_registry.hpp"
 #include "../windows/abi_window_handle.hpp"
 
-#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
+#include "gui_forms/controls/help_book_system.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/window.hpp"

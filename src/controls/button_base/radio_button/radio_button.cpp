@@ -1,4 +1,4 @@
-#include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
+#include "gui_forms/controls/radio_button.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "../choice_indicator_property.hpp"
 #include "gui_forms/text.hpp"

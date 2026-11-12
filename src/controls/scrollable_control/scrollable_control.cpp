@@ -1,4 +1,4 @@
-#include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "scrolling_utilities.hpp"
 #include "scrollable_anatomy.hpp"

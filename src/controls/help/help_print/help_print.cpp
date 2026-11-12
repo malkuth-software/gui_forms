@@ -1,4 +1,4 @@
-#include "gui_forms/controls/help/help_print/help_print.hpp"
+#include "gui_forms/controls/help_print.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 

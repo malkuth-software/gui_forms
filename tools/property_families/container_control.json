@@ -2,9 +2,9 @@
   "family": "ContainerControl",
   "step": "M-S8",
   "declaring": "ContainerControl",
-  "header": "include/gui_forms/controls/scrollable_control/container_control/container_control.hpp",
+  "header": "include/gui_forms/controls/container_control.hpp",
   "source": "src/controls/scrollable_control/container_control/container_control.cpp",
-  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/container_control_capabilities/container_control_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/container_control_capabilities.hpp",
   "base": "ScrollableControl",
   "shared": [],
   "includes": [
@@ -12,7 +12,7 @@
   ],
   "test": {
     "type": "ContainerControl",
-    "include": "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+    "include": "gui_forms/controls/container_control.hpp"
   },
   "properties": [
     {

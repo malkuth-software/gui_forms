@@ -9,7 +9,7 @@ gui_forms::RibbonFontControl
 
 .. cpp:class:: RibbonFontControl final : public Control, public RibbonFontControlCapabilities<RibbonFontControl>
 
-   ``#include <gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp>``
+   ``#include <gui_forms/controls/ribbon_font_control.hpp>``
 
    A ribbon font control: a family list and a size list choosing one font.
 

@@ -2,15 +2,15 @@
   "family": "PageStrip",
   "step": "M-S8",
   "declaring": "PageStrip",
-  "header": "include/gui_forms/controls/pages/page_strip/page_strip.hpp",
+  "header": "include/gui_forms/controls/page_strip.hpp",
   "source": "src/controls/pages/page_strip/page_strip.cpp",
-  "capabilities_header": "include/gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/page_strip_capabilities.hpp",
   "base": "Control",
   "shared": [
     "FontCapability"
   ],
   "includes": [
-    "gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp",
+    "gui_forms/controls/page_strip_values.hpp",
     "gui_forms/image_list.hpp",
     "gui_forms/theme/owner_draw/owner_draw.hpp",
     "gui_forms/types.hpp",
@@ -18,7 +18,7 @@
   ],
   "test": {
     "type": "PageStrip",
-    "include": "gui_forms/controls/pages/page_strip/page_strip.hpp",
+    "include": "gui_forms/controls/page_strip.hpp",
     "setup": [
       "PageSet pages{};"
     ],
