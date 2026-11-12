@@ -171,6 +171,35 @@ AREA_TO_CATEGORY: dict[str, str] = {
     "visual_inspection": "Diagnostics",
 }
 
+# The flat controls directory (audit F2): every control header is
+# include/gui_forms/controls/<name>.hpp. A header there that a registry
+# record does not name belongs to the control whose header stem is the
+# longest prefix of its own (card_capabilities.hpp to card.hpp); the support
+# headers below share no stem with their control and are listed.
+CONTROLS_DIRECTORY: str = "include/gui_forms/controls"
+HEADER_TO_CATEGORY: dict[str, str] = {
+    # The node canvas's graph model and link router precede NodeCanvas.
+    "include/gui_forms/controls/link_router.hpp": "Drawing",
+    "include/gui_forms/controls/node_graph.hpp": "Drawing",
+    # The help system's printing sits beside its controls.
+    "include/gui_forms/controls/help_print.hpp": "Information display",
+    # The stock specimens (one per anatomy, for captures and the theme
+    # editor's palette) are a catalogue, not a control.
+    "include/gui_forms/controls/stock_specimens.hpp": "Diagnostics",
+    "include/gui_forms/controls/notice_values.hpp": "Information display",
+    "include/gui_forms/controls/plot_values.hpp": "Information display",
+    "include/gui_forms/controls/anchored_overlay_placement.hpp": "Dialogs and overlays",
+    "include/gui_forms/controls/border_style.hpp": "Grouping",
+    "include/gui_forms/controls/text_items_capability.hpp": "Grouping",
+    "include/gui_forms/controls/date_time_format_provider.hpp": "Date setting",
+    "include/gui_forms/controls/date_time_value.hpp": "Date setting",
+    "include/gui_forms/controls/calendar_values.hpp": "Date setting",
+    "include/gui_forms/controls/masked_text_provider.hpp": "Text editing",
+    "include/gui_forms/controls/auto_complete.hpp": "Text editing",
+    "include/gui_forms/controls/text_decorations.hpp": "Text editing",
+    "include/gui_forms/controls/scroll_properties.hpp": "Scrolling",
+}
+
 # Control-family directories whose headers precede their registered control
 # (the node canvas's graph model and link router arrive before NodeCanvas
 # itself); remove an entry once the directory's control is registered.
@@ -289,7 +318,13 @@ def page_resolver(registry: list[dict]):
              for entry in registry}
     control_dirs = sorted(
         {(posixpath.dirname("include/" + entry["header"]), entry["category"])
-         for entry in registry},
+         for entry in registry
+         if posixpath.dirname("include/" + entry["header"]) != CONTROLS_DIRECTORY},
+        key=lambda item: (-len(item[0]), item[0], item[1]))
+    control_stems = sorted(
+        {(posixpath.basename(entry["header"])[:-len(".hpp")], entry["category"])
+         for entry in registry
+         if posixpath.dirname("include/" + entry["header"]) == CONTROLS_DIRECTORY},
         key=lambda item: (-len(item[0]), item[0], item[1]))
     area_groups = {area: group.slug for group in LIBRARY_GROUPS for area in group.areas}
 
@@ -297,6 +332,13 @@ def page_resolver(registry: list[dict]):
         if (name, header) in exact:
             return category_slug(exact[(name, header)])
         directory = posixpath.dirname(header)
+        if directory == CONTROLS_DIRECTORY:
+            stem = posixpath.basename(header)[:-len(".hpp")]
+            for control_stem, category in control_stems:
+                if stem == control_stem or stem.startswith(control_stem + "_"):
+                    return category_slug(category)
+            if header in HEADER_TO_CATEGORY:
+                return category_slug(HEADER_TO_CATEGORY[header])
         for control_dir, category in control_dirs:
             if directory == control_dir or directory.startswith(control_dir + "/"):
                 return category_slug(category)

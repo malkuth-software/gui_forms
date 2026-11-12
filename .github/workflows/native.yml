@@ -122,6 +122,7 @@ jobs:
           # Theme variants stage B: the colour relocation instrument.
           python3 -B -m unittest discover -s tools -p test_relocate_colours.py
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py
+          python3 -B -m unittest discover -s tools -p test_flatten_control_headers.py
           python3 tools/generate_library_docs.py --check
           python3 -B ../template_harness/harness/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz
           python3 -B -m unittest discover -s tools -p test_ci_build.py
